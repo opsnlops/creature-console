@@ -9,9 +9,20 @@ import SwiftUI
 
 @main
 struct Creature_ConsoleApp: App {
+    
+    init() {
+            do {
+                try CreatureServerClient.shared.connect(serverHostname: "10.3.2.11", serverPort: 6666)
+            } catch {
+                print("Error opening connections: \(error)")
+                // Handle error as appropriate for your app
+            }
+        }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(CreatureServerClient.shared)
         }
     }
 }

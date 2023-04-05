@@ -11,6 +11,17 @@
 		11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* ContentView.swift */; };
 		11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
 		11703D9429DD198000EF7E3D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D9329DD198000EF7E3D /* Preview Assets.xcassets */; };
+		11E7CD7029DD1A000029D031 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD6E29DD1A000029D031 /* server.grpc.swift */; };
+		11E7CD7129DD1A000029D031 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD6F29DD1A000029D031 /* server.pb.swift */; };
+		11E7CD7329DD1A460029D031 /* gRPC Client Test.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD7229DD1A460029D031 /* gRPC Client Test.swift */; };
+		11E7CD7629DD1A870029D031 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7529DD1A870029D031 /* SwiftProtobuf */; };
+		11E7CD7829DD1A870029D031 /* protoc-gen-swift in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7729DD1A870029D031 /* protoc-gen-swift */; };
+		11E7CD7B29DD1AB10029D031 /* CGRPCZlib in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7A29DD1AB10029D031 /* CGRPCZlib */; };
+		11E7CD7D29DD1AB10029D031 /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7C29DD1AB10029D031 /* GRPC */; };
+		11E7CD7F29DD1AB10029D031 /* protoc-gen-grpc-swift in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7E29DD1AB10029D031 /* protoc-gen-grpc-swift */; };
+		11E7CD8229DD1ACF0029D031 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD8129DD1ACF0029D031 /* ArgumentParser */; };
+		11E7CD8429DD1ACF0029D031 /* generate-manual in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD8329DD1ACF0029D031 /* generate-manual */; };
+		11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +31,10 @@
 		11703D8F29DD198000EF7E3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		11703D9129DD198000EF7E3D /* Creature_Console.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11703D9329DD198000EF7E3D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		11E7CD6E29DD1A000029D031 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = server.grpc.swift; path = Model/server.grpc.swift; sourceTree = "<group>"; };
+		11E7CD6F29DD1A000029D031 /* server.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = server.pb.swift; path = Model/server.pb.swift; sourceTree = "<group>"; };
+		11E7CD7229DD1A460029D031 /* gRPC Client Test.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "gRPC Client Test.swift"; sourceTree = "<group>"; };
+		11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -27,6 +42,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				11E7CD8229DD1ACF0029D031 /* ArgumentParser in Frameworks */,
+				11E7CD7D29DD1AB10029D031 /* GRPC in Frameworks */,
+				11E7CD7829DD1A870029D031 /* protoc-gen-swift in Frameworks */,
+				11E7CD7629DD1A870029D031 /* SwiftProtobuf in Frameworks */,
+				11E7CD8429DD1ACF0029D031 /* generate-manual in Frameworks */,
+				11E7CD7B29DD1AB10029D031 /* CGRPCZlib in Frameworks */,
+				11E7CD7F29DD1AB10029D031 /* protoc-gen-grpc-swift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -52,11 +74,15 @@
 		11703D8A29DD197F00EF7E3D /* Creature Console */ = {
 			isa = PBXGroup;
 			children = (
+				11E7CD6E29DD1A000029D031 /* server.grpc.swift */,
+				11E7CD6F29DD1A000029D031 /* server.pb.swift */,
 				11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */,
 				11703D8D29DD197F00EF7E3D /* ContentView.swift */,
 				11703D8F29DD198000EF7E3D /* Assets.xcassets */,
 				11703D9129DD198000EF7E3D /* Creature_Console.entitlements */,
 				11703D9229DD198000EF7E3D /* Preview Content */,
+				11E7CD7229DD1A460029D031 /* gRPC Client Test.swift */,
+				11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */,
 			);
 			path = "Creature Console";
 			sourceTree = "<group>";
@@ -85,6 +111,15 @@
 			dependencies = (
 			);
 			name = "Creature Console";
+			packageProductDependencies = (
+				11E7CD7529DD1A870029D031 /* SwiftProtobuf */,
+				11E7CD7729DD1A870029D031 /* protoc-gen-swift */,
+				11E7CD7A29DD1AB10029D031 /* CGRPCZlib */,
+				11E7CD7C29DD1AB10029D031 /* GRPC */,
+				11E7CD7E29DD1AB10029D031 /* protoc-gen-grpc-swift */,
+				11E7CD8129DD1ACF0029D031 /* ArgumentParser */,
+				11E7CD8329DD1ACF0029D031 /* generate-manual */,
+			);
 			productName = "Creature Console";
 			productReference = 11703D8829DD197F00EF7E3D /* Creature Console.app */;
 			productType = "com.apple.product-type.application";
@@ -113,6 +148,11 @@
 				Base,
 			);
 			mainGroup = 11703D7F29DD197F00EF7E3D;
+			packageReferences = (
+				11E7CD7429DD1A870029D031 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
+				11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */,
+				11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
+			);
 			productRefGroup = 11703D8929DD197F00EF7E3D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -140,6 +180,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */,
+				11E7CD7329DD1A460029D031 /* gRPC Client Test.swift in Sources */,
+				11E7CD7129DD1A000029D031 /* server.pb.swift in Sources */,
+				11E7CD7029DD1A000029D031 /* server.grpc.swift in Sources */,
+				11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -354,6 +398,71 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		11E7CD7429DD1A870029D031 /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-protobuf.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/grpc/grpc-swift";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		11E7CD7529DD1A870029D031 /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11E7CD7429DD1A870029D031 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+		11E7CD7729DD1A870029D031 /* protoc-gen-swift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11E7CD7429DD1A870029D031 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = "protoc-gen-swift";
+		};
+		11E7CD7A29DD1AB10029D031 /* CGRPCZlib */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = CGRPCZlib;
+		};
+		11E7CD7C29DD1AB10029D031 /* GRPC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = GRPC;
+		};
+		11E7CD7E29DD1AB10029D031 /* protoc-gen-grpc-swift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = "protoc-gen-grpc-swift";
+		};
+		11E7CD8129DD1ACF0029D031 /* ArgumentParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
+			productName = ArgumentParser;
+		};
+		11E7CD8329DD1ACF0029D031 /* generate-manual */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
+			productName = "generate-manual";
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 11703D8029DD197F00EF7E3D /* Project object */;
 }
