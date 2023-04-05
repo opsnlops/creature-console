@@ -20,7 +20,7 @@ import NIOCore
 import NIOPosix
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
-struct ClientTest: AsyncParsableCommand {
+struct CreatureCLI: AsyncParsableCommand {
   @Option(help: "The port to connect to")
   var port: Int = 6666
 
@@ -68,7 +68,7 @@ struct ClientTest: AsyncParsableCommand {
 }
 #else
 @main
-enum ClientTest {
+enum CreatureCLI {
   static func main() {
     fatalError("This example requires swift >= 5.6")
   }
