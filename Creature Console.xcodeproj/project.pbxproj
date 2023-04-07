@@ -7,8 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1142E65029DFAF1500B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E64E29DFAF1500B795F0 /* server.grpc.swift */; };
-		1142E65129DFAF1500B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E64F29DFAF1500B795F0 /* server.pb.swift */; };
+		1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
+		1142E65829DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
+		1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65629DFB08A00B795F0 /* server.pb.swift */; };
+		1142E65A29DFB08A00B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65629DFB08A00B795F0 /* server.pb.swift */; };
+		1142E65B29DFB0E800B795F0 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */; };
 		115DADA129DF95890021C4E0 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* Joystick.swift */; };
 		11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */; };
 		11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* ContentView.swift */; };
@@ -41,8 +44,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		1142E64E29DFAF1500B795F0 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = server.grpc.swift; path = Messaging/server.grpc.swift; sourceTree = "<group>"; };
-		1142E64F29DFAF1500B795F0 /* server.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = server.pb.swift; path = Messaging/server.pb.swift; sourceTree = "<group>"; };
+		1142E65529DFB08A00B795F0 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.grpc.swift; sourceTree = "<group>"; };
+		1142E65629DFB08A00B795F0 /* server.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.pb.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* Joystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Joystick.swift; sourceTree = "<group>"; };
 		11703D8829DD197F00EF7E3D /* Creature Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -84,9 +87,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1142E65429DFB02600B795F0 /* Messaging */ = {
+			isa = PBXGroup;
+			children = (
+				11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */,
+				1142E65529DFB08A00B795F0 /* server.grpc.swift */,
+				1142E65629DFB08A00B795F0 /* server.pb.swift */,
+			);
+			path = Messaging;
+			sourceTree = "<group>";
+		};
 		11703D7F29DD197F00EF7E3D = {
 			isa = PBXGroup;
 			children = (
+				1142E65429DFB02600B795F0 /* Messaging */,
 				11703D8A29DD197F00EF7E3D /* Creature Console */,
 				11C326D629DD41E900B169CD /* CreatureCLI */,
 				11703D8929DD197F00EF7E3D /* Products */,
@@ -112,9 +126,6 @@
 				11703D8F29DD198000EF7E3D /* Assets.xcassets */,
 				11703D9129DD198000EF7E3D /* Creature_Console.entitlements */,
 				11703D9229DD198000EF7E3D /* Preview Content */,
-				11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */,
-				1142E64E29DFAF1500B795F0 /* server.grpc.swift */,
-				1142E64F29DFAF1500B795F0 /* server.pb.swift */,
 				11C326CF29DD3FED00B169CD /* Credits.rtf */,
 				115DADA029DF95890021C4E0 /* Joystick.swift */,
 			);
@@ -255,10 +266,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */,
-				1142E65129DFAF1500B795F0 /* server.pb.swift in Sources */,
+				1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */,
 				115DADA129DF95890021C4E0 /* Joystick.swift in Sources */,
 				11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */,
-				1142E65029DFAF1500B795F0 /* server.grpc.swift in Sources */,
+				1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -268,6 +279,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				11C326D829DD41E900B169CD /* main.swift in Sources */,
+				1142E65A29DFB08A00B795F0 /* server.pb.swift in Sources */,
+				1142E65B29DFB0E800B795F0 /* CreatureServerClient.swift in Sources */,
+				1142E65829DFB08A00B795F0 /* server.grpc.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
