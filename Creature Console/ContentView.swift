@@ -50,22 +50,32 @@ struct ContentView: View {
     @EnvironmentObject var client: CreatureServerClient
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
+    @ObservedObject private var creature: Creature
     
     let logger = Logger(label: "ContentView")
     
     init() {
         setupController()
+        creature = .mock()
     }
     
     var body: some View {
         VStack {
+            
+    
+            CreatureDetail(creature: creature)
             Button("Do it!") {
                 Task {
                 
                     logger.debug("Trying to talk to  \(client.getHostname())")
                     do {
-                        let creature = try await client.getCreature(creatureName: "Beaky3")
-                        print("number of motors: \(creature.numberOfMotors)")
+                        let serverCreature : Server_Creature? = try await client.getCreature(creatureName: "Beaky3")
+                        
+                        // If we got somethign back, update the view
+                        if let s = serverCreature {
+                            creature.updateFromServerCreature(serverCreature: s)
+                        }
+                        
                     }
                     catch {
                         logger.critical("\( error.localizedDescription)")

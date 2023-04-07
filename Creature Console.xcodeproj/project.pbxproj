@@ -12,6 +12,11 @@
 		1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65629DFB08A00B795F0 /* server.pb.swift */; };
 		1142E65A29DFB08A00B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65629DFB08A00B795F0 /* server.pb.swift */; };
 		1142E65B29DFB0E800B795F0 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */; };
+		1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
+		1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
+		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
+		1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
+		1142E66529DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
 		115DADA129DF95890021C4E0 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* Joystick.swift */; };
 		11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */; };
 		11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* ContentView.swift */; };
@@ -46,6 +51,9 @@
 /* Begin PBXFileReference section */
 		1142E65529DFB08A00B795F0 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.grpc.swift; sourceTree = "<group>"; };
 		1142E65629DFB08A00B795F0 /* server.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.pb.swift; sourceTree = "<group>"; };
+		1142E65D29DFB1A900B795F0 /* Creature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature.swift; sourceTree = "<group>"; };
+		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
+		1142E66329DFC00700B795F0 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* Joystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Joystick.swift; sourceTree = "<group>"; };
 		11703D8829DD197F00EF7E3D /* Creature Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -97,6 +105,22 @@
 			path = Messaging;
 			sourceTree = "<group>";
 		};
+		1142E65C29DFB19700B795F0 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				1142E65D29DFB1A900B795F0 /* Creature.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		1142E66029DFB21000B795F0 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				1142E66129DFB22300B795F0 /* CreatureDetail.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
 		11703D7F29DD197F00EF7E3D = {
 			isa = PBXGroup;
 			children = (
@@ -120,6 +144,8 @@
 		11703D8A29DD197F00EF7E3D /* Creature Console */ = {
 			isa = PBXGroup;
 			children = (
+				1142E66029DFB21000B795F0 /* View */,
+				1142E65C29DFB19700B795F0 /* Model */,
 				115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */,
 				11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */,
 				11703D8D29DD197F00EF7E3D /* ContentView.swift */,
@@ -128,6 +154,7 @@
 				11703D9229DD198000EF7E3D /* Preview Content */,
 				11C326CF29DD3FED00B169CD /* Credits.rtf */,
 				115DADA029DF95890021C4E0 /* Joystick.swift */,
+				1142E66329DFC00700B795F0 /* TimeHelper.swift */,
 			);
 			path = "Creature Console";
 			sourceTree = "<group>";
@@ -267,8 +294,11 @@
 			files = (
 				11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */,
 				1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */,
+				1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				115DADA129DF95890021C4E0 /* Joystick.swift in Sources */,
+				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */,
+				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
 				1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */,
 			);
@@ -280,7 +310,9 @@
 			files = (
 				11C326D829DD41E900B169CD /* main.swift in Sources */,
 				1142E65A29DFB08A00B795F0 /* server.pb.swift in Sources */,
+				1142E66529DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				1142E65B29DFB0E800B795F0 /* CreatureServerClient.swift in Sources */,
+				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
 				1142E65829DFB08A00B795F0 /* server.grpc.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
