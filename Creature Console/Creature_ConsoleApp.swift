@@ -15,7 +15,6 @@ struct Creature_ConsoleApp: App {
                 try CreatureServerClient.shared.connect(serverHostname: "10.3.2.11", serverPort: 6666)
             } catch {
                 print("Error opening connections: \(error)")
-                // Handle error as appropriate for your app
             }
         }
     

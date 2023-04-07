@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1142E65029DFAF1500B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E64E29DFAF1500B795F0 /* server.grpc.swift */; };
+		1142E65129DFAF1500B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E64F29DFAF1500B795F0 /* server.pb.swift */; };
+		115DADA129DF95890021C4E0 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* Joystick.swift */; };
 		11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */; };
 		11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* ContentView.swift */; };
 		11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
@@ -18,17 +21,11 @@
 		11E7CD7B29DD1AB10029D031 /* CGRPCZlib in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7A29DD1AB10029D031 /* CGRPCZlib */; };
 		11E7CD7D29DD1AB10029D031 /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7C29DD1AB10029D031 /* GRPC */; };
 		11E7CD7F29DD1AB10029D031 /* protoc-gen-grpc-swift in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7E29DD1AB10029D031 /* protoc-gen-grpc-swift */; };
-		11E7CD8229DD1ACF0029D031 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD8129DD1ACF0029D031 /* ArgumentParser */; };
-		11E7CD8429DD1ACF0029D031 /* generate-manual in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD8329DD1ACF0029D031 /* generate-manual */; };
 		11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */; };
 		11F1757229DD42D800ADD5FB /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757129DD42D800ADD5FB /* SwiftProtobuf */; };
 		11F1757429DD42D800ADD5FB /* CGRPCZlib in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757329DD42D800ADD5FB /* CGRPCZlib */; };
 		11F1757629DD42D800ADD5FB /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757529DD42D800ADD5FB /* GRPC */; };
 		11F1757829DD42D800ADD5FB /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757729DD42D800ADD5FB /* ArgumentParser */; };
-		11F1758329DD43B200ADD5FB /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD6F29DD1A000029D031 /* server.pb.swift */; };
-		11F1758429DD43B200ADD5FB /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD6E29DD1A000029D031 /* server.grpc.swift */; };
-		11F1758529DD43B400ADD5FB /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD6E29DD1A000029D031 /* server.grpc.swift */; };
-		11F1758629DD43B900ADD5FB /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD6F29DD1A000029D031 /* server.pb.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -44,6 +41,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1142E64E29DFAF1500B795F0 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = server.grpc.swift; path = Messaging/server.grpc.swift; sourceTree = "<group>"; };
+		1142E64F29DFAF1500B795F0 /* server.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = server.pb.swift; path = Messaging/server.pb.swift; sourceTree = "<group>"; };
+		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
+		115DADA029DF95890021C4E0 /* Joystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Joystick.swift; sourceTree = "<group>"; };
 		11703D8829DD197F00EF7E3D /* Creature Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature_ConsoleApp.swift; sourceTree = "<group>"; };
 		11703D8D29DD197F00EF7E3D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -53,8 +54,6 @@
 		11C326CF29DD3FED00B169CD /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		11C326D529DD41E900B169CD /* CreatureCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CreatureCLI; sourceTree = BUILT_PRODUCTS_DIR; };
 		11C326D729DD41E900B169CD /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		11E7CD6E29DD1A000029D031 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.grpc.swift; sourceTree = "<group>"; };
-		11E7CD6F29DD1A000029D031 /* server.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.pb.swift; sourceTree = "<group>"; };
 		11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -63,11 +62,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				11E7CD8229DD1ACF0029D031 /* ArgumentParser in Frameworks */,
 				11E7CD7D29DD1AB10029D031 /* GRPC in Frameworks */,
 				11E7CD7829DD1A870029D031 /* protoc-gen-swift in Frameworks */,
 				11E7CD7629DD1A870029D031 /* SwiftProtobuf in Frameworks */,
-				11E7CD8429DD1ACF0029D031 /* generate-manual in Frameworks */,
 				11E7CD7B29DD1AB10029D031 /* CGRPCZlib in Frameworks */,
 				11E7CD7F29DD1AB10029D031 /* protoc-gen-grpc-swift in Frameworks */,
 			);
@@ -109,15 +106,17 @@
 		11703D8A29DD197F00EF7E3D /* Creature Console */ = {
 			isa = PBXGroup;
 			children = (
+				115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */,
 				11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */,
-				11E7CD6E29DD1A000029D031 /* server.grpc.swift */,
-				11E7CD6F29DD1A000029D031 /* server.pb.swift */,
 				11703D8D29DD197F00EF7E3D /* ContentView.swift */,
 				11703D8F29DD198000EF7E3D /* Assets.xcassets */,
 				11703D9129DD198000EF7E3D /* Creature_Console.entitlements */,
 				11703D9229DD198000EF7E3D /* Preview Content */,
 				11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */,
+				1142E64E29DFAF1500B795F0 /* server.grpc.swift */,
+				1142E64F29DFAF1500B795F0 /* server.pb.swift */,
 				11C326CF29DD3FED00B169CD /* Credits.rtf */,
+				115DADA029DF95890021C4E0 /* Joystick.swift */,
 			);
 			path = "Creature Console";
 			sourceTree = "<group>";
@@ -167,8 +166,6 @@
 				11E7CD7A29DD1AB10029D031 /* CGRPCZlib */,
 				11E7CD7C29DD1AB10029D031 /* GRPC */,
 				11E7CD7E29DD1AB10029D031 /* protoc-gen-grpc-swift */,
-				11E7CD8129DD1ACF0029D031 /* ArgumentParser */,
-				11E7CD8329DD1ACF0029D031 /* generate-manual */,
 			);
 			productName = "Creature Console";
 			productReference = 11703D8829DD197F00EF7E3D /* Creature Console.app */;
@@ -258,9 +255,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */,
-				11F1758429DD43B200ADD5FB /* server.grpc.swift in Sources */,
-				11F1758329DD43B200ADD5FB /* server.pb.swift in Sources */,
+				1142E65129DFAF1500B795F0 /* server.pb.swift in Sources */,
+				115DADA129DF95890021C4E0 /* Joystick.swift in Sources */,
 				11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */,
+				1142E65029DFAF1500B795F0 /* server.grpc.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -270,8 +268,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				11C326D829DD41E900B169CD /* main.swift in Sources */,
-				11F1758629DD43B900ADD5FB /* server.pb.swift in Sources */,
-				11F1758529DD43B400ADD5FB /* server.grpc.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -400,12 +396,15 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Creature-Console-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -438,12 +437,15 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Creature-Console-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -573,16 +575,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */;
 			productName = "protoc-gen-grpc-swift";
-		};
-		11E7CD8129DD1ACF0029D031 /* ArgumentParser */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
-			productName = ArgumentParser;
-		};
-		11E7CD8329DD1ACF0029D031 /* generate-manual */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
-			productName = "generate-manual";
 		};
 		11F1757129DD42D800ADD5FB /* SwiftProtobuf */ = {
 			isa = XCSwiftPackageProductDependency;

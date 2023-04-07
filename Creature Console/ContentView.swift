@@ -8,6 +8,44 @@
 import SwiftUI
 import Logging
 
+
+
+struct DetailView : View {
+    
+    var body: some View {
+        VStack {
+            Text("Details")
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button(action: {
+                    print("Adding Book")
+                }, label: {
+                    Label("Add Book", systemImage: "plus")
+                })
+            }
+        }
+        .navigationTitle("My Title")
+        #if os(macOS)
+        .navigationSubtitle("My Subtitle")
+        #endif
+    }
+    
+}
+
+struct MenuView : View {
+    
+    var body: some View {
+        VStack {
+            Text("Menu")
+        }
+    }
+    
+}
+
+
+
+
 struct ContentView: View {
     @EnvironmentObject var client: CreatureServerClient
     @State private var showErrorAlert: Bool = false
@@ -15,6 +53,9 @@ struct ContentView: View {
     
     let logger = Logger(label: "ContentView")
     
+    init() {
+        setupController()
+    }
     
     var body: some View {
         VStack {
