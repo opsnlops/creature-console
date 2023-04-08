@@ -13,8 +13,9 @@ import Logging
  
  We need this wrapper so we can make the object observable
  */
-class Creature : ObservableObject {
+class Creature : ObservableObject, Identifiable {
     private let logger = Logger(label: "Creature")
+    let id : Data
     @Published var name : String
     @Published var lastUpdated : Date
     @Published var sacnIP : String
@@ -23,7 +24,8 @@ class Creature : ObservableObject {
     @Published var numberOfMotors : UInt32
     @Published var motors : [Motor]
 
-    init(name: String, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
+    init(id: Data, name: String, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
+        self.id = id
         self.name = name
         self.lastUpdated = lastUpdated
         self.sacnIP = sacnIP
@@ -34,8 +36,16 @@ class Creature : ObservableObject {
         logger.debug("Created a new Creature from init()")
     }
     
+    // Helper that generates a new ID if needed
+    convenience init(name: String, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
+        let id = DataHelper.generateRandomData(byteCount: 12)
+        self.init(id: id, name: name, lastUpdated: lastUpdated, sacnIP: sacnIP, universe: universe, dmxBase: dmxBase, numberOfMotors: numberOfMotors)
+    }
+    
+    // Creates a new instance from a ProtoBuf object
     convenience init(serverCreature: Server_Creature) {
-        self.init(name: serverCreature.name,
+        self.init(id: serverCreature.id,
+                  name: serverCreature.name,
                   lastUpdated: TimeHelper.timestampToDate(timestamp: serverCreature.lastUpdated),
                   sacnIP: serverCreature.sacnIp,
                   universe: serverCreature.universe,
@@ -99,20 +109,26 @@ class Creature : ObservableObject {
     
     
     struct Motor : Identifiable {
-        var id : UInt32 = 0     // TODO: This isn't awesome
+        let id : Data
         var type : MotorType = MotorType.servo
         var number : UInt32 = 0
         var maxValue : UInt32 = 0
         var minValue : UInt32 = 0
         var smoothingValue : Double = 0.0
         
-        init(type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
+        init(id: Data, type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
+            self.id = id
             self.type = type
             self.number = number
-            self.id = number
             self.maxValue = maxValue
             self.minValue = minValue
             self.smoothingValue = smoothingValue
+        }
+        
+        // Little hepler that generates a random ID
+        init(type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
+            let id = DataHelper.generateRandomData(byteCount: 12)
+            self.init(id: id, type: type, number: number, maxValue: maxValue, minValue: minValue, smoothingValue: smoothingValue)
         }
     }
     
@@ -120,12 +136,13 @@ class Creature : ObservableObject {
 
 extension Creature {
     static func mock() -> Creature {
-        let creature = Creature(name: "MockCreature",
-        lastUpdated: Date(),
-        sacnIP: "1.2.3.4",
-        universe: 666,
-        dmxBase: 7,
-        numberOfMotors: 12)
+        let creature = Creature(id: DataHelper.generateRandomData(byteCount: 12),
+            name: "MockCreature",
+            lastUpdated: Date(),
+            sacnIP: "1.2.3.4",
+            universe: 666,
+            dmxBase: 7,
+            numberOfMotors: 12)
         
         for i in 0..<12 {
             let motor = Motor(type: .servo, number: UInt32(i), maxValue: 1024, minValue: 256, smoothingValue: 0.95)
