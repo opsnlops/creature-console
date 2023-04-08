@@ -10,41 +10,6 @@ import Logging
 
 
 
-struct DetailView : View {
-    
-    var body: some View {
-        VStack {
-            Text("Details")
-        }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button(action: {
-                    print("Adding Book")
-                }, label: {
-                    Label("Add Book", systemImage: "plus")
-                })
-            }
-        }
-        .navigationTitle("My Title")
-        #if os(macOS)
-        .navigationSubtitle("My Subtitle")
-        #endif
-    }
-    
-}
-
-struct MenuView : View {
-    
-    var body: some View {
-        VStack {
-            Text("Menu")
-        }
-    }
-    
-}
-
-
-
 
 struct ContentView: View {
     @EnvironmentObject var client: CreatureServerClient
@@ -60,39 +25,44 @@ struct ContentView: View {
     }
     
     var body: some View {
-        VStack {
+        
+        NavigationSplitView {
+            Text("Hello")
+        } detail: {
             
-    
-            CreatureDetail(creature: creature)
-            Button("Do it!") {
-                Task {
+            VStack {
                 
-                    logger.debug("Trying to talk to  \(client.getHostname())")
-                    do {
-                        let serverCreature : Server_Creature? = try await client.searchCreatures(creatureName: "Beaky1")
+                CreatureDetail(creature: creature)
+                Button("Do it!") {
+                    Task {
                         
-                        // If we got somethign back, update the view
-                        if let s = serverCreature {
-                            creature.updateFromServerCreature(serverCreature: s)
+                        logger.debug("Trying to talk to  \(client.getHostname())")
+                        do {
+                            let serverCreature : Server_Creature? = try await client.searchCreatures(creatureName: "Beaky1")
+                            
+                            // If we got somethign back, update the view
+                            if let s = serverCreature {
+                                creature.updateFromServerCreature(serverCreature: s)
+                            }
+                            
                         }
-                        
-                    }
-                    catch {
-                        logger.critical("\( error.localizedDescription)")
-                        showErrorAlert = true
-                        errorMessage = error.localizedDescription
+                        catch {
+                            logger.critical("\( error.localizedDescription)")
+                            showErrorAlert = true
+                            errorMessage = error.localizedDescription
+                        }
                     }
                 }
+                .alert(isPresented: $showErrorAlert) {
+                    Alert(
+                        title: Text("Oooooh Shit"),
+                        message: Text(errorMessage),
+                        dismissButton: .default(Text("Fuck"))
+                    )
+                }
             }
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text("Oooooh Shit"),
-                    message: Text(errorMessage),
-                    dismissButton: .default(Text("Fuck"))
-                )
-            }
+            .padding()
         }
-        .padding()
     }
 }
 

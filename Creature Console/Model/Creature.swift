@@ -8,6 +8,49 @@
 import Foundation
 import Logging
 
+
+enum MotorType : Int, CustomStringConvertible {
+  case servo = 0
+  case stepper = 1
+    
+    var description: String {
+        switch self {
+        case .servo:
+            return "Servo"
+        case .stepper:
+            return "Stepper"
+        }
+    }
+
+}
+
+struct Motor : Identifiable {
+    let id : Data
+    var name : String
+    var type : MotorType = MotorType.servo
+    var number : UInt32 = 0
+    var maxValue : UInt32 = 0
+    var minValue : UInt32 = 0
+    var smoothingValue : Double = 0.0
+    
+    init(id: Data, name: String, type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
+        self.id = id
+        self.name = name
+        self.type = type
+        self.number = number
+        self.maxValue = maxValue
+        self.minValue = minValue
+        self.smoothingValue = smoothingValue
+    }
+    
+    // Little hepler that generates a random ID
+    init(name: String, type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
+        let id = DataHelper.generateRandomData(byteCount: 12)
+        self.init(id: id, name: name, type: type, number: number, maxValue: maxValue, minValue: minValue, smoothingValue: smoothingValue)
+    }
+}
+
+
 /**
  This is a localized view of a Creature
  
@@ -74,7 +117,8 @@ class Creature : ObservableObject, Identifiable {
     }
     
     func motorFromServerCreatureMotor(motor: Server_Creature.Motor) -> Motor {
-        var newMotor = Motor(type: MotorType.servo,
+        var newMotor = Motor(name: motor.name,
+                             type: MotorType.servo,
                              number: motor.number,
                              maxValue: motor.maxValue,
                              minValue: motor.minValue,
@@ -91,47 +135,6 @@ class Creature : ObservableObject, Identifiable {
         motors.append(newMotor)
     }
     
-    
-    enum MotorType : Int, CustomStringConvertible {
-      case servo = 0
-      case stepper = 1
-        
-        var description: String {
-            switch self {
-            case .servo:
-                return "Servo"
-            case .stepper:
-                return "Stepper"
-            }
-        }
-
-    }
-    
-    
-    struct Motor : Identifiable {
-        let id : Data
-        var type : MotorType = MotorType.servo
-        var number : UInt32 = 0
-        var maxValue : UInt32 = 0
-        var minValue : UInt32 = 0
-        var smoothingValue : Double = 0.0
-        
-        init(id: Data, type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
-            self.id = id
-            self.type = type
-            self.number = number
-            self.maxValue = maxValue
-            self.minValue = minValue
-            self.smoothingValue = smoothingValue
-        }
-        
-        // Little hepler that generates a random ID
-        init(type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
-            let id = DataHelper.generateRandomData(byteCount: 12)
-            self.init(id: id, type: type, number: number, maxValue: maxValue, minValue: minValue, smoothingValue: smoothingValue)
-        }
-    }
-    
 }
 
 extension Creature {
@@ -145,7 +148,12 @@ extension Creature {
             numberOfMotors: 12)
         
         for i in 0..<12 {
-            let motor = Motor(type: .servo, number: UInt32(i), maxValue: 1024, minValue: 256, smoothingValue: 0.95)
+            let motor = Motor(name: "Motor \(i+1) 🌈",
+                              type: .servo,
+                              number: UInt32(i),
+                              maxValue: 1024,
+                              minValue: 256,
+                              smoothingValue: 0.95)
             creature.addMotor(newMotor: motor)
         }
         
