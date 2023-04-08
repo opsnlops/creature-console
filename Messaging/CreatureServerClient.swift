@@ -60,15 +60,15 @@ class CreatureServerClient : ObservableObject {
         return self.serverHostname
     }
     
-    func getCreature(creatureName: String) async throws -> Server_Creature {
+    func searchCreatures(creatureName: String) async throws -> Server_Creature {
         
         logger.debug("attempting to fetch \(creatureName)")
         
         var name = Server_CreatureName()
         name.name = creatureName
         
-        logger.debug("calling getCreature() now")
-        let creature = try await server?.getCreature(name) ?? Server_Creature()
+        logger.debug("calling searchCreatures() now")
+        let creature = try await server?.searchCreatures(name) ?? Server_Creature()
         
         return creature
     }

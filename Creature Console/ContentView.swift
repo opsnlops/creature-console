@@ -69,7 +69,7 @@ struct ContentView: View {
                 
                     logger.debug("Trying to talk to  \(client.getHostname())")
                     do {
-                        let serverCreature : Server_Creature? = try await client.getCreature(creatureName: "Beaky3")
+                        let serverCreature : Server_Creature? = try await client.searchCreatures(creatureName: "Beaky1")
                         
                         // If we got somethign back, update the view
                         if let s = serverCreature {
