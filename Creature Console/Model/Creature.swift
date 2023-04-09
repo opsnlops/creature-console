@@ -38,7 +38,7 @@ class CreatureIdentifier : ObservableObject, Identifiable, CustomStringConvertib
     }
 }
 
-struct Motor : Identifiable {
+struct Motor : Identifiable, Hashable, Equatable {
     let id : Data
     var name : String
     var type : MotorType = MotorType.servo
@@ -62,6 +62,28 @@ struct Motor : Identifiable {
         let id = DataHelper.generateRandomData(byteCount: 12)
         self.init(id: id, name: name, type: type, number: number, maxValue: maxValue, minValue: minValue, smoothingValue: smoothingValue)
     }
+    
+    // Implement the hash(into:) function
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(name)
+        hasher.combine(type)
+        hasher.combine(number)
+        hasher.combine(maxValue)
+        hasher.combine(minValue)
+        hasher.combine(smoothingValue)
+    }
+
+    // Implement the == operator
+    static func ==(lhs: Motor, rhs: Motor) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.name == rhs.name &&
+               lhs.type == rhs.type &&
+               lhs.number == rhs.number &&
+               lhs.maxValue == rhs.maxValue &&
+               lhs.minValue == rhs.minValue &&
+               lhs.smoothingValue == rhs.smoothingValue
+    }
 }
 
 
@@ -70,9 +92,9 @@ struct Motor : Identifiable {
  
  We need this wrapper so we can make the object observable
  */
-class Creature : ObservableObject, Identifiable {
+class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     private let logger = Logger(label: "Creature")
-    let id : Data
+    var id : Data
     @Published var name : String
     @Published var lastUpdated : Date
     @Published var sacnIP : String
@@ -115,6 +137,32 @@ class Creature : ObservableObject, Identifiable {
         }
         
         logger.debug("Created a new Creature from the Server_Creature convenience init-er")
+    }
+    
+    // hash(into:) function
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(name)
+        hasher.combine(lastUpdated)
+        hasher.combine(sacnIP)
+        hasher.combine(universe)
+        hasher.combine(dmxBase)
+        hasher.combine(numberOfMotors)
+        hasher.combine(motors)
+        hasher.combine(realData)
+    }
+
+    // The == operator
+    static func ==(lhs: Creature, rhs: Creature) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.name == rhs.name &&
+               lhs.lastUpdated == rhs.lastUpdated &&
+               lhs.sacnIP == rhs.sacnIP &&
+               lhs.universe == rhs.universe &&
+               lhs.dmxBase == rhs.dmxBase &&
+               lhs.numberOfMotors == rhs.numberOfMotors &&
+               lhs.motors == rhs.motors &&
+               lhs.realData == rhs.realData
     }
     
     func updateFromServerCreature(serverCreature: Server_Creature) {

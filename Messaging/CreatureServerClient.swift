@@ -116,5 +116,30 @@ class CreatureServerClient : ObservableObject {
         return creatures
         
     }
+    
+    func getAllCreatures() async throws -> [Server_Creature] {
+        
+        logger.info("attempting to get all of the creatures from the server")
+        
+        var creatures : [Server_Creature]
+        creatures = []
+        
+        // Default to sorting by name.
+        var filter : Server_CreatureFilter
+        filter = Server_CreatureFilter()
+        filter.sortBy = Server_SortBy.name
+        
+        // Try, or return an empty response
+        let list = try await server?.getAllCreatures(filter) ?? Server_GetAllCreaturesResponse()
+        
+        for c in list.creatures {
+            creatures.append(c)
+            logger.debug("found creature \(c.name)")
+        }
+        
+        logger.debug("total creatures found: \(creatures.count)")
+        return creatures
+        
+    }
         
 }

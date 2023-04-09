@@ -21,12 +21,12 @@ struct Sidebar: View {
     var body: some View {
         Group {
             if !creatureList.empty {
-                List(creatureList.ids, id: \.id) {
+                List(creatureList.creatures, id: \.id) {
                     creature in
                     NavigationLink(creature.name, value: creature.id)
                 }
                 .navigationDestination(for: Data.self) {
-                    CreatureDetail(creatureId: $0)
+                    CreatureDetail(creature: creatureList.getById(id: $0))
                 }
                 .navigationTitle("Creatures")
             }
@@ -36,19 +36,19 @@ struct Sidebar: View {
         }.onAppear {
             Task {
                 
-                    if !creatureList.empty {
-                        logger.debug("creature list exists, not re-loading")
-                        return
-                    }
-                
-                logger.info("Attempting to load the creature list from  \(client.getHostname())")
+                if !creatureList.empty {
+                    logger.debug("creature list exists, not re-loading")
+                    return
+                }
+            
+                logger.info("Attempting to load the creatures from  \(client.getHostname())")
                 do {
-                    let list : [CreatureIdentifier]? = try await client.listCreatures()
+                    let list : [Server_Creature]? = try await client.getAllCreatures()
                 
                     // If we got somethign back, update the view
                     if let s = list {
                         for c in s {
-                            creatureList.add(item: c)
+                            creatureList.add(item: Creature(serverCreature: c))
                         }
                     }
                 }
