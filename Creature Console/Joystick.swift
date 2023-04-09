@@ -9,6 +9,9 @@ import Foundation
 import GameController
 import Logging
 
+// TODO: This is a hack. Figure out something better, maybe. :)
+var joystick0 = SixAxisJoystick()
+
 func setupController() {
     
     let logger = Logger(label: "Joystick")
@@ -17,15 +20,23 @@ func setupController() {
         if let controller = notification.object as? GCController {
             controller.extendedGamepad?.valueChangedHandler = { (gamepad, element) in
                 if element == gamepad.leftThumbstick {
-                    let x = gamepad.leftThumbstick.xAxis.value
-                    let y = gamepad.leftThumbstick.yAxis.value
-                    logger.debug("Left Thumbstick: x: \(x), y: \(y)")
+                    joystick0.axises[0].rawValue = gamepad.leftThumbstick.xAxis.value
+                    joystick0.axises[1].rawValue = gamepad.leftThumbstick.yAxis.value
                 }
                 if element == gamepad.rightThumbstick {
-                    let x = gamepad.rightThumbstick.xAxis.value
-                    let y = gamepad.rightThumbstick.yAxis.value
-                    logger.debug("Right Thumbstick: x: \(x), y: \(y)")
+                    joystick0.axises[2].rawValue = gamepad.rightThumbstick.xAxis.value
+                    joystick0.axises[3].rawValue = gamepad.rightThumbstick.yAxis.value
                 }
+                if element == gamepad.rightTrigger {
+                    joystick0.axises[5].rawValue = gamepad.rightTrigger.value
+                }
+                if element == gamepad.leftTrigger {
+                    joystick0.axises[4].rawValue = gamepad.leftTrigger.value
+                }
+                
+                // TODO: Debug dump
+                print("[ \(joystick0.axises[0].value), \(joystick0.axises[1].value), \(joystick0.axises[2].value), \(joystick0.axises[3].value), \(joystick0.axises[4].value), \(joystick0.axises[5].value) ]")
+                
             }
         }
     }

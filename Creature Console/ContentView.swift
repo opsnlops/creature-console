@@ -9,12 +9,7 @@ import SwiftUI
 import Logging
 
 
-
-
 struct ContentView: View {
-    @EnvironmentObject var client: CreatureServerClient
-    @State private var showErrorAlert: Bool = false
-    @State private var errorMessage: String = ""
     
     let logger = Logger(label: "ContentView")
     
