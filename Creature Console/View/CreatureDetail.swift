@@ -7,55 +7,127 @@
 
 import SwiftUI
 import Foundation
+import Logging
 
 struct CreatureDetail : View {
+    var creatureId : Data
     @ObservedObject var creature: Creature
+    @EnvironmentObject var client: CreatureServerClient
+    @State private var showErrorAlert: Bool = false
+    @State private var errorMessage: String = ""
     
-    #if os(iOS)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    private var isCompact: Bool { horizontalSizeClass == .compact }
-    #else
-    private let isCompact = false
-    #endif
+    let logger = Logger(label: "CreatureDetail")
     
+    init(creatureId: Data) {
+        self.creatureId = creatureId
+        self.creature = .mock()
+    }
+    
+    /*
+     CreatureDetail()
+     Button("Search") {
+         Task {
+             
+             logger.debug("Trying to talk to  \(client.getHostname())")
+             do {
+                 let serverCreature : Server_Creature? = try await client.searchCreatures(creatureName: a"Beaky1")
+                 
+                 // If we got somethign back, update the view
+                 if let s = serverCreature {
+                     creature.updateFromServerCreature(serverCreature: s)
+                 }
+             
+             }
+             catch {
+                 logger.critical("\( error.localizedDescription)")
+                 showErrorAlert = true
+                 errorMessage = error.localizedDescription
+             }
+         }
+     }
+     .alert(isPresented: $showErrorAlert) {
+         Alert(
+             title: Text("Oooooh Shit"),
+             message: Text(errorMessage),
+             dismissButton: .default(Text("Fuck"))
+         )
+     }
+     */
     
     var body: some View {
-        VStack {
-            Text(creature.name)
-                .font(.title)
-                .fontWeight(.bold)
-            Text(creature.sacnIP)
-                .font(.subheadline)
-                .foregroundColor(Color.gray)
-                .multilineTextAlignment(.trailing)
-            Text("Number of motors: \(creature.numberOfMotors)")
-            Table(creature.motors) {
-                TableColumn("Name") { motor in
-                    Text(motor.name)
+        
+        Group {
+            if creature.realData {
+                VStack {
+                    Text(creature.name)
+                        .font(.title)
+                        .fontWeight(.bold)
+                    Text(creature.sacnIP)
+                        .font(.subheadline)
+                        .foregroundColor(Color.gray)
+                        .multilineTextAlignment(.trailing)
+                    Text("Number of motors: \(creature.numberOfMotors)")
+                    Table(creature.motors) {
+                        TableColumn("Name") { motor in
+                            Text(motor.name)
+                        }
+                        TableColumn("Number") { motor in
+                            Text(motor.number, format: .number)
+                        }.width(60)
+                        TableColumn("Type") { motor in
+                            Text(motor.type.description)
+                        }
+                        .width(55)
+                        TableColumn("Min Value") { motor in
+                            Text(motor.minValue, format: .number)
+                        }
+                        .width(70)
+                        TableColumn("Max Value") { motor in
+                            Text(motor.maxValue, format: .number)
+                        }
+                        .width(70)
+                        TableColumn("Smoothing") { motor in
+                            Text(motor.smoothingValue, format: .percent)
+                        }
+                        .width(90)
+                    }
+                    
                 }
-                TableColumn("Number") { motor in
-                    Text(motor.number, format: .number)
-                }.width(40)
-                TableColumn("Type") { motor in
-                    Text(motor.type.description)
+                
+            }
+            else {
+                ProgressView("Loading...")
+            }
+        }.onAppear {
+            Task {
+                logger.info("Attempting to load creature \(DataHelper.dataToHexString(data: creatureId)) from database...")
+                
+                do {
+                    let serverCreature : Server_Creature? = try await client.getCreature(creatureId: creatureId)
+                    
+                    // We got data! Update the view!
+                    if let s = serverCreature {
+                        logger.debug("creature gotten!")
+                        creature.updateFromServerCreature(serverCreature: s)
+                        creature.realData = true
+                    }
                 }
-                .width(55)
-                TableColumn("Min Value") { motor in
-                    Text(motor.minValue, format: .number)
+                catch {
+                    logger.critical("\(error.localizedDescription)")
+                    showErrorAlert = true
+                    errorMessage = error.localizedDescription
                 }
-                .width(70)
-                TableColumn("Max Value") { motor in
-                    Text(motor.maxValue, format: .number)
-                }
-                .width(70)
-                TableColumn("Smoothing") { motor in
-                    Text(motor.smoothingValue, format: .percent)
-                }
-                .width(90)
-               
             }
             
+        }.alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text("Oooooh Shit"),
+                message: Text(errorMessage),
+                dismissButton: .default(Text("Fuck"))
+            )
         }
+        
+        
     }
     
 }
@@ -65,6 +137,6 @@ struct CreatureDetail : View {
 
 struct CreatureDetail_Previews: PreviewProvider {
     static var previews: some View {
-        CreatureDetail(creature: .mock())
+        CreatureDetail(creatureId: DataHelper.generateRandomData(byteCount: 12))
     }
 }

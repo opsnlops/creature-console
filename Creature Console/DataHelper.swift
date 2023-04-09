@@ -19,4 +19,7 @@ struct DataHelper {
         return Data((0..<byteCount).map { _ in UInt8.random(in: 0...UInt8.max) })
     }
     
+    static func dataToHexString(data: Data) -> String {
+        return data.map { String(format: "%02x", $0) }.joined()
+    }
 }

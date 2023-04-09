@@ -24,6 +24,20 @@ enum MotorType : Int, CustomStringConvertible {
 
 }
 
+class CreatureIdentifier : ObservableObject, Identifiable, CustomStringConvertible {
+    let id : Data
+    let name : String
+    
+    init(id: Data, name: String) {
+        self.id = id
+        self.name = name
+    }
+    
+    var description: String {
+        return self.name
+    }
+}
+
 struct Motor : Identifiable {
     let id : Data
     var name : String
@@ -66,6 +80,7 @@ class Creature : ObservableObject, Identifiable {
     @Published var dmxBase : UInt32
     @Published var numberOfMotors : UInt32
     @Published var motors : [Motor]
+    @Published var realData : Bool = false      // Set to true when there's non-mock data loaded
 
     init(id: Data, name: String, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
         self.id = id
@@ -135,28 +150,4 @@ class Creature : ObservableObject, Identifiable {
         motors.append(newMotor)
     }
     
-}
-
-extension Creature {
-    static func mock() -> Creature {
-        let creature = Creature(id: DataHelper.generateRandomData(byteCount: 12),
-            name: "MockCreature",
-            lastUpdated: Date(),
-            sacnIP: "1.2.3.4",
-            universe: 666,
-            dmxBase: 7,
-            numberOfMotors: 12)
-        
-        for i in 0..<12 {
-            let motor = Motor(name: "Motor \(i+1) 🌈",
-                              type: .servo,
-                              number: UInt32(i),
-                              maxValue: 1024,
-                              minValue: 256,
-                              smoothingValue: 0.95)
-            creature.addMotor(newMotor: motor)
-        }
-        
-        return creature
-    }
 }

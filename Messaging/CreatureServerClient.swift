@@ -74,4 +74,47 @@ class CreatureServerClient : ObservableObject {
     }
     
     
+    func getCreature(creatureId: Data) async throws -> Server_Creature {
+        
+        logger.debug("attempting to fetch creature \(DataHelper.dataToHexString(data: creatureId))")
+    
+        var id = Server_CreatureId()
+        id.id = creatureId
+        
+        let creature = try await server?.getCreature(id) ?? Server_Creature()
+        
+        return creature
+    }
+    
+    /**
+     Returns a listing of all of the Creatures that we know about
+     */
+    func listCreatures() async throws -> [CreatureIdentifier] {
+        
+        logger.info("attempting to list all creatures from the server")
+        
+        var creatures : [CreatureIdentifier]
+        creatures = []
+        
+        // Default to sorting by name. TODO: Maybe change this later?
+        var filter : Server_CreatureFilter
+        filter = Server_CreatureFilter()
+        filter.sortBy = Server_SortBy.name
+        
+        // Try, or return an empty response
+        let list = try await server?.listCreatures(filter) ?? Server_ListCreaturesResponse()
+        
+        for id in list.creaturesIds {
+            
+            var ci : CreatureIdentifier
+            ci = CreatureIdentifier(id: id.id, name: id.name)
+            creatures.append(ci)
+            logger.debug("found creature \(ci.name)")
+        }
+        
+        logger.debug("total creatures found: \(creatures.count)")
+        return creatures
+        
+    }
+        
 }
