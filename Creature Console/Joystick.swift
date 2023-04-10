@@ -9,10 +9,8 @@ import Foundation
 import GameController
 import Logging
 
-// TODO: This is a hack. Figure out something better, maybe. :)
-var joystick0 = SixAxisJoystick()
 
-func setupController() {
+func setupController(joystick: SixAxisJoystick) {
     
     let logger = Logger(label: "Joystick")
     
@@ -20,23 +18,23 @@ func setupController() {
         if let controller = notification.object as? GCController {
             controller.extendedGamepad?.valueChangedHandler = { (gamepad, element) in
                 if element == gamepad.leftThumbstick {
-                    joystick0.axises[0].rawValue = gamepad.leftThumbstick.xAxis.value
-                    joystick0.axises[1].rawValue = gamepad.leftThumbstick.yAxis.value
+                    joystick.axises[0].rawValue = gamepad.leftThumbstick.xAxis.value
+                    joystick.axises[1].rawValue = gamepad.leftThumbstick.yAxis.value
+                    logger.debug("leftThumbStick changed")
                 }
                 if element == gamepad.rightThumbstick {
-                    joystick0.axises[2].rawValue = gamepad.rightThumbstick.xAxis.value
-                    joystick0.axises[3].rawValue = gamepad.rightThumbstick.yAxis.value
+                    joystick.axises[2].rawValue = gamepad.rightThumbstick.xAxis.value
+                    joystick.axises[3].rawValue = gamepad.rightThumbstick.yAxis.value
+                    logger.debug("rightThumbstick changed")
                 }
                 if element == gamepad.rightTrigger {
-                    joystick0.axises[5].rawValue = gamepad.rightTrigger.value
+                    joystick.axises[5].rawValue = gamepad.rightTrigger.value
+                    logger.debug("rightTrigger changed")
                 }
                 if element == gamepad.leftTrigger {
-                    joystick0.axises[4].rawValue = gamepad.leftTrigger.value
+                    joystick.axises[4].rawValue = gamepad.leftTrigger.value
+                    logger.debug("leftTrigger changed")
                 }
-                
-                // TODO: Debug dump
-                print("[ \(joystick0.axises[0].value), \(joystick0.axises[1].value), \(joystick0.axises[2].value), \(joystick0.axises[3].value), \(joystick0.axises[4].value), \(joystick0.axises[5].value) ]")
-                
             }
         }
     }
