@@ -45,6 +45,7 @@
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32B729E374B8004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B829E3844B004C5181 /* JoystickDebugView.swift */; };
+		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -83,6 +84,7 @@
 		11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
 		11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SixAxisJoystick.swift; sourceTree = "<group>"; };
 		11FA32B829E3844B004C5181 /* JoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickDebugView.swift; sourceTree = "<group>"; };
+		11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugJoystickScene.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +141,7 @@
 				1142E66129DFB22300B795F0 /* CreatureDetail.swift */,
 				11B4820F29E23EAB00767E22 /* Sidebar.swift */,
 				11FA32B829E3844B004C5181 /* JoystickDebugView.swift */,
+				11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -323,6 +326,7 @@
 				1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				115DADA129DF95890021C4E0 /* Joystick.swift in Sources */,
 				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
+				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
 				11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
 				1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */,

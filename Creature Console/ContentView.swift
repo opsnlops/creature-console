@@ -10,23 +10,17 @@ import Logging
 
 
 struct ContentView: View {
-    @ObservedObject var joystick0 : SixAxisJoystick
     
     let logger = Logger(label: "ContentView")
-    
-    init() {
-        self.joystick0 = SixAxisJoystick()
-        setupController(joystick: joystick0)
-    }
-    
+
+        
     var body: some View {
         
         NavigationSplitView {
             Sidebar()
         } detail: {
-           //Text("Please select a creature!")
-           // .padding()
-            JoystickDebugView(joystick: joystick0)
+           Text("Please select a creature!")
+             .padding()
         }
     }
 }

@@ -10,22 +10,32 @@ import Logging
 
 @main
 struct Creature_ConsoleApp: App {
-
     
+    @ObservedObject var joystick0 = SixAxisJoystick()
+
     init() {
         let logger = Logger(label: "Creature_ConsoleApp")
+        
+        setupController(joystick: joystick0)
+        
         do {
             try CreatureServerClient.shared.connect(serverHostname: "10.3.2.11", serverPort: 6666)
             logger.info("connected to server")
         } catch {
             print("Error opening connections: \(error)")
         }
+    
     }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(CreatureServerClient.shared)
+                .environmentObject(joystick0)
         }
+        
+        #if os(macOS)
+        DebugJoystickScene(joystick: joystick0)
+        #endif
     }
 }

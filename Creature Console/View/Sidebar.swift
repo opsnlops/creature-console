@@ -16,19 +16,31 @@ struct Sidebar: View {
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
+    @EnvironmentObject var joystick0 : SixAxisJoystick
+    
+
+    
     let logger = Logger(label: "Sidebar")
         
     var body: some View {
         Group {
             if !creatureList.empty {
-                List(creatureList.creatures, id: \.id) {
-                    creature in
-                    NavigationLink(creature.name, value: creature.id)
+                VStack {
+                    List(creatureList.creatures, id: \.id) {
+                        creature in
+                        NavigationLink(creature.name, value: creature.id)
+                    }
+                    .navigationDestination(for: Data.self) {
+                        CreatureDetail(creature: creatureList.getById(id: $0))
+                    }
+                    .navigationTitle("Creatures")
+                 
+                    #if !os(macOS)
+                    NavigationLink("Debug Joystick") {
+                        JoystickDebugView(joystick: joystick0)
+                    }
+                    #endif
                 }
-                .navigationDestination(for: Data.self) {
-                    CreatureDetail(creature: creatureList.getById(id: $0))
-                }
-                .navigationTitle("Creatures")
             }
             else {
                 ProgressView("Loading...")
