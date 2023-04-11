@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "0D44E887-BA3B-4699-BD2A-8022CB41FF08"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "94A3A39D-7C41-4406-88BF-020D4283EF55"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Creature Console/Joystick.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "19"
+            endingLineNumber = "19"
+            landmarkName = "setupController(joystick:)"
+            landmarkType = "9">
+            <Locations>
+               <Location
+                  uuid = "94A3A39D-7C41-4406-88BF-020D4283EF55 - 6396b80c733044ad"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Sendable (Foundation.Notification) -&gt; () in Creature_Console.setupController(joystick: Creature_Console.SixAxisJoystick) -&gt; ()"
+                  moduleName = "Creature Console"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/april/code/Creature%20Console/Creature%20Console/Joystick.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "19"
+                  endingLineNumber = "19"
+                  offsetFromSymbolStart = "364">
+               </Location>
+               <Location
+                  uuid = "94A3A39D-7C41-4406-88BF-020D4283EF55 - 6396b80c733044ad"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Sendable (Foundation.Notification) -&gt; () in Creature_Console.setupController(joystick: Creature_Console.SixAxisJoystick) -&gt; ()"
+                  moduleName = "Creature Console"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/april/code/Creature%20Console/Creature%20Console/Joystick.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "19"
+                  endingLineNumber = "19"
+                  offsetFromSymbolStart = "616">
+               </Location>
+               <Location
+                  uuid = "94A3A39D-7C41-4406-88BF-020D4283EF55 - 6396b80c733044ad"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Sendable (Foundation.Notification) -&gt; () in Creature_Console.setupController(joystick: Creature_Console.SixAxisJoystick) -&gt; ()"
+                  moduleName = "Creature Console"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/april/code/Creature%20Console/Creature%20Console/Joystick.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "19"
+                  endingLineNumber = "19"
+                  offsetFromSymbolStart = "424">
+               </Location>
+               <Location
+                  uuid = "94A3A39D-7C41-4406-88BF-020D4283EF55 - 6396b80c733044ad"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Sendable (Foundation.Notification) -&gt; () in Creature_Console.setupController(joystick: Creature_Console.SixAxisJoystick) -&gt; ()"
+                  moduleName = "Creature Console"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/april/code/Creature%20Console/Creature%20Console/Joystick.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "19"
+                  endingLineNumber = "19"
+                  offsetFromSymbolStart = "680">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>

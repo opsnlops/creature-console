@@ -8,6 +8,7 @@
 import SwiftUI
 import Logging
 import Charts
+import GameController
 
 
 struct JoyStickChart: View {
@@ -29,6 +30,7 @@ struct JoyStickChart: View {
         self.axis3 = joystick.axises[3]
         self.axis4 = joystick.axises[4]
         self.axis5 = joystick.axises[5]
+        
     }
     
     var body: some View {
@@ -66,12 +68,19 @@ struct JoyStickChart: View {
 struct JoystickDebugView: View {
         
     @ObservedObject var joystick: SixAxisJoystick
-
+    
+    #if os(iOS)
+        var virtualJoysick : VirtualJoystick
+    #endif
     
     let logger = Logger(label: "JoystickDebugView")
     
     init(joystick: SixAxisJoystick) {
         self.joystick = joystick
+        
+#if os(iOS)
+        self.virtualJoysick = VirtualJoystick()
+#endif
     }
     
     var body: some View {
@@ -79,7 +88,21 @@ struct JoystickDebugView: View {
         VStack {
             JoyStickChart(joystick: joystick)
         }
-        
+#if os(iOS)
+        .onAppear {
+            if GCController.controllers().isEmpty {
+                print("IT WAS EMPTY")
+                virtualJoysick.create()
+            }
+            else {
+                print("IT WAS NOT EMPTY")
+            }
+            virtualJoysick.connect()
+        }
+        .onDisappear {
+           virtualJoysick.disconnect()
+        }
+#endif
     }
 }
 

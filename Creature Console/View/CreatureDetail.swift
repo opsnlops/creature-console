@@ -19,47 +19,54 @@ struct CreatureDetail : View {
     let logger = Logger(label: "CreatureDetail")
            
     var body: some View {
-            VStack {
-                Text(creature.name)
-                    .font(.title)
-                    .fontWeight(.bold)
-                Text(creature.sacnIP)
-                    .font(.subheadline)
-                    .foregroundColor(Color.gray)
-                    .multilineTextAlignment(.trailing)
-                Text("Number of motors: \(creature.numberOfMotors)")
-                Table(creature.motors) {
-                    TableColumn("Name") { motor in
-                        Text(motor.name)
-                    }
-                    TableColumn("Number") { motor in
-                        Text(motor.number, format: .number)
-                    }.width(60)
-                    TableColumn("Type") { motor in
-                        Text(motor.type.description)
-                    }
-                    .width(55)
-                    TableColumn("Min Value") { motor in
-                        Text(motor.minValue, format: .number)
-                    }
-                    .width(70)
-                    TableColumn("Max Value") { motor in
-                        Text(motor.maxValue, format: .number)
-                    }
-                    .width(70)
-                    TableColumn("Smoothing") { motor in
-                        Text(motor.smoothingValue, format: .percent)
-                    }
-                    .width(90)
-                }
-                
+        VStack() {
+            
+            Text(creature.name)
+                .font(.largeTitle)
+            Text("sACN IP: \(creature.sacnIP)")
+            Text("Universe: \(creature.universe)")
+            Text("DMX Offset: \(creature.dmxBase)")
+            Text("Number of Motors: \(creature.motors.count)")
+            
+            NavigationLink("Edit") {
+                CreatureEdit(creature: creature)
             }
-                
+            Spacer()
+            
+            Text("Motors")
+                .font(.title2)
+            Table(creature.motors) {
+                TableColumn("Name") { motor in
+                    Text(motor.name)
+                }
+                TableColumn("Number") { motor in
+                    Text(motor.number, format: .number)
+                }.width(60)
+                TableColumn("Type") { motor in
+                    Text(motor.type.description)
+                }
+                .width(55)
+                TableColumn("Min Value") { motor in
+                    Text(motor.minValue, format: .number)
+                }
+                .width(70)
+                TableColumn("Max Value") { motor in
+                    Text(motor.maxValue, format: .number)
+                }
+                .width(70)
+                TableColumn("Smoothing") { motor in
+                    Text(motor.smoothingValue, format: .percent)
+                }
+                .width(90)
+            }
             
         }
         
-        
     }
+    }
+        
+        
+
     
 
 

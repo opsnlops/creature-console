@@ -59,7 +59,7 @@ struct CreatureCLI: AsyncParsableCommand {
     }
 
     do {
-        let creature = try await server.getCreature(request)
+        let creature = try await server.searchCreatures(request)
         print("Client received: \(creature.name)")
     } catch {
       print("Client failed: \(error)")

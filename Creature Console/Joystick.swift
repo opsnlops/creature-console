@@ -13,8 +13,9 @@ import Logging
 func setupController(joystick: SixAxisJoystick) {
     
     let logger = Logger(label: "Joystick")
-    
+
     NotificationCenter.default.addObserver(forName: .GCControllerDidConnect, object: nil, queue: .main) { notification in
+        logger.info("got a .GCControllerDidConnect notification")
         if let controller = notification.object as? GCController {
             controller.extendedGamepad?.valueChangedHandler = { (gamepad, element) in
                 if element == gamepad.leftThumbstick {
