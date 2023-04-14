@@ -34,6 +34,7 @@
 		11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
 		11C326D029DD3FED00B169CD /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 11C326CF29DD3FED00B169CD /* Credits.rtf */; };
 		11C326D829DD41E900B169CD /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C326D729DD41E900B169CD /* main.swift */; };
+		11DD93B329E666D200089EC6 /* RealTimeControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11DD93B229E666D200089EC6 /* RealTimeControl.swift */; };
 		11E7CD7629DD1A870029D031 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7529DD1A870029D031 /* SwiftProtobuf */; };
 		11E7CD7829DD1A870029D031 /* protoc-gen-swift in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7729DD1A870029D031 /* protoc-gen-swift */; };
 		11E7CD7B29DD1AB10029D031 /* CGRPCZlib in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7A29DD1AB10029D031 /* CGRPCZlib */; };
@@ -85,6 +86,7 @@
 		11C326CF29DD3FED00B169CD /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		11C326D529DD41E900B169CD /* CreatureCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CreatureCLI; sourceTree = BUILT_PRODUCTS_DIR; };
 		11C326D729DD41E900B169CD /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		11DD93B229E666D200089EC6 /* RealTimeControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealTimeControl.swift; sourceTree = "<group>"; };
 		11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
 		11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SixAxisJoystick.swift; sourceTree = "<group>"; };
 		11FA32B829E3844B004C5181 /* JoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickDebugView.swift; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 				11FA32B829E3844B004C5181 /* JoystickDebugView.swift */,
 				11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */,
 				11C03ACF29E3C346002E6720 /* CreatureEdit.swift */,
+				11DD93B229E666D200089EC6 /* RealTimeControl.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -332,6 +335,7 @@
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
 				1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				115DADA129DF95890021C4E0 /* Joystick.swift in Sources */,
+				11DD93B329E666D200089EC6 /* RealTimeControl.swift in Sources */,
 				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
 				11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */,

@@ -13,6 +13,7 @@ import Dispatch
 struct CreatureDetail : View {
     @ObservedObject var creature: Creature
     @EnvironmentObject var client: CreatureServerClient
+    @EnvironmentObject var joystick0: SixAxisJoystick
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
@@ -32,6 +33,11 @@ struct CreatureDetail : View {
                 CreatureEdit(creature: creature)
             }
             Spacer()
+            
+            NavigationLink("Control") {
+                RealTimeControl(joystick: joystick0, creature: creature)
+            }
+        
             
             Text("Motors")
                 .font(.title2)

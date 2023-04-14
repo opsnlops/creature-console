@@ -33,9 +33,6 @@ struct Creature_ConsoleApp: App {
                 .environmentObject(CreatureServerClient.shared)
                 .environmentObject(joystick0)
         }
-        
-        #if os(macOS)
-        DebugJoystickScene(joystick: joystick0)
-        #endif
+    
     }
 }

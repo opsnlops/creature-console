@@ -361,6 +361,10 @@ public struct Server_Frame {
 
   public var creatureName: String = String()
 
+  public var sacnIp: String = String()
+
+  public var numberOfMotors: UInt32 = 0
+
   public var frame: Data = Data()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -929,7 +933,9 @@ extension Server_Frame: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementat
     1: .same(proto: "universe"),
     2: .standard(proto: "dmx_offset"),
     3: .standard(proto: "creature_name"),
-    4: .same(proto: "frame"),
+    4: .standard(proto: "sacn_ip"),
+    5: .standard(proto: "number_of_motors"),
+    10: .same(proto: "frame"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -941,7 +947,9 @@ extension Server_Frame: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementat
       case 1: try { try decoder.decodeSingularUInt32Field(value: &self.universe) }()
       case 2: try { try decoder.decodeSingularUInt32Field(value: &self.dmxOffset) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.creatureName) }()
-      case 4: try { try decoder.decodeSingularBytesField(value: &self.frame) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.sacnIp) }()
+      case 5: try { try decoder.decodeSingularUInt32Field(value: &self.numberOfMotors) }()
+      case 10: try { try decoder.decodeSingularBytesField(value: &self.frame) }()
       default: break
       }
     }
@@ -957,8 +965,14 @@ extension Server_Frame: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementat
     if !self.creatureName.isEmpty {
       try visitor.visitSingularStringField(value: self.creatureName, fieldNumber: 3)
     }
+    if !self.sacnIp.isEmpty {
+      try visitor.visitSingularStringField(value: self.sacnIp, fieldNumber: 4)
+    }
+    if self.numberOfMotors != 0 {
+      try visitor.visitSingularUInt32Field(value: self.numberOfMotors, fieldNumber: 5)
+    }
     if !self.frame.isEmpty {
-      try visitor.visitSingularBytesField(value: self.frame, fieldNumber: 4)
+      try visitor.visitSingularBytesField(value: self.frame, fieldNumber: 10)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -967,6 +981,8 @@ extension Server_Frame: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementat
     if lhs.universe != rhs.universe {return false}
     if lhs.dmxOffset != rhs.dmxOffset {return false}
     if lhs.creatureName != rhs.creatureName {return false}
+    if lhs.sacnIp != rhs.sacnIp {return false}
+    if lhs.numberOfMotors != rhs.numberOfMotors {return false}
     if lhs.frame != rhs.frame {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true

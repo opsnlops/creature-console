@@ -21,6 +21,10 @@ class CreatureServerClient : ObservableObject {
     var channel: GRPCChannel?
     var group: MultiThreadedEventLoopGroup
     var server: Server_CreatureServerAsyncClient?
+   
+    
+    // Joystick streaming stuff
+    var stopSignalReceived: Bool = false
     
     
     init() {
@@ -141,5 +145,4 @@ class CreatureServerClient : ObservableObject {
         return creatures
         
     }
-        
 }
