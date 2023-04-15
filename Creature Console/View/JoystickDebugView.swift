@@ -36,30 +36,39 @@ struct JoyStickChart: View {
     var body: some View {
         Chart {
             BarMark(
-                x: .value("Axis 0", "Axis 0"),
+                x: .value("Axis", "Axis 0"),
                 y: .value("Value", axis0.value)
             )
             BarMark(
-                x: .value("Axis 1", "Axis 1"),
+                x: .value("Axis", "Axis 1"),
                 y: .value("Value", axis1.value)
             )
             BarMark(
-                x: .value("Axis 2", "Axis 2"),
+                x: .value("Axis", "Axis 2"),
                 y: .value("Value", axis2.value)
             )
             BarMark(
-                x: .value("Axis 3", "Axis 3"),
+                x: .value("Axis", "Axis 3"),
                 y: .value("Value", axis3.value)
             )
             BarMark(
-                x: .value("Axis 4", "Axis 4"),
+                x: .value("Axis", "Axis 4"),
                 y: .value("Value", axis4.value)
             )
             BarMark(
-                x: .value("Axis 5", "Axis 5"),
+                x: .value("Axis", "Axis 5"),
                 y: .value("Value", axis5.value)
             )
         }
+        .chartYScale(domain: 0 ... 255)
+        .chartForegroundStyleScale([
+            "Axis 0": .red,
+            "Axis 1": .orange,
+            "Axis 2": .yellow,
+            "Axis 3": .green,
+            "Axis 4": .blue,
+            "Axis 5": .purple
+        ])
     }
 }
 
