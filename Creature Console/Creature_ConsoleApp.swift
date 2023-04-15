@@ -36,6 +36,9 @@ struct Creature_ConsoleApp: App {
         
 #if os(macOS)
         DebugJoystickScene(joystick: joystick0)
+        Settings {
+            SettingsView()
+        }
 #endif
     
     }
