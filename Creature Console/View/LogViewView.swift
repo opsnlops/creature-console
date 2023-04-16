@@ -20,7 +20,7 @@ struct LogViewView: View {
     
     private let stopFlag : StopFlag
     private let logFilter : Server_LogFilter
-    var maxBufferSize = 50
+    var maxBufferSize = UserDefaults.standard.integer(forKey: "serverLogsScrollBackLines")
     
     private let logger : Logger
     

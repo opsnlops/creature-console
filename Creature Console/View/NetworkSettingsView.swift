@@ -8,8 +8,21 @@
 import SwiftUI
 
 struct NetworkSettingsView: View {
+    @AppStorage("serverAddress") private var serverAddress: String = ""
+    @AppStorage("serverPort") private var serverPort: Int = 0
+    
     var body: some View {
-        Text("Beep boop!")
+        VStack {
+            Form {
+                Section(header: Text("Server Address")) {
+                    TextField("", text: $serverAddress)
+                }
+                Section(header: Text("Server Port")) {
+                    TextField("", value: $serverPort, format: .number)
+                }
+            }
+            Spacer()
+        }
     }
 }
 

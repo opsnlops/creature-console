@@ -24,9 +24,20 @@ struct SettingsView: View {
                     Label("Joystick", systemImage: "gamecontroller.fill")
                 }
                 .tag(Tabs.advanced)
+            UISettingsView()
+                .tabItem {
+                    Label("Interface", systemImage: "paintpalette.fill")
+                }
         }
         .padding(20)
+        #if os(macOS)
         .frame(width: 600, height: 400)
+        #endif
     }
 }
 
+struct SettingsView_Previews: PreviewProvider {
+    static var previews: some View {
+        SettingsView()
+    }
+}

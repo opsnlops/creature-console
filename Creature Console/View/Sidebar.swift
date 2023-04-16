@@ -35,6 +35,8 @@ struct Sidebar: View {
                     }
                     .navigationTitle("Creatures")
                  
+                    Spacer()
+                    
                     #if !os(macOS)
                     List {
                         NavigationLink("Debug Joystick") {
@@ -42,6 +44,9 @@ struct Sidebar: View {
                         }
                         NavigationLink("Server Logs") {
                             LogViewView(server: client)
+                        }
+                        NavigationLink("Settings") {
+                            SettingsView()
                         }
                     }
                     .navigationTitle("System")
