@@ -36,6 +36,7 @@ struct Creature_ConsoleApp: App {
         
 #if os(macOS)
         DebugJoystickScene(joystick: joystick0)
+        LogViewScene(server: CreatureServerClient.shared)
         Settings {
             SettingsView()
         }

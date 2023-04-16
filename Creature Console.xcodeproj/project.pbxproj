@@ -22,6 +22,9 @@
 		11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* ContentView.swift */; };
 		11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
 		11703D9429DD198000EF7E3D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D9329DD198000EF7E3D /* Preview Assets.xcassets */; };
+		118A737C29EB68EA00EF8CDB /* LogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A737B29EB68EA00EF8CDB /* LogViewModel.swift */; };
+		118A738029EB772900EF8CDB /* LogViewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A737F29EB772900EF8CDB /* LogViewView.swift */; };
+		118A738229EB780A00EF8CDB /* LogViewScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738129EB780A00EF8CDB /* LogViewScene.swift */; };
 		11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4820D29E23A5600767E22 /* Mocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820C29E23A5600767E22 /* Mocks.swift */; };
@@ -80,6 +83,9 @@
 		11703D8F29DD198000EF7E3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		11703D9129DD198000EF7E3D /* Creature_Console.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11703D9329DD198000EF7E3D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		118A737B29EB68EA00EF8CDB /* LogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewModel.swift; sourceTree = "<group>"; };
+		118A737F29EB772900EF8CDB /* LogViewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewView.swift; sourceTree = "<group>"; };
+		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
 		11B4820929E141AB00767E22 /* DataHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHelper.swift; sourceTree = "<group>"; };
 		11B4820C29E23A5600767E22 /* Mocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mocks.swift; sourceTree = "<group>"; };
 		11B4820F29E23EAB00767E22 /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
@@ -143,6 +149,7 @@
 				11B4820C29E23A5600767E22 /* Mocks.swift */,
 				11B4821229E24F9000767E22 /* CreatureList.swift */,
 				11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */,
+				118A737B29EB68EA00EF8CDB /* LogViewModel.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -159,6 +166,8 @@
 				11F4BA5629EA7DF300078790 /* SettingsView.swift */,
 				11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */,
 				11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */,
+				118A737F29EB772900EF8CDB /* LogViewView.swift */,
+				118A738129EB780A00EF8CDB /* LogViewScene.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -336,6 +345,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				118A738229EB780A00EF8CDB /* LogViewScene.swift in Sources */,
 				11B4820D29E23A5600767E22 /* Mocks.swift in Sources */,
 				11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */,
 				11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */,
@@ -347,6 +357,8 @@
 				1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* Joystick.swift in Sources */,
+				118A737C29EB68EA00EF8CDB /* LogViewModel.swift in Sources */,
+				118A738029EB772900EF8CDB /* LogViewView.swift in Sources */,
 				11DD93B329E666D200089EC6 /* RealTimeControl.swift in Sources */,
 				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,

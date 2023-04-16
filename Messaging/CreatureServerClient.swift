@@ -10,6 +10,7 @@ import GRPC
 import NIOCore
 import NIOPosix
 import Logging
+import SwiftUI
 
 
 class CreatureServerClient : ObservableObject {
@@ -143,6 +144,31 @@ class CreatureServerClient : ObservableObject {
         
         logger.debug("total creatures found: \(creatures.count)")
         return creatures
+        
+    }
+    
+    func streamLogs(logViewModel: LogViewModel, logFilter: Server_LogFilter, stopFlag: StopFlag) async {
+        
+        logger.info("Making a request to get logs from the server")
+        
+        do {
+            for try await logItem in self.server!.streamLogs(logFilter) {
+                
+            // If we gotta stop, it's time to stop 😅
+            if stopFlag.shouldStop {
+               break
+           }
+
+            await MainActor.run {
+                logViewModel.addLogItem(logItem)
+            }
+          }
+            
+        } catch {
+          print("RPC failed: \(error)")
+        }
+        
+        logger.info("Stopping streaming logs from the server")
         
     }
 }
