@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import GameController
+import Logging
 
 class Axis : ObservableObject, CustomStringConvertible {
     var axisType : AxisType = .gamepad
@@ -50,6 +52,11 @@ class Axis : ObservableObject, CustomStringConvertible {
 
 class SixAxisJoystick : ObservableObject {
     @Published var axises : [Axis]
+    var controller : GCController?
+    let logger = Logger(label: "SixAxisJoystick")
+    var vendor : String {
+        controller?.vendorName ?? "Unknown"
+    }
     
     init() {
         self.axises = []
@@ -63,6 +70,27 @@ class SixAxisJoystick : ObservableObject {
         self.axises[5].axisType = .trigger
         self.axises[4].value = 0
         self.axises[5].value = 0
+        
+       
+    }
+    
+    
+    func poll() {
+        
+        if let joystick = controller?.extendedGamepad {
+            
+            axises[0].rawValue = joystick.leftThumbstick.xAxis.value
+            axises[1].rawValue = joystick.leftThumbstick.yAxis.value
+            axises[2].rawValue = joystick.rightThumbstick.xAxis.value
+            axises[3].rawValue = joystick.rightThumbstick.yAxis.value
+            axises[4].rawValue = joystick.leftTrigger.value
+            axises[5].rawValue = joystick.rightTrigger.value
+            logger.debug("joystick polling done")
+        }
+        else {
+            logger.info("skipping polling because not extended gamepad")
+        }
+        
     }
     
 }

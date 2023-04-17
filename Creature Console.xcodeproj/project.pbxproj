@@ -37,6 +37,7 @@
 		11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureEdit.swift */; };
 		11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
 		11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */; };
+		11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */; };
 		11C326D029DD3FED00B169CD /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 11C326CF29DD3FED00B169CD /* Credits.rtf */; };
 		11C326D829DD41E900B169CD /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C326D729DD41E900B169CD /* main.swift */; };
 		11DD93B329E666D200089EC6 /* RealTimeControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11DD93B229E666D200089EC6 /* RealTimeControl.swift */; };
@@ -96,6 +97,7 @@
 		11C03ACF29E3C346002E6720 /* CreatureEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureEdit.swift; sourceTree = "<group>"; };
 		11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
 		11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteChartView.swift; sourceTree = "<group>"; };
+		11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLoop.swift; sourceTree = "<group>"; };
 		11C326CF29DD3FED00B169CD /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		11C326D529DD41E900B169CD /* CreatureCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CreatureCLI; sourceTree = BUILT_PRODUCTS_DIR; };
 		11C326D729DD41E900B169CD /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -201,6 +203,7 @@
 		11703D8A29DD197F00EF7E3D /* Creature Console */ = {
 			isa = PBXGroup;
 			children = (
+				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
 				1142E66029DFB21000B795F0 /* View */,
 				1142E65C29DFB19700B795F0 /* Model */,
 				115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */,
@@ -224,6 +227,14 @@
 				11703D9329DD198000EF7E3D /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		11C2E0DE29ECF6BC00B8A4F5 /* Events */ = {
+			isa = PBXGroup;
+			children = (
+				11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */,
+			);
+			path = Events;
 			sourceTree = "<group>";
 		};
 		11C326D629DD41E900B169CD /* CreatureCLI */ = {
@@ -377,6 +388,7 @@
 				11B4821029E23EAB00767E22 /* Sidebar.swift in Sources */,
 				11B4821329E24F9000767E22 /* CreatureList.swift in Sources */,
 				11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */,
+				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

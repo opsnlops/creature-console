@@ -11,7 +11,7 @@ import Logging
 @main
 struct Creature_ConsoleApp: App {
     
-    @ObservedObject var joystick0 = SixAxisJoystick()
+    @ObservedObject var eventLoop : EventLoop
 
     init() {
         let logger = Logger(label: "Creature Console")
@@ -30,9 +30,10 @@ struct Creature_ConsoleApp: App {
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
         
+        self.eventLoop = EventLoop()
         
         // Init the joystick
-        setupController(joystick: joystick0)
+        registerJoystickHandlers(eventLoop: self.eventLoop)
         
         // Connect to the server
         do {
@@ -49,11 +50,11 @@ struct Creature_ConsoleApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(CreatureServerClient.shared)
-                .environmentObject(joystick0)
+                .environmentObject(eventLoop)
         }
         
 #if os(macOS)
-        DebugJoystickScene(joystick: joystick0)
+        DebugJoystickScene(joystick: eventLoop.joystick0)
         LogViewScene(server: CreatureServerClient.shared)
         Settings {
             SettingsView()

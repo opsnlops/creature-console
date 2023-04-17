@@ -16,7 +16,7 @@ struct Sidebar: View {
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
-    @EnvironmentObject var joystick0 : SixAxisJoystick
+    @EnvironmentObject var eventLoop : EventLoop
     
 
     
@@ -40,7 +40,7 @@ struct Sidebar: View {
                     #if !os(macOS)
                     List {
                         NavigationLink("Debug Joystick") {
-                            JoystickDebugView(joystick: joystick0)
+                            JoystickDebugView(joystick: eventLoop.joystick0)
                         }
                         NavigationLink("Server Logs") {
                             LogViewView(server: client)

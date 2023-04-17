@@ -13,7 +13,7 @@ import Dispatch
 struct CreatureDetail : View {
     @ObservedObject var creature: Creature
     @EnvironmentObject var client: CreatureServerClient
-    @EnvironmentObject var joystick0: SixAxisJoystick
+    @EnvironmentObject var eventLoop: EventLoop
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
@@ -35,7 +35,7 @@ struct CreatureDetail : View {
             Spacer()
             
             NavigationLink("Control") {
-                RealTimeControl(joystick: joystick0, creature: creature)
+                RealTimeControl(joystick: eventLoop.joystick0, creature: creature)
             }
         
             

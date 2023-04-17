@@ -16,7 +16,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "19"
             endingLineNumber = "19"
-            landmarkName = "setupController(joystick:)"
+            landmarkName = "registerJoystickHandlers(eventLoop:)"
             landmarkType = "9">
             <Locations>
                <Location
