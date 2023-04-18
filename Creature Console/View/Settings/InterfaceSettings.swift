@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct UISettingsView: View {
+struct InterfaceSettings: View {
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 0
     
     var intProxy: Binding<Double>{
@@ -36,9 +36,9 @@ struct UISettingsView: View {
     }
 }
 
-struct UISettingsView_Previews: PreviewProvider {
+struct InterfaceSettings_Previews: PreviewProvider {
     static var previews: some View {
-        UISettingsView()
+        InterfaceSettings()
     }
 }
 

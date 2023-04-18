@@ -8,6 +8,7 @@
 import Foundation
 import GameController
 import Logging
+import Combine
 
 class Axis : ObservableObject, CustomStringConvertible {
     var axisType : AxisType = .gamepad
@@ -53,7 +54,14 @@ class Axis : ObservableObject, CustomStringConvertible {
 class SixAxisJoystick : ObservableObject {
     @Published var axises : [Axis]
     var controller : GCController?
+    let objectWillChange = ObservableObjectPublisher()
     let logger = Logger(label: "SixAxisJoystick")
+    
+#if os(iOS)
+    var virtualJoysick = VirtualJoystick()
+    var virtualJoystickConnected = false
+#endif
+    
     var vendor : String {
         controller?.vendorName ?? "Unknown"
     }
@@ -70,8 +78,33 @@ class SixAxisJoystick : ObservableObject {
         self.axises[5].axisType = .trigger
         self.axises[4].value = 0
         self.axises[5].value = 0
+    }
+    
+    var axisValues: [UInt8] {
+        return axises.map { $0.value }
+    }
+    
+    func showVirtualJoystickIfNeeded() {
         
-       
+        #if os(iOS)
+        if GCController.controllers().isEmpty {
+            logger.info("creating virtual joystick")
+            virtualJoysick.create()
+            virtualJoysick.connect()
+            virtualJoystickConnected = true
+        }
+        #endif
+        
+    }
+    
+    func removeVirtualJoystickIfNeeded() {
+        #if os(iOS)
+        if virtualJoystickConnected {
+            virtualJoysick.disconnect()
+            virtualJoystickConnected = false
+            logger.info("disconnecting virtual joystick")
+        }
+        #endif
     }
     
     
@@ -86,6 +119,8 @@ class SixAxisJoystick : ObservableObject {
             axises[4].rawValue = joystick.leftTrigger.value
             axises[5].rawValue = joystick.rightTrigger.value
             logger.debug("joystick polling done")
+            
+            objectWillChange.send()
         }
         else {
             logger.info("skipping polling because not extended gamepad")
@@ -93,4 +128,17 @@ class SixAxisJoystick : ObservableObject {
         
     }
     
+}
+
+
+extension SixAxisJoystick {
+    static func mock() -> SixAxisJoystick {
+        let joystick = SixAxisJoystick()
+        
+        for axis in joystick.axises {
+            axis.value = UInt8(arc4random_uniform(UInt32(UInt8.max)))
+        }
+        
+        return joystick
+    }
 }

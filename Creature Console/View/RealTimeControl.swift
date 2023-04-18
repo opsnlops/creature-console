@@ -12,25 +12,16 @@ import GRPC
 import GameController
 
 
-
 struct RealTimeControl: View {
     
     @ObservedObject var joystick : SixAxisJoystick
     @EnvironmentObject var client: CreatureServerClient
     var creature: Creature
     
-#if os(iOS)
-    var virtualJoysick : VirtualJoystick
-#endif
-
-
     init(joystick: SixAxisJoystick, creature: Creature)
     {
         self.joystick = joystick
         self.creature = creature
-#if os(iOS)
-        self.virtualJoysick = VirtualJoystick()
-#endif
     }
     
     
@@ -50,22 +41,11 @@ struct RealTimeControl: View {
             
             // Just in case I forget to turn off the streaming when I leave this view
             client.stopSignalReceived = true
+            self.joystick.removeVirtualJoystickIfNeeded()
         }
-#if os(iOS)
         .onAppear {
-            if GCController.controllers().isEmpty {
-                print("IT WAS EMPTY")
-                virtualJoysick.create()
-            }
-            else {
-                print("IT WAS NOT EMPTY")
-            }
-            virtualJoysick.connect()
+            self.joystick.showVirtualJoystickIfNeeded()
         }
-        .onDisappear {
-           virtualJoysick.disconnect()
-        }
-#endif
     }
         
 }

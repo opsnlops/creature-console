@@ -19,7 +19,7 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
         if let controller = notification.object as? GCController {
             
             if ((controller.extendedGamepad) != nil) {
-                print("it's extended!")
+                logger.debug("extended joystick connected, woot")
                 eventLoop.joystick0.controller = controller
             }
         }

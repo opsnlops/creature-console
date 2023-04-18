@@ -16,7 +16,6 @@ struct DebugJoystickScene: Scene {
         self.joystick = joystick
     }
     
-    
     var body: some Scene {
         Window("Debug Joystick", id: "debugJoystick") {
             JoystickDebugView(joystick: joystick)

@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SettingsView: View {
     private enum Tabs: Hashable {
-        case general, advanced
+        case network, joystick, interface, advanced
     }
     var body: some View {
         TabView {
@@ -18,16 +18,22 @@ struct SettingsView: View {
                 .tabItem {
                     Label("Network", systemImage: "network")
                 }
-                .tag(Tabs.general)
+                .tag(Tabs.network)
             JoystickSettingsView()
                 .tabItem {
-                    Label("Joystick", systemImage: "gamecontroller.fill")
+                    Label("Joystick", systemImage: "gamecontroller")
+                }
+                .tag(Tabs.joystick)
+            InterfaceSettings()  // TODO: why is this repeated?
+                .tabItem {
+                    Label("Interface", systemImage: "paintpalette")
+                }
+                .tag(Tabs.interface)
+            AdvancedSettingsView()
+                .tabItem {
+                    Label("Advanced", systemImage: "wand.and.stars")
                 }
                 .tag(Tabs.advanced)
-            UISettingsView()
-                .tabItem {
-                    Label("Interface", systemImage: "paintpalette.fill")
-                }
         }
         .padding(20)
         #if os(macOS)

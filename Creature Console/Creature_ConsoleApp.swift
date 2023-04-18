@@ -27,6 +27,7 @@ struct Creature_ConsoleApp: App {
             "joystick0.rightThumbstick.yAxis.mapping": 3,
             "joystick0.leftTrigger.mapping": 4,
             "joystick0.rightTrigger.mapping": 5,
+            "eventLoopFramesPerSecond": 40.0,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
         
