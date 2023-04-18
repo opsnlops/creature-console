@@ -112,15 +112,44 @@ class SixAxisJoystick : ObservableObject {
         
         if let joystick = controller?.extendedGamepad {
             
-            axises[0].rawValue = joystick.leftThumbstick.xAxis.value
-            axises[1].rawValue = joystick.leftThumbstick.yAxis.value
-            axises[2].rawValue = joystick.rightThumbstick.xAxis.value
-            axises[3].rawValue = joystick.rightThumbstick.yAxis.value
-            axises[4].rawValue = joystick.leftTrigger.value
-            axises[5].rawValue = joystick.rightTrigger.value
-            logger.debug("joystick polling done")
+            var didChange = false
             
-            objectWillChange.send()
+            if axises[0].rawValue != joystick.leftThumbstick.xAxis.value {
+                axises[0].rawValue = joystick.leftThumbstick.xAxis.value
+                didChange = true
+            }
+            
+            if axises[1].rawValue != joystick.leftThumbstick.yAxis.value {
+                axises[1].rawValue = joystick.leftThumbstick.yAxis.value
+                didChange = true
+            }
+            
+            if axises[2].rawValue != joystick.rightThumbstick.xAxis.value {
+                axises[2].rawValue = joystick.rightThumbstick.xAxis.value
+                didChange = true
+            }
+            
+            if axises[3].rawValue != joystick.rightThumbstick.yAxis.value {
+                axises[3].rawValue = joystick.rightThumbstick.yAxis.value
+                didChange = true
+            }
+            
+            if axises[4].rawValue != joystick.leftTrigger.value {
+                axises[4].rawValue = joystick.leftTrigger.value
+                didChange = true
+            }
+            
+            if axises[5].rawValue != joystick.rightTrigger.value {
+                axises[5].rawValue = joystick.rightTrigger.value
+                didChange = true
+            }
+            
+   
+            logger.debug("joystick polling done")
+       
+            if didChange {
+                objectWillChange.send()
+            }
         }
         else {
             logger.info("skipping polling because not extended gamepad")

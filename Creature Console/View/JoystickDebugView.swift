@@ -10,9 +10,6 @@ import Logging
 import GameController
 
 
-
-
-
 struct JoystickDebugView: View {
     @ObservedObject var joystick: SixAxisJoystick
 

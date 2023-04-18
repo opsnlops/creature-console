@@ -13,12 +13,11 @@ class EventLoop : ObservableObject {
     private var timer: Timer?
     private let timerInterval = 1.0 / UserDefaults.standard.double(forKey: "eventLoopFramesPerSecond")
     private(set) var framesPerSecond = UserDefaults.standard.double(forKey: "eventLoopFramesPerSecond")
-    @Published private(set) var number_of_frames : Int64 = 0
+    private(set) var number_of_frames : Int64 = 0
     
     private let logger = Logger(label: "Event Loop")
     
     var joystick0 : SixAxisJoystick
-    
     
     
     /**
@@ -35,8 +34,6 @@ class EventLoop : ObservableObject {
         }
        
     }
-    
-    
     
     
     init() {
