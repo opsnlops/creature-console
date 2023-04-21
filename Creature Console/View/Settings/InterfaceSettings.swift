@@ -32,7 +32,6 @@ struct InterfaceSettings: View {
                     
             }
         }
-        Spacer()
     }
 }
 

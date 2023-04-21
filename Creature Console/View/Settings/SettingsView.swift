@@ -24,7 +24,7 @@ struct SettingsView: View {
                     Label("Joystick", systemImage: "gamecontroller")
                 }
                 .tag(Tabs.joystick)
-            InterfaceSettings()  // TODO: why is this repeated?
+            InterfaceSettings()
                 .tabItem {
                     Label("Interface", systemImage: "paintpalette")
                 }
