@@ -28,6 +28,9 @@
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
 		119A016329EE297800D3DA12 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
+		11A10A5B29F23BE6000EB835 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5A29F23BE6000EB835 /* Animation.swift */; };
+		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
+		11A10A6029F246A3000EB835 /* ViewAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5F29F246A3000EB835 /* ViewAnimation.swift */; };
 		11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4820D29E23A5600767E22 /* Mocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820C29E23A5600767E22 /* Mocks.swift */; };
@@ -94,6 +97,9 @@
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
+		11A10A5A29F23BE6000EB835 /* Animation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animation.swift; sourceTree = "<group>"; };
+		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
+		11A10A5F29F246A3000EB835 /* ViewAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewAnimation.swift; sourceTree = "<group>"; };
 		11B4820929E141AB00767E22 /* DataHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHelper.swift; sourceTree = "<group>"; };
 		11B4820C29E23A5600767E22 /* Mocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mocks.swift; sourceTree = "<group>"; };
 		11B4820F29E23EAB00767E22 /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
@@ -167,6 +173,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				11A10A5C29F2429A000EB835 /* Animation */,
 				119A016429EE4B3700D3DA12 /* Settings */,
 				119A016129EE28DB00D3DA12 /* Charts */,
 				1142E66129DFB22300B795F0 /* CreatureDetail.swift */,
@@ -251,10 +258,20 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		11A10A5C29F2429A000EB835 /* Animation */ = {
+			isa = PBXGroup;
+			children = (
+				11A10A5D29F242B7000EB835 /* RecordAnimation.swift */,
+				11A10A5F29F246A3000EB835 /* ViewAnimation.swift */,
+			);
+			path = Animation;
+			sourceTree = "<group>";
+		};
 		11C2E0DE29ECF6BC00B8A4F5 /* Events */ = {
 			isa = PBXGroup;
 			children = (
 				11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */,
+				11A10A5A29F23BE6000EB835 /* Animation.swift */,
 			);
 			path = Events;
 			sourceTree = "<group>";
@@ -389,6 +406,7 @@
 				11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */,
 				11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */,
 				11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */,
+				11A10A5B29F23BE6000EB835 /* Animation.swift in Sources */,
 				1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
@@ -398,8 +416,10 @@
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
 				118A737C29EB68EA00EF8CDB /* LogViewModel.swift in Sources */,
+				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
 				118A738029EB772900EF8CDB /* LogViewView.swift in Sources */,
 				11DD93B329E666D200089EC6 /* RealTimeControl.swift in Sources */,
+				11A10A6029F246A3000EB835 /* ViewAnimation.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
 				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
@@ -557,7 +577,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature_Console.entitlements";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature Console/Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -602,7 +622,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature_Console.entitlements";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature Console/Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;

@@ -29,6 +29,23 @@ class EventLoop : ObservableObject {
     var joystick0 : SixAxisJoystick
     
     
+    // If we've got an animation loaded, keep track of it
+    var animation : Animation?
+    var isRecording = false
+    
+    
+    
+    func recordNewAnimation(metadata: Animation.Metadata) {
+        animation = Animation(id: DataHelper.generateRandomData(byteCount: 12),
+                              metadata: metadata,
+                              frames: [])
+        isRecording = true
+    }
+    
+    func stopRecording() {
+        isRecording = false
+    }
+    
     /**
      Main Event Loop
      */
@@ -46,7 +63,10 @@ class EventLoop : ObservableObject {
             joystick0.poll()
         }
        
-        
+        // If we are recording, grab the data now
+        if( isRecording ) {
+            animation?.addFrame(frames: joystick0.axisValues)
+        }
         
         // Update metrics
         let endTime = DispatchTime.now()

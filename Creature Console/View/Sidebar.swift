@@ -37,7 +37,7 @@ struct Sidebar: View {
                  
                     Spacer()
                     
-                    #if !os(macOS)
+                   
                     List {
                         NavigationLink("Debug Joystick") {
                             JoystickDebugView(joystick: eventLoop.joystick0)
@@ -48,9 +48,15 @@ struct Sidebar: View {
                         NavigationLink("Settings") {
                             SettingsView()
                         }
+                        NavigationLink("Record Animation") {
+                            RecordAnimation(joystick: eventLoop.joystick0)
+                        }
+                        NavigationLink("View Animation") {
+                            ViewAnimation()
+                        }
                     }
                     .navigationTitle("System")
-                    #endif
+                
                 }
             }
             else {
