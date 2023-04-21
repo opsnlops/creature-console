@@ -147,8 +147,11 @@ class SixAxisJoystick : ObservableObject {
    
             logger.debug("joystick polling done")
        
+            // If there's a change to be propogated out, let the main thread do it
             if didChange {
-                objectWillChange.send()
+                DispatchQueue.main.async {
+                    self.objectWillChange.send()
+                }
             }
         }
         else {

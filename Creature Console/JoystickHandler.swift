@@ -31,6 +31,7 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
     }
     
     GCController.startWirelessControllerDiscovery(completionHandler: {
-        logger.info("Finished wireless controller discovery")
-    })
+            logger.info("Finished wireless controller discovery")
+        }
+    )
 }
