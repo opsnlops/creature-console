@@ -22,10 +22,10 @@ class EventLoop : ObservableObject {
     private var timer: DispatchSourceTimer?
     @Published var millisecondPerFrame : Int
     @Published var logSpareTimeFrameInterval : Int
+    @Published var frameIdleTime: Double
     private(set) var number_of_frames : Int64 = 0
     
-    
-    
+
     
     private let logger = Logger(label: "Event Loop")
     private let numberFormatter = NumberFormatter()
@@ -75,15 +75,23 @@ class EventLoop : ObservableObject {
         let endTime = DispatchTime.now()
         let elapsedTime = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
         
+        
+        // If it's time to print out a logging message with our info, do it now
         if(number_of_frames % Int64(logSpareTimeFrameInterval) == 1) {
             let elapsedTimeInMilliseconds = Double(elapsedTime) / 1_000_000.0
             let frameTimeInNanoseconds = Double(millisecondPerFrame) * 1_000_000.0
-            let idleTime = (1 - (Double(elapsedTime) / frameTimeInNanoseconds)) * 100.0
+            let localFrameIdleTime = (1 - (Double(elapsedTime) / frameTimeInNanoseconds)) * 100.0
             
             let elapsedTimeString = numberFormatter.string(from: NSNumber(value: elapsedTimeInMilliseconds)) ?? "0.00"
-            let idleTimeString = numberFormatter.string(from: NSNumber(value: idleTime)) ?? "0.00"
+            let idleTimeString = numberFormatter.string(from: NSNumber(value: localFrameIdleTime)) ?? "0.00"
                         
             logger.info("Frame time: \(elapsedTimeString)ms (\(idleTimeString)% Idle)")
+            
+            // Update this metric for anyone watching
+            DispatchQueue.main.async {
+                self.frameIdleTime = localFrameIdleTime
+            }
+            
         }
         
     }
@@ -93,6 +101,7 @@ class EventLoop : ObservableObject {
         self.joystick0 = SixAxisJoystick()
         self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
         self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
+        self.frameIdleTime = 100.0
         
         // Configure the number formatter
         numberFormatter.numberStyle = .decimal
