@@ -24,7 +24,7 @@ struct RecordAnimation: View {
             Button("Start Record") {
                 
                 let metadata = Animation.Metadata(title: "First!",
-                                                  framesPerSecond: Int32(UserDefaults.standard.double(forKey: "eventLoopFramesPerSecond")),
+                                                  millisecondsPerFrame: Int32(eventLoop.millisecondPerFrame),
                                                   creatureType: .wledLight,
                                                   numberOfMotors: 6,
                                                   notes: "Please work!")

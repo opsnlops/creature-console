@@ -20,11 +20,15 @@ import Logging
  */
 class EventLoop : ObservableObject {
     private var timer: DispatchSourceTimer?
-    private let timerInterval: TimeInterval
-    private(set) var framesPerSecond : Double
+    @Published var millisecondPerFrame : Int
+    @Published var logSpareTimeFrameInterval : Int
     private(set) var number_of_frames : Int64 = 0
     
+    
+    
+    
     private let logger = Logger(label: "Event Loop")
+    private let numberFormatter = NumberFormatter()
     
     var joystick0 : SixAxisJoystick
     
@@ -32,7 +36,6 @@ class EventLoop : ObservableObject {
     // If we've got an animation loaded, keep track of it
     var animation : Animation?
     var isRecording = false
-    
     
     
     func recordNewAnimation(metadata: Animation.Metadata) {
@@ -71,43 +74,54 @@ class EventLoop : ObservableObject {
         // Update metrics
         let endTime = DispatchTime.now()
         let elapsedTime = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
-        let elapsedTimeInSeconds = Double(elapsedTime) / 1_000_000.0
         
-        if(number_of_frames % 1000 == 1) {
-            logger.info("Frame time: \(elapsedTimeInSeconds)ms (\((1 - (elapsedTimeInSeconds / (timerInterval * 1000))) * 100.0)% Idle)")
+        if(number_of_frames % Int64(logSpareTimeFrameInterval) == 1) {
+            let elapsedTimeInMilliseconds = Double(elapsedTime) / 1_000_000.0
+            let frameTimeInNanoseconds = Double(millisecondPerFrame) * 1_000_000.0
+            let idleTime = (1 - (Double(elapsedTime) / frameTimeInNanoseconds)) * 100.0
+            
+            let elapsedTimeString = numberFormatter.string(from: NSNumber(value: elapsedTimeInMilliseconds)) ?? "0.00"
+            let idleTimeString = numberFormatter.string(from: NSNumber(value: idleTime)) ?? "0.00"
+                        
+            logger.info("Frame time: \(elapsedTimeString)ms (\(idleTimeString)% Idle)")
         }
         
     }
     
     
     init() {
-            self.joystick0 = SixAxisJoystick()
-            framesPerSecond = UserDefaults.standard.double(forKey: "eventLoopFramesPerSecond")
-            timerInterval = 1.0 / framesPerSecond
+        self.joystick0 = SixAxisJoystick()
+        self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
+        self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
+        
+        // Configure the number formatter
+        numberFormatter.numberStyle = .decimal
+        numberFormatter.maximumFractionDigits = 2
+        numberFormatter.minimumFractionDigits = 2
+  
+        startTimer()
+        logger.info("event loop started")
+    }
 
-            startTimer()
-            logger.info("event loop started")
+    deinit {
+        stopTimer()
+        logger.info("event loop stopped")
+    }
+
+    private func startTimer() {
+        logger.info("Starting event loop at \(millisecondPerFrame)ms per frame")
+
+        timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
+        timer?.setEventHandler { [weak self] in
+            self?.update()
         }
+        timer?.schedule(deadline: .now(), repeating: .milliseconds(millisecondPerFrame), leeway: .nanoseconds(0))
+        timer?.resume()
+    }
 
-        deinit {
-            stopTimer()
-            logger.info("event loop stopped")
-        }
-
-        private func startTimer() {
-            logger.info("Starting event loop at \(framesPerSecond) FPS (\(timerInterval * 1000)ms interval)")
-
-            timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
-            timer?.setEventHandler { [weak self] in
-                self?.update()
-            }
-            timer?.schedule(deadline: .now(), repeating: timerInterval, leeway: .nanoseconds(0))
-            timer?.resume()
-        }
-
-        private func stopTimer() {
-            timer?.cancel()
-            timer = nil
-        }
+    private func stopTimer() {
+        timer?.cancel()
+        timer = nil
+    }
     
 }

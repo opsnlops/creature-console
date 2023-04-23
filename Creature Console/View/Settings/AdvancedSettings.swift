@@ -9,15 +9,19 @@ import Foundation
 import SwiftUI
 
 
-
 struct AdvancedSettingsView: View {
-    @AppStorage("eventLoopFramesPerSecond") private var eventLoopFramesPerSecond: Double = 40.0
-    
+    @AppStorage("eventLoopMillisecondsPerFrame") private var eventLoopMillisecondsPerFrame: Int = 20
+    @AppStorage("logSpareTimeFrameInterval") private var logSpareTimeFrameInterval: Int = 200
     var body: some View {
         VStack {
+            Text("⚠️ Changing any of these values requires an app restart")
+                .padding()
             Form {
-                Section(header: Text("Event Loop FPS (Restart Required)")) {
-                    TextField("", value: $eventLoopFramesPerSecond, format: .number)
+                Section(header: Text("Milliseconds Per Frame")) {
+                    TextField("", value: $eventLoopMillisecondsPerFrame, format: .number)
+                }
+                Section(header: Text("Log Spare Time Frame Interval")) {
+                    TextField("", value: $logSpareTimeFrameInterval, format: .number)
                 }
             }
             Spacer()

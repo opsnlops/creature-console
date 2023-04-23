@@ -10,15 +10,15 @@ import Foundation
 class Animation {
     class Metadata {
         var title: String
-        var framesPerSecond: Int32
+        var millisecondsPerFrame: Int32
         var numberOfFrames = 0
         var creatureType: Server_CreatureType
         var numberOfMotors: Int32
         var notes: String
 
-        init(title: String, framesPerSecond: Int32, creatureType: Server_CreatureType, numberOfMotors: Int32, notes: String) {
+        init(title: String, millisecondsPerFrame: Int32, creatureType: Server_CreatureType, numberOfMotors: Int32, notes: String) {
             self.title = title
-            self.framesPerSecond = framesPerSecond
+            self.millisecondsPerFrame = millisecondsPerFrame
             self.creatureType = creatureType
             self.numberOfMotors = numberOfMotors
             self.notes = notes
@@ -66,7 +66,7 @@ class Animation {
         // Convert the metadata
         animation.metadata.title = self.metadata.title
         animation.metadata.creatureType = self.metadata.creatureType
-        animation.metadata.framesPerSecond = self.metadata.framesPerSecond
+        animation.metadata.millisecondsPerFrame = self.metadata.millisecondsPerFrame
         animation.metadata.numberOfFrames = self.numberOfFrames
         animation.metadata.numberOfMotors = self.metadata.numberOfMotors
         animation.metadata.notes = self.metadata.notes

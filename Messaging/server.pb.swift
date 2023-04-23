@@ -494,7 +494,7 @@ public struct Server_Animation {
 
     public var title: String = String()
 
-    public var framesPerSecond: Int32 = 0
+    public var millisecondsPerFrame: Int32 = 0
 
     public var numberOfFrames: Int32 = 0
 
@@ -1263,7 +1263,7 @@ extension Server_Animation.Metadata: SwiftProtobuf.Message, SwiftProtobuf._Messa
   public static let protoMessageName: String = Server_Animation.protoMessageName + ".Metadata"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
     1: .same(proto: "title"),
-    2: .standard(proto: "frames_per_second"),
+    2: .standard(proto: "milliseconds_per_frame"),
     3: .standard(proto: "number_of_frames"),
     4: .standard(proto: "creature_type"),
     5: .standard(proto: "number_of_motors"),
@@ -1277,7 +1277,7 @@ extension Server_Animation.Metadata: SwiftProtobuf.Message, SwiftProtobuf._Messa
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.title) }()
-      case 2: try { try decoder.decodeSingularInt32Field(value: &self.framesPerSecond) }()
+      case 2: try { try decoder.decodeSingularInt32Field(value: &self.millisecondsPerFrame) }()
       case 3: try { try decoder.decodeSingularInt32Field(value: &self.numberOfFrames) }()
       case 4: try { try decoder.decodeSingularEnumField(value: &self.creatureType) }()
       case 5: try { try decoder.decodeSingularInt32Field(value: &self.numberOfMotors) }()
@@ -1291,8 +1291,8 @@ extension Server_Animation.Metadata: SwiftProtobuf.Message, SwiftProtobuf._Messa
     if !self.title.isEmpty {
       try visitor.visitSingularStringField(value: self.title, fieldNumber: 1)
     }
-    if self.framesPerSecond != 0 {
-      try visitor.visitSingularInt32Field(value: self.framesPerSecond, fieldNumber: 2)
+    if self.millisecondsPerFrame != 0 {
+      try visitor.visitSingularInt32Field(value: self.millisecondsPerFrame, fieldNumber: 2)
     }
     if self.numberOfFrames != 0 {
       try visitor.visitSingularInt32Field(value: self.numberOfFrames, fieldNumber: 3)
@@ -1311,7 +1311,7 @@ extension Server_Animation.Metadata: SwiftProtobuf.Message, SwiftProtobuf._Messa
 
   public static func ==(lhs: Server_Animation.Metadata, rhs: Server_Animation.Metadata) -> Bool {
     if lhs.title != rhs.title {return false}
-    if lhs.framesPerSecond != rhs.framesPerSecond {return false}
+    if lhs.millisecondsPerFrame != rhs.millisecondsPerFrame {return false}
     if lhs.numberOfFrames != rhs.numberOfFrames {return false}
     if lhs.creatureType != rhs.creatureType {return false}
     if lhs.numberOfMotors != rhs.numberOfMotors {return false}
