@@ -36,6 +36,7 @@ struct Sidebar: View {
                     .navigationTitle("Creatures")
                 }
                 else {
+                    Text("Trying to talk to \(UserDefaults.standard.string(forKey: "serverAddress") ?? "an undefined server")...")
                     ProgressView("Loading...")
                 }
             }
