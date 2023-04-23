@@ -57,7 +57,7 @@ struct Sidebar: View {
                     ViewAnimation()
                 }
             }
-            .navigationTitle("System")
+            .navigationTitle("April's Creature Workshop")
             
         }.onAppear {
             Task {
