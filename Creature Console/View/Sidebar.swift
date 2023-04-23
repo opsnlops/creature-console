@@ -23,45 +23,41 @@ struct Sidebar: View {
     let logger = Logger(label: "Sidebar")
         
     var body: some View {
-        Group {
-            if !creatureList.empty {
-                VStack {
-                    List(creatureList.creatures, id: \.id) {
+        List {
+            Section("Creatures") {
+                if !creatureList.empty {
+                    ForEach(creatureList.creatures, id: \.id) {
                         creature in
                         NavigationLink(creature.name, value: creature.id)
-                    }
-                    .navigationDestination(for: Data.self) {
-                        CreatureDetail(creature: creatureList.getById(id: $0))
+                            .navigationDestination(for: Data.self) {
+                                CreatureDetail(creature: creatureList.getById(id: $0))
+                            }
                     }
                     .navigationTitle("Creatures")
-                 
-                    Spacer()
-                    
-                   
-                    List {
-                        NavigationLink("Debug Joystick") {
-                            JoystickDebugView(joystick: eventLoop.joystick0)
-                        }
-                        NavigationLink("Server Logs") {
-                            LogViewView(server: client)
-                        }
-                        NavigationLink("Settings") {
-                            SettingsView()
-                        }
-                        NavigationLink("Record Animation") {
-                            RecordAnimation(joystick: eventLoop.joystick0)
-                        }
-                        NavigationLink("View Animation") {
-                            ViewAnimation()
-                        }
-                    }
-                    .navigationTitle("System")
-                
+                }
+                else {
+                    ProgressView("Loading...")
                 }
             }
-            else {
-                ProgressView("Loading...")
+            Section("Controls") {
+                NavigationLink("Debug Joystick") {
+                    JoystickDebugView(joystick: eventLoop.joystick0)
+                }
+                NavigationLink("Server Logs") {
+                    LogViewView(server: client)
+                }
+                NavigationLink("Settings") {
+                    SettingsView()
+                }
+                NavigationLink("Record Animation") {
+                    RecordAnimation(joystick: eventLoop.joystick0)
+                }
+                NavigationLink("View Animation") {
+                    ViewAnimation()
+                }
             }
+            .navigationTitle("System")
+            
         }.onAppear {
             Task {
                 

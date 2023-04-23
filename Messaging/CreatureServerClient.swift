@@ -11,7 +11,20 @@ import NIOCore
 import NIOPosix
 import Logging
 import SwiftUI
+import SwiftProtobuf
 
+
+/**
+ Used when there's an error on the server
+ */
+struct ServerError: LocalizedError, Identifiable {
+    let id = UUID()
+    let errorDescription: String?
+
+    init(_ description: String) {
+        self.errorDescription = description
+    }
+}
 
 class CreatureServerClient : ObservableObject {
     static let shared = CreatureServerClient()
@@ -170,5 +183,31 @@ class CreatureServerClient : ObservableObject {
         
         logger.info("Stopping streaming logs from the server")
         
+    }
+    
+    func createAnimation(animation: Animation) async -> Result<String, ServerError> {
+        
+        logger.info("Attempting to create a new Animation in the database")
+        
+        logger.debug("Animation Title: \(animation.metadata.title)")
+        logger.debug("Number of frames: \(animation.numberOfFrames) and \(animation.frames.count)")
+                
+        do {
+            let serverAnimation = try animation.toServerAnimation()
+            let response = try await server?.createAnimation(serverAnimation)
+            return .success("Server said: \(response?.message ?? "???")")
+        }
+        catch SwiftProtobuf.BinaryDecodingError.truncated {
+            logger.error("Animation was unable to be decoded because it was truncated")
+            return .failure(ServerError("Unable to save animation due to the protobuf being truncated. 😅"))
+        }
+        catch SwiftProtobuf.BinaryDecodingError.malformedProtobuf {
+            logger.error("Animation was unable to be decoded because the protobuf was malformed")
+            return .failure(ServerError("Unable to save animation due to the protobuf being malformed. 🤔"))
+        }
+        catch {
+            logger.error("Unable to save an animation to the database: \(error)")
+            return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
+        }
     }
 }

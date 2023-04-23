@@ -36,7 +36,7 @@ class EventLoop : ObservableObject {
     
     
     func recordNewAnimation(metadata: Animation.Metadata) {
-        animation = Animation(id: DataHelper.generateRandomData(byteCount: 12),
+        animation = Animation(id: DataHelper.generateRandomData(byteCount: 24),
                               metadata: metadata,
                               frames: [])
         isRecording = true
@@ -73,7 +73,7 @@ class EventLoop : ObservableObject {
         let elapsedTime = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
         let elapsedTimeInSeconds = Double(elapsedTime) / 1_000_000.0
         
-        if(number_of_frames % 100 == 1) {
+        if(number_of_frames % 1000 == 1) {
             logger.info("Frame time: \(elapsedTimeInSeconds)ms (\((1 - (elapsedTimeInSeconds / (timerInterval * 1000))) * 100.0)% Idle)")
         }
         
