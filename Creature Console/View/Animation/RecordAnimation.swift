@@ -77,3 +77,8 @@ struct RecordAnimation: View {
 }
 
 
+struct RecordAnimation_Previews: PreviewProvider {
+    static var previews: some View {
+        RecordAnimation(joystick: .mock())
+    }
+}

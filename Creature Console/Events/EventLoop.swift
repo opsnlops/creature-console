@@ -134,3 +134,20 @@ class EventLoop : ObservableObject {
     }
     
 }
+
+extension EventLoop {
+    static func mock() -> EventLoop {
+        let mockEventLoop = EventLoop()
+        mockEventLoop.millisecondPerFrame = 50
+        mockEventLoop.logSpareTimeFrameInterval = 100
+        mockEventLoop.frameIdleTime = 100.0
+
+        // Configure the mock joystick if needed
+        mockEventLoop.joystick0 = .mock()
+
+        // Configure the mock animation if needed
+        mockEventLoop.animation = .mock()
+
+        return mockEventLoop
+    }
+}

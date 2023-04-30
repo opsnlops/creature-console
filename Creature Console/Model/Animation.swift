@@ -83,3 +83,30 @@ class Animation {
         
     }
 }
+
+
+extension Animation {
+    static func mock() -> Animation {
+        let metadata = Metadata(
+            title: "Mock Animation",
+            millisecondsPerFrame: 50,
+            creatureType: .parrot,
+            numberOfMotors: 6,
+            notes: "Sample animation for testing purposes"
+        )
+
+        // Create sample frames with random motor bytes
+        let numberOfSampleFrames = 40
+        let numberOfMotors = Int(metadata.numberOfMotors)
+        var frames = [Frame]()
+        for _ in 0..<numberOfSampleFrames {
+            let motorBytes = (0..<numberOfMotors).map { _ in UInt8.random(in: 0...255) }
+            frames.append(Frame(motorBytes: motorBytes))
+        }
+
+        let id = DataHelper.generateRandomData(byteCount: 24)
+        let animation = Animation(id: id, metadata: metadata, frames: frames)
+
+        return animation
+    }
+}

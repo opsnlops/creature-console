@@ -210,4 +210,84 @@ class CreatureServerClient : ObservableObject {
             return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
         }
     }
+    
+    func listAnimations(creatureType: Server_CreatureType) async -> Result<[Server_AnimationIdentifier], ServerError> {
+        
+        logger.info("attempting to get all animations for creature type \(creatureType)")
+        
+        var metadatas : [Server_AnimationIdentifier]
+        metadatas = []
+        
+        do {
+            var filter = Server_AnimationFilter()
+            filter.type = creatureType
+            
+            let response = try await server?.listAnimations(filter) ?? Server_ListAnimationsResponse()
+            
+            for a in response.animations {
+                metadatas.append(a)
+            }
+            
+            logger.info("got all animations for that type")
+            return .success(metadatas)
+            
+        }
+        catch {
+            logger.error("Unable to get animations for creature type \(creatureType)")
+            return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
+        }
+        
+    }
+}
+
+
+
+extension CreatureServerClient {
+    
+    static func mock() -> CreatureServerClient {
+        return MockCreatureServerClient()
+    }
+    
+    private class MockCreatureServerClient: CreatureServerClient {
+        
+        override init() {
+            super.init()
+        }
+        
+        override func connect(serverHostname: String, serverPort: Int) throws {
+            // Empty implementation for mock
+        }
+        
+        override func close() throws {
+            // Empty implementation for mock
+        }
+        
+        override func searchCreatures(creatureName: String) async throws -> Server_Creature {
+            return Server_Creature() // Return empty creature object
+        }
+        
+        override func getCreature(creatureId: Data) async throws -> Server_Creature {
+            return Server_Creature() // Return empty creature object
+        }
+        
+        override func listCreatures() async throws -> [CreatureIdentifier] {
+            return [] // Return empty list
+        }
+        
+        override func getAllCreatures() async throws -> [Server_Creature] {
+            return [] // Return empty list
+        }
+        
+        override func streamLogs(logViewModel: LogViewModel, logFilter: Server_LogFilter, stopFlag: StopFlag) async {
+            // Empty implementation for mock
+        }
+        
+        override func createAnimation(animation: Animation) async -> Result<String, ServerError> {
+            return .success("Animation created (mock)") // Return success message
+        }
+        
+        override func listAnimations(creatureType: Server_CreatureType) async -> Result<[Server_AnimationIdentifier], ServerError> {
+            return .success([]) // Return empty list
+        }
+    }
 }

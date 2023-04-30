@@ -12,6 +12,7 @@ import Logging
 
 struct Sidebar: View {
     @StateObject var creatureList = CreatureList()
+    @StateObject var animationIdList = AnimationIdentifier()
     @EnvironmentObject var client: CreatureServerClient
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
@@ -38,6 +39,12 @@ struct Sidebar: View {
                 else {
                     Text("Trying to talk to \(UserDefaults.standard.string(forKey: "serverAddress") ?? "an undefined server")...")
                     ProgressView("Loading...")
+                        .padding()
+                }
+            }
+            Section("Animations") {
+                ForEach(CreatureType.allCases, id: \.self) { creatureType in
+                    NavigationLink(creatureType.description, destination: AnimationCategory(creatureType: creatureType))
                 }
             }
             Section("Controls") {
@@ -54,7 +61,7 @@ struct Sidebar: View {
                     RecordAnimation(joystick: eventLoop.joystick0)
                 }
                 NavigationLink("View Animation") {
-                    ViewAnimation()
+                    ViewAnimation(animation: .mock())
                 }
             }
             .navigationTitle("April's Creature Workshop")
@@ -77,6 +84,7 @@ struct Sidebar: View {
                             creatureList.add(item: Creature(serverCreature: c))
                         }
                     }
+                    
                 }
                 catch {
                     logger.critical("\(error.localizedDescription)")
@@ -100,5 +108,7 @@ struct Sidebar: View {
 struct Sidebar_Previews: PreviewProvider {
     static var previews: some View {
         Sidebar()
+            .environmentObject(EventLoop.mock())
+            .environmentObject(CreatureServerClient.mock())
     }
 }

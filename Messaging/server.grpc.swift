@@ -80,6 +80,16 @@ public protocol Server_CreatureServerClientProtocol: GRPCClient {
     _ request: Server_Animation,
     callOptions: CallOptions?
   ) -> UnaryCall<Server_Animation, Server_DatabaseInfo>
+
+  func listAnimations(
+    _ request: Server_AnimationFilter,
+    callOptions: CallOptions?
+  ) -> UnaryCall<Server_AnimationFilter, Server_ListAnimationsResponse>
+
+  func getAnimation(
+    _ request: Server_AnimationId,
+    callOptions: CallOptions?
+  ) -> UnaryCall<Server_AnimationId, Server_Animation>
 }
 
 extension Server_CreatureServerClientProtocol {
@@ -273,6 +283,43 @@ extension Server_CreatureServerClientProtocol {
       interceptors: self.interceptors?.makeCreateAnimationInterceptors() ?? []
     )
   }
+
+  ///*
+  ///Returns a list of the animations that match a filter
+  ///
+  /// - Parameters:
+  ///   - request: Request to send to ListAnimations.
+  ///   - callOptions: Call options.
+  /// - Returns: A `UnaryCall` with futures for the metadata, status and response.
+  public func listAnimations(
+    _ request: Server_AnimationFilter,
+    callOptions: CallOptions? = nil
+  ) -> UnaryCall<Server_AnimationFilter, Server_ListAnimationsResponse> {
+    return self.makeUnaryCall(
+      path: Server_CreatureServerClientMetadata.Methods.listAnimations.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeListAnimationsInterceptors() ?? []
+    )
+  }
+
+  /// Unary call to GetAnimation
+  ///
+  /// - Parameters:
+  ///   - request: Request to send to GetAnimation.
+  ///   - callOptions: Call options.
+  /// - Returns: A `UnaryCall` with futures for the metadata, status and response.
+  public func getAnimation(
+    _ request: Server_AnimationId,
+    callOptions: CallOptions? = nil
+  ) -> UnaryCall<Server_AnimationId, Server_Animation> {
+    return self.makeUnaryCall(
+      path: Server_CreatureServerClientMetadata.Methods.getAnimation.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeGetAnimationInterceptors() ?? []
+    )
+  }
 }
 
 #if compiler(>=5.6)
@@ -388,6 +435,16 @@ public protocol Server_CreatureServerAsyncClientProtocol: GRPCClient {
     _ request: Server_Animation,
     callOptions: CallOptions?
   ) -> GRPCAsyncUnaryCall<Server_Animation, Server_DatabaseInfo>
+
+  func makeListAnimationsCall(
+    _ request: Server_AnimationFilter,
+    callOptions: CallOptions?
+  ) -> GRPCAsyncUnaryCall<Server_AnimationFilter, Server_ListAnimationsResponse>
+
+  func makeGetAnimationCall(
+    _ request: Server_AnimationId,
+    callOptions: CallOptions?
+  ) -> GRPCAsyncUnaryCall<Server_AnimationId, Server_Animation>
 }
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -515,6 +572,30 @@ extension Server_CreatureServerAsyncClientProtocol {
       request: request,
       callOptions: callOptions ?? self.defaultCallOptions,
       interceptors: self.interceptors?.makeCreateAnimationInterceptors() ?? []
+    )
+  }
+
+  public func makeListAnimationsCall(
+    _ request: Server_AnimationFilter,
+    callOptions: CallOptions? = nil
+  ) -> GRPCAsyncUnaryCall<Server_AnimationFilter, Server_ListAnimationsResponse> {
+    return self.makeAsyncUnaryCall(
+      path: Server_CreatureServerClientMetadata.Methods.listAnimations.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeListAnimationsInterceptors() ?? []
+    )
+  }
+
+  public func makeGetAnimationCall(
+    _ request: Server_AnimationId,
+    callOptions: CallOptions? = nil
+  ) -> GRPCAsyncUnaryCall<Server_AnimationId, Server_Animation> {
+    return self.makeAsyncUnaryCall(
+      path: Server_CreatureServerClientMetadata.Methods.getAnimation.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeGetAnimationInterceptors() ?? []
     )
   }
 }
@@ -652,6 +733,30 @@ extension Server_CreatureServerAsyncClientProtocol {
       interceptors: self.interceptors?.makeCreateAnimationInterceptors() ?? []
     )
   }
+
+  public func listAnimations(
+    _ request: Server_AnimationFilter,
+    callOptions: CallOptions? = nil
+  ) async throws -> Server_ListAnimationsResponse {
+    return try await self.performAsyncUnaryCall(
+      path: Server_CreatureServerClientMetadata.Methods.listAnimations.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeListAnimationsInterceptors() ?? []
+    )
+  }
+
+  public func getAnimation(
+    _ request: Server_AnimationId,
+    callOptions: CallOptions? = nil
+  ) async throws -> Server_Animation {
+    return try await self.performAsyncUnaryCall(
+      path: Server_CreatureServerClientMetadata.Methods.getAnimation.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeGetAnimationInterceptors() ?? []
+    )
+  }
 }
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -704,6 +809,12 @@ public protocol Server_CreatureServerClientInterceptorFactoryProtocol: GRPCSenda
 
   /// - Returns: Interceptors to use when invoking 'createAnimation'.
   func makeCreateAnimationInterceptors() -> [ClientInterceptor<Server_Animation, Server_DatabaseInfo>]
+
+  /// - Returns: Interceptors to use when invoking 'listAnimations'.
+  func makeListAnimationsInterceptors() -> [ClientInterceptor<Server_AnimationFilter, Server_ListAnimationsResponse>]
+
+  /// - Returns: Interceptors to use when invoking 'getAnimation'.
+  func makeGetAnimationInterceptors() -> [ClientInterceptor<Server_AnimationId, Server_Animation>]
 }
 
 public enum Server_CreatureServerClientMetadata {
@@ -721,6 +832,8 @@ public enum Server_CreatureServerClientMetadata {
       Server_CreatureServerClientMetadata.Methods.streamFrames,
       Server_CreatureServerClientMetadata.Methods.getServerStatus,
       Server_CreatureServerClientMetadata.Methods.createAnimation,
+      Server_CreatureServerClientMetadata.Methods.listAnimations,
+      Server_CreatureServerClientMetadata.Methods.getAnimation,
     ]
   )
 
@@ -782,6 +895,18 @@ public enum Server_CreatureServerClientMetadata {
     public static let createAnimation = GRPCMethodDescriptor(
       name: "CreateAnimation",
       path: "/server.CreatureServer/CreateAnimation",
+      type: GRPCCallType.unary
+    )
+
+    public static let listAnimations = GRPCMethodDescriptor(
+      name: "ListAnimations",
+      path: "/server.CreatureServer/ListAnimations",
+      type: GRPCCallType.unary
+    )
+
+    public static let getAnimation = GRPCMethodDescriptor(
+      name: "GetAnimation",
+      path: "/server.CreatureServer/GetAnimation",
       type: GRPCCallType.unary
     )
   }

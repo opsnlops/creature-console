@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ViewAnimation: View {
-    @EnvironmentObject var eventLoop : EventLoop
+    @State var animation : Animation
 
     private func processAnimationData(_ animation: Animation) -> ([UInt8], [UInt8], [UInt8], [UInt8], [UInt8], [UInt8]) {
             var axis0: [UInt8] = []
@@ -31,26 +31,29 @@ struct ViewAnimation: View {
             return (axis0, axis1, axis2, axis3, axis4, axis5)
         }
     
+    
+    init(animation: Animation) {
+        self.animation = animation
+    }
+    
     var body: some View {
-        if let a = eventLoop.animation {
-                let (axis0, axis1, axis2, axis3, axis4, axis5) = processAnimationData(a)
-                VStack {
-                    ByteChartView(data: axis0)
-                    ByteChartView(data: axis1)
-                    ByteChartView(data: axis2)
-                    ByteChartView(data: axis3)
-                    ByteChartView(data: axis4)
-                    ByteChartView(data: axis5)
-                }
-            } else {
-                Text("No Data")
-            }
+        let (axis0, axis1, axis2, axis3, axis4, axis5) = processAnimationData(animation)
+        VStack {
+            Text(animation.metadata.title)
+            ByteChartView(data: axis0)
+            ByteChartView(data: axis1)
+            ByteChartView(data: axis2)
+            ByteChartView(data: axis3)
+            ByteChartView(data: axis4)
+            ByteChartView(data: axis5)
         }
+            
+    }
 
 }
 
 struct ViewAnimation_Previews: PreviewProvider {
     static var previews: some View {
-        ViewAnimation()
+        ViewAnimation(animation: .mock())
     }
 }

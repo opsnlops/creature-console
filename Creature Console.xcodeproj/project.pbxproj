@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1131763029FF067B008B35E8 /* CreatureType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131762F29FF067B008B35E8 /* CreatureType.swift */; };
+		1131763229FF0B66008B35E8 /* AnimationCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* AnimationCategory.swift */; };
 		1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
 		1142E65829DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
 		1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65629DFB08A00B795F0 /* server.pb.swift */; };
@@ -17,6 +19,7 @@
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
 		1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
 		1142E66529DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
+		1148FDB329F62ED0001C4550 /* AnimationIdentifierList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1148FDB229F62ED0001C4550 /* AnimationIdentifierList.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
 		11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */; };
 		11703D8E29DD197F00EF7E3D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* ContentView.swift */; };
@@ -78,11 +81,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1131762F29FF067B008B35E8 /* CreatureType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureType.swift; sourceTree = "<group>"; };
+		1131763129FF0B66008B35E8 /* AnimationCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationCategory.swift; sourceTree = "<group>"; };
 		1142E65529DFB08A00B795F0 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.grpc.swift; sourceTree = "<group>"; };
 		1142E65629DFB08A00B795F0 /* server.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.pb.swift; sourceTree = "<group>"; };
 		1142E65D29DFB1A900B795F0 /* Creature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
 		1142E66329DFC00700B795F0 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
+		1148FDB229F62ED0001C4550 /* AnimationIdentifierList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationIdentifierList.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
 		11703D8829DD197F00EF7E3D /* Creature Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -161,11 +167,14 @@
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				11A10A5A29F23BE6000EB835 /* Animation.swift */,
 				1142E65D29DFB1A900B795F0 /* Creature.swift */,
 				11B4820C29E23A5600767E22 /* Mocks.swift */,
 				11B4821229E24F9000767E22 /* CreatureList.swift */,
 				11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */,
 				118A737B29EB68EA00EF8CDB /* LogViewModel.swift */,
+				1148FDB229F62ED0001C4550 /* AnimationIdentifierList.swift */,
+				1131762F29FF067B008B35E8 /* CreatureType.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -263,6 +272,7 @@
 			children = (
 				11A10A5D29F242B7000EB835 /* RecordAnimation.swift */,
 				11A10A5F29F246A3000EB835 /* ViewAnimation.swift */,
+				1131763129FF0B66008B35E8 /* AnimationCategory.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -271,7 +281,6 @@
 			isa = PBXGroup;
 			children = (
 				11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */,
-				11A10A5A29F23BE6000EB835 /* Animation.swift */,
 			);
 			path = Events;
 			sourceTree = "<group>";
@@ -422,6 +431,7 @@
 				11A10A6029F246A3000EB835 /* ViewAnimation.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
 				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
+				1131763029FF067B008B35E8 /* CreatureType.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
 				11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
@@ -430,7 +440,9 @@
 				11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */,
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
 				11B4821029E23EAB00767E22 /* Sidebar.swift in Sources */,
+				1148FDB329F62ED0001C4550 /* AnimationIdentifierList.swift in Sources */,
 				11B4821329E24F9000767E22 /* CreatureList.swift in Sources */,
+				1131763229FF0B66008B35E8 /* AnimationCategory.swift in Sources */,
 				11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
