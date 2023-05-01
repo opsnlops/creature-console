@@ -11,7 +11,7 @@ class Animation {
     class Metadata {
         var title: String
         var millisecondsPerFrame: Int32
-        var numberOfFrames = 0
+        var numberOfFrames = Int32(0)
         var creatureType: Server_CreatureType
         var numberOfMotors: Int32
         var notes: String
@@ -22,6 +22,15 @@ class Animation {
             self.creatureType = creatureType
             self.numberOfMotors = numberOfMotors
             self.notes = notes
+        }
+        
+        init(serverAnimationMetadata: Server_Animation.Metadata) {
+            self.title = serverAnimationMetadata.title
+            self.millisecondsPerFrame = serverAnimationMetadata.millisecondsPerFrame
+            self.creatureType = serverAnimationMetadata.creatureType
+            self.numberOfFrames = serverAnimationMetadata.numberOfFrames
+            self.numberOfMotors = serverAnimationMetadata.numberOfMotors
+            self.notes = serverAnimationMetadata.notes
         }
     }
     
@@ -55,7 +64,7 @@ class Animation {
     /**
      Convert this into something we can send to the server
      
-     Note that this is making a copy of it. That migiht not be what we actually want if the animation is huge, but all of my devices have a lot of memory, sooo....
+     Note that this is making a copy of it. That might not be what we actually want if the animation is huge, but all of my devices have a lot of memory, sooo....
      */
     func toServerAnimation() throws -> Server_Animation {
         

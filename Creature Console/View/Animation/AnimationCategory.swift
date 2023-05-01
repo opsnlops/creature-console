@@ -10,18 +10,16 @@ import SwiftUI
 struct AnimationCategory: View {
     
     @EnvironmentObject var client: CreatureServerClient    
-    let creatureType: CreatureType
-    
-    @State var animationIds : [Server_AnimationIdentifier]?
+    @State var creatureType: CreatureType
+    @State var animationIds : [AnimationIdentifier]?
     
     var body: some View {
         VStack {
             
             if let ids = animationIds {
                 ForEach(ids, id: \.self) { id in
-                                    // Display the information for each Server_AnimationIdentifier
-                                    Text(id.debugDescription)
-                                }
+                    Text(id.metadata.title)
+                    }
             }
             else {
                 Text("Loading animations for type \(creatureType.description)...")

@@ -34,7 +34,6 @@ struct Sidebar: View {
                                 CreatureDetail(creature: creatureList.getById(id: $0))
                             }
                     }
-                    .navigationTitle("Creatures")
                 }
                 else {
                     Text("Trying to talk to \(UserDefaults.standard.string(forKey: "serverAddress") ?? "an undefined server")...")
@@ -44,7 +43,11 @@ struct Sidebar: View {
             }
             Section("Animations") {
                 ForEach(CreatureType.allCases, id: \.self) { creatureType in
-                    NavigationLink(creatureType.description, destination: AnimationCategory(creatureType: creatureType))
+                    NavigationLink {
+                        AnimationCategory(creatureType: creatureType)
+                    } label: {
+                        Label(creatureType.description, systemImage: creatureType.systemImage)
+                    }
                 }
             }
             Section("Controls") {
@@ -74,7 +77,7 @@ struct Sidebar: View {
                     Label("View Animation", systemImage: "waveform")
                 }
             }
-            .navigationTitle("April's Creature Workshop")
+            .navigationTitle("Creature Console")
             
         }.onAppear {
             Task {

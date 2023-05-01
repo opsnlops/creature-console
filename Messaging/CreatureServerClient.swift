@@ -211,11 +211,11 @@ class CreatureServerClient : ObservableObject {
         }
     }
     
-    func listAnimations(creatureType: Server_CreatureType) async -> Result<[Server_AnimationIdentifier], ServerError> {
+    func listAnimations(creatureType: Server_CreatureType) async -> Result<[AnimationIdentifier], ServerError> {
         
         logger.info("attempting to get all animations for creature type \(creatureType)")
         
-        var metadatas : [Server_AnimationIdentifier]
+        var metadatas : [AnimationIdentifier]
         metadatas = []
         
         do {
@@ -225,7 +225,7 @@ class CreatureServerClient : ObservableObject {
             let response = try await server?.listAnimations(filter) ?? Server_ListAnimationsResponse()
             
             for a in response.animations {
-                metadatas.append(a)
+                metadatas.append(AnimationIdentifier(serverAnimationIdentifier: a))
             }
             
             logger.info("got all animations for that type")
@@ -286,7 +286,7 @@ extension CreatureServerClient {
             return .success("Animation created (mock)") // Return success message
         }
         
-        override func listAnimations(creatureType: Server_CreatureType) async -> Result<[Server_AnimationIdentifier], ServerError> {
+        override func listAnimations(creatureType: Server_CreatureType) async -> Result<[AnimationIdentifier], ServerError> {
             return .success([]) // Return empty list
         }
     }

@@ -34,6 +34,17 @@ enum CreatureType: CaseIterable, CustomStringConvertible {
         }
     }
 
+    var systemImage: String {
+        switch self {
+        case .parrot:
+            return "bird"
+        case .wledLight:
+            return "flame"
+        default:
+            return "folder.badge.questionmark"
+        }
+    }
+    
     var description: String {
         switch self {
         case .parrot:
