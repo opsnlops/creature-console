@@ -6,16 +6,17 @@
 //
 
 import SwiftUI
+import Logging
 
 struct AnimationCategory: View {
     
     @EnvironmentObject var client: CreatureServerClient    
-    @State var creatureType: CreatureType
+    @Binding var creatureType: CreatureType
     @State var animationIds : [AnimationIdentifier]?
+    let logger = Logger(label: "AnimationCategory")
     
     var body: some View {
         VStack {
-            
             if let ids = animationIds {
                 ForEach(ids, id: \.self) { id in
                     Text(id.metadata.title)
@@ -27,23 +28,25 @@ struct AnimationCategory: View {
                
         }
         .onAppear {
+            logger.info("onAppear()")
             loadData()
         }
         .onChange(of: creatureType) { _ in
+            logger.info("onChange()")
             loadData()
         }
     }
     
     func loadData() {
-        animationIds = nil
-        
       Task {
           // Go load the animations
           let result = await client.listAnimations(creatureType: creatureType.protobufValue)
+          logger.debug("got it")
           
           switch(result) {
           case .success(let data):
-              animationIds = data
+              logger.debug("success!")
+              self.animationIds = data
           case .failure(let error):
               print("Error: \(String(describing: error.errorDescription))")
               
@@ -52,8 +55,10 @@ struct AnimationCategory: View {
     }
 }
 
+
 struct AnimationCategory_Previews: PreviewProvider {
     static var previews: some View {
-        AnimationCategory(creatureType: .parrot)
+        AnimationCategory(creatureType: .constant(CreatureType.parrot))
+            .environmentObject(CreatureServerClient.mock())
     }
 }

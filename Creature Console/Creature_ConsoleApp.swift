@@ -50,7 +50,7 @@ struct Creature_ConsoleApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TopContentView()
                 .environmentObject(CreatureServerClient.shared)
                 .environmentObject(eventLoop)
         }

@@ -16,7 +16,8 @@ import SwiftProtobuf
  */
 
 
-enum CreatureType: CaseIterable, CustomStringConvertible {
+enum CreatureType: CaseIterable, CustomStringConvertible, Identifiable {
+    
     case parrot
     case wledLight
     case other
@@ -46,6 +47,17 @@ enum CreatureType: CaseIterable, CustomStringConvertible {
     }
     
     var description: String {
+        switch self {
+        case .parrot:
+            return "Parrot"
+        case .wledLight:
+            return "WLED Light"
+        case .other:
+            return "Other"
+        }
+    }
+    
+    var id: String {
         switch self {
         case .parrot:
             return "Parrot"
