@@ -8,10 +8,49 @@
 import SwiftUI
 
 struct AnimationCategory: View {
+    
+    @EnvironmentObject var client: CreatureServerClient    
     let creatureType: CreatureType
     
+    @State var animationIds : [Server_AnimationIdentifier]?
+    
     var body: some View {
-        Text(creatureType.description)
+        VStack {
+            
+            if let ids = animationIds {
+                ForEach(ids, id: \.self) { id in
+                                    // Display the information for each Server_AnimationIdentifier
+                                    Text(id.debugDescription)
+                                }
+            }
+            else {
+                Text("Loading animations for type \(creatureType.description)...")
+            }
+               
+        }
+        .onAppear {
+            loadData()
+        }
+        .onChange(of: creatureType) { _ in
+            loadData()
+        }
+    }
+    
+    func loadData() {
+        animationIds = nil
+        
+      Task {
+          // Go load the animations
+          let result = await client.listAnimations(creatureType: creatureType.protobufValue)
+          
+          switch(result) {
+          case .success(let data):
+              animationIds = data
+          case .failure(let error):
+              print("Error: \(String(describing: error.errorDescription))")
+              
+          }
+      }
     }
 }
 

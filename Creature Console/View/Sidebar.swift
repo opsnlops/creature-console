@@ -12,7 +12,7 @@ import Logging
 
 struct Sidebar: View {
     @StateObject var creatureList = CreatureList()
-    @StateObject var animationIdList = AnimationIdentifier()
+    @State var animationIds = Set<AnimationIdentifier>()
     @EnvironmentObject var client: CreatureServerClient
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
@@ -48,20 +48,30 @@ struct Sidebar: View {
                 }
             }
             Section("Controls") {
-                NavigationLink("Debug Joystick") {
+                NavigationLink {
                     JoystickDebugView(joystick: eventLoop.joystick0)
+                } label: {
+                    Label("Debug Joystick", systemImage: "gamecontroller")
                 }
-                NavigationLink("Server Logs") {
+                NavigationLink {
                     LogViewView(server: client)
+                } label: {
+                    Label("Server Logs", systemImage: "server.rack")
                 }
-                NavigationLink("Settings") {
+                NavigationLink {
                     SettingsView()
+                } label: {
+                    Label("Settings", systemImage: "gear")
                 }
-                NavigationLink("Record Animation") {
+                NavigationLink {
                     RecordAnimation(joystick: eventLoop.joystick0)
+                } label: {
+                    Label("Record Animation", systemImage: "record.circle.fill")
                 }
-                NavigationLink("View Animation") {
+                NavigationLink {
                     ViewAnimation(animation: .mock())
+                } label: {
+                    Label("View Animation", systemImage: "waveform")
                 }
             }
             .navigationTitle("April's Creature Workshop")

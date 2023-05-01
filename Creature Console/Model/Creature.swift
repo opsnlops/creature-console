@@ -199,3 +199,42 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     }
     
 }
+
+
+
+
+
+extension Creature {
+    static func mock() -> Creature {
+        let creature = Creature(id: DataHelper.generateRandomData(byteCount: 12),
+            name: "MockCreature",
+            lastUpdated: Date(),
+            sacnIP: "1.2.3.4",
+            universe: 666,
+            dmxBase: 7,
+            numberOfMotors: 12)
+        
+        for i in 0..<12 {
+            let motor = Motor(name: "Motor \(i+1) 🌈",
+                              type: .servo,
+                              number: UInt32(i),
+                              maxValue: 1024,
+                              minValue: 256,
+                              smoothingValue: 0.95)
+            creature.addMotor(newMotor: motor)
+        }
+        
+        return creature
+    }
+}
+
+
+extension CreatureIdentifier {
+    static func mock() -> CreatureIdentifier {
+        let creatureId = CreatureIdentifier(
+            id: DataHelper.generateRandomData(byteCount: 12),
+            name: "Mock Creature Id 🤖")
+        
+        return creatureId
+    }
+}
