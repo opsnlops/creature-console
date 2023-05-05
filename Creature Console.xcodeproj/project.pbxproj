@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		110E0C2F29FF431B00154649 /* AnimationIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */; };
+		11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */; };
 		1131763029FF067B008B35E8 /* CreatureType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131762F29FF067B008B35E8 /* CreatureType.swift */; };
 		1131763229FF0B66008B35E8 /* AnimationCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* AnimationCategory.swift */; };
 		1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
@@ -78,6 +79,7 @@
 
 /* Begin PBXFileReference section */
 		110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationIdentifier.swift; sourceTree = "<group>"; };
+		11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationDetail.swift; sourceTree = "<group>"; };
 		1131762F29FF067B008B35E8 /* CreatureType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureType.swift; sourceTree = "<group>"; };
 		1131763129FF0B66008B35E8 /* AnimationCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationCategory.swift; sourceTree = "<group>"; };
 		1142E65529DFB08A00B795F0 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.grpc.swift; sourceTree = "<group>"; };
@@ -265,6 +267,7 @@
 				11A10A5D29F242B7000EB835 /* RecordAnimation.swift */,
 				11A10A5F29F246A3000EB835 /* ViewAnimation.swift */,
 				1131763129FF0B66008B35E8 /* AnimationCategory.swift */,
+				11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -435,6 +438,7 @@
 				1131763229FF0B66008B35E8 /* AnimationCategory.swift in Sources */,
 				11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
+				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

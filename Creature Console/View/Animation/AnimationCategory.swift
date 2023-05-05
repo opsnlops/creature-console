@@ -11,7 +11,7 @@ import Logging
 struct AnimationCategory: View {
     
     @EnvironmentObject var client: CreatureServerClient    
-    @Binding var creatureType: CreatureType
+    @Binding var creatureType: CreatureType?
     @State var animationIds : [AnimationIdentifier]?
     let logger = Logger(label: "AnimationCategory")
     
@@ -23,7 +23,7 @@ struct AnimationCategory: View {
                     }
             }
             else {
-                Text("Loading animations for type \(creatureType.description)...")
+                Text("Loading animations for type \(creatureType?.description ?? "unknown")...")
             }
                
         }
@@ -40,16 +40,21 @@ struct AnimationCategory: View {
     func loadData() {
       Task {
           // Go load the animations
-          let result = await client.listAnimations(creatureType: creatureType.protobufValue)
-          logger.debug("got it")
-          
-          switch(result) {
-          case .success(let data):
-              logger.debug("success!")
-              self.animationIds = data
-          case .failure(let error):
-              print("Error: \(String(describing: error.errorDescription))")
+          if let pValue = creatureType?.protobufValue {
+              let result = await client.listAnimations(creatureType: pValue)
+              logger.debug("got it")
               
+              switch(result) {
+              case .success(let data):
+                  logger.debug("success!")
+                  self.animationIds = data
+              case .failure(let error):
+                  print("Error: \(String(describing: error.errorDescription))")
+                  
+              }
+          }
+          else {
+              print("pValue is nil")
           }
       }
     }

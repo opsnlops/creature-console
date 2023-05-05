@@ -20,7 +20,7 @@ struct TopContentView: View {
     @EnvironmentObject var eventLoop : EventLoop
     
     @State private var selectedCreature: Creature?
-    @State private var selectedCreatureType: CreatureType = .parrot
+    @State private var selectedCreatureType: CreatureType?
     
     let logger = Logger(label: "Top Content View")
 
@@ -42,14 +42,19 @@ struct TopContentView: View {
                             .padding()
                     }
                 }
-            }
-            List(CreatureType.allCases, selection: $selectedCreatureType) { creatureType in
-                NavigationLink(value: creatureType, label: {
-                    Label(creatureType.description, systemImage: creatureType.systemImage)
-                })
-            }
-            .navigationTitle("Animations")
-            List {
+                
+                Section("Animations") {
+                    ForEach(CreatureType.allCases, id: \.self) { creatureType in
+                        NavigationLink (
+                            destination: AnimationCategory(creatureType: $selectedCreatureType),
+                            tag: creatureType,
+                            selection: $selectedCreatureType
+                        )   {
+                            Label(creatureType.description, systemImage: creatureType.systemImage)
+                        }
+                    }
+                }
+                
                 Section("Controls") {
                     NavigationLink {
                         JoystickDebugView(joystick: eventLoop.joystick0)
@@ -81,10 +86,6 @@ struct TopContentView: View {
             .navigationTitle("Creature Console")
             .navigationDestination(for: Data.self) { creature in
                 CreatureDetail(creature: creatureList.getById(id: creature))
-                    
-            }
-            .navigationDestination(for: CreatureType.self) {_ in
-                AnimationCategory(creatureType: $selectedCreatureType)
             }
             .onAppear {
                 Task {

@@ -16,7 +16,7 @@ import SwiftProtobuf
  */
 
 
-enum CreatureType: CaseIterable, CustomStringConvertible, Identifiable {
+enum CreatureType: CaseIterable, CustomStringConvertible, Identifiable, Hashable {
     
     case parrot
     case wledLight
