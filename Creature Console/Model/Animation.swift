@@ -119,3 +119,23 @@ extension Animation {
         return animation
     }
 }
+
+extension Animation.Metadata {
+    static func mock() -> Animation.Metadata {
+        let title = "Mock Metadata"
+        let millisecondsPerFrame: Int32 = 23
+        let creatureType: Server_CreatureType = .parrot
+        let numberOfMotors: Int32 = 6
+        let notes = "Sample metadata for testing purposes"
+
+        let metadata = Animation.Metadata(
+            title: title,
+            millisecondsPerFrame: millisecondsPerFrame,
+            creatureType: creatureType,
+            numberOfMotors: numberOfMotors,
+            notes: notes
+        )
+
+        return metadata
+    }
+}

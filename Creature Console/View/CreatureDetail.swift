@@ -22,8 +22,6 @@ struct CreatureDetail : View {
     var body: some View {
         VStack() {
             
-            Text(creature.name)
-                .font(.largeTitle)
             Text("sACN IP: \(creature.sacnIP)")
             Text("Universe: \(creature.universe)")
             Text("DMX Offset: \(creature.dmxBase)")
@@ -67,9 +65,13 @@ struct CreatureDetail : View {
             }
             
         }
+        .navigationTitle(creature.name)
+        #if os(macOS)
+        .navigationSubtitle(creature.sacnIP)
+        #endif
         
-    }
-    }
+    } // View
+}
         
         
 
@@ -82,5 +84,6 @@ struct CreatureDetail : View {
 struct CreatureDetail_Previews: PreviewProvider {
     static var previews: some View {
         CreatureDetail(creature: Creature.mock())
+            .environmentObject(EventLoop.mock())
     }
 }

@@ -16,10 +16,11 @@ struct AnimationCategory: View {
     let logger = Logger(label: "AnimationCategory")
     
     var body: some View {
-        VStack {
+        ScrollView {
             if let ids = animationIds {
                 ForEach(ids, id: \.self) { id in
-                    Text(id.metadata.title)
+                    AnimationDetail(animationMetadata: id.metadata)
+                        .frame(maxWidth: .infinity)
                     }
             }
             else {
