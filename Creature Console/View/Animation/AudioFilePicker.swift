@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 
 
 struct AudioFilePicker: View {
-    @StateObject var audioFileManager = AudioFileManager()
+    @StateObject var storageManager = StorageManager()
     
     @EnvironmentObject var audioManager: AudioManager
 
@@ -55,7 +55,7 @@ struct AudioFilePicker: View {
                     do {
                         let fileURL = try result.get()
                         // Load the audio data
-                        if let data = audioFileManager.loadFileFromiCloud(fileName: fileURL.lastPathComponent) {
+                        if let data = storageManager.loadFileFromiCloud(fileName: fileURL.lastPathComponent) {
                             // Do something with the audio data...
                         }
                     } catch {

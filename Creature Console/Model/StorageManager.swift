@@ -10,52 +10,9 @@ import Foundation
 import Logging
 
 
-class AudioManager: ObservableObject {
-    private var audioPlayer: AVAudioPlayer?
-    let logger = Logger(label: "Audio Manager")
+class StorageManager : ObservableObject {
     
-    
-    init() {
-        
-#if os(iOS)
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Failed to set audio session category.")
-        }
-#endif
-    }
-
-    func play(url: URL) {
-        logger.info("attempting to play \(url)")
-        
-        // Begin accessing a security-scoped resource.
-        let didStartAccessing = url.startAccessingSecurityScopedResource()
-
-        if didStartAccessing {
-            defer { url.stopAccessingSecurityScopedResource() }
-            
-            do {
-                self.audioPlayer = try AVAudioPlayer(contentsOf: url)
-                self.audioPlayer?.play()
-            } catch {
-                logger.error("Failed to initialize AVAudioPlayer: \(error)")
-            }
-        } else {
-            logger.error("Couldn't access the security scoped resource.")
-        }
-    }
-
-    func pause() {
-        logger.info("pausing audio")
-        self.audioPlayer?.pause()
-    }
-}
-
-class AudioFileManager : ObservableObject {
-    
-    let logger = Logger(label: "Audio File Manager")
+    let logger = Logger(label: "Storage Manager")
     
     
     func getiCloudContainerURL() -> URL? {

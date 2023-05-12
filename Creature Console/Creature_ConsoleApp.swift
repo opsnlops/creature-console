@@ -29,7 +29,8 @@ struct Creature_ConsoleApp: App {
             "joystick0.leftTrigger.mapping": 4,
             "joystick0.rightTrigger.mapping": 5,
             "eventLoopMillisecondsPerFrame": 20,
-            "logSpareTimeFrameInterval": 200
+            "logSpareTimeFrameInterval": 200,
+            "audioVolume": 0.8
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
         
