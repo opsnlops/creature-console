@@ -81,6 +81,11 @@ struct TopContentView: View {
                     } label: {
                         Label("View Animation", systemImage: "waveform")
                     }
+                    NavigationLink {
+                        AudioFilePicker()
+                    } label: {
+                        Label("Audio", systemImage: "music.note.list")
+                    }
                 }
             }
             .navigationTitle("Creature Console")

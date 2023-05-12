@@ -12,6 +12,8 @@
 		1131763029FF067B008B35E8 /* CreatureType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131762F29FF067B008B35E8 /* CreatureType.swift */; };
 		1131763229FF0B66008B35E8 /* AnimationCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* AnimationCategory.swift */; };
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
+		113896B92A0CA3B40055BA70 /* AudioFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* AudioFileManager.swift */; };
+		113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */; };
 		1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
 		1142E65829DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
 		1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65629DFB08A00B795F0 /* server.pb.swift */; };
@@ -84,6 +86,8 @@
 		1131762F29FF067B008B35E8 /* CreatureType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureType.swift; sourceTree = "<group>"; };
 		1131763129FF0B66008B35E8 /* AnimationCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationCategory.swift; sourceTree = "<group>"; };
 		113896B42A0768860055BA70 /* AnimationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditor.swift; sourceTree = "<group>"; };
+		113896B82A0CA3B40055BA70 /* AudioFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFileManager.swift; sourceTree = "<group>"; };
+		113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilePicker.swift; sourceTree = "<group>"; };
 		1142E65529DFB08A00B795F0 /* server.grpc.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.grpc.swift; sourceTree = "<group>"; };
 		1142E65629DFB08A00B795F0 /* server.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = server.pb.swift; sourceTree = "<group>"; };
 		1142E65D29DFB1A900B795F0 /* Creature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature.swift; sourceTree = "<group>"; };
@@ -95,7 +99,6 @@
 		11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature_ConsoleApp.swift; sourceTree = "<group>"; };
 		11703D8D29DD197F00EF7E3D /* TopContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopContentView.swift; sourceTree = "<group>"; };
 		11703D8F29DD198000EF7E3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		11703D9129DD198000EF7E3D /* Creature_Console.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11703D9329DD198000EF7E3D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		118A737B29EB68EA00EF8CDB /* LogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewModel.swift; sourceTree = "<group>"; };
 		118A737F29EB772900EF8CDB /* LogViewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewView.swift; sourceTree = "<group>"; };
@@ -108,6 +111,7 @@
 		11A10A5F29F246A3000EB835 /* ViewAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewAnimation.swift; sourceTree = "<group>"; };
 		11B4820929E141AB00767E22 /* DataHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHelper.swift; sourceTree = "<group>"; };
 		11B4821229E24F9000767E22 /* CreatureList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureList.swift; sourceTree = "<group>"; };
+		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11C03ACF29E3C346002E6720 /* CreatureEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureEdit.swift; sourceTree = "<group>"; };
 		11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
 		11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteChartView.swift; sourceTree = "<group>"; };
@@ -172,6 +176,7 @@
 				118A737B29EB68EA00EF8CDB /* LogViewModel.swift */,
 				1131762F29FF067B008B35E8 /* CreatureType.swift */,
 				110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */,
+				113896B82A0CA3B40055BA70 /* AudioFileManager.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -220,10 +225,10 @@
 				1142E66029DFB21000B795F0 /* View */,
 				1142E65C29DFB19700B795F0 /* Model */,
 				115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */,
+				11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */,
 				11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */,
 				11703D8D29DD197F00EF7E3D /* TopContentView.swift */,
 				11703D8F29DD198000EF7E3D /* Assets.xcassets */,
-				11703D9129DD198000EF7E3D /* Creature_Console.entitlements */,
 				11703D9229DD198000EF7E3D /* Preview Content */,
 				11C326CF29DD3FED00B169CD /* Credits.rtf */,
 				115DADA029DF95890021C4E0 /* JoystickHandler.swift */,
@@ -271,6 +276,7 @@
 				1131763129FF0B66008B35E8 /* AnimationCategory.swift */,
 				11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */,
 				113896B42A0768860055BA70 /* AnimationEditor.swift */,
+				113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -415,6 +421,7 @@
 				11A10A5B29F23BE6000EB835 /* Animation.swift in Sources */,
 				1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
+				113896B92A0CA3B40055BA70 /* AudioFileManager.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
@@ -423,6 +430,7 @@
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
 				118A737C29EB68EA00EF8CDB /* LogViewModel.swift in Sources */,
+				113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */,
 				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
 				118A738029EB772900EF8CDB /* LogViewView.swift in Sources */,
 				11DD93B329E666D200089EC6 /* RealTimeControl.swift in Sources */,
@@ -583,17 +591,18 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature_Console.entitlements";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 10;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature Console/Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Creature-Console-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Creatures;
+				INFOPLIST_KEY_CFBundleDisplayName = "Creature Console";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -605,6 +614,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -628,17 +638,18 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature_Console.entitlements";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 10;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature Console/Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Creature-Console-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Creatures;
+				INFOPLIST_KEY_CFBundleDisplayName = "Creature Console";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -650,6 +661,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -657,6 +669,7 @@
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
@@ -705,7 +718,7 @@
 				11703D9629DD198000EF7E3D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		11703D9729DD198000EF7E3D /* Build configuration list for PBXNativeTarget "Creature Console" */ = {
 			isa = XCConfigurationList;
@@ -714,7 +727,7 @@
 				11703D9929DD198000EF7E3D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		11C326D929DD41E900B169CD /* Build configuration list for PBXNativeTarget "CreatureCLI" */ = {
 			isa = XCConfigurationList;
@@ -723,7 +736,7 @@
 				11C326DB29DD41E900B169CD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 

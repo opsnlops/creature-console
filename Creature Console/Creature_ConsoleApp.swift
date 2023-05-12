@@ -11,7 +11,8 @@ import Logging
 @main
 struct Creature_ConsoleApp: App {
     
-    @ObservedObject var eventLoop : EventLoop
+    var eventLoop : EventLoop
+    var audioManager = AudioManager()
 
     init() {
         let logger = Logger(label: "Creature Console")
@@ -53,6 +54,7 @@ struct Creature_ConsoleApp: App {
             TopContentView()
                 .environmentObject(CreatureServerClient.shared)
                 .environmentObject(eventLoop)
+                .environmentObject(audioManager)
         }
         
 #if os(macOS)
