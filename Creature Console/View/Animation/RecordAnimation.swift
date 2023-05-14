@@ -23,11 +23,14 @@ struct RecordAnimation: View {
                 .padding()
             Button("Start Record") {
                 
-                let metadata = Animation.Metadata(title: "First!",
-                                                  millisecondsPerFrame: Int32(eventLoop.millisecondPerFrame),
-                                                  creatureType: .wledLight,
-                                                  numberOfMotors: 6,
-                                                  notes: "Please work!")
+                let metadata = Animation.Metadata(
+                    // The animationID will be re-written by the server. This is just a placeholder.
+                    animationId: DataHelper.generateRandomData(byteCount: 12),
+                    title: "First!",
+                    millisecondsPerFrame: Int32(eventLoop.millisecondPerFrame),
+                    creatureType: .wledLight,
+                    numberOfMotors: 6,
+                    notes: "Please work!")
                 
                 logger.info("asking new recording to start")
                 eventLoop.recordNewAnimation(metadata: metadata)

@@ -13,8 +13,13 @@ import Logging
 
 struct AnimationEditor: View {
     
-    private var creature : Creature
-    private var animation : Animation?
+    var animationId: Data?
+    
+    @EnvironmentObject var client: CreatureServerClient
+    
+    @State var creature : Creature?
+    @State var animation : Animation?
+    
     
     let logger = Logger(label: "Animtion Editor")
     
@@ -22,34 +27,85 @@ struct AnimationEditor: View {
     @State private var notes : String = ""
     @State private var audioFile : String = ""
     
-    init(creature: Creature, animation: Animation) {
-        self.creature = creature
-        self.animation = animation
-        
-
-        logger.info("New AnimationEditor made")
-    }
-    
+   
     var body: some View {
         
         VStack {
             Form {
-                TextField("Title", text: $title)
+                TextField("Title", text: $title.onChange(updateAnimationTitle))
                     .textFieldStyle(.roundedBorder)
-                TextField("Notes", text: $notes)
+                    
+                TextField("Notes", text: $notes.onChange(updateAnimationNotes))
                     .textFieldStyle(.roundedBorder)
+                
+                
+            }
+            
+            if let a = animation {
+                ViewAnimation(animation: a)
             }
            
+        }
+        .navigationTitle("Animation Editor")
+        .onAppear {
+            loadData()
+        }
+        .onChange(of: animationId) { _ in
+            loadData()
+        }
+    }
+    
+    func updateAnimationTitle(newValue: String) {
+        if let _ = animation {
+            animation?.metadata.title = newValue
+        }
+    }
+    
+    func updateAnimationNotes(newValue: String) {
+        if let _ = animation {
+            animation?.metadata.notes = newValue
+        }
+    }
+    
+    func loadData() {
+        Task {
             
+            if let idToFetch = animationId {
+                let result = await client.getAnimation(animationId: idToFetch)
+                
+                switch(result) {
+                case .success(let data):
+                    logger.debug("success!")
+                    self.animation = data
+                    title = data.metadata.title
+                    notes = data.metadata.notes
+                case .failure(let error):
+                    print("Error: \(String(describing: error.errorDescription))")
+                    
+                }
+            }
             
-        }.navigationTitle("Animation Editor")
-        
-        
+            creature = Creature.mock()
+        }
+    }
+}
+
+// Thank you ChatGPT for this amazing little function
+extension Binding {
+    func onChange(_ handler: @escaping (Value) -> Void) -> Binding<Value> {
+        return Binding<Value>(
+            get: { self.wrappedValue },
+            set: { newValue in
+                self.wrappedValue = newValue
+                handler(newValue)
+            }
+        )
     }
 }
 
 struct AnimationEditor_Previews: PreviewProvider {
+
     static var previews: some View {
-        AnimationEditor(creature: .mock(), animation: .mock())
+        AnimationEditor(animationId: DataHelper.generateRandomData(byteCount: 12))
     }
 }

@@ -238,6 +238,32 @@ class CreatureServerClient : ObservableObject {
         }
         
     }
+    
+    
+    
+    func getAnimation(animationId: Data) async -> Result<Animation, ServerError>  {
+        
+        logger.debug("attempting to fetch animation \(DataHelper.dataToHexString(data: animationId))")
+    
+        var id = Server_AnimationId()
+        id.id = animationId
+        
+        do {
+            
+            if let serverAnimation = try await server?.getAnimation(id) {
+                logger.info("loaded animation \(DataHelper.dataToHexString(data: animationId))")
+                return .success(Animation(fromServerAnimation: serverAnimation))
+            }
+            
+            return .failure(ServerError("Unable to locate animation \(DataHelper.dataToHexString(data: animationId))"))
+            
+        }
+        catch {
+            logger.error("Unable to get animation \(DataHelper.dataToHexString(data: animationId))")
+            return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
+        }
+        
+    }
 }
 
 
@@ -288,6 +314,10 @@ extension CreatureServerClient {
         
         override func listAnimations(creatureType: Server_CreatureType) async -> Result<[AnimationIdentifier], ServerError> {
             return .success([]) // Return empty list
+        }
+        
+        override func getAnimation(animationId: Data) async -> Result<Animation, ServerError> {
+            return .success(Animation.mock())
         }
     }
 }

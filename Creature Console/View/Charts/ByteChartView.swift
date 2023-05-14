@@ -8,9 +8,6 @@
 import SwiftUI
 
 
-
-
-
 struct ByteChartView: View {
     var data: [UInt8]
     var gradient: Gradient = Gradient(colors: [Color.accentColor.opacity(0.9), Color.accentColor.opacity(0.6)])

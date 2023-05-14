@@ -8,6 +8,29 @@
 import Foundation
 
 class Animation {
+    
+    var id: Data
+    var metadata: Metadata
+    var frames: [Frame]
+
+    init(id: Data, metadata: Metadata, frames: [Frame]) {
+        self.id = id
+        self.metadata = metadata
+        self.frames = frames
+    }
+    
+    init(fromServerAnimation: Server_Animation) {
+        self.id = fromServerAnimation.id
+        self.metadata = Metadata(serverAnimationMetadata: fromServerAnimation.metadata)
+        self.frames = []
+        
+        for frame in fromServerAnimation.frames {
+            let animationFrame = Frame(motorBytes: frame.bytes.flatMap { [UInt8]($0) })
+            frames.append(animationFrame)
+        }
+    }
+    
+    
     class Metadata {
         var title: String
         var millisecondsPerFrame: Int32
@@ -15,8 +38,10 @@ class Animation {
         var creatureType: Server_CreatureType
         var numberOfMotors: Int32
         var notes: String
+        var animationId: Data
 
-        init(title: String, millisecondsPerFrame: Int32, creatureType: Server_CreatureType, numberOfMotors: Int32, notes: String) {
+        init(animationId: Data, title: String, millisecondsPerFrame: Int32, creatureType: Server_CreatureType, numberOfMotors: Int32, notes: String) {
+            self.animationId = animationId
             self.title = title
             self.millisecondsPerFrame = millisecondsPerFrame
             self.creatureType = creatureType
@@ -25,6 +50,7 @@ class Animation {
         }
         
         init(serverAnimationMetadata: Server_Animation.Metadata) {
+            self.animationId = serverAnimationMetadata.animationID
             self.title = serverAnimationMetadata.title
             self.millisecondsPerFrame = serverAnimationMetadata.millisecondsPerFrame
             self.creatureType = serverAnimationMetadata.creatureType
@@ -49,16 +75,6 @@ class Animation {
         init(motorBytes: [UInt8]) {
             self.motorBytes = motorBytes
         }
-    }
-    
-    var id: Data
-    var metadata: Metadata
-    var frames: [Frame]
-
-    init(id: Data, metadata: Metadata, frames: [Frame]) {
-        self.id = id
-        self.metadata = metadata
-        self.frames = frames
     }
     
     /**
@@ -97,6 +113,7 @@ class Animation {
 extension Animation {
     static func mock() -> Animation {
         let metadata = Metadata(
+            animationId: DataHelper.generateRandomData(byteCount: 12),
             title: "Mock Animation",
             millisecondsPerFrame: 50,
             creatureType: .parrot,
@@ -127,8 +144,10 @@ extension Animation.Metadata {
         let creatureType: Server_CreatureType = .parrot
         let numberOfMotors: Int32 = 6
         let notes = "Sample metadata for testing purposes"
+        let animationId = DataHelper.generateRandomData(byteCount: 12)
 
         let metadata = Animation.Metadata(
+            animationId: animationId,
             title: title,
             millisecondsPerFrame: millisecondsPerFrame,
             creatureType: creatureType,

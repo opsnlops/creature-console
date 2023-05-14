@@ -77,11 +77,6 @@ struct TopContentView: View {
                         Label("Record Animation", systemImage: "record.circle.fill")
                     }
                     NavigationLink {
-                        ViewAnimation(animation: .mock())
-                    } label: {
-                        Label("View Animation", systemImage: "waveform")
-                    }
-                    NavigationLink {
                         AudioFilePicker()
                     } label: {
                         Label("Audio", systemImage: "music.note.list")
