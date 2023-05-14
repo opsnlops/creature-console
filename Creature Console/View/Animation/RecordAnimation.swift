@@ -30,7 +30,8 @@ struct RecordAnimation: View {
                     millisecondsPerFrame: Int32(eventLoop.millisecondPerFrame),
                     creatureType: .wledLight,
                     numberOfMotors: 6,
-                    notes: "Please work!")
+                    notes: "Please work!",
+                    soundFile: "totallyNormalSound.aac")
                 
                 logger.info("asking new recording to start")
                 eventLoop.recordNewAnimation(metadata: metadata)

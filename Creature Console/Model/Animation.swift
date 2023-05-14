@@ -39,14 +39,16 @@ class Animation {
         var numberOfMotors: Int32
         var notes: String
         var animationId: Data
+        var soundFile: String
 
-        init(animationId: Data, title: String, millisecondsPerFrame: Int32, creatureType: Server_CreatureType, numberOfMotors: Int32, notes: String) {
+        init(animationId: Data, title: String, millisecondsPerFrame: Int32, creatureType: Server_CreatureType, numberOfMotors: Int32, notes: String, soundFile: String) {
             self.animationId = animationId
             self.title = title
             self.millisecondsPerFrame = millisecondsPerFrame
             self.creatureType = creatureType
             self.numberOfMotors = numberOfMotors
             self.notes = notes
+            self.soundFile = soundFile
         }
         
         init(serverAnimationMetadata: Server_Animation.Metadata) {
@@ -57,6 +59,7 @@ class Animation {
             self.numberOfFrames = serverAnimationMetadata.numberOfFrames
             self.numberOfMotors = serverAnimationMetadata.numberOfMotors
             self.notes = serverAnimationMetadata.notes
+            self.soundFile = serverAnimationMetadata.soundFile
         }
     }
     
@@ -95,6 +98,7 @@ class Animation {
         animation.metadata.numberOfFrames = self.numberOfFrames
         animation.metadata.numberOfMotors = self.metadata.numberOfMotors
         animation.metadata.notes = self.metadata.notes
+        animation.metadata.soundFile = self.metadata.soundFile
 
         // Convert the frames
         for f in self.frames {
@@ -118,7 +122,8 @@ extension Animation {
             millisecondsPerFrame: 50,
             creatureType: .parrot,
             numberOfMotors: 6,
-            notes: "Sample animation for testing purposes"
+            notes: "Sample animation for testing purposes",
+            soundFile: "soundsOfBirds.flac"
         )
 
         // Create sample frames with random motor bytes
@@ -145,6 +150,7 @@ extension Animation.Metadata {
         let numberOfMotors: Int32 = 6
         let notes = "Sample metadata for testing purposes"
         let animationId = DataHelper.generateRandomData(byteCount: 12)
+        let soundFile = "mockSoundfile.mp3"
 
         let metadata = Animation.Metadata(
             animationId: animationId,
@@ -152,7 +158,8 @@ extension Animation.Metadata {
             millisecondsPerFrame: millisecondsPerFrame,
             creatureType: creatureType,
             numberOfMotors: numberOfMotors,
-            notes: notes
+            notes: notes,
+            soundFile: soundFile
         )
 
         return metadata

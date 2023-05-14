@@ -24,6 +24,7 @@
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
 		1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
 		1142E66529DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
+		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
 		11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8B29DD197F00EF7E3D /* Creature_ConsoleApp.swift */; };
 		11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* TopContentView.swift */; };
@@ -37,7 +38,6 @@
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
 		11A10A5B29F23BE6000EB835 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5A29F23BE6000EB835 /* Animation.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
-		11A10A6029F246A3000EB835 /* ViewAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5F29F246A3000EB835 /* ViewAnimation.swift */; };
 		11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4821329E24F9000767E22 /* CreatureList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4821229E24F9000767E22 /* CreatureList.swift */; };
@@ -94,6 +94,7 @@
 		1142E65D29DFB1A900B795F0 /* Creature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
 		1142E66329DFC00700B795F0 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
+		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
 		11703D8829DD197F00EF7E3D /* Creature Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -109,7 +110,6 @@
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
 		11A10A5A29F23BE6000EB835 /* Animation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animation.swift; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
-		11A10A5F29F246A3000EB835 /* ViewAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewAnimation.swift; sourceTree = "<group>"; };
 		11B4820929E141AB00767E22 /* DataHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHelper.swift; sourceTree = "<group>"; };
 		11B4821229E24F9000767E22 /* CreatureList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureList.swift; sourceTree = "<group>"; };
 		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
@@ -275,11 +275,11 @@
 			isa = PBXGroup;
 			children = (
 				11A10A5D29F242B7000EB835 /* RecordAnimation.swift */,
-				11A10A5F29F246A3000EB835 /* ViewAnimation.swift */,
 				1131763129FF0B66008B35E8 /* AnimationCategory.swift */,
 				11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */,
 				113896B42A0768860055BA70 /* AnimationEditor.swift */,
 				113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */,
+				114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -423,6 +423,7 @@
 				11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */,
 				11A10A5B29F23BE6000EB835 /* Animation.swift in Sources */,
 				1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */,
+				114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
@@ -438,7 +439,6 @@
 				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
 				118A738029EB772900EF8CDB /* LogViewView.swift in Sources */,
 				11DD93B329E666D200089EC6 /* RealTimeControl.swift in Sources */,
-				11A10A6029F246A3000EB835 /* ViewAnimation.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
 				110E0C2F29FF431B00154649 /* AnimationIdentifier.swift in Sources */,
 				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
