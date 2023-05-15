@@ -211,6 +211,34 @@ class CreatureServerClient : ObservableObject {
         }
     }
     
+    /**
+     Update an animation in the database.
+     
+     This effectively called `replace_one()` on the MongoDB side, with the `_id` of the animation we're updating.
+     */
+    func updateAnimation(animationToUpdate: Animation) async -> Result<String, ServerError> {
+        
+        logger.info("Attempting to update an animation in the database")
+ 
+        do {
+            let serverAnimation = try animationToUpdate.toServerAnimation()
+            let response = try await server?.updateAnimation(serverAnimation)
+            return .success("\(response?.message ?? "😅")")
+        }
+        catch SwiftProtobuf.BinaryDecodingError.truncated {
+            logger.error("Animation was unable to be decoded because it was truncated")
+            return .failure(ServerError("Unable to update an animation due to the protobuf being truncated. 😅"))
+        }
+        catch SwiftProtobuf.BinaryDecodingError.malformedProtobuf {
+            logger.error("Animation was unable to be decoded because the protobuf was malformed")
+            return .failure(ServerError("Unable to update an animation due to the protobuf being malformed. 🤔"))
+        }
+        catch {
+            logger.error("Unable to update an animation in the database: \(error)")
+            return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
+        }
+    }
+    
     func listAnimations(creatureType: Server_CreatureType) async -> Result<[AnimationIdentifier], ServerError> {
         
         logger.info("attempting to get all animations for creature type \(creatureType)")

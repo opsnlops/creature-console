@@ -24,16 +24,20 @@ struct AnimationEditor: View {
     @State private var errorMessage: String = ""
     
     
-    let logger = Logger(label: "Animtion Editor")
+    let logger = Logger(label: "Animation Editor")
     
     @State private var title : String = ""
     @State private var notes : String = ""
     @State private var soundFile : String = ""
     
+    @State private var isSaving : Bool = false
+    @State private var savingMessage : String = ""
+    
    
     var body: some View {
         VStack {
             Form {
+                
                 TextField("Title", text: $title.onChange(updateAnimationTitle))
                     .textFieldStyle(.roundedBorder)
                 
@@ -49,24 +53,26 @@ struct AnimationEditor: View {
             
         
             AnimationWaveformEditor(animation: $animation)
+               
             
             
         }
         .navigationTitle("Animation Editor")
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
+        .toolbar(id: "animationEditor") {
+            ToolbarItem(id: "save", placement: .primaryAction) {
                     Button(action: {
-                        print("Toolbar button tapped!")
+                        saveAnimationToServer()
                     }) {
                         Image(systemName: "square.and.arrow.down")
                     }
             }
-            ToolbarItem(placement: .automatic) {
+            ToolbarItem(id:"play", placement: .primaryAction) {
                     Button(action: {
                         print("Play button tapped!")
                     }) {
-                        Image(systemName: "play")
+                        Image(systemName: "play.fill")
                     }
+                    
             }
         }
         .onAppear {
@@ -81,6 +87,15 @@ struct AnimationEditor: View {
                 message: Text(errorMessage),
                 dismissButton: .default(Text("Fuck"))
             )
+        }
+        .overlay {
+            if isSaving {
+                Text(savingMessage)
+                    .font(.title)
+                    .padding()
+                    .background(Color.green.opacity(0.4))
+                    .cornerRadius(10)
+            }
         }
     }
     
@@ -128,7 +143,43 @@ struct AnimationEditor: View {
             creature = Creature.mock()
         }
     }
+    
+    
+    func saveAnimationToServer() {
+        savingMessage = "Saving animation to server..."
+        isSaving = true
+        Task {
+            if let a = animation {
+                
+                let result = await client.updateAnimation(animationToUpdate: a)
+    
+                switch(result) {
+                case .success(let data):
+                    savingMessage = data
+                    logger.debug("success!")
+                    
+                case .failure(let error):
+                    
+                    // If an error happens, pop up a warning
+                errorMessage = "Error: \(String(describing: error.errorDescription))"
+                    showErrorAlert = true
+                    logger.error(Logger.Message(stringLiteral: errorMessage))
+                    
+                }
+                do {
+                    try await Task.sleep(nanoseconds: 2_000_000_000)
+                }
+                catch {}
+                isSaving = false
+            }
+
+        }
+    }
+    
+    
 }
+
+
 
 // Thank you ChatGPT for this amazing little function
 extension Binding {

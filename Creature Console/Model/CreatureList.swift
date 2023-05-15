@@ -49,15 +49,12 @@ extension CreatureList {
         
         let id1 = Creature.mock()
         id1.name = "Creature 1 🦜"
-        id1.id = DataHelper.generateRandomData(byteCount: 12)
         
         let id2 = Creature.mock()
         id2.name = "Creature 2 🦖"
-        id2.id = DataHelper.generateRandomData(byteCount: 12)
         
         let id3 = Creature.mock()
         id3.name = "Creature 3 🐰"
-        id3.id = DataHelper.generateRandomData(byteCount: 12)
     
         creaureList.add(item: id1)
         creaureList.add(item: id2)
