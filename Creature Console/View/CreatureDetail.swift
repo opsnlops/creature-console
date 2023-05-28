@@ -25,6 +25,7 @@ struct CreatureDetail : View {
             Text("sACN IP: \(creature.sacnIP)")
             Text("Universe: \(creature.universe)")
             Text("DMX Offset: \(creature.dmxBase)")
+            Text("Type: \(creature.type.description)")
             Text("Number of Motors: \(creature.motors.count)")
             
             NavigationLink("Edit") {

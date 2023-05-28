@@ -9,6 +9,18 @@
 /* Begin PBXBuildFile section */
 		110E0C2F29FF431B00154649 /* AnimationIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */; };
 		11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */; };
+		1122A7A82A22E2D100D60464 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5A29F23BE6000EB835 /* Animation.swift */; };
+		1122A7A92A22E2DE00D60464 /* LogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A737B29EB68EA00EF8CDB /* LogViewModel.swift */; };
+		1122A7AA2A22E2E100D60464 /* CreatureType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131762F29FF067B008B35E8 /* CreatureType.swift */; };
+		1122A7AB2A22E2E400D60464 /* AnimationIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */; };
+		1122A7AC2A22E2E800D60464 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
+		1122A7AD2A22E2EC00D60464 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
+		1122A7AE2A22E2F800D60464 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
+		1122A7AF2A22E31F00D60464 /* EventLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */; };
+		1122A7B12A22E67900D60464 /* MotorType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B02A22E67900D60464 /* MotorType.swift */; };
+		1122A7B22A22E67900D60464 /* MotorType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B02A22E67900D60464 /* MotorType.swift */; };
+		1122A7B42A22E6BD00D60464 /* Motor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B32A22E6BD00D60464 /* Motor.swift */; };
+		1122A7B52A22E6BD00D60464 /* Motor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B32A22E6BD00D60464 /* Motor.swift */; };
 		1131763029FF067B008B35E8 /* CreatureType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131762F29FF067B008B35E8 /* CreatureType.swift */; };
 		1131763229FF0B66008B35E8 /* AnimationCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* AnimationCategory.swift */; };
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
@@ -84,6 +96,8 @@
 /* Begin PBXFileReference section */
 		110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationIdentifier.swift; sourceTree = "<group>"; };
 		11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationDetail.swift; sourceTree = "<group>"; };
+		1122A7B02A22E67900D60464 /* MotorType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorType.swift; sourceTree = "<group>"; };
+		1122A7B32A22E6BD00D60464 /* Motor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motor.swift; sourceTree = "<group>"; };
 		1131762F29FF067B008B35E8 /* CreatureType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureType.swift; sourceTree = "<group>"; };
 		1131763129FF0B66008B35E8 /* AnimationCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationCategory.swift; sourceTree = "<group>"; };
 		113896B42A0768860055BA70 /* AnimationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditor.swift; sourceTree = "<group>"; };
@@ -180,6 +194,8 @@
 				110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */,
 				113896B82A0CA3B40055BA70 /* StorageManager.swift */,
 				11BC3C392A0DF62300410F63 /* AudioManager.swift */,
+				1122A7B02A22E67900D60464 /* MotorType.swift */,
+				1122A7B32A22E6BD00D60464 /* Motor.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -446,11 +462,13 @@
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
 				11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
+				1122A7B12A22E67900D60464 /* MotorType.swift in Sources */,
 				1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* Creature_ConsoleApp.swift in Sources */,
 				11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */,
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
 				11B4821329E24F9000767E22 /* CreatureList.swift in Sources */,
+				1122A7B42A22E6BD00D60464 /* Motor.swift in Sources */,
 				1131763229FF0B66008B35E8 /* AnimationCategory.swift in Sources */,
 				11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
@@ -466,11 +484,21 @@
 				11C326D829DD41E900B169CD /* main.swift in Sources */,
 				1142E65A29DFB08A00B795F0 /* server.pb.swift in Sources */,
 				1142E66529DFC00700B795F0 /* TimeHelper.swift in Sources */,
+				1122A7AD2A22E2EC00D60464 /* AudioManager.swift in Sources */,
+				1122A7AC2A22E2E800D60464 /* StorageManager.swift in Sources */,
 				11B4821429E24F9000767E22 /* CreatureList.swift in Sources */,
 				11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */,
 				1142E65B29DFB0E800B795F0 /* CreatureServerClient.swift in Sources */,
+				1122A7AB2A22E2E400D60464 /* AnimationIdentifier.swift in Sources */,
 				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
+				1122A7AF2A22E31F00D60464 /* EventLoop.swift in Sources */,
+				1122A7B52A22E6BD00D60464 /* Motor.swift in Sources */,
+				1122A7B22A22E67900D60464 /* MotorType.swift in Sources */,
 				11FA32B729E374B8004C5181 /* SixAxisJoystick.swift in Sources */,
+				1122A7A92A22E2DE00D60464 /* LogViewModel.swift in Sources */,
+				1122A7A82A22E2D100D60464 /* Animation.swift in Sources */,
+				1122A7AA2A22E2E100D60464 /* CreatureType.swift in Sources */,
+				1122A7AE2A22E2F800D60464 /* JoystickHandler.swift in Sources */,
 				1142E65829DFB08A00B795F0 /* server.grpc.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

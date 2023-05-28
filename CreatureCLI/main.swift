@@ -55,6 +55,7 @@ struct CreatureCLI: AsyncParsableCommand {
 
     // Form the request with the name, if one was provided.
       let request = Server_CreatureName.with {
+          print("\($0)")
       $0.name = self.name ?? ""
     }
 

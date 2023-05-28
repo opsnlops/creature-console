@@ -9,21 +9,6 @@ import Foundation
 import Logging
 
 
-enum MotorType : Int, CustomStringConvertible {
-  case servo = 0
-  case stepper = 1
-    
-    var description: String {
-        switch self {
-        case .servo:
-            return "Servo"
-        case .stepper:
-            return "Stepper"
-        }
-    }
-
-}
-
 class CreatureIdentifier : ObservableObject, Identifiable, CustomStringConvertible {
     let id : Data
     let name : String
@@ -38,53 +23,7 @@ class CreatureIdentifier : ObservableObject, Identifiable, CustomStringConvertib
     }
 }
 
-struct Motor : Identifiable, Hashable, Equatable {
-    let id : Data
-    var name : String
-    var type : MotorType = MotorType.servo
-    var number : UInt32 = 0
-    var maxValue : UInt32 = 0
-    var minValue : UInt32 = 0
-    var smoothingValue : Double = 0.0
-    
-    init(id: Data, name: String, type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
-        self.id = id
-        self.name = name
-        self.type = type
-        self.number = number
-        self.maxValue = maxValue
-        self.minValue = minValue
-        self.smoothingValue = smoothingValue
-    }
-    
-    // Little hepler that generates a random ID
-    init(name: String, type: MotorType, number: UInt32, maxValue: UInt32, minValue: UInt32, smoothingValue: Double) {
-        let id = DataHelper.generateRandomData(byteCount: 12)
-        self.init(id: id, name: name, type: type, number: number, maxValue: maxValue, minValue: minValue, smoothingValue: smoothingValue)
-    }
-    
-    // Implement the hash(into:) function
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-        hasher.combine(name)
-        hasher.combine(type)
-        hasher.combine(number)
-        hasher.combine(maxValue)
-        hasher.combine(minValue)
-        hasher.combine(smoothingValue)
-    }
 
-    // Implement the == operator
-    static func ==(lhs: Motor, rhs: Motor) -> Bool {
-        return lhs.id == rhs.id &&
-               lhs.name == rhs.name &&
-               lhs.type == rhs.type &&
-               lhs.number == rhs.number &&
-               lhs.maxValue == rhs.maxValue &&
-               lhs.minValue == rhs.minValue &&
-               lhs.smoothingValue == rhs.smoothingValue
-    }
-}
 
 
 /**
@@ -101,12 +40,14 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     @Published var universe : UInt32
     @Published var dmxBase : UInt32
     @Published var numberOfMotors : UInt32
+    @Published var type : CreatureType
     @Published var motors : [Motor]
     @Published var realData : Bool = false      // Set to true when there's non-mock data loaded
 
-    init(id: Data, name: String, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
+    init(id: Data, name: String, type: CreatureType, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
         self.id = id
         self.name = name
+        self.type = type
         self.lastUpdated = lastUpdated
         self.sacnIP = sacnIP
         self.universe = universe
@@ -117,15 +58,33 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     }
     
     // Helper that generates a new ID if needed
-    convenience init(name: String, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
+    convenience init(name: String, type: CreatureType, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
         let id = DataHelper.generateRandomData(byteCount: 12)
-        self.init(id: id, name: name, lastUpdated: lastUpdated, sacnIP: sacnIP, universe: universe, dmxBase: dmxBase, numberOfMotors: numberOfMotors)
+        self.init(id: id, name: name, type: type, lastUpdated: lastUpdated, sacnIP: sacnIP, universe: universe, dmxBase: dmxBase, numberOfMotors: numberOfMotors)
     }
     
     // Creates a new instance from a ProtoBuf object
     convenience init(serverCreature: Server_Creature) {
+        
+        guard let creatureType = CreatureType(protobufValue: serverCreature.type) else {
+            // Handle the case where the creature type could not be created. 😬🙅‍♀️🚫🔥
+            print("Invalid creature type! Assuming a WLED Light!") // 🚨🔔⚠️💔
+            
+            self.init(id: serverCreature.id,
+                      name: serverCreature.name,
+                      type: .wledLight,
+                      lastUpdated: TimeHelper.timestampToDate(timestamp: serverCreature.lastUpdated),
+                      sacnIP: serverCreature.sacnIp,
+                      universe: serverCreature.universe,
+                      dmxBase: serverCreature.dmxBase,
+                      numberOfMotors: serverCreature.numberOfMotors)
+            return
+            
+        }
+        
         self.init(id: serverCreature.id,
                   name: serverCreature.name,
+                  type: creatureType,
                   lastUpdated: TimeHelper.timestampToDate(timestamp: serverCreature.lastUpdated),
                   sacnIP: serverCreature.sacnIp,
                   universe: serverCreature.universe,
@@ -208,6 +167,7 @@ extension Creature {
     static func mock() -> Creature {
         let creature = Creature(id: DataHelper.generateRandomData(byteCount: 12),
             name: "MockCreature",
+            type: .parrot,
             lastUpdated: Date(),
             sacnIP: "1.2.3.4",
             universe: 666,
