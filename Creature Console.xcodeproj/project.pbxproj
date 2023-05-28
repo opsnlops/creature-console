@@ -196,6 +196,7 @@
 				11BC3C392A0DF62300410F63 /* AudioManager.swift */,
 				1122A7B02A22E67900D60464 /* MotorType.swift */,
 				1122A7B32A22E6BD00D60464 /* Motor.swift */,
+				11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -253,7 +254,6 @@
 				115DADA029DF95890021C4E0 /* JoystickHandler.swift */,
 				1142E66329DFC00700B795F0 /* TimeHelper.swift */,
 				11B4820929E141AB00767E22 /* DataHelper.swift */,
-				11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */,
 			);
 			path = "Creature Console";
 			sourceTree = "<group>";

@@ -18,21 +18,22 @@ class VirtualJoystick {
     var virualConfiguration : GCVirtualController.Configuration
     var virtualController : GCVirtualController?
     
-    let logger = Logger(label: "VirtualJoystick")
+    let logger = Logger(label: "Virtual Joystick")
     
     
     init() {
         virualConfiguration = GCVirtualController.Configuration()
         virualConfiguration.elements = [GCInputLeftThumbstick,
-                                             GCInputRightThumbstick,
-                                             GCInputLeftTrigger,
-                                             GCInputRightTrigger]
+                                        GCInputRightThumbstick,
+                                        GCInputLeftTrigger,
+                                        GCInputRightTrigger,
+                                        GCInputButtonX]
     }
     
     func create() {
         
         virtualController = GCVirtualController(configuration: self.virualConfiguration)
-        logger.info("created a virtual joystick EMPTY")
+        logger.info("created a virtual joystick")
         
     }
     
@@ -49,28 +50,7 @@ class VirtualJoystick {
         virtualController?.disconnect()
     }
     
-    
-    
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif

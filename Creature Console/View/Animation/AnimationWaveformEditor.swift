@@ -28,7 +28,6 @@ struct AnimationWaveformEditor: View {
     }
     
     
-    
     private func processAnimationData(_ animation: Animation) -> [[UInt8]] {
         var allAxes: [[UInt8]] = Array(repeating: [], count: Int(animation.metadata.numberOfMotors))
 

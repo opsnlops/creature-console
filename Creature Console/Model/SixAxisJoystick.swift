@@ -14,7 +14,8 @@ class Axis : ObservableObject, CustomStringConvertible {
     var axisType : AxisType = .gamepad
     @Published var name: String = ""
     @Published var value: UInt8 = 127
-    @Published var rawValue: Float = 0 {
+        
+    var rawValue: Float = 0 {
         didSet {
             
             var mappedvalue = Float(0.0)
@@ -51,11 +52,60 @@ class Axis : ObservableObject, CustomStringConvertible {
     }
 }
 
+
 class SixAxisJoystick : ObservableObject {
     @Published var axises : [Axis]
+    @Published var aButtonPressed = false
+    @Published var bButtonPressed = false
+    @Published var xButtonPressed = false
+    @Published var yButtonPressed = false
+    
     var controller : GCController?
     let objectWillChange = ObservableObjectPublisher()
     let logger = Logger(label: "SixAxisJoystick")
+    
+    var currentActivity = Activity.idle {
+        didSet {
+            
+            // Update the light when this changes
+            guard let controller = GCController.current else { return }
+            controller.light?.color = currentActivity.color
+        }
+    }
+    
+    enum Activity : Int, CustomStringConvertible {
+        case idle = 0
+        case streaming = 1
+        case recording = 2
+        case preparingToRecord = 3
+        
+        var description: String {
+            switch self {
+            case .idle:
+                return "Idle"
+            case .streaming:
+                return "Streaming"
+            case .recording:
+                return "Recording"
+            case .preparingToRecord:
+                return "Preparing to Record"
+            }
+        }
+        
+        var color: GCColor {
+            switch self {
+            case .idle:
+                return GCColor(red: 0.0, green: 0.0, blue: 1.0)
+            case .streaming:
+                return GCColor(red: 0.0, green: 1.0, blue: 0.0)
+            case .recording:
+                return GCColor(red: 1.0, green: 0.0, blue: 0.0)
+            case .preparingToRecord:
+                return GCColor(red: 1.0, green: 1.0, blue: 0.0)
+            }
+        }
+    }
+        
     
 #if os(iOS)
     var virtualJoysick = VirtualJoystick()
@@ -78,6 +128,7 @@ class SixAxisJoystick : ObservableObject {
         self.axises[5].axisType = .trigger
         self.axises[4].value = 0
         self.axises[5].value = 0
+        
     }
     
     var axisValues: [UInt8] {
@@ -144,7 +195,26 @@ class SixAxisJoystick : ObservableObject {
                 didChange = true
             }
             
-   
+            if joystick.buttonA.isPressed != self.aButtonPressed {
+                self.aButtonPressed = joystick.buttonA.isPressed
+                didChange = true
+            }
+            
+            if joystick.buttonB.isPressed != self.bButtonPressed {
+                self.bButtonPressed = joystick.buttonB.isPressed
+                didChange = true
+            }
+            
+            if joystick.buttonX.isPressed != self.xButtonPressed {
+                self.xButtonPressed = joystick.buttonX.isPressed
+                didChange = true
+            }
+            
+            if joystick.buttonY.isPressed != self.yButtonPressed {
+                self.yButtonPressed = joystick.buttonY.isPressed
+                didChange = true
+            }
+            
             logger.debug("joystick polling done")
        
             // If there's a change to be propogated out, let the main thread do it

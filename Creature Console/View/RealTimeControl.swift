@@ -58,7 +58,8 @@ extension CreatureServerClient {
         
         logger.info("request to stream to \(creature.name)")
         
-
+        joystick.currentActivity = .streaming
+        
         let streamFrames = server?.makeStreamFramesCall()
         
         
@@ -99,6 +100,8 @@ extension CreatureServerClient {
         let summary = try await streamFrames?.response
         
         logger.info("Server processed \(summary?.framesProcessed ?? 666666666) frames")
+        
+        joystick.currentActivity = .idle
             
     }
     

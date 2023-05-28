@@ -26,11 +26,50 @@ struct JoystickDebugView: View {
 
                 Spacer()
                 
-                BarChart(data: Binding(get: { joystick.axisValues }, set: { _ in }),
-                         barSpacing: 4.0,
-                         maxValue: 255)
+                HStack {
+                    BarChart(data: Binding(get: { joystick.axisValues }, set: { _ in }),
+                             barSpacing: 4.0,
+                             maxValue: 255)
                     .frame(height: geometry.size.height * 0.95)
                     .padding()
+                    
+                    VStack {
+                        Spacer()
+                        
+                        Image(systemName: joystick.controller?.extendedGamepad?.buttonX.sfSymbolsName ?? "x.circle")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100 / 2.5)
+                            .foregroundColor(joystick.xButtonPressed ? .accentColor : .primary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: joystick.controller?.extendedGamepad?.buttonA.sfSymbolsName ?? "a.circle")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100 / 2.5)
+                            .foregroundColor(joystick.aButtonPressed ? .accentColor : .primary)
+
+                        Spacer()
+
+                        Image(systemName: joystick.controller?.extendedGamepad?.buttonB.sfSymbolsName ?? "b.circle")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100 / 2.5)
+                            .foregroundColor(joystick.bButtonPressed ? .accentColor : .primary)
+
+                        Spacer()
+                                                
+                        Image(systemName: joystick.controller?.extendedGamepad?.buttonY.sfSymbolsName ?? "y.circle")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100 / 2.5)
+                            .foregroundColor(joystick.yButtonPressed ? .accentColor : .primary)
+
+                        Spacer()
+                    }
+                    .frame(width: 100.0)
+                }
             }
             .onAppear {
                 joystick.showVirtualJoystickIfNeeded()

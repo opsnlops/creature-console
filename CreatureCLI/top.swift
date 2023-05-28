@@ -18,7 +18,6 @@ struct CreatureCLI: AsyncParsableCommand {
 
     mutating func run() async throws {
 
-        print("hello \(name)")
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 
         // Make sure the group is shutdown when we're done with it.
@@ -43,16 +42,22 @@ struct CreatureCLI: AsyncParsableCommand {
 
         // Form the request with the name, if one was provided.
           let request = Server_CreatureName.with {
-              print("\($0)")
           $0.name = self.name
         }
 
         do {
             let creature = try await server.searchCreatures(request)
             print("Client received: \(creature.name)")
-            print("Last upddated: \(creature.lastUpdated)")
+            print("Last upddated: \(TimeHelper.timestampToDate(timestamp: creature.lastUpdated))")
+            print("sACN IP: \(creature.sacnIp)")
         } catch {
-          print("Client failed: \(error)")
+            printError("Client failed: \(error)")
         }
     }
+    
+    func printError(_ item: Any) {
+        fputs("\(item)\n", stderr)
+    }
 }
+
+
