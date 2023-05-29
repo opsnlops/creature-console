@@ -256,7 +256,7 @@ class CreatureServerClient : ObservableObject {
                 metadatas.append(AnimationIdentifier(serverAnimationIdentifier: a))
             }
             
-            logger.info("got all animations for that type")
+            logger.info("got all animations for type \(creatureType)")
             return .success(metadatas)
             
         }

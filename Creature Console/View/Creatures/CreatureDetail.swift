@@ -18,9 +18,14 @@ struct CreatureDetail : View {
     
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
+    @State private var streamingTask: Task<Void, Never>? = nil
     
     @ObservedObject var creature : Creature
     
+    // Reassign the ID every time we load a new creature to force
+    // SwiftUI to rebuild the view
+    @State private var refreshID = UUID().uuidString  // Start with a UUID since creature may not exist the first time
+        
     let logger = Logger(label: "CreatureDetail")
     
     var body: some View {
@@ -37,42 +42,10 @@ struct CreatureDetail : View {
             }
             Spacer()
             
-            Text("Motors")
-                .font(.title2)
-            Table(creature.motors) {
-                TableColumn("Name") { motor in
-                    Text(motor.name)
-                }
-                TableColumn("Number") { motor in
-                    Text(motor.number, format: .number)
-                }.width(60)
-                TableColumn("Type") { motor in
-                    Text(motor.type.description)
-                }
-                .width(55)
-                TableColumn("Min Value") { motor in
-                    Text(motor.minValue, format: .number)
-                }
-                .width(70)
-                TableColumn("Max Value") { motor in
-                    Text(motor.maxValue, format: .number)
-                }
-                .width(70)
-                TableColumn("Smoothing") { motor in
-                    Text(motor.smoothingValue, format: .percent)
-                }
-                .width(90)
-            }
+            CategoryTable(creature: creature)
             
         }
-        .onDisappear{
-            eventLoop.joystick0.removeVirtualJoystickIfNeeded()
-        }
-        .navigationTitle(creature.name)
-#if os(macOS)
-        .navigationSubtitle(creature.sacnIP)
-#endif
-        .toolbar(id: "creatureDetail") {
+        .toolbar(id: "\(creature.name) creatureDetail") {
             ToolbarItem(id: "control", placement: .primaryAction) {
                 Button(action: {
                     toggleStreaming()
@@ -82,8 +55,21 @@ struct CreatureDetail : View {
                 }
             }
         }
+        .onChange(of: creature){ _ in
+            logger.info("creature is now \(creature.name)")
+            refreshID = creature.name
+        }
+        .id(refreshID)
+        .onDisappear{
+            streamingTask?.cancel()
+            eventLoop.joystick0.removeVirtualJoystickIfNeeded()
+        }
+        .navigationTitle(creature.name)
+#if os(macOS)
+        .navigationSubtitle(creature.sacnIP)
+#endif
+        
     }
-    
     
     
     func toggleStreaming() {
@@ -93,7 +79,8 @@ struct CreatureDetail : View {
         if(appState.currentActivity == .idle) {
             
             logger.debug("starting streaming")
-            Task {
+            streamingTask?.cancel()
+            streamingTask = Task {
                 DispatchQueue.main.async {
                     appState.currentActivity = .streaming
                 }
@@ -115,6 +102,7 @@ struct CreatureDetail : View {
                 logger.debug("stopping streaming")
                 client.stopSignalReceived = true
                 eventLoop.joystick0.removeVirtualJoystickIfNeeded()
+                streamingTask?.cancel()
                 DispatchQueue.main.async {
                     appState.currentActivity = .idle
                 }

@@ -28,6 +28,7 @@ struct AdvancedSettingsView: View {
                 }
                 Section(header: Text("Audio File Path")) {
                     TextField("", text: $audioFilePath)
+                        .disabled(true)
                 }
             }
             Spacer()
