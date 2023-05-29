@@ -21,6 +21,8 @@ struct AudioFilePicker: View {
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
     
+    @AppStorage("audioFilePath") private var audioFilePath: String = ""
+    
     let logger = Logger(label: "Audio File Picker")
     
     private var audioData = Data()
@@ -37,6 +39,10 @@ struct AudioFilePicker: View {
                 onCompletion: { result in
                     do {
                         let fileURL = try result.get()
+                        
+                        // Store this path to where the sounds are
+                        audioFilePath = fileURL.deletingLastPathComponent().absoluteString
+                        
                         audioManager.play(url: fileURL)
                         
                     } catch {

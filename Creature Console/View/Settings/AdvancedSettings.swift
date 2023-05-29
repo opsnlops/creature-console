@@ -13,6 +13,8 @@ struct AdvancedSettingsView: View {
     @AppStorage("eventLoopMillisecondsPerFrame") private var eventLoopMillisecondsPerFrame: Int = 20
     @AppStorage("logSpareTimeFrameInterval") private var logSpareTimeFrameInterval: Int = 200
     @AppStorage("audioFilePath") private var audioFilePath: String = ""
+    
+    
     var body: some View {
         VStack {
             Text("⚠️ Changing any of these values requires an app restart")
