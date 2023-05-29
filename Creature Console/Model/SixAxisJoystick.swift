@@ -129,6 +129,9 @@ class SixAxisJoystick : ObservableObject {
         self.axises[4].value = 0
         self.axises[5].value = 0
         
+        // Pay attention to the joystick, even when in the background
+        GCController.shouldMonitorBackgroundEvents = true
+
     }
     
     var axisValues: [UInt8] {
