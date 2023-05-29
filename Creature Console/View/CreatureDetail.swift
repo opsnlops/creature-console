@@ -11,9 +11,13 @@ import Logging
 import Dispatch
 
 struct CreatureDetail : View {
-    @ObservedObject var creature: Creature
+  
     @EnvironmentObject var client: CreatureServerClient
     @EnvironmentObject var eventLoop: EventLoop
+    @EnvironmentObject var appState : AppState
+    
+    @ObservedObject var creature: Creature
+    
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
@@ -32,11 +36,6 @@ struct CreatureDetail : View {
                 CreatureEdit(creature: creature)
             }
             Spacer()
-            
-            NavigationLink("Control") {
-                RealTimeControl(joystick: eventLoop.joystick0, creature: creature)
-            }
-        
             
             Text("Motors")
                 .font(.title2)
@@ -66,25 +65,82 @@ struct CreatureDetail : View {
             }
             
         }
+        .onDisappear{
+            eventLoop.joystick0.removeVirtualJoystickIfNeeded()
+        }
         .navigationTitle(creature.name)
-        #if os(macOS)
+#if os(macOS)
         .navigationSubtitle(creature.sacnIP)
-        #endif
+#endif
+        .toolbar(id: "creatureDetail") {
+            ToolbarItem(id: "control", placement: .primaryAction) {
+                Button(action: {
+                    toggleStreaming()
+                }) {
+                    Image(systemName: (appState.currentActivity == .streaming) ? "gamecontroller.fill" : "gamecontroller")
+                        .foregroundColor((appState.currentActivity == .streaming) ? .green : .primary)
+                }
+            }
+        }
         
-    } // View
+    }
+        
+    
+    
+    func toggleStreaming() {
+            
+        logger.info("Toggling streaming")
+        
+        if(appState.currentActivity == .idle) {
+            
+            logger.debug("starting streaming")
+            Task {
+                DispatchQueue.main.async {
+                    appState.currentActivity = .streaming
+                }
+                do {
+                    eventLoop.joystick0.showVirtualJoystickIfNeeded()
+                    try await client.streamJoystick(joystick: eventLoop.joystick0, creature: creature)
+                } catch {
+                    DispatchQueue.main.async {
+                        errorMessage = "Unable to start streaming: \(error.localizedDescription)"
+                        showErrorAlert = true
+                    }
+                }
+            }
+        }
+        else {
+            // If we're streaming, stop
+            if(appState.currentActivity == .streaming) {
+            
+                logger.debug("stopping streaming")
+                client.stopSignalReceived = true
+                eventLoop.joystick0.removeVirtualJoystickIfNeeded()
+                DispatchQueue.main.async {
+                    appState.currentActivity = .idle
+                }
+                
+            }
+            else {
+                
+                DispatchQueue.main.async {
+                    errorMessage = "Unable to start streaming while in the \(appState.currentActivity.description) state"
+                    showErrorAlert = true
+                }
+                
+            }
+        }
+    }
+        
 }
         
         
-
-    
-
-
-
 
 
 struct CreatureDetail_Previews: PreviewProvider {
     static var previews: some View {
         CreatureDetail(creature: Creature.mock())
             .environmentObject(EventLoop.mock())
+            .environmentObject(AppState.mock())
     }
 }

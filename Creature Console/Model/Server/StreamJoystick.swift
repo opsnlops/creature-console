@@ -12,53 +12,12 @@ import GRPC
 import GameController
 
 
-struct RealTimeControl: View {
-    
-    @ObservedObject var joystick : SixAxisJoystick
-    @EnvironmentObject var client: CreatureServerClient
-    var creature: Creature
-    
-    init(joystick: SixAxisJoystick, creature: Creature)
-    {
-        self.joystick = joystick
-        self.creature = creature
-    }
-    
-    
-    var body: some View {
-        VStack {
-           Button("Start Streaming") {
-               Task {
-                   try await client.streamJoystick(joystick: joystick, creature: creature)
-               }
-           }
-
-            Button("Stop Streaming") {
-                client.stopSignalReceived = true
-            }
-       }
-        .onDisappear{
-            
-            // Just in case I forget to turn off the streaming when I leave this view
-            client.stopSignalReceived = true
-            self.joystick.removeVirtualJoystickIfNeeded()
-        }
-        .onAppear {
-            self.joystick.showVirtualJoystickIfNeeded()
-        }
-    }
-        
-}
-
-
 extension CreatureServerClient {
     
     
     func streamJoystick(joystick: SixAxisJoystick, creature: Creature) async throws {
         
         logger.info("request to stream to \(creature.name)")
-        
-        joystick.currentActivity = .streaming
         
         let streamFrames = server?.makeStreamFramesCall()
         
@@ -100,8 +59,7 @@ extension CreatureServerClient {
         let summary = try await streamFrames?.response
         
         logger.info("Server processed \(summary?.framesProcessed ?? 666666666) frames")
-        
-        joystick.currentActivity = .idle
+  
             
     }
     

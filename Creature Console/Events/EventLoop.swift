@@ -31,6 +31,7 @@ class EventLoop : ObservableObject {
     private let numberFormatter = NumberFormatter()
     
     var joystick0 : SixAxisJoystick
+    var appState : AppState
     
     
     // If we've got an animation loaded, keep track of it
@@ -97,8 +98,9 @@ class EventLoop : ObservableObject {
     }
     
     
-    init() {
-        self.joystick0 = SixAxisJoystick()
+    init(appState: AppState) {
+        self.appState = appState
+        self.joystick0 = SixAxisJoystick(appState: appState)
         self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
         self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
         self.frameIdleTime = 100.0
@@ -137,7 +139,7 @@ class EventLoop : ObservableObject {
 
 extension EventLoop {
     static func mock() -> EventLoop {
-        let mockEventLoop = EventLoop()
+        let mockEventLoop = EventLoop(appState: .mock())
         mockEventLoop.millisecondPerFrame = 50
         mockEventLoop.logSpareTimeFrameInterval = 100
         mockEventLoop.frameIdleTime = 100.0

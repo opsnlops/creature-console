@@ -7,30 +7,32 @@
 import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
+import Logging
 
 
 struct AudioFilePicker: View {
-    @StateObject var storageManager = StorageManager()
+    //@StateObject var storageManager = StorageManager()
     
     @EnvironmentObject var audioManager: AudioManager
 
     @State private var importURL: URL?
-    @State private var showImportSheet = false
+    @State private var showImportAudioSheet = false
 
-    @State private var exportURL: URL?
-    @State private var showExportSheet = false
-
+    @State private var showErrorAlert = false
+    @State private var alertMessage = ""
+    
+    let logger = Logger(label: "Audio File Picker")
+    
     private var audioData = Data()
     
     var body: some View {
         VStack {
 
-
             Button("Play Audio File") {
-                showImportSheet = true
+                showImportAudioSheet = true
             }
             .fileImporter(
-                isPresented: $showImportSheet,
+                isPresented: $showImportAudioSheet,
                 allowedContentTypes: [.audio],
                 onCompletion: { result in
                     do {
@@ -38,74 +40,29 @@ struct AudioFilePicker: View {
                         audioManager.play(url: fileURL)
                         
                     } catch {
-                        print("Failed to play file: \(error)")
+                        logger.warning("Failed to read audio file: \(error)")
+                        alertMessage = "Failed to read audio file: \(error)"
+                        showErrorAlert = true
                     }
                 }
             )
-
-            
-            
-            Button("Import Audio File") {
-                showImportSheet = true
+            .alert(isPresented: $showErrorAlert) {
+                Alert(
+                    title: Text("Grrrr"),
+                    message: Text(alertMessage),
+                    dismissButton: .default(Text("Fuck"))
+                )
             }
-            .fileImporter(
-                isPresented: $showImportSheet,
-                allowedContentTypes: [.audio],
-                onCompletion: { result in
-                    do {
-                        let fileURL = try result.get()
-                        // Load the audio data
-                        if let data = storageManager.loadFileFromiCloud(fileName: fileURL.lastPathComponent) {
-                            // Do something with the audio data...
-                        }
-                    } catch {
-                        print("Failed to import file: \(error)")
-                    }
-                }
-            )
-
-            Button("Export Audio File") {
-                showExportSheet = true
-            }
-            .fileExporter(
-                isPresented: $showExportSheet,
-                document: Document(data: audioData),
-                contentType: .audio,
-                defaultFilename: "MyAudioFile.aac",
-                onCompletion: { result in
-                    do {
-                        let fileURL = try result.get()
-                        // Handle the URL of the exported file
-                        print("Exported file to \(fileURL)")
-                    } catch {
-                        print("Failed to export file: \(error)")
-                    }
-                }
-            )
         }
     }
 }
 
-struct Document: FileDocument {
-    static var readableContentTypes: [UTType] { [.audio] }
 
-    var data: Data
-
-    init(data: Data) {
-        self.data = data
-    }
-
-    init(configuration: ReadConfiguration) throws {
-        data = Data()
-    }
-
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        return FileWrapper(regularFileWithContents: data)
-    }
-}
 
 struct AudioFilePicker_Previews: PreviewProvider {
     static var previews: some View {
         AudioFilePicker()
+            .environmentObject(AudioManager.mock())
     }
 }
+

@@ -11,13 +11,16 @@ import Logging
 
 struct TopContentView: View {
     
+    @EnvironmentObject var appState : AppState
+    @EnvironmentObject var client : CreatureServerClient
+    @EnvironmentObject var eventLoop : EventLoop
+    
     @StateObject var creatureList = CreatureList()
     @State var animationIds = Set<AnimationIdentifier>()
-    @EnvironmentObject var client: CreatureServerClient
+    
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
-    @EnvironmentObject var eventLoop : EventLoop
     
     @State private var selectedCreature: Creature?
     @State private var selectedCreatureType: CreatureType?
@@ -43,17 +46,6 @@ struct TopContentView: View {
                     }
                 }
                 
-                Section("Animations") {
-                    ForEach(CreatureType.allCases, id: \.self) { creatureType in
-                        NavigationLink (
-                            destination: AnimationCategory(creatureType: $selectedCreatureType),
-                            tag: creatureType,
-                            selection: $selectedCreatureType
-                        )   {
-                            Label(creatureType.description, systemImage: creatureType.systemImage)
-                        }
-                    }
-                }
                 
                 Section("Controls") {
                     NavigationLink {

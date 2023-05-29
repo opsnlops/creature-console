@@ -37,9 +37,9 @@ class Axis : ObservableObject, CustomStringConvertible {
         return String(value)
     }
     
-    enum AxisType : Int, CustomStringConvertible {
-      case gamepad = 0
-      case trigger = 1
+    enum AxisType : CustomStringConvertible {
+      case gamepad
+      case trigger
         
         var description: String {
             switch self {
@@ -60,52 +60,15 @@ class SixAxisJoystick : ObservableObject {
     @Published var xButtonPressed = false
     @Published var yButtonPressed = false
     
+    var appState : AppState
     var controller : GCController?
     let objectWillChange = ObservableObjectPublisher()
     let logger = Logger(label: "SixAxisJoystick")
     
-    var currentActivity = Activity.idle {
-        didSet {
-            
-            // Update the light when this changes
-            guard let controller = GCController.current else { return }
-            controller.light?.color = currentActivity.color
-        }
-    }
+    private var cancellables: Set<AnyCancellable> = []
     
-    enum Activity : Int, CustomStringConvertible {
-        case idle = 0
-        case streaming = 1
-        case recording = 2
-        case preparingToRecord = 3
-        
-        var description: String {
-            switch self {
-            case .idle:
-                return "Idle"
-            case .streaming:
-                return "Streaming"
-            case .recording:
-                return "Recording"
-            case .preparingToRecord:
-                return "Preparing to Record"
-            }
-        }
-        
-        var color: GCColor {
-            switch self {
-            case .idle:
-                return GCColor(red: 0.0, green: 0.0, blue: 1.0)
-            case .streaming:
-                return GCColor(red: 0.0, green: 1.0, blue: 0.0)
-            case .recording:
-                return GCColor(red: 1.0, green: 0.0, blue: 0.0)
-            case .preparingToRecord:
-                return GCColor(red: 1.0, green: 1.0, blue: 0.0)
-            }
-        }
-    }
-        
+    
+
     
 #if os(iOS)
     var virtualJoysick = VirtualJoystick()
@@ -113,11 +76,12 @@ class SixAxisJoystick : ObservableObject {
 #endif
     
     var vendor : String {
-        controller?.vendorName ?? "Unknown"
+        controller?.vendorName ?? "🎮"
     }
     
-    init() {
+    init(appState: AppState) {
         self.axises = []
+        self.appState = appState
         
         for _ in 0...5 {
             self.axises.append(Axis())
@@ -131,11 +95,28 @@ class SixAxisJoystick : ObservableObject {
         
         // Pay attention to the joystick, even when in the background
         GCController.shouldMonitorBackgroundEvents = true
+        
+        // Update the lights when there's a change in app state
+        appState.$currentActivity.sink { [weak self] newActivity in
+            self?.updateJoystickLight(activity: newActivity)
+        }.store(in: &cancellables)
 
+    }
+    
+    deinit {
+        for cancellable in cancellables {
+            cancellable.cancel()
+        }
     }
     
     var axisValues: [UInt8] {
         return axises.map { $0.value }
+    }
+    
+    func updateJoystickLight(activity: AppState.Activity) {
+            // Update the light when this changes
+            guard let controller = GCController.current else { return }
+            controller.light?.color = activity.color
     }
     
     func showVirtualJoystickIfNeeded() {
@@ -236,9 +217,27 @@ class SixAxisJoystick : ObservableObject {
 }
 
 
+/**
+ Since we're the ones that care about color, define the colors here
+ */
+extension AppState.Activity {
+    var color: GCColor {
+        switch self {
+        case .idle:
+            return GCColor(red: 0.0, green: 0.0, blue: 1.0)
+        case .streaming:
+            return GCColor(red: 0.0, green: 1.0, blue: 0.0)
+        case .recording:
+            return GCColor(red: 1.0, green: 0.0, blue: 0.0)
+        case .preparingToRecord:
+            return GCColor(red: 1.0, green: 1.0, blue: 0.0)
+        }
+    }
+}
+
 extension SixAxisJoystick {
     static func mock() -> SixAxisJoystick {
-        let joystick = SixAxisJoystick()
+        let joystick = SixAxisJoystick(appState: .mock())
         
         for axis in joystick.axises {
             axis.value = UInt8(arc4random_uniform(UInt32(UInt8.max)))

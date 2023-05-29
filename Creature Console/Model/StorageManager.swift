@@ -16,7 +16,14 @@ class StorageManager : ObservableObject {
     
     
     func getiCloudContainerURL() -> URL? {
-        return FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents")
+        
+        // If 'forUbiquityContainerIdentifier' is nil, it will take the first one we've got. Since
+        // there's only one, it will take that.
+        let containerUrl = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents")
+        
+        logger.info("iCloud Container URL: \(String(describing: containerUrl))")
+        
+        return containerUrl
     }
 
     

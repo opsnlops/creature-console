@@ -61,3 +61,25 @@ class AudioManager: ObservableObject {
         self.audioPlayer?.pause()
     }
 }
+
+
+
+extension AudioManager {
+    static func mock() -> AudioManager {
+        let mock = Mock()
+        mock.volume = 0.5
+        return mock
+    }
+    
+    private class Mock: AudioManager {
+        override func play(url: URL) {
+            // Do nothing in mock
+            logger.info("MockAudioManager play called with \(url)")
+        }
+
+        override func pause() {
+            // Do nothing in mock
+            logger.info("MockAudioManager pause called")
+        }
+    }
+}

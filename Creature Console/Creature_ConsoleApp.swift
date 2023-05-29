@@ -12,6 +12,7 @@ import Logging
 struct CreatureConsole: App {
     
     var eventLoop : EventLoop
+    var appState = AppState()
     var audioManager = AudioManager()
 
     init() {
@@ -35,7 +36,7 @@ struct CreatureConsole: App {
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
         
-        self.eventLoop = EventLoop()
+        self.eventLoop = EventLoop(appState: appState)
         
         // Init the joystick
         registerJoystickHandlers(eventLoop: self.eventLoop)
@@ -57,6 +58,7 @@ struct CreatureConsole: App {
                 .environmentObject(CreatureServerClient.shared)
                 .environmentObject(eventLoop)
                 .environmentObject(audioManager)
+                .environmentObject(appState)
         }
         
 #if os(macOS)
