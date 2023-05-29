@@ -9,7 +9,7 @@ import SwiftUI
 import Logging
 
 @main
-struct Creature_ConsoleApp: App {
+struct CreatureConsole: App {
     
     var eventLoop : EventLoop
     var audioManager = AudioManager()
@@ -30,7 +30,8 @@ struct Creature_ConsoleApp: App {
             "joystick0.rightTrigger.mapping": 5,
             "eventLoopMillisecondsPerFrame": 20,
             "logSpareTimeFrameInterval": 200,
-            "audioVolume": 0.8
+            "audioVolume": 0.8,
+            "audioFilePath": "file:///Users/april/Library/Mobile%20Documents/com~apple~CloudDocs/creatureSounds/"
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
         
