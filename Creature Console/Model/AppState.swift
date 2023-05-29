@@ -6,12 +6,15 @@
 //
 
 import Foundation
+import Logging
 
 
 class AppState : ObservableObject {
     
+    let logger = Logger(label: "AppState")
+    
     @Published var currentActivity = Activity.idle
-    @Published var activeCreature : Creature?
+    
     
     enum Activity : CustomStringConvertible {
         case idle
@@ -40,7 +43,6 @@ extension AppState {
     static func mock() -> AppState {
         let appState = AppState()
         appState.currentActivity = .idle
-        appState.activeCreature = .mock()
         return appState
     }
 }

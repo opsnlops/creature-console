@@ -11,18 +11,18 @@ import Logging
 import Dispatch
 
 struct CreatureDetail : View {
-  
-    @EnvironmentObject var client: CreatureServerClient
-    @EnvironmentObject var eventLoop: EventLoop
-    @EnvironmentObject var appState : AppState
     
-    @ObservedObject var creature: Creature
+    @EnvironmentObject var client : CreatureServerClient
+    @EnvironmentObject var eventLoop : EventLoop
+    @EnvironmentObject var appState : AppState
     
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
+    @ObservedObject var creature : Creature
+    
     let logger = Logger(label: "CreatureDetail")
-           
+    
     var body: some View {
         VStack() {
             
@@ -82,13 +82,12 @@ struct CreatureDetail : View {
                 }
             }
         }
-        
     }
-        
+    
     
     
     func toggleStreaming() {
-            
+        
         logger.info("Toggling streaming")
         
         if(appState.currentActivity == .idle) {
@@ -131,7 +130,6 @@ struct CreatureDetail : View {
             }
         }
     }
-        
 }
         
         
@@ -139,7 +137,7 @@ struct CreatureDetail : View {
 
 struct CreatureDetail_Previews: PreviewProvider {
     static var previews: some View {
-        CreatureDetail(creature: Creature.mock())
+        CreatureDetail(creature: .mock())
             .environmentObject(EventLoop.mock())
             .environmentObject(AppState.mock())
     }
