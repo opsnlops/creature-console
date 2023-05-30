@@ -8,7 +8,7 @@
 import SwiftUI
 import Logging
 
-struct CategoryTable: View {
+struct CategoryList: View {
     
     @EnvironmentObject var client: CreatureServerClient
     @ObservedObject var creature: Creature
@@ -77,9 +77,9 @@ struct CategoryTable: View {
 }
 
 
-struct CategoryTable_Previews: PreviewProvider {
+struct CategoryList_Previews: PreviewProvider {
     static var previews: some View {
-        CategoryTable(creature: .mock())
+        CategoryList(creature: .mock())
             .environmentObject(CreatureServerClient.mock())
     }
 }

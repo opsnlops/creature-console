@@ -9,7 +9,7 @@ import Foundation
 
 
 
-class AnimationIdentifier : Hashable, Equatable, ObservableObject {
+class AnimationIdentifier : Hashable, Equatable, ObservableObject, Identifiable {
         
     let id: Data
     let metadata: Animation.Metadata
@@ -36,4 +36,14 @@ class AnimationIdentifier : Hashable, Equatable, ObservableObject {
         hasher.combine(id)
     }
     
+}
+
+
+extension AnimationIdentifier {
+    static func mock() -> AnimationIdentifier {
+        let id = DataHelper.generateRandomData(byteCount: 12)
+        let metadata = Animation.Metadata.mock()
+
+        return AnimationIdentifier(id: id, metadata: metadata)
+    }
 }

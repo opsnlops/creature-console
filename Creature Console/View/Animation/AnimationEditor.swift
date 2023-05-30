@@ -17,7 +17,7 @@ struct AnimationEditor: View {
     
     @EnvironmentObject var client: CreatureServerClient
     
-    @State var creature : Creature?
+    @State var creature : Creature
     @State var animation : Animation?
     
     @State private var showErrorAlert: Bool = false
@@ -198,6 +198,8 @@ struct AnimationEditor_Previews: PreviewProvider {
 
     static var previews: some View {
         AnimationEditor(animationId: DataHelper.generateRandomData(byteCount: 12),
-                        animation: .mock())
+                        creature: .mock(),
+                        animation: .mock()
+                        )
     }
 }

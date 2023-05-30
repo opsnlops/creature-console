@@ -21,10 +21,6 @@ struct AnimationDetail: View {
                 Text("Number of Frames: \(animationMetadata.numberOfFrames)")
                 Text("Milliseconds per Frame: \(animationMetadata.millisecondsPerFrame)")
                 Text("Notes: \(animationMetadata.notes)")
-                
-                NavigationLink(destination: AnimationEditor(animationId: animationMetadata.animationId)) {
-                        Text("Edit")
-                }
             }
             .padding()
             .frame(maxWidth: .infinity)

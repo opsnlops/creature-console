@@ -9,11 +9,13 @@ import SwiftUI
 import Logging
 
 struct RecordAnimation: View {
-    @ObservedObject var joystick : SixAxisJoystick
     @EnvironmentObject var eventLoop : EventLoop
     @EnvironmentObject var client: CreatureServerClient
     @State var animation : Animation?
     @State private var serverError: ServerError?
+    
+    @ObservedObject var joystick : SixAxisJoystick
+    @State var creature : Creature
     
     let logger = Logger(label: "Record Animation")
     
@@ -64,6 +66,10 @@ struct RecordAnimation: View {
                 Text("Notes: \(animation?.metadata.notes ?? "--")")
             }
         }
+        .navigationTitle("Record Animation")
+#if os(macOS)
+        .navigationSubtitle("\(creature.name), \(creature.type.description)")
+#endif
         .onDisappear{
             self.joystick.removeVirtualJoystickIfNeeded()
         }
@@ -83,6 +89,7 @@ struct RecordAnimation: View {
 
 struct RecordAnimation_Previews: PreviewProvider {
     static var previews: some View {
-        RecordAnimation(joystick: .mock())
+        RecordAnimation(joystick: .mock(),
+                        creature: .mock())
     }
 }

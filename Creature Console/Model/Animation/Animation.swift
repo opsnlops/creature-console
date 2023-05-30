@@ -40,6 +40,10 @@ class Animation {
         var notes: String
         var animationId: Data
         var soundFile: String
+        
+        var milliseconds : Int32 {
+            return millisecondsPerFrame * numberOfFrames
+        }
 
         init(animationId: Data, title: String, millisecondsPerFrame: Int32, creatureType: Server_CreatureType, numberOfMotors: Int32, notes: String, soundFile: String) {
             self.animationId = animationId

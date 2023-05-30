@@ -21,9 +21,9 @@ struct TopContentView: View {
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
-    
+
     @State private var selectedCreature: Creature?
-    @State private var selectedCreatureType: CreatureType?
+ 
     
     let logger = Logger(label: "Top Content View")
 
@@ -64,11 +64,6 @@ struct TopContentView: View {
                         Label("Settings", systemImage: "gear")
                     }
                     NavigationLink {
-                        RecordAnimation(joystick: eventLoop.joystick0)
-                    } label: {
-                        Label("Record Animation", systemImage: "record.circle.fill")
-                    }
-                    NavigationLink {
                         AudioFilePicker()
                     } label: {
                         Label("Audio", systemImage: "music.note.list")
@@ -78,6 +73,13 @@ struct TopContentView: View {
             .navigationTitle("Creature Console")
             .navigationDestination(for: Data.self) { creature in
                 CreatureDetail(creature: creatureList.getById(id: creature))
+            }
+            .toolbar {
+                ToolbarItem(id: "editCreature", placement: .primaryAction) {
+                    NavigationLink(destination: EmptyView(), label: {
+                        Image(systemName: "pencil")
+                    })
+                }
             }
             .onAppear {
                 Task {

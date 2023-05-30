@@ -36,13 +36,10 @@ struct CreatureDetail : View {
             Text("DMX Offset: \(creature.dmxBase)")
             Text("Type: \(creature.type.description)")
             Text("Number of Motors: \(creature.motors.count)")
-            
-            NavigationLink("Edit") {
-                CreatureEdit(creature: creature)
-            }
+
             Spacer()
             
-            CategoryTable(creature: creature)
+            AnimationTable(creature: creature)
             
         }
         .toolbar(id: "\(creature.name) creatureDetail") {
@@ -54,7 +51,19 @@ struct CreatureDetail : View {
                         .foregroundColor((appState.currentActivity == .streaming) ? .green : .primary)
                 }
             }
-        }
+            ToolbarItem(id: "recordAnimation", placement: .secondaryAction) {
+                NavigationLink(destination: RecordAnimation(
+                    joystick: eventLoop.joystick0,
+                    creature: creature), label: {
+                    Image(systemName: "record.circle")
+                })
+            }
+            ToolbarItem(id: "editCreature", placement: .secondaryAction) {
+                NavigationLink(destination: CreatureEdit(creature: creature), label: {
+                    Image(systemName: "pencil")
+                })
+            }
+        }.toolbarRole(.editor)
         .onChange(of: creature){ _ in
             logger.info("creature is now \(creature.name)")
             refreshID = creature.name
