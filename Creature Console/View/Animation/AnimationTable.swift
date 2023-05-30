@@ -20,11 +20,7 @@ struct AnimationTable: View {
     
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
-    @State private var selection: AnimationIdentifier.ID? {
-        didSet {
-            logger.info("selected is now \(String(describing: selection))")
-        }
-    }
+    @State private var selection: AnimationIdentifier.ID?
     
     @State private var loadDataTask: Task<Void, Never>? = nil
     
@@ -65,18 +61,19 @@ struct AnimationTable: View {
                                 Label("Record new Animation", systemImage: "record.circle")
                             })
                     } else {
+                        
                         Button {
-                            // Add this item to a list of favorites.
+                            // k
                         } label: {
-                            Label("Play Sound File \(a.description)", systemImage: "music.quarternote.3")
+                            Label("Play Sound File", systemImage: "music.quarternote.3")
                         }
                         Button {
-                            // Add this item to a list of favorites."
+                            //
                         } label: {
                             Label("Play Locally", systemImage: "play.fill")
                         }
                         Button {
-                            // Add this item to a list of favorites.
+                            // adf
                         } label: {
                             Label("Play on Server", systemImage: "play")
                         }
@@ -146,9 +143,3 @@ struct AnimationTable_Previews: PreviewProvider {
                        animationIds: [.mock(), .mock(), .mock()])
     }
 }
-
-
-
-/*
- 
- */

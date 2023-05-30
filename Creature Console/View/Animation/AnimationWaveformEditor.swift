@@ -10,6 +10,7 @@ import SwiftUI
 struct AnimationWaveformEditor: View {
     
     @Binding var animation : Animation?
+    @Binding var creature : Creature
     
     var body: some View {
         if let a = animation {
@@ -18,7 +19,7 @@ struct AnimationWaveformEditor: View {
                 //Text(animation.metadata.title)
                 ForEach(allAxes.indices, id: \.self) { i in
                     HStack {
-                        Text("hi")
+                        Text(creature.motors[i].name)
                             .frame(width: 100)
                         ByteChartView(data: allAxes[i])
                     }
@@ -44,6 +45,7 @@ struct AnimationWaveformEditor: View {
 
 struct AnimationWaveformEditor_Previews: PreviewProvider {
     static var previews: some View {
-        AnimationWaveformEditor(animation: .constant(.mock()))
+        AnimationWaveformEditor(animation: .constant(.mock()),
+                                creature: .constant(.mock()))
     }
 }

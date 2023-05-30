@@ -44,10 +44,16 @@ class EventLoop : ObservableObject {
                               metadata: metadata,
                               frames: [])
         isRecording = true
+        DispatchQueue.main.async {
+            self.appState.currentActivity = .recording
+        }
     }
     
     func stopRecording() {
         isRecording = false
+        DispatchQueue.main.async {
+            self.appState.currentActivity = .idle
+        }
     }
     
     /**

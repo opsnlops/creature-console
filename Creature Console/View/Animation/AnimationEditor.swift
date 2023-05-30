@@ -52,7 +52,7 @@ struct AnimationEditor: View {
             .padding()
             
         
-            AnimationWaveformEditor(animation: $animation)
+            AnimationWaveformEditor(animation: $animation, creature: $creature)
                
             
             

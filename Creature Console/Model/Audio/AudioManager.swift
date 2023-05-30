@@ -41,7 +41,7 @@ class AudioManager: ObservableObject {
         
         // Begin accessing a security-scoped resource.
         let didStartAccessing = url.startAccessingSecurityScopedResource()
-
+        
         if didStartAccessing {
             defer { url.stopAccessingSecurityScopedResource() }
             
@@ -56,6 +56,20 @@ class AudioManager: ObservableObject {
         }
     }
 
+    func playBundledSound(name: String, extension: String) {
+        guard let url = Bundle.main.url(forResource: name, withExtension: `extension`) else {
+            logger.error("Couldn't find the bundled sound file.")
+            return
+        }
+        
+        do {
+            self.audioPlayer = try AVAudioPlayer(contentsOf: url)
+            self.audioPlayer?.play()
+        } catch {
+            logger.error("Failed to initialize AVAudioPlayer: \(error)")
+        }
+    }
+    
     func pause() {
         logger.info("pausing audio")
         self.audioPlayer?.pause()
