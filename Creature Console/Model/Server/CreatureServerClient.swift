@@ -14,20 +14,11 @@ import SwiftUI
 import SwiftProtobuf
 
 
-/**
- Used when there's an error on the server
- */
-struct ServerError: LocalizedError, Identifiable {
-    let id = UUID()
-    let errorDescription: String?
-
-    init(_ description: String) {
-        self.errorDescription = description
-    }
-}
 
 class CreatureServerClient : ObservableObject {
     static let shared = CreatureServerClient()
+    
+    var appState : AppState?
     
     let logger: Logger
     var serverHostname: String = "localhost"
@@ -55,6 +46,10 @@ class CreatureServerClient : ObservableObject {
         self.serverHostname = serverHostname
         self.serverPort = serverPort
    
+        DispatchQueue.main.async {
+            self.appState!.currentActivity = .connectingToServer
+        }
+        
         logger.info("GRPCClient connect() with hostname: \(self.serverHostname), port: \(self.serverPort)")
    
     
@@ -70,7 +65,11 @@ class CreatureServerClient : ObservableObject {
             logger.debug("created the client")
         }
         
-        logger.debug("done with init()")
+        logger.debug("done with connect()")
+        
+        DispatchQueue.main.async {
+            self.appState!.currentActivity = .idle
+        }
     }
     
     func close() throws {

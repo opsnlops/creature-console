@@ -36,8 +36,15 @@ class AudioManager: ObservableObject {
 #endif
     }
 
-    func play(url: URL) {
+    func play(url: URL) -> Result<String, AudioError> {
         logger.info("attempting to play \(url)")
+        
+        // Check if the file exists at the given URL
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: url.path) else {
+            logger.error("File not found at URL: \(url)")
+            return .failure(.fileNotFound("🔎 File not found at URL: \(url)"))
+        }
         
         // Begin accessing a security-scoped resource.
         let didStartAccessing = url.startAccessingSecurityScopedResource()
@@ -48,25 +55,34 @@ class AudioManager: ObservableObject {
             do {
                 self.audioPlayer = try AVAudioPlayer(contentsOf: url)
                 self.audioPlayer?.play()
+                
+                // Woohoo!
+                return .success("🔊 File queued up to play successfully!")
+                
             } catch {
                 logger.error("Failed to initialize AVAudioPlayer: \(error)")
+                return .failure(.systemError("🔇 Failed to initialize AVAudioPlayer: \(error)"))
             }
         } else {
             logger.error("Couldn't access the security scoped resource.")
+            return .failure(.fileNotFound("🚫 Couldn't access the security scoped resource."))
         }
     }
 
-    func playBundledSound(name: String, extension: String) {
+    func playBundledSound(name: String, extension: String) -> Result<String, AudioError> {
         guard let url = Bundle.main.url(forResource: name, withExtension: `extension`) else {
             logger.error("Couldn't find the bundled sound file.")
-            return
+            return .failure(.fileNotFound("Couldn't find the bundled sound file!"))
         }
         
         do {
             self.audioPlayer = try AVAudioPlayer(contentsOf: url)
             self.audioPlayer?.play()
+            
+            return .success("File queued up to play!")
         } catch {
             logger.error("Failed to initialize AVAudioPlayer: \(error)")
+            return .failure(.systemError("Failed to initialize AVAudioPlayer: \(error)"))
         }
     }
     
@@ -86,9 +102,16 @@ extension AudioManager {
     }
     
     private class Mock: AudioManager {
-        override func play(url: URL) {
+        override func play(url: URL) -> Result<String, AudioError> {
             // Do nothing in mock
             logger.info("MockAudioManager play called with \(url)")
+            return .success("MockAudioManager play called with \(url)")
+        }
+        
+        override func playBundledSound(name: String, extension: String) -> Result<String, AudioError> {
+            // Do nothing in mock
+            logger.info("MockAudioManager playBundledSound called with \(name)")
+            return .success("MockAudioManager playBundledSound called with \(name)")
         }
 
         override func pause() {

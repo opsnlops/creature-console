@@ -16,6 +16,7 @@ struct AnimationEditor: View {
     var animationId: Data?
     
     @EnvironmentObject var client: CreatureServerClient
+    @EnvironmentObject var appState : AppState
     
     @State var creature : Creature
     @State var animation : Animation?
@@ -146,21 +147,22 @@ struct AnimationEditor: View {
         }
     }
     
-    func playAnimation() {
+    func playAnimation() -> Result<String, AnimationError> {
         
         logger.info("play button pressed!")
-        
+      
         Task {
-            
             if let a = animation {
                 
                 do {
                     try await client.playAnimation(animation: a, creature: creature)
                 } catch {
-                    print(error.localizedDescription)
+                    logger.error("Unable to play animation: \(error.localizedDescription)")
                 }
             }
         }
+        
+        return .success("Queued up animation to play")
     }
     
     

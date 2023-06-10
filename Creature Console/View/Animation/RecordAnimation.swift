@@ -149,7 +149,16 @@ struct RecordAnimation: View {
     func playWarningTone() {
         
         logger.info("attempting to play the warning tone")
-        audioManager.playBundledSound(name: "recordingCountdownSound", extension: "flac" )
+        
+        let result = audioManager.playBundledSound(name: "recordingCountdownSound", extension: "flac" )
+        
+        switch (result) {
+        case .success(let data):
+            logger.info("\(data.description)")
+        case .failure(let data):
+            logger.warning("\(data.localizedDescription)")
+        }
+        
     }
     
     func startRecording() {

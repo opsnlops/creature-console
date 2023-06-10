@@ -42,7 +42,16 @@ struct AudioFilePicker: View {
                         // Store this path to where the sounds are
                         audioFilePath = fileURL.deletingLastPathComponent().absoluteString
                         
-                        audioManager.play(url: fileURL)
+                        let playResult = audioManager.play(url: fileURL)
+                        switch(playResult) {
+                        case .success(let data):
+                            logger.info("Played audio file: \(data)")
+                        case .failure(let error):
+                            logger.error("Error playing audio: \(error)")
+                            alertMessage = "Error playing audio: \(error)"
+                            showErrorAlert = true
+                        }
+                        
                         
                     } catch {
                         logger.warning("Failed to read audio file: \(error)")

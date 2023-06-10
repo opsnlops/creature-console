@@ -43,6 +43,7 @@ struct CreatureConsole: App {
         
         // Connect to the server
         do {
+            CreatureServerClient.shared.appState = appState
             try CreatureServerClient.shared.connect(serverHostname: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1",
                                                     serverPort: UserDefaults.standard.integer(forKey: "serverPort"))
             logger.info("connected to server")

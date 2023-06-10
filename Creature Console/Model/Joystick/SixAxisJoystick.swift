@@ -233,6 +233,8 @@ extension AppState.Activity {
             return GCColor(red: 1.0, green: 1.0, blue: 0.0)
         case .playingAnimation:
             return GCColor(red: 1.0, green: 0.0, blue: 1.0)
+        case .connectingToServer:
+            return GCColor(red: 1.0, green: 0.529, blue: 0.653)
         }
     }
 }

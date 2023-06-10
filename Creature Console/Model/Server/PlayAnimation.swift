@@ -17,7 +17,18 @@ extension CreatureServerClient {
     /**
      Play an animation locally
      */
-    func playAnimation(animation: Animation, creature: Creature) async throws {
+    func playAnimation(animation: Animation, creature: Creature) async throws -> Result<String, AnimationError> {
+                
+        // Make sure we're idle first
+        guard appState!.currentActivity == .idle else {
+            logger.warning("unable to play animation while not in \(AppState.Activity.idle.description) state")
+            return .failure(.invalidState("🚫 Unable to play animation while not in the \(AppState.Activity.idle.description) state"))
+        }
+        
+        // Make it clear we're now playing something
+        DispatchQueue.main.async {
+            self.appState!.currentActivity = .playingAnimation
+        }
         
         logger.info("playing animation \(animation.metadata.title) on \(creature.name) (\(creature.sacnIP))")
         
@@ -47,8 +58,6 @@ extension CreatureServerClient {
             animationPlayingFrame.frame = frameData
             
             try await streamFrames?.requestStream.send(animationPlayingFrame)
-            
-            
             counter += 1
              
              // Sleep for the exact number of nanoseconds we need
@@ -62,8 +71,14 @@ extension CreatureServerClient {
         streamFrames?.requestStream.finish()
         isPlayingAnimation = false
         
+        // Resume being idle
+        DispatchQueue.main.async {
+            self.appState!.currentActivity = .idle
+        }
+        
         let summary = try await streamFrames?.response
         
         logger.info("Server played \(summary?.framesProcessed ?? 666666666) frames")
+        return .success("Server played \(summary?.framesProcessed ?? 666666666) frames")
     }
 }
