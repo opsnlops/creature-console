@@ -21,6 +21,7 @@ class AppState : ObservableObject {
         case streaming
         case recording
         case preparingToRecord
+        case playingAnimation
         
         var description: String {
             switch self {
@@ -32,6 +33,8 @@ class AppState : ObservableObject {
                 return "Recording"
             case .preparingToRecord:
                 return "Preparing to Record"
+            case .playingAnimation:
+                return "Playing Animation"
             }
         }
     }

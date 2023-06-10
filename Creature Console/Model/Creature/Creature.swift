@@ -169,7 +169,7 @@ extension Creature {
             name: "MockCreature",
             type: .parrot,
             lastUpdated: Date(),
-            sacnIP: "1.2.3.4",
+            sacnIP: "192.168.1.1",
             universe: 666,
             dmxBase: 7,
             numberOfMotors: 12)

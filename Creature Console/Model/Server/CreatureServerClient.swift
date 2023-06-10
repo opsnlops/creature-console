@@ -40,6 +40,10 @@ class CreatureServerClient : ObservableObject {
     // Joystick streaming stuff
     var stopSignalReceived: Bool = false
     
+    // Animation playing stuff
+    var isPlayingAnimation = false
+    var emergencyStop = false
+    
     
     init() {
         self.logger = Logger(label: "GRPCClient")

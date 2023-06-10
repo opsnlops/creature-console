@@ -23,11 +23,11 @@ struct AnimationTable: View {
     @State private var selection: AnimationIdentifier.ID?
     
     @State private var loadDataTask: Task<Void, Never>? = nil
-    
+        
     
     var body: some View {
         VStack {
-            Text("Animations")
+            Text("Animations for \(creature.name)")
                 .font(.title3)
             
             if let animationIds = animationIds {
@@ -62,13 +62,14 @@ struct AnimationTable: View {
                             })
                     } else {
                         
+                        
                         Button {
-                            // k
+                            print("play sound file selected")
                         } label: {
                             Label("Play Sound File", systemImage: "music.quarternote.3")
                         }
                         Button {
-                            //
+                            //client.playAnimation(animation: a, creature: creature)
                         } label: {
                             Label("Play Locally", systemImage: "play.fill")
                         }
@@ -77,7 +78,7 @@ struct AnimationTable: View {
                         } label: {
                             Label("Play on Server", systemImage: "play")
                         }
-                        
+                         
                         NavigationLink(destination: AnimationEditor(
                             animationId: selection,
                             creature: creature), label: {
@@ -99,6 +100,9 @@ struct AnimationTable: View {
         }
         .onDisappear {
             loadDataTask?.cancel()
+        }
+        .onChange(of: selection) { _ in
+            print("selection is now \(String(describing: selection))")
         }
         .onChange(of: creature) { _ in
             logger.info("onChange() in AnimationTable")

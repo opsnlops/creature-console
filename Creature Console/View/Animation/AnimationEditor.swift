@@ -58,6 +58,9 @@ struct AnimationEditor: View {
             
         }
         .navigationTitle("Animation Editor")
+#if os(macOS)
+        .navigationSubtitle(creature.name)
+#endif
         .toolbar(id: "animationEditor") {
             ToolbarItem(id: "save", placement: .primaryAction) {
                     Button(action: {
@@ -68,7 +71,7 @@ struct AnimationEditor: View {
             }
             ToolbarItem(id:"play", placement: .primaryAction) {
                     Button(action: {
-                        print("Play button tapped!")
+                        playAnimation()
                     }) {
                         Image(systemName: "play.fill")
                     }
@@ -76,6 +79,7 @@ struct AnimationEditor: View {
             }
         }
         .onAppear {
+            print("hi I appear")
             loadData()
         }
         .onChange(of: animationId) { _ in
@@ -139,8 +143,23 @@ struct AnimationEditor: View {
                     
                 }
             }
+        }
+    }
+    
+    func playAnimation() {
+        
+        logger.info("play button pressed!")
+        
+        Task {
             
-            creature = Creature.mock()
+            if let a = animation {
+                
+                do {
+                    try await client.playAnimation(animation: a, creature: creature)
+                } catch {
+                    print(error.localizedDescription)
+                }
+            }
         }
     }
     
