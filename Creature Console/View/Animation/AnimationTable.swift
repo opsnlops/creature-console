@@ -27,7 +27,7 @@ struct AnimationTable: View {
     
     var body: some View {
         VStack {
-            Text("Animations for \(creature.name)")
+            Text("Animations for \(creature.type.description)")
                 .font(.title3)
             
             if let animationIds = animationIds {
@@ -88,6 +88,30 @@ struct AnimationTable: View {
                     
                     
                 }
+                
+                Spacer()
+                
+                HStack {
+                
+                    NavigationLink(destination: AnimationEditor(
+                        animationId: selection,
+                        creature: creature), label: {
+                            Label("Edit", systemImage: "pencil")
+                        })
+                    .disabled(selection == nil)
+                    
+                    /*
+                    NavigationLink(destination: AnimationEditor(
+                        animationId: selection,
+                        creature: creature), label: {
+                            Label("Play Locally", systemImage: "play.fill")
+                                .foregroundColor(.green)
+                        })
+                    .disabled(selection == nil)
+                     */
+                }
+                .padding()
+                
             }
             else {
                 ProgressView("Loading animations for \(creature.name)")

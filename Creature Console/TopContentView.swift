@@ -21,6 +21,7 @@ struct TopContentView: View {
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
+    @State var navigationPath = NavigationPath()
 
     @State private var selectedCreature: Creature?
  
@@ -116,8 +117,11 @@ struct TopContentView: View {
                 )
             }
         } detail: {
-           Text("Please choose a thing!")
-             .padding()
+            NavigationStack(path: $navigationPath) {
+                Text("Please choose a thing!")
+                  .padding()
+                }
+           
         }
     }
 }
