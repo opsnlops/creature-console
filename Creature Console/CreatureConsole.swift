@@ -37,6 +37,7 @@ struct CreatureConsole: App {
         UserDefaults.standard.register(defaults: defaultPreferences)
         
         self.eventLoop = EventLoop(appState: appState)
+        self.eventLoop.audioManager = audioManager
         
         // Init the joystick
         registerJoystickHandlers(eventLoop: self.eventLoop)

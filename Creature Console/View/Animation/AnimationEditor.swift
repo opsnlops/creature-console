@@ -146,7 +146,7 @@ struct AnimationEditor: View {
                 case .failure(let error):
                      
                     // If an error happens, pop up a warning
-                    errorMessage = "Error: \(String(describing: error.errorDescription))"
+                    errorMessage = "Error: \(String(describing: error.localizedDescription))"
                     showErrorAlert = true
                     logger.error(Logger.Message(stringLiteral: errorMessage))
                     
@@ -163,7 +163,7 @@ struct AnimationEditor: View {
             if let a = animation {
                 
                 do {
-                    try await client.playAnimation(animation: a, creature: creature)
+                    try await client.playAnimationLocally(animation: a, creature: creature)
                 } catch {
                     logger.error("Unable to play animation: \(error.localizedDescription)")
                 }
@@ -190,7 +190,7 @@ struct AnimationEditor: View {
                 case .failure(let error):
                     
                     // If an error happens, pop up a warning
-                errorMessage = "Error: \(String(describing: error.errorDescription))"
+                errorMessage = "Error: \(String(describing: error.localizedDescription))"
                     showErrorAlert = true
                     logger.error(Logger.Message(stringLiteral: errorMessage))
                     

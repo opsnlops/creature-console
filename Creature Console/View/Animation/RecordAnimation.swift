@@ -17,7 +17,8 @@ struct RecordAnimation: View {
     @EnvironmentObject var client: CreatureServerClient
     
     @State var animation : Animation? 
-    @State private var serverError: ServerError?
+    @State private var errorMessage = ""
+    @State private var showErrorMessage = false
     
     @ObservedObject var joystick : SixAxisJoystick
     @State var creature : Creature
@@ -85,11 +86,21 @@ struct RecordAnimation: View {
                             
                             // Allow it to be played before it's saved
                             Button( action: {
-                                playAnimation()
+                                playAnimationLocally()
                             }, label: {
                                 Label("Play Animation", systemImage: "play.fill")
                                     .foregroundColor(.green)
                             })
+                            
+                            // Discard this attempt and try again
+                            Button( action: {
+                                self.animation = nil
+                            }, label: {
+                                Label("Record Again", systemImage: "repeat.circle.fill")
+                                    .foregroundColor(.accentColor)
+                            })
+                            .disabled(self.animation == nil)
+                            
                             
                             // If there's a title, allow saving to the database
                             Button(action: {
@@ -125,7 +136,7 @@ struct RecordAnimation: View {
         .onAppear {
             self.joystick.showVirtualJoystickIfNeeded()
         }
-        .onChange(of: joystick.xButtonPressed){ _ in
+        .onChange(of: joystick.xButtonPressed) { _ in
             if joystick.xButtonPressed {
                 
                 switch(appState.currentActivity) {
@@ -139,13 +150,11 @@ struct RecordAnimation: View {
                     appState.currentActivity = .idle
                 }
             }
-            
-          
         }
-        .alert(item: $serverError) { error in
+        .alert(isPresented: $showErrorMessage) {
             Alert(
                 title: Text("Server Error"),
-                message: Text(error.localizedDescription),
+                message: Text(errorMessage),
                 dismissButton: .default(Text("OK"))
             )
         }
@@ -175,12 +184,12 @@ struct RecordAnimation: View {
         
     }
     
-    func playAnimation() {
+    func playAnimationLocally() {
         
         if let a = animation {
             Task {
                 do {
-                    try await client.playAnimation(animation: a, creature: creature)
+                    try await client.playAnimationLocally(animation: a, creature: creature)
                 } catch {
                     logger.error("error playing animation: \(error)")
                 }
@@ -209,14 +218,6 @@ struct RecordAnimation: View {
             
             appState.currentActivity = .preparingToRecord
             
-            do {
-                playWarningTone()
-                try await Task.sleep(nanoseconds: UInt64(3.6 * 1_000_000_000))
-            } catch {
-                logger.error("couldn't sleep?")
-            }
-            
-            appState.currentActivity = .recording
             
             let metadata = Animation.Metadata(
                 // The animationID will be re-written by the server. This is just a placeholder.
@@ -227,6 +228,17 @@ struct RecordAnimation: View {
                 numberOfMotors: Int32(creature.numberOfMotors),
                 notes: notes,
                 soundFile: soundFile)
+            
+            
+            do {
+                playWarningTone()
+                try await Task.sleep(nanoseconds: UInt64(3.8 * 1_000_000_000))
+            } catch {
+                logger.error("couldn't sleep?")
+            }
+            
+            appState.currentActivity = .recording
+            
             
             logger.info("asking new recording to start")
             eventLoop.recordNewAnimation(metadata: metadata)
@@ -266,7 +278,7 @@ struct RecordAnimation: View {
                     savingMessage = hooray
                     logger.info("Server said: \(hooray)")
                 case .failure(let shame):
-                    serverError = shame
+                    errorMessage = shame.localizedDescription
                 }
             }
             

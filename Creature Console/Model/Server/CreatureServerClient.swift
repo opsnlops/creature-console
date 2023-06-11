@@ -206,15 +206,15 @@ class CreatureServerClient : ObservableObject {
         }
         catch SwiftProtobuf.BinaryDecodingError.truncated {
             logger.error("Animation was unable to be decoded because it was truncated")
-            return .failure(ServerError("Unable to save animation due to the protobuf being truncated. 😅"))
+            return .failure(.communicationError("Unable to save animation due to the protobuf being truncated. 😅"))
         }
         catch SwiftProtobuf.BinaryDecodingError.malformedProtobuf {
             logger.error("Animation was unable to be decoded because the protobuf was malformed")
-            return .failure(ServerError("Unable to save animation due to the protobuf being malformed. 🤔"))
+            return .failure(.dataFormatError("Unable to save animation due to the protobuf being malformed. 🤔"))
         }
         catch {
             logger.error("Unable to save an animation to the database: \(error)")
-            return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
+            return .failure(.databaseError("Server said: \(error.localizedDescription), (\(error))"))
         }
     }
     
@@ -234,15 +234,15 @@ class CreatureServerClient : ObservableObject {
         }
         catch SwiftProtobuf.BinaryDecodingError.truncated {
             logger.error("Animation was unable to be decoded because it was truncated")
-            return .failure(ServerError("Unable to update an animation due to the protobuf being truncated. 😅"))
+            return .failure(.dataFormatError("Unable to update an animation due to the protobuf being truncated. 😅"))
         }
         catch SwiftProtobuf.BinaryDecodingError.malformedProtobuf {
             logger.error("Animation was unable to be decoded because the protobuf was malformed")
-            return .failure(ServerError("Unable to update an animation due to the protobuf being malformed. 🤔"))
+            return .failure(.dataFormatError("Unable to update an animation due to the protobuf being malformed. 🤔"))
         }
         catch {
             logger.error("Unable to update an animation in the database: \(error)")
-            return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
+            return .failure(.databaseError("Server said: \(error.localizedDescription), (\(error))"))
         }
     }
     
@@ -269,7 +269,7 @@ class CreatureServerClient : ObservableObject {
         }
         catch {
             logger.error("Unable to get animations for creature type \(creatureType)")
-            return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
+            return .failure(.otherError("Server said: \(error.localizedDescription), (\(error))"))
         }
         
     }
@@ -290,12 +290,12 @@ class CreatureServerClient : ObservableObject {
                 return .success(Animation(fromServerAnimation: serverAnimation))
             }
             
-            return .failure(ServerError("Unable to locate animation \(DataHelper.dataToHexString(data: animationId))"))
+            return .failure(.notFound("Unable to locate animation \(DataHelper.dataToHexString(data: animationId))"))
             
         }
         catch {
             logger.error("Unable to get animation \(DataHelper.dataToHexString(data: animationId))")
-            return .failure(ServerError("Server said: \(error.localizedDescription), (\(error))"))
+            return .failure(.otherError("Server said: \(error.localizedDescription), (\(error))"))
         }
         
     }

@@ -69,12 +69,12 @@ struct AnimationTable: View {
                             Label("Play Sound File", systemImage: "music.quarternote.3")
                         }
                         Button {
-                            //client.playAnimation(animation: a, creature: creature)
+                            playAnimationLocally()
                         } label: {
                             Label("Play Locally", systemImage: "play.fill")
                         }
                         Button {
-                            // adf
+                            playAnimationOnServer()
                         } label: {
                             Label("Play on Server", systemImage: "play")
                         }
@@ -93,22 +93,33 @@ struct AnimationTable: View {
                 
                 HStack {
                 
+                    Button {
+                        playAnimationLocally()
+                    } label: {
+                        Label("Play Locally", systemImage: "play.fill")
+                            .foregroundColor(.green)
+                    }
+                    .disabled(selection == nil)
+                    
+                    
+                    Button {
+                        playAnimationOnServer()
+                    } label: {
+                        Label("Play on Server", systemImage: "play")
+                            .foregroundColor(.blue)
+                    }
+                    .disabled(selection == nil)
+                    
+                    
                     NavigationLink(destination: AnimationEditor(
                         animationId: selection,
                         creature: creature), label: {
                             Label("Edit", systemImage: "pencil")
+                                .foregroundColor(.accentColor)
                         })
                     .disabled(selection == nil)
                     
-                    /*
-                    NavigationLink(destination: AnimationEditor(
-                        animationId: selection,
-                        creature: creature), label: {
-                            Label("Play Locally", systemImage: "play.fill")
-                                .foregroundColor(.green)
-                        })
-                    .disabled(selection == nil)
-                     */
+                    
                 }
                 .padding()
                 
@@ -141,6 +152,64 @@ struct AnimationTable: View {
         }
     }
     
+    func playAnimationLocally() {
+        
+        logger.info("fetching animation \(String(describing: selection)) from server...")
+        
+        // Start a background task
+        Task {
+            
+            if let animationId = selection {
+                
+                let animation = await client.getAnimation(animationId: animationId)
+                
+                switch animation {
+                case .success(let a):
+                    do {
+                        try await client.playAnimationLocally(animation: a, creature: creature)
+                    } catch {
+                        logger.error("playAnimationLocally threw: \(error)")
+                    }
+                case .failure(let error):
+                    logger.error("unable to play animation locally: \(error)")
+                }
+                
+            }
+            else {
+                logger.warning("nothing selected in playAnimationLocally()?")
+            }
+        
+        }
+        
+        logger.debug("play animation task fired off")
+        
+    }
+    
+    func playAnimationOnServer() {
+        
+        logger.info("attempting to play an animation on the server")
+        
+        if let s = selection {
+            
+            // Fire off a background task to talk to the server
+            Task {
+                let result = await client.playAnimationOnServer(animationId: s, creatureId: creature.id)
+                
+                switch result {
+                case .success(let data):
+                    logger.info("Server said: \(data)")
+                case .failure(let error):
+                    logger.warning("Unable to play animation! Server said: \(error)")
+                }
+            }
+            logger.debug("task to talk to the server fired off!")
+        }
+        else {
+            logger.warning("nothing selected in playAnimationOnServer()?")
+        }
+        
+    }
+    
     
     func loadData() {
         
@@ -157,8 +226,8 @@ struct AnimationTable: View {
                 logger.debug("success!")
                 self.animationIds = data
             case .failure(let error):
-                alertMessage = "Error: \(String(describing: error.errorDescription))"
-                logger.warning("Unable to load the animations for \(creature.name): \(String(describing: error.errorDescription))")
+                alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                logger.warning("Unable to load the animations for \(creature.name): \(String(describing: error.localizedDescription))")
                 showErrorAlert = true
             }
         }

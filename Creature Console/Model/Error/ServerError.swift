@@ -7,11 +7,10 @@
 
 import Foundation
 
-struct ServerError: LocalizedError, Identifiable {
-    let id = UUID()
-    let errorDescription: String?
-
-    init(_ description: String) {
-        self.errorDescription = description
-    }
+enum ServerError : Error {
+    case communicationError(String)
+    case dataFormatError(String)
+    case otherError(String)
+    case databaseError(String)
+    case notFound(String)
 }

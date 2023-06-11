@@ -68,8 +68,8 @@ struct CategoryList: View {
                 logger.debug("success!")
                 self.animationIds = data
             case .failure(let error):
-                alertMessage = "Error: \(String(describing: error.errorDescription))"
-                logger.warning("Unable to load the animations for \(creature.name): \(String(describing: error.errorDescription))")
+                alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                logger.warning("Unable to load the animations for \(creature.name): \(String(describing: error.localizedDescription))")
                 showErrorAlert = true
             }
         }

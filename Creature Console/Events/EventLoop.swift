@@ -7,6 +7,7 @@
 
 import Foundation
 import Logging
+import SwiftUI
 
 /**
  This EventLoop runs on a background thread!
@@ -38,15 +39,37 @@ class EventLoop : ObservableObject {
     var animation : Animation?
     var isRecording = false
     
+    var audioManager : AudioManager?
+    @AppStorage("audioFilePath") var audioFilePath: String = ""
     
     func recordNewAnimation(metadata: Animation.Metadata) {
         animation = Animation(id: DataHelper.generateRandomData(byteCount: 24),
                               metadata: metadata,
                               frames: [])
-        isRecording = true
+        
+        // Set our state to recording
         DispatchQueue.main.async {
             self.appState.currentActivity = .recording
         }
+        
+        // If it has a sound file attached, let's play it
+        if !metadata.soundFile.isEmpty {
+            
+            // See if it's a valid url
+            if let url = URL(string: audioFilePath + metadata.soundFile) {
+                
+                logger.info("audiofile URL is \(url)")
+                var audioResult = audioManager?.play(url: url)
+            }
+            else {
+                logger.warning("audioFile URL doesn't exist: \(audioFilePath + metadata.soundFile)")
+            }
+        } else {
+            logger.info("no audio file, skipping playback")
+        }
+        
+        // Tell the system to start recording
+        isRecording = true
     }
     
     func stopRecording() {

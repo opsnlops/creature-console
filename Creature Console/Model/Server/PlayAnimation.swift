@@ -17,7 +17,7 @@ extension CreatureServerClient {
     /**
      Play an animation locally
      */
-    func playAnimation(animation: Animation, creature: Creature) async throws -> Result<String, AnimationError> {
+    func playAnimationLocally(animation: Animation, creature: Creature) async throws -> Result<String, AnimationError> {
                 
         // Make sure we're idle first
         guard appState!.currentActivity == .idle else {
@@ -51,7 +51,15 @@ extension CreatureServerClient {
                 
                 logger.info("audiofile URL is \(url)")
                 
-                var audioResult = audioManager?.play(url: url)
+                let audioResult = audioManager?.play(url: url)
+                switch audioResult {
+                    case .success(let data):
+                        logger.info("\(data)")
+                    case .failure(let data):
+                        logger.error("Error playing audio: \(data)")
+                    case .none:
+                        logger.error("None error, left beef")
+                }
             }
         }
         
@@ -76,7 +84,7 @@ extension CreatureServerClient {
              // Sleep for the exact number of nanoseconds we need
              let endTime = DispatchTime.now()
              let elapsedTime = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
-             try await Task.sleep(nanoseconds: UInt64((animation.metadata.millisecondsPerFrame * 1_000_000)) - elapsedTime )
+             try await Task.sleep(nanoseconds: UInt64((animation.metadata.millisecondsPerFrame * 1_000_000)) - elapsedTime)
                 
             
         } while counter < animation.numberOfFrames && !emergencyStop
@@ -91,7 +99,43 @@ extension CreatureServerClient {
         
         let summary = try await streamFrames?.response
         
-        logger.info("Server played \(summary?.framesProcessed ?? 666666666) frames")
-        return .success("Server played \(summary?.framesProcessed ?? 666666666) frames")
+        logger.info("Server streamed \(summary?.framesProcessed ?? 666666666) frames")
+        return .success("Server streamed \(summary?.framesProcessed ?? 666666666) frames")
+    }
+    
+    
+    /**
+     Schedule playing an aimation on the server we're currently connected to
+     */
+    func playAnimationOnServer(animationId: Data, creatureId: Data) async -> Result<String, ServerError> {
+        
+        logger.info("attempting to play animation \(DataHelper.dataToHexString(data: animationId)) on \(DataHelper.dataToHexString(data: creatureId))")
+       
+        // Ensure the server is valid
+        if let s = server {
+            
+            var request = Server_PlayAnimationRequest()
+            request.animationID.id = animationId
+            request.creatureID.id = creatureId
+            
+            do {
+            
+                // This returns a Server_PlayAnimationResponse
+                let result = try await s.playAnimation(request)
+    
+                logger.info("successfully scheduled animation! Server said: \(result.status)")
+                return .success(result.status)
+    
+            } catch {
+                
+                logger.warning("unable to play animation! Server said: \(error.localizedDescription)")
+                return .failure(.otherError(error.localizedDescription))
+                
+            }
+        }
+        
+        logger.error("The server is nil while attempting to play an animation remotely?")
+        return .failure(.communicationError("Server is nil for some reason? 😱"))
+        
     }
 }
