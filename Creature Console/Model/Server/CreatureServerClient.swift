@@ -20,6 +20,10 @@ class CreatureServerClient : ObservableObject {
     
     var appState : AppState?
     
+    // Audio stuff
+    var audioManager : AudioManager?
+    @AppStorage("audioFilePath") var audioFilePath: String = ""
+    
     let logger: Logger
     var serverHostname: String = "localhost"
     var serverPort: Int = 666

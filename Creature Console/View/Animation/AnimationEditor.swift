@@ -17,6 +17,7 @@ struct AnimationEditor: View {
     
     @EnvironmentObject var client: CreatureServerClient
     @EnvironmentObject var appState : AppState
+    @EnvironmentObject var eventLoop : EventLoop
     
     @State var creature : Creature
     @State var animation : Animation?
@@ -76,7 +77,14 @@ struct AnimationEditor: View {
                     }) {
                         Image(systemName: "play.fill")
                     }
-                    
+            }
+            ToolbarItem(id: "re-record", placement: .secondaryAction) {
+                NavigationLink(destination: RecordAnimation(
+                    animation: animation,
+                    joystick: eventLoop.joystick0,
+                    creature: creature), label: {
+                        Label("Re-Record", systemImage: "repeat.circle")
+                    })
             }
         }
         .onAppear {
@@ -222,5 +230,6 @@ struct AnimationEditor_Previews: PreviewProvider {
                         creature: .mock(),
                         animation: .mock()
                         )
+        .environmentObject(EventLoop.mock())
     }
 }

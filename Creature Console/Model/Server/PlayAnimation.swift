@@ -32,7 +32,7 @@ extension CreatureServerClient {
         
         logger.info("playing animation \(animation.metadata.title) on \(creature.name) (\(creature.sacnIP))")
         
-        
+       
         let streamFrames = server?.makeStreamFramesCall()
         
         // Set up the frame data that doesn't change
@@ -42,6 +42,19 @@ extension CreatureServerClient {
         animationPlayingFrame.numberOfMotors = creature.numberOfMotors
         animationPlayingFrame.sacnIp = creature.sacnIP
         animationPlayingFrame.universe = creature.universe
+        
+        // If it has a sound file attached, let's play it
+        if !animation.metadata.soundFile.isEmpty {
+            
+            // See if it's a valid url
+            if let url = URL(string: audioFilePath + animation.metadata.soundFile) {
+                
+                logger.info("audiofile URL is \(url)")
+                
+                var audioResult = audioManager?.play(url: url)
+            }
+        }
+        
         
         var counter = 0
         isPlayingAnimation = true
@@ -66,7 +79,7 @@ extension CreatureServerClient {
              try await Task.sleep(nanoseconds: UInt64((animation.metadata.millisecondsPerFrame * 1_000_000)) - elapsedTime )
                 
             
-        } while counter < animation.metadata.numberOfFrames && !emergencyStop
+        } while counter < animation.numberOfFrames && !emergencyStop
             
         streamFrames?.requestStream.finish()
         isPlayingAnimation = false

@@ -45,7 +45,7 @@ class AudioManager: ObservableObject {
             logger.error("File not found at URL: \(url)")
             return .failure(.fileNotFound("🔎 File not found at URL: \(url)"))
         }
-        
+    
         // Begin accessing a security-scoped resource.
         let didStartAccessing = url.startAccessingSecurityScopedResource()
         
@@ -55,6 +55,7 @@ class AudioManager: ObservableObject {
             do {
                 self.audioPlayer = try AVAudioPlayer(contentsOf: url)
                 self.audioPlayer?.play()
+                var result = self.audioPlayer?.play()
                 
                 // Woohoo!
                 return .success("🔊 File queued up to play successfully!")

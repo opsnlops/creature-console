@@ -16,7 +16,7 @@ struct RecordAnimation: View {
     @EnvironmentObject var eventLoop : EventLoop
     @EnvironmentObject var client: CreatureServerClient
     
-    @State var animation : Animation?
+    @State var animation : Animation? 
     @State private var serverError: ServerError?
     
     @ObservedObject var joystick : SixAxisJoystick
@@ -24,9 +24,9 @@ struct RecordAnimation: View {
     
     let logger = Logger(label: "Record Animation")
     
-    @State private var title = ""
-    @State private var notes = ""
-    @State private var soundFile = ""
+    @State var title = ""
+    @State var notes = ""
+    @State var soundFile = ""
     
     @State private var streamingTask: Task<Void, Never>? = nil
     @State private var recordingTask: Task<Void, Never>? = nil
@@ -82,10 +82,24 @@ struct RecordAnimation: View {
                         AnimationWaveformEditor(animation: $animation, creature: $creature)
                         HStack {
                             Text("Frames: \(animation.numberOfFrames)")
-                            Button("Save to Server") {
+                            
+                            // Allow it to be played before it's saved
+                            Button( action: {
+                                playAnimation()
+                            }, label: {
+                                Label("Play Animation", systemImage: "play.fill")
+                                    .foregroundColor(.green)
+                            })
+                            
+                            // If there's a title, allow saving to the database
+                            Button(action: {
                                 saveToServer()
-                            }
+                            }, label: {
+                                Label("Save to Server", systemImage: "square.and.arrow.down.fill")
+                                    .foregroundColor(title.isEmpty ? .secondary : .red)
+                            })
                             .disabled(title.isEmpty)
+                                      
                         }
                     }
                     .padding()
@@ -161,6 +175,23 @@ struct RecordAnimation: View {
         
     }
     
+    func playAnimation() {
+        
+        if let a = animation {
+            Task {
+                do {
+                    try await client.playAnimation(animation: a, creature: creature)
+                } catch {
+                    logger.error("error playing animation: \(error)")
+                }
+            }
+        }
+        else {
+            logger.warning("attempted to play a nil animation?")
+        }
+        
+    }
+    
     func startRecording() {
        
         // Start streaming to the creature
@@ -180,7 +211,7 @@ struct RecordAnimation: View {
             
             do {
                 playWarningTone()
-                try await Task.sleep(nanoseconds: UInt64(3 * 1_000_000_000))
+                try await Task.sleep(nanoseconds: UInt64(3.6 * 1_000_000_000))
             } catch {
                 logger.error("couldn't sleep?")
             }

@@ -15,7 +15,7 @@
 		<string>iCloud.io.opsnlops.CreatureConsole</string>
 	</array>
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<false/>
 	<key>com.apple.security.assets.music.read-write</key>
 	<true/>
 	<key>com.apple.security.files.downloads.read-write</key>
