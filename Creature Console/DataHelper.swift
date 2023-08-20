@@ -22,4 +22,19 @@ struct DataHelper {
     static func dataToHexString(data: Data) -> String {
         return data.map { String(format: "%02x", $0) }.joined()
     }
+    
+    static func stringToOidData(oid: String) -> Data? {
+        var data = Data(capacity: oid.count / 2)
+        var index = oid.startIndex
+        while index < oid.endIndex {
+            let nextIndex = oid.index(index, offsetBy: 2)
+            if let b = UInt8(oid[index..<nextIndex], radix: 16) {
+                data.append(b)
+            } else {
+                return nil // Return nil if the conversion fails
+            }
+            index = nextIndex
+        }
+        return data
+    }
 }

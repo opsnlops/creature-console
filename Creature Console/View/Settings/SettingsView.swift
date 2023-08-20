@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SettingsView: View {
     private enum Tabs: Hashable {
-        case network, joystick, interface, advanced
+        case network, joystick, interface, advanced, grossHacks
     }
     var body: some View {
         TabView {
@@ -34,6 +34,11 @@ struct SettingsView: View {
                     Label("Advanced", systemImage: "wand.and.stars")
                 }
                 .tag(Tabs.advanced)
+            GrossHacksSettingsView()
+                .tabItem {
+                    Label("Gross Hacks", systemImage: "wrench.and.screwdriver.fill")
+                }
+                .tag(Tabs.grossHacks)
         }
         .padding(20)
         #if os(macOS)

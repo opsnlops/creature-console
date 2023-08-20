@@ -12,6 +12,8 @@ import Dispatch
 
 struct CreatureDetail : View {
     
+    @AppStorage("mfm2023PlaylistHack") private var mfm2023PlaylistHack: String = ""
+    
     @EnvironmentObject var client : CreatureServerClient
     @EnvironmentObject var eventLoop : EventLoop
     @EnvironmentObject var appState : AppState
@@ -26,6 +28,9 @@ struct CreatureDetail : View {
     // SwiftUI to rebuild the view
     @State private var refreshID = UUID().uuidString  // Start with a UUID since creature may not exist the first time
         
+    @State private var isDoingServerStuff : Bool = false
+    @State private var serverMessage : String = ""
+    
     let logger = Logger(label: "CreatureDetail")
     
     var body: some View {
@@ -63,12 +68,36 @@ struct CreatureDetail : View {
                     Image(systemName: "pencil")
                 })
             }
+            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
+                Button(action: {
+                    startMFM2023Playlist()
+                }) {
+                    Image(systemName: "figure.run")
+                }
+            }
+            ToolbarItem(id: "stopPlaylistPlayback", placement: .primaryAction) {
+                Button(action: {
+                    stopPlaylistPlayback()
+                }) {
+                    Image(systemName: "stop.circle.fill")
+                        .foregroundColor(.red)
+                }
+            }
         }.toolbarRole(.editor)
         .onChange(of: creature){ _ in
             logger.info("creature is now \(creature.name)")
             refreshID = creature.name
         }
         .id(refreshID)
+        .overlay {
+            if isDoingServerStuff {
+                Text(serverMessage)
+                    .font(.title)
+                    .padding()
+                    .background(Color.green.opacity(0.4))
+                    .cornerRadius(10)
+            }
+        }
         .onDisappear{
             streamingTask?.cancel()
             eventLoop.joystick0.removeVirtualJoystickIfNeeded()
@@ -79,6 +108,96 @@ struct CreatureDetail : View {
 #endif
         
     }
+    
+    
+    func stopPlaylistPlayback() {
+        
+        logger.info("stopping playlist playback on server")
+        serverMessage = "Sending stop playing signal..."
+        isDoingServerStuff = true
+        
+        Task {
+            do {
+                let result = try await client.stopPlayingPlayist(creatureId: creature.id)
+                
+                switch(result) {
+                case .failure(let value):
+                    DispatchQueue.main.async {
+                        errorMessage = "Unable to stop playlist playback: \(value)"
+                        showErrorAlert = true
+                    }
+                case .success(let value):
+                    logger.info("stopped! \(value)")
+                    serverMessage = value
+                }
+                
+            
+                
+            } catch {
+                DispatchQueue.main.async {
+                    errorMessage = "Unable to stop playlist playback: \(error.localizedDescription)"
+                    showErrorAlert = true
+                }
+            }
+         
+            do {
+                try await Task.sleep(nanoseconds: 4_000_000_000)
+            }
+            catch {}
+            isDoingServerStuff = false
+        }
+    }
+    
+    
+    func startMFM2023Playlist() {
+        
+        logger.info("Doing the gross thing")
+        serverMessage = "🤢 Doing the gross thing"
+        isDoingServerStuff = true
+        
+        if let playlistId = DataHelper.stringToOidData(oid: mfm2023PlaylistHack) {
+            
+            logger.debug("string: \(mfm2023PlaylistHack), data: \(DataHelper.dataToHexString(data: playlistId))")
+            
+            Task {
+                do {
+                    let result = try await client.startPlayingPlaylist(creatureId: creature.id, playlistId: playlistId)
+                    
+                    switch(result) {
+                    case .failure(let value):
+                        DispatchQueue.main.async {
+                            errorMessage = "Unable to start playlist playback: \(value)"
+                            showErrorAlert = true
+                        }
+                    case .success(let value):
+                        logger.info("Gross hack accomplished! 🤮! \(value)")
+                        serverMessage = value
+                    }
+                    
+                    
+                } catch {
+                    DispatchQueue.main.async {
+                        errorMessage = "Unable to start the gross hack: \(error.localizedDescription)"
+                        showErrorAlert = true
+                    }
+                }
+                
+                do {
+                    try await Task.sleep(nanoseconds: 4_000_000_000)
+                }
+                catch {}
+                isDoingServerStuff = false
+            }
+        }
+        else {
+            DispatchQueue.main.async {
+                errorMessage = "Can't convert \(mfm2023PlaylistHack) to an OID"
+                showErrorAlert = true
+            }
+            
+        }
+    }
+    
     
     
     func toggleStreaming() {
