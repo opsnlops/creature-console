@@ -22,9 +22,11 @@ struct SoundData: Decodable {
             var intValue: UInt8 {
                 switch value {
                 case "A": return 5
-                case "B": return 30
-                case "C": return 9
-                case "D": return 10
+                case "B": return 180
+                case "C": return 240
+                case "D": return 255
+                case "E": return 50
+                case "F": return 20
                 case "X": return 0
                 default: return 5 // Default value
                 }
