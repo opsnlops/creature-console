@@ -34,7 +34,6 @@ struct AnimationEditor: View {
     
     @State private var isSaving : Bool = false
     @State private var savingMessage : String = ""
-    
    
     var body: some View {
         VStack {
@@ -49,6 +48,7 @@ struct AnimationEditor: View {
                 TextField("Notes", text: $notes.onChange(updateAnimationNotes))
                     .textFieldStyle(.roundedBorder)
                 
+                SoundDataImport(animation: $animation)
                 
             }
             .padding()

@@ -30,6 +30,20 @@ class Animation {
         }
     }
     
+    func replaceTrackData(trackIndex: Int, with byteArray: [UInt8]) {
+        guard trackIndex >= 0 && trackIndex < frames.first?.motorBytes.count ?? 0 else {
+            print("Track index out of bounds!")
+            return
+        }
+
+        for (index, frame) in frames.enumerated() {
+            guard index < byteArray.count else {
+                print("No more values to replace!")
+                break
+            }
+            frame.motorBytes[trackIndex] = byteArray[index]
+        }
+    }
     
     class Metadata {
         var title: String

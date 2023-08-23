@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		110B125E2A247BE6002C5585 /* MotorTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110B125D2A247BE6002C5585 /* MotorTable.swift */; };
 		110B12612A2491C5002C5585 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
+		110CABE42A9596DD007769E4 /* SoundData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE32A9596DD007769E4 /* SoundData.swift */; };
+		110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE72A959A00007769E4 /* SoundDataImporter.swift */; };
+		110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE92A95A077007769E4 /* SoundDataProcessor.swift */; };
 		110E0C2F29FF431B00154649 /* AnimationIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */; };
 		11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */; };
 		1122A7A82A22E2D100D60464 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5A29F23BE6000EB835 /* Animation.swift */; };
@@ -113,6 +116,9 @@
 
 /* Begin PBXFileReference section */
 		110B125D2A247BE6002C5585 /* MotorTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorTable.swift; sourceTree = "<group>"; };
+		110CABE32A9596DD007769E4 /* SoundData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundData.swift; sourceTree = "<group>"; };
+		110CABE72A959A00007769E4 /* SoundDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataImporter.swift; sourceTree = "<group>"; };
+		110CABE92A95A077007769E4 /* SoundDataProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataProcessor.swift; sourceTree = "<group>"; };
 		110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationIdentifier.swift; sourceTree = "<group>"; };
 		11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationDetail.swift; sourceTree = "<group>"; };
 		1122A7B02A22E67900D60464 /* MotorType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorType.swift; sourceTree = "<group>"; };
@@ -135,6 +141,7 @@
 		115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrossHacksSettingsView.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
+		11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Creature ConsoleDebug.entitlements"; sourceTree = "<group>"; };
 		11703D8829DD197F00EF7E3D /* Creature Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11703D8B29DD197F00EF7E3D /* CreatureConsole.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureConsole.swift; sourceTree = "<group>"; };
 		11703D8D29DD197F00EF7E3D /* TopContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopContentView.swift; sourceTree = "<group>"; };
@@ -266,6 +273,39 @@
 			path = Animation;
 			sourceTree = "<group>";
 		};
+		110CABE12A95968C007769E4 /* Processing */ = {
+			isa = PBXGroup;
+			children = (
+				110CABE22A959698007769E4 /* Voice Processing */,
+			);
+			path = Processing;
+			sourceTree = "<group>";
+		};
+		110CABE22A959698007769E4 /* Voice Processing */ = {
+			isa = PBXGroup;
+			children = (
+				110CABE32A9596DD007769E4 /* SoundData.swift */,
+				110CABE92A95A077007769E4 /* SoundDataProcessor.swift */,
+			);
+			path = "Voice Processing";
+			sourceTree = "<group>";
+		};
+		110CABE52A9599DB007769E4 /* Processing */ = {
+			isa = PBXGroup;
+			children = (
+				110CABE62A9599E5007769E4 /* Voice Processing */,
+			);
+			path = Processing;
+			sourceTree = "<group>";
+		};
+		110CABE62A9599E5007769E4 /* Voice Processing */ = {
+			isa = PBXGroup;
+			children = (
+				110CABE72A959A00007769E4 /* SoundDataImporter.swift */,
+			);
+			path = "Voice Processing";
+			sourceTree = "<group>";
+		};
 		1142E65429DFB02600B795F0 /* Messaging */ = {
 			isa = PBXGroup;
 			children = (
@@ -278,6 +318,7 @@
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				110CABE12A95968C007769E4 /* Processing */,
 				115B323E2A918A4100E9D583 /* Playlist */,
 				11C699022A34595800A79985 /* Error */,
 				110B12632A249224002C5585 /* Animation */,
@@ -293,6 +334,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				110CABE52A9599DB007769E4 /* Processing */,
 				110B125C2A247BC4002C5585 /* Creatures */,
 				11A10A5C29F2429A000EB835 /* Animation */,
 				119A016429EE4B3700D3DA12 /* Settings */,
@@ -338,6 +380,7 @@
 		11703D8A29DD197F00EF7E3D /* Creature Console */ = {
 			isa = PBXGroup;
 			children = (
+				11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */,
 				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
 				1142E66029DFB21000B795F0 /* View */,
 				1142E65C29DFB19700B795F0 /* Model */,
@@ -567,7 +610,9 @@
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				11C6990A2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
+				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
+				110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */,
 				1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
@@ -580,6 +625,7 @@
 				11C699042A34596B00A79985 /* ServerError.swift in Sources */,
 				11ED919A2A917D66000756BF /* Playlists.swift in Sources */,
 				118A738029EB772900EF8CDB /* LogViewView.swift in Sources */,
+				110CABE42A9596DD007769E4 /* SoundData.swift in Sources */,
 				115B32402A918A5300E9D583 /* Playlist.swift in Sources */,
 				11DD93B329E666D200089EC6 /* StreamJoystick.swift in Sources */,
 				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
@@ -758,10 +804,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature_Console.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 43;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature Console/Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -787,7 +833,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 0.10.0;
+				MARKETING_VERSION = 0.11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -808,7 +854,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature_Console.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 43;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature Console/Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -834,7 +880,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 0.10.0;
+				MARKETING_VERSION = 0.11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
