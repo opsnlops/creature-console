@@ -34,6 +34,10 @@ class EventLoop : ObservableObject {
     var joystick0 : SixAxisJoystick
     var appState : AppState
     
+    #if os(macOS)
+    var acwJoystick : AprilsCreatureWorkshopJoystick
+    #endif
+    
     
     // If we've got an animation loaded, keep track of it
     var animation : Animation?
@@ -130,6 +134,7 @@ class EventLoop : ObservableObject {
     init(appState: AppState) {
         self.appState = appState
         self.joystick0 = SixAxisJoystick(appState: appState)
+        self.acwJoystick = AprilsCreatureWorkshopJoystick(appState: appState, vendorID: 0x0666, productID: 0x0001)
         self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
         self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
         self.frameIdleTime = 100.0

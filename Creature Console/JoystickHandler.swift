@@ -1,14 +1,11 @@
-//
-//  Joystick.swift
-//  Creature Console
-//
-//  Created by April White on 4/6/23.
-//
 
 import Foundation
 import GameController
 import OSLog
 
+#if os(macOS)
+import IOKit
+#endif
 
 func registerJoystickHandlers(eventLoop: EventLoop) {
     
@@ -36,4 +33,12 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
             logger.info("Finished wireless controller discovery")
         }
     )
+    
+    
+    #if os(macOS)
+    eventLoop.acwJoystick.setMatchingCriteria()
+    eventLoop.acwJoystick.registerCallbacks()
+    eventLoop.acwJoystick.openManager()
+    eventLoop.acwJoystick.scheduleWithRunLoop()
+    #endif
 }

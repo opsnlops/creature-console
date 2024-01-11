@@ -67,6 +67,7 @@ struct CreatureConsole: App {
         
 #if os(macOS)
         DebugJoystickScene(joystick: eventLoop.joystick0)
+        ACWDebugJoystickScene(joystick: eventLoop.acwJoystick)
         LogViewScene(server: CreatureServerClient.shared)
         Settings {
             SettingsView()
