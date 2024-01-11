@@ -199,7 +199,7 @@ class SixAxisJoystick : ObservableObject {
                 didChange = true
             }
             
-            logger.debug("joystick polling done")
+            logger.trace("joystick polling done")
        
             // If there's a change to be propogated out, let the main thread do it
             if didChange {
