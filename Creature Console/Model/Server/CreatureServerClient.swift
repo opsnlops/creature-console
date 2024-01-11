@@ -9,7 +9,7 @@ import Foundation
 import GRPC
 import NIOCore
 import NIOPosix
-import Logging
+import OSLog
 import SwiftUI
 import SwiftProtobuf
 
@@ -41,7 +41,7 @@ class CreatureServerClient : ObservableObject {
     
     
     init() {
-        self.logger = Logger(label: "GRPCClient")
+        self.logger = Logger(subsystem: "io.opsnlops.CreatureController", category: "CreatureServerClient")
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 3)
         logger.debug("created the group")
     }
@@ -248,7 +248,8 @@ class CreatureServerClient : ObservableObject {
     
     func listAnimations(creatureType: Server_CreatureType) async -> Result<[AnimationIdentifier], ServerError> {
         
-        logger.info("attempting to get all animations for creature type \(creatureType)")
+        // TODO: Is the the right way to log this? (with .rawValue)
+        logger.info("attempting to get all animations for creature type \(creatureType.rawValue)")
         
         var metadatas : [AnimationIdentifier]
         metadatas = []
@@ -263,12 +264,12 @@ class CreatureServerClient : ObservableObject {
                 metadatas.append(AnimationIdentifier(serverAnimationIdentifier: a))
             }
             
-            logger.info("got all animations for type \(creatureType)")
+            logger.info("got all animations for type \(creatureType.rawValue)")
             return .success(metadatas)
             
         }
         catch {
-            logger.error("Unable to get animations for creature type \(creatureType)")
+            logger.error("Unable to get animations for creature type \(creatureType.rawValue)")
             return .failure(.otherError("Server said: \(error.localizedDescription), (\(error))"))
         }
         

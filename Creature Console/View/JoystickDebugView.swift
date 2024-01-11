@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Logging
+import OSLog
 import GameController
 
 

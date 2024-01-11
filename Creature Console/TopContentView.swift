@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Logging
+import OSLog
 
 
 struct TopContentView: View {
@@ -26,7 +26,7 @@ struct TopContentView: View {
     @State private var selectedCreature: Creature?
  
     
-    let logger = Logger(label: "Top Content View")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "TopContentView")
 
         
     var body: some View {

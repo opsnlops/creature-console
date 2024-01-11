@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Logging
+import OSLog
 
 @main
 struct CreatureConsole: App {
@@ -16,7 +16,7 @@ struct CreatureConsole: App {
     var audioManager = AudioManager()
 
     init() {
-        let logger = Logger(label: "Creature Console")
+        let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
         
         // Set up the configuration default
         let defaultPreferences: [String: Any] = [

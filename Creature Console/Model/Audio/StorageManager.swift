@@ -7,12 +7,12 @@
 
 import AVFoundation
 import Foundation
-import Logging
+import OSLog
 
 
 class StorageManager : ObservableObject {
     
-    let logger = Logger(label: "Storage Manager")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "StorageManager")
     
     
     func getiCloudContainerURL() -> URL? {

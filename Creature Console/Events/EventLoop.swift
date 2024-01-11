@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Logging
+import OSLog
 import SwiftUI
 
 /**
@@ -28,7 +28,7 @@ class EventLoop : ObservableObject {
     
 
     
-    private let logger = Logger(label: "Event Loop")
+    private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "EventLoop")
     private let numberFormatter = NumberFormatter()
     
     var joystick0 : SixAxisJoystick
@@ -59,10 +59,10 @@ class EventLoop : ObservableObject {
             if let url = URL(string: audioFilePath + metadata.soundFile) {
                 
                 logger.info("audiofile URL is \(url)")
-                var audioResult = audioManager?.play(url: url)
+                _ = audioManager?.play(url: url)
             }
             else {
-                logger.warning("audioFile URL doesn't exist: \(audioFilePath + metadata.soundFile)")
+                logger.warning("audioFile URL doesn't exist: \(self.audioFilePath + metadata.soundFile)")
             }
         } else {
             logger.info("no audio file, skipping playback")
@@ -115,7 +115,7 @@ class EventLoop : ObservableObject {
             let elapsedTimeString = numberFormatter.string(from: NSNumber(value: elapsedTimeInMilliseconds)) ?? "0.00"
             let idleTimeString = numberFormatter.string(from: NSNumber(value: localFrameIdleTime)) ?? "0.00"
                         
-            logger.info("Frame time: \(elapsedTimeString)ms (\(idleTimeString)% Idle)")
+            logger.debug("Frame time: \(elapsedTimeString)ms (\(idleTimeString)% Idle)")
             
             // Update this metric for anyone watching
             DispatchQueue.main.async {
@@ -149,7 +149,7 @@ class EventLoop : ObservableObject {
     }
 
     private func startTimer() {
-        logger.info("Starting event loop at \(millisecondPerFrame)ms per frame")
+        logger.info("Starting event loop at \(self.millisecondPerFrame)ms per frame")
 
         timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
         timer?.setEventHandler { [weak self] in

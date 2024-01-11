@@ -7,7 +7,7 @@
 import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
-import Logging
+import OSLog
 
 
 struct AudioFilePicker: View {
@@ -22,7 +22,7 @@ struct AudioFilePicker: View {
     
     @AppStorage("audioFilePath") private var audioFilePath: String = ""
     
-    let logger = Logger(label: "Audio File Picker")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AudioFilePicker")
     
     private var audioData = Data()
     

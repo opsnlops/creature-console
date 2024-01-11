@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Logging
+import OSLog
 
 
 
@@ -25,7 +25,7 @@ struct LogViewView: View {
     private let logger : Logger
     
     init(server: CreatureServerClient) {
-        self.logger = Logger(label: "LogViewView")
+        self.logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "LogViewView")
         self.server = server
         self.logFilter = Server_LogFilter.with { $0.level = .debug }
         self.stopFlag = StopFlag()

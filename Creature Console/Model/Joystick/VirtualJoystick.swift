@@ -7,7 +7,7 @@
 
 import Foundation
 import GameController
-import Logging
+import OSLog
 
 
 #if os(iOS)
@@ -18,7 +18,7 @@ class VirtualJoystick {
     var virualConfiguration : GCVirtualController.Configuration
     var virtualController : GCVirtualController?
     
-    let logger = Logger(label: "Virtual Joystick")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "VirtualJoystick")
     
     
     init() {

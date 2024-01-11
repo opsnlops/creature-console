@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Logging
+import OSLog
 import SwiftUI
 
 
@@ -15,7 +15,7 @@ class SoundDataProcessor : ObservableObject {
     @EnvironmentObject var client: CreatureServerClient
     @EnvironmentObject var appState : AppState
     
-    let logger = Logger(label: "Sound Data Processor")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundDataProcessor")
 
     
     func replaceTrackDataWithSoundData(soundData: SoundData, track: Int, animation: Animation) {

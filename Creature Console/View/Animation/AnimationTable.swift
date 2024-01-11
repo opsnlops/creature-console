@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Logging
+import OSLog
 
 struct AnimationTable: View {
     
@@ -16,7 +16,7 @@ struct AnimationTable: View {
     
     @State var animationIds : [AnimationIdentifier]?
 
-    let logger = Logger(label: "Animation Table")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
     
     @State private var showErrorAlert = false
     @State private var alertMessage = ""

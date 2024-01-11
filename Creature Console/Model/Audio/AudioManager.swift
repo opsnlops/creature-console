@@ -7,12 +7,12 @@
 
 import AVFoundation
 import Foundation
-import Logging
+import OSLog
 
 
 class AudioManager: ObservableObject {
     private var audioPlayer: AVAudioPlayer?
-    let logger = Logger(label: "Audio Manager")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager")
     
     @Published var volume: Float {
         

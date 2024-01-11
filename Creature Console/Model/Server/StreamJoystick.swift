@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-import Logging
+import OSLog
 import GRPC
 import GameController
 

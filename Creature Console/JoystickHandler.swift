@@ -7,16 +7,18 @@
 
 import Foundation
 import GameController
-import Logging
+import OSLog
 
 
 func registerJoystickHandlers(eventLoop: EventLoop) {
     
-    let logger = Logger(label: "Joystick")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "JoystickHandler")
 
     NotificationCenter.default.addObserver(forName: .GCControllerDidConnect, object: nil, queue: .main) { notification in
         logger.info("got a .GCControllerDidConnect notification")
         if let controller = notification.object as? GCController {
+            
+            logger.info("Joystick connected: \(controller)")
             
             if ((controller.extendedGamepad) != nil) {
                 logger.debug("extended joystick connected, woot")

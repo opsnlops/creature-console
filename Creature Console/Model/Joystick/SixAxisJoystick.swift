@@ -7,7 +7,7 @@
 
 import Foundation
 import GameController
-import Logging
+import OSLog
 import Combine
 
 class Axis : ObservableObject, CustomStringConvertible {
@@ -63,7 +63,7 @@ class SixAxisJoystick : ObservableObject {
     var appState : AppState
     var controller : GCController?
     let objectWillChange = ObservableObjectPublisher()
-    let logger = Logger(label: "SixAxisJoystick")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SixAxisJoystick")
     
     private var cancellables: Set<AnyCancellable> = []
     

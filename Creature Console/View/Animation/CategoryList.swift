@@ -6,14 +6,14 @@
 //
 
 import SwiftUI
-import Logging
+import OSLog
 
 struct CategoryList: View {
     
     @EnvironmentObject var client: CreatureServerClient
     @ObservedObject var creature: Creature
     @State var animationIds : [AnimationIdentifier]?
-    let logger = Logger(label: "Animation Category")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationCategory")
     
     @State private var showErrorAlert = false
     @State private var alertMessage = ""

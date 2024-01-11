@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Logging
+import OSLog
 
 
 
@@ -16,7 +16,7 @@ import Logging
  We need this wrapper so we can make the object observable
  */
 class Creature : ObservableObject, Identifiable, Hashable, Equatable {
-    private let logger = Logger(label: "Creature")
+    private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "Creature")
     var id : Data
     @Published var name : String
     @Published var lastUpdated : Date

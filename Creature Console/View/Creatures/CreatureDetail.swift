@@ -7,7 +7,7 @@
 
 import SwiftUI
 import Foundation
-import Logging
+import OSLog
 import Dispatch
 
 struct CreatureDetail : View {
@@ -31,7 +31,7 @@ struct CreatureDetail : View {
     @State private var isDoingServerStuff : Bool = false
     @State private var serverMessage : String = ""
     
-    let logger = Logger(label: "CreatureDetail")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureDetail")
     
     var body: some View {
         VStack() {

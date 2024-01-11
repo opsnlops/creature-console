@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
-import Logging
+import OSLog
 
 struct SoundDataImport: View {
     @State private var jsonString: String = ""
@@ -21,7 +21,7 @@ struct SoundDataImport: View {
     
     var soundDataProcessor = SoundDataProcessor()
     
-    let logger = Logger(label: "Sound Data Import")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundDataImport")
     
    
     var body: some View {

@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Logging
+import OSLog
 
 
 // This is the main animation editor for all of the Animations
@@ -26,7 +26,7 @@ struct AnimationEditor: View {
     @State private var errorMessage: String = ""
     
     
-    let logger = Logger(label: "Animation Editor")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationEditor")
     
     @State private var title : String = ""
     @State private var notes : String = ""
@@ -148,7 +148,7 @@ struct AnimationEditor: View {
                     // If an error happens, pop up a warning
                     errorMessage = "Error: \(String(describing: error.localizedDescription))"
                     showErrorAlert = true
-                    logger.error(Logger.Message(stringLiteral: errorMessage))
+                    //logger.error(errorMessage)
                     
                 }
             }
@@ -192,7 +192,7 @@ struct AnimationEditor: View {
                     // If an error happens, pop up a warning
                 errorMessage = "Error: \(String(describing: error.localizedDescription))"
                     showErrorAlert = true
-                    logger.error(Logger.Message(stringLiteral: errorMessage))
+                    //logger.error(OSLogMessage(stringInterpolation: errorMessage))
                     
                 }
                 do {

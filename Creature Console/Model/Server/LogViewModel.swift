@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 import SwiftProtobuf
-import Logging
+import OSLog
 
 class StopFlag {
     var shouldStop: Bool = false
@@ -91,7 +91,7 @@ class LogViewModel: ObservableObject {
         self.maxBufferSize = maxBufferSize
         self.stopFlag = stopFlag
         self.logFilter = logFilter
-        self.logger = Logger(label: "LogViewModel")
+        self.logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "LogViewModel")
     }
     
     func addLogItem(_ serverLogItem: Server_LogItem) {

@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Logging
+import OSLog
 import AVFoundation
 
 struct RecordAnimation: View {
@@ -23,7 +23,7 @@ struct RecordAnimation: View {
     @ObservedObject var joystick : SixAxisJoystick
     @State var creature : Creature
     
-    let logger = Logger(label: "Record Animation")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category:"RecordAnimation")
     
     @State var title = ""
     @State var notes = ""

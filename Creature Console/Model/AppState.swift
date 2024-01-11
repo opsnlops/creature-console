@@ -6,12 +6,12 @@
 //
 
 import Foundation
-import Logging
+import OSLog
 
 
 class AppState : ObservableObject {
     
-    let logger = Logger(label: "AppState")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AppState")
     
     @Published var currentActivity = Activity.idle
     

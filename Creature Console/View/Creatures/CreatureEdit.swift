@@ -7,14 +7,14 @@
 
 import Foundation
 import SwiftUI
-import Logging
+import OSLog
 import Dispatch
 
 struct CreatureEdit : View {
     @EnvironmentObject var client: CreatureServerClient
     @ObservedObject var creature: Creature
     
-    let logger = Logger(label: "CreatureDetail")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureDetail")
     
     init(creature: Creature) {
         self.creature = creature

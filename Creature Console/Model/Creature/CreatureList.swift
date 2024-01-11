@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-import Logging
+import OSLog
 
 
 /**
@@ -17,7 +17,7 @@ class CreatureList : ObservableObject {
     @Published var creatures : [Creature]
     @Published var empty : Bool = true
    
-    let logger = Logger(label: "CreatureList")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureList")
     
     init() {
         creatures = []
