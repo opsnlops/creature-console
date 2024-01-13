@@ -102,25 +102,47 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
         let element = IOHIDValueGetElement(value)
         let usagePage = IOHIDElementGetUsagePage(element)
         let usage = IOHIDElementGetUsage(element)
-        let valueInt = IOHIDValueGetIntegerValue(value) + Int((UInt8.max / 2)) + 1
+        let valueInt = UInt8(clamping: IOHIDValueGetIntegerValue(value) + Int((UInt8.max / 2)) + 1)
+
+        /*
+        self.values is Observable. Any change we make is going to cascade out to any object that's
+        observing it. Don't update the array unless something actually changes, otherwise we
+        waste a lot of CPU time (and battery) for no real reason.
+         */
 
         switch (usagePage, usage) {
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_X)):
-            self.values[0] = UInt8(clamping: valueInt)
+            if self.values[0] != valueInt {
+                self.values[0] = valueInt
+            }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Y)):
-            self.values[1] = UInt8(clamping: valueInt)
+            if self.values[1] != valueInt {
+                self.values[1] = valueInt
+            }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Z)):
-            self.values[2] = UInt8(clamping: valueInt)
+            if self.values[2] != valueInt {
+                self.values[2] = valueInt
+            }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Rx)):
-            self.values[3] = UInt8(clamping: valueInt)
+            if self.values[3] != valueInt {
+                self.values[3] = valueInt
+            }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Ry)):
-            self.values[4] = UInt8(clamping: valueInt)
+            if self.values[4] != valueInt {
+                self.values[4] = valueInt
+            }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Rz)):
-            self.values[5] = UInt8(clamping: valueInt)
+            if self.values[5] != valueInt {
+                self.values[5] = valueInt
+            }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Dial)):
-            self.values[6] = UInt8(clamping: valueInt)
+            if self.values[6] != valueInt {
+                self.values[6] = valueInt
+            }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Wheel)):
-            self.values[7] = UInt8(clamping: valueInt)
+            if self.values[7] != valueInt {
+                self.values[7] = valueInt
+            }
         default:
             break
             }
