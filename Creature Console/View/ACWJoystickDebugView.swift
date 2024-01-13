@@ -14,10 +14,12 @@ struct ACWJoystickDebugView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack {
-                Text("Our Joystick (maybe serial?)")
+                Text("\(joystick.manufacturer ?? "Unknown manufacturer")")
                     .font(.headline)
                     .padding()
-
+                Text("S/N: \(joystick.serialNumber ?? "Unknown SN"), Version: \(joystick.versionNumber ?? 0)")
+                    .font(.subheadline)
+    
                 Spacer()
                 
                 HStack {

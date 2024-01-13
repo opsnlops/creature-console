@@ -39,6 +39,9 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
     var appState : AppState
     private var manager: IOHIDManager?
     
+    @Published var serialNumber: String?
+    @Published var versionNumber: Int?
+    @Published var manufacturer: String?
     @Published var values: [UInt8] = Array(repeating: 0, count: 8)
 
     init(appState: AppState, vendorID: Int, productID: Int) {
@@ -85,13 +88,70 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
 
 
     func handleDeviceConnected(_ device: IOHIDDevice?) {
-        logger.info("Device connected: \(String(describing: device)) \(device.debugDescription)")
+        
+        // Update the serial number
+        if let device = device {
+            self.serialNumber = getSerialNumber(of: device)
+        } else {
+            serialNumber = nil
+        }
+        
+        // ...and the version
+        if let device = device {
+            self.versionNumber = getVersion(of: device)
+        } else {
+            versionNumber = nil
+        }
+        
+        // ...and the manufacturer
+        if let device = device {
+            self.manufacturer = getManufacturer(of: device)
+        } else {
+            manufacturer = nil
+        }
+        
+        logger.info("Device connected: \(String(describing: device)) \(device.debugDescription), S/N: \(self.serialNumber ?? "--")")
+        
     }
 
     func handleDeviceDisconnected(_ device: IOHIDDevice?) {
         logger.info("Device disconnected: \(String(describing: device))")
     }
 
+    private func getSerialNumber(of device: IOHIDDevice) -> String? {
+        let key = kIOHIDSerialNumberKey as CFString
+        guard let serialNumber = IOHIDDeviceGetProperty(device, key) as? String else {
+            logger.error("Failed to retrieve serial number")
+            return nil
+        }
+        return serialNumber
+    }
+    
+    private func getVersion(of device: IOHIDDevice) -> Int? {
+        let key = kIOHIDVersionNumberKey as CFString
+        guard let versionNumberValue = IOHIDDeviceGetProperty(device, key) else {
+            logger.error("Failed to retrieve version number")
+            return nil
+        }
+        
+        if let versionNumber = versionNumberValue as? Int {
+            return versionNumber
+        } else {
+            logger.error("Version number is not an integer")
+            return nil
+        }
+    }
+    
+    private func getManufacturer(of device: IOHIDDevice) -> String? {
+        let key = kIOHIDManufacturerKey as CFString
+        guard let manufacturer = IOHIDDeviceGetProperty(device, key) as? String else {
+            logger.error("Failed to retrieve manufacturer")
+            return nil
+        }
+        return manufacturer
+    }
+    
+    
     func handleInputReport(_ value: IOHIDValue?) {
 
         //logger.trace("Input value received")
