@@ -134,7 +134,9 @@ class EventLoop : ObservableObject {
     init(appState: AppState) {
         self.appState = appState
         self.joystick0 = SixAxisJoystick(appState: appState)
+        #if os(macOS)
         self.acwJoystick = AprilsCreatureWorkshopJoystick(appState: appState, vendorID: 0x0666, productID: 0x0001)
+        #endif
         self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
         self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
         self.frameIdleTime = 100.0
