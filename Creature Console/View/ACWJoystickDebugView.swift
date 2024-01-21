@@ -14,11 +14,14 @@ struct ACWJoystickDebugView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack {
-                Text("\(joystick.manufacturer ?? "Unknown manufacturer")")
+                
+                Spacer()
+                
+                Text("🎮 \(joystick.manufacturer ?? "Unknown manufacturer")")
                     .font(.headline)
-                    .padding()
                 Text("S/N: \(joystick.serialNumber ?? "Unknown SN"), Version: \(joystick.versionNumber ?? 0)")
-                    .font(.subheadline)
+                    .font(.caption2)
+                    .foregroundStyle(.gray)
     
                 Spacer()
                 
@@ -28,6 +31,16 @@ struct ACWJoystickDebugView: View {
                              maxValue: 255)
                     .frame(height: geometry.size.height * 0.95)
                     .padding()
+                    
+                    VStack {
+                        ForEach(0..<joystick.values.count, id: \.self) { index in
+                            Text("\(index): \(joystick.values[index])")
+                            }
+                        
+                        }
+                    
+                    Spacer()
+                    
                     }
                 }
             }

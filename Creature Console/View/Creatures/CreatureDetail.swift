@@ -35,15 +35,7 @@ struct CreatureDetail : View {
     
     var body: some View {
         VStack() {
-            
-            Text("sACN IP: \(creature.sacnIP)")
-            Text("Universe: \(creature.universe)")
-            Text("DMX Offset: \(creature.dmxBase)")
-            Text("Type: \(creature.type.description)")
-            Text("Number of Motors: \(creature.motors.count)")
-
-            Spacer()
-            
+                        
             AnimationTable(creature: creature)
             
         }
@@ -104,11 +96,24 @@ struct CreatureDetail : View {
         }
         .navigationTitle(creature.name)
 #if os(macOS)
-        .navigationSubtitle(creature.sacnIP)
+        .navigationSubtitle(generateStatusString())
 #endif
         
     }
     
+    
+    func generateStatusString() -> String {
+        var status = ""
+        
+        if creature.useMulticast {
+            status = "Multicast Universe \(creature.universe), Offset \(creature.dmxBase)"
+        }
+        else {
+            status = creature.sacnIP
+        }
+        
+        return status
+    }
     
     func stopPlaylistPlayback() {
         
@@ -256,5 +261,6 @@ struct CreatureDetail_Previews: PreviewProvider {
         CreatureDetail(creature: .mock())
             .environmentObject(EventLoop.mock())
             .environmentObject(AppState.mock())
+            .environmentObject(CreatureServerClient.mock())
     }
 }

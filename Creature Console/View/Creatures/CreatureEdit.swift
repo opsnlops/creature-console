@@ -1,9 +1,3 @@
-//
-//  CreatureEdit.swift
-//  Creature Console
-//
-//  Created by April White on 4/9/23.
-//
 
 import Foundation
 import SwiftUI
@@ -24,6 +18,7 @@ struct CreatureEdit : View {
         Form() {
             TextField("Name", text: $creature.name)
             TextField("sCAN IP", text: $creature.sacnIP)
+            Toggle("Use Multicast", isOn: $creature.useMulticast)
             TextField("DMX Universe", value: $creature.universe, format: .number)
             TextField("DMX Offset", value: $creature.dmxBase, format: .number)
             TextField("Number of Motors", value: $creature.numberOfMotors, format: .number)

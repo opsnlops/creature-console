@@ -20,9 +20,11 @@ struct JoystickDebugView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack {
+                
+                Spacer()
+                
                 Text(joystick.vendor)
                     .font(.headline)
-                    .padding()
 
                 Spacer()
                 

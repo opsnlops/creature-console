@@ -70,7 +70,7 @@ public enum Server_LogLevel: SwiftProtobuf.Enum {
 
 extension Server_LogLevel: CaseIterable {
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  public static var allCases: [Server_LogLevel] = [
+  public static let allCases: [Server_LogLevel] = [
     .trace,
     .debug,
     .info,
@@ -116,7 +116,7 @@ public enum Server_SortBy: SwiftProtobuf.Enum {
 
 extension Server_SortBy: CaseIterable {
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  public static var allCases: [Server_SortBy] = [
+  public static let allCases: [Server_SortBy] = [
     .name,
     .number,
   ]
@@ -159,7 +159,7 @@ public enum Server_CreatureType: SwiftProtobuf.Enum {
 
 extension Server_CreatureType: CaseIterable {
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  public static var allCases: [Server_CreatureType] = [
+  public static let allCases: [Server_CreatureType] = [
     .parrot,
     .wledLight,
     .other,
@@ -300,6 +300,8 @@ public struct Server_Creature {
 
   public var type: Server_CreatureType = .parrot
 
+  public var useMulticast: Bool = false
+
   public var motors: [Server_Creature.Motor] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -365,7 +367,7 @@ public struct Server_Creature {
 
 extension Server_Creature.MotorType: CaseIterable {
   // The compiler won't synthesize support with the UNRECOGNIZED case.
-  public static var allCases: [Server_Creature.MotorType] = [
+  public static let allCases: [Server_Creature.MotorType] = [
     .servo,
     .stepper,
   ]
@@ -1195,6 +1197,7 @@ extension Server_Creature: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
     6: .standard(proto: "dmx_base"),
     7: .standard(proto: "number_of_motors"),
     8: .same(proto: "type"),
+    9: .standard(proto: "use_multicast"),
     90: .same(proto: "motors"),
   ]
 
@@ -1212,6 +1215,7 @@ extension Server_Creature: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
       case 6: try { try decoder.decodeSingularUInt32Field(value: &self.dmxBase) }()
       case 7: try { try decoder.decodeSingularUInt32Field(value: &self.numberOfMotors) }()
       case 8: try { try decoder.decodeSingularEnumField(value: &self.type) }()
+      case 9: try { try decoder.decodeSingularBoolField(value: &self.useMulticast) }()
       case 90: try { try decoder.decodeRepeatedMessageField(value: &self.motors) }()
       default: break
       }
@@ -1247,6 +1251,9 @@ extension Server_Creature: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
     if self.type != .parrot {
       try visitor.visitSingularEnumField(value: self.type, fieldNumber: 8)
     }
+    if self.useMulticast != false {
+      try visitor.visitSingularBoolField(value: self.useMulticast, fieldNumber: 9)
+    }
     if !self.motors.isEmpty {
       try visitor.visitRepeatedMessageField(value: self.motors, fieldNumber: 90)
     }
@@ -1262,6 +1269,7 @@ extension Server_Creature: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
     if lhs.dmxBase != rhs.dmxBase {return false}
     if lhs.numberOfMotors != rhs.numberOfMotors {return false}
     if lhs.type != rhs.type {return false}
+    if lhs.useMulticast != rhs.useMulticast {return false}
     if lhs.motors != rhs.motors {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true

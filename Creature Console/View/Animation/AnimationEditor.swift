@@ -231,5 +231,6 @@ struct AnimationEditor_Previews: PreviewProvider {
                         animation: .mock()
                         )
         .environmentObject(EventLoop.mock())
+        .environmentObject(CreatureServerClient.mock())
     }
 }

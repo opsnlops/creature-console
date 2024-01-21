@@ -1,9 +1,3 @@
-//
-//  Creature.swift
-//  Creature Console
-//
-//  Created by April White on 4/6/23.
-//
 
 import Foundation
 import OSLog
@@ -21,6 +15,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     @Published var name : String
     @Published var lastUpdated : Date
     @Published var sacnIP : String
+    @Published var useMulticast : Bool
     @Published var universe : UInt32
     @Published var dmxBase : UInt32
     @Published var numberOfMotors : UInt32
@@ -28,12 +23,13 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     @Published var motors : [Motor]
     @Published var realData : Bool = false      // Set to true when there's non-mock data loaded
 
-    init(id: Data, name: String, type: CreatureType, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
+    init(id: Data, name: String, type: CreatureType, lastUpdated: Date, sacnIP: String, useMulticast: Bool, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
         self.id = id
         self.name = name
         self.type = type
         self.lastUpdated = lastUpdated
         self.sacnIP = sacnIP
+        self.useMulticast = useMulticast
         self.universe = universe
         self.dmxBase = dmxBase
         self.numberOfMotors = numberOfMotors
@@ -42,9 +38,9 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     }
     
     // Helper that generates a new ID if needed
-    convenience init(name: String, type: CreatureType, lastUpdated: Date, sacnIP: String, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
+    convenience init(name: String, type: CreatureType, lastUpdated: Date, sacnIP: String, useMulticast: Bool, universe: UInt32, dmxBase: UInt32, numberOfMotors: UInt32) {
         let id = DataHelper.generateRandomData(byteCount: 12)
-        self.init(id: id, name: name, type: type, lastUpdated: lastUpdated, sacnIP: sacnIP, universe: universe, dmxBase: dmxBase, numberOfMotors: numberOfMotors)
+        self.init(id: id, name: name, type: type, lastUpdated: lastUpdated, sacnIP: sacnIP, useMulticast: useMulticast, universe: universe, dmxBase: dmxBase, numberOfMotors: numberOfMotors)
     }
     
     // Creates a new instance from a ProtoBuf object
@@ -59,6 +55,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
                       type: .wledLight,
                       lastUpdated: TimeHelper.timestampToDate(timestamp: serverCreature.lastUpdated),
                       sacnIP: serverCreature.sacnIp,
+                      useMulticast: serverCreature.useMulticast,
                       universe: serverCreature.universe,
                       dmxBase: serverCreature.dmxBase,
                       numberOfMotors: serverCreature.numberOfMotors)
@@ -71,6 +68,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
                   type: creatureType,
                   lastUpdated: TimeHelper.timestampToDate(timestamp: serverCreature.lastUpdated),
                   sacnIP: serverCreature.sacnIp,
+                  useMulticast: serverCreature.useMulticast,
                   universe: serverCreature.universe,
                   dmxBase: serverCreature.dmxBase,
                   numberOfMotors: serverCreature.numberOfMotors)
@@ -88,6 +86,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
         hasher.combine(name)
         hasher.combine(lastUpdated)
         hasher.combine(sacnIP)
+        hasher.combine(useMulticast)
         hasher.combine(universe)
         hasher.combine(dmxBase)
         hasher.combine(numberOfMotors)
@@ -101,6 +100,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
                lhs.name == rhs.name &&
                lhs.lastUpdated == rhs.lastUpdated &&
                lhs.sacnIP == rhs.sacnIP &&
+               lhs.useMulticast == rhs.useMulticast &&
                lhs.universe == rhs.universe &&
                lhs.dmxBase == rhs.dmxBase &&
                lhs.numberOfMotors == rhs.numberOfMotors &&
@@ -111,6 +111,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     func updateFromServerCreature(serverCreature: Server_Creature) {
         self.name = serverCreature.name
         self.sacnIP = serverCreature.sacnIp
+        self.useMulticast = serverCreature.useMulticast
         self.numberOfMotors = serverCreature.numberOfMotors
         self.dmxBase = serverCreature.dmxBase
         self.universe = serverCreature.universe
@@ -154,6 +155,7 @@ extension Creature {
             type: .parrot,
             lastUpdated: Date(),
             sacnIP: "192.168.1.1",
+            useMulticast: true,
             universe: 666,
             dmxBase: 7,
             numberOfMotors: 12)
