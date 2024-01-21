@@ -109,7 +109,7 @@ struct CreatureDetail : View {
             status = "Multicast Universe \(creature.universe), Offset \(creature.dmxBase)"
         }
         else {
-            status = creature.sacnIP
+            status = "Unicast IP \(creature.sacnIP)"
         }
         
         return status

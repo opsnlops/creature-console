@@ -17,7 +17,7 @@ struct CreatureEdit : View {
     var body: some View {
         Form() {
             TextField("Name", text: $creature.name)
-            TextField("sCAN IP", text: $creature.sacnIP)
+            TextField("Unicast IP", text: $creature.sacnIP).disabled(creature.useMulticast)
             Toggle("Use Multicast", isOn: $creature.useMulticast)
             TextField("DMX Universe", value: $creature.universe, format: .number)
             TextField("DMX Offset", value: $creature.dmxBase, format: .number)
