@@ -32,6 +32,7 @@ struct CreatureConsole: App {
             "eventLoopMillisecondsPerFrame": 20,
             "logSpareTimeFrameInterval": 200,
             "audioVolume": 0.8,
+            "useOurJoystick": true,
             "audioFilePath": "file:///Users/april/Library/Mobile%20Documents/com~apple~CloudDocs/creatureSounds/",
             "mfm2023PlaylistHack": "64d81c13568ab1d9860f23b8"
         ]

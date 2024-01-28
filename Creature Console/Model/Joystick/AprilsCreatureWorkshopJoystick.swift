@@ -39,6 +39,7 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
     var appState : AppState
     private var manager: IOHIDManager?
     
+    @Published var connected: Bool = false
     @Published var serialNumber: String?
     @Published var versionNumber: Int?
     @Published var manufacturer: String?
@@ -110,11 +111,13 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
             manufacturer = nil
         }
         
+        connected = true
         logger.info("Device connected: \(String(describing: device)) \(device.debugDescription), S/N: \(self.serialNumber ?? "--")")
         
     }
 
     func handleDeviceDisconnected(_ device: IOHIDDevice?) {
+        connected = false
         logger.info("Device disconnected: \(String(describing: device))")
     }
 
@@ -209,7 +212,6 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
 
         }
     
-
 
 }
 

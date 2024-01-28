@@ -8,8 +8,18 @@
 import SwiftUI
 
 struct JoystickSettingsView: View {
+    
+    @AppStorage("useOurJoystick") private var useOurJoystick: Bool = true
+    
     var body: some View {
-        Text("Pew pew!")
+        VStack {
+            Spacer()
+            Form {
+                Toggle("Use our joystick if available", isOn: $useOurJoystick)
+                }
+            Spacer()
+            }
+            
     }
 }
 

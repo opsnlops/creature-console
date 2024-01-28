@@ -25,9 +25,8 @@ class EventLoop : ObservableObject {
     @Published var logSpareTimeFrameInterval : Int
     @Published var frameIdleTime: Double
     private(set) var number_of_frames : Int64 = 0
-    
-
-    
+    @AppStorage("useOurJoystick") private var useOurJoystick: Bool = true
+        
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "EventLoop")
     private let numberFormatter = NumberFormatter()
     
@@ -102,7 +101,18 @@ class EventLoop : ObservableObject {
        
         // If we are recording, grab the data now
         if( isRecording ) {
+            
+#if os(macOS)
+            if acwJoystick.connected && useOurJoystick {
+                animation?.addFrame(frames: acwJoystick.values)
+            }
+            else {
+                animation?.addFrame(frames: joystick0.axisValues)
+            }
+#endif
+#if os(iOS)
             animation?.addFrame(frames: joystick0.axisValues)
+#endif
         }
         
         // Update metrics

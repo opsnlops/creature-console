@@ -13,15 +13,14 @@ import GameController
 
 
 extension CreatureServerClient {
-    
-    
+       
     func streamJoystick(joystick: SixAxisJoystick, creature: Creature) async throws {
         
         logger.info("request to stream to \(creature.name)")
         
         let streamFrames = server?.makeStreamFramesCall()
         
-        
+                
         var frame = Server_Frame()
         frame.creatureName = creature.name
         frame.dmxOffset = creature.dmxBase
