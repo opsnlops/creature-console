@@ -1,9 +1,3 @@
-//
-//  EventLoop.swift
-//  Creature Console
-//
-//  Created by April White on 4/16/23.
-//
 
 import Foundation
 import OSLog
@@ -30,13 +24,14 @@ class EventLoop : ObservableObject {
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "EventLoop")
     private let numberFormatter = NumberFormatter()
     
-    var joystick0 : SixAxisJoystick
+    // Behold, the two genders
+    var sixAxisJoystick: SixAxisJoystick
+#if os(macOS)
+    var acwJoystick: AprilsCreatureWorkshopJoystick
+#endif
+    
     var appState : AppState
-    
-    #if os(macOS)
-    var acwJoystick : AprilsCreatureWorkshopJoystick
-    #endif
-    
+
     
     // If we've got an animation loaded, keep track of it
     var animation : Animation?
@@ -44,6 +39,34 @@ class EventLoop : ObservableObject {
     
     var audioManager : AudioManager?
     @AppStorage("audioFilePath") var audioFilePath: String = ""
+    
+    /**
+     Start up all of the things
+     */
+    init(appState: AppState) {
+        self.appState = appState
+        self.sixAxisJoystick = SixAxisJoystick(appState: appState)
+        #if os(macOS)
+        self.acwJoystick = AprilsCreatureWorkshopJoystick(appState: appState, vendorID: 0x0666, productID: 0x0001)
+        #endif
+        self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
+        self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
+        self.frameIdleTime = 100.0
+        
+        // Configure the number formatter
+        numberFormatter.numberStyle = .decimal
+        numberFormatter.maximumFractionDigits = 2
+        numberFormatter.minimumFractionDigits = 2
+  
+        startTimer()
+        logger.info("event loop started")
+    }
+
+    deinit {
+        stopTimer()
+        logger.info("event loop stopped")
+    }
+    
     
     func recordNewAnimation(metadata: Animation.Metadata) {
         animation = Animation(id: DataHelper.generateRandomData(byteCount: 24),
@@ -94,26 +117,20 @@ class EventLoop : ObservableObject {
         // Update our metrics
         number_of_frames += 1
         
+        // Which joystick should we use for this pass?
+        var joystick = getActiveJoystick()
+        
+
         // If we have a joystick, poll it
-        if (joystick0.controller != nil) {
-            joystick0.poll()
+        if (joystick.isConnected()) {
+            joystick.poll()
         }
        
         // If we are recording, grab the data now
         if( isRecording ) {
-            
-#if os(macOS)
-            if acwJoystick.connected && useOurJoystick {
-                animation?.addFrame(frames: acwJoystick.values)
-            }
-            else {
-                animation?.addFrame(frames: joystick0.axisValues)
-            }
-#endif
-#if os(iOS)
-            animation?.addFrame(frames: joystick0.axisValues)
-#endif
+            animation?.addFrame(frames: joystick.getValues())
         }
+        
         
         // Update metrics
         let endTime = DispatchTime.now()
@@ -140,29 +157,33 @@ class EventLoop : ObservableObject {
         
     }
     
-    
-    init(appState: AppState) {
-        self.appState = appState
-        self.joystick0 = SixAxisJoystick(appState: appState)
-        #if os(macOS)
-        self.acwJoystick = AprilsCreatureWorkshopJoystick(appState: appState, vendorID: 0x0666, productID: 0x0001)
-        #endif
-        self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
-        self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
-        self.frameIdleTime = 100.0
+    /**
+     Return whatever the joystick is we should use for an operation
+     */
+    func getActiveJoystick() -> Joystick {
         
-        // Configure the number formatter
-        numberFormatter.numberStyle = .decimal
-        numberFormatter.maximumFractionDigits = 2
-        numberFormatter.minimumFractionDigits = 2
-  
-        startTimer()
-        logger.info("event loop started")
-    }
-
-    deinit {
-        stopTimer()
-        logger.info("event loop stopped")
+        var joystick: Joystick
+        
+        /**
+         On macOS we could our joystick, or the system one.
+         */
+        #if os(macOS)
+        if acwJoystick.connected && useOurJoystick {
+            joystick = acwJoystick
+        }
+        else {
+            joystick = sixAxisJoystick
+        }
+        #endif
+        
+        /**
+         On iOS we don't have a choice. IOKit does not exist there.
+         */
+        #if os(iOS)
+        joystick = sixAxisJoystick
+        #endif
+        
+        return joystick
     }
 
     private func startTimer() {
@@ -191,7 +212,8 @@ extension EventLoop {
         mockEventLoop.frameIdleTime = 100.0
 
         // Configure the mock joystick if needed
-        mockEventLoop.joystick0 = .mock()
+        mockEventLoop.sixAxisJoystick = .mock()
+        mockEventLoop.acwJoystick = .mock(appState: .mock())
 
         // Configure the mock animation if needed
         mockEventLoop.animation = .mock()

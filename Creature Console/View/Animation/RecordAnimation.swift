@@ -1,9 +1,3 @@
-//
-//  RecordAnimation.swift
-//  Creature Console
-//
-//  Created by April White on 4/20/23.
-//
 
 import SwiftUI
 import OSLog
@@ -20,10 +14,16 @@ struct RecordAnimation: View {
     @State private var errorMessage = ""
     @State private var showErrorMessage = false
     
-    @ObservedObject var joystick : SixAxisJoystick
     @State var creature : Creature
+    var joystick : Joystick
+    @State private var values: [UInt8] = []
+    @State private var xButtonPressed = false
+    @State private var yButtonPressed = false
+    @State private var aButtonPressed = false
+    @State private var bButtonPressed = false
     
-    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category:"RecordAnimation")
+    
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordAnimation")
     
     @State var title = ""
     @State var notes = ""
@@ -34,7 +34,7 @@ struct RecordAnimation: View {
 
     @State private var isSaving : Bool = false
     @State private var savingMessage : String = ""
-    
+        
     
     var body: some View {
         VStack {
@@ -62,7 +62,7 @@ struct RecordAnimation: View {
             HStack {
                 Text("Press")
                     .font(.title)
-                Image(systemName: eventLoop.joystick0.controller?.extendedGamepad?.buttonX.sfSymbolsName ?? "x.circle")
+                Image(systemName: eventLoop.sixAxisJoystick.controller?.extendedGamepad?.buttonX.sfSymbolsName ?? "x.circle")
                     .font(.title)
                 if(appState.currentActivity == .recording) {
                     Text("to stop")
@@ -126,7 +126,9 @@ struct RecordAnimation: View {
         .navigationSubtitle("Name: \(creature.name), Type: \(creature.type.description)")
 #endif
         .onDisappear{
-            self.joystick.removeVirtualJoystickIfNeeded()
+            if let j = joystick as? SixAxisJoystick {
+                j.removeVirtualJoystickIfNeeded()
+            }
             
             // Clean up our tasks if they're still running
             streamingTask?.cancel()
@@ -134,10 +136,21 @@ struct RecordAnimation: View {
             
         }
         .onAppear {
-            self.joystick.showVirtualJoystickIfNeeded()
+        
+            // Delay setting these values until after the init()'er is done
+            values = joystick.getValues()
+            xButtonPressed = joystick.xButtonPressed
+            yButtonPressed = joystick.yButtonPressed
+            aButtonPressed = joystick.aButtonPressed
+            bButtonPressed = joystick.bButtonPressed
+            
+            if let j = joystick as? SixAxisJoystick {
+                j.showVirtualJoystickIfNeeded()
+            }
+                    
         }
-        .onChange(of: joystick.xButtonPressed) { _ in
-            if joystick.xButtonPressed {
+        .onChange(of: xButtonPressed) { _ in
+            if xButtonPressed {
                 
                 switch(appState.currentActivity) {
                 case .idle:
@@ -150,6 +163,13 @@ struct RecordAnimation: View {
                     appState.currentActivity = .idle
                 }
             }
+        }
+        .onReceive(joystick.changesPublisher) {
+            self.values = joystick.getValues()
+            self.aButtonPressed = joystick.aButtonPressed
+            self.bButtonPressed = joystick.bButtonPressed
+            self.xButtonPressed = joystick.xButtonPressed
+            self.yButtonPressed = joystick.yButtonPressed
         }
         .alert(isPresented: $showErrorMessage) {
             Alert(
@@ -294,8 +314,7 @@ struct RecordAnimation: View {
 
 struct RecordAnimation_Previews: PreviewProvider {
     static var previews: some View {
-        RecordAnimation(joystick: .mock(),
-                        creature: .mock())
+        RecordAnimation(creature: .mock(), joystick: SixAxisJoystick.mock())
         .environmentObject(EventLoop.mock())
         .environmentObject(AppState.mock())
     }

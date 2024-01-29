@@ -1,20 +1,25 @@
-//
-//  JoystickDebugView.swift
-//  Creature Console
-//
-//  Created by April White on 4/9/23.
-//
 
+import Combine
 import SwiftUI
 import OSLog
 import GameController
 
 
 struct JoystickDebugView: View {
-    @ObservedObject var joystick: SixAxisJoystick
+    var joystick: Joystick
+    @State private var values: [UInt8] = []
+    @State private var xButtonPressed = false
+    @State private var yButtonPressed = false
+    @State private var aButtonPressed = false
+    @State private var bButtonPressed = false
 
-    init(joystick: SixAxisJoystick) {
+    init(joystick: Joystick) {
         self.joystick = joystick
+        self._values = State(initialValue: joystick.getValues())
+        self._aButtonPressed = State(initialValue: joystick.aButtonPressed)
+        self._bButtonPressed = State(initialValue: joystick.bButtonPressed)
+        self._xButtonPressed = State(initialValue: joystick.xButtonPressed)
+        self._yButtonPressed = State(initialValue: joystick.yButtonPressed)
     }
     
     var body: some View {
@@ -23,13 +28,13 @@ struct JoystickDebugView: View {
                 
                 Spacer()
                 
-                Text(joystick.vendor)
+                Text(joystick.manufacturer ?? "Unknown")
                     .font(.headline)
 
                 Spacer()
                 
                 HStack {
-                    BarChart(data: Binding(get: { joystick.axisValues }, set: { _ in }),
+                    BarChart(data: Binding(get: { joystick.getValues() }, set: { _ in }),
                              barSpacing: 4.0,
                              maxValue: 255)
                     .frame(height: geometry.size.height * 0.95)
@@ -38,35 +43,35 @@ struct JoystickDebugView: View {
                     VStack {
                         Spacer()
                         
-                        Image(systemName: joystick.controller?.extendedGamepad?.buttonX.sfSymbolsName ?? "x.circle")
+                        Image(systemName: joystick.getXButtonSymbol())
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(joystick.xButtonPressed ? .accentColor : .primary)
+                            .foregroundColor(xButtonPressed ? .accentColor : .primary)
                         
                         Spacer()
                         
-                        Image(systemName: joystick.controller?.extendedGamepad?.buttonA.sfSymbolsName ?? "a.circle")
+                        Image(systemName: joystick.getAButtonSymbol())
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(joystick.aButtonPressed ? .accentColor : .primary)
+                            .foregroundColor(aButtonPressed ? .accentColor : .primary)
 
                         Spacer()
 
-                        Image(systemName: joystick.controller?.extendedGamepad?.buttonB.sfSymbolsName ?? "b.circle")
+                        Image(systemName: joystick.getBButtonSymbol())
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(joystick.bButtonPressed ? .accentColor : .primary)
+                            .foregroundColor(bButtonPressed ? .accentColor : .primary)
 
                         Spacer()
                                                 
-                        Image(systemName: joystick.controller?.extendedGamepad?.buttonY.sfSymbolsName ?? "y.circle")
+                        Image(systemName: joystick.getYButtonSymbol())
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(joystick.yButtonPressed ? .accentColor : .primary)
+                            .foregroundColor(yButtonPressed ? .accentColor : .primary)
 
                         Spacer()
                     }
@@ -74,10 +79,21 @@ struct JoystickDebugView: View {
                 }
             }
             .onAppear {
-                joystick.showVirtualJoystickIfNeeded()
+                if let j = joystick as? SixAxisJoystick {
+                    j.showVirtualJoystickIfNeeded()
+                }
             }
             .onDisappear {
-                joystick.removeVirtualJoystickIfNeeded()
+                if let j = joystick as? SixAxisJoystick {
+                    j.removeVirtualJoystickIfNeeded()
+                }
+            }
+            .onReceive(joystick.changesPublisher) {
+                self.values = joystick.getValues()
+                self.aButtonPressed = joystick.aButtonPressed
+                self.bButtonPressed = joystick.bButtonPressed
+                self.xButtonPressed = joystick.xButtonPressed
+                self.yButtonPressed = joystick.yButtonPressed
             }
         }
     }

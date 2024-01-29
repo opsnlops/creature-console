@@ -1,9 +1,3 @@
-//
-//  Creature_ConsoleApp.swift
-//  Creature Console
-//
-//  Created by April White on 4/4/23.
-//
 
 import SwiftUI
 import OSLog
@@ -67,7 +61,7 @@ struct CreatureConsole: App {
         }
         
 #if os(macOS)
-        DebugJoystickScene(joystick: eventLoop.joystick0)
+        DebugJoystickScene(joystick: eventLoop.sixAxisJoystick)
         ACWDebugJoystickScene(joystick: eventLoop.acwJoystick)
         LogViewScene(server: CreatureServerClient.shared)
         Settings {

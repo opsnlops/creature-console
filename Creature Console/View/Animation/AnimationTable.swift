@@ -56,8 +56,9 @@ struct AnimationTable: View {
                 .contextMenu(forSelectionType: AnimationIdentifier.ID.self) { a in
                     if a.isEmpty {
                         NavigationLink(destination: RecordAnimation(
-                            joystick: eventLoop.joystick0,
-                            creature: creature), label: {
+                            creature: creature,
+                            joystick: eventLoop.getActiveJoystick()
+                            ), label: {
                                 Label("Record new Animation", systemImage: "record.circle")
                             })
                     } else {

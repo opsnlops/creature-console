@@ -19,14 +19,14 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
             
             if ((controller.extendedGamepad) != nil) {
                 logger.debug("extended joystick connected, woot")
-                eventLoop.joystick0.controller = controller
+                eventLoop.sixAxisJoystick.controller = controller
             }
         }
     }
     
     NotificationCenter.default.addObserver(forName: .GCControllerDidDisconnect, object: nil, queue: .main) { notification in
         logger.info("Controller disconnected")
-        eventLoop.joystick0.controller = nil
+        eventLoop.sixAxisJoystick.controller = nil
     }
     
     GCController.startWirelessControllerDiscovery(completionHandler: {

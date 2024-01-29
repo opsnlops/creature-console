@@ -1,4 +1,5 @@
 
+import Combine
 import Foundation
 import OSLog
 
@@ -29,9 +30,9 @@ func inputReportCallback(context: UnsafeMutableRawPointer?, result: IOReturn, se
 }
 
 
-class AprilsCreatureWorkshopJoystick : ObservableObject
+class AprilsCreatureWorkshopJoystick : ObservableObject, Joystick
 {
- 
+    
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AprilsCreatureWorkshopJoystick")
 
     var vendorID: Int
@@ -43,8 +44,20 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
     @Published var serialNumber: String?
     @Published var versionNumber: Int?
     @Published var manufacturer: String?
-    @Published var values: [UInt8] = Array(repeating: 0, count: 8)
+    var values: [UInt8] = Array(repeating: 0, count: 8)
+    
+    let objectWillChange = ObservableObjectPublisher()
 
+    /**
+     All of these just return false for now until I can get the new hardware made with
+     proper buttons.
+     */
+    @Published var aButtonPressed = false
+    @Published var bButtonPressed = false
+    @Published var xButtonPressed = false
+    @Published var yButtonPressed = false
+    
+    
     init(appState: AppState, vendorID: Int, productID: Int) {
         self.appState = appState
         self.vendorID = vendorID
@@ -54,6 +67,39 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
         logger.info("AprilsCreatureWorkshopJoystick created for VID \(vendorID) and PID \(productID)")
     }
 
+    /* Joystick Protocol Stuff */
+    func poll() {
+        // This is a no-op on this joystick, at least for now 😅
+    }
+    
+    func getValues() -> [UInt8] {
+        return values
+    }
+    
+    func isConnected() -> Bool {
+        return connected
+    }
+    
+    var changesPublisher: AnyPublisher<Void, Never> {
+            objectWillChange.eraseToAnyPublisher()
+    }
+    
+    func getAButtonSymbol() -> String {
+        return "a.circle"
+    }
+    
+    func getBButtonSymbol() -> String {
+        return "b.circle"
+    }
+    
+    func getXButtonSymbol() -> String {
+        return "X.circle"
+    }
+    
+    func getYButtonSymbol() -> String {
+        return "Y.circle"
+    }
+    
     func setMatchingCriteria() {
         let matchingCriteria: [String: Int] = [
             String(kIOHIDVendorIDKey): self.vendorID,
@@ -73,13 +119,13 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
     }
 
     func registerCallbacks() {
-            if let manager = self.manager {
-                let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-                IOHIDManagerRegisterDeviceMatchingCallback(manager, deviceConnectedCallback, context)
-                IOHIDManagerRegisterDeviceRemovalCallback(manager, deviceDisconnectedCallback, context)
-                IOHIDManagerRegisterInputValueCallback(manager, inputReportCallback, context)
-            }
+        if let manager = self.manager {
+            let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+            IOHIDManagerRegisterDeviceMatchingCallback(manager, deviceConnectedCallback, context)
+            IOHIDManagerRegisterDeviceRemovalCallback(manager, deviceDisconnectedCallback, context)
+            IOHIDManagerRegisterInputValueCallback(manager, inputReportCallback, context)
         }
+    }
     
     func scheduleWithRunLoop() {
         if let manager = self.manager {
@@ -167,50 +213,65 @@ class AprilsCreatureWorkshopJoystick : ObservableObject
         let usage = IOHIDElementGetUsage(element)
         let valueInt = UInt8(clamping: IOHIDValueGetIntegerValue(value) + Int((UInt8.max / 2)) + 1)
 
-        /*
-        self.values is Observable. Any change we make is going to cascade out to any object that's
-        observing it. Don't update the array unless something actually changes, otherwise we
-        waste a lot of CPU time (and battery) for no real reason.
+        /**
+         We've gotta be careful of CPU use here. Joysticks can send out a LOT of events, and we don't want the UI needlessly trying to redraw some of our elements on the screen. Instead let's use an ObservableObjectPublisher to only send up updates when we really mean it.
          */
 
+        var didChange = false
         switch (usagePage, usage) {
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_X)):
             if self.values[0] != valueInt {
                 self.values[0] = valueInt
+                didChange = true
             }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Y)):
             if self.values[1] != valueInt {
                 self.values[1] = valueInt
+                didChange = true
             }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Z)):
             if self.values[2] != valueInt {
                 self.values[2] = valueInt
+                didChange = true
             }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Rx)):
             if self.values[3] != valueInt {
                 self.values[3] = valueInt
+                didChange = true
             }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Ry)):
             if self.values[4] != valueInt {
                 self.values[4] = valueInt
+                didChange = true
             }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Rz)):
             if self.values[5] != valueInt {
                 self.values[5] = valueInt
+                didChange = true
             }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Dial)):
             if self.values[6] != valueInt {
                 self.values[6] = valueInt
+                didChange = true
             }
         case (UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Wheel)):
             if self.values[7] != valueInt {
                 self.values[7] = valueInt
+                didChange = true
             }
         default:
+            didChange = false
             break
             }
 
+        // If something changed, tell the main thread to let folks know, please
+        if didChange {
+            DispatchQueue.main.async {
+                self.objectWillChange.send()
+            }
         }
+        
+    }
     
 
 }

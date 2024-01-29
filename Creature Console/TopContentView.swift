@@ -50,7 +50,7 @@ struct TopContentView: View {
                 
                 Section("Controls") {
                     NavigationLink {
-                        JoystickDebugView(joystick: eventLoop.joystick0)
+                        JoystickDebugView(joystick: eventLoop.sixAxisJoystick)
                     } label: {
                         Label("Debug Joystick", systemImage: "gamecontroller")
                     }

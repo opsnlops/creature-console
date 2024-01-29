@@ -1,9 +1,3 @@
-//
-//  SixAxisJoystick.swift
-//  Creature Console
-//
-//  Created by April White on 4/9/23.
-//
 
 import Foundation
 import GameController
@@ -53,7 +47,7 @@ class Axis : ObservableObject, CustomStringConvertible {
 }
 
 
-class SixAxisJoystick : ObservableObject {
+class SixAxisJoystick : ObservableObject, Joystick {
     @Published var axises : [Axis]
     @Published var aButtonPressed = false
     @Published var bButtonPressed = false
@@ -68,14 +62,12 @@ class SixAxisJoystick : ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     
     
-
-    
 #if os(iOS)
     var virtualJoysick = VirtualJoystick()
     var virtualJoystickConnected = false
 #endif
     
-    var vendor : String {
+    var manufacturer: String? {
         controller?.vendorName ?? "🎮"
     }
     
@@ -109,9 +101,32 @@ class SixAxisJoystick : ObservableObject {
         }
     }
     
-    var axisValues: [UInt8] {
+    var changesPublisher: AnyPublisher<Void, Never> {
+            objectWillChange.eraseToAnyPublisher()
+    }
+    
+    func getValues() -> [UInt8] {
         return axises.map { $0.value }
     }
+    
+    func isConnected() -> Bool {
+        return controller != nil
+    }
+    
+    
+    func getAButtonSymbol() -> String {
+        return controller?.extendedGamepad?.buttonA.sfSymbolsName ?? "a.circle"
+    }
+    func getBButtonSymbol() -> String {
+        return controller?.extendedGamepad?.buttonB.sfSymbolsName ?? "b.circle"
+    }
+    func getXButtonSymbol() -> String {
+        return controller?.extendedGamepad?.buttonX.sfSymbolsName ?? "x.circle"
+    }
+    func getYButtonSymbol() -> String {
+        return controller?.extendedGamepad?.buttonY.sfSymbolsName ?? "y.circle"
+    }
+    
     
     func updateJoystickLight(activity: AppState.Activity) {
             // Update the light when this changes

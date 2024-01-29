@@ -1,9 +1,3 @@
-//
-//  CreatureDetail.swift
-//  Creature Console
-//
-//  Created by April White on 4/6/23.
-//
 
 import SwiftUI
 import Foundation
@@ -50,8 +44,9 @@ struct CreatureDetail : View {
             }
             ToolbarItem(id: "recordAnimation", placement: .secondaryAction) {
                 NavigationLink(destination: RecordAnimation(
-                    joystick: eventLoop.joystick0,
-                    creature: creature), label: {
+                    creature: creature,
+                    joystick: eventLoop.getActiveJoystick()
+                    ), label: {
                     Image(systemName: "record.circle")
                 })
             }
@@ -92,7 +87,11 @@ struct CreatureDetail : View {
         }
         .onDisappear{
             streamingTask?.cancel()
-            eventLoop.joystick0.removeVirtualJoystickIfNeeded()
+            
+            // Turn off the virtual joystick if it's visible
+            if let j = eventLoop.getActiveJoystick() as? SixAxisJoystick {
+                j.removeVirtualJoystickIfNeeded()
+            }
         }
         .navigationTitle(creature.name)
 #if os(macOS)
@@ -211,8 +210,10 @@ struct CreatureDetail : View {
                     appState.currentActivity = .streaming
                 }
                 do {
-                    eventLoop.joystick0.showVirtualJoystickIfNeeded()
-                    try await client.streamJoystick(joystick: eventLoop.joystick0, creature: creature)
+                    if let j = eventLoop.getActiveJoystick() as? SixAxisJoystick {
+                        j.showVirtualJoystickIfNeeded()
+                    }
+                    try await client.streamJoystick(joystick: eventLoop.getActiveJoystick(), creature: creature)
                 } catch {
                     DispatchQueue.main.async {
                         errorMessage = "Unable to start streaming: \(error.localizedDescription)"
@@ -227,7 +228,11 @@ struct CreatureDetail : View {
             
                 logger.debug("stopping streaming")
                 client.stopSignalReceived = true
-                eventLoop.joystick0.removeVirtualJoystickIfNeeded()
+                
+                if let j = eventLoop.getActiveJoystick() as? SixAxisJoystick {
+                    j.removeVirtualJoystickIfNeeded()
+                }
+                
                 streamingTask?.cancel()
                 DispatchQueue.main.async {
                     appState.currentActivity = .idle

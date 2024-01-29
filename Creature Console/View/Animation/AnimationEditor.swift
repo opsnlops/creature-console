@@ -1,9 +1,3 @@
-//
-//  AnimationEditor.swift
-//  Creature Console
-//
-//  Created by April White on 5/6/23.
-//
 
 import SwiftUI
 import OSLog
@@ -81,8 +75,9 @@ struct AnimationEditor: View {
             ToolbarItem(id: "re-record", placement: .secondaryAction) {
                 NavigationLink(destination: RecordAnimation(
                     animation: animation,
-                    joystick: eventLoop.joystick0,
-                    creature: creature), label: {
+                    creature: creature,
+                    joystick: eventLoop.getActiveJoystick()
+                    ), label: {
                         Label("Re-Record", systemImage: "repeat.circle")
                     })
             }

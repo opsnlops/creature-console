@@ -1,9 +1,3 @@
-//
-//  RealTimeControl.swift
-//  Creature Console
-//
-//  Created by April White on 4/11/23.
-//
 
 import Foundation
 import SwiftUI
@@ -14,7 +8,7 @@ import GameController
 
 extension CreatureServerClient {
        
-    func streamJoystick(joystick: SixAxisJoystick, creature: Creature) async throws {
+    func streamJoystick(joystick: Joystick, creature: Creature) async throws {
         
         logger.info("request to stream to \(creature.name)")
         
@@ -37,13 +31,7 @@ extension CreatureServerClient {
                 
                 logger.debug("Streaming frame \(counter)")
                 var frameData = Data()
-                frameData.append(joystick.axises[0].value)
-                frameData.append(joystick.axises[1].value)
-                frameData.append(joystick.axises[2].value)
-                frameData.append(joystick.axises[3].value)
-                frameData.append(joystick.axises[4].value)
-                frameData.append(joystick.axises[5].value)
-                
+                frameData.append(contentsOf: joystick.getValues())
                 frame.frame = frameData
                 
                 try await streamFrames?.requestStream.send(frame)
