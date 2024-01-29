@@ -103,15 +103,8 @@ struct CreatureDetail : View {
     
     
     func generateStatusString() -> String {
-        var status = ""
-        
-        if creature.useMulticast {
-            status = "Multicast Universe \(creature.universe), Offset \(creature.dmxBase)"
-        }
-        else {
-            status = "Unicast IP \(creature.sacnIP)"
-        }
-        
+        var status =  "Universe \(creature.universe), Offset \(creature.channelOffset)"
+       
         return status
     }
     

@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		110B125E2A247BE6002C5585 /* MotorTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110B125D2A247BE6002C5585 /* MotorTable.swift */; };
 		110B12612A2491C5002C5585 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
 		110CABE42A9596DD007769E4 /* SoundData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE32A9596DD007769E4 /* SoundData.swift */; };
 		110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE72A959A00007769E4 /* SoundDataImporter.swift */; };
@@ -23,8 +22,6 @@
 		1122A7AF2A22E31F00D60464 /* EventLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */; };
 		1122A7B12A22E67900D60464 /* MotorType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B02A22E67900D60464 /* MotorType.swift */; };
 		1122A7B22A22E67900D60464 /* MotorType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B02A22E67900D60464 /* MotorType.swift */; };
-		1122A7B42A22E6BD00D60464 /* Motor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B32A22E6BD00D60464 /* Motor.swift */; };
-		1122A7B52A22E6BD00D60464 /* Motor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B32A22E6BD00D60464 /* Motor.swift */; };
 		1122A7B72A24440100D60464 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B62A24440100D60464 /* AppState.swift */; };
 		1122A7B82A24440100D60464 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B62A24440100D60464 /* AppState.swift */; };
 		1131763029FF067B008B35E8 /* CreatureType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131762F29FF067B008B35E8 /* CreatureType.swift */; };
@@ -119,14 +116,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		110B125D2A247BE6002C5585 /* MotorTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorTable.swift; sourceTree = "<group>"; };
 		110CABE32A9596DD007769E4 /* SoundData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundData.swift; sourceTree = "<group>"; };
 		110CABE72A959A00007769E4 /* SoundDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataImporter.swift; sourceTree = "<group>"; };
 		110CABE92A95A077007769E4 /* SoundDataProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataProcessor.swift; sourceTree = "<group>"; };
 		110E0C2E29FF431B00154649 /* AnimationIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationIdentifier.swift; sourceTree = "<group>"; };
 		11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationDetail.swift; sourceTree = "<group>"; };
 		1122A7B02A22E67900D60464 /* MotorType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorType.swift; sourceTree = "<group>"; };
-		1122A7B32A22E6BD00D60464 /* Motor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motor.swift; sourceTree = "<group>"; };
 		1122A7B62A24440100D60464 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1131762F29FF067B008B35E8 /* CreatureType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureType.swift; sourceTree = "<group>"; };
 		1131763129FF0B66008B35E8 /* CategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryList.swift; sourceTree = "<group>"; };
@@ -237,7 +232,6 @@
 			children = (
 				1142E66129DFB22300B795F0 /* CreatureDetail.swift */,
 				11C03ACF29E3C346002E6720 /* CreatureEdit.swift */,
-				110B125D2A247BE6002C5585 /* MotorTable.swift */,
 			);
 			path = Creatures;
 			sourceTree = "<group>";
@@ -268,7 +262,6 @@
 				11B4821229E24F9000767E22 /* CreatureList.swift */,
 				1131762F29FF067B008B35E8 /* CreatureType.swift */,
 				1122A7B02A22E67900D60464 /* MotorType.swift */,
-				1122A7B32A22E6BD00D60464 /* Motor.swift */,
 				1156650E2A35826D002CD4CC /* CreatureIdentifier.swift */,
 			);
 			path = Creature;
@@ -632,7 +625,6 @@
 				1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
-				110B125E2A247BE6002C5585 /* MotorTable.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
 				118A737C29EB68EA00EF8CDB /* LogViewModel.swift in Sources */,
@@ -658,7 +650,6 @@
 				11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */,
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
 				11B4821329E24F9000767E22 /* CreatureList.swift in Sources */,
-				1122A7B42A22E6BD00D60464 /* Motor.swift in Sources */,
 				1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
 				11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */,
@@ -690,7 +681,6 @@
 				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
 				1122A7AF2A22E31F00D60464 /* EventLoop.swift in Sources */,
 				1122A7B82A24440100D60464 /* AppState.swift in Sources */,
-				1122A7B52A22E6BD00D60464 /* Motor.swift in Sources */,
 				1122A7B22A22E67900D60464 /* MotorType.swift in Sources */,
 				11FA32B729E374B8004C5181 /* SixAxisJoystick.swift in Sources */,
 				1122A7A82A22E2D100D60464 /* Animation.swift in Sources */,
@@ -825,7 +815,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 100;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature Console/Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -851,7 +841,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				MARKETING_VERSION = 0.12.1;
+				MARKETING_VERSION = 0.15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -872,7 +862,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature Console/Creature_Console.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 100;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature Console/Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -898,7 +888,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				MARKETING_VERSION = 0.12.1;
+				MARKETING_VERSION = 0.15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

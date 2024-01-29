@@ -17,10 +17,8 @@ struct CreatureEdit : View {
     var body: some View {
         Form() {
             TextField("Name", text: $creature.name)
-            TextField("Unicast IP", text: $creature.sacnIP).disabled(creature.useMulticast)
-            Toggle("Use Multicast", isOn: $creature.useMulticast)
-            TextField("DMX Universe", value: $creature.universe, format: .number)
-            TextField("DMX Offset", value: $creature.dmxBase, format: .number)
+            TextField("Universe", value: $creature.universe, format: .number)
+            TextField("Channel Offset", value: $creature.channelOffset, format: .number)
             TextField("Number of Motors", value: $creature.numberOfMotors, format: .number)
         }
         

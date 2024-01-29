@@ -23,9 +23,8 @@ extension CreatureServerClient {
                 
         var frame = Server_Frame()
         frame.creatureName = creature.name
-        frame.dmxOffset = creature.dmxBase
+        frame.channelOffset = creature.channelOffset
         frame.numberOfMotors = creature.numberOfMotors
-        frame.sacnIp = creature.sacnIP
         frame.universe = creature.universe
         
         var counter = UInt32(0)

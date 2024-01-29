@@ -30,7 +30,7 @@ extension CreatureServerClient {
             self.appState!.currentActivity = .playingAnimation
         }
         
-        logger.info("playing animation \(animation.metadata.title) on \(creature.name) (\(creature.sacnIP))")
+        logger.info("playing animation \(animation.metadata.title) on \(creature.name) (\(creature.universe) @ \(creature.channelOffset))")
         
        
         let streamFrames = server?.makeStreamFramesCall()
@@ -38,9 +38,8 @@ extension CreatureServerClient {
         // Set up the frame data that doesn't change
         var animationPlayingFrame = Server_Frame()
         animationPlayingFrame.creatureName = creature.name
-        animationPlayingFrame.dmxOffset = creature.dmxBase
+        animationPlayingFrame.channelOffset = creature.channelOffset
         animationPlayingFrame.numberOfMotors = creature.numberOfMotors
-        animationPlayingFrame.sacnIp = creature.sacnIP
         animationPlayingFrame.universe = creature.universe
         
         // If it has a sound file attached, let's play it
