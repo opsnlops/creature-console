@@ -27,6 +27,7 @@ class CreatureServerClient : ObservableObject {
     var group: MultiThreadedEventLoopGroup
     var server: Server_CreatureServerAsyncClient?
    
+    let numberOfThreads: Int = 3
     
     // Joystick streaming stuff
     var stopSignalReceived: Bool = false
@@ -38,8 +39,8 @@ class CreatureServerClient : ObservableObject {
     
     init() {
         self.logger = Logger(subsystem: "io.opsnlops.CreatureController", category: "CreatureServerClient")
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 3)
-        logger.debug("created the group")
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: numberOfThreads)
+        logger.debug("Created the EventLoopGroup with \(self.numberOfThreads) threads")
     }
     
     func connect(serverHostname: String, serverPort: Int) throws {
@@ -112,7 +113,7 @@ class CreatureServerClient : ObservableObject {
      */
     func listCreatures() async throws -> [CreatureIdentifier] {
         
-        logger.info("attempting to list all creatures from the server")
+        logger.debug("attempting to list all creatures from the server")
         
         var creatures : [CreatureIdentifier]
         creatures = []
@@ -121,9 +122,12 @@ class CreatureServerClient : ObservableObject {
         var filter : Server_CreatureFilter
         filter = Server_CreatureFilter()
         filter.sortBy = Server_SortBy.name
+        logger.trace("Server_CreatureFilter made")
         
         // Try, or return an empty response
+        logger.debug("about to await asking the server for the creatures")
         let list = try await server?.listCreatures(filter) ?? Server_ListCreaturesResponse()
+        logger.debug("...and it responded!")
         
         for id in list.creaturesIds {
             
