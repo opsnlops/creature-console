@@ -149,8 +149,7 @@ struct RecordAnimation: View {
             }
                     
         }
-        .onChange(of: xButtonPressed) { _ in
-            if xButtonPressed {
+        .onChange(of: xButtonPressed) {            if xButtonPressed {
                 
                 switch(appState.currentActivity) {
                 case .idle:

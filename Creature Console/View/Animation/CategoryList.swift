@@ -40,7 +40,7 @@ struct CategoryList: View {
         .onDisappear {
             loadDataTask?.cancel()
         }
-        .onChange(of: creature) { _ in
+        .onChange(of: creature) {
             logger.info("onChange() in AnimationCategory")
             loadData()
         }

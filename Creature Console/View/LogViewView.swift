@@ -45,7 +45,7 @@ struct LogViewView: View {
                         .onReceive(viewModel.$logs) { logs in
                             logText = logs.map { $0.description }.joined(separator: "\n")
                         }
-                        .onChange(of: logText) { _ in
+                        .onChange(of: logText) {
                             scrollProxy.scrollTo(textEditorId, anchor: .bottom)
                         }
                 }

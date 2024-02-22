@@ -1,9 +1,3 @@
-//
-//  AnimationTable.swift
-//  Creature Console
-//
-//  Created by April White on 5/29/23.
-//
 
 import SwiftUI
 import OSLog
@@ -137,10 +131,10 @@ struct AnimationTable: View {
         .onDisappear {
             loadDataTask?.cancel()
         }
-        .onChange(of: selection) { _ in
+        .onChange(of: selection) {
             print("selection is now \(String(describing: selection))")
         }
-        .onChange(of: creature) { _ in
+        .onChange(of: creature) {
             logger.info("onChange() in AnimationTable")
             loadData()
         }

@@ -86,7 +86,7 @@ struct AnimationEditor: View {
             print("hi I appear")
             loadData()
         }
-        .onChange(of: animationId) { _ in
+        .onChange(of: animationId) {
             loadData()
         }
         .alert(isPresented: $showErrorAlert) {

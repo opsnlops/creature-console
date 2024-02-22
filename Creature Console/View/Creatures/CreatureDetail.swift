@@ -71,7 +71,7 @@ struct CreatureDetail : View {
                 }
             }
         }.toolbarRole(.editor)
-        .onChange(of: creature){ _ in
+        .onChange(of: creature){
             logger.info("creature is now \(creature.name)")
             refreshID = creature.name
         }
@@ -102,7 +102,7 @@ struct CreatureDetail : View {
     
     
     func generateStatusString() -> String {
-        var status =  "Universe \(creature.universe), Offset \(creature.channelOffset)"
+        let status =  "Universe \(creature.universe), Offset \(creature.channelOffset)"
        
         return status
     }
