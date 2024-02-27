@@ -12,6 +12,7 @@ import SwiftUI
 struct AdvancedSettingsView: View {
     @AppStorage("eventLoopMillisecondsPerFrame") private var eventLoopMillisecondsPerFrame: Int = 20
     @AppStorage("logSpareTimeFrameInterval") private var logSpareTimeFrameInterval: Int = 200
+    @AppStorage("logSpareTime") private var logSpareTime: Bool = false
     @AppStorage("audioFilePath") private var audioFilePath: String = ""
     
     
@@ -22,6 +23,9 @@ struct AdvancedSettingsView: View {
             Form {
                 Section(header: Text("Milliseconds Per Frame")) {
                     TextField("", value: $eventLoopMillisecondsPerFrame, format: .number)
+                }
+                Section(header: Text("Log Spare Time?")) {
+                    Toggle("Log Spare Time", isOn: $logSpareTime)
                 }
                 Section(header: Text("Log Spare Time Frame Interval")) {
                     TextField("", value: $logSpareTimeFrameInterval, format: .number)

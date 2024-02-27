@@ -4,7 +4,6 @@ import OSLog
 
 
 // This is the main animation editor for all of the Animations
-
 struct AnimationEditor: View {
     
     var animationId: Data?
@@ -133,7 +132,7 @@ struct AnimationEditor: View {
                 
                 switch(result) {
                 case .success(let data):
-                    logger.debug("success!")
+                    logger.debug("Sucessfully loaded the data!")
                     self.animation = data
                     title = data.metadata.title
                     notes = data.metadata.notes
@@ -143,7 +142,7 @@ struct AnimationEditor: View {
                     // If an error happens, pop up a warning
                     errorMessage = "Error: \(String(describing: error.localizedDescription))"
                     showErrorAlert = true
-                    //logger.error(errorMessage)
+                    logger.error("\(errorMessage)")
                     
                 }
             }

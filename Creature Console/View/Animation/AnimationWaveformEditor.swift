@@ -1,9 +1,3 @@
-//
-//  AnimationWaveformEditor.swift
-//  Creature Console
-//
-//  Created by April White on 5/14/23.
-//
 
 import SwiftUI
 

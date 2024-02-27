@@ -15,11 +15,19 @@ import SwiftUI
  */
 class EventLoop : ObservableObject {
     private var timer: DispatchSourceTimer?
-    @Published var millisecondPerFrame : Int
-    @Published var logSpareTimeFrameInterval : Int
-    @Published var frameIdleTime: Double
     private(set) var number_of_frames : Int64 = 0
-    @AppStorage("useOurJoystick") private var useOurJoystick: Bool = true
+    
+    var appState : AppState
+    
+    @Published var frameIdleTime: Double
+    
+    /**
+     These are populated from syncSettings()
+     */
+    var millisecondPerFrame : Int
+    var logSpareTimeFrameInterval : Int
+    var useOurJoystick: Bool = false
+    var logSpareTime: Bool = false
         
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "EventLoop")
     private let numberFormatter = NumberFormatter()
@@ -30,15 +38,23 @@ class EventLoop : ObservableObject {
     var acwJoystick: AprilsCreatureWorkshopJoystick
 #endif
     
-    var appState : AppState
 
-    
     // If we've got an animation loaded, keep track of it
     var animation : Animation?
     var isRecording = false
     
     var audioManager : AudioManager?
     @AppStorage("audioFilePath") var audioFilePath: String = ""
+    
+    /**
+     Sync settings that may have changed from the user preferences
+     */
+    func syncSettings() {
+        self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
+        self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
+        self.logSpareTime = UserDefaults.standard.bool(forKey: "logSpareTime")
+        self.useOurJoystick = UserDefaults.standard.bool(forKey: "useOurJoystick")
+    }
     
     /**
      Start up all of the things
@@ -51,6 +67,8 @@ class EventLoop : ObservableObject {
         #endif
         self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
         self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
+        self.useOurJoystick = UserDefaults.standard.bool(forKey: "useOurJoystick")
+        self.logSpareTime = UserDefaults.standard.bool(forKey: "logSpareTime")
         self.frameIdleTime = 100.0
         
         // Configure the number formatter
@@ -58,7 +76,9 @@ class EventLoop : ObservableObject {
         numberFormatter.maximumFractionDigits = 2
         numberFormatter.minimumFractionDigits = 2
   
+        syncSettings()
         startTimer()
+        
         logger.info("event loop started")
     }
 
@@ -118,7 +138,7 @@ class EventLoop : ObservableObject {
         number_of_frames += 1
         
         // Which joystick should we use for this pass?
-        var joystick = getActiveJoystick()
+        let joystick = getActiveJoystick()
         
 
         // If we have a joystick, poll it
@@ -135,10 +155,11 @@ class EventLoop : ObservableObject {
         // Update metrics
         let endTime = DispatchTime.now()
         let elapsedTime = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
-        
-        
+ 
+
         // If it's time to print out a logging message with our info, do it now
-        if(number_of_frames % Int64(logSpareTimeFrameInterval) == 1) {
+        
+        if(self.logSpareTime && number_of_frames % Int64(logSpareTimeFrameInterval) == 1) {
             let elapsedTimeInMilliseconds = Double(elapsedTime) / 1_000_000.0
             let frameTimeInNanoseconds = Double(millisecondPerFrame) * 1_000_000.0
             let localFrameIdleTime = (1 - (Double(elapsedTime) / frameTimeInNanoseconds)) * 100.0
@@ -146,7 +167,7 @@ class EventLoop : ObservableObject {
             let elapsedTimeString = numberFormatter.string(from: NSNumber(value: elapsedTimeInMilliseconds)) ?? "0.00"
             let idleTimeString = numberFormatter.string(from: NSNumber(value: localFrameIdleTime)) ?? "0.00"
                         
-            logger.debug("Frame time: \(elapsedTimeString)ms (\(idleTimeString)% Idle)")
+            logger.trace("Frame time: \(elapsedTimeString)ms (\(idleTimeString)% Idle)")
             
             // Update this metric for anyone watching
             DispatchQueue.main.async {
@@ -154,6 +175,11 @@ class EventLoop : ObservableObject {
             }
             
         }
+        
+        /**
+         Re-sync our settings
+         */
+        syncSettings()
         
     }
     
@@ -213,7 +239,9 @@ extension EventLoop {
 
         // Configure the mock joystick if needed
         mockEventLoop.sixAxisJoystick = .mock()
+#if os(macOS)
         mockEventLoop.acwJoystick = .mock(appState: .mock())
+#endif
 
         // Configure the mock animation if needed
         mockEventLoop.animation = .mock()

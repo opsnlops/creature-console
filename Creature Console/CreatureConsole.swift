@@ -14,9 +14,9 @@ struct CreatureConsole: App {
         
         // Set up the configuration default
         let defaultPreferences: [String: Any] = [
-            "serverAddress": "10.3.2.11",
+            "serverAddress": "10.19.63.5",
             "serverPort": 6666,
-            "serverLogsScrollBackLines": 50,
+            "serverLogsScrollBackLines": 150,
             "joystick0.leftThumbstick.xAxis.mapping": 0,
             "joystick0.leftThumbstick.yAxis.mapping": 1,
             "joystick0.rightThumbstick.xAxis.mapping": 2,
@@ -24,10 +24,11 @@ struct CreatureConsole: App {
             "joystick0.leftTrigger.mapping": 4,
             "joystick0.rightTrigger.mapping": 5,
             "eventLoopMillisecondsPerFrame": 20,
-            "logSpareTimeFrameInterval": 200,
+            "logSpareTime": true,
+            "logSpareTimeFrameInterval": 1000,
             "audioVolume": 0.8,
             "useOurJoystick": true,
-            "audioFilePath": "file:///Users/april/Library/Mobile%20Documents/com~apple~CloudDocs/creatureSounds/",
+            "audioFilePath": "file:///Volumes/creatures/sounds",
             "mfm2023PlaylistHack": "64d81c13568ab1d9860f23b8"
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)

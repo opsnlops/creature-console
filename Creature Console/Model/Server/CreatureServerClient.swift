@@ -269,7 +269,7 @@ class CreatureServerClient : ObservableObject {
             
         }
         catch {
-            logger.error("Unable to get animations for creature type \(creatureType.rawValue)")
+            logger.error("Unable to get animations for creature type \(creatureType.rawValue): \(error)")
             return .failure(.otherError("Server said: \(error.localizedDescription), (\(error))"))
         }
         
