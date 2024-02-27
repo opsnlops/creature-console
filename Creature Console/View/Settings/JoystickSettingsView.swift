@@ -1,14 +1,7 @@
-//
-//  JoystickSettingsView.swift
-//  Creature Console
-//
-//  Created by April White on 4/14/23.
-//
-
 import SwiftUI
+import OSLog
 
 struct JoystickSettingsView: View {
-    
     @AppStorage("useOurJoystick") private var useOurJoystick: Bool = true
     
     var body: some View {
@@ -19,7 +12,6 @@ struct JoystickSettingsView: View {
                 }
             Spacer()
             }
-            
     }
 }
 
@@ -28,3 +20,4 @@ struct JoystickSettingsView_Previews: PreviewProvider {
         JoystickSettingsView()
     }
 }
+

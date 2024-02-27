@@ -12,17 +12,14 @@ struct CreatureConsole: App {
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
         
-        // Set up the configuration default
-        let defaultPreferences: [String: Any] = [
+        
+        /**
+         Set up default prefs for static things
+         */
+        var defaultPreferences: [String: Any] = [
             "serverAddress": "10.19.63.5",
             "serverPort": 6666,
             "serverLogsScrollBackLines": 150,
-            "joystick0.leftThumbstick.xAxis.mapping": 0,
-            "joystick0.leftThumbstick.yAxis.mapping": 1,
-            "joystick0.rightThumbstick.xAxis.mapping": 2,
-            "joystick0.rightThumbstick.yAxis.mapping": 3,
-            "joystick0.leftTrigger.mapping": 4,
-            "joystick0.rightTrigger.mapping": 5,
             "eventLoopMillisecondsPerFrame": 20,
             "logSpareTime": true,
             "logSpareTimeFrameInterval": 1000,
@@ -32,6 +29,12 @@ struct CreatureConsole: App {
             "mfm2023PlaylistHack": "64d81c13568ab1d9860f23b8"
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
+        
+        
+        // Create the default channel and axis mappings
+        let channelAxisMapping = ChannelAxisMapping()
+        channelAxisMapping.registerDefaultMappingsAndNames()
+        
         
         self.eventLoop = EventLoop(appState: appState)
         self.eventLoop.audioManager = audioManager
