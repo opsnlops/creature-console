@@ -1,9 +1,4 @@
-//
-//  ContentView.swift
-//  Creature Console
-//
-//  Created by April White on 4/4/23.
-//
+
 
 import SwiftUI
 import OSLog
@@ -90,22 +85,19 @@ struct TopContentView: View {
                         return
                     }
                 
-                    logger.info("Attempting to load the creatures from  \(client.getHostname())")
-                    do {
-                        let list : [Server_Creature]? = try await client.getAllCreatures()
-                    
-                        // If we got somethign back, update the view
-                        if let s = list {
-                            for c in s {
-                                creatureList.add(item: Creature(serverCreature: c))
-                            }
-                        }
-                        
-                    }
-                    catch {
-                        logger.critical("\(error.localizedDescription)")
-                        showErrorAlert = true
-                        errorMessage = error.localizedDescription
+                    logger.info("Attempting to load the creatures from \(client.getHostname())")
+                           
+                    let result = await client.getAllCreatures()
+                    switch result {
+                    case .success(let creatures):
+                       for creature in creatures {
+                           creatureList.add(item: Creature(serverCreature: creature))
+                       }
+                    case .failure(let error):
+                       let errorMessage = error.localizedDescription
+                       logger.critical("\(errorMessage)")
+                       showErrorAlert = true
+                       self.errorMessage = errorMessage
                     }
                 }
                 

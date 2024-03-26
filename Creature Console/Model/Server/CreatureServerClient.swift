@@ -122,7 +122,7 @@ class CreatureServerClient : ObservableObject {
         var filter : Server_CreatureFilter
         filter = Server_CreatureFilter()
         filter.sortBy = Server_SortBy.name
-        logger.trace("Server_CreatureFilter made")
+        logger.debug("Server_CreatureFilter made")
         
         // Try, or return an empty response
         logger.debug("about to await asking the server for the creatures")
@@ -142,7 +142,7 @@ class CreatureServerClient : ObservableObject {
         
     }
     
-    func getAllCreatures() async throws -> [Server_Creature] {
+    func getAllCreatures() async -> Result<[Server_Creature], ServerError> {
         
         logger.info("attempting to get all of the creatures from the server")
         
@@ -153,17 +153,31 @@ class CreatureServerClient : ObservableObject {
         var filter : Server_CreatureFilter
         filter = Server_CreatureFilter()
         filter.sortBy = Server_SortBy.name
+        logger.debug("Server_CreatureFilter made")
         
-        // Try, or return an empty response
-        let list = try await server?.getAllCreatures(filter) ?? Server_GetAllCreaturesResponse()
-        
-        for c in list.creatures {
-            creatures.append(c)
-            logger.debug("found creature \(c.name)")
+        do {
+    
+            // Try, or return an empty response
+            let list = try await server?.getAllCreatures(filter) ?? Server_GetAllCreaturesResponse()
+            
+            for c in list.creatures {
+                creatures.append(c)
+                logger.debug("found creature \(c.name)")
+            }
+            
+            logger.debug("total creatures found: \(creatures.count)")
+            return .success(list.creatures)
+            
+        } catch let error as GRPC.GRPCStatus {
+            
+            logger.error("gRPC Error - Code: \(String(describing: error.code)), Message: \(error.message ?? "Unknown error")")
+            return .failure(.serverError("gRPC Error - Code: \(String(describing: error.code)), Message: \(error.message ?? "Unknown error")"))
+            
+        } catch {
+            // Dunno what it is, so return an unexpected error
+            logger.error("Unknown error: \(error.localizedDescription)")
+            return .failure(.unknownError("Unknown error: \(error.localizedDescription)"))
         }
-        
-        logger.debug("total creatures found: \(creatures.count)")
-        return creatures
         
     }
     
@@ -336,8 +350,8 @@ extension CreatureServerClient {
             return [] // Return empty list
         }
         
-        override func getAllCreatures() async throws -> [Server_Creature] {
-            return [] // Return empty list
+        override func getAllCreatures() async -> Result<[Server_Creature], ServerError> {
+            return .success([]) // Return success with empty list
         }
         
         override func streamLogs(logViewModel: LogViewModel, logFilter: Server_LogFilter, stopFlag: StopFlag) async {
