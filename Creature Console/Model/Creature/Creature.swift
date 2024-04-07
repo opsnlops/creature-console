@@ -14,10 +14,10 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     var id : Data
     @Published var name : String
     @Published var lastUpdated : Date
-    @Published var channelOffset : UInt32
+    @Published var channelOffset : Int32
     @Published var realData : Bool = false      // Set to true when there's non-mock data loaded
 
-    init(id: Data, name: String, lastUpdated: Date, channelOffset: UInt32) {
+    init(id: Data, name: String, lastUpdated: Date, channelOffset: Int32) {
         self.id = id
         self.name = name
         self.lastUpdated = lastUpdated
@@ -26,7 +26,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable {
     }
     
     // Helper that generates a new ID if needed
-    convenience init(name: String, lastUpdated: Date, channelOffset: UInt32) {
+    convenience init(name: String, lastUpdated: Date, channelOffset: Int32) {
         let id = DataHelper.generateRandomData(byteCount: 12)
         self.init(id: id, name: name, lastUpdated: lastUpdated, channelOffset: channelOffset)
     }

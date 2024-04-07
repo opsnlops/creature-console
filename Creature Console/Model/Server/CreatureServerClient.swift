@@ -19,7 +19,7 @@ class CreatureServerClient : ObservableObject {
     @AppStorage("audioFilePath") var audioFilePath: String = ""
     
     @AppStorage("useOurJoystick") private var useOurJoystick: Bool = true
-    
+
     let logger: Logger
     var serverHostname: String = "localhost"
     var serverPort: Int = 666
@@ -260,7 +260,7 @@ class CreatureServerClient : ObservableObject {
         }
     }
     
-    func listAnimations(creatureType: Server_CreatureType) async -> Result<[AnimationIdentifier], ServerError> {
+    func listAnimations(creature: Creature) async -> Result<[AnimationIdentifier], ServerError> {
         
         // TODO: Is the the right way to log this? (with .rawValue)
         logger.info("attempting to get all animations for creature type \(creatureType.rawValue)")

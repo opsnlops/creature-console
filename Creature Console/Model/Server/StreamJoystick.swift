@@ -8,19 +8,14 @@ import GameController
 
 extension CreatureServerClient {
        
-    func streamJoystick(joystick: Joystick, creature: Creature) async throws {
+    func streamJoystick(joystick: Joystick, creature: Creature, universe: UInt32) async throws {
         
         logger.info("request to stream to \(creature.name)")
         
         let streamFrames = server?.makeStreamFramesCall()
-        
-                
-        var frame = Server_Frame()
-        frame.creatureName = creature.name
-        frame.channelOffset = creature.channelOffset
-        frame.numberOfMotors = creature.numberOfMotors
-        frame.universe = creature.universe
-        
+                        
+        var frame = StreamFrameData(ceatureId: creature.id, universe: universe)
+
         var counter = UInt32(0)
         stopSignalReceived = false
         
@@ -32,9 +27,9 @@ extension CreatureServerClient {
                 logger.debug("Streaming frame \(counter)")
                 var frameData = Data()
                 frameData.append(contentsOf: joystick.getValues())
-                frame.frame = frameData
+                frame.data = frameData
                 
-                try await streamFrames?.requestStream.send(frame)
+                try await streamFrames?.requestStream.send(frame.toServerStreamFrameData())
                 
                 try await Task.sleep(nanoseconds: 20000000)
                 
