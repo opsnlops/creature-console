@@ -102,7 +102,7 @@ struct CreatureDetail : View {
     
     
     func generateStatusString() -> String {
-        let status =  "Universe \(creature.universe), Offset \(creature.channelOffset)"
+        let status =  "Offset \(creature.channelOffset)"
        
         return status
     }

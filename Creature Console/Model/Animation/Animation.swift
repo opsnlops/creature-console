@@ -1,9 +1,3 @@
-//
-//  Animation.swift
-//  Creature Console
-//
-//  Created by April White on 4/20/23.
-//
 
 import Foundation
 
