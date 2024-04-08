@@ -4,7 +4,7 @@ import Foundation
 /**
  This is an implementation of the "Animation 2.0" spec in our protobufs
  */
-struct Animation: Hashable, Equatable {
+class Animation: Hashable, Equatable {
     
     var id: Data
     var metadata: AnimationMetadata
@@ -16,6 +16,14 @@ struct Animation: Hashable, Equatable {
         self.frameData = frameData
     }
     
+    convenience init(fromServerAnimation serverAnimation: Server_Animation) {
+        let incomingId = serverAnimation.id
+        let incomingMetadata = AnimationMetadata(fromServerAnimationMetadata: serverAnimation.metadata)
+        let incomingFrameData = serverAnimation.frames.map { FrameData(serverFrameData: $0) }
+
+        self.init(id: incomingId, metadata: incomingMetadata, frameData: incomingFrameData)
+    }
+
     static func ==(lhs: Animation, rhs: Animation) -> Bool {
         lhs.id == rhs.id &&
         lhs.metadata == rhs.metadata &&
@@ -26,6 +34,17 @@ struct Animation: Hashable, Equatable {
         hasher.combine(id)
         hasher.combine(metadata)
         hasher.combine(frameData)
+    }
+    
+    func toServerAnimation() -> Server_Animation {
+        var s = Server_Animation()
+        s.metadata = self.metadata.toServerAnimationMetadata()
+        
+        if let frameData = self.frameData {
+            s.frames = frameData.map { $0.toServerFrameData() }
+        }
+    
+        return s
     }
 }
 

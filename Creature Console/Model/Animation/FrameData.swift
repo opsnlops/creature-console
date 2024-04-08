@@ -51,6 +51,7 @@ struct FrameData: Hashable, Equatable {
         hasher.combine(animationId)
         frames.forEach { hasher.combine($0) } // Hash each frame's data
     }
+    
 }
 
 

@@ -88,7 +88,7 @@ class EventLoop : ObservableObject {
     }
     
     
-    func recordNewAnimation(metadata: Animation.Metadata) {
+    func recordNewAnimation(metadata: AnimationMetadata) {
         animation = Animation(id: DataHelper.generateRandomData(byteCount: 24),
                               metadata: metadata,
                               frames: [])

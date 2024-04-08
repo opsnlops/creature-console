@@ -64,6 +64,8 @@
 		11A635FD2BC34B3500C38A32 /* StreamFrameDataResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FC2BC34B3500C38A32 /* StreamFrameDataResponse.swift */; };
 		11A635FF2BC3519C00C38A32 /* AnimationMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FE2BC3519C00C38A32 /* AnimationMetadata.swift */; };
 		11A636012BC3573D00C38A32 /* FrameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A636002BC3573D00C38A32 /* FrameData.swift */; };
+		11A636032BC35E5B00C38A32 /* Creatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A636022BC35E5B00C38A32 /* Creatures.swift */; };
+		11A636052BC3670100C38A32 /* Animations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A636042BC3670100C38A32 /* Animations.swift */; };
 		11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4821329E24F9000767E22 /* CreatureList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4821229E24F9000767E22 /* CreatureList.swift */; };
@@ -165,6 +167,8 @@
 		11A635FC2BC34B3500C38A32 /* StreamFrameDataResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamFrameDataResponse.swift; sourceTree = "<group>"; };
 		11A635FE2BC3519C00C38A32 /* AnimationMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadata.swift; sourceTree = "<group>"; };
 		11A636002BC3573D00C38A32 /* FrameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameData.swift; sourceTree = "<group>"; };
+		11A636022BC35E5B00C38A32 /* Creatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creatures.swift; sourceTree = "<group>"; };
+		11A636042BC3670100C38A32 /* Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animations.swift; sourceTree = "<group>"; };
 		11B4820929E141AB00767E22 /* DataHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHelper.swift; sourceTree = "<group>"; };
 		11B4821229E24F9000767E22 /* CreatureList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureList.swift; sourceTree = "<group>"; };
 		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
@@ -228,6 +232,8 @@
 				11DD93B229E666D200089EC6 /* StreamJoystick.swift */,
 				117EB24A2A3413C1001208C8 /* PlayAnimation.swift */,
 				11ED91992A917D66000756BF /* Playlists.swift */,
+				11A636022BC35E5B00C38A32 /* Creatures.swift */,
+				11A636042BC3670100C38A32 /* Animations.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -656,6 +662,7 @@
 				11C699042A34596B00A79985 /* ServerError.swift in Sources */,
 				11ED919A2A917D66000756BF /* Playlists.swift in Sources */,
 				118A738029EB772900EF8CDB /* LogViewView.swift in Sources */,
+				11A636032BC35E5B00C38A32 /* Creatures.swift in Sources */,
 				110CABE42A9596DD007769E4 /* SoundData.swift in Sources */,
 				115B32402A918A5300E9D583 /* Playlist.swift in Sources */,
 				11DD93B329E666D200089EC6 /* StreamJoystick.swift in Sources */,
@@ -679,6 +686,7 @@
 				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
 				11A635FF2BC3519C00C38A32 /* AnimationMetadata.swift in Sources */,
 				1156650F2A35826D002CD4CC /* CreatureIdentifier.swift in Sources */,
+				11A636052BC3670100C38A32 /* Animations.swift in Sources */,
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

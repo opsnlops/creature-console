@@ -25,6 +25,7 @@ struct CreatureConsole: App {
             "logSpareTimeFrameInterval": 1000,
             "audioVolume": 0.8,
             "useOurJoystick": true,
+            "activeUniverse": 1,
             "audioFilePath": "file:///Volumes/creatures/sounds",
             "mfm2023PlaylistHack": "64d81c13568ab1d9860f23b8"
         ]

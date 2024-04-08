@@ -1,9 +1,3 @@
-//
-//  AnimationCategory.swift
-//  Creature Console
-//
-//  Created by April White on 4/30/23.
-//
 
 import SwiftUI
 import OSLog
@@ -12,7 +6,7 @@ struct CategoryList: View {
     
     @EnvironmentObject var client: CreatureServerClient
     @ObservedObject var creature: Creature
-    @State var animationIds : [AnimationIdentifier]?
+    @State var animationMetas : [AnimationMetadata]?
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationCategory")
     
     @State private var showErrorAlert = false
@@ -22,11 +16,12 @@ struct CategoryList: View {
     
     var body: some View {
         ScrollView {
-            if let ids = animationIds {
-                ForEach(ids, id: \.self) { id in
-                    AnimationDetail(animationMetadata: id.metadata)
+            if let metadatas = animationMetas {
+                for metadata in metadatas {
+                    AnimationDetail(animationMetadata: metadata)
                         .frame(maxWidth: .infinity)
-                    }
+                }
+                   
             }
             else {
                 Text("Loading animations for type \(creature.name)")

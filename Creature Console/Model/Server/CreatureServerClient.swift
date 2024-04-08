@@ -8,8 +8,35 @@ import SwiftUI
 import SwiftProtobuf
 
 
+/**
+ This is a bit weird. In order to mock out this class, we need to make a protocol that our implementation
+ will conform to. The mock version can implement this protocol, too, and be able to mock up a class
+ that's broken up into a bunch of files via extentions.
+ */
+protocol CreatureServerClientProtocol: AnyObject {
+    var appState : AppState? { get set }
+    var audioManager : AudioManager? { get set }
+    
+    func connect(serverHostname: String, serverPort: Int) throws
+    func close() throws
+    func getHostname() -> String
+    func streamLogs(logViewModel: LogViewModel, logFilter: Server_LogFilter, stopFlag: StopFlag) async
+    func streamJoystick(joystick: Joystick, creature: Creature, universe: UInt32) async throws
+    func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError>
+    func getCreature(creatureId: Data) async throws -> Result<Creature, ServerError>
+    func getAllCreatures() async -> Result<[Creature], ServerError>
+    func createAnimation(animation: Animation) async -> Result<String, ServerError>
+    func listAnimations(creature: Creature) async -> Result<[AnimationMetadata], ServerError>
+    func getAnimation(animationId: Data) async -> Result<Animation, ServerError>
+    func stopPlayingPlayist(universe: UInt32) async throws -> Result<String, ServerError>
+    func getPlaylist(playistId: Data) async throws -> Result<Playlist, ServerError>
+    func startPlayingPlaylist(universe: UInt32, playlistId: Data) async throws -> Result<String, ServerError>
+    
+}
 
-class CreatureServerClient : ObservableObject {
+
+
+class CreatureServerClient : CreatureServerClientProtocol, ObservableObject {
     static let shared = CreatureServerClient()
     
     var appState : AppState?
@@ -19,6 +46,8 @@ class CreatureServerClient : ObservableObject {
     @AppStorage("audioFilePath") var audioFilePath: String = ""
     
     @AppStorage("useOurJoystick") private var useOurJoystick: Bool = true
+    
+    @AppStorage("activeUniverse") var activeUniverse: Int = 1
 
     let logger: Logger
     var serverHostname: String = "localhost"
@@ -82,104 +111,7 @@ class CreatureServerClient : ObservableObject {
         return self.serverHostname
     }
     
-    func searchCreatures(creatureName: String) async throws -> Server_Creature {
-        
-        logger.debug("attempting to fetch \(creatureName)")
-        
-        var name = Server_CreatureName()
-        name.name = creatureName
-        
-        logger.debug("calling searchCreatures() now")
-        let creature = try await server?.searchCreatures(name) ?? Server_Creature()
-        
-        return creature
-    }
     
-    
-    func getCreature(creatureId: Data) async throws -> Server_Creature {
-        
-        logger.debug("attempting to fetch creature \(DataHelper.dataToHexString(data: creatureId))")
-    
-        var id = Server_CreatureId()
-        id.id = creatureId
-        
-        let creature = try await server?.getCreature(id) ?? Server_Creature()
-        
-        return creature
-    }
-    
-    /**
-     Returns a listing of all of the Creatures that we know about
-     */
-    func listCreatures() async throws -> [CreatureIdentifier] {
-        
-        logger.debug("attempting to list all creatures from the server")
-        
-        var creatures : [CreatureIdentifier]
-        creatures = []
-        
-        // Default to sorting by name. TODO: Maybe change this later?
-        var filter : Server_CreatureFilter
-        filter = Server_CreatureFilter()
-        filter.sortBy = Server_SortBy.name
-        logger.debug("Server_CreatureFilter made")
-        
-        // Try, or return an empty response
-        logger.debug("about to await asking the server for the creatures")
-        let list = try await server?.listCreatures(filter) ?? Server_ListCreaturesResponse()
-        logger.debug("...and it responded!")
-        
-        for id in list.creaturesIds {
-            
-            var ci : CreatureIdentifier
-            ci = CreatureIdentifier(id: id.id, name: id.name)
-            creatures.append(ci)
-            logger.debug("found creature \(ci.name)")
-        }
-        
-        logger.debug("total creatures found: \(creatures.count)")
-        return creatures
-        
-    }
-    
-    func getAllCreatures() async -> Result<[Server_Creature], ServerError> {
-        
-        logger.info("attempting to get all of the creatures from the server")
-        
-        var creatures : [Server_Creature]
-        creatures = []
-        
-        // Default to sorting by name.
-        var filter : Server_CreatureFilter
-        filter = Server_CreatureFilter()
-        filter.sortBy = Server_SortBy.name
-        logger.debug("Server_CreatureFilter made")
-        
-        do {
-    
-            // Try, or return an empty response
-            let list = try await server?.getAllCreatures(filter) ?? Server_GetAllCreaturesResponse()
-            
-            for c in list.creatures {
-                creatures.append(c)
-                logger.debug("found creature \(c.name)")
-            }
-            
-            logger.debug("total creatures found: \(creatures.count)")
-            return .success(list.creatures)
-            
-        } catch let error as GRPC.GRPCStatus {
-            
-            logger.error("gRPC Error - Code: \(String(describing: error.code)), Message: \(error.message ?? "Unknown error")")
-            return .failure(.serverError("gRPC Error - Code: \(String(describing: error.code)), Message: \(error.message ?? "Unknown error")"))
-            
-        } catch {
-            // Dunno what it is, so return an unexpected error
-            logger.error("Unknown error: \(error.localizedDescription)")
-            return .failure(.unknownError("Unknown error: \(error.localizedDescription)"))
-        }
-        
-    }
     
     func streamLogs(logViewModel: LogViewModel, logFilter: Server_LogFilter, stopFlag: StopFlag) async {
         
@@ -206,168 +138,83 @@ class CreatureServerClient : ObservableObject {
         
     }
     
+    
+}
+
+    
+/**
+ Quick mock that doesn't do much, but it exists! :)
+ */
+class MockCreatureServerClient: CreatureServerClientProtocol {
+    var appState: AppState?
+    var audioManager: AudioManager?
+
+    func connect(serverHostname: String, serverPort: Int) throws {
+        // Possibly log the action or increment a counter to verify this method was called
+    }
+
+    func close() throws {
+        // Mock implementation
+    }
+
+    func getHostname() -> String {
+        // Return a dummy hostname
+        return "localhost"
+    }
+
+    func streamLogs(logViewModel: LogViewModel, logFilter: Server_LogFilter, stopFlag: StopFlag) async {
+        // Mock implementation
+    }
+
+    func streamJoystick(joystick: Joystick, creature: Creature, universe: UInt32) async throws {
+        // Mock implementation, possibly throw an error if needed for testing error handling
+    }
+
+    func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError> {
+        // Return a successful result with a mock creature, or throw an error for testing
+        return .success(Creature.mock())
+    }
+
+    func getCreature(creatureId: Data) async throws -> Result<Creature, ServerError> {
+        // Return a successful result with a mock creature, or throw an error for testing
+        return .success(Creature.mock())
+    }
+
+    func getAllCreatures() async -> Result<[Creature], ServerError> {
+        // Return a successful result with an array of mock creatures
+        return .success([Creature.mock(), Creature.mock()])
+    }
+
     func createAnimation(animation: Animation) async -> Result<String, ServerError> {
-        
-        logger.info("Attempting to create a new Animation in the database")
-        
-        logger.debug("Animation Title: \(animation.metadata.title)")
-        logger.debug("Number of frames: \(animation.numberOfFrames) and \(animation.frames.count)")
-                
-        do {
-            let serverAnimation = try animation.toServerAnimation()
-            let response = try await server?.createAnimation(serverAnimation)
-            return .success("Server said: \(response?.message ?? "???")")
-        }
-        catch SwiftProtobuf.BinaryDecodingError.truncated {
-            logger.error("Animation was unable to be decoded because it was truncated")
-            return .failure(.communicationError("Unable to save animation due to the protobuf being truncated. 😅"))
-        }
-        catch SwiftProtobuf.BinaryDecodingError.malformedProtobuf {
-            logger.error("Animation was unable to be decoded because the protobuf was malformed")
-            return .failure(.dataFormatError("Unable to save animation due to the protobuf being malformed. 🤔"))
-        }
-        catch {
-            logger.error("Unable to save an animation to the database: \(error)")
-            return .failure(.databaseError("Server said: \(error.localizedDescription), (\(error))"))
-        }
+        // Return a success result with a mock response
+        return .success("Animation created successfully")
     }
-    
-    /**
-     Update an animation in the database.
-     
-     This effectively called `replace_one()` on the MongoDB side, with the `_id` of the animation we're updating.
-     */
-    func updateAnimation(animationToUpdate: Animation) async -> Result<String, ServerError> {
-        
-        logger.info("Attempting to update an animation in the database")
- 
-        do {
-            let serverAnimation = try animationToUpdate.toServerAnimation()
-            let response = try await server?.updateAnimation(serverAnimation)
-            return .success("\(response?.message ?? "😅")")
-        }
-        catch SwiftProtobuf.BinaryDecodingError.truncated {
-            logger.error("Animation was unable to be decoded because it was truncated")
-            return .failure(.dataFormatError("Unable to update an animation due to the protobuf being truncated. 😅"))
-        }
-        catch SwiftProtobuf.BinaryDecodingError.malformedProtobuf {
-            logger.error("Animation was unable to be decoded because the protobuf was malformed")
-            return .failure(.dataFormatError("Unable to update an animation due to the protobuf being malformed. 🤔"))
-        }
-        catch {
-            logger.error("Unable to update an animation in the database: \(error)")
-            return .failure(.databaseError("Server said: \(error.localizedDescription), (\(error))"))
-        }
+
+    func listAnimations(creature: Creature) async -> Result<[AnimationMetadata], ServerError> {
+        // Return a successful result with an array of mock `AnimationMetadata`
+        return .success([AnimationMetadata.mock(), AnimationMetadata.mock()])
     }
-    
-    func listAnimations(creature: Creature) async -> Result<[AnimationIdentifier], ServerError> {
-        
-        // TODO: Is the the right way to log this? (with .rawValue)
-        logger.info("attempting to get all animations for creature type \(creatureType.rawValue)")
-        
-        var metadatas : [AnimationIdentifier]
-        metadatas = []
-        
-        do {
-            var filter = Server_AnimationFilter()
-            filter.type = creatureType
-            
-            let response = try await server?.listAnimations(filter) ?? Server_ListAnimationsResponse()
-            
-            for a in response.animations {
-                metadatas.append(AnimationIdentifier(serverAnimationIdentifier: a))
-            }
-            
-            logger.info("got all animations for type \(creatureType.rawValue)")
-            return .success(metadatas)
-            
-        }
-        catch {
-            logger.error("Unable to get animations for creature type \(creatureType.rawValue): \(error)")
-            return .failure(.otherError("Server said: \(error.localizedDescription), (\(error))"))
-        }
-        
+
+    func getAnimation(animationId: Data) async -> Result<Animation, ServerError> {
+        // Return a successful result with a mock `Animation`
+        return .success(Animation.mock())
     }
-    
-    
-    
-    func getAnimation(animationId: Data) async -> Result<Animation, ServerError>  {
-        
-        logger.debug("attempting to fetch animation \(DataHelper.dataToHexString(data: animationId))")
-    
-        var id = Server_AnimationId()
-        id.id = animationId
-        
-        do {
-            
-            if let serverAnimation = try await server?.getAnimation(id) {
-                logger.info("loaded animation \(DataHelper.dataToHexString(data: animationId))")
-                return .success(Animation(fromServerAnimation: serverAnimation))
-            }
-            
-            return .failure(.notFound("Unable to locate animation \(DataHelper.dataToHexString(data: animationId))"))
-            
-        }
-        catch {
-            logger.error("Unable to get animation \(DataHelper.dataToHexString(data: animationId))")
-            return .failure(.otherError("Server said: \(error.localizedDescription), (\(error))"))
-        }
-        
+
+    func stopPlayingPlayist(universe: UInt32) async throws -> Result<String, ServerError> {
+        // Return a success result with a mock response
+        return .success("Playlist stopped")
     }
+
+    func getPlaylist(playistId: Data) async throws -> Result<Playlist, ServerError> {
+        // Return a successful result with a mock `Playlist`
+        return .success(Playlist.mock())
+    }
+
+    func startPlayingPlaylist(universe: UInt32, playlistId: Data) async throws -> Result<String, ServerError> {
+        // Return a success result with a mock response
+        return .success("Playlist started")
+    }
+
+    // Assume `Creature`, `AnimationMetadata`, `Animation`, and `Playlist` have mock initializers or static mock methods
 }
 
-
-
-extension CreatureServerClient {
-    
-    static func mock() -> CreatureServerClient {
-        return MockCreatureServerClient()
-    }
-    
-    private class MockCreatureServerClient: CreatureServerClient {
-        
-        override init() {
-            super.init()
-        }
-        
-        override func connect(serverHostname: String, serverPort: Int) throws {
-            // Empty implementation for mock
-        }
-        
-        override func close() throws {
-            // Empty implementation for mock
-        }
-        
-        override func searchCreatures(creatureName: String) async throws -> Server_Creature {
-            return Server_Creature() // Return empty creature object
-        }
-        
-        override func getCreature(creatureId: Data) async throws -> Server_Creature {
-            return Server_Creature() // Return empty creature object
-        }
-        
-        override func listCreatures() async throws -> [CreatureIdentifier] {
-            return [] // Return empty list
-        }
-        
-        override func getAllCreatures() async -> Result<[Server_Creature], ServerError> {
-            return .success([]) // Return success with empty list
-        }
-        
-        override func streamLogs(logViewModel: LogViewModel, logFilter: Server_LogFilter, stopFlag: StopFlag) async {
-            // Empty implementation for mock
-        }
-        
-        override func createAnimation(animation: Animation) async -> Result<String, ServerError> {
-            return .success("Animation created (mock)") // Return success message
-        }
-        
-        override func listAnimations(creatureType: Server_CreatureType) async -> Result<[AnimationIdentifier], ServerError> {
-            return .success([]) // Return empty list
-        }
-        
-        override func getAnimation(animationId: Data) async -> Result<Animation, ServerError> {
-            return .success(Animation.mock())
-        }
-    }
-}

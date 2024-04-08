@@ -3,7 +3,7 @@ import SwiftUI
 
 struct AnimationDetail: View {
     
-    var animationMetadata : Animation.Metadata
+    var animationMetadata : AnimationMetadata
     
     
     var body: some View {
@@ -11,10 +11,9 @@ struct AnimationDetail: View {
             LazyHGrid(rows: Array(repeating: .init(.flexible()), count: 2), spacing: 16) {
                 Text("Title: \(animationMetadata.title)")
                 Text("Animation ID: \(DataHelper.dataToHexString(data: animationMetadata.animationId))")
-                Text("Number of Motors: \(animationMetadata.numberOfMotors)")
                 Text("Number of Frames: \(animationMetadata.numberOfFrames)")
                 Text("Milliseconds per Frame: \(animationMetadata.millisecondsPerFrame)")
-                Text("Notes: \(animationMetadata.notes)")
+                Text("Note: \(animationMetadata.note)")
             }
             .padding()
             .frame(maxWidth: .infinity)

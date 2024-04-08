@@ -1,9 +1,3 @@
-//
-//  Playlists.swift
-//  Creature Console
-//
-//  Created by April White on 8/19/23.
-//
 
 import Foundation
 import SwiftUI
@@ -13,18 +7,16 @@ import GRPC
 
 extension CreatureServerClient {
  
-    
-
-    
+        
     /**
      Stop playing a playlist on the server
      */
-    func stopPlayingPlayist(creatureId: Data) async throws -> Result<String, ServerError> {
+    func stopPlayingPlayist(universe: UInt32) async throws -> Result<String, ServerError> {
         
-        logger.debug("attempting to stop playing a playlist on creature \(DataHelper.dataToHexString(data: creatureId))")
+        logger.debug("attempting to stop playing a playlist on universe \(universe)")
     
-        var id = Server_CreatureId()
-        id.id = creatureId
+        var request = Server_PlaylistStopRequest()
+        request.universe = universe
         
         // Ensure the server is valid
         if let s = server {
@@ -32,7 +24,7 @@ extension CreatureServerClient {
             do {
             
                 // This returns a Server_CreaturePlaylistResponse
-                let result = try await s.stopPlaylist(id)
+                let result = try await s.stopPlaylist(request)
     
                 if(result.success) {
                     logger.info("successfully scheduled animation! Server said: \(result.message)")
@@ -54,44 +46,6 @@ extension CreatureServerClient {
         logger.error("The server is nil while attempting to stop playlist playback?")
         return .failure(.communicationError("Server is nil for some reason? 😱"))
     }
-    
-    
-    func startPlaylistPlaying(creatureId: Data) async throws -> Result<String, ServerError> {
-        
-        logger.debug("attempting to stop playing a playlist on creature \(DataHelper.dataToHexString(data: creatureId))")
-    
-        var id = Server_CreatureId()
-        id.id = creatureId
-        
-        // Ensure the server is valid
-        if let s = server {
-            
-            do {
-            
-                // This returns a Server_CreaturePlaylistResponse
-                let result = try await s.stopPlaylist(id)
-    
-                if(result.success) {
-                    logger.info("successfully scheduled animation! Server said: \(result.message)")
-                    return .success(result.message)
-                }
-                else {
-                    logger.warning("server was not able to stop playback of a playlist? server said: \(result.message)")
-                    return .failure(.otherError(result.message))
-                }
-    
-            } catch {
-                
-                logger.warning("unable to stop playlist playback! Server said: \(error.localizedDescription)")
-                return .failure(.otherError(error.localizedDescription))
-                
-            }
-        }
-        
-        logger.error("The server is nil while attempting to stop playlist playback?")
-        return .failure(.communicationError("Server is nil for some reason? 😱"))
-    }
-    
     
     
     func getPlaylist(playistId: Data) async throws -> Result<Playlist, ServerError> {
@@ -123,19 +77,16 @@ extension CreatureServerClient {
     }
     
     
-    func startPlayingPlaylist(creatureId: Data, playlistId: Data) async throws -> Result<String, ServerError> {
+    func startPlayingPlaylist(universe: UInt32, playlistId: Data) async throws -> Result<String, ServerError> {
         
-        logger.info("attempting to start a playlist playing back on the server. creature: \(DataHelper.dataToHexString(data: creatureId)), playlist:  \(DataHelper.dataToHexString(data: playlistId))")
+        logger.info("attempting to start a playlist playing back on the server. universe: \(universe), playlist:  \(DataHelper.dataToHexString(data: playlistId))")
         
-        var request = Server_CreaturePlaylistRequest()
-        
-        var cId = Server_CreatureId()
-        cId.id = creatureId
+        var request = Server_PlaylistRequest()
         
         var pId = Server_PlaylistIdentifier()
         pId.id = playlistId
         
-        request.creatureID = cId
+        request.universe = universe
         request.playlistID = pId
         
         // Ensure the server is valid

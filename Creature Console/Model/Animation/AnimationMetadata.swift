@@ -40,6 +40,27 @@ struct AnimationMetadata: Hashable, Equatable, Codable {
         self.multitrackAudio = fromServerAnimationMetadata.multitrackAudio
     }
     
+    
+    /**
+     Convert this into a format we can send to the remote server
+     */
+    func toServerAnimationMetadata() -> Server_AnimationMetadata {
+        
+        var s = Server_AnimationMetadata()
+        s.animationID = self.animationId
+        s.title = self.title
+        s.lastUpdated = TimeHelper.dateToTimestamp(date: self.lastUpdated)
+        s.millisecondsPerFrame = self.millisecondsPerFrame
+        s.note = self.note
+        s.soundFile = self.soundFile
+        s.numberOfFrames = self.numberOfFrames
+        s.multitrackAudio = self.multitrackAudio
+        
+        return s
+
+    }
+    
+    
     static func ==(lhs: AnimationMetadata, rhs: AnimationMetadata) -> Bool {
         return lhs.animationId == rhs.animationId &&
                lhs.title == rhs.title &&
@@ -51,6 +72,7 @@ struct AnimationMetadata: Hashable, Equatable, Codable {
                lhs.multitrackAudio == rhs.multitrackAudio
     }
         
+    
     func hash(into hasher: inout Hasher) {
         hasher.combine(animationId)
         hasher.combine(title)
