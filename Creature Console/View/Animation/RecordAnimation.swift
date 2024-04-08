@@ -10,7 +10,9 @@ struct RecordAnimation: View {
     @EnvironmentObject var eventLoop : EventLoop
     @EnvironmentObject var client: CreatureServerClient
     
-    @State var animation : Animation? 
+    @AppStorage("activeUniverse") var activeUniverse: Int = 1
+
+    @State var animation : Animation?
     @State private var errorMessage = ""
     @State private var showErrorMessage = false
     
@@ -21,14 +23,16 @@ struct RecordAnimation: View {
     @State private var yButtonPressed = false
     @State private var aButtonPressed = false
     @State private var bButtonPressed = false
-    
-    
+
+
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordAnimation")
     
     @State var title = ""
     @State var notes = ""
     @State var soundFile = ""
-    
+    @State var multitrackAudio: Bool = false
+    @State var lastUpdated: Date = Date()
+
     @State private var streamingTask: Task<Void, Never>? = nil
     @State private var recordingTask: Task<Void, Never>? = nil
 
@@ -51,10 +55,6 @@ struct RecordAnimation: View {
                 }
                 Section(header: Text("Millisecond Per Frame")) {
                     TextField("", value: $eventLoop.millisecondPerFrame, format: .number)
-                        .disabled(true)
-                }
-                Section(header: Text("Number of Motors")) {
-                    TextField("", value: $creature.numberOfMotors, format: .number)
                         .disabled(true)
                 }
             }
@@ -82,8 +82,8 @@ struct RecordAnimation: View {
                     VStack {
                         AnimationWaveformEditor(animation: $animation, creature: $creature)
                         HStack {
-                            Text("Frames: \(animation.numberOfFrames)")
-                            
+                            Text("Frames: \(animation.metadata.numberOfFrames)")
+
                             // Allow it to be played before it's saved
                             Button( action: {
                                 playAnimationLocally()
@@ -123,7 +123,7 @@ struct RecordAnimation: View {
         }
         .navigationTitle("Record Animation")
 #if os(macOS)
-        .navigationSubtitle("Name: \(creature.name), Type: \(creature.type.description)")
+        .navigationSubtitle("Name: \(creature.name), Channel Offset: \(creature.channelOffset)")
 #endif
         .onDisappear{
             if let j = joystick as? SixAxisJoystick {
@@ -208,7 +208,7 @@ struct RecordAnimation: View {
         if let a = animation {
             Task {
                 do {
-                    try await client.playAnimationLocally(animation: a, creature: creature)
+                    try await client.playAnimationLocally(animation: a, universe: UInt32(activeUniverse))
                 } catch {
                     logger.error("error playing animation: \(error)")
                 }
@@ -225,7 +225,7 @@ struct RecordAnimation: View {
         // Start streaming to the creature
         streamingTask = Task {
             do {
-                try await client.streamJoystick(joystick: joystick, creature: creature)
+                try await client.streamJoystick(joystick: joystick, creature: creature, universe: UInt32(activeUniverse))
             }
             catch {
                 logger.error("Unable to stream: \(error.localizedDescription)")
@@ -238,16 +238,17 @@ struct RecordAnimation: View {
             appState.currentActivity = .preparingToRecord
             
             
-            let metadata = Animation.Metadata(
+            let metadata = AnimationMetadata(
                 // The animationID will be re-written by the server. This is just a placeholder.
                 animationId: DataHelper.generateRandomData(byteCount: 12),
                 title: title,
-                millisecondsPerFrame: Int32(eventLoop.millisecondPerFrame),
-                creatureType: creature.type.protobufValue,
-                numberOfMotors: Int32(creature.numberOfMotors),
-                notes: notes,
-                soundFile: soundFile)
-            
+                lastUpdated: lastUpdated,
+                millisecondsPerFrame: UInt32(eventLoop.millisecondPerFrame),
+                note: notes,
+                soundFile: soundFile,
+                numberOfFrames: 0,
+                multitrackAudio: multitrackAudio)
+
             
             do {
                 playWarningTone()
@@ -288,9 +289,11 @@ struct RecordAnimation: View {
             if let a = eventLoop.animation {
                 
                 a.metadata.title = title
-                a.metadata.notes = notes
+                a.metadata.note = notes
                 a.metadata.soundFile = soundFile
-                
+                a.metadata.multitrackAudio = multitrackAudio
+                a.metadata.lastUpdated = Date()     // Right now
+
                 let result = await client.createAnimation(animation: a)
                 switch(result) {
                 case .success(let hooray):

@@ -24,7 +24,7 @@ struct CategoryList: View {
                    
             }
             else {
-                Text("Loading animations for type \(creature.name)")
+                Text("Loading animations for \(creature.name)")
             }
                
         }

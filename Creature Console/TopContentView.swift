@@ -10,9 +10,8 @@ struct TopContentView: View {
     @EnvironmentObject var client : CreatureServerClient
     @EnvironmentObject var eventLoop : EventLoop
     
-    @StateObject var creatureList = CreatureList()
-    @State var animationIds = Set<AnimationIdentifier>()
-    
+    @StateObject var creatureCache = CreatureCache()
+
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
@@ -29,8 +28,8 @@ struct TopContentView: View {
         NavigationSplitView {
             List {
                 Section("Creatures") {
-                    if !creatureList.empty {
-                        ForEach(creatureList.creatures, id: \.id) {
+                    if !creatureCache.empty {
+                        ForEach(creatureCache.creatures, id: \.id) {
                             creature in
                             NavigationLink(creature.name, value: creature.id)
                         }
@@ -68,7 +67,7 @@ struct TopContentView: View {
             }
             .navigationTitle("Creature Console")
             .navigationDestination(for: Data.self) { creature in
-                CreatureDetail(creature: creatureList.getById(id: creature))
+                CreatureDetail(creature: creatureCache.getById(id: creature))
             }
             .toolbar {
                 ToolbarItem(id: "editCreature", placement: .primaryAction) {
@@ -80,7 +79,7 @@ struct TopContentView: View {
             .onAppear {
                 Task {
                     
-                    if !creatureList.empty {
+                    if !creatureCache.empty {
                         logger.debug("creature list exists, not re-loading")
                         return
                     }
@@ -91,7 +90,7 @@ struct TopContentView: View {
                     switch result {
                     case .success(let creatures):
                        for creature in creatures {
-                           creatureList.add(item: Creature(serverCreature: creature))
+                           creatureCache.add(item: creature)
                        }
                     case .failure(let error):
                        let errorMessage = error.localizedDescription
@@ -122,7 +121,6 @@ struct TopContentView_Previews: PreviewProvider {
     static var previews: some View {
         TopContentView()
             .environmentObject(EventLoop.mock())
-            .environmentObject(CreatureServerClient.mock())
     }
 }
 

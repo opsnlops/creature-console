@@ -7,7 +7,7 @@ import OSLog
 /**
  This is designed to live in the Environment, as a store of the Creatures that we know exist
  */
-class CreatureList : ObservableObject {
+class CreatureCache : ObservableObject {
     @Published var creatures : [Creature]
     @Published var empty : Bool = true
    
@@ -37,19 +37,19 @@ class CreatureList : ObservableObject {
 
 
 
-extension CreatureList {
-    static func mock() -> CreatureList {
-        let creaureList = CreatureList()
-        
+extension CreatureCache {
+    static func mock() -> CreatureCache {
+        let creaureList = CreatureCache()
+
         let id1 = Creature.mock()
         id1.name = "Creature 1 🦜"
-        
+
         let id2 = Creature.mock()
         id2.name = "Creature 2 🦖"
-        
+
         let id3 = Creature.mock()
         id3.name = "Creature 3 🐰"
-    
+
         creaureList.add(item: id1)
         creaureList.add(item: id2)
         creaureList.add(item: id3)
