@@ -1,9 +1,3 @@
-//
-//  PlaylistErrors.swift
-//  Creature Console
-//
-//  Created by April White on 8/19/23.
-//
 
 import Foundation
 

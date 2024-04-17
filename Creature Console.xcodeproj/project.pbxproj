@@ -7,33 +7,23 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		110B12612A2491C5002C5585 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
 		110CABE42A9596DD007769E4 /* SoundData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE32A9596DD007769E4 /* SoundData.swift */; };
 		110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE72A959A00007769E4 /* SoundDataImporter.swift */; };
 		110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE92A95A077007769E4 /* SoundDataProcessor.swift */; };
 		1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110EFF82B8D9C2300A00B89 /* ChannelAxisMapping.swift */; };
 		11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */; };
 		11218E802B67522500AFFF65 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11218E7F2B67522500AFFF65 /* Joystick.swift */; };
-		1122A7A82A22E2D100D60464 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5A29F23BE6000EB835 /* Animation.swift */; };
-		1122A7AC2A22E2E800D60464 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
-		1122A7AD2A22E2EC00D60464 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
-		1122A7AE2A22E2F800D60464 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
-		1122A7AF2A22E31F00D60464 /* EventLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */; };
 		1122A7B72A24440100D60464 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B62A24440100D60464 /* AppState.swift */; };
-		1122A7B82A24440100D60464 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B62A24440100D60464 /* AppState.swift */; };
 		1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* CategoryList.swift */; };
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
 		113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
 		113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */; };
 		1142E65729DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
-		1142E65829DFB08A00B795F0 /* server.grpc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65529DFB08A00B795F0 /* server.grpc.swift */; };
 		1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65629DFB08A00B795F0 /* server.pb.swift */; };
-		1142E65A29DFB08A00B795F0 /* server.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65629DFB08A00B795F0 /* server.pb.swift */; };
 		1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
 		1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
-		1142E66529DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		1156650F2A35826D002CD4CC /* CreatureIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1156650E2A35826D002CD4CC /* CreatureIdentifier.swift */; };
 		115B32402A918A5300E9D583 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B323F2A918A5300E9D583 /* Playlist.swift */; };
@@ -49,7 +39,6 @@
 		11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
 		11703D9429DD198000EF7E3D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D9329DD198000EF7E3D /* Preview Assets.xcassets */; };
 		117EB24B2A3413C1001208C8 /* PlayAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117EB24A2A3413C1001208C8 /* PlayAnimation.swift */; };
-		117EB24C2A3413C1001208C8 /* PlayAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117EB24A2A3413C1001208C8 /* PlayAnimation.swift */; };
 		118A737C29EB68EA00EF8CDB /* LogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A737B29EB68EA00EF8CDB /* LogViewModel.swift */; };
 		118A738029EB772900EF8CDB /* LogViewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A737F29EB772900EF8CDB /* LogViewView.swift */; };
 		118A738229EB780A00EF8CDB /* LogViewScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738129EB780A00EF8CDB /* LogViewScene.swift */; };
@@ -69,7 +58,6 @@
 		11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4821329E24F9000767E22 /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4821229E24F9000767E22 /* CreatureCache.swift */; };
-		11B4821429E24F9000767E22 /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4821229E24F9000767E22 /* CreatureCache.swift */; };
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureEdit.swift */; };
 		11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
@@ -83,6 +71,9 @@
 		11C699082A3459B000A79985 /* AudioError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699062A3459B000A79985 /* AudioError.swift */; };
 		11C6990A2A34FFC500A79985 /* AnimationErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699092A34FFC500A79985 /* AnimationErrors.swift */; };
 		11C6990B2A34FFC500A79985 /* AnimationErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699092A34FFC500A79985 /* AnimationErrors.swift */; };
+		11D612752BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */; };
+		11D612762BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */; };
+		11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ED919B2A917E01000756BF /* PlaylistErrors.swift */; };
 		11DD93B329E666D200089EC6 /* StreamJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11DD93B229E666D200089EC6 /* StreamJoystick.swift */; };
 		11E4E51E2BB53038007C6525 /* TestSwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E4E51D2BB53038007C6525 /* TestSwiftUIView.swift */; };
 		11E7CD7629DD1A870029D031 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 11E7CD7529DD1A870029D031 /* SwiftProtobuf */; };
@@ -93,15 +84,11 @@
 		11E7CD8629DD21BC0029D031 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */; };
 		11ED919A2A917D66000756BF /* Playlists.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ED91992A917D66000756BF /* Playlists.swift */; };
 		11ED919C2A917E01000756BF /* PlaylistErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ED919B2A917E01000756BF /* PlaylistErrors.swift */; };
-		11F1757229DD42D800ADD5FB /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757129DD42D800ADD5FB /* SwiftProtobuf */; };
-		11F1757429DD42D800ADD5FB /* CGRPCZlib in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757329DD42D800ADD5FB /* CGRPCZlib */; };
-		11F1757629DD42D800ADD5FB /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757529DD42D800ADD5FB /* GRPC */; };
 		11F1757829DD42D800ADD5FB /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757729DD42D800ADD5FB /* ArgumentParser */; };
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
-		11FA32B729E374B8004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B829E3844B004C5181 /* JoystickDebugView.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
 /* End PBXBuildFile section */
@@ -183,6 +170,7 @@
 		11C699032A34596B00A79985 /* ServerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerError.swift; sourceTree = "<group>"; };
 		11C699062A3459B000A79985 /* AudioError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioError.swift; sourceTree = "<group>"; };
 		11C699092A34FFC500A79985 /* AnimationErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationErrors.swift; sourceTree = "<group>"; };
+		11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerRestful.swift; sourceTree = "<group>"; };
 		11DD93B229E666D200089EC6 /* StreamJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamJoystick.swift; sourceTree = "<group>"; };
 		11E4E51D2BB53038007C6525 /* TestSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSwiftUIView.swift; sourceTree = "<group>"; };
 		11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
@@ -214,10 +202,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				11F1757229DD42D800ADD5FB /* SwiftProtobuf in Frameworks */,
-				11F1757429DD42D800ADD5FB /* CGRPCZlib in Frameworks */,
 				11F1757829DD42D800ADD5FB /* ArgumentParser in Frameworks */,
-				11F1757629DD42D800ADD5FB /* GRPC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -234,6 +219,7 @@
 				11ED91992A917D66000756BF /* Playlists.swift */,
 				11A636022BC35E5B00C38A32 /* Creatures.swift */,
 				11A636042BC3670100C38A32 /* Animations.swift */,
+				11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -554,9 +540,6 @@
 			);
 			name = CreatureCLI;
 			packageProductDependencies = (
-				11F1757129DD42D800ADD5FB /* SwiftProtobuf */,
-				11F1757329DD42D800ADD5FB /* CGRPCZlib */,
-				11F1757529DD42D800ADD5FB /* GRPC */,
 				11F1757729DD42D800ADD5FB /* ArgumentParser */,
 			);
 			productName = CreatureCLI;
@@ -636,6 +619,7 @@
 				11E4E51E2BB53038007C6525 /* TestSwiftUIView.swift in Sources */,
 				1142E65929DFB08A00B795F0 /* server.pb.swift in Sources */,
 				114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */,
+				11D612752BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
 				1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */,
 				117EB24B2A3413C1001208C8 /* PlayAnimation.swift in Sources */,
@@ -696,23 +680,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				11C326D829DD41E900B169CD /* top.swift in Sources */,
-				1142E65A29DFB08A00B795F0 /* server.pb.swift in Sources */,
-				1142E66529DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				11C6990B2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
-				110B12612A2491C5002C5585 /* VirtualJoystick.swift in Sources */,
-				1122A7AD2A22E2EC00D60464 /* AudioManager.swift in Sources */,
-				1122A7AC2A22E2E800D60464 /* StorageManager.swift in Sources */,
-				11B4821429E24F9000767E22 /* CreatureCache.swift in Sources */,
+				11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */,
 				11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */,
-				117EB24C2A3413C1001208C8 /* PlayAnimation.swift in Sources */,
 				11C699082A3459B000A79985 /* AudioError.swift in Sources */,
 				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
-				1122A7AF2A22E31F00D60464 /* EventLoop.swift in Sources */,
-				1122A7B82A24440100D60464 /* AppState.swift in Sources */,
-				11FA32B729E374B8004C5181 /* SixAxisJoystick.swift in Sources */,
-				1122A7A82A22E2D100D60464 /* Animation.swift in Sources */,
-				1122A7AE2A22E2F800D60464 /* JoystickHandler.swift in Sources */,
-				1142E65829DFB08A00B795F0 /* server.grpc.swift in Sources */,
+				11D612762BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */,
 				11C699052A34596B00A79985 /* ServerError.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -935,9 +908,11 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				DEPLOYMENT_LOCATION = YES;
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				DSTROOT = build/creaturecli;
 				ENABLE_HARDENED_RUNTIME = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.creature-cli";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -950,9 +925,11 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				DEPLOYMENT_LOCATION = YES;
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				DSTROOT = build/creaturecli;
 				ENABLE_HARDENED_RUNTIME = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
@@ -1043,21 +1020,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */;
 			productName = "protoc-gen-grpc-swift";
-		};
-		11F1757129DD42D800ADD5FB /* SwiftProtobuf */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 11E7CD7429DD1A870029D031 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
-			productName = SwiftProtobuf;
-		};
-		11F1757329DD42D800ADD5FB /* CGRPCZlib */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */;
-			productName = CGRPCZlib;
-		};
-		11F1757529DD42D800ADD5FB /* GRPC */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 11E7CD7929DD1AB10029D031 /* XCRemoteSwiftPackageReference "grpc-swift" */;
-			productName = GRPC;
 		};
 		11F1757729DD42D800ADD5FB /* ArgumentParser */ = {
 			isa = XCSwiftPackageProductDependency;

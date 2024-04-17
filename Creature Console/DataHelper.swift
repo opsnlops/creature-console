@@ -22,7 +22,15 @@ struct DataHelper {
     static func dataToHexString(data: Data) -> String {
         return data.map { String(format: "%02x", $0) }.joined()
     }
-    
+
+    /**
+     Generate a 24 character String that looks lika a MongoDB OID. The server handles the conversion from this format to an actual OID, making things easier on us on the front end.
+     */
+    static func generateRandomId() -> String {
+        let randomData = DataHelper.generateRandomData(byteCount: 12)
+        return DataHelper.dataToHexString(data: randomData)
+    }
+
     static func stringToOidData(oid: String) -> Data? {
         var data = Data(capacity: oid.count / 2)
         var index = oid.startIndex
