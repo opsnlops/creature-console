@@ -9,18 +9,18 @@ struct StreamFrameData: Hashable, Equatable {
     
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "StreamFrameData")
     
-    var ceatureId : Data
+    var ceatureId : String
     var universe : UInt32
     var data : Data
     
-    init(ceatureId: Data, universe: UInt32, data: Data) {
+    init(ceatureId: String, universe: UInt32, data: Data) {
         self.ceatureId = ceatureId
         self.universe = universe
         self.data = data
         logger.trace("Created a new StreamFrameData from init()")
     }
     
-    init(ceatureId: Data, universe: UInt32) {
+    init(ceatureId: String, universe: UInt32) {
         self.ceatureId = ceatureId
         self.universe = universe
         self.data = Data()

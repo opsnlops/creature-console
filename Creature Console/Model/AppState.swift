@@ -1,9 +1,3 @@
-//
-//  AppState.swift
-//  Creature Console
-//
-//  Created by April White on 5/28/23.
-//
 
 import Foundation
 import OSLog

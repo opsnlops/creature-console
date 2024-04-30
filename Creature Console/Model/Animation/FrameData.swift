@@ -19,25 +19,6 @@ struct FrameData: Hashable, Equatable {
         logger.trace("Created a new FrameData from init()")
     }
     
-    init(serverFrameData: Server_FrameData) {
-        self.id = serverFrameData.id
-        self.creatureId = serverFrameData.creatureID
-        self.animationId = serverFrameData.animationID
-        self.frames = serverFrameData.frames
-        logger.trace("Created a new FrameData from Server_FrameData")
-    }
-    
-    func toServerFrameData() -> Server_FrameData {
-        var packet = Server_FrameData()
-        
-        packet.id = self.id
-        packet.creatureID = self.creatureId
-        packet.animationID = self.animationId
-        packet.frames = self.frames
-        
-        return packet
-    }
-    
     static func ==(lhs: FrameData, rhs: FrameData) -> Bool {
         lhs.id == rhs.id &&
         lhs.creatureId == rhs.creatureId &&

@@ -7,7 +7,7 @@ import OSLog
  This is a local version of the `AnimationMetadata` that's sent over the wire
  */
 struct AnimationMetadata: Hashable, Equatable, Codable {
-    
+
     var animationId: Data
     var title: String
     var lastUpdated: Date
@@ -29,37 +29,7 @@ struct AnimationMetadata: Hashable, Equatable, Codable {
         self.multitrackAudio = multitrackAudio
     }
     
-    init(fromServerAnimationMetadata: Server_AnimationMetadata) {
-        self.animationId = fromServerAnimationMetadata.animationID
-        self.title = fromServerAnimationMetadata.title
-        self.lastUpdated = TimeHelper.timestampToDate(timestamp: fromServerAnimationMetadata.lastUpdated)
-        self.millisecondsPerFrame = fromServerAnimationMetadata.millisecondsPerFrame
-        self.note = fromServerAnimationMetadata.note
-        self.soundFile = fromServerAnimationMetadata.soundFile
-        self.numberOfFrames = fromServerAnimationMetadata.numberOfFrames
-        self.multitrackAudio = fromServerAnimationMetadata.multitrackAudio
-    }
-    
-    
-    /**
-     Convert this into a format we can send to the remote server
-     */
-    func toServerAnimationMetadata() -> Server_AnimationMetadata {
-        
-        var s = Server_AnimationMetadata()
-        s.animationID = self.animationId
-        s.title = self.title
-        s.lastUpdated = TimeHelper.dateToTimestamp(date: self.lastUpdated)
-        s.millisecondsPerFrame = self.millisecondsPerFrame
-        s.note = self.note
-        s.soundFile = self.soundFile
-        s.numberOfFrames = self.numberOfFrames
-        s.multitrackAudio = self.multitrackAudio
-        
-        return s
 
-    }
-    
     
     static func ==(lhs: AnimationMetadata, rhs: AnimationMetadata) -> Bool {
         return lhs.animationId == rhs.animationId &&

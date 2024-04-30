@@ -6,7 +6,7 @@ import ArgumentParser
 struct CreatureCLI: AsyncParsableCommand {
     
     @Option(help: "The port to connect to")
-    var port: Int = 3000
+    var port: Int = 8000
 
     @Option(help: "The server name to connect to")
     var host: String = "localhost"
@@ -27,7 +27,7 @@ struct CreatureCLI: AsyncParsableCommand {
         print("Server URL: \(server.makeBaseURL())")
         
 
-        let result = await server.fetchAllCreatures()
+        let result = await server.getAllCreatures()
             switch result {
             case .success(let creatures):
                 print("Fetched creatures successfully:")

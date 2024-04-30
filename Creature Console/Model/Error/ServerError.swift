@@ -9,6 +9,7 @@ enum ServerError: Error, LocalizedError {
     case notFound(String)
     case unknownError(String)
     case serverError(String)
+    case notImplemented(String)
 
     var errorDescription: String? {
         switch self {
@@ -18,7 +19,8 @@ enum ServerError: Error, LocalizedError {
              .databaseError(let message),
              .notFound(let message),
              .unknownError(let message),
-             .serverError(let message):
+             .serverError(let message),
+             .notImplemented(let message):
             return message
         }
     }

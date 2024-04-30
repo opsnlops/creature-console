@@ -12,17 +12,6 @@ class Playlist {
         self.name = name
         self.items = items
     }
-    
-    init(fromServerPlaylist: Server_Playlist) {
-        self.id = fromServerPlaylist.id.id
-        self.name = fromServerPlaylist.name
-        self.items = []
-        
-        for item in fromServerPlaylist.items {
-            let thisItem = PlaylistItem(animationId: item.animationID.id, weight: item.weight)
-            items.append(thisItem)
-        }
-    }
 }
 
 

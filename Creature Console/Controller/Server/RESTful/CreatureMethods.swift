@@ -2,24 +2,11 @@
 import Foundation
 import OSLog
 
-class CreatureServerRestful {
 
-    let logger: Logger
-    var serverHostname: String = UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
-    var serverPort: Int = UserDefaults.standard.integer(forKey: "serverRestPort")
-    var useTLS: Bool = UserDefaults.standard.bool(forKey: "serverUseTLS")
+extension CreatureServerRestful {
 
-    init() {
-        self.logger = Logger(subsystem: "io.opsnlops.CreatureController", category: "CreatureServerRestful")
-        self.logger.info("Created new CreatureServerRestful")
-    }
-
-    func makeBaseURL() -> String {
-        let prefix: String = useTLS ? "https://" : "http://"
-        return "\(prefix)\(serverHostname):\(serverPort)/api/v1"
-    }
-
-    func fetchAllCreatures() async -> Result<[Creature], ServerError> {
+    
+    func getAllCreatures() async -> Result<[Creature], ServerError> {
 
         logger.debug("attempting to get all of the creatures")
 
@@ -38,8 +25,11 @@ class CreatureServerRestful {
 
             do {
                 let decoder = JSONDecoder()
-                let creatures = try decoder.decode([Creature].self, from: data)
-                return .success(creatures)
+                let list = try decoder.decode(CreatureListDTO.self, from: data)
+
+                logger.debug("Found \(list.count) items")
+
+                return .success(list.items)
             } catch {
                 return .failure(.serverError(error.localizedDescription))
             }
@@ -48,5 +38,14 @@ class CreatureServerRestful {
         }
     }
 
+
+
+    func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError> {
+        return .failure(.notImplemented("This function is not yet implemented"))
+    }
+
+    func getCreature(creatureId: Data) async throws -> Result<Creature, ServerError> {
+        return .failure(.notImplemented("This function is not yet implemented"))
+    }
 
 }
