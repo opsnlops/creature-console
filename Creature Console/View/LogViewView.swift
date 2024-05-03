@@ -1,9 +1,3 @@
-//
-//  LogViewView.swift
-//  Creature Console
-//
-//  Created by April White on 4/15/23.
-//
 
 import SwiftUI
 import OSLog

@@ -1,9 +1,3 @@
-//
-//  LogViewScene.swift
-//  Creature Console
-//
-//  Created by April White on 4/15/23.
-//
 
 import Foundation
 import SwiftUI

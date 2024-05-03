@@ -21,7 +21,6 @@
 		1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
-		1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		1156650F2A35826D002CD4CC /* CreatureIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1156650E2A35826D002CD4CC /* CreatureIdentifier.swift */; };
 		115B32402A918A5300E9D583 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B323F2A918A5300E9D583 /* Playlist.swift */; };
@@ -36,8 +35,10 @@
 		11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* TopContentView.swift */; };
 		11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
 		11703D9429DD198000EF7E3D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D9329DD198000EF7E3D /* Preview Assets.xcassets */; };
-		118A738029EB772900EF8CDB /* LogViewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A737F29EB772900EF8CDB /* LogViewView.swift */; };
-		118A738229EB780A00EF8CDB /* LogViewScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738129EB780A00EF8CDB /* LogViewScene.swift */; };
+		117043532BE4AE9D000C3626 /* Sound.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117043522BE4AE9D000C3626 /* Sound.swift */; };
+		117043542BE4AE9D000C3626 /* Sound.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117043522BE4AE9D000C3626 /* Sound.swift */; };
+		117043562BE4B723000C3626 /* SoundListDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117043552BE4B723000C3626 /* SoundListDTO.swift */; };
+		117043572BE4B723000C3626 /* SoundListDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117043552BE4B723000C3626 /* SoundListDTO.swift */; };
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
 		118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */; };
 		118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118BF8722A255F5300D80AE6 /* AnimationTable.swift */; };
@@ -147,6 +148,8 @@
 		11703D8D29DD197F00EF7E3D /* TopContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopContentView.swift; sourceTree = "<group>"; };
 		11703D8F29DD198000EF7E3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		11703D9329DD198000EF7E3D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		117043522BE4AE9D000C3626 /* Sound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sound.swift; sourceTree = "<group>"; };
+		117043552BE4B723000C3626 /* SoundListDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundListDTO.swift; sourceTree = "<group>"; };
 		117EB24A2A3413C1001208C8 /* PlayAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayAnimation.swift; sourceTree = "<group>"; };
 		118A737B29EB68EA00EF8CDB /* LogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewModel.swift; sourceTree = "<group>"; };
 		118A737F29EB772900EF8CDB /* LogViewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewView.swift; sourceTree = "<group>"; };
@@ -317,6 +320,7 @@
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				117043512BE4AE8B000C3626 /* Sound */,
 				11FDBF4F2BE0A791008C5B3E /* ServerLogs */,
 				11FDBF312BE093FC008C5B3E /* DTO */,
 				11A635F92BC347C900C38A32 /* Streaming */,
@@ -407,6 +411,14 @@
 				11703D9329DD198000EF7E3D /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		117043512BE4AE8B000C3626 /* Sound */ = {
+			isa = PBXGroup;
+			children = (
+				117043522BE4AE9D000C3626 /* Sound.swift */,
+			);
+			path = Sound;
 			sourceTree = "<group>";
 		};
 		118BF86F2A253EF800D80AE6 /* Assets */ = {
@@ -502,6 +514,7 @@
 			isa = PBXGroup;
 			children = (
 				11FDBF322BE09792008C5B3E /* CreatureListDTO.swift */,
+				117043552BE4B723000C3626 /* SoundListDTO.swift */,
 			);
 			path = DTO;
 			sourceTree = "<group>";
@@ -653,12 +666,12 @@
 			files = (
 				11FDBF332BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
 				11218E802B67522500AFFF65 /* Joystick.swift in Sources */,
-				118A738229EB780A00EF8CDB /* LogViewScene.swift in Sources */,
 				11A635FB2BC347F100C38A32 /* SteamFrameData.swift in Sources */,
 				11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */,
 				11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */,
 				11A636012BC3573D00C38A32 /* FrameData.swift in Sources */,
 				11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */,
+				117043532BE4AE9D000C3626 /* Sound.swift in Sources */,
 				11A635FD2BC34B3500C38A32 /* StreamFrameDataResponse.swift in Sources */,
 				11A10A5B29F23BE6000EB835 /* Animation.swift in Sources */,
 				11E4E51E2BB53038007C6525 /* TestSwiftUIView.swift in Sources */,
@@ -682,7 +695,6 @@
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
 				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
 				110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */,
-				1142E66429DFC00700B795F0 /* TimeHelper.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
@@ -691,7 +703,6 @@
 				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
 				11FDBF552BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */,
 				11C699042A34596B00A79985 /* ServerError.swift in Sources */,
-				118A738029EB772900EF8CDB /* LogViewView.swift in Sources */,
 				110CABE42A9596DD007769E4 /* SoundData.swift in Sources */,
 				115B32402A918A5300E9D583 /* Playlist.swift in Sources */,
 				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
@@ -710,6 +721,7 @@
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
 				11C699072A3459B000A79985 /* AudioError.swift in Sources */,
 				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
+				117043562BE4B723000C3626 /* SoundListDTO.swift in Sources */,
 				11A635FF2BC3519C00C38A32 /* AnimationMetadata.swift in Sources */,
 				1156650F2A35826D002CD4CC /* CreatureIdentifier.swift in Sources */,
 				11FDBF512BE0A7A6008C5B3E /* ServerLogItem.swift in Sources */,
@@ -724,12 +736,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				11FDBF4A2BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */,
+				117043572BE4B723000C3626 /* SoundListDTO.swift in Sources */,
 				11FDBF3B2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */,
 				11FDBF562BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */,
 				11FDBF452BE0A314008C5B3E /* Playlist.swift in Sources */,
 				11C326D829DD41E900B169CD /* top.swift in Sources */,
 				11C6990B2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
 				11FDBF4E2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift in Sources */,
+				117043542BE4AE9D000C3626 /* Sound.swift in Sources */,
 				11FDBF522BE0A7A6008C5B3E /* ServerLogItem.swift in Sources */,
 				11FDBF412BE0A1D5008C5B3E /* StreamingMethods.swift in Sources */,
 				11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */,

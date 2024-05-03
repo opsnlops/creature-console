@@ -5,7 +5,7 @@ import Foundation
  This is an implementation of the "Animation 2.0" spec in our protobufs
  */
 class Animation: Hashable, Equatable {
-    
+
     var id: Data
     var metadata: AnimationMetadata
     var frameData: [FrameData]?
