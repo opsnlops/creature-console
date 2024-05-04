@@ -49,6 +49,7 @@ extension CreatureCLI {
                     rows.append(["Playlists Stopped", formatNumber(counters.playlistsStopped)])
                     rows.append(["Playlist Events Processed", formatNumber(counters.playlistsEventsProcessed)])
                     rows.append(["Playlist Status Requests", formatNumber(counters.playlistStatusRequests)])
+                    rows.append(["REST API Requests", formatNumber(counters.restRequestsProcessed)])
 
                     printTable(headers: headers, rows: rows)
 

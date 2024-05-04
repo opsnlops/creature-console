@@ -17,5 +17,6 @@ struct SystemCountersDTO : Decodable {
     var playlistsStopped: UInt64
     var playlistsEventsProcessed: UInt64
     var playlistStatusRequests: UInt64
+    var restRequestsProcessed: UInt64
 
 }
