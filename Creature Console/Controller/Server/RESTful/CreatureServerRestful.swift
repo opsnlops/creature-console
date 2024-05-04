@@ -39,4 +39,11 @@ class CreatureServerRestful : CreatureServerClientProtocol {
     }
 
 
+    /**
+     Helper function to URL encode a string
+     */
+    func urlEncode(_ string: String) -> String? {
+        return string.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+    }
+
 }

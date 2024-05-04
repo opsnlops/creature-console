@@ -60,6 +60,13 @@
 		11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */; };
 		11C326D029DD3FED00B169CD /* Credits.rtfd in Resources */ = {isa = PBXBuildFile; fileRef = 11C326CF29DD3FED00B169CD /* Credits.rtfd */; };
 		11C326D829DD41E900B169CD /* top.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C326D729DD41E900B169CD /* top.swift */; };
+		11C5C46A2BE5E71100BDFCEE /* creaturesCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C4692BE5E71100BDFCEE /* creaturesCommand.swift */; };
+		11C5C46C2BE5E75600BDFCEE /* animationsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */; };
+		11C5C46E2BE5F06C00BDFCEE /* soundsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */; };
+		11C5C4702BE5F12400BDFCEE /* SoundMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */; };
+		11C5C4712BE5F12400BDFCEE /* SoundMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */; };
+		11C5C4732BE5FB4900BDFCEE /* StatusDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */; };
+		11C5C4742BE5FB4900BDFCEE /* StatusDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */; };
 		11C699042A34596B00A79985 /* ServerError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699032A34596B00A79985 /* ServerError.swift */; };
 		11C699052A34596B00A79985 /* ServerError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699032A34596B00A79985 /* ServerError.swift */; };
 		11C699072A3459B000A79985 /* AudioError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699062A3459B000A79985 /* AudioError.swift */; };
@@ -178,6 +185,11 @@
 		11C326CF29DD3FED00B169CD /* Credits.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Credits.rtfd; sourceTree = "<group>"; };
 		11C326D529DD41E900B169CD /* CreatureCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CreatureCLI; sourceTree = BUILT_PRODUCTS_DIR; };
 		11C326D729DD41E900B169CD /* top.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = top.swift; sourceTree = "<group>"; };
+		11C5C4692BE5E71100BDFCEE /* creaturesCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = creaturesCommand.swift; sourceTree = "<group>"; };
+		11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = animationsCommand.swift; sourceTree = "<group>"; };
+		11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = soundsCommand.swift; sourceTree = "<group>"; };
+		11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundMethods.swift; sourceTree = "<group>"; };
+		11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusDTO.swift; sourceTree = "<group>"; };
 		11C699032A34596B00A79985 /* ServerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerError.swift; sourceTree = "<group>"; };
 		11C699062A3459B000A79985 /* AudioError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioError.swift; sourceTree = "<group>"; };
 		11C699092A34FFC500A79985 /* AnimationErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationErrors.swift; sourceTree = "<group>"; };
@@ -487,6 +499,9 @@
 			isa = PBXGroup;
 			children = (
 				11C326D729DD41E900B169CD /* top.swift */,
+				11C5C4692BE5E71100BDFCEE /* creaturesCommand.swift */,
+				11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */,
+				11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */,
 			);
 			path = CreatureCLI;
 			sourceTree = "<group>";
@@ -515,6 +530,7 @@
 			children = (
 				11FDBF322BE09792008C5B3E /* CreatureListDTO.swift */,
 				117043552BE4B723000C3626 /* SoundListDTO.swift */,
+				11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */,
 			);
 			path = DTO;
 			sourceTree = "<group>";
@@ -528,6 +544,7 @@
 				11FDBF3C2BE0A153008C5B3E /* PlaylistMethods.swift */,
 				11FDBF3F2BE0A1D5008C5B3E /* StreamingMethods.swift */,
 				11FDBF482BE0A42D008C5B3E /* LogStreamingMethods.swift */,
+				11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */,
 			);
 			path = RESTful;
 			sourceTree = "<group>";
@@ -691,10 +708,12 @@
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */,
 				11C6990A2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
+				11C5C4732BE5FB4900BDFCEE /* StatusDTO.swift in Sources */,
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
 				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
 				110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */,
+				11C5C4702BE5F12400BDFCEE /* SoundMethods.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
@@ -738,7 +757,9 @@
 				11FDBF4A2BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */,
 				117043572BE4B723000C3626 /* SoundListDTO.swift in Sources */,
 				11FDBF3B2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */,
+				11C5C4742BE5FB4900BDFCEE /* StatusDTO.swift in Sources */,
 				11FDBF562BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */,
+				11C5C46C2BE5E75600BDFCEE /* animationsCommand.swift in Sources */,
 				11FDBF452BE0A314008C5B3E /* Playlist.swift in Sources */,
 				11C326D829DD41E900B169CD /* top.swift in Sources */,
 				11C6990B2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
@@ -749,7 +770,9 @@
 				11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */,
 				11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */,
 				11C699082A3459B000A79985 /* AudioError.swift in Sources */,
+				11C5C46A2BE5E71100BDFCEE /* creaturesCommand.swift in Sources */,
 				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
+				11C5C46E2BE5F06C00BDFCEE /* soundsCommand.swift in Sources */,
 				11FDBF472BE0A36D008C5B3E /* Joystick.swift in Sources */,
 				11FDBF342BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
 				11FDBF462BE0A317008C5B3E /* PlaylistItem.swift in Sources */,
@@ -758,6 +781,7 @@
 				11FDBF3E2BE0A153008C5B3E /* PlaylistMethods.swift in Sources */,
 				11FDBF422BE0A2D1008C5B3E /* Animation.swift in Sources */,
 				11C699052A34596B00A79985 /* ServerError.swift in Sources */,
+				11C5C4712BE5F12400BDFCEE /* SoundMethods.swift in Sources */,
 				11FDBF432BE0A2D8008C5B3E /* AnimationMetadata.swift in Sources */,
 				11FDBF442BE0A2DC008C5B3E /* FrameData.swift in Sources */,
 			);
