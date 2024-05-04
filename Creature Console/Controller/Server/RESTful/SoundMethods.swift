@@ -21,18 +21,37 @@ extension CreatureServerRestful {
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
 
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                self.logger.debug("return code was \((response as? HTTPURLResponse)?.statusCode ?? 0)")
-                return .failure(.serverError("non-200 return code"))
+            guard let httpResponse = response as? HTTPURLResponse else {
+                self.logger.error("HTTP Error while trying to list the available sounds")
+                return .failure(.serverError("HTTP error while playing a sound"))
             }
 
+            // Woot, make a JSONDecoder and get ready for some fun
+            let decoder = JSONDecoder()
+
             do {
-                let decoder = JSONDecoder()
-                let list = try decoder.decode(SoundListDTO.self, from: data)
+                switch(httpResponse.statusCode) {
 
-                logger.debug("Found \(list.count) items")
+                case 200:
+                    let list = try decoder.decode(SoundListDTO.self, from: data)
+                    logger.debug("Found \(list.count) sounds")
+                    return .success(list.items)
 
-                return .success(list.items)
+                case 404:
+                    let status = try decoder.decode(StatusDTO.self, from: data)
+                    logger.warning("No sounds found on the remote server: \(status.message)")
+                    return .failure(.notFound(status.message))
+
+                case 500:
+                    let status = try decoder.decode(StatusDTO.self, from: data)
+                    logger.error("Server error while trying to get the list of sounds: \(status.message)")
+                    return .failure(.serverError(status.message))
+
+                default:
+                    self.logger.error("unexpected return code from \(url) while attempting to play a sound: \(httpResponse.statusCode)")
+                    return .failure(.serverError("Unexepcted status code while playing sound: \(httpResponse.statusCode)"))
+                }
+
             } catch {
                 return .failure(.serverError(error.localizedDescription))
             }

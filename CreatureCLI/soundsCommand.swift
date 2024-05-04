@@ -8,7 +8,7 @@ extension CreatureCLI {
 
     struct Sounds: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
-            abstract: "Mess with the Creatures",
+            abstract: "Get information on the sound file subsystem",
             subcommands: [List.self, Play.self]
         )
 
