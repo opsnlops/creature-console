@@ -24,7 +24,7 @@ struct CreatureCLI: AsyncParsableCommand {
         abstract: "A utility for interacting with the Creature server.",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
         version: "2.0.0",
-        subcommands: [Animations.self, Creatures.self, Sounds.self],
+        subcommands: [Animations.self, Creatures.self, Sounds.self, Metrics.self],
         helpNames: .shortAndLong
     )
 }
@@ -32,7 +32,7 @@ struct CreatureCLI: AsyncParsableCommand {
 
 
 
-func formatNumber(_ number: UInt32) -> String {
+func formatNumber(_ number: UInt64) -> String {
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
     return formatter.string(from: NSNumber(value: number)) ?? ""

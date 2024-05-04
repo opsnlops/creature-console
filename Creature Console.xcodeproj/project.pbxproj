@@ -27,6 +27,11 @@
 		115B32422A918A9D00E9D583 /* PlaylistItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32412A918A9D00E9D583 /* PlaylistItem.swift */; };
 		115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
+		11615C2C2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */; };
+		11615C2D2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */; };
+		11615C2F2BE6182100F15791 /* ServerMetricsMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */; };
+		11615C302BE6182100F15791 /* ServerMetricsMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */; };
+		11615C322BE6195E00F15791 /* metricsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C312BE6195E00F15791 /* metricsCommand.swift */; };
 		1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */; };
 		1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1168DC982B4F99E000A9895A /* IOKit.framework */; };
 		1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC9A2B4FB2BE00A9895A /* ACWJoystickDebugView.swift */; };
@@ -145,6 +150,9 @@
 		115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrossHacksSettingsView.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
+		11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersDTO.swift; sourceTree = "<group>"; };
+		11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerMetricsMethods.swift; sourceTree = "<group>"; };
+		11615C312BE6195E00F15791 /* metricsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = metricsCommand.swift; sourceTree = "<group>"; };
 		11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Creature ConsoleDebug.entitlements"; sourceTree = "<group>"; };
 		1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AprilsCreatureWorkshopJoystick.swift; sourceTree = "<group>"; };
 		1168DC982B4F99E000A9895A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.2.sdk/System/Library/Frameworks/IOKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -502,6 +510,7 @@
 				11C5C4692BE5E71100BDFCEE /* creaturesCommand.swift */,
 				11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */,
 				11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */,
+				11615C312BE6195E00F15791 /* metricsCommand.swift */,
 			);
 			path = CreatureCLI;
 			sourceTree = "<group>";
@@ -531,6 +540,7 @@
 				11FDBF322BE09792008C5B3E /* CreatureListDTO.swift */,
 				117043552BE4B723000C3626 /* SoundListDTO.swift */,
 				11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */,
+				11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */,
 			);
 			path = DTO;
 			sourceTree = "<group>";
@@ -545,6 +555,7 @@
 				11FDBF3F2BE0A1D5008C5B3E /* StreamingMethods.swift */,
 				11FDBF482BE0A42D008C5B3E /* LogStreamingMethods.swift */,
 				11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */,
+				11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */,
 			);
 			path = RESTful;
 			sourceTree = "<group>";
@@ -683,6 +694,7 @@
 			files = (
 				11FDBF332BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
 				11218E802B67522500AFFF65 /* Joystick.swift in Sources */,
+				11615C2C2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */,
 				11A635FB2BC347F100C38A32 /* SteamFrameData.swift in Sources */,
 				11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */,
 				11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */,
@@ -711,6 +723,7 @@
 				11C5C4732BE5FB4900BDFCEE /* StatusDTO.swift in Sources */,
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
+				11615C2F2BE6182100F15791 /* ServerMetricsMethods.swift in Sources */,
 				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
 				110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */,
 				11C5C4702BE5F12400BDFCEE /* SoundMethods.swift in Sources */,
@@ -770,13 +783,16 @@
 				11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */,
 				11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */,
 				11C699082A3459B000A79985 /* AudioError.swift in Sources */,
+				11615C2D2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */,
 				11C5C46A2BE5E71100BDFCEE /* creaturesCommand.swift in Sources */,
 				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11C5C46E2BE5F06C00BDFCEE /* soundsCommand.swift in Sources */,
 				11FDBF472BE0A36D008C5B3E /* Joystick.swift in Sources */,
 				11FDBF342BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
 				11FDBF462BE0A317008C5B3E /* PlaylistItem.swift in Sources */,
+				11615C302BE6182100F15791 /* ServerMetricsMethods.swift in Sources */,
 				11D612762BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */,
+				11615C322BE6195E00F15791 /* metricsCommand.swift in Sources */,
 				11FDBF382BE09EE5008C5B3E /* CreatureMethods.swift in Sources */,
 				11FDBF3E2BE0A153008C5B3E /* PlaylistMethods.swift in Sources */,
 				11FDBF422BE0A2D1008C5B3E /* Animation.swift in Sources */,
