@@ -18,6 +18,8 @@
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
 		113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
 		113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */; };
+		113CC9B42BE6C90000DF7FF7 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
+		113CC9B52BE6C91D00DF7FF7 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
@@ -191,7 +193,7 @@
 		11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteChartView.swift; sourceTree = "<group>"; };
 		11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLoop.swift; sourceTree = "<group>"; };
 		11C326CF29DD3FED00B169CD /* Credits.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Credits.rtfd; sourceTree = "<group>"; };
-		11C326D529DD41E900B169CD /* CreatureCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CreatureCLI; sourceTree = BUILT_PRODUCTS_DIR; };
+		11C326D529DD41E900B169CD /* creature-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "creature-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11C326D729DD41E900B169CD /* top.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = top.swift; sourceTree = "<group>"; };
 		11C5C4692BE5E71100BDFCEE /* creaturesCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = creaturesCommand.swift; sourceTree = "<group>"; };
 		11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = animationsCommand.swift; sourceTree = "<group>"; };
@@ -337,6 +339,15 @@
 			path = "Voice Processing";
 			sourceTree = "<group>";
 		};
+		113CC9B62BE6EE5F00DF7FF7 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				11C326D629DD41E900B169CD /* CreatureCLI */,
+				11703D8A29DD197F00EF7E3D /* Creature Console */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
@@ -386,9 +397,8 @@
 		11703D7F29DD197F00EF7E3D = {
 			isa = PBXGroup;
 			children = (
+				113CC9B62BE6EE5F00DF7FF7 /* Sources */,
 				118BF86F2A253EF800D80AE6 /* Assets */,
-				11703D8A29DD197F00EF7E3D /* Creature Console */,
-				11C326D629DD41E900B169CD /* CreatureCLI */,
 				11703D8929DD197F00EF7E3D /* Products */,
 				11F1757029DD42D800ADD5FB /* Frameworks */,
 			);
@@ -398,7 +408,7 @@
 			isa = PBXGroup;
 			children = (
 				11703D8829DD197F00EF7E3D /* Creature Console.app */,
-				11C326D529DD41E900B169CD /* CreatureCLI */,
+				11C326D529DD41E900B169CD /* creature-cli */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -630,7 +640,7 @@
 				11F1757729DD42D800ADD5FB /* ArgumentParser */,
 			);
 			productName = CreatureCLI;
-			productReference = 11C326D529DD41E900B169CD /* CreatureCLI */;
+			productReference = 11C326D529DD41E900B169CD /* creature-cli */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -775,6 +785,7 @@
 				11C5C46C2BE5E75600BDFCEE /* animationsCommand.swift in Sources */,
 				11FDBF452BE0A314008C5B3E /* Playlist.swift in Sources */,
 				11C326D829DD41E900B169CD /* top.swift in Sources */,
+				113CC9B52BE6C91D00DF7FF7 /* AudioManager.swift in Sources */,
 				11C6990B2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
 				11FDBF4E2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift in Sources */,
 				117043542BE4AE9D000C3626 /* Sound.swift in Sources */,
@@ -784,6 +795,7 @@
 				11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */,
 				11C699082A3459B000A79985 /* AudioError.swift in Sources */,
 				11615C2D2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */,
+				113CC9B42BE6C90000DF7FF7 /* StorageManager.swift in Sources */,
 				11C5C46A2BE5E71100BDFCEE /* creaturesCommand.swift in Sources */,
 				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11C5C46E2BE5F06C00BDFCEE /* soundsCommand.swift in Sources */,
@@ -1019,6 +1031,7 @@
 		11C326DA29DD41E900B169CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_LOCATION = YES;
@@ -1027,7 +1040,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.creature-cli";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "creature-cli";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -1043,7 +1056,7 @@
 				DSTROOT = build/creaturecli;
 				ENABLE_HARDENED_RUNTIME = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "creature-cli";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
