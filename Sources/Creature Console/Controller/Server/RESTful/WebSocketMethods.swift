@@ -35,12 +35,16 @@ extension CreatureServerRestful {
                     break
                 case .failure(let error):
                     self.logger.error("Websocket received error: \(error)")
+                    print("Websocket received error: \(error)")
                 }
             }, receiveValue: { message in
                 self.logger.debug("Received message: \(message)")
                 NotificationCenter.default.post(name: .didReceiveCommand, object: nil, userInfo: ["message": message])
             })
             .store(in: &cancellables)
+
+        // Start the pinging
+        startPinging()
     }
 
     private func receiveMessages() -> AnyPublisher<String, Error> {
@@ -85,6 +89,39 @@ extension CreatureServerRestful {
         return subject.eraseToAnyPublisher()
     }
 
+    func startPinging() {
+
+        // If there's already a timer, cancel it first
+        stopPinging()
+
+        pingTimer = DispatchSource.makeTimerSource()
+        pingTimer?.schedule(deadline: .now(), repeating: 10) // Adjust interval as needed
+        pingTimer?.setEventHandler { [weak self] in
+            self?.webSocketTask?.sendPing { error in
+                if let error = error {
+                    self?.logger.error("Ping failed with error: \(error)")
+                    print("Ping failed with error: \(error)")
+
+                    // TODO: Decide what to do on error. Most likely reconnect?
+
+
+                    self?.stopPinging()
+                } else {
+                    self?.logger.debug("Ping sent successfully")
+                    print("Ping sent successfully")
+                }
+            }
+        }
+
+        // Start the timer
+        pingTimer?.resume()
+    }
+
+    private func stopPinging() {
+        // Cancel the timer if it's active
+        pingTimer?.cancel()
+        pingTimer = nil
+    }
 
     func sendMessage(_ message: String) async -> Result<String, ServerError> {
         let messageToSend = URLSessionWebSocketTask.Message.string(message)
@@ -108,8 +145,11 @@ extension CreatureServerRestful {
         cancellables.forEach { $0.cancel() }
         cancellables.removeAll()
         self.processor = nil
-    }
 
+        // Stop the ping timer
+        stopPinging()
+    }
+    
 
     private func decodeIncomingMessage(_ message: Data) {
         self.logger.debug("Attempting to decode an incoming message from the websocket")

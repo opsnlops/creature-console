@@ -8,7 +8,10 @@ class CreatureServerRestful : CreatureServerClientProtocol {
     static let shared = CreatureServerRestful()
     var webSocketTask: URLSessionWebSocketTask?
     var cancellables: Set<AnyCancellable> = []
+
+    // WebSocket processing stuff
     var processor: MessageProcessor?
+    var pingTimer: DispatchSourceTimer?
 
     let logger: Logger
     var serverHostname: String = UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
