@@ -24,7 +24,7 @@ struct CreatureCLI: AsyncParsableCommand {
         abstract: "A utility for interacting with the Creature server.",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
         version: "2.0.0",
-        subcommands: [Animations.self, Creatures.self, Sounds.self, Metrics.self],
+        subcommands: [Animations.self, Creatures.self, Sounds.self, Metrics.self, Websocket.self],
         helpNames: .shortAndLong
     )
 }

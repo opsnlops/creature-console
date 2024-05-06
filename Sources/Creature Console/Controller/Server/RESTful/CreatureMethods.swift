@@ -10,7 +10,7 @@ extension CreatureServerRestful {
 
         logger.debug("attempting to get all of the creatures")
 
-        guard let url = URL(string: makeBaseURL() + "/creature") else {
+        guard let url = URL(string: makeBaseURL(.http) + "/creature") else {
             return .failure(.serverError("unable to make base URL"))
         }
         self.logger.debug("Using URL: \(url)")

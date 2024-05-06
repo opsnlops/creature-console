@@ -7,7 +7,6 @@ import OSLog
 struct TopContentView: View {
     
     @EnvironmentObject var appState : AppState
-    @EnvironmentObject var client : CreatureServerClient
     @EnvironmentObject var eventLoop : EventLoop
     
     @StateObject var creatureCache = CreatureCache()
@@ -48,11 +47,11 @@ struct TopContentView: View {
                     } label: {
                         Label("Debug Joystick", systemImage: "gamecontroller")
                     }
-                    NavigationLink {
-                        LogViewView(server: client)
-                    } label: {
-                        Label("Server Logs", systemImage: "server.rack")
-                    }
+                    //NavigationLink {
+                    //    LogViewView(server: client)
+                    //} label: {
+                    //    Label("Server Logs", systemImage: "server.rack")
+                    //}
                     NavigationLink {
                         SettingsView()
                     } label: {

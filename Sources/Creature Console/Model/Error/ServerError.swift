@@ -9,7 +9,9 @@ enum ServerError: Error, LocalizedError {
     case notFound(String)
     case unknownError(String)
     case serverError(String)
+    case websocketError(String)
     case notImplemented(String)
+
 
     var errorDescription: String? {
         switch self {
@@ -20,6 +22,7 @@ enum ServerError: Error, LocalizedError {
              .notFound(let message),
              .unknownError(let message),
              .serverError(let message),
+             .websocketError(let message),
              .notImplemented(let message):
             return message
         }

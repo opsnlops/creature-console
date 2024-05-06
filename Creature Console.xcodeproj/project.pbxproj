@@ -20,6 +20,15 @@
 		113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */; };
 		113CC9B42BE6C90000DF7FF7 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
 		113CC9B52BE6C91D00DF7FF7 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
+		113CC9B82BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */; };
+		113CC9B92BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */; };
+		113CC9BB2BE72C4B00DF7FF7 /* websocketCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9BA2BE72C4B00DF7FF7 /* websocketCommand.swift */; };
+		113CC9C02BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9BF2BE85F8100DF7FF7 /* WebSocketMessageDTO.swift */; };
+		113CC9C12BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9BF2BE85F8100DF7FF7 /* WebSocketMessageDTO.swift */; };
+		113CC9C32BE8643200DF7FF7 /* ServerMessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9C22BE8643200DF7FF7 /* ServerMessageType.swift */; };
+		113CC9C42BE8643200DF7FF7 /* ServerMessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9C22BE8643200DF7FF7 /* ServerMessageType.swift */; };
+		113CC9C72BE86C0000DF7FF7 /* Notice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9C62BE86C0000DF7FF7 /* Notice.swift */; };
+		113CC9C82BE86C0000DF7FF7 /* Notice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9C62BE86C0000DF7FF7 /* Notice.swift */; };
 		1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
@@ -142,6 +151,11 @@
 		113896B42A0768860055BA70 /* AnimationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditor.swift; sourceTree = "<group>"; };
 		113896B82A0CA3B40055BA70 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
 		113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilePicker.swift; sourceTree = "<group>"; };
+		113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketMethods.swift; sourceTree = "<group>"; };
+		113CC9BA2BE72C4B00DF7FF7 /* websocketCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = websocketCommand.swift; sourceTree = "<group>"; };
+		113CC9BF2BE85F8100DF7FF7 /* WebSocketMessageDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketMessageDTO.swift; sourceTree = "<group>"; };
+		113CC9C22BE8643200DF7FF7 /* ServerMessageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerMessageType.swift; sourceTree = "<group>"; };
+		113CC9C62BE86C0000DF7FF7 /* Notice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notice.swift; sourceTree = "<group>"; };
 		1142E65D29DFB1A900B795F0 /* Creature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
 		1142E66329DFC00700B795F0 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
@@ -348,9 +362,18 @@
 			path = Sources;
 			sourceTree = "<group>";
 		};
+		113CC9C52BE86BA900DF7FF7 /* Notice */ = {
+			isa = PBXGroup;
+			children = (
+				113CC9C62BE86C0000DF7FF7 /* Notice.swift */,
+			);
+			path = Notice;
+			sourceTree = "<group>";
+		};
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				113CC9C52BE86BA900DF7FF7 /* Notice */,
 				117043512BE4AE8B000C3626 /* Sound */,
 				11FDBF4F2BE0A791008C5B3E /* ServerLogs */,
 				11FDBF312BE093FC008C5B3E /* DTO */,
@@ -363,6 +386,7 @@
 				110B12602A2491B9002C5585 /* Joystick */,
 				110B125F2A24918C002C5585 /* Audio */,
 				1122A7B62A24440100D60464 /* AppState.swift */,
+				113CC9C22BE8643200DF7FF7 /* ServerMessageType.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -521,6 +545,7 @@
 				11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */,
 				11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */,
 				11615C312BE6195E00F15791 /* metricsCommand.swift */,
+				113CC9BA2BE72C4B00DF7FF7 /* websocketCommand.swift */,
 			);
 			path = CreatureCLI;
 			sourceTree = "<group>";
@@ -551,6 +576,7 @@
 				117043552BE4B723000C3626 /* SoundListDTO.swift */,
 				11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */,
 				11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */,
+				113CC9BF2BE85F8100DF7FF7 /* WebSocketMessageDTO.swift */,
 			);
 			path = DTO;
 			sourceTree = "<group>";
@@ -566,6 +592,7 @@
 				11FDBF482BE0A42D008C5B3E /* LogStreamingMethods.swift */,
 				11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */,
 				11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */,
+				113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */,
 			);
 			path = RESTful;
 			sourceTree = "<group>";
@@ -702,6 +729,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				113CC9C32BE8643200DF7FF7 /* ServerMessageType.swift in Sources */,
 				11FDBF332BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
 				11218E802B67522500AFFF65 /* Joystick.swift in Sources */,
 				11615C2C2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */,
@@ -730,6 +758,7 @@
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */,
 				11C6990A2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
+				113CC9B82BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */,
 				11C5C4732BE5FB4900BDFCEE /* StatusDTO.swift in Sources */,
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
@@ -757,6 +786,7 @@
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
 				11B4821329E24F9000767E22 /* CreatureCache.swift in Sources */,
 				1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */,
+				113CC9C72BE86C0000DF7FF7 /* Notice.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
 				11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */,
 				11ED919C2A917E01000756BF /* PlaylistErrors.swift in Sources */,
@@ -770,6 +800,7 @@
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
 				11FDBF492BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */,
 				11FDBF3D2BE0A153008C5B3E /* PlaylistMethods.swift in Sources */,
+				113CC9C02BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -777,6 +808,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				113CC9C42BE8643200DF7FF7 /* ServerMessageType.swift in Sources */,
 				11FDBF4A2BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */,
 				117043572BE4B723000C3626 /* SoundListDTO.swift in Sources */,
 				11FDBF3B2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */,
@@ -792,6 +824,7 @@
 				11FDBF522BE0A7A6008C5B3E /* ServerLogItem.swift in Sources */,
 				11FDBF412BE0A1D5008C5B3E /* StreamingMethods.swift in Sources */,
 				11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */,
+				113CC9C12BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */,
 				11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */,
 				11C699082A3459B000A79985 /* AudioError.swift in Sources */,
 				11615C2D2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */,
@@ -800,11 +833,14 @@
 				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11C5C46E2BE5F06C00BDFCEE /* soundsCommand.swift in Sources */,
 				11FDBF472BE0A36D008C5B3E /* Joystick.swift in Sources */,
+				113CC9C82BE86C0000DF7FF7 /* Notice.swift in Sources */,
+				113CC9BB2BE72C4B00DF7FF7 /* websocketCommand.swift in Sources */,
 				11FDBF342BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
 				11FDBF462BE0A317008C5B3E /* PlaylistItem.swift in Sources */,
 				11615C302BE6182100F15791 /* ServerMetricsMethods.swift in Sources */,
 				11D612762BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */,
 				11615C322BE6195E00F15791 /* metricsCommand.swift in Sources */,
+				113CC9B92BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */,
 				11FDBF382BE09EE5008C5B3E /* CreatureMethods.swift in Sources */,
 				11FDBF3E2BE0A153008C5B3E /* PlaylistMethods.swift in Sources */,
 				11FDBF422BE0A2D1008C5B3E /* Animation.swift in Sources */,

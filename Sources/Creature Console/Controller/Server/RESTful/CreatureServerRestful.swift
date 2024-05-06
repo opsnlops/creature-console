@@ -1,10 +1,13 @@
 
+import Combine
 import Foundation
 import OSLog
 
 class CreatureServerRestful : CreatureServerClientProtocol {
 
     static let shared = CreatureServerRestful()
+    var webSocketTask: URLSessionWebSocketTask?
+    var cancellables: Set<AnyCancellable> = []
 
     let logger: Logger
     var serverHostname: String = UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
@@ -12,14 +15,32 @@ class CreatureServerRestful : CreatureServerClientProtocol {
     var useTLS: Bool = UserDefaults.standard.bool(forKey: "serverUseTLS")
 
 
+    enum UrlType {
+        case http
+        case websocket
+    }
+
 
     init() {
         self.logger = Logger(subsystem: "io.opsnlops.CreatureController", category: "CreatureServerRestful")
         self.logger.info("Created new CreatureServerRestful")
     }
 
-    func makeBaseURL() -> String {
-        let prefix: String = useTLS ? "https://" : "http://"
+    /**
+     Returns the URL to our server
+
+     @param type Which type of URL to make (http or websocket)
+     */
+    func makeBaseURL(_ type: UrlType) -> String {
+
+        var prefix: String
+        switch(type) {
+        case(.http):
+            prefix = useTLS ? "https://" : "http://"
+        case(.websocket):
+            prefix = useTLS ? "wss://" : "ws://"
+        }
+
         return "\(prefix)\(serverHostname):\(serverPort)/api/v1"
     }
 
@@ -46,4 +67,18 @@ class CreatureServerRestful : CreatureServerClientProtocol {
         return string.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
     }
 
+
+    /**
+     Print out dates in my local time zone
+     */
+    func formatToLocalTime(_ date: Date) -> String {
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss ZZZZ"
+
+        // Set the formatter's time zone to the system's current local time zone
+        formatter.timeZone = TimeZone.current
+
+        return formatter.string(from: date)
+    }
 }

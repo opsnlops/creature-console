@@ -7,7 +7,7 @@ extension CreatureCLI {
     
     struct Animations: AsyncParsableCommand {
          static var configuration = CommandConfiguration(
-             abstract: "Commands related to animations.",
+             abstract: "View and work with animations",
              subcommands: [List.self]
          )
 

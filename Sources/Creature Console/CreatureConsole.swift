@@ -62,7 +62,6 @@ struct CreatureConsole: App {
     var body: some Scene {
         WindowGroup {
             TopContentView()
-                .environmentObject(CreatureServerClient.shared)
                 .environmentObject(eventLoop)
                 .environmentObject(audioManager)
                 .environmentObject(appState)
@@ -71,7 +70,7 @@ struct CreatureConsole: App {
 #if os(macOS)
         DebugJoystickScene(joystick: eventLoop.sixAxisJoystick)
         ACWDebugJoystickScene(joystick: eventLoop.acwJoystick)
-        LogViewScene(server: CreatureServerClient.shared)
+        //LogViewScene(server: CreatureServerClient.shared)
         Settings {
             SettingsView()
         }

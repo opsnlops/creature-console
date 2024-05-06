@@ -13,7 +13,7 @@ extension CreatureServerRestful {
 
         logger.debug("attempting to get all of the creatures")
 
-        guard let url = URL(string: makeBaseURL() + "/sound") else {
+        guard let url = URL(string: makeBaseURL(.http) + "/sound") else {
             return .failure(.serverError("unable to make base URL"))
         }
         self.logger.debug("Using URL: \(url)")
@@ -74,7 +74,7 @@ extension CreatureServerRestful {
         self.logger.debug("encoded filename: \(soundFileName)")
 
         // Construct the URL
-        guard let url = URL(string: makeBaseURL() + "/sound/play/\(soundFileName)") else {
+        guard let url = URL(string: makeBaseURL(.http) + "/sound/play/\(soundFileName)") else {
             return .failure(.serverError("unable to make base URL"))
         }
         self.logger.debug("Using URL: \(url)")
