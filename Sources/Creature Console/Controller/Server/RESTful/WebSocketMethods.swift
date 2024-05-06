@@ -14,7 +14,14 @@ extension Notification.Name {
 extension CreatureServerRestful {
 
 
-    func connectWebsocket() {
+    /**
+     Connect to the websocket, using the following processor
+     */
+    func connectWebsocket(processor: MessageProcessor) {
+
+        // Set the message processor to the one we just got
+        self.processor = processor
+
         guard let url = URL(string: makeBaseURL(.websocket) + "/websocket") else { return }
         print(url)
         let session = URLSession(configuration: .default)
@@ -100,12 +107,12 @@ extension CreatureServerRestful {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         cancellables.forEach { $0.cancel() }
         cancellables.removeAll()
+        self.processor = nil
     }
 
 
     private func decodeIncomingMessage(_ message: Data) {
-        let logger = Logger() // Replace with your actual logger instance
-        logger.debug("Attempting to decode an incoming message from the websocket")
+        self.logger.debug("Attempting to decode an incoming message from the websocket")
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601  // Set to ISO 8601 strategy
@@ -119,33 +126,39 @@ extension CreatureServerRestful {
 
             // Call specific handlers based on the message type
             switch messageType {
+
+
             case .notice:
                 if case .notice(let notice) = incoming.payload {
-                    print("[NOTICE] [\(formatToLocalTime(notice.timestamp))] \(notice.message)")
+                    processor?.processNotice(notice)
                 } else {
-                    print("Decoding as Notice failed")
+                    self.logger.warning("Decoding a notice failed")
                 }
+
 
             case .logging:
                 if case .log(let logItem) = incoming.payload {
-                    print("[LOG] [\(formatToLocalTime(logItem.timestamp))] [\(logItem.level)] \(logItem.message)")
+                    processor?.processLog(logItem)
                 } else {
-                    print("Decoding as Log failed")
+                    self.logger.warning("Decoding as Log failed")
                 }
+
 
             case .serverCounters:
                 if case .serverCounters(let counters) = incoming.payload {
-                    print("[COUNTERS] Server is on frame \(counters.totalFrames)")
+                    processor?.processSystemCounters(counters)
                 } else {
-                    print("Decoding as counters")
+                    self.logger.warning("Decoding a serverCounters message failed")
                 }
 
+
+
             default:
-                print("Unknown message type: \(incoming.command)")
+                self.logger.warning("Unknown message type: \(incoming.command)")
             }
 
         } catch {
-            print("Error decoding message: \(error.localizedDescription)")
+            self.logger.error("Error decoding message: \(error.localizedDescription)")
         }
     }
 

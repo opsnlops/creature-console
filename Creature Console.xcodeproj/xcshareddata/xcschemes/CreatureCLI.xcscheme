@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "11C326D429DD41E900B169CD"
-               BuildableName = "CreatureCLI"
+               BuildableName = "creature-cli"
                BlueprintName = "CreatureCLI"
                ReferencedContainer = "container:Creature Console.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "11C326D429DD41E900B169CD"
-            BuildableName = "CreatureCLI"
+            BuildableName = "creature-cli"
             BlueprintName = "CreatureCLI"
             ReferencedContainer = "container:Creature Console.xcodeproj">
          </BuildableReference>
@@ -67,7 +67,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "11C326D429DD41E900B169CD"
-            BuildableName = "CreatureCLI"
+            BuildableName = "creature-cli"
             BlueprintName = "CreatureCLI"
             ReferencedContainer = "container:Creature Console.xcodeproj">
          </BuildableReference>

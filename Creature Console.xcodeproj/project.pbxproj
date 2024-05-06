@@ -92,6 +92,11 @@
 		11D612752BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */; };
 		11D612762BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */; };
 		11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ED919B2A917E01000756BF /* PlaylistErrors.swift */; };
+		11E438C82BE88729008D4068 /* MessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E438C72BE88729008D4068 /* MessageProcessor.swift */; };
+		11E438C92BE88729008D4068 /* MessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E438C72BE88729008D4068 /* MessageProcessor.swift */; };
+		11E438CB2BE888A1008D4068 /* CLIMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E438CA2BE888A1008D4068 /* CLIMessageProcessor.swift */; };
+		11E438CC2BE88B1F008D4068 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
+		11E438CD2BE88B21008D4068 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
 		11E4E51E2BB53038007C6525 /* TestSwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E4E51D2BB53038007C6525 /* TestSwiftUIView.swift */; };
 		11ED919C2A917E01000756BF /* PlaylistErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ED919B2A917E01000756BF /* PlaylistErrors.swift */; };
 		11F1757829DD42D800ADD5FB /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757729DD42D800ADD5FB /* ArgumentParser */; };
@@ -219,6 +224,8 @@
 		11C699092A34FFC500A79985 /* AnimationErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationErrors.swift; sourceTree = "<group>"; };
 		11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerRestful.swift; sourceTree = "<group>"; };
 		11DD93B229E666D200089EC6 /* StreamJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamJoystick.swift; sourceTree = "<group>"; };
+		11E438C72BE88729008D4068 /* MessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageProcessor.swift; sourceTree = "<group>"; };
+		11E438CA2BE888A1008D4068 /* CLIMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIMessageProcessor.swift; sourceTree = "<group>"; };
 		11E4E51D2BB53038007C6525 /* TestSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSwiftUIView.swift; sourceTree = "<group>"; };
 		11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
 		11ED91992A917D66000756BF /* Playlists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlists.swift; sourceTree = "<group>"; };
@@ -546,6 +553,7 @@
 				11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */,
 				11615C312BE6195E00F15791 /* metricsCommand.swift */,
 				113CC9BA2BE72C4B00DF7FF7 /* websocketCommand.swift */,
+				11E438CA2BE888A1008D4068 /* CLIMessageProcessor.swift */,
 			);
 			path = CreatureCLI;
 			sourceTree = "<group>";
@@ -593,6 +601,7 @@
 				11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */,
 				11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */,
 				113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */,
+				11E438C72BE88729008D4068 /* MessageProcessor.swift */,
 			);
 			path = RESTful;
 			sourceTree = "<group>";
@@ -763,9 +772,11 @@
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
 				11615C2F2BE6182100F15791 /* ServerMetricsMethods.swift in Sources */,
+				11E438C82BE88729008D4068 /* MessageProcessor.swift in Sources */,
 				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
 				110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */,
 				11C5C4702BE5F12400BDFCEE /* SoundMethods.swift in Sources */,
+				11E438CD2BE88B21008D4068 /* TimeHelper.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
@@ -813,6 +824,7 @@
 				117043572BE4B723000C3626 /* SoundListDTO.swift in Sources */,
 				11FDBF3B2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */,
 				11C5C4742BE5FB4900BDFCEE /* StatusDTO.swift in Sources */,
+				11E438CC2BE88B1F008D4068 /* TimeHelper.swift in Sources */,
 				11FDBF562BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */,
 				11C5C46C2BE5E75600BDFCEE /* animationsCommand.swift in Sources */,
 				11FDBF452BE0A314008C5B3E /* Playlist.swift in Sources */,
@@ -826,6 +838,7 @@
 				11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */,
 				113CC9C12BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */,
 				11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */,
+				11E438C92BE88729008D4068 /* MessageProcessor.swift in Sources */,
 				11C699082A3459B000A79985 /* AudioError.swift in Sources */,
 				11615C2D2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */,
 				113CC9B42BE6C90000DF7FF7 /* StorageManager.swift in Sources */,
@@ -836,6 +849,7 @@
 				113CC9C82BE86C0000DF7FF7 /* Notice.swift in Sources */,
 				113CC9BB2BE72C4B00DF7FF7 /* websocketCommand.swift in Sources */,
 				11FDBF342BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
+				11E438CB2BE888A1008D4068 /* CLIMessageProcessor.swift in Sources */,
 				11FDBF462BE0A317008C5B3E /* PlaylistItem.swift in Sources */,
 				11615C302BE6182100F15791 /* ServerMetricsMethods.swift in Sources */,
 				11D612762BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */,
