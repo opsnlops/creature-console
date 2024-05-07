@@ -6,8 +6,7 @@ import SwiftUI
 
 class SoundDataProcessor : ObservableObject {
     
-    @EnvironmentObject var client: CreatureServerClient
-    @EnvironmentObject var appState : AppState
+    let appState = AppState.shared
     
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundDataProcessor")
 

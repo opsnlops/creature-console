@@ -10,7 +10,7 @@ struct AnimationWaveformEditor: View {
         if let a = animation {
             let allAxes = processAnimationData(a)
             VStack {
-                //Text(animation.metadata.title)
+                Text(a.metadata.title)
                 ForEach(allAxes.indices, id: \.self) { i in
                     HStack {
                         Text("Motor \(i)")
@@ -24,16 +24,18 @@ struct AnimationWaveformEditor: View {
     
     
     private func processAnimationData(_ animation: Animation) -> [[UInt8]] {
-        var allAxes: [[UInt8]] = Array(repeating: [], count: Int(animation.metadata.numberOfMotors))
+//        var allAxes: [[UInt8]] = Array(repeating: [], count: Int(animation.metadata.numberOfMotors))
+//
+//        for i in 0..<animation.numberOfFrames {
+//            let f = animation.frames[Int(i)].motorBytes
+//            for j in 0..<Int(animation.metadata.numberOfMotors) {
+//                allAxes[j].append(f[j])
+//            }
+//        }
+//
+//        return allAxes
 
-        for i in 0..<animation.numberOfFrames {
-            let f = animation.frames[Int(i)].motorBytes
-            for j in 0..<Int(animation.metadata.numberOfMotors) {
-                allAxes[j].append(f[j])
-            }
-        }
-
-        return allAxes
+        return [[2], [3]]
     }
 }
 

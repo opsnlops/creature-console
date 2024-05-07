@@ -4,7 +4,8 @@ import OSLog
 
 struct CategoryList: View {
     
-    @EnvironmentObject var client: CreatureServerClient
+    let server = CreatureServerClient.shared
+
     @ObservedObject var creature: Creature
     @State var animationMetas : [AnimationMetadata]?
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationCategory")
@@ -55,7 +56,7 @@ struct CategoryList: View {
         loadDataTask = Task {
             // Go load the animations
             let pValue = creature.type.protobufValue
-            let result = await client.listAnimations(creatureType: pValue)
+            let result = await server.listAnimations(creatureType: pValue)
             logger.debug("got it")
             
             switch(result) {
@@ -75,6 +76,5 @@ struct CategoryList: View {
 struct CategoryList_Previews: PreviewProvider {
     static var previews: some View {
         CategoryList(creature: .mock())
-            .environmentObject(CreatureServerClient.mock())
     }
 }

@@ -3,7 +3,7 @@ import Foundation
 import OSLog
 
 
-extension CreatureServerRestful {
+extension CreatureServerClient {
 
     
     func getAllCreatures() async -> Result<[Creature], ServerError> {
@@ -63,8 +63,9 @@ extension CreatureServerRestful {
         return .failure(.notImplemented("This function is not yet implemented"))
     }
 
-    func getCreature(creatureId: Data) async throws -> Result<Creature, ServerError> {
+    func getCreature(creatureId: CreatureIdentifier) async throws -> Result<Creature, ServerError> {
         return .failure(.notImplemented("This function is not yet implemented"))
     }
+
 
 }

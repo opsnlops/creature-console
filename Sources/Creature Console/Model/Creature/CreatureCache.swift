@@ -17,7 +17,7 @@ class CreatureCache : ObservableObject {
         creatures = []
     }
     
-    func getById(id: Data) -> Creature {
+    func getById(id: CreatureIdentifier) -> Creature {
         for c in creatures {
             if c.id == id {
                 return c

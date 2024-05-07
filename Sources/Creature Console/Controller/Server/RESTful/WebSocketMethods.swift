@@ -11,7 +11,7 @@ extension Notification.Name {
 
 
 
-extension CreatureServerRestful {
+extension CreatureServerClient {
 
 
     /**

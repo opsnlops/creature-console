@@ -50,7 +50,7 @@ struct ACWJoystickDebugView: View {
 
 struct ACWJoystickDebugView_Previews: PreviewProvider {
     static var previews: some View {
-        ACWJoystickDebugView(joystick: AprilsCreatureWorkshopJoystick.mock(appState: .mock()))
+        ACWJoystickDebugView(joystick: AprilsCreatureWorkshopJoystick.mock())
     }
 }
 

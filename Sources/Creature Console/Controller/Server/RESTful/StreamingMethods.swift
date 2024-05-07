@@ -3,9 +3,9 @@ import Foundation
 import OSLog
 
 
-extension CreatureServerRestful {
+extension CreatureServerClient {
 
-    func streamJoystick(joystick: Joystick, creature: Creature, universe: UInt32) async throws {
+    func streamJoystick(joystick: Joystick, creature: Creature, universe: UniverseIdentifier) async throws {
 
     }
 

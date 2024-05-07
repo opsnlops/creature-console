@@ -5,6 +5,10 @@ import OSLog
 
 
 class AudioManager: ObservableObject {
+
+    // Only one of these can / should exist, so let's use the Singleton pattern
+    static let shared = AudioManager()
+
     private var audioPlayer: AVAudioPlayer?
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager")
     
@@ -16,8 +20,9 @@ class AudioManager: ObservableObject {
         }
     }
     
-    init() {
-        
+    // This is private to make it impossible to make more tha one
+    private init() {
+
         self.volume = UserDefaults.standard.float(forKey: "audioVolume")
         
 #if os(iOS)
@@ -32,14 +37,14 @@ class AudioManager: ObservableObject {
 
     
     
-    func play(url: URL) async throws {
+    func play(url: URL) async -> Result<String, AudioError> {
         logger.info("Attempting to play \(url)")
 
         // Check if the file exists at the given URL
         let fileManager = FileManager.default
         guard fileManager.fileExists(atPath: url.path) else {
             logger.error("File not found at URL: \(url)")
-            throw AudioError.fileNotFound("🔎 File not found at URL: \(url)")
+            return .failure(.fileNotFound("🔎 File not found at URL: \(url)"))
         }
 
         // Begin accessing a security-scoped resource.
@@ -53,20 +58,23 @@ class AudioManager: ObservableObject {
                 // Instead of immediately playing, wait for audioPlayer to be prepared to play
                 guard self.audioPlayer?.prepareToPlay() ?? false else {
                     logger.error("AVAudioPlayer failed to prepare.")
-                    throw AudioError.systemError("🔇 AVAudioPlayer failed to prepare.")
+                    return .failure(.systemError("🔇 AVAudioPlayer failed to prepare."))
                 }
                 self.audioPlayer?.play()
                 
                 // Assuming you want to wait for the audio to finish playing:
                 //await waitForAudioToEnd()
             } catch {
-                logger.error("Failed to initialize AVAudioPlayer: \(error)")
-                throw AudioError.systemError("🔇 Failed to initialize AVAudioPlayer: \(error)")
+                logger.error("Failed to initialize AVAudioPlayer: \(error.localizedDescription)")
+                return .failure(.systemError("🔇 Failed to initialize AVAudioPlayer: \(error.localizedDescription)"))
             }
         } else {
             logger.error("Couldn't access the security scoped resource.")
-            throw AudioError.fileNotFound("🚫 Couldn't access the security scoped resource.")
+            return .failure(.fileNotFound("🚫 Couldn't access the security scoped resource."))
         }
+
+        self.logger.debug("Played \(url) successfuly!")
+        return .success("🎼 Played \(url)!")
     }
 
     func playBundledSound(name: String, extension: String) -> Result<String, AudioError> {
@@ -92,30 +100,3 @@ class AudioManager: ObservableObject {
     }
 }
 
-
-
-extension AudioManager {
-    static func mock() -> AudioManager {
-        let mock = Mock()
-        mock.volume = 0.5
-        return mock
-    }
-    
-    private class Mock: AudioManager {
-        override func play(url: URL) async throws {
-            // Do nothing in mock
-            logger.info("MockAudioManager play called with \(url)")
-        }
-        
-        override func playBundledSound(name: String, extension: String) -> Result<String, AudioError> {
-            // Do nothing in mock
-            logger.info("MockAudioManager playBundledSound called with \(name)")
-            return .success("MockAudioManager playBundledSound called with \(name)")
-        }
-
-        override func pause() {
-            // Do nothing in mock
-            logger.info("MockAudioManager pause called")
-        }
-    }
-}

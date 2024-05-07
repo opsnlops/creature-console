@@ -14,15 +14,15 @@ protocol CreatureServerClientProtocol: AnyObject {
     func close() throws
     func getHostname() -> String
     func streamLogs(queue: BlockingThreadSafeQueue<ServerLogItem>) async
-    func streamJoystick(joystick: Joystick, creature: Creature, universe: UInt32) async throws
+    func streamJoystick(joystick: Joystick, creature: Creature, universe: UniverseIdentifier) async throws
     func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError>
-    func getCreature(creatureId: Data) async throws -> Result<Creature, ServerError>
+    func getCreature(creatureId: CreatureIdentifier) async throws -> Result<Creature, ServerError>
     func getAllCreatures() async -> Result<[Creature], ServerError>
     func createAnimation(animation: Animation) async -> Result<String, ServerError>
-    func listAnimations(creature: Creature) async -> Result<[AnimationMetadata], ServerError>
-    func getAnimation(animationId: Data) async -> Result<Animation, ServerError>
-    func stopPlayingPlayist(universe: UInt32) async throws -> Result<String, ServerError>
-    func getPlaylist(playistId: Data) async throws -> Result<Playlist, ServerError>
-    func startPlayingPlaylist(universe: UInt32, playlistId: Data) async throws -> Result<String, ServerError>
+    func listAnimations(creature: CreatureIdentifier) async -> Result<[AnimationMetadata], ServerError>
+    func getAnimation(animationId: PlaylistIdentifier) async -> Result<Animation, ServerError>
+    func stopPlayingPlaylist(universe: UniverseIdentifier) async throws -> Result<String, ServerError>
+    func getPlaylist(playistId: PlaylistIdentifier) async throws -> Result<Playlist, ServerError>
+    func startPlayingPlaylist(universe: UniverseIdentifier, playlistId: PlaylistIdentifier) async throws -> Result<String, ServerError>
 
 }

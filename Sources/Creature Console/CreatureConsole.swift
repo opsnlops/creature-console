@@ -2,12 +2,13 @@
 import SwiftUI
 import OSLog
 
+
 @main
 struct CreatureConsole: App {
-    
-    var eventLoop : EventLoop
-    var appState = AppState()
-    var audioManager = AudioManager()
+
+    let appState = AppState.shared
+    let eventLoop = EventLoop.shared
+    let audioManager = AudioManager.shared
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
@@ -40,16 +41,14 @@ struct CreatureConsole: App {
         channelAxisMapping.registerDefaultMappingsAndNames()
         
         
-        self.eventLoop = EventLoop(appState: appState)
-        self.eventLoop.audioManager = audioManager
+        // Make sure the appState is good
+        appState.currentActivity = .idle
         
         // Init the joystick
         registerJoystickHandlers(eventLoop: self.eventLoop)
         
         // Connect to the server
         do {
-            CreatureServerClient.shared.appState = appState
-            CreatureServerClient.shared.audioManager = audioManager
             try CreatureServerClient.shared.connect(serverHostname: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1",
                                                     serverPort: UserDefaults.standard.integer(forKey: "serverPort"))
             logger.info("connected to server")
@@ -62,9 +61,6 @@ struct CreatureConsole: App {
     var body: some Scene {
         WindowGroup {
             TopContentView()
-                .environmentObject(eventLoop)
-                .environmentObject(audioManager)
-                .environmentObject(appState)
         }
         
 #if os(macOS)

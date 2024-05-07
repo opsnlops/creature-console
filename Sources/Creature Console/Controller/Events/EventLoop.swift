@@ -14,11 +14,18 @@ import SwiftUI
  
  */
 class EventLoop : ObservableObject {
+    
+    // Make a singleton out of this
+    static let shared = EventLoop()
+
     private var timer: DispatchSourceTimer?
     private(set) var number_of_frames : Int64 = 0
     
-    var appState : AppState
-    
+    // Use the other Singletons
+    let appState = AppState.shared
+    let audioManager  = AudioManager.shared
+    let creatureManager = CreatureManager.shared
+
     @Published var frameIdleTime: Double
     
     /**
@@ -42,8 +49,7 @@ class EventLoop : ObservableObject {
     // If we've got an animation loaded, keep track of it
     var animation : Animation?
     var isRecording = false
-    
-    var audioManager : AudioManager?
+
     @AppStorage("audioFilePath") var audioFilePath: String = ""
     
     /**
@@ -59,11 +65,10 @@ class EventLoop : ObservableObject {
     /**
      Start up all of the things
      */
-    init(appState: AppState) {
-        self.appState = appState
-        self.sixAxisJoystick = SixAxisJoystick(appState: appState)
+    init() {
+        self.sixAxisJoystick = SixAxisJoystick()
         #if os(macOS)
-        self.acwJoystick = AprilsCreatureWorkshopJoystick(appState: appState, vendorID: 0x0666, productID: 0x0001)
+        self.acwJoystick = AprilsCreatureWorkshopJoystick(vendorID: 0x0666, productID: 0x0001)
         #endif
         self.millisecondPerFrame = UserDefaults.standard.integer(forKey: "eventLoopMillisecondsPerFrame")
         self.logSpareTimeFrameInterval = UserDefaults.standard.integer(forKey: "logSpareTimeFrameInterval")
@@ -89,10 +94,10 @@ class EventLoop : ObservableObject {
     
     
     func recordNewAnimation(metadata: AnimationMetadata) {
-        animation = Animation(id: DataHelper.generateRandomData(byteCount: 24),
+        animation = Animation(id: DataHelper.generateRandomId(),
                               metadata: metadata,
-                              frames: [])
-        
+                              frameData: [])
+
         // Set our state to recording
         DispatchQueue.main.async {
             self.appState.currentActivity = .recording
@@ -104,8 +109,12 @@ class EventLoop : ObservableObject {
             // See if it's a valid url
             if let url = URL(string: audioFilePath + metadata.soundFile) {
                 
-                logger.info("audiofile URL is \(url)")
-                _ = audioManager?.play(url: url)
+                do {
+                    logger.info("audiofile URL is \(url)")
+                    Task {
+                        await audioManager.play(url: url)
+                    }
+                }
             }
             else {
                 logger.warning("audioFile URL doesn't exist: \(self.audioFilePath + metadata.soundFile)")
@@ -148,7 +157,9 @@ class EventLoop : ObservableObject {
        
         // If we are recording, grab the data now
         if( isRecording ) {
-            animation?.addFrame(frames: joystick.getValues())
+            Task {
+                await creatureManager.grabFrame()
+            }
         }
         
         
@@ -232,7 +243,7 @@ class EventLoop : ObservableObject {
 
 extension EventLoop {
     static func mock() -> EventLoop {
-        let mockEventLoop = EventLoop(appState: .mock())
+        let mockEventLoop = EventLoop()
         mockEventLoop.millisecondPerFrame = 50
         mockEventLoop.logSpareTimeFrameInterval = 100
         mockEventLoop.frameIdleTime = 100.0
@@ -240,7 +251,7 @@ extension EventLoop {
         // Configure the mock joystick if needed
         mockEventLoop.sixAxisJoystick = .mock()
 #if os(macOS)
-        mockEventLoop.acwJoystick = .mock(appState: .mock())
+        mockEventLoop.acwJoystick = .mock()
 #endif
 
         // Configure the mock animation if needed

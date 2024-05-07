@@ -2,15 +2,17 @@
 import Foundation
 
 /**
- This is an implementation of the "Animation 2.0" spec in our protobufs
- */
-class Animation: Hashable, Equatable {
+ One full animation that has frame data!
 
-    var id: Data
+ Most of the time we just use the Metadata
+ */
+class Animation: Hashable, Equatable, Identifiable {
+
+    var id: String
     var metadata: AnimationMetadata
     var frameData: [FrameData]?
     
-    init(id: Data, metadata: AnimationMetadata, frameData: [FrameData]?) {
+    init(id: String, metadata: AnimationMetadata, frameData: [FrameData]?) {
         self.id = id
         self.metadata = metadata
         self.frameData = frameData
@@ -34,7 +36,7 @@ class Animation: Hashable, Equatable {
 extension Animation {
     static func mock() -> Animation {
 
-        let id = DataHelper.generateRandomData(byteCount: 12)
+        let id = DataHelper.generateRandomId()
         let metadata = AnimationMetadata.mock()
         let frameData = (0..<5).map { _ in FrameData.mock() }
         

@@ -54,7 +54,7 @@ class SixAxisJoystick : ObservableObject, Joystick {
     @Published var xButtonPressed = false
     @Published var yButtonPressed = false
     
-    var appState : AppState
+    let appState = AppState.shared
     var controller : GCController?
     let objectWillChange = ObservableObjectPublisher()
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SixAxisJoystick")
@@ -71,9 +71,8 @@ class SixAxisJoystick : ObservableObject, Joystick {
         controller?.vendorName ?? "🎮"
     }
     
-    init(appState: AppState) {
+    init() {
         self.axises = []
-        self.appState = appState
         
         for _ in 0...5 {
             self.axises.append(Axis())
@@ -256,7 +255,7 @@ extension AppState.Activity {
 
 extension SixAxisJoystick {
     static func mock() -> SixAxisJoystick {
-        let joystick = SixAxisJoystick(appState: .mock())
+        let joystick = SixAxisJoystick()
         
         for axis in joystick.axises {
             axis.value = UInt8(arc4random_uniform(UInt32(UInt8.max)))

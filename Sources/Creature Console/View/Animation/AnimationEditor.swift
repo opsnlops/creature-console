@@ -6,12 +6,17 @@ import OSLog
 // This is the main animation editor for all of the Animations
 struct AnimationEditor: View {
     
-    var animationId: Data?
-    
-    @EnvironmentObject var client: CreatureServerClient
-    @EnvironmentObject var appState : AppState
-    @EnvironmentObject var eventLoop : EventLoop
-    
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationEditor")
+
+    @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
+
+    let server = CreatureServerClient.shared
+    let appState = AppState.shared
+    let eventLoop = EventLoop.shared
+    let creatureManager = CreatureManager.shared
+
+    var animationId: AnimationIdentifier?
+
     @State var creature : Creature
     @State var animation : Animation?
     
@@ -19,7 +24,7 @@ struct AnimationEditor: View {
     @State private var errorMessage: String = ""
     
     
-    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationEditor")
+
     
     @State private var title : String = ""
     @State private var notes : String = ""
@@ -114,7 +119,7 @@ struct AnimationEditor: View {
     
     func updateAnimationNotes(newValue: String) {
         if let _ = animation {
-            animation?.metadata.notes = newValue
+            animation?.metadata.note = newValue
         }
     }
     
@@ -128,14 +133,14 @@ struct AnimationEditor: View {
         Task {
             
             if let idToFetch = animationId {
-                let result = await client.getAnimation(animationId: idToFetch)
-                
+                let result = await server.getAnimation(animationId: idToFetch)
+
                 switch(result) {
                 case .success(let data):
                     logger.debug("Sucessfully loaded the data!")
                     self.animation = data
                     title = data.metadata.title
-                    notes = data.metadata.notes
+                    notes = data.metadata.note
                     soundFile = data.metadata.soundFile
                 case .failure(let error):
                      
@@ -156,10 +161,12 @@ struct AnimationEditor: View {
         Task {
             if let a = animation {
                 
-                do {
-                    try await client.playAnimationLocally(animation: a, creature: creature)
-                } catch {
-                    logger.error("Unable to play animation: \(error.localizedDescription)")
+                let result =  await creatureManager.playAnimationLocally(animation: a, universe: activeUniverse)
+                switch(result) {
+                case (.failure(var message)):
+                    logger.error("Unable to play animation: \(message))")
+                default:
+                    break
                 }
             }
         }
@@ -174,8 +181,8 @@ struct AnimationEditor: View {
         Task {
             if let a = animation {
                 
-                let result = await client.updateAnimation(animationToUpdate: a)
-    
+                let result = await server.createAnimation(animation: a)
+
                 switch(result) {
                 case .success(let data):
                     savingMessage = data
@@ -220,11 +227,9 @@ extension Binding {
 struct AnimationEditor_Previews: PreviewProvider {
 
     static var previews: some View {
-        AnimationEditor(animationId: DataHelper.generateRandomData(byteCount: 12),
+        AnimationEditor(animationId: DataHelper.generateRandomId(),
                         creature: .mock(),
                         animation: .mock()
                         )
-        .environmentObject(EventLoop.mock())
-        .environmentObject(CreatureServerClient.mock())
     }
 }

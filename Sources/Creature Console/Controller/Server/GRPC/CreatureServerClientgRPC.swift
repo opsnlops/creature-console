@@ -10,7 +10,7 @@ import SwiftProtobuf
 
 
 
-class CreatureServerClient : CreatureServerClientProtocol, ObservableObject {
+class CreatureServerClientgRPC : CreatureServerClientProtocol, ObservableObject {
     static let shared = CreatureServerClient()
     
     var appState : AppState?

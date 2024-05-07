@@ -11,7 +11,7 @@ import OSLog
  */
 class Creature : ObservableObject, Identifiable, Hashable, Equatable, Decodable {
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "Creature")
-    var id : String
+    var id : CreatureIdentifier
     @Published var name : String
     @Published var channelOffset : Int
     @Published var realData : Bool = false      // Set to true when there's non-mock data loaded
@@ -24,7 +24,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable, Decodable 
        }
 
 
-    init(id: String, name: String, channelOffset: Int, audioChannel: Int, notes: String) {
+    init(id: CreatureIdentifier, name: String, channelOffset: Int, audioChannel: Int, notes: String) {
         self.id = id
         self.name = name
         self.channelOffset = channelOffset
@@ -42,7 +42,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable, Decodable 
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
+        id = try container.decode(CreatureIdentifier.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         channelOffset = try container.decode(Int.self, forKey: .channelOffset)
         audioChannel = try container.decode(Int.self, forKey: .audioChannel)

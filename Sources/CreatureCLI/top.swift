@@ -41,9 +41,9 @@ func formatNumber(_ number: UInt64) -> String {
 /**
  Creates a fully configured server object
  */
-func getServer(config: GlobalOptions) -> CreatureServerRestful {
+func getServer(config: GlobalOptions) -> CreatureServerClient {
 
-    let server = CreatureServerRestful()
+    let server = CreatureServerClient()
     server.serverPort = config.port
     server.serverHostname = config.host
     server.useTLS = config.useTLS

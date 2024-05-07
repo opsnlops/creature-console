@@ -5,7 +5,7 @@ import OSLog
 import Dispatch
 
 struct CreatureEdit : View {
-    @EnvironmentObject var client: CreatureServerClient
+ 
     @ObservedObject var creature: Creature
     
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureDetail")
@@ -17,9 +17,10 @@ struct CreatureEdit : View {
     var body: some View {
         Form() {
             TextField("Name", text: $creature.name)
-            TextField("Universe", value: $creature.universe, format: .number)
             TextField("Channel Offset", value: $creature.channelOffset, format: .number)
-            TextField("Number of Motors", value: $creature.numberOfMotors, format: .number)
+            TextField("Audio Channel", value: $creature.audioChannel, format: .number)
+            TextField("Notes", text: $creature.notes)
+
         }
         
     }

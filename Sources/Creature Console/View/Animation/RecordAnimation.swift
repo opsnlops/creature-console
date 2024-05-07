@@ -5,12 +5,13 @@ import AVFoundation
 
 struct RecordAnimation: View {
     
-    @EnvironmentObject var appState : AppState
-    @EnvironmentObject var audioManager : AudioManager
-    @EnvironmentObject var eventLoop : EventLoop
-    @EnvironmentObject var client: CreatureServerClient
-    
-    @AppStorage("activeUniverse") var activeUniverse: Int = 1
+    let appState = AppState.shared
+    let audioManager = AudioManager.shared
+    let eventLoop = EventLoop.shared
+    let server = CreatureServerClient.shared
+    let creatureManager = CreatureManager.shared
+
+    @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
     @State var animation : Animation?
     @State private var errorMessage = ""
@@ -53,10 +54,10 @@ struct RecordAnimation: View {
                 Section(header: Text("Notes")) {
                     TextField("", text: $notes)
                 }
-                Section(header: Text("Millisecond Per Frame")) {
-                    TextField("", value: $eventLoop.millisecondPerFrame, format: .number)
-                        .disabled(true)
-                }
+//                Section(header: Text("Millisecond Per Frame")) {
+//                    TextField("", value: eventLoop.millisecondPerFrame, format: .number)
+//                        .disabled(true)
+//                }
             }
                 
             HStack {
@@ -207,10 +208,13 @@ struct RecordAnimation: View {
         
         if let a = animation {
             Task {
-                do {
-                    try await client.playAnimationLocally(animation: a, universe: UInt32(activeUniverse))
-                } catch {
-                    logger.error("error playing animation: \(error)")
+
+                let result = await creatureManager.playAnimationLocally(animation: a, universe: activeUniverse)
+                switch(result) {
+                case .failure(var error):
+                    logger.error("Unable to play animation locally: \(error.localizedDescription)")
+                default:
+                    break
                 }
             }
         }
@@ -225,7 +229,7 @@ struct RecordAnimation: View {
         // Start streaming to the creature
         streamingTask = Task {
             do {
-                try await client.streamJoystick(joystick: joystick, creature: creature, universe: UInt32(activeUniverse))
+                try await server.streamJoystick(joystick: joystick, creature: creature, universe: activeUniverse)
             }
             catch {
                 logger.error("Unable to stream: \(error.localizedDescription)")
@@ -240,7 +244,7 @@ struct RecordAnimation: View {
             
             let metadata = AnimationMetadata(
                 // The animationID will be re-written by the server. This is just a placeholder.
-                animationId: DataHelper.generateRandomData(byteCount: 12),
+                id: DataHelper.generateRandomId(),
                 title: title,
                 lastUpdated: lastUpdated,
                 millisecondsPerFrame: UInt32(eventLoop.millisecondPerFrame),
@@ -273,7 +277,7 @@ struct RecordAnimation: View {
         logger.info("asked recording to stop")
         
         // Stop streaming
-        client.stopSignalReceived = true
+        //server.stopSignalReceived = true
         streamingTask?.cancel()
         
         appState.currentActivity = .idle
@@ -294,7 +298,7 @@ struct RecordAnimation: View {
                 a.metadata.multitrackAudio = multitrackAudio
                 a.metadata.lastUpdated = Date()     // Right now
 
-                let result = await client.createAnimation(animation: a)
+                let result = await server.createAnimation(animation: a)
                 switch(result) {
                 case .success(let hooray):
                     savingMessage = hooray

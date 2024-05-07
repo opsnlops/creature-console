@@ -3,9 +3,9 @@ import Combine
 import Foundation
 import OSLog
 
-class CreatureServerRestful : CreatureServerClientProtocol {
+class CreatureServerClient : CreatureServerClientProtocol {
 
-    static let shared = CreatureServerRestful()
+    static let shared = CreatureServerClient()
     var webSocketTask: URLSessionWebSocketTask?
     var cancellables: Set<AnyCancellable> = []
 

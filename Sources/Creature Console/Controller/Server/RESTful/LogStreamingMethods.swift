@@ -3,7 +3,7 @@ import Foundation
 import OSLog
 
 
-extension CreatureServerRestful {
+extension CreatureServerClient {
 
 
     func streamLogs(queue: BlockingThreadSafeQueue<ServerLogItem>) async {

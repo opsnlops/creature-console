@@ -6,11 +6,16 @@ import Dispatch
 
 struct CreatureDetail : View {
     
-    @AppStorage("mfm2023PlaylistHack") private var mfm2023PlaylistHack: String = ""
-    
-    @EnvironmentObject var client : CreatureServerClient
-    @EnvironmentObject var eventLoop : EventLoop
-    @EnvironmentObject var appState : AppState
+    @AppStorage("mfm2023PlaylistHack") private var mfm2023PlaylistHack: PlaylistIdentifier = ""
+
+    @AppStorage("activeUniverse") private var activeUniverse: UniverseIdentifier = 1
+
+
+    let server = CreatureServerClient.shared
+    let eventLoop = EventLoop.shared
+    let appState = AppState.shared
+    let creatureManager = CreatureManager.shared
+
     
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
@@ -115,8 +120,8 @@ struct CreatureDetail : View {
         
         Task {
             do {
-                let result = try await client.stopPlayingPlayist(creatureId: creature.id)
-                
+                let result = try await server.stopPlayingPlaylist(universe: activeUniverse)
+
                 switch(result) {
                 case .failure(let value):
                     DispatchQueue.main.async {
@@ -158,8 +163,8 @@ struct CreatureDetail : View {
             
             Task {
                 do {
-                    let result = try await client.startPlayingPlaylist(creatureId: creature.id, playlistId: playlistId)
-                    
+                    let result = try await server.startPlayingPlaylist(universe: activeUniverse, playlistId: mfm2023PlaylistHack)
+
                     switch(result) {
                     case .failure(let value):
                         DispatchQueue.main.async {
@@ -209,14 +214,19 @@ struct CreatureDetail : View {
                 DispatchQueue.main.async {
                     appState.currentActivity = .streaming
                 }
-                do {
+
                     if let j = eventLoop.getActiveJoystick() as? SixAxisJoystick {
                         j.showVirtualJoystickIfNeeded()
                     }
-                    try await client.streamJoystick(joystick: eventLoop.getActiveJoystick(), creature: creature)
-                } catch {
+
+                    let result = creatureManager.startStreamingToCreature(creatureId: creature.id)
+                switch(result) {
+                case .success(var message):
+                    logger.info("Streaming result: \(message)")
+                case .failure(var error):
+                    logger.warning("Unable to stream: \(error)")
                     DispatchQueue.main.async {
-                        errorMessage = "Unable to start streaming: \(error.localizedDescription)"
+                        errorMessage = "Unable to start streaming: \(error)"
                         showErrorAlert = true
                     }
                 }
@@ -227,8 +237,14 @@ struct CreatureDetail : View {
             if(appState.currentActivity == .streaming) {
             
                 logger.debug("stopping streaming")
-                client.stopSignalReceived = true
-                
+                let result = creatureManager.stopStreaming()
+                switch(result) {
+                case .success:
+                    logger.debug("we were able to stop streaming!")
+                case .failure(var message):
+                    logger.warning("Unable to stop streaming: \(message)")
+                }
+
                 if let j = eventLoop.getActiveJoystick() as? SixAxisJoystick {
                     j.removeVirtualJoystickIfNeeded()
                 }
@@ -257,8 +273,5 @@ struct CreatureDetail : View {
 struct CreatureDetail_Previews: PreviewProvider {
     static var previews: some View {
         CreatureDetail(creature: .mock())
-            .environmentObject(EventLoop.mock())
-            .environmentObject(AppState.mock())
-            .environmentObject(CreatureServerClient.mock())
     }
 }

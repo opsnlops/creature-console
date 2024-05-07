@@ -6,9 +6,9 @@ import OSLog
 /**
  This is a local version of the `AnimationMetadata` that's sent over the wire
  */
-struct AnimationMetadata: Hashable, Equatable, Codable {
+struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
 
-    var animationId: Data
+    var id: AnimationIdentifier
     var title: String
     var lastUpdated: Date
     var millisecondsPerFrame: UInt32 = 20
@@ -18,8 +18,8 @@ struct AnimationMetadata: Hashable, Equatable, Codable {
     var multitrackAudio: Bool = false
     
     
-    init(animationId: Data, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32, note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool) {
-        self.animationId = animationId
+    init(id: AnimationIdentifier, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32, note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool) {
+        self.id = id
         self.title = title
         self.lastUpdated = lastUpdated
         self.millisecondsPerFrame = millisecondsPerFrame
@@ -32,7 +32,7 @@ struct AnimationMetadata: Hashable, Equatable, Codable {
 
     
     static func ==(lhs: AnimationMetadata, rhs: AnimationMetadata) -> Bool {
-        return lhs.animationId == rhs.animationId &&
+        return lhs.id == rhs.id &&
                lhs.title == rhs.title &&
                lhs.lastUpdated == rhs.lastUpdated &&
                lhs.millisecondsPerFrame == rhs.millisecondsPerFrame &&
@@ -44,7 +44,7 @@ struct AnimationMetadata: Hashable, Equatable, Codable {
         
     
     func hash(into hasher: inout Hasher) {
-        hasher.combine(animationId)
+        hasher.combine(id)
         hasher.combine(title)
         hasher.combine(lastUpdated)
         hasher.combine(millisecondsPerFrame)
@@ -61,7 +61,7 @@ extension AnimationMetadata {
     
     static func mock() -> AnimationMetadata {
 
-        let animationId = DataHelper.generateRandomData(byteCount: 12)
+        let id = DataHelper.generateRandomId()
         let title = "Mock Animation Title"
         let lastUpdated = Date() // Current date and time
         let millisecondsPerFrame: UInt32 = 20
@@ -70,6 +70,6 @@ extension AnimationMetadata {
         let numberOfFrames: UInt32 = 100 // Example value
         let multitrackAudio = false // Defaulting to false
         
-        return AnimationMetadata(animationId: animationId, title: title, lastUpdated: lastUpdated, millisecondsPerFrame: millisecondsPerFrame, note: note, soundFile: soundFile, numberOfFrames: numberOfFrames, multitrackAudio: multitrackAudio)
+        return AnimationMetadata(id: id, title: title, lastUpdated: lastUpdated, millisecondsPerFrame: millisecondsPerFrame, note: note, soundFile: soundFile, numberOfFrames: numberOfFrames, multitrackAudio: multitrackAudio)
     }
 }

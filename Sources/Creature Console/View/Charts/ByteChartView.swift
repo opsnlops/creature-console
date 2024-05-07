@@ -1,7 +1,4 @@
 //
-//  ByteChartView.swift
-//  Creature Console
-//
 //  Created by April White (with GPT-4's help) on 4/16/23.
 //
 

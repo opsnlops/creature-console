@@ -1,9 +1,4 @@
-//
-//  AudioFilePicker.swift
-//  Creature Console
-//
-//  Created by April White on 5/10/23.
-//
+
 import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
@@ -12,7 +7,7 @@ import OSLog
 
 struct AudioFilePicker: View {
  
-    @EnvironmentObject var audioManager: AudioManager
+    let audioManager = AudioManager.shared
 
     @State private var importURL: URL?
     @State private var showImportAudioSheet = false
@@ -76,7 +71,6 @@ struct AudioFilePicker: View {
 struct AudioFilePicker_Previews: PreviewProvider {
     static var previews: some View {
         AudioFilePicker()
-            .environmentObject(AudioManager.mock())
     }
 }
 

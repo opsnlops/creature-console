@@ -35,9 +35,12 @@ class AprilsCreatureWorkshopJoystick : ObservableObject, Joystick
     
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AprilsCreatureWorkshopJoystick")
 
+    // Use our singleton
+    let appState = AppState.shared
+
     var vendorID: Int
     var productID: Int
-    var appState : AppState
+
     private var manager: IOHIDManager?
     
     @Published var connected: Bool = false
@@ -58,8 +61,7 @@ class AprilsCreatureWorkshopJoystick : ObservableObject, Joystick
     @Published var yButtonPressed = false
     
     
-    init(appState: AppState, vendorID: Int, productID: Int) {
-        self.appState = appState
+    init(vendorID: Int, productID: Int) {
         self.vendorID = vendorID
         self.productID = productID
         self.manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
@@ -278,9 +280,9 @@ class AprilsCreatureWorkshopJoystick : ObservableObject, Joystick
 
 
 extension AprilsCreatureWorkshopJoystick {
-    static func mock(appState: AppState) -> AprilsCreatureWorkshopJoystick {
-        let mockJoystick = AprilsCreatureWorkshopJoystick(appState: appState, vendorID: 1234, productID: 5678)
-        
+    static func mock() -> AprilsCreatureWorkshopJoystick {
+        let mockJoystick = AprilsCreatureWorkshopJoystick(vendorID: 1234, productID: 5678)
+
         // Randomly set the values for each axis and control
         mockJoystick.values = mockJoystick.values.map { _ in UInt8(arc4random_uniform(UInt32(UInt8.max))) }
         

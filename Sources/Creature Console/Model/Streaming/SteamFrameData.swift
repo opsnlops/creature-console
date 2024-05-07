@@ -27,24 +27,7 @@ struct StreamFrameData: Hashable, Equatable {
         logger.trace("Created a new StreamFrameData from init()")
     }
     
-    // Creates a new instance from a ProtoBuf object
-    init(serverStreamFrameData: Server_StreamFrameData) {
-        
-        self.init(ceatureId: serverStreamFrameData.creatureID,
-                  universe: serverStreamFrameData.universe,
-                  data: serverStreamFrameData.data)
-    }
-    
-    func toServerStreamFrameData() -> Server_StreamFrameData {
-        var packet = Server_StreamFrameData()
-        
-        packet.creatureID = self.ceatureId
-        packet.universe = self.universe
-        packet.data = self.data
-        
-        return packet
-    }
-    
+
     static func ==(lhs: StreamFrameData, rhs: StreamFrameData) -> Bool {
         return lhs.ceatureId == rhs.ceatureId &&
                lhs.universe == rhs.universe &&
@@ -63,7 +46,7 @@ extension StreamFrameData {
     
     static func mock() -> StreamFrameData {
     
-        let creatureId = DataHelper.generateRandomData(byteCount: 12)
+        let creatureId = UUID().uuidString
         let data = DataHelper.generateRandomData(byteCount: 6)
         let universe: UInt32 = 42
         

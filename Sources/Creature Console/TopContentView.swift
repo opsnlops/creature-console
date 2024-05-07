@@ -6,9 +6,11 @@ import OSLog
 
 struct TopContentView: View {
     
-    @EnvironmentObject var appState : AppState
-    @EnvironmentObject var eventLoop : EventLoop
-    
+    let appState = AppState.shared
+    let eventLoop = EventLoop.shared
+    let server = CreatureServerClient.shared
+
+    // TODO: Is a StateObject actually what I want here?
     @StateObject var creatureCache = CreatureCache()
 
     @State private var showErrorAlert: Bool = false
@@ -34,8 +36,7 @@ struct TopContentView: View {
                         }
                     }
                     else {
-                        Text("Trying to talk to \(UserDefaults.standard.string(forKey: "serverAddress") ?? "an undefined server")...")
-                        ProgressView("Loading...")
+                        Text("Trying to talk to \(server.getHostname())...")
                             .padding()
                     }
                 }
@@ -65,7 +66,7 @@ struct TopContentView: View {
                 }
             }
             .navigationTitle("Creature Console")
-            .navigationDestination(for: Data.self) { creature in
+            .navigationDestination(for: CreatureIdentifier.self) { creature in
                 CreatureDetail(creature: creatureCache.getById(id: creature))
             }
             .toolbar {
@@ -83,9 +84,9 @@ struct TopContentView: View {
                         return
                     }
                 
-                    logger.info("Attempting to load the creatures from \(client.getHostname())")
-                           
-                    let result = await client.getAllCreatures()
+                    logger.info("Attempting to load the creatures from \(server.getHostname())")
+
+                    let result = await server.getAllCreatures()
                     switch result {
                     case .success(let creatures):
                        for creature in creatures {
@@ -113,13 +114,6 @@ struct TopContentView: View {
                 }
            
         }
-    }
-}
-
-struct TopContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        TopContentView()
-            .environmentObject(EventLoop.mock())
     }
 }
 

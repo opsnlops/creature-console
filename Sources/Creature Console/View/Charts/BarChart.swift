@@ -1,9 +1,3 @@
-//
-//  BarChart.swift
-//  Creature Console
-//
-//  Created by April White on 4/17/23.
-//
 
 import SwiftUI
 

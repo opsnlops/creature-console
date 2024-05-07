@@ -10,7 +10,7 @@ struct AnimationDetail: View {
         ScrollView(.horizontal) {
             LazyHGrid(rows: Array(repeating: .init(.flexible()), count: 2), spacing: 16) {
                 Text("Title: \(animationMetadata.title)")
-                Text("Animation ID: \(DataHelper.dataToHexString(data: animationMetadata.animationId))")
+                Text("Animation ID: \(animationMetadata.id)")
                 Text("Number of Frames: \(animationMetadata.numberOfFrames)")
                 Text("Milliseconds per Frame: \(animationMetadata.millisecondsPerFrame)")
                 Text("Note: \(animationMetadata.note)")

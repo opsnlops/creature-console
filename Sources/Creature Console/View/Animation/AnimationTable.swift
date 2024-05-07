@@ -3,51 +3,52 @@ import SwiftUI
 import OSLog
 
 struct AnimationTable: View {
-    
-    @EnvironmentObject var client: CreatureServerClient
-    @EnvironmentObject var eventLoop : EventLoop
+
+    let eventLoop = EventLoop.shared
     @ObservedObject var creature: Creature
     
-    @State var animationIds : [AnimationIdentifier]?
+    let server = CreatureServerClient.shared
+
+    @State var animations : [AnimationMetadata]?
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
     
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
-    @State private var selection: AnimationIdentifier.ID?
-    
+    @State private var selection: AnimationMetadata?
+
     @State private var loadDataTask: Task<Void, Never>? = nil
         
     
     var body: some View {
         VStack {
-            Text("Animations for \(creature.type.description)")
+            Text("Animations for \(creature.name)")
                 .font(.title3)
             
-            if let animationIds = animationIds {
-                
-                Table(animationIds, selection: $selection) {
+            if let animations = animations {
+
+                Table(animations, selection: $selection) {
                     TableColumn("Name") { a in
-                        Text(a.metadata.title)
+                        Text(a.title)
                     }
                     .width(min: 120, ideal: 250)
                     TableColumn("Frames") { a in
-                        Text(a.metadata.numberOfFrames, format: .number)
+                        Text(a.numberOfFrames, format: .number)
                     }
                     .width(60)
                     TableColumn("Period") { a in
-                        Text("\(a.metadata.millisecondsPerFrame)ms")
+                        Text("\(a.millisecondsPerFrame)ms")
                     }
                     .width(55)
                     TableColumn("Audio") { a in
-                        Text(a.metadata.soundFile)
+                        Text(a.soundFile)
                     }
                     TableColumn("Time (ms)") { a in
-                        Text(a.metadata.milliseconds, format: .number)
+                        Text(a.milliseconds, format: .number)
                     }
                     .width(80)
                 }
-                .contextMenu(forSelectionType: AnimationIdentifier.ID.self) { a in
+                .contextMenu(forSelectionType: AnimationIdentifier.self) { a in
                     if a.isEmpty {
                         NavigationLink(destination: RecordAnimation(
                             creature: creature,
@@ -156,12 +157,12 @@ struct AnimationTable: View {
             
             if let animationId = selection {
                 
-                let animation = await client.getAnimation(animationId: animationId)
-                
+                let animation = await server.getAnimation(animationId: animationId)
+
                 switch animation {
                 case .success(let a):
                     do {
-                        try await client.playAnimationLocally(animation: a, creature: creature)
+                        try await server.playAnimationLocally(animation: a, creature: creature)
                     } catch {
                         logger.error("playAnimationLocally threw: \(error)")
                     }
@@ -188,8 +189,8 @@ struct AnimationTable: View {
             
             // Fire off a background task to talk to the server
             Task {
-                let result = await client.playAnimationOnServer(animationId: s, creatureId: creature.id)
-                
+                let result = await server.playAnimationOnServer(animationId: s, creatureId: creature.id)
+
                 switch result {
                 case .success(let data):
                     logger.info("Server said: \(data)")
@@ -232,6 +233,6 @@ struct AnimationTable: View {
 struct AnimationTable_Previews: PreviewProvider {
     static var previews: some View {
         AnimationTable(creature: .mock(),
-                       animationIds: [.mock(), .mock(), .mock()])
+                       animations: [.mock(), .mock(), .mock()])
     }
 }

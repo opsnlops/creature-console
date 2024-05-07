@@ -1,9 +1,4 @@
-//
-//  VirtualJoystick.swift
-//  Creature Console
-//
-//  Created by April White on 4/9/23.
-//
+
 
 import Foundation
 import GameController

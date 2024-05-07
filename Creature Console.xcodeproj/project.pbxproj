@@ -33,7 +33,6 @@
 		1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
-		1156650F2A35826D002CD4CC /* CreatureIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1156650E2A35826D002CD4CC /* CreatureIdentifier.swift */; };
 		115B32402A918A5300E9D583 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B323F2A918A5300E9D583 /* Playlist.swift */; };
 		115B32422A918A9D00E9D583 /* PlaylistItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32412A918A9D00E9D583 /* PlaylistItem.swift */; };
 		115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */; };
@@ -66,6 +65,9 @@
 		11A635FD2BC34B3500C38A32 /* StreamFrameDataResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FC2BC34B3500C38A32 /* StreamFrameDataResponse.swift */; };
 		11A635FF2BC3519C00C38A32 /* AnimationMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FE2BC3519C00C38A32 /* AnimationMetadata.swift */; };
 		11A636012BC3573D00C38A32 /* FrameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A636002BC3573D00C38A32 /* FrameData.swift */; };
+		11AFC3162BE9E11200602604 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3152BE9E11200602604 /* Types.swift */; };
+		11AFC3172BE9E11200602604 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3152BE9E11200602604 /* Types.swift */; };
+		11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
 		11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
 		11B4821329E24F9000767E22 /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4821229E24F9000767E22 /* CreatureCache.swift */; };
@@ -89,8 +91,8 @@
 		11C699082A3459B000A79985 /* AudioError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699062A3459B000A79985 /* AudioError.swift */; };
 		11C6990A2A34FFC500A79985 /* AnimationErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699092A34FFC500A79985 /* AnimationErrors.swift */; };
 		11C6990B2A34FFC500A79985 /* AnimationErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699092A34FFC500A79985 /* AnimationErrors.swift */; };
-		11D612752BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */; };
-		11D612762BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */; };
+		11D612752BCF842700A3AB87 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerClient.swift */; };
+		11D612762BCF842700A3AB87 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerClient.swift */; };
 		11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ED919B2A917E01000756BF /* PlaylistErrors.swift */; };
 		11E438C82BE88729008D4068 /* MessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E438C72BE88729008D4068 /* MessageProcessor.swift */; };
 		11E438C92BE88729008D4068 /* MessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E438C72BE88729008D4068 /* MessageProcessor.swift */; };
@@ -165,7 +167,6 @@
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
 		1142E66329DFC00700B795F0 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
 		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
-		1156650E2A35826D002CD4CC /* CreatureIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureIdentifier.swift; sourceTree = "<group>"; };
 		115B323F2A918A5300E9D583 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
 		115B32412A918A9D00E9D583 /* PlaylistItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistItem.swift; sourceTree = "<group>"; };
 		115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrossHacksSettingsView.swift; sourceTree = "<group>"; };
@@ -203,6 +204,8 @@
 		11A636002BC3573D00C38A32 /* FrameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameData.swift; sourceTree = "<group>"; };
 		11A636022BC35E5B00C38A32 /* Creatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creatures.swift; sourceTree = "<group>"; };
 		11A636042BC3670100C38A32 /* Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animations.swift; sourceTree = "<group>"; };
+		11AFC3152BE9E11200602604 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
+		11AFC3182BE9ED7700602604 /* CreatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureManager.swift; sourceTree = "<group>"; };
 		11B4820929E141AB00767E22 /* DataHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHelper.swift; sourceTree = "<group>"; };
 		11B4821229E24F9000767E22 /* CreatureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureCache.swift; sourceTree = "<group>"; };
 		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
@@ -222,12 +225,12 @@
 		11C699032A34596B00A79985 /* ServerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerError.swift; sourceTree = "<group>"; };
 		11C699062A3459B000A79985 /* AudioError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioError.swift; sourceTree = "<group>"; };
 		11C699092A34FFC500A79985 /* AnimationErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationErrors.swift; sourceTree = "<group>"; };
-		11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerRestful.swift; sourceTree = "<group>"; };
+		11D612742BCF842700A3AB87 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
 		11DD93B229E666D200089EC6 /* StreamJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamJoystick.swift; sourceTree = "<group>"; };
 		11E438C72BE88729008D4068 /* MessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageProcessor.swift; sourceTree = "<group>"; };
 		11E438CA2BE888A1008D4068 /* CLIMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIMessageProcessor.swift; sourceTree = "<group>"; };
 		11E4E51D2BB53038007C6525 /* TestSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSwiftUIView.swift; sourceTree = "<group>"; };
-		11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
+		11E7CD8529DD21BC0029D031 /* CreatureServerClientgRPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClientgRPC.swift; sourceTree = "<group>"; };
 		11ED91992A917D66000756BF /* Playlists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlists.swift; sourceTree = "<group>"; };
 		11ED919B2A917E01000756BF /* PlaylistErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistErrors.swift; sourceTree = "<group>"; };
 		11F4BA5629EA7DF300078790 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -312,7 +315,6 @@
 			children = (
 				1142E65D29DFB1A900B795F0 /* Creature.swift */,
 				11B4821229E24F9000767E22 /* CreatureCache.swift */,
-				1156650E2A35826D002CD4CC /* CreatureIdentifier.swift */,
 			);
 			path = Creature;
 			sourceTree = "<group>";
@@ -365,6 +367,7 @@
 			children = (
 				11C326D629DD41E900B169CD /* CreatureCLI */,
 				11703D8A29DD197F00EF7E3D /* Creature Console */,
+				11AFC3152BE9E11200602604 /* Types.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -448,11 +451,10 @@
 			isa = PBXGroup;
 			children = (
 				11FDBF4B2BE0A60F008C5B3E /* Controller */,
-				11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */,
-				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
 				1142E66029DFB21000B795F0 /* View */,
 				1142E65C29DFB19700B795F0 /* Model */,
 				115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */,
+				11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */,
 				11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */,
 				11703D8B29DD197F00EF7E3D /* CreatureConsole.swift */,
 				11703D8D29DD197F00EF7E3D /* TopContentView.swift */,
@@ -592,7 +594,7 @@
 		11FDBF352BE09EB2008C5B3E /* RESTful */ = {
 			isa = PBXGroup;
 			children = (
-				11D612742BCF842700A3AB87 /* CreatureServerRestful.swift */,
+				11D612742BCF842700A3AB87 /* CreatureServerClient.swift */,
 				11FDBF362BE09EE5008C5B3E /* CreatureMethods.swift */,
 				11FDBF392BE0A0CD008C5B3E /* AnimationMethods.swift */,
 				11FDBF3C2BE0A153008C5B3E /* PlaylistMethods.swift */,
@@ -609,8 +611,10 @@
 		11FDBF4B2BE0A60F008C5B3E /* Controller */ = {
 			isa = PBXGroup;
 			children = (
+				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
 				110B125B2A24568A002C5585 /* Server */,
 				11FDBF4C2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift */,
+				11AFC3182BE9ED7700602604 /* CreatureManager.swift */,
 			);
 			path = Controller;
 			sourceTree = "<group>";
@@ -627,7 +631,7 @@
 			isa = PBXGroup;
 			children = (
 				118A737B29EB68EA00EF8CDB /* LogViewModel.swift */,
-				11E7CD8529DD21BC0029D031 /* CreatureServerClient.swift */,
+				11E7CD8529DD21BC0029D031 /* CreatureServerClientgRPC.swift */,
 				11DD93B229E666D200089EC6 /* StreamJoystick.swift */,
 				117EB24A2A3413C1001208C8 /* PlayAnimation.swift */,
 				11ED91992A917D66000756BF /* Playlists.swift */,
@@ -754,7 +758,7 @@
 				11FDBF402BE0A1D5008C5B3E /* StreamingMethods.swift in Sources */,
 				11FDBF3A2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */,
 				114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */,
-				11D612752BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */,
+				11D612752BCF842700A3AB87 /* CreatureServerClient.swift in Sources */,
 				11FDBF372BE09EE5008C5B3E /* CreatureMethods.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
 				1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */,
@@ -781,6 +785,7 @@
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
+				11AFC3162BE9E11200602604 /* Types.swift in Sources */,
 				113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */,
 				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
 				11FDBF552BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */,
@@ -791,6 +796,7 @@
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
 				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
+				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */,
 				11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */,
@@ -806,7 +812,6 @@
 				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
 				117043562BE4B723000C3626 /* SoundListDTO.swift in Sources */,
 				11A635FF2BC3519C00C38A32 /* AnimationMetadata.swift in Sources */,
-				1156650F2A35826D002CD4CC /* CreatureIdentifier.swift in Sources */,
 				11FDBF512BE0A7A6008C5B3E /* ServerLogItem.swift in Sources */,
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
 				11FDBF492BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */,
@@ -850,9 +855,10 @@
 				113CC9BB2BE72C4B00DF7FF7 /* websocketCommand.swift in Sources */,
 				11FDBF342BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
 				11E438CB2BE888A1008D4068 /* CLIMessageProcessor.swift in Sources */,
+				11AFC3172BE9E11200602604 /* Types.swift in Sources */,
 				11FDBF462BE0A317008C5B3E /* PlaylistItem.swift in Sources */,
 				11615C302BE6182100F15791 /* ServerMetricsMethods.swift in Sources */,
-				11D612762BCF842700A3AB87 /* CreatureServerRestful.swift in Sources */,
+				11D612762BCF842700A3AB87 /* CreatureServerClient.swift in Sources */,
 				11615C322BE6195E00F15791 /* metricsCommand.swift in Sources */,
 				113CC9B92BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */,
 				11FDBF382BE09EE5008C5B3E /* CreatureMethods.swift in Sources */,
