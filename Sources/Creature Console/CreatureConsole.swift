@@ -17,7 +17,7 @@ struct CreatureConsole: App {
         /**
          Set up default prefs for static things
          */
-        var defaultPreferences: [String: Any] = [
+        let defaultPreferences: [String: Any] = [
             "serverAddress": "10.19.63.5",      // gRPC
             "serverPort": 6666,                 // gRPC
             "serverHostname": "localhost",      // REST

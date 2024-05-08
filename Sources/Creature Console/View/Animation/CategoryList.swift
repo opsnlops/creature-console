@@ -18,16 +18,17 @@ struct CategoryList: View {
     var body: some View {
         ScrollView {
             if let metadatas = animationMetas {
-                for metadata in metadatas {
+
+                // Display each one
+                ForEach(metadatas, id: \.self) { metadata in
                     AnimationDetail(animationMetadata: metadata)
                         .frame(maxWidth: .infinity)
                 }
-                   
-            }
-            else {
+                
+            } else {
                 Text("Loading animations for \(creature.name)")
             }
-               
+
         }
         .onAppear {
             logger.info("onAppear()")
@@ -54,15 +55,15 @@ struct CategoryList: View {
         loadDataTask?.cancel()
                 
         loadDataTask = Task {
+
             // Go load the animations
-            let pValue = creature.type.protobufValue
-            let result = await server.listAnimations(creatureType: pValue)
+            let result = await server.listAnimations(creatureId: creature.id)
             logger.debug("got it")
             
             switch(result) {
             case .success(let data):
                 logger.debug("success!")
-                self.animationIds = data
+                self.animationMetas = data
             case .failure(let error):
                 alertMessage = "Error: \(String(describing: error.localizedDescription))"
                 logger.warning("Unable to load the animations for \(creature.name): \(String(describing: error.localizedDescription))")

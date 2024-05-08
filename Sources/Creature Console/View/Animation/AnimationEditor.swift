@@ -71,7 +71,7 @@ struct AnimationEditor: View {
             }
             ToolbarItem(id:"play", placement: .primaryAction) {
                     Button(action: {
-                        playAnimation()
+                        _ = playAnimation()
                     }) {
                         Image(systemName: "play.fill")
                     }
@@ -163,7 +163,7 @@ struct AnimationEditor: View {
                 
                 let result =  await creatureManager.playAnimationLocally(animation: a, universe: activeUniverse)
                 switch(result) {
-                case (.failure(var message)):
+                case (.failure(let message)):
                     logger.error("Unable to play animation: \(message))")
                 default:
                     break

@@ -12,6 +12,7 @@ struct RecordAnimation: View {
     let creatureManager = CreatureManager.shared
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
+    @AppStorage("eventLoopMillisecondsPerFrame") var millisecondsPerFrame = 20
 
     @State var animation : Animation?
     @State private var errorMessage = ""
@@ -54,10 +55,10 @@ struct RecordAnimation: View {
                 Section(header: Text("Notes")) {
                     TextField("", text: $notes)
                 }
-//                Section(header: Text("Millisecond Per Frame")) {
-//                    TextField("", value: eventLoop.millisecondPerFrame, format: .number)
-//                        .disabled(true)
-//                }
+                Section(header: Text("Millisecond Per Frame")) {
+                    TextField("", value: $millisecondsPerFrame, format: .number)
+                        .disabled(true)
+                }
             }
                 
             HStack {
@@ -211,7 +212,7 @@ struct RecordAnimation: View {
 
                 let result = await creatureManager.playAnimationLocally(animation: a, universe: activeUniverse)
                 switch(result) {
-                case .failure(var error):
+                case .failure(let error):
                     logger.error("Unable to play animation locally: \(error.localizedDescription)")
                 default:
                     break

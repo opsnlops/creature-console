@@ -15,7 +15,7 @@ class SoundDataProcessor : ObservableObject {
         
         logger.info("received a request to replace track \(track) with sound data from \(soundData.metadata.soundFile)")
         
-        let newByteData = processSoundData(soundData: soundData, millisecondsPerFrame: animation.metadata.millisecondsPerFrame)
+        _ = processSoundData(soundData: soundData, millisecondsPerFrame: animation.metadata.millisecondsPerFrame)
         logger.warning("replaceTrackData() is stubbed out")
         //animation.replaceTrackData(trackIndex: track, with: newByteData)
         

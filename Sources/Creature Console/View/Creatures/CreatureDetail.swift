@@ -21,12 +21,8 @@ struct CreatureDetail : View {
     @State private var errorMessage: String = ""
     @State private var streamingTask: Task<Void, Never>? = nil
     
-    @ObservedObject var creature : Creature
-    
-    // Reassign the ID every time we load a new creature to force
-    // SwiftUI to rebuild the view
-    @State private var refreshID = UUID().uuidString  // Start with a UUID since creature may not exist the first time
-        
+    var creature : Creature
+
     @State private var isDoingServerStuff : Bool = false
     @State private var serverMessage : String = ""
     
@@ -36,7 +32,7 @@ struct CreatureDetail : View {
         VStack() {
                         
             AnimationTable(creature: creature)
-            
+
         }
         .toolbar(id: "\(creature.name) creatureDetail") {
             ToolbarItem(id: "control", placement: .primaryAction) {
@@ -76,11 +72,6 @@ struct CreatureDetail : View {
                 }
             }
         }.toolbarRole(.editor)
-        .onChange(of: creature){
-            logger.info("creature is now \(creature.name)")
-            refreshID = creature.name
-        }
-        .id(refreshID)
         .overlay {
             if isDoingServerStuff {
                 Text(serverMessage)
@@ -107,8 +98,7 @@ struct CreatureDetail : View {
     
     
     func generateStatusString() -> String {
-        let status =  "Offset \(creature.channelOffset)"
-       
+        let status =  "Offset: \(creature.channelOffset), ID: \(creature.id)"
         return status
     }
     
@@ -219,11 +209,11 @@ struct CreatureDetail : View {
                         j.showVirtualJoystickIfNeeded()
                     }
 
-                    let result = creatureManager.startStreamingToCreature(creatureId: creature.id)
+                    let result = await creatureManager.startStreamingToCreature(creatureId: creature.id)
                 switch(result) {
-                case .success(var message):
+                case .success(let message):
                     logger.info("Streaming result: \(message)")
-                case .failure(var error):
+                case .failure(let error):
                     logger.warning("Unable to stream: \(error)")
                     DispatchQueue.main.async {
                         errorMessage = "Unable to start streaming: \(error)"
@@ -241,7 +231,7 @@ struct CreatureDetail : View {
                 switch(result) {
                 case .success:
                     logger.debug("we were able to stop streaming!")
-                case .failure(var message):
+                case .failure(let message):
                     logger.warning("Unable to stop streaming: \(message)")
                 }
 

@@ -31,29 +31,25 @@ struct AudioFilePicker: View {
                 isPresented: $showImportAudioSheet,
                 allowedContentTypes: [.audio],
                 onCompletion: { result in
-                    do {
-                        let fileURL = try result.get()
-                        
-                        // Store this path to where the sounds are
-                        audioFilePath = fileURL.deletingLastPathComponent().absoluteString
-                        
-                        let playResult = audioManager.play(url: fileURL)
-                        switch(playResult) {
-                        case .success(let data):
-                            logger.info("Played audio file: \(data)")
-                        case .failure(let error):
-                            logger.error("Error playing audio: \(error)")
-                            alertMessage = "Error playing audio: \(error)"
-                            showErrorAlert = true
-                        }
-                        
-                        
-                    } catch {
-                        logger.warning("Failed to read audio file: \(error)")
-                        alertMessage = "Failed to read audio file: \(error)"
-                        showErrorAlert = true
-                    }
+                    // Start a new asynchronous task to handle the async function
+//                    Task {
+//                        do {
+//                            let fileURL = try result.get()
+//                            
+//                            // Store this path to where the sounds are
+//                            audioFilePath = fileURL.deletingLastPathComponent().absoluteString
+//                            
+//                            // Call the async function using `await`
+//                            let playResult = try await audioManager.play(url: fileURL)
+//                            logger.info("Played audio file: \(playResult)")
+//                        } catch {
+//                            logger.error("Error playing audio: \(error)")
+//                            alertMessage = "Error playing audio: \(error)"
+//                            showErrorAlert = true
+//                        }
+//                    }
                 }
+
             )
             .alert(isPresented: $showErrorAlert) {
                 Alert(
