@@ -10,14 +10,26 @@ struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
 
     var id: AnimationIdentifier
     var title: String
-    var lastUpdated: Date
+    var lastUpdated: Date?
     var millisecondsPerFrame: UInt32 = 20
     var note: String
     var soundFile: String
     var numberOfFrames: UInt32
     var multitrackAudio: Bool = false
+
     
-    
+    // Custom CodingKeys to map JSON keys to struct properties
+    private enum CodingKeys: String, CodingKey {
+        case id = "animation_id"
+        case title
+        case lastUpdated = "last_updated"
+        case millisecondsPerFrame = "milliseconds_per_frame"
+        case note
+        case soundFile = "sound_file"
+        case numberOfFrames = "number_of_frames"
+        case multitrackAudio = "multitrack_audio"
+    }
+
     init(id: AnimationIdentifier, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32, note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool) {
         self.id = id
         self.title = title
