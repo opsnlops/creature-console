@@ -1,9 +1,3 @@
-//
-//  DataHelper.swift
-//  Creature Console
-//
-//  Created by April White on 4/7/23.
-//
 
 import Foundation
 

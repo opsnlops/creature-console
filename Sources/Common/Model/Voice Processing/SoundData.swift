@@ -1,9 +1,3 @@
-//
-//  RhubarbData.swift
-//  Creature Console
-//
-//  Created by April White on 8/22/23.
-//
 
 import Foundation
 

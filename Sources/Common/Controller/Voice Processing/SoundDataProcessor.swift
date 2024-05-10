@@ -1,13 +1,10 @@
 
 import Foundation
 import OSLog
-import SwiftUI
 
 
-class SoundDataProcessor : ObservableObject {
-    
-    let appState = AppState.shared
-    
+class SoundDataProcessor {
+
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundDataProcessor")
 
     
@@ -45,8 +42,5 @@ class SoundDataProcessor : ObservableObject {
         return byteData
         
     }
-    
-    
-    
     
 }
