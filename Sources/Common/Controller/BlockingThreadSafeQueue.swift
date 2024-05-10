@@ -1,26 +1,26 @@
 import Foundation
 
-class BlockingThreadSafeQueue<T> {
+public class BlockingThreadSafeQueue<T> {
     private var queue: [T] = []
     private let accessQueue = DispatchQueue(label: "BlockingThreadSafeQueueAccess", attributes: .concurrent)
     private let semaphore = DispatchSemaphore(value: 0)
     private var isCancelled = false // Flag for cancellation state
 
-    func enqueue(_ element: T) {
+    public func enqueue(_ element: T) {
         accessQueue.async(flags: .barrier) {
             self.queue.append(element)
             self.semaphore.signal() // Signal to wake up any waiting dequeue
         }
     }
 
-    func cancel() {
+    public func cancel() {
         accessQueue.async(flags: .barrier) {
             self.isCancelled = true // Set cancellation flag
             self.semaphore.signal() // Signal to wake up any waiting dequeue
         }
     }
 
-    func dequeue() -> T? {
+    public func dequeue() -> T? {
         semaphore.wait() // Block until semaphore is signaled
 
         if isCancelled {

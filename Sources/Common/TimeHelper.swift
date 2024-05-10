@@ -2,13 +2,13 @@
 import Foundation
 
 
-struct TimeHelper {
-    
+public struct TimeHelper {
+
 
     /**
      Print out dates in my local time zone
      */
-    static func formatToLocalTime(_ date: Date) -> String {
+    public static func formatToLocalTime(_ date: Date) -> String {
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss z"

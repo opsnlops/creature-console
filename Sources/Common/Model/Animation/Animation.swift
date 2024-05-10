@@ -6,26 +6,26 @@ import Foundation
 
  Most of the time we just use the Metadata
  */
-class Animation: Hashable, Equatable, Identifiable {
+public class Animation: Hashable, Equatable, Identifiable {
 
-    var id: String
-    var metadata: AnimationMetadata
-    var frameData: [FrameData]?
+    public var id: String
+    public var metadata: AnimationMetadata
+    public var frameData: [FrameData]?
     
-    init(id: String, metadata: AnimationMetadata, frameData: [FrameData]?) {
+    public init(id: String, metadata: AnimationMetadata, frameData: [FrameData]?) {
         self.id = id
         self.metadata = metadata
         self.frameData = frameData
     }
     
 
-    static func ==(lhs: Animation, rhs: Animation) -> Bool {
+    public static func ==(lhs: Animation, rhs: Animation) -> Bool {
         lhs.id == rhs.id &&
         lhs.metadata == rhs.metadata &&
         lhs.frameData == rhs.frameData
     }
     
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
         hasher.combine(metadata)
         hasher.combine(frameData)

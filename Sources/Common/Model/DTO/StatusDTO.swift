@@ -5,15 +5,15 @@ import Foundation
 /**
  The generic Status DTO that we use on the server
  */
-struct StatusDTO : Decodable {
+public struct StatusDTO : Decodable {
 
     // Status like OK, ERROR
-    var status: String
+    public var status: String
 
     // HTTP Status Code
-    var code: UInt16
+    public var code: UInt16
 
     // Message
-    var message: String
+    public var message: String
 
 }

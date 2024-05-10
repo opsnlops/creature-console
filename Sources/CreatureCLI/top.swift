@@ -1,6 +1,7 @@
 
 import ArgumentParser
 import Foundation
+import Common
 
 
 struct GlobalOptions: ParsableArguments {
@@ -13,9 +14,6 @@ struct GlobalOptions: ParsableArguments {
     @Flag(help: "Use TLS")
     var useTLS: Bool = false
 }
-
-
-
 
 
 @main

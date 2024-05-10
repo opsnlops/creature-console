@@ -12,7 +12,7 @@ extension CreatureServerClient {
      This one is unique because it returns a DTO. It's just informational, there's nothing we need to do with it
      on our side.
      */
-    func getServerMetrics() async -> Result<SystemCountersDTO, ServerError> {
+    public func getServerMetrics() async -> Result<SystemCountersDTO, ServerError> {
 
         logger.debug("trying to get the system metrics from the server")
 

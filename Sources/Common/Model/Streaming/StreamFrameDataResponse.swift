@@ -5,7 +5,7 @@ import OSLog
 /**
  This is a vesion of the StreamFrameDataResponse RPC object
  */
-struct StreamFrameDataResponse {
+public struct StreamFrameDataResponse {
     
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "StreamFrameDataResponse")
     

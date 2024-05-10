@@ -2,16 +2,16 @@
 import Foundation
 import OSLog
 
-struct FrameData: Hashable, Equatable {
-    
+public struct FrameData: Hashable, Equatable {
+
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "FrameData")
     
-    var id: Data
+    public var id: Data
     var creatureId: Data
     var animationId: Data
     var frames: [Data]
     
-    init(id: Data, creatureId: Data, animationId: Data, frames: [Data]) {
+    public init(id: Data, creatureId: Data, animationId: Data, frames: [Data]) {
         self.id = id
         self.creatureId = creatureId
         self.animationId = animationId
@@ -19,14 +19,14 @@ struct FrameData: Hashable, Equatable {
         logger.trace("Created a new FrameData from init()")
     }
     
-    static func ==(lhs: FrameData, rhs: FrameData) -> Bool {
+    public static func ==(lhs: FrameData, rhs: FrameData) -> Bool {
         lhs.id == rhs.id &&
         lhs.creatureId == rhs.creatureId &&
         lhs.animationId == rhs.animationId &&
         lhs.frames.elementsEqual(rhs.frames, by: { $0 == $1 })
     }
         
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
         hasher.combine(creatureId)
         hasher.combine(animationId)

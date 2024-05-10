@@ -7,17 +7,17 @@ import OSLog
 /**
  This is designed to live in the Environment, as a store of the Creatures that we know exist
  */
-class CreatureCache : ObservableObject {
+public class CreatureCache : ObservableObject {
     @Published var creatures : [Creature]
     @Published var empty : Bool = true
    
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureList")
     
-    init() {
+    public init() {
         creatures = []
     }
     
-    func getById(id: CreatureIdentifier) -> Creature {
+    public func getById(id: CreatureIdentifier) -> Creature {
         for c in creatures {
             if c.id == id {
                 return c
@@ -28,7 +28,7 @@ class CreatureCache : ObservableObject {
         return Creature.mock()
     }
     
-    func add(item: Creature) {
+    public func add(item: Creature) {
         creatures.append(item)
         empty = false
     }

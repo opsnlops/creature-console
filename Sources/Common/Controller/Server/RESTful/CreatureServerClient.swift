@@ -3,9 +3,9 @@ import Combine
 import Foundation
 import OSLog
 
-class CreatureServerClient : CreatureServerClientProtocol {
+public class CreatureServerClient : CreatureServerClientProtocol {
 
-    static let shared = CreatureServerClient()
+    public static let shared = CreatureServerClient()
     var webSocketTask: URLSessionWebSocketTask?
     var cancellables: Set<AnyCancellable> = []
 
@@ -14,18 +14,18 @@ class CreatureServerClient : CreatureServerClientProtocol {
     var pingTimer: DispatchSourceTimer?
 
     let logger: Logger
-    var serverHostname: String = UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
-    var serverPort: Int = UserDefaults.standard.integer(forKey: "serverRestPort")
-    var useTLS: Bool = UserDefaults.standard.bool(forKey: "serverUseTLS")
+    public var serverHostname: String = UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
+    public var serverPort: Int = UserDefaults.standard.integer(forKey: "serverRestPort")
+    public var useTLS: Bool = UserDefaults.standard.bool(forKey: "serverUseTLS")
 
 
-    enum UrlType {
+    public enum UrlType {
         case http
         case websocket
     }
 
 
-    init() {
+    public init() {
         self.logger = Logger(subsystem: "io.opsnlops.CreatureController", category: "CreatureServerRestful")
         self.logger.info("Created new CreatureServerRestful")
     }
@@ -48,18 +48,18 @@ class CreatureServerClient : CreatureServerClientProtocol {
         return "\(prefix)\(serverHostname):\(serverPort)/api/v1"
     }
 
-    func connect(serverHostname: String, serverPort: Int) throws {
+    public func connect(serverHostname: String, serverPort: Int) throws {
         self.serverHostname = serverHostname
         self.serverPort = serverPort
         logger.info("Set the server hostname to \(serverHostname) and the port to \(serverPort)")
     }
 
-    func close() throws {
+    public func close() throws {
 
         // Nothing at the moment - most likely we should close the websocket here
     }
 
-    func getHostname() -> String {
+    public func getHostname() -> String {
         return self.serverHostname
     }
 
@@ -67,7 +67,7 @@ class CreatureServerClient : CreatureServerClientProtocol {
     /**
      Helper function to URL encode a string
      */
-    func urlEncode(_ string: String) -> String? {
+    public func urlEncode(_ string: String) -> String? {
         return string.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
     }
 

@@ -6,7 +6,7 @@ import OSLog
 extension CreatureServerClient {
 
 
-    func streamLogs(queue: BlockingThreadSafeQueue<ServerLogItem>) async {
+    public func streamLogs(queue: BlockingThreadSafeQueue<ServerLogItem>) async {
 
     }
 

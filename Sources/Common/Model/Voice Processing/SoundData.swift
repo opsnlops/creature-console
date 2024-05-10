@@ -2,13 +2,13 @@
 import Foundation
 
 
-struct SoundData: Decodable {
-    struct Metadata: Decodable {
+public struct SoundData: Decodable {
+    public struct Metadata: Decodable {
         let soundFile: String
         let duration: Double
     }
     
-    struct MouthCue: Codable {
+    public struct MouthCue: Codable {
             let start: Double
             let end: Double
             let value: String
@@ -27,6 +27,6 @@ struct SoundData: Decodable {
             }
         }
 
-    let metadata: Metadata
-    let mouthCues: [MouthCue]
+    public let metadata: Metadata
+    public let mouthCues: [MouthCue]
 }

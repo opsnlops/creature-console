@@ -6,7 +6,7 @@ import OSLog
 extension CreatureServerClient {
 
     
-    func getAllCreatures() async -> Result<[Creature], ServerError> {
+    public func getAllCreatures() async -> Result<[Creature], ServerError> {
 
         logger.debug("attempting to get all of the creatures")
 
@@ -21,11 +21,11 @@ extension CreatureServerClient {
 
 
 
-    func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError> {
+    public func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError> {
         return .failure(.notImplemented("This function is not yet implemented"))
     }
 
-    func getCreature(creatureId: CreatureIdentifier) async throws -> Result<Creature, ServerError> {
+    public func getCreature(creatureId: CreatureIdentifier) async throws -> Result<Creature, ServerError> {
         return .failure(.notImplemented("This function is not yet implemented"))
     }
 

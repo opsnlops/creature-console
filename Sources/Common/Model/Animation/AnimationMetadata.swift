@@ -6,20 +6,20 @@ import OSLog
 /**
  This is a local version of the `AnimationMetadata` that's sent over the wire
  */
-struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
+public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
 
-    var id: AnimationIdentifier
-    var title: String
-    var lastUpdated: Date?
-    var millisecondsPerFrame: UInt32 = 20
-    var note: String
-    var soundFile: String
-    var numberOfFrames: UInt32
-    var multitrackAudio: Bool = false
+    public var id: AnimationIdentifier
+    public var title: String
+    public var lastUpdated: Date?
+    public var millisecondsPerFrame: UInt32 = 20
+    public var note: String
+    public var soundFile: String
+    public var numberOfFrames: UInt32
+    public var multitrackAudio: Bool = false
 
     
     // Custom CodingKeys to map JSON keys to struct properties
-    private enum CodingKeys: String, CodingKey {
+    public  enum CodingKeys: String, CodingKey {
         case id = "animation_id"
         case title
         case lastUpdated = "last_updated"
@@ -30,7 +30,7 @@ struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
         case multitrackAudio = "multitrack_audio"
     }
 
-    init(id: AnimationIdentifier, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32, note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool) {
+    public init(id: AnimationIdentifier, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32, note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool) {
         self.id = id
         self.title = title
         self.lastUpdated = lastUpdated
@@ -43,7 +43,7 @@ struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
     
 
     
-    static func ==(lhs: AnimationMetadata, rhs: AnimationMetadata) -> Bool {
+    public static func ==(lhs: AnimationMetadata, rhs: AnimationMetadata) -> Bool {
         return lhs.id == rhs.id &&
                lhs.title == rhs.title &&
                lhs.lastUpdated == rhs.lastUpdated &&
@@ -55,7 +55,7 @@ struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
     }
         
     
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
         hasher.combine(title)
         hasher.combine(lastUpdated)

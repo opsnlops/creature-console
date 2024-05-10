@@ -8,13 +8,13 @@ import Foundation
  will conform to. The mock version can implement this protocol, too, and be able to mock up a class
  that's broken up into a bunch of files via extentions.
  */
-protocol CreatureServerClientProtocol: AnyObject {
+public protocol CreatureServerClientProtocol: AnyObject {
 
     func connect(serverHostname: String, serverPort: Int) throws
     func close() throws
     func getHostname() -> String
     func streamLogs(queue: BlockingThreadSafeQueue<ServerLogItem>) async
-    func streamJoystick(joystick: Joystick, creature: Creature, universe: UniverseIdentifier) async throws
+    //func streamJoystick(joystick: Joystick, creature: Creature, universe: UniverseIdentifier) async throws
     func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError>
     func getCreature(creatureId: CreatureIdentifier) async throws -> Result<Creature, ServerError>
     func getAllCreatures() async -> Result<[Creature], ServerError>

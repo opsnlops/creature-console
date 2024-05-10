@@ -3,9 +3,9 @@ import Foundation
 
 
 
-struct AnimationMetadataListDTO : Decodable {
+public struct AnimationMetadataListDTO : Decodable {
 
-    var count: Int32
-    var items: [AnimationMetadata]
+    public var count: Int32
+    public var items: [AnimationMetadata]
 
 }

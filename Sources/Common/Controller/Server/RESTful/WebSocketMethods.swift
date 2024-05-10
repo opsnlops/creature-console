@@ -17,7 +17,7 @@ extension CreatureServerClient {
     /**
      Connect to the websocket, using the following processor
      */
-    func connectWebsocket(processor: MessageProcessor) {
+    public func connectWebsocket(processor: MessageProcessor) {
 
         // Set the message processor to the one we just got
         self.processor = processor
@@ -123,7 +123,7 @@ extension CreatureServerClient {
         pingTimer = nil
     }
 
-    func sendMessage(_ message: String) async -> Result<String, ServerError> {
+    public func sendMessage(_ message: String) async -> Result<String, ServerError> {
         let messageToSend = URLSessionWebSocketTask.Message.string(message)
 
         return await withCheckedContinuation { continuation in
@@ -140,7 +140,7 @@ extension CreatureServerClient {
         }
     }
 
-    func disconnectWebsocket() {
+    public func disconnectWebsocket() {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         cancellables.forEach { $0.cancel() }
         cancellables.removeAll()

@@ -1,13 +1,13 @@
 
 import Foundation
 
-class Playlist {
-    
+public class Playlist {
+
     var id: Data
     var name: String
     var items: [PlaylistItem]
     
-    init(id: Data, name: String, items: [PlaylistItem]) {
+    public init(id: Data, name: String, items: [PlaylistItem]) {
         self.id = id
         self.name = name
         self.items = items

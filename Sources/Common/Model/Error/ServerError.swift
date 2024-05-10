@@ -1,7 +1,7 @@
 
 import Foundation
 
-enum ServerError: Error, LocalizedError {
+public enum ServerError: Error, LocalizedError {
     case communicationError(String)
     case dataFormatError(String)
     case otherError(String)
@@ -13,7 +13,7 @@ enum ServerError: Error, LocalizedError {
     case notImplemented(String)
 
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .communicationError(let message),
              .dataFormatError(let message),

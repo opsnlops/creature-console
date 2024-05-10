@@ -9,7 +9,7 @@ extension CreatureServerClient {
     /**
      List all of the sounds on the server
      */
-    func listSounds() async -> Result<[Sound], ServerError> {
+    public func listSounds() async -> Result<[Sound], ServerError> {
 
         logger.debug("attempting to get all of the creatures")
 
@@ -24,7 +24,7 @@ extension CreatureServerClient {
     /**
      Play one of the sounds on the server
      */
-    func playSound(_ fileName: String) async -> Result<String, ServerError> {
+    public func playSound(_ fileName: String) async -> Result<String, ServerError> {
 
         logger.debug("attempting play sound \(fileName) on server")
 

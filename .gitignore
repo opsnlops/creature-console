@@ -1,4 +1,6 @@
 Build/
 *.DS_Store
 .idea/
+.build/
+Package.resolved
 

@@ -9,22 +9,22 @@ import OSLog
  
  We need this wrapper so we can make the object observable
  */
-class Creature : ObservableObject, Identifiable, Hashable, Equatable, Decodable {
+public class Creature : ObservableObject, Identifiable, Hashable, Equatable, Decodable {
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "Creature")
-    var id : CreatureIdentifier
-    @Published var name : String
-    @Published var channelOffset : Int
-    @Published var realData : Bool = false      // Set to true when there's non-mock data loaded
-    @Published var notes : String
-    @Published var audioChannel : Int
+    public var id : CreatureIdentifier
+    @Published public var name : String
+    @Published public var channelOffset : Int
+    @Published public var realData : Bool = false      // Set to true when there's non-mock data loaded
+    @Published public var notes : String
+     @Published public var audioChannel : Int
 
     // Map our names to what the server is going to give us
-    enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
            case id, name, channelOffset = "channel_offset", realData, notes, audioChannel = "audio_channel"
        }
 
 
-    init(id: CreatureIdentifier, name: String, channelOffset: Int, audioChannel: Int, notes: String) {
+    public init(id: CreatureIdentifier, name: String, channelOffset: Int, audioChannel: Int, notes: String) {
         self.id = id
         self.name = name
         self.channelOffset = channelOffset
@@ -34,13 +34,13 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable, Decodable 
     }
     
     // Helper that generates a new ID if needed
-    convenience init(name: String,  channelOffset: Int, audioChannel: Int, notes: String) {
+    public convenience init(name: String,  channelOffset: Int, audioChannel: Int, notes: String) {
         let id = DataHelper.generateRandomId()
         self.init(id: id, name: name, channelOffset: channelOffset, audioChannel: audioChannel, notes: notes)
     }
     
 
-    required init(from decoder: Decoder) throws {
+    public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(CreatureIdentifier.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
@@ -53,7 +53,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable, Decodable 
 
 
     // hash(into:) function
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
         hasher.combine(name)
         hasher.combine(channelOffset)
@@ -63,7 +63,7 @@ class Creature : ObservableObject, Identifiable, Hashable, Equatable, Decodable 
     }
 
     // The == operator
-    static func ==(lhs: Creature, rhs: Creature) -> Bool {
+    public static func ==(lhs: Creature, rhs: Creature) -> Bool {
         return lhs.id == rhs.id &&
                lhs.name == rhs.name &&
                lhs.channelOffset == rhs.channelOffset &&

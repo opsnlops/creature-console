@@ -1,12 +1,12 @@
 
 import Foundation
 
-struct ServerLogItem : Decodable {
+public struct ServerLogItem : Decodable {
 
-    var timestamp: Date
-    var level: String
-    var message: String
-    var logger_name: String
-    var thread_id: UInt32
+    public var timestamp: Date
+    public var level: String
+    public var message: String
+    public var logger_name: String
+    public var thread_id: UInt32
 
 }

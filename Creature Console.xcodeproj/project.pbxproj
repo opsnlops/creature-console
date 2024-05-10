@@ -201,6 +201,7 @@
 		1182ED072BEDCF4400E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1182ED122BEDD28A00E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1182ED132BEDD2F800E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		1182ED142BEDDABE00E1213F /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 		118A737B29EB68EA00EF8CDB /* LogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewModel.swift; sourceTree = "<group>"; };
 		118A737F29EB772900EF8CDB /* LogViewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewView.swift; sourceTree = "<group>"; };
 		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
@@ -416,6 +417,7 @@
 		11703D7F29DD197F00EF7E3D = {
 			isa = PBXGroup;
 			children = (
+				1182ED142BEDDABE00E1213F /* Package.swift */,
 				113CC9B62BE6EE5F00DF7FF7 /* Sources */,
 				118BF86F2A253EF800D80AE6 /* Assets */,
 				11703D8929DD197F00EF7E3D /* Products */,

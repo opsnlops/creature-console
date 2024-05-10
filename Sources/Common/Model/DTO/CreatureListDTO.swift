@@ -5,9 +5,9 @@ import Foundation
 /**
  A Data Transfer Object for the Creature List
  */
-struct CreatureListDTO : Decodable {
+public struct CreatureListDTO : Decodable {
 
-    var count: Int32
-    var items: [Creature]
+    public var count: Int32
+    public var items: [Creature]
 
 }

@@ -6,31 +6,31 @@ import Foundation
  All incoming messages are going to look like this. The `payload` varies, but we can determine the decoder
  to use based on the command.
  */
-struct WebSocketMessageDTO: Decodable {
+public struct WebSocketMessageDTO: Decodable {
     let command: String
     let payload: PayloadContainer
 
     // Custom init to pass the command to PayloadContainer
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         command = try container.decode(String.self, forKey: .command)
         payload = try PayloadContainer(from: container, command: command)
     }
 
-    enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case command
         case payload
     }
 
     // Enum to handle multiple payloads
-    enum PayloadContainer: Decodable {
+    public enum PayloadContainer: Decodable {
         case notice(Notice)
         case log(ServerLogItem)
         case serverCounters(SystemCountersDTO)
         case unknown
 
         // Decode based on the command type
-        init(from container: KeyedDecodingContainer<WebSocketMessageDTO.CodingKeys>, command: String) throws {
+        public init(from container: KeyedDecodingContainer<WebSocketMessageDTO.CodingKeys>, command: String) throws {
             switch command {
             case "notice":
                 if let notice = try? container.decode(Notice.self, forKey: .payload) {

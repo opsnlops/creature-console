@@ -3,13 +3,13 @@ import Foundation
 import OSLog
 
 
-class SoundDataProcessor {
+public class SoundDataProcessor {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundDataProcessor")
 
     
-    func replaceTrackDataWithSoundData(soundData: SoundData, track: Int, animation: Animation) {
-        
+    public func replaceTrackDataWithSoundData(soundData: SoundData, track: Int, animation: Animation) {
+
         logger.info("received a request to replace track \(track) with sound data from \(soundData.metadata.soundFile)")
         
         _ = processSoundData(soundData: soundData, millisecondsPerFrame: animation.metadata.millisecondsPerFrame)
@@ -18,7 +18,7 @@ class SoundDataProcessor {
         
     }
     
-    func processSoundData(soundData: SoundData, millisecondsPerFrame: UInt32) -> [UInt8] {
+    public func processSoundData(soundData: SoundData, millisecondsPerFrame: UInt32) -> [UInt8] {
         
         logger.info("sound file was: \(soundData.metadata.soundFile), duration: \(soundData.metadata.duration * 1000)ms, animationMsPerFrame: \(millisecondsPerFrame)")
         
