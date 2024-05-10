@@ -12,28 +12,7 @@ struct AnimationTable: View {
     let server = CreatureServerClient.shared
     let creatureManager = CreatureManager.shared
 
-    @State var animations : [AnimationMetadata]? = [
-        AnimationMetadata(
-                  id: "example-id",
-                  title: "Sample Animation",
-                  lastUpdated: Date(),
-                  millisecondsPerFrame: 20,
-                  note: "Test Note",
-                  soundFile: "example.wav",
-                  numberOfFrames: 666,
-                  multitrackAudio: false
-              ),
-        AnimationMetadata(
-                  id: "example-id-2",
-                  title: "Sample Animation 2",
-                  lastUpdated: Date(),
-                  millisecondsPerFrame: 20,
-                  note: "Test Note",
-                  soundFile: "",
-                  numberOfFrames: 12345,
-                  multitrackAudio: false
-              )
-    ]
+    @State var animations : [AnimationMetadata]? = []
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
 
@@ -41,7 +20,7 @@ struct AnimationTable: View {
     @State private var alertMessage = ""
     @State private var selection: AnimationMetadata.ID? = nil
 
-    //@State private var loadDataTask: Task<Void, Never>? = nil
+    @State private var loadDataTask: Task<Void, Never>? = nil
 
 
     var body: some View {
@@ -149,27 +128,52 @@ struct AnimationTable: View {
         } // Vstack
 
         // These are all attached to the VStack
-        //        .onAppear {
-        //            logger.debug("onAppear()")
-        //            loadData()
-        //        }
-        //        .onDisappear {
-        //            loadDataTask?.cancel()
-        //        }
-        //        .onChange(of: selection) {
-        //           print("selection is now \(String(describing: selection))")
-        //        }
-        //        .onChange(of: creature) {
-        //            logger.info("onChange() in AnimationTable")
-        //            loadData()
-        //        }
-                .alert(isPresented: $showErrorAlert) {
-                    Alert(
-                        title: Text("Unable to load Animations"),
-                        message: Text(alertMessage),
-                        dismissButton: .default(Text("Fiiiiiine"))
-                    )
-                }
+        .onAppear {
+            logger.debug("onAppear()")
+            loadData()
+        }
+        .onDisappear {
+            loadDataTask?.cancel()
+        }
+        .onChange(of: selection) {
+           print("selection is now \(String(describing: selection))")
+        }
+        .onChange(of: creature) {
+            logger.info("onChange() in AnimationTable")
+            loadData()
+        }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text("Unable to load Animations"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("Fiiiiiine"))
+            )
+        }
     } //body
+
+
+    /**
+     Load the data from the server
+     */
+    func loadData() {
+
+        loadDataTask?.cancel()
+
+        loadDataTask = Task {
+            // Go load the animations
+            let result = await server.listAnimations(creatureId: creature.id)
+            logger.debug("Loaded animations for \(creature.name)")
+
+            switch(result) {
+            case .success(let data):
+                logger.debug("success!")
+                self.animations = data
+            case .failure(let error):
+                alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                logger.warning("Unable to load the animations for \(creature.name): \(String(describing: error.localizedDescription))")
+                showErrorAlert = true
+            }
+        }
+    }
 
 } //struct
