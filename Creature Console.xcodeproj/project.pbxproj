@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		110CABE42A9596DD007769E4 /* SoundData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE32A9596DD007769E4 /* SoundData.swift */; };
 		110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE72A959A00007769E4 /* SoundDataImporter.swift */; };
-		110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE92A95A077007769E4 /* SoundDataProcessor.swift */; };
+		1110E9652BF035E500FCE26D /* Common in Frameworks */ = {isa = PBXBuildFile; productRef = 1110E9642BF035E500FCE26D /* Common */; };
+		1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110E9662BF03B2A00FCE26D /* CreatureCache.swift */; };
 		1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110EFF82B8D9C2300A00B89 /* ChannelAxisMapping.swift */; };
 		11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */; };
 		11218E802B67522500AFFF65 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11218E7F2B67522500AFFF65 /* Joystick.swift */; };
@@ -18,30 +18,10 @@
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
 		113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
 		113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */; };
-		113CC9B42BE6C90000DF7FF7 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
-		113CC9B52BE6C91D00DF7FF7 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
-		113CC9B82BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */; };
-		113CC9B92BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */; };
-		113CC9BB2BE72C4B00DF7FF7 /* websocketCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9BA2BE72C4B00DF7FF7 /* websocketCommand.swift */; };
-		113CC9C02BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9BF2BE85F8100DF7FF7 /* WebSocketMessageDTO.swift */; };
-		113CC9C12BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9BF2BE85F8100DF7FF7 /* WebSocketMessageDTO.swift */; };
-		113CC9C32BE8643200DF7FF7 /* ServerMessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9C22BE8643200DF7FF7 /* ServerMessageType.swift */; };
-		113CC9C42BE8643200DF7FF7 /* ServerMessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9C22BE8643200DF7FF7 /* ServerMessageType.swift */; };
-		113CC9C72BE86C0000DF7FF7 /* Notice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9C62BE86C0000DF7FF7 /* Notice.swift */; };
-		113CC9C82BE86C0000DF7FF7 /* Notice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113CC9C62BE86C0000DF7FF7 /* Notice.swift */; };
-		1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
-		1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E65D29DFB1A900B795F0 /* Creature.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
-		115B32402A918A5300E9D583 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B323F2A918A5300E9D583 /* Playlist.swift */; };
-		115B32422A918A9D00E9D583 /* PlaylistItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32412A918A9D00E9D583 /* PlaylistItem.swift */; };
 		115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
-		11615C2C2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */; };
-		11615C2D2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */; };
-		11615C2F2BE6182100F15791 /* ServerMetricsMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */; };
-		11615C302BE6182100F15791 /* ServerMetricsMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */; };
-		11615C322BE6195E00F15791 /* metricsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11615C312BE6195E00F15791 /* metricsCommand.swift */; };
 		1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */; };
 		1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1168DC982B4F99E000A9895A /* IOKit.framework */; };
 		1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC9A2B4FB2BE00A9895A /* ACWJoystickDebugView.swift */; };
@@ -50,114 +30,31 @@
 		11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* TopContentView.swift */; };
 		11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
 		11703D9429DD198000EF7E3D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D9329DD198000EF7E3D /* Preview Assets.xcassets */; };
-		117043532BE4AE9D000C3626 /* Sound.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117043522BE4AE9D000C3626 /* Sound.swift */; };
-		117043542BE4AE9D000C3626 /* Sound.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117043522BE4AE9D000C3626 /* Sound.swift */; };
-		117043562BE4B723000C3626 /* SoundListDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117043552BE4B723000C3626 /* SoundListDTO.swift */; };
-		117043572BE4B723000C3626 /* SoundListDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117043552BE4B723000C3626 /* SoundListDTO.swift */; };
-		1182ED012BEB35A700E1213F /* AnimationMetadataListDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1182ED002BEB35A700E1213F /* AnimationMetadataListDTO.swift */; };
-		1182ED022BEB35A700E1213F /* AnimationMetadataListDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1182ED002BEB35A700E1213F /* AnimationMetadataListDTO.swift */; };
-		1182ED042BEB470900E1213F /* PlaySoundRequestDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1182ED032BEB470900E1213F /* PlaySoundRequestDTO.swift */; };
-		1182ED052BEB470900E1213F /* PlaySoundRequestDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1182ED032BEB470900E1213F /* PlaySoundRequestDTO.swift */; };
-		1182ED0A2BEDD08600E1213F /* SteamFrameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FA2BC347F100C38A32 /* SteamFrameData.swift */; };
-		1182ED0B2BEDD08A00E1213F /* StreamFrameDataResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FC2BC34B3500C38A32 /* StreamFrameDataResponse.swift */; };
-		1182ED0E2BEDD18400E1213F /* SoundDataProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE92A95A077007769E4 /* SoundDataProcessor.swift */; };
-		1182ED0F2BEDD19100E1213F /* SoundData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE32A9596DD007769E4 /* SoundData.swift */; };
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
 		118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */; };
 		118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118BF8722A255F5300D80AE6 /* AnimationTable.swift */; };
 		119A016329EE297800D3DA12 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
-		11A10A5B29F23BE6000EB835 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5A29F23BE6000EB835 /* Animation.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
-		11A635FB2BC347F100C38A32 /* SteamFrameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FA2BC347F100C38A32 /* SteamFrameData.swift */; };
-		11A635FD2BC34B3500C38A32 /* StreamFrameDataResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FC2BC34B3500C38A32 /* StreamFrameDataResponse.swift */; };
-		11A635FF2BC3519C00C38A32 /* AnimationMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FE2BC3519C00C38A32 /* AnimationMetadata.swift */; };
-		11A636012BC3573D00C38A32 /* FrameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A636002BC3573D00C38A32 /* FrameData.swift */; };
-		11AFC3162BE9E11200602604 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3152BE9E11200602604 /* Types.swift */; };
-		11AFC3172BE9E11200602604 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3152BE9E11200602604 /* Types.swift */; };
 		11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
-		11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
-		11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4820929E141AB00767E22 /* DataHelper.swift */; };
-		11B4821329E24F9000767E22 /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B4821229E24F9000767E22 /* CreatureCache.swift */; };
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureEdit.swift */; };
 		11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
 		11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */; };
 		11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */; };
 		11C326D029DD3FED00B169CD /* Credits.rtfd in Resources */ = {isa = PBXBuildFile; fileRef = 11C326CF29DD3FED00B169CD /* Credits.rtfd */; };
-		11C326D829DD41E900B169CD /* top.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C326D729DD41E900B169CD /* top.swift */; };
-		11C5C46A2BE5E71100BDFCEE /* creaturesCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C4692BE5E71100BDFCEE /* creaturesCommand.swift */; };
-		11C5C46C2BE5E75600BDFCEE /* animationsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */; };
-		11C5C46E2BE5F06C00BDFCEE /* soundsCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */; };
-		11C5C4702BE5F12400BDFCEE /* SoundMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */; };
-		11C5C4712BE5F12400BDFCEE /* SoundMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */; };
-		11C5C4732BE5FB4900BDFCEE /* StatusDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */; };
-		11C5C4742BE5FB4900BDFCEE /* StatusDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */; };
-		11C699042A34596B00A79985 /* ServerError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699032A34596B00A79985 /* ServerError.swift */; };
-		11C699052A34596B00A79985 /* ServerError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699032A34596B00A79985 /* ServerError.swift */; };
-		11C699072A3459B000A79985 /* AudioError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699062A3459B000A79985 /* AudioError.swift */; };
-		11C699082A3459B000A79985 /* AudioError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699062A3459B000A79985 /* AudioError.swift */; };
-		11C6990A2A34FFC500A79985 /* AnimationErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699092A34FFC500A79985 /* AnimationErrors.swift */; };
-		11C6990B2A34FFC500A79985 /* AnimationErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C699092A34FFC500A79985 /* AnimationErrors.swift */; };
-		11D612752BCF842700A3AB87 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerClient.swift */; };
-		11D612762BCF842700A3AB87 /* CreatureServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D612742BCF842700A3AB87 /* CreatureServerClient.swift */; };
-		11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ED919B2A917E01000756BF /* PlaylistErrors.swift */; };
-		11E438C82BE88729008D4068 /* MessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E438C72BE88729008D4068 /* MessageProcessor.swift */; };
-		11E438C92BE88729008D4068 /* MessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E438C72BE88729008D4068 /* MessageProcessor.swift */; };
-		11E438CB2BE888A1008D4068 /* CLIMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E438CA2BE888A1008D4068 /* CLIMessageProcessor.swift */; };
-		11E438CC2BE88B1F008D4068 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
-		11E438CD2BE88B21008D4068 /* TimeHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66329DFC00700B795F0 /* TimeHelper.swift */; };
-		11E4E51E2BB53038007C6525 /* TestSwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E4E51D2BB53038007C6525 /* TestSwiftUIView.swift */; };
-		11ED919C2A917E01000756BF /* PlaylistErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ED919B2A917E01000756BF /* PlaylistErrors.swift */; };
-		11F1757829DD42D800ADD5FB /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 11F1757729DD42D800ADD5FB /* ArgumentParser */; };
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B829E3844B004C5181 /* JoystickDebugView.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
-		11FDBF332BE09792008C5B3E /* CreatureListDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF322BE09792008C5B3E /* CreatureListDTO.swift */; };
-		11FDBF342BE09792008C5B3E /* CreatureListDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF322BE09792008C5B3E /* CreatureListDTO.swift */; };
-		11FDBF372BE09EE5008C5B3E /* CreatureMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF362BE09EE5008C5B3E /* CreatureMethods.swift */; };
-		11FDBF382BE09EE5008C5B3E /* CreatureMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF362BE09EE5008C5B3E /* CreatureMethods.swift */; };
-		11FDBF3A2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF392BE0A0CD008C5B3E /* AnimationMethods.swift */; };
-		11FDBF3B2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF392BE0A0CD008C5B3E /* AnimationMethods.swift */; };
-		11FDBF3D2BE0A153008C5B3E /* PlaylistMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF3C2BE0A153008C5B3E /* PlaylistMethods.swift */; };
-		11FDBF3E2BE0A153008C5B3E /* PlaylistMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF3C2BE0A153008C5B3E /* PlaylistMethods.swift */; };
-		11FDBF402BE0A1D5008C5B3E /* StreamingMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF3F2BE0A1D5008C5B3E /* StreamingMethods.swift */; };
-		11FDBF412BE0A1D5008C5B3E /* StreamingMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF3F2BE0A1D5008C5B3E /* StreamingMethods.swift */; };
-		11FDBF422BE0A2D1008C5B3E /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5A29F23BE6000EB835 /* Animation.swift */; };
-		11FDBF432BE0A2D8008C5B3E /* AnimationMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A635FE2BC3519C00C38A32 /* AnimationMetadata.swift */; };
-		11FDBF442BE0A2DC008C5B3E /* FrameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A636002BC3573D00C38A32 /* FrameData.swift */; };
-		11FDBF452BE0A314008C5B3E /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B323F2A918A5300E9D583 /* Playlist.swift */; };
-		11FDBF462BE0A317008C5B3E /* PlaylistItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32412A918A9D00E9D583 /* PlaylistItem.swift */; };
-		11FDBF472BE0A36D008C5B3E /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11218E7F2B67522500AFFF65 /* Joystick.swift */; };
-		11FDBF492BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF482BE0A42D008C5B3E /* LogStreamingMethods.swift */; };
-		11FDBF4A2BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF482BE0A42D008C5B3E /* LogStreamingMethods.swift */; };
-		11FDBF4D2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF4C2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift */; };
-		11FDBF4E2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF4C2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift */; };
-		11FDBF512BE0A7A6008C5B3E /* ServerLogItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF502BE0A7A6008C5B3E /* ServerLogItem.swift */; };
-		11FDBF522BE0A7A6008C5B3E /* ServerLogItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF502BE0A7A6008C5B3E /* ServerLogItem.swift */; };
-		11FDBF552BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF542BE0A878008C5B3E /* CreatureServerClientProtocol.swift */; };
-		11FDBF562BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FDBF542BE0A878008C5B3E /* CreatureServerClientProtocol.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		11C326D329DD41E900B169CD /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		110CABE32A9596DD007769E4 /* SoundData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundData.swift; sourceTree = "<group>"; };
 		110CABE72A959A00007769E4 /* SoundDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataImporter.swift; sourceTree = "<group>"; };
-		110CABE92A95A077007769E4 /* SoundDataProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataProcessor.swift; sourceTree = "<group>"; };
+		1110E9632BF0359F00FCE26D /* Common */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Common; sourceTree = "<group>"; };
+		1110E9662BF03B2A00FCE26D /* CreatureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureCache.swift; sourceTree = "<group>"; };
 		1110EFF82B8D9C2300A00B89 /* ChannelAxisMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelAxisMapping.swift; sourceTree = "<group>"; };
 		11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationDetail.swift; sourceTree = "<group>"; };
 		11218E7F2B67522500AFFF65 /* Joystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Joystick.swift; sourceTree = "<group>"; };
@@ -166,23 +63,11 @@
 		113896B42A0768860055BA70 /* AnimationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditor.swift; sourceTree = "<group>"; };
 		113896B82A0CA3B40055BA70 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
 		113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilePicker.swift; sourceTree = "<group>"; };
-		113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketMethods.swift; sourceTree = "<group>"; };
-		113CC9BA2BE72C4B00DF7FF7 /* websocketCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = websocketCommand.swift; sourceTree = "<group>"; };
-		113CC9BF2BE85F8100DF7FF7 /* WebSocketMessageDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketMessageDTO.swift; sourceTree = "<group>"; };
-		113CC9C22BE8643200DF7FF7 /* ServerMessageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerMessageType.swift; sourceTree = "<group>"; };
-		113CC9C62BE86C0000DF7FF7 /* Notice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notice.swift; sourceTree = "<group>"; };
-		1142E65D29DFB1A900B795F0 /* Creature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
-		1142E66329DFC00700B795F0 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
 		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
-		115B323F2A918A5300E9D583 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
-		115B32412A918A9D00E9D583 /* PlaylistItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistItem.swift; sourceTree = "<group>"; };
 		115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrossHacksSettingsView.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
-		11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersDTO.swift; sourceTree = "<group>"; };
-		11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerMetricsMethods.swift; sourceTree = "<group>"; };
-		11615C312BE6195E00F15791 /* metricsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = metricsCommand.swift; sourceTree = "<group>"; };
 		11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Creature ConsoleDebug.entitlements"; sourceTree = "<group>"; };
 		1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AprilsCreatureWorkshopJoystick.swift; sourceTree = "<group>"; };
 		1168DC982B4F99E000A9895A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.2.sdk/System/Library/Frameworks/IOKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -193,16 +78,7 @@
 		11703D8D29DD197F00EF7E3D /* TopContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopContentView.swift; sourceTree = "<group>"; };
 		11703D8F29DD198000EF7E3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		11703D9329DD198000EF7E3D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		117043522BE4AE9D000C3626 /* Sound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sound.swift; sourceTree = "<group>"; };
-		117043552BE4B723000C3626 /* SoundListDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundListDTO.swift; sourceTree = "<group>"; };
-		117EB24A2A3413C1001208C8 /* PlayAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayAnimation.swift; sourceTree = "<group>"; };
-		1182ED002BEB35A700E1213F /* AnimationMetadataListDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataListDTO.swift; sourceTree = "<group>"; };
-		1182ED032BEB470900E1213F /* PlaySoundRequestDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaySoundRequestDTO.swift; sourceTree = "<group>"; };
-		1182ED072BEDCF4400E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1182ED122BEDD28A00E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		1182ED132BEDD2F800E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		1182ED142BEDDABE00E1213F /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
-		118A737B29EB68EA00EF8CDB /* LogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewModel.swift; sourceTree = "<group>"; };
 		118A737F29EB772900EF8CDB /* LogViewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewView.swift; sourceTree = "<group>"; };
 		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
@@ -210,18 +86,8 @@
 		118BF8722A255F5300D80AE6 /* AnimationTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationTable.swift; sourceTree = "<group>"; };
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
-		11A10A5A29F23BE6000EB835 /* Animation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animation.swift; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
-		11A635FA2BC347F100C38A32 /* SteamFrameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteamFrameData.swift; sourceTree = "<group>"; };
-		11A635FC2BC34B3500C38A32 /* StreamFrameDataResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamFrameDataResponse.swift; sourceTree = "<group>"; };
-		11A635FE2BC3519C00C38A32 /* AnimationMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadata.swift; sourceTree = "<group>"; };
-		11A636002BC3573D00C38A32 /* FrameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameData.swift; sourceTree = "<group>"; };
-		11A636022BC35E5B00C38A32 /* Creatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creatures.swift; sourceTree = "<group>"; };
-		11A636042BC3670100C38A32 /* Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animations.swift; sourceTree = "<group>"; };
-		11AFC3152BE9E11200602604 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 		11AFC3182BE9ED7700602604 /* CreatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureManager.swift; sourceTree = "<group>"; };
-		11B4820929E141AB00767E22 /* DataHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHelper.swift; sourceTree = "<group>"; };
-		11B4821229E24F9000767E22 /* CreatureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureCache.swift; sourceTree = "<group>"; };
 		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11BC3C392A0DF62300410F63 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		11C03ACF29E3C346002E6720 /* CreatureEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureEdit.swift; sourceTree = "<group>"; };
@@ -229,39 +95,61 @@
 		11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteChartView.swift; sourceTree = "<group>"; };
 		11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLoop.swift; sourceTree = "<group>"; };
 		11C326CF29DD3FED00B169CD /* Credits.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Credits.rtfd; sourceTree = "<group>"; };
-		11C326D529DD41E900B169CD /* creature-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "creature-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
-		11C326D729DD41E900B169CD /* top.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = top.swift; sourceTree = "<group>"; };
-		11C5C4692BE5E71100BDFCEE /* creaturesCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = creaturesCommand.swift; sourceTree = "<group>"; };
-		11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = animationsCommand.swift; sourceTree = "<group>"; };
-		11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = soundsCommand.swift; sourceTree = "<group>"; };
-		11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundMethods.swift; sourceTree = "<group>"; };
-		11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusDTO.swift; sourceTree = "<group>"; };
-		11C699032A34596B00A79985 /* ServerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerError.swift; sourceTree = "<group>"; };
-		11C699062A3459B000A79985 /* AudioError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioError.swift; sourceTree = "<group>"; };
-		11C699092A34FFC500A79985 /* AnimationErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationErrors.swift; sourceTree = "<group>"; };
-		11D612742BCF842700A3AB87 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
-		11DD93B229E666D200089EC6 /* StreamJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamJoystick.swift; sourceTree = "<group>"; };
-		11E438C72BE88729008D4068 /* MessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageProcessor.swift; sourceTree = "<group>"; };
-		11E438CA2BE888A1008D4068 /* CLIMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIMessageProcessor.swift; sourceTree = "<group>"; };
-		11E4E51D2BB53038007C6525 /* TestSwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSwiftUIView.swift; sourceTree = "<group>"; };
-		11E7CD8529DD21BC0029D031 /* CreatureServerClientgRPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClientgRPC.swift; sourceTree = "<group>"; };
-		11ED91992A917D66000756BF /* Playlists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlists.swift; sourceTree = "<group>"; };
-		11ED919B2A917E01000756BF /* PlaylistErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistErrors.swift; sourceTree = "<group>"; };
 		11F4BA5629EA7DF300078790 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickSettingsView.swift; sourceTree = "<group>"; };
 		11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SixAxisJoystick.swift; sourceTree = "<group>"; };
 		11FA32B829E3844B004C5181 /* JoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickDebugView.swift; sourceTree = "<group>"; };
 		11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugJoystickScene.swift; sourceTree = "<group>"; };
-		11FDBF322BE09792008C5B3E /* CreatureListDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureListDTO.swift; sourceTree = "<group>"; };
-		11FDBF362BE09EE5008C5B3E /* CreatureMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureMethods.swift; sourceTree = "<group>"; };
-		11FDBF392BE0A0CD008C5B3E /* AnimationMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMethods.swift; sourceTree = "<group>"; };
-		11FDBF3C2BE0A153008C5B3E /* PlaylistMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistMethods.swift; sourceTree = "<group>"; };
-		11FDBF3F2BE0A1D5008C5B3E /* StreamingMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingMethods.swift; sourceTree = "<group>"; };
-		11FDBF482BE0A42D008C5B3E /* LogStreamingMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStreamingMethods.swift; sourceTree = "<group>"; };
-		11FDBF4C2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockingThreadSafeQueue.swift; sourceTree = "<group>"; };
-		11FDBF502BE0A7A6008C5B3E /* ServerLogItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogItem.swift; sourceTree = "<group>"; };
-		11FDBF542BE0A878008C5B3E /* CreatureServerClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClientProtocol.swift; sourceTree = "<group>"; };
+		11FF7C132BF0334E00BF5A09 /* Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animations.swift; sourceTree = "<group>"; };
+		11FF7C142BF0334E00BF5A09 /* Creatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creatures.swift; sourceTree = "<group>"; };
+		11FF7C152BF0334E00BF5A09 /* CreatureServerClientgRPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClientgRPC.swift; sourceTree = "<group>"; };
+		11FF7C162BF0334E00BF5A09 /* LogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewModel.swift; sourceTree = "<group>"; };
+		11FF7C172BF0334E00BF5A09 /* PlayAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayAnimation.swift; sourceTree = "<group>"; };
+		11FF7C182BF0334E00BF5A09 /* Playlists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlists.swift; sourceTree = "<group>"; };
+		11FF7C192BF0334E00BF5A09 /* StreamJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamJoystick.swift; sourceTree = "<group>"; };
+		11FF7C1B2BF0334E00BF5A09 /* AnimationMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMethods.swift; sourceTree = "<group>"; };
+		11FF7C1C2BF0334E00BF5A09 /* CreatureMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureMethods.swift; sourceTree = "<group>"; };
+		11FF7C1D2BF0334E00BF5A09 /* CreatureServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClient.swift; sourceTree = "<group>"; };
+		11FF7C1E2BF0334E00BF5A09 /* LogStreamingMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStreamingMethods.swift; sourceTree = "<group>"; };
+		11FF7C1F2BF0334E00BF5A09 /* MessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageProcessor.swift; sourceTree = "<group>"; };
+		11FF7C202BF0334E00BF5A09 /* PlaylistMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistMethods.swift; sourceTree = "<group>"; };
+		11FF7C212BF0334E00BF5A09 /* ServerMetricsMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerMetricsMethods.swift; sourceTree = "<group>"; };
+		11FF7C222BF0334E00BF5A09 /* SoundMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundMethods.swift; sourceTree = "<group>"; };
+		11FF7C232BF0334E00BF5A09 /* StreamingMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingMethods.swift; sourceTree = "<group>"; };
+		11FF7C242BF0334E00BF5A09 /* WebSocketMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketMethods.swift; sourceTree = "<group>"; };
+		11FF7C262BF0334E00BF5A09 /* CreatureServerClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureServerClientProtocol.swift; sourceTree = "<group>"; };
+		11FF7C282BF0334E00BF5A09 /* SoundDataProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataProcessor.swift; sourceTree = "<group>"; };
+		11FF7C2A2BF0334E00BF5A09 /* BlockingThreadSafeQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockingThreadSafeQueue.swift; sourceTree = "<group>"; };
+		11FF7C2C2BF0334E00BF5A09 /* Animation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animation.swift; sourceTree = "<group>"; };
+		11FF7C2D2BF0334E00BF5A09 /* AnimationMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadata.swift; sourceTree = "<group>"; };
+		11FF7C2E2BF0334E00BF5A09 /* FrameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameData.swift; sourceTree = "<group>"; };
+		11FF7C302BF0334E00BF5A09 /* Creature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creature.swift; sourceTree = "<group>"; };
+		11FF7C312BF0334E00BF5A09 /* CreatureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureCache.swift; sourceTree = "<group>"; };
+		11FF7C332BF0334E00BF5A09 /* AnimationMetadataListDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataListDTO.swift; sourceTree = "<group>"; };
+		11FF7C342BF0334E00BF5A09 /* CreatureListDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureListDTO.swift; sourceTree = "<group>"; };
+		11FF7C352BF0334E00BF5A09 /* PlaySoundRequestDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaySoundRequestDTO.swift; sourceTree = "<group>"; };
+		11FF7C362BF0334E00BF5A09 /* SoundListDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundListDTO.swift; sourceTree = "<group>"; };
+		11FF7C372BF0334E00BF5A09 /* StatusDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusDTO.swift; sourceTree = "<group>"; };
+		11FF7C382BF0334E00BF5A09 /* SystemCountersDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersDTO.swift; sourceTree = "<group>"; };
+		11FF7C392BF0334E00BF5A09 /* WebSocketMessageDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketMessageDTO.swift; sourceTree = "<group>"; };
+		11FF7C3B2BF0334E00BF5A09 /* AnimationErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationErrors.swift; sourceTree = "<group>"; };
+		11FF7C3C2BF0334E00BF5A09 /* AudioError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioError.swift; sourceTree = "<group>"; };
+		11FF7C3D2BF0334E00BF5A09 /* PlaylistErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistErrors.swift; sourceTree = "<group>"; };
+		11FF7C3E2BF0334E00BF5A09 /* ServerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerError.swift; sourceTree = "<group>"; };
+		11FF7C402BF0334E00BF5A09 /* Notice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notice.swift; sourceTree = "<group>"; };
+		11FF7C422BF0334E00BF5A09 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
+		11FF7C432BF0334E00BF5A09 /* PlaylistItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistItem.swift; sourceTree = "<group>"; };
+		11FF7C452BF0334E00BF5A09 /* ServerLogItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogItem.swift; sourceTree = "<group>"; };
+		11FF7C472BF0334E00BF5A09 /* Sound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sound.swift; sourceTree = "<group>"; };
+		11FF7C492BF0334E00BF5A09 /* SteamFrameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteamFrameData.swift; sourceTree = "<group>"; };
+		11FF7C4A2BF0334E00BF5A09 /* StreamFrameDataResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamFrameDataResponse.swift; sourceTree = "<group>"; };
+		11FF7C4C2BF0334E00BF5A09 /* SoundData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundData.swift; sourceTree = "<group>"; };
+		11FF7C4E2BF0334E00BF5A09 /* ServerMessageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerMessageType.swift; sourceTree = "<group>"; };
+		11FF7C502BF0334E00BF5A09 /* DataHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHelper.swift; sourceTree = "<group>"; };
+		11FF7C512BF0334E00BF5A09 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		11FF7C522BF0334E00BF5A09 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
+		11FF7C532BF0334E00BF5A09 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -270,30 +158,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		11C326D229DD41E900B169CD /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				11F1757829DD42D800ADD5FB /* ArgumentParser in Frameworks */,
+				1110E9652BF035E500FCE26D /* Common in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		110B125B2A24568A002C5585 /* Server */ = {
-			isa = PBXGroup;
-			children = (
-				11FDBF542BE0A878008C5B3E /* CreatureServerClientProtocol.swift */,
-				11FDBF532BE0A865008C5B3E /* GRPC */,
-				11FDBF352BE09EB2008C5B3E /* RESTful */,
-			);
-			path = Server;
-			sourceTree = "<group>";
-		};
 		110B125C2A247BC4002C5585 /* Creatures */ = {
 			isa = PBXGroup;
 			children = (
@@ -324,25 +195,6 @@
 			path = Joystick;
 			sourceTree = "<group>";
 		};
-		110B12622A249211002C5585 /* Creature */ = {
-			isa = PBXGroup;
-			children = (
-				1142E65D29DFB1A900B795F0 /* Creature.swift */,
-				11B4821229E24F9000767E22 /* CreatureCache.swift */,
-			);
-			path = Creature;
-			sourceTree = "<group>";
-		};
-		110B12632A249224002C5585 /* Animation */ = {
-			isa = PBXGroup;
-			children = (
-				11A10A5A29F23BE6000EB835 /* Animation.swift */,
-				11A635FE2BC3519C00C38A32 /* AnimationMetadata.swift */,
-				11A636002BC3573D00C38A32 /* FrameData.swift */,
-			);
-			path = Animation;
-			sourceTree = "<group>";
-		};
 		110CABE52A9599DB007769E4 /* Processing */ = {
 			isa = PBXGroup;
 			children = (
@@ -362,19 +214,9 @@
 		113CC9B62BE6EE5F00DF7FF7 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				1182ED062BEDCF3200E1213F /* Common */,
-				11C326D629DD41E900B169CD /* CreatureCLI */,
 				11703D8A29DD197F00EF7E3D /* Creature Console */,
 			);
 			path = Sources;
-			sourceTree = "<group>";
-		};
-		113CC9C52BE86BA900DF7FF7 /* Notice */ = {
-			isa = PBXGroup;
-			children = (
-				113CC9C62BE86C0000DF7FF7 /* Notice.swift */,
-			);
-			path = Notice;
 			sourceTree = "<group>";
 		};
 		1142E65C29DFB19700B795F0 /* Model */ = {
@@ -405,19 +247,10 @@
 			path = View;
 			sourceTree = "<group>";
 		};
-		115B323E2A918A4100E9D583 /* Playlist */ = {
-			isa = PBXGroup;
-			children = (
-				115B323F2A918A5300E9D583 /* Playlist.swift */,
-				115B32412A918A9D00E9D583 /* PlaylistItem.swift */,
-			);
-			path = Playlist;
-			sourceTree = "<group>";
-		};
 		11703D7F29DD197F00EF7E3D = {
 			isa = PBXGroup;
 			children = (
-				1182ED142BEDDABE00E1213F /* Package.swift */,
+				1110E9632BF0359F00FCE26D /* Common */,
 				113CC9B62BE6EE5F00DF7FF7 /* Sources */,
 				118BF86F2A253EF800D80AE6 /* Assets */,
 				11703D8929DD197F00EF7E3D /* Products */,
@@ -429,7 +262,6 @@
 			isa = PBXGroup;
 			children = (
 				11703D8829DD197F00EF7E3D /* Creature Console.app */,
-				11C326D529DD41E900B169CD /* creature-cli */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -458,71 +290,6 @@
 				11703D9329DD198000EF7E3D /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		117043512BE4AE8B000C3626 /* Sound */ = {
-			isa = PBXGroup;
-			children = (
-				117043522BE4AE9D000C3626 /* Sound.swift */,
-			);
-			path = Sound;
-			sourceTree = "<group>";
-		};
-		1182ED062BEDCF3200E1213F /* Common */ = {
-			isa = PBXGroup;
-			children = (
-				1182ED082BEDCF8300E1213F /* Controller */,
-				1182ED092BEDCF8A00E1213F /* Model */,
-				1182ED072BEDCF4400E1213F /* README.md */,
-				1142E66329DFC00700B795F0 /* TimeHelper.swift */,
-				11B4820929E141AB00767E22 /* DataHelper.swift */,
-				11AFC3152BE9E11200602604 /* Types.swift */,
-			);
-			path = Common;
-			sourceTree = "<group>";
-		};
-		1182ED082BEDCF8300E1213F /* Controller */ = {
-			isa = PBXGroup;
-			children = (
-				1182ED0D2BEDD16100E1213F /* Voice Processing */,
-				11FDBF4C2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift */,
-				110B125B2A24568A002C5585 /* Server */,
-			);
-			path = Controller;
-			sourceTree = "<group>";
-		};
-		1182ED092BEDCF8A00E1213F /* Model */ = {
-			isa = PBXGroup;
-			children = (
-				113CC9C22BE8643200DF7FF7 /* ServerMessageType.swift */,
-				1182ED0C2BEDD12F00E1213F /* Voice Processing */,
-				110B12632A249224002C5585 /* Animation */,
-				110B12622A249211002C5585 /* Creature */,
-				11C699022A34595800A79985 /* Error */,
-				115B323E2A918A4100E9D583 /* Playlist */,
-				11A635F92BC347C900C38A32 /* Streaming */,
-				117043512BE4AE8B000C3626 /* Sound */,
-				11FDBF312BE093FC008C5B3E /* DTO */,
-				11FDBF4F2BE0A791008C5B3E /* ServerLogs */,
-				113CC9C52BE86BA900DF7FF7 /* Notice */,
-			);
-			path = Model;
-			sourceTree = "<group>";
-		};
-		1182ED0C2BEDD12F00E1213F /* Voice Processing */ = {
-			isa = PBXGroup;
-			children = (
-				110CABE32A9596DD007769E4 /* SoundData.swift */,
-			);
-			path = "Voice Processing";
-			sourceTree = "<group>";
-		};
-		1182ED0D2BEDD16100E1213F /* Voice Processing */ = {
-			isa = PBXGroup;
-			children = (
-				110CABE92A95A077007769E4 /* SoundDataProcessor.swift */,
-			);
-			path = "Voice Processing";
 			sourceTree = "<group>";
 		};
 		1182ED102BEDD1C500E1213F /* Joystick */ = {
@@ -573,18 +340,8 @@
 				113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */,
 				114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */,
 				118BF8722A255F5300D80AE6 /* AnimationTable.swift */,
-				11E4E51D2BB53038007C6525 /* TestSwiftUIView.swift */,
 			);
 			path = Animation;
-			sourceTree = "<group>";
-		};
-		11A635F92BC347C900C38A32 /* Streaming */ = {
-			isa = PBXGroup;
-			children = (
-				11A635FA2BC347F100C38A32 /* SteamFrameData.swift */,
-				11A635FC2BC34B3500C38A32 /* StreamFrameDataResponse.swift */,
-			);
-			path = Streaming;
 			sourceTree = "<group>";
 		};
 		11C2E0DE29ECF6BC00B8A4F5 /* Events */ = {
@@ -595,69 +352,13 @@
 			path = Events;
 			sourceTree = "<group>";
 		};
-		11C326D629DD41E900B169CD /* CreatureCLI */ = {
-			isa = PBXGroup;
-			children = (
-				11C326D729DD41E900B169CD /* top.swift */,
-				11C5C4692BE5E71100BDFCEE /* creaturesCommand.swift */,
-				11C5C46B2BE5E75600BDFCEE /* animationsCommand.swift */,
-				11C5C46D2BE5F06C00BDFCEE /* soundsCommand.swift */,
-				11615C312BE6195E00F15791 /* metricsCommand.swift */,
-				113CC9BA2BE72C4B00DF7FF7 /* websocketCommand.swift */,
-				11E438CA2BE888A1008D4068 /* CLIMessageProcessor.swift */,
-				1182ED132BEDD2F800E1213F /* README.md */,
-			);
-			path = CreatureCLI;
-			sourceTree = "<group>";
-		};
-		11C699022A34595800A79985 /* Error */ = {
-			isa = PBXGroup;
-			children = (
-				11C699032A34596B00A79985 /* ServerError.swift */,
-				11C699062A3459B000A79985 /* AudioError.swift */,
-				11C699092A34FFC500A79985 /* AnimationErrors.swift */,
-				11ED919B2A917E01000756BF /* PlaylistErrors.swift */,
-			);
-			path = Error;
-			sourceTree = "<group>";
-		};
 		11F1757029DD42D800ADD5FB /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				11FF7C542BF0334E00BF5A09 /* Common */,
 				1168DC982B4F99E000A9895A /* IOKit.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		11FDBF312BE093FC008C5B3E /* DTO */ = {
-			isa = PBXGroup;
-			children = (
-				11FDBF322BE09792008C5B3E /* CreatureListDTO.swift */,
-				117043552BE4B723000C3626 /* SoundListDTO.swift */,
-				1182ED032BEB470900E1213F /* PlaySoundRequestDTO.swift */,
-				11C5C4722BE5FB4900BDFCEE /* StatusDTO.swift */,
-				11615C2B2BE6177D00F15791 /* SystemCountersDTO.swift */,
-				113CC9BF2BE85F8100DF7FF7 /* WebSocketMessageDTO.swift */,
-				1182ED002BEB35A700E1213F /* AnimationMetadataListDTO.swift */,
-			);
-			path = DTO;
-			sourceTree = "<group>";
-		};
-		11FDBF352BE09EB2008C5B3E /* RESTful */ = {
-			isa = PBXGroup;
-			children = (
-				11D612742BCF842700A3AB87 /* CreatureServerClient.swift */,
-				11FDBF362BE09EE5008C5B3E /* CreatureMethods.swift */,
-				11FDBF392BE0A0CD008C5B3E /* AnimationMethods.swift */,
-				11FDBF3C2BE0A153008C5B3E /* PlaylistMethods.swift */,
-				11FDBF3F2BE0A1D5008C5B3E /* StreamingMethods.swift */,
-				11FDBF482BE0A42D008C5B3E /* LogStreamingMethods.swift */,
-				11C5C46F2BE5F12400BDFCEE /* SoundMethods.swift */,
-				11615C2E2BE6182100F15791 /* ServerMetricsMethods.swift */,
-				113CC9B72BE727EE00DF7FF7 /* WebSocketMethods.swift */,
-				11E438C72BE88729008D4068 /* MessageProcessor.swift */,
-			);
-			path = RESTful;
 			sourceTree = "<group>";
 		};
 		11FDBF4B2BE0A60F008C5B3E /* Controller */ = {
@@ -667,30 +368,194 @@
 				1182ED102BEDD1C500E1213F /* Joystick */,
 				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
 				11AFC3182BE9ED7700602604 /* CreatureManager.swift */,
+				1110E9662BF03B2A00FCE26D /* CreatureCache.swift */,
 			);
 			path = Controller;
 			sourceTree = "<group>";
 		};
-		11FDBF4F2BE0A791008C5B3E /* ServerLogs */ = {
+		11FF7C1A2BF0334E00BF5A09 /* GRPC */ = {
 			isa = PBXGroup;
 			children = (
-				11FDBF502BE0A7A6008C5B3E /* ServerLogItem.swift */,
+				11FF7C132BF0334E00BF5A09 /* Animations.swift */,
+				11FF7C142BF0334E00BF5A09 /* Creatures.swift */,
+				11FF7C152BF0334E00BF5A09 /* CreatureServerClientgRPC.swift */,
+				11FF7C162BF0334E00BF5A09 /* LogViewModel.swift */,
+				11FF7C172BF0334E00BF5A09 /* PlayAnimation.swift */,
+				11FF7C182BF0334E00BF5A09 /* Playlists.swift */,
+				11FF7C192BF0334E00BF5A09 /* StreamJoystick.swift */,
+			);
+			path = GRPC;
+			sourceTree = "<group>";
+		};
+		11FF7C252BF0334E00BF5A09 /* RESTful */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C1B2BF0334E00BF5A09 /* AnimationMethods.swift */,
+				11FF7C1C2BF0334E00BF5A09 /* CreatureMethods.swift */,
+				11FF7C1D2BF0334E00BF5A09 /* CreatureServerClient.swift */,
+				11FF7C1E2BF0334E00BF5A09 /* LogStreamingMethods.swift */,
+				11FF7C1F2BF0334E00BF5A09 /* MessageProcessor.swift */,
+				11FF7C202BF0334E00BF5A09 /* PlaylistMethods.swift */,
+				11FF7C212BF0334E00BF5A09 /* ServerMetricsMethods.swift */,
+				11FF7C222BF0334E00BF5A09 /* SoundMethods.swift */,
+				11FF7C232BF0334E00BF5A09 /* StreamingMethods.swift */,
+				11FF7C242BF0334E00BF5A09 /* WebSocketMethods.swift */,
+			);
+			path = RESTful;
+			sourceTree = "<group>";
+		};
+		11FF7C272BF0334E00BF5A09 /* Server */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C1A2BF0334E00BF5A09 /* GRPC */,
+				11FF7C252BF0334E00BF5A09 /* RESTful */,
+				11FF7C262BF0334E00BF5A09 /* CreatureServerClientProtocol.swift */,
+			);
+			path = Server;
+			sourceTree = "<group>";
+		};
+		11FF7C292BF0334E00BF5A09 /* Voice Processing */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C282BF0334E00BF5A09 /* SoundDataProcessor.swift */,
+			);
+			path = "Voice Processing";
+			sourceTree = "<group>";
+		};
+		11FF7C2B2BF0334E00BF5A09 /* Controller */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C272BF0334E00BF5A09 /* Server */,
+				11FF7C292BF0334E00BF5A09 /* Voice Processing */,
+				11FF7C2A2BF0334E00BF5A09 /* BlockingThreadSafeQueue.swift */,
+			);
+			path = Controller;
+			sourceTree = "<group>";
+		};
+		11FF7C2F2BF0334E00BF5A09 /* Animation */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C2C2BF0334E00BF5A09 /* Animation.swift */,
+				11FF7C2D2BF0334E00BF5A09 /* AnimationMetadata.swift */,
+				11FF7C2E2BF0334E00BF5A09 /* FrameData.swift */,
+			);
+			path = Animation;
+			sourceTree = "<group>";
+		};
+		11FF7C322BF0334E00BF5A09 /* Creature */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C302BF0334E00BF5A09 /* Creature.swift */,
+				11FF7C312BF0334E00BF5A09 /* CreatureCache.swift */,
+			);
+			path = Creature;
+			sourceTree = "<group>";
+		};
+		11FF7C3A2BF0334E00BF5A09 /* DTO */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C332BF0334E00BF5A09 /* AnimationMetadataListDTO.swift */,
+				11FF7C342BF0334E00BF5A09 /* CreatureListDTO.swift */,
+				11FF7C352BF0334E00BF5A09 /* PlaySoundRequestDTO.swift */,
+				11FF7C362BF0334E00BF5A09 /* SoundListDTO.swift */,
+				11FF7C372BF0334E00BF5A09 /* StatusDTO.swift */,
+				11FF7C382BF0334E00BF5A09 /* SystemCountersDTO.swift */,
+				11FF7C392BF0334E00BF5A09 /* WebSocketMessageDTO.swift */,
+			);
+			path = DTO;
+			sourceTree = "<group>";
+		};
+		11FF7C3F2BF0334E00BF5A09 /* Error */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C3B2BF0334E00BF5A09 /* AnimationErrors.swift */,
+				11FF7C3C2BF0334E00BF5A09 /* AudioError.swift */,
+				11FF7C3D2BF0334E00BF5A09 /* PlaylistErrors.swift */,
+				11FF7C3E2BF0334E00BF5A09 /* ServerError.swift */,
+			);
+			path = Error;
+			sourceTree = "<group>";
+		};
+		11FF7C412BF0334E00BF5A09 /* Notice */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C402BF0334E00BF5A09 /* Notice.swift */,
+			);
+			path = Notice;
+			sourceTree = "<group>";
+		};
+		11FF7C442BF0334E00BF5A09 /* Playlist */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C422BF0334E00BF5A09 /* Playlist.swift */,
+				11FF7C432BF0334E00BF5A09 /* PlaylistItem.swift */,
+			);
+			path = Playlist;
+			sourceTree = "<group>";
+		};
+		11FF7C462BF0334E00BF5A09 /* ServerLogs */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C452BF0334E00BF5A09 /* ServerLogItem.swift */,
 			);
 			path = ServerLogs;
 			sourceTree = "<group>";
 		};
-		11FDBF532BE0A865008C5B3E /* GRPC */ = {
+		11FF7C482BF0334E00BF5A09 /* Sound */ = {
 			isa = PBXGroup;
 			children = (
-				118A737B29EB68EA00EF8CDB /* LogViewModel.swift */,
-				11E7CD8529DD21BC0029D031 /* CreatureServerClientgRPC.swift */,
-				11DD93B229E666D200089EC6 /* StreamJoystick.swift */,
-				117EB24A2A3413C1001208C8 /* PlayAnimation.swift */,
-				11ED91992A917D66000756BF /* Playlists.swift */,
-				11A636022BC35E5B00C38A32 /* Creatures.swift */,
-				11A636042BC3670100C38A32 /* Animations.swift */,
+				11FF7C472BF0334E00BF5A09 /* Sound.swift */,
 			);
-			path = GRPC;
+			path = Sound;
+			sourceTree = "<group>";
+		};
+		11FF7C4B2BF0334E00BF5A09 /* Streaming */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C492BF0334E00BF5A09 /* SteamFrameData.swift */,
+				11FF7C4A2BF0334E00BF5A09 /* StreamFrameDataResponse.swift */,
+			);
+			path = Streaming;
+			sourceTree = "<group>";
+		};
+		11FF7C4D2BF0334E00BF5A09 /* Voice Processing */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C4C2BF0334E00BF5A09 /* SoundData.swift */,
+			);
+			path = "Voice Processing";
+			sourceTree = "<group>";
+		};
+		11FF7C4F2BF0334E00BF5A09 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C2F2BF0334E00BF5A09 /* Animation */,
+				11FF7C322BF0334E00BF5A09 /* Creature */,
+				11FF7C3A2BF0334E00BF5A09 /* DTO */,
+				11FF7C3F2BF0334E00BF5A09 /* Error */,
+				11FF7C412BF0334E00BF5A09 /* Notice */,
+				11FF7C442BF0334E00BF5A09 /* Playlist */,
+				11FF7C462BF0334E00BF5A09 /* ServerLogs */,
+				11FF7C482BF0334E00BF5A09 /* Sound */,
+				11FF7C4B2BF0334E00BF5A09 /* Streaming */,
+				11FF7C4D2BF0334E00BF5A09 /* Voice Processing */,
+				11FF7C4E2BF0334E00BF5A09 /* ServerMessageType.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		11FF7C542BF0334E00BF5A09 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				11FF7C2B2BF0334E00BF5A09 /* Controller */,
+				11FF7C4F2BF0334E00BF5A09 /* Model */,
+				11FF7C502BF0334E00BF5A09 /* DataHelper.swift */,
+				11FF7C512BF0334E00BF5A09 /* README.md */,
+				11FF7C522BF0334E00BF5A09 /* TimeHelper.swift */,
+				11FF7C532BF0334E00BF5A09 /* Types.swift */,
+			);
+			name = Common;
+			path = Sources/Common;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -710,30 +575,11 @@
 			);
 			name = "Creature Console";
 			packageProductDependencies = (
+				1110E9642BF035E500FCE26D /* Common */,
 			);
 			productName = "Creature Console";
 			productReference = 11703D8829DD197F00EF7E3D /* Creature Console.app */;
 			productType = "com.apple.product-type.application";
-		};
-		11C326D429DD41E900B169CD /* CreatureCLI */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 11C326D929DD41E900B169CD /* Build configuration list for PBXNativeTarget "CreatureCLI" */;
-			buildPhases = (
-				11C326D129DD41E900B169CD /* Sources */,
-				11C326D229DD41E900B169CD /* Frameworks */,
-				11C326D329DD41E900B169CD /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = CreatureCLI;
-			packageProductDependencies = (
-				11F1757729DD42D800ADD5FB /* ArgumentParser */,
-			);
-			productName = CreatureCLI;
-			productReference = 11C326D529DD41E900B169CD /* creature-cli */;
-			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
@@ -746,9 +592,6 @@
 				LastUpgradeCheck = 1530;
 				TargetAttributes = {
 					11703D8729DD197F00EF7E3D = {
-						CreatedOnToolsVersion = 14.2;
-					};
-					11C326D429DD41E900B169CD = {
 						CreatedOnToolsVersion = 14.2;
 					};
 				};
@@ -770,7 +613,6 @@
 			projectRoot = "";
 			targets = (
 				11703D8729DD197F00EF7E3D /* Creature Console */,
-				11C326D429DD41E900B169CD /* CreatureCLI */,
 			);
 		};
 /* End PBXProject section */
@@ -794,140 +636,42 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				113CC9C32BE8643200DF7FF7 /* ServerMessageType.swift in Sources */,
-				11FDBF332BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
 				11218E802B67522500AFFF65 /* Joystick.swift in Sources */,
-				11615C2C2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */,
-				11A635FB2BC347F100C38A32 /* SteamFrameData.swift in Sources */,
 				11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */,
 				11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */,
-				11A636012BC3573D00C38A32 /* FrameData.swift in Sources */,
 				11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */,
-				117043532BE4AE9D000C3626 /* Sound.swift in Sources */,
-				11A635FD2BC34B3500C38A32 /* StreamFrameDataResponse.swift in Sources */,
-				11A10A5B29F23BE6000EB835 /* Animation.swift in Sources */,
-				11E4E51E2BB53038007C6525 /* TestSwiftUIView.swift in Sources */,
-				1182ED012BEB35A700E1213F /* AnimationMetadataListDTO.swift in Sources */,
-				11FDBF402BE0A1D5008C5B3E /* StreamingMethods.swift in Sources */,
-				11FDBF3A2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */,
-				1182ED042BEB470900E1213F /* PlaySoundRequestDTO.swift in Sources */,
 				114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */,
-				11D612752BCF842700A3AB87 /* CreatureServerClient.swift in Sources */,
-				11FDBF372BE09EE5008C5B3E /* CreatureMethods.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
 				1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */,
-				11FDBF4D2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift in Sources */,
 				1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */,
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
-				115B32422A918A9D00E9D583 /* PlaylistItem.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */,
-				11C6990A2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
-				113CC9B82BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */,
-				11C5C4732BE5FB4900BDFCEE /* StatusDTO.swift in Sources */,
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
-				11615C2F2BE6182100F15791 /* ServerMetricsMethods.swift in Sources */,
-				11E438C82BE88729008D4068 /* MessageProcessor.swift in Sources */,
 				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
-				110CABEA2A95A077007769E4 /* SoundDataProcessor.swift in Sources */,
-				11C5C4702BE5F12400BDFCEE /* SoundMethods.swift in Sources */,
-				11E438CD2BE88B21008D4068 /* TimeHelper.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
-				11AFC3162BE9E11200602604 /* Types.swift in Sources */,
 				113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */,
+				1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */,
 				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
-				11FDBF552BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */,
-				11C699042A34596B00A79985 /* ServerError.swift in Sources */,
-				110CABE42A9596DD007769E4 /* SoundData.swift in Sources */,
-				115B32402A918A5300E9D583 /* Playlist.swift in Sources */,
 				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
-				1142E65E29DFB1A900B795F0 /* Creature.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */,
 				11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */,
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
-				11B4821329E24F9000767E22 /* CreatureCache.swift in Sources */,
 				1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */,
-				113CC9C72BE86C0000DF7FF7 /* Notice.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
-				11B4820A29E141AB00767E22 /* DataHelper.swift in Sources */,
-				11ED919C2A917E01000756BF /* PlaylistErrors.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
-				11C699072A3459B000A79985 /* AudioError.swift in Sources */,
 				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
-				117043562BE4B723000C3626 /* SoundListDTO.swift in Sources */,
-				11A635FF2BC3519C00C38A32 /* AnimationMetadata.swift in Sources */,
-				11FDBF512BE0A7A6008C5B3E /* ServerLogItem.swift in Sources */,
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
-				11FDBF492BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */,
-				11FDBF3D2BE0A153008C5B3E /* PlaylistMethods.swift in Sources */,
-				113CC9C02BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		11C326D129DD41E900B169CD /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				113CC9C42BE8643200DF7FF7 /* ServerMessageType.swift in Sources */,
-				11FDBF4A2BE0A42D008C5B3E /* LogStreamingMethods.swift in Sources */,
-				117043572BE4B723000C3626 /* SoundListDTO.swift in Sources */,
-				1182ED052BEB470900E1213F /* PlaySoundRequestDTO.swift in Sources */,
-				11FDBF3B2BE0A0CD008C5B3E /* AnimationMethods.swift in Sources */,
-				11C5C4742BE5FB4900BDFCEE /* StatusDTO.swift in Sources */,
-				11E438CC2BE88B1F008D4068 /* TimeHelper.swift in Sources */,
-				11FDBF562BE0A878008C5B3E /* CreatureServerClientProtocol.swift in Sources */,
-				1182ED0B2BEDD08A00E1213F /* StreamFrameDataResponse.swift in Sources */,
-				11C5C46C2BE5E75600BDFCEE /* animationsCommand.swift in Sources */,
-				11FDBF452BE0A314008C5B3E /* Playlist.swift in Sources */,
-				11C326D829DD41E900B169CD /* top.swift in Sources */,
-				113CC9B52BE6C91D00DF7FF7 /* AudioManager.swift in Sources */,
-				11C6990B2A34FFC500A79985 /* AnimationErrors.swift in Sources */,
-				11FDBF4E2BE0A62B008C5B3E /* BlockingThreadSafeQueue.swift in Sources */,
-				117043542BE4AE9D000C3626 /* Sound.swift in Sources */,
-				11FDBF522BE0A7A6008C5B3E /* ServerLogItem.swift in Sources */,
-				11FDBF412BE0A1D5008C5B3E /* StreamingMethods.swift in Sources */,
-				11D612772BCF8B7900A3AB87 /* PlaylistErrors.swift in Sources */,
-				1182ED0E2BEDD18400E1213F /* SoundDataProcessor.swift in Sources */,
-				113CC9C12BE85F8100DF7FF7 /* WebSocketMessageDTO.swift in Sources */,
-				11B4820B29E141AB00767E22 /* DataHelper.swift in Sources */,
-				11E438C92BE88729008D4068 /* MessageProcessor.swift in Sources */,
-				11C699082A3459B000A79985 /* AudioError.swift in Sources */,
-				11615C2D2BE6177D00F15791 /* SystemCountersDTO.swift in Sources */,
-				1182ED022BEB35A700E1213F /* AnimationMetadataListDTO.swift in Sources */,
-				113CC9B42BE6C90000DF7FF7 /* StorageManager.swift in Sources */,
-				11C5C46A2BE5E71100BDFCEE /* creaturesCommand.swift in Sources */,
-				1142E65F29DFB1A900B795F0 /* Creature.swift in Sources */,
-				11C5C46E2BE5F06C00BDFCEE /* soundsCommand.swift in Sources */,
-				11FDBF472BE0A36D008C5B3E /* Joystick.swift in Sources */,
-				1182ED0A2BEDD08600E1213F /* SteamFrameData.swift in Sources */,
-				113CC9C82BE86C0000DF7FF7 /* Notice.swift in Sources */,
-				113CC9BB2BE72C4B00DF7FF7 /* websocketCommand.swift in Sources */,
-				11FDBF342BE09792008C5B3E /* CreatureListDTO.swift in Sources */,
-				11E438CB2BE888A1008D4068 /* CLIMessageProcessor.swift in Sources */,
-				11AFC3172BE9E11200602604 /* Types.swift in Sources */,
-				1182ED0F2BEDD19100E1213F /* SoundData.swift in Sources */,
-				11FDBF462BE0A317008C5B3E /* PlaylistItem.swift in Sources */,
-				11615C302BE6182100F15791 /* ServerMetricsMethods.swift in Sources */,
-				11D612762BCF842700A3AB87 /* CreatureServerClient.swift in Sources */,
-				11615C322BE6195E00F15791 /* metricsCommand.swift in Sources */,
-				113CC9B92BE727EE00DF7FF7 /* WebSocketMethods.swift in Sources */,
-				11FDBF382BE09EE5008C5B3E /* CreatureMethods.swift in Sources */,
-				11FDBF3E2BE0A153008C5B3E /* PlaylistMethods.swift in Sources */,
-				11FDBF422BE0A2D1008C5B3E /* Animation.swift in Sources */,
-				11C699052A34596B00A79985 /* ServerError.swift in Sources */,
-				11C5C4712BE5F12400BDFCEE /* SoundMethods.swift in Sources */,
-				11FDBF432BE0A2D8008C5B3E /* AnimationMetadata.swift in Sources */,
-				11FDBF442BE0A2DC008C5B3E /* FrameData.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1145,40 +889,6 @@
 			};
 			name = Release;
 		};
-		11C326DA29DD41E900B169CD /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
-				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = YQ8A74NDMJ;
-				DSTROOT = build/creaturecli;
-				ENABLE_HARDENED_RUNTIME = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.creature-cli";
-				PRODUCT_NAME = "creature-cli";
-				SDKROOT = macosx;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		11C326DB29DD41E900B169CD /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
-				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = YQ8A74NDMJ;
-				DSTROOT = build/creaturecli;
-				ENABLE_HARDENED_RUNTIME = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_NAME = "creature-cli";
-				SDKROOT = macosx;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1200,15 +910,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		11C326D929DD41E900B169CD /* Build configuration list for PBXNativeTarget "CreatureCLI" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				11C326DA29DD41E900B169CD /* Debug */,
-				11C326DB29DD41E900B169CD /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -1223,10 +924,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		11F1757729DD42D800ADD5FB /* ArgumentParser */ = {
+		1110E9642BF035E500FCE26D /* Common */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
-			productName = ArgumentParser;
+			productName = Common;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
