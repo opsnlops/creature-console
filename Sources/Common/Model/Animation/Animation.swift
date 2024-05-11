@@ -34,7 +34,7 @@ public class Animation: Hashable, Equatable, Identifiable {
 }
 
 extension Animation {
-    static func mock() -> Animation {
+    public static func mock() -> Animation {
 
         let id = DataHelper.generateRandomId()
         let metadata = AnimationMetadata.mock()

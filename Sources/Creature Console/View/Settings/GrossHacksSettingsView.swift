@@ -1,12 +1,8 @@
-//
-//  GrossHacksSettingsView.swift
-//  Creature Console
-//
-//  Created by April White on 8/19/23.
-//
+
 
 import Foundation
 import SwiftUI
+import Common
 
 
 struct GrossHacksSettingsView: View {

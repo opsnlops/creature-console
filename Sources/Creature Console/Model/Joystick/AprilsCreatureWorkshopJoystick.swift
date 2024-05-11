@@ -2,6 +2,7 @@
 import Combine
 import Foundation
 import OSLog
+import Common
 
 /**
  IOKit is macOS only. None of this will work on iOS.

@@ -8,6 +8,10 @@ public class SoundDataProcessor {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundDataProcessor")
 
     
+    public init() {
+        self.logger.debug("new SoundProcessorData")
+    }
+
     public func replaceTrackDataWithSoundData(soundData: SoundData, track: Int, animation: Animation) {
 
         logger.info("received a request to replace track \(track) with sound data from \(soundData.metadata.soundFile)")
@@ -19,7 +23,7 @@ public class SoundDataProcessor {
     }
     
     public func processSoundData(soundData: SoundData, millisecondsPerFrame: UInt32) -> [UInt8] {
-        
+
         logger.info("sound file was: \(soundData.metadata.soundFile), duration: \(soundData.metadata.duration * 1000)ms, animationMsPerFrame: \(millisecondsPerFrame)")
         
         // How many frames are in this?

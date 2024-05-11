@@ -1,20 +1,16 @@
-//
-//  SoundDataImporter.swift
-//  Creature Console
-//
-//  Created by April White on 8/22/23.
-//
+
 
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 import OSLog
+import Common
 
 struct SoundDataImport: View {
     @State private var jsonString: String = ""
     @State private var isFileImporterPresented: Bool = false
 
-    @Binding var animation: Animation?
+    @Binding var animation: Common.Animation?
     
     @State private var showErrorAlert = false
     @State private var alertMessage = ""

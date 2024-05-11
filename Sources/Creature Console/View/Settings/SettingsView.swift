@@ -1,12 +1,7 @@
-//
-//  SettingsView.swift
-//  Creature Console
-//
-//  Created by April White on 4/14/23.
-//
 
 import Foundation
 import SwiftUI
+import Common
 
 struct SettingsView: View {
     private enum Tabs: Hashable {

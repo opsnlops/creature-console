@@ -37,7 +37,7 @@ public class Sound : Identifiable, Hashable, Equatable, Codable {
 }
 
 extension Sound {
-    static func mock() -> Sound {
+    public static func mock() -> Sound {
         return Sound(fileName: "amazingSound.mp3", size: 3409834)
     }
 }

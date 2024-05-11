@@ -1,12 +1,8 @@
-//
-//  AdvancedSettings.swift
-//  Creature Console
-//
-//  Created by April White on 4/17/23.
-//
+
 
 import Foundation
 import SwiftUI
+import Common
 
 
 struct AdvancedSettingsView: View {

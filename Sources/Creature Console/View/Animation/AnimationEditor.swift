@@ -1,6 +1,7 @@
 
 import SwiftUI
 import OSLog
+import Common
 
 
 // This is the main animation editor for all of the Animations
@@ -18,7 +19,7 @@ struct AnimationEditor: View {
     var animationId: AnimationIdentifier?
 
     @State var creature : Creature
-    @State var animation : Animation?
+    @State var animation : Common.Animation?
     
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""

@@ -29,7 +29,7 @@ public struct StreamFrameDataResponse {
 
 extension StreamFrameDataResponse {
     
-    static func mock() -> StreamFrameDataResponse {
+    public static func mock() -> StreamFrameDataResponse {
 
         let framesProcessed = UInt32.random(in: 1...1000)
         let message = "Mock response received successfully!"

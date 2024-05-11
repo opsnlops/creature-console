@@ -4,16 +4,16 @@ import Foundation
 
 public struct SoundData: Decodable {
     public struct Metadata: Decodable {
-        let soundFile: String
-        let duration: Double
+        public let soundFile: String
+        public let duration: Double
     }
     
     public struct MouthCue: Codable {
-            let start: Double
-            let end: Double
-            let value: String
-            
-            var intValue: UInt8 {
+            public let start: Double
+        public let end: Double
+        public let value: String
+
+        public var intValue: UInt8 {
                 switch value {
                 case "A": return 5
                 case "B": return 180

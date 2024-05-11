@@ -3,6 +3,7 @@ import SwiftUI
 import Foundation
 import OSLog
 import Dispatch
+import Common
 
 struct CreatureDetail : View {
     

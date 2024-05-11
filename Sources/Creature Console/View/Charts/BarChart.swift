@@ -1,5 +1,6 @@
 
 import SwiftUI
+import Common
 
 struct BarChart: View {
     @Binding var data: [UInt8]

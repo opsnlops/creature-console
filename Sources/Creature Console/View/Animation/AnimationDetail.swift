@@ -1,5 +1,6 @@
 
 import SwiftUI
+import Common
 
 struct AnimationDetail: View {
     

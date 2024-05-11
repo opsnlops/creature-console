@@ -2,6 +2,7 @@
 import Foundation
 import GameController
 import OSLog
+import Common
 
 #if os(macOS)
 import IOKit

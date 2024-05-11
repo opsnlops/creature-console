@@ -1,5 +1,6 @@
 import SwiftUI
 import OSLog
+import Common
 
 struct JoystickSettingsView: View {
     @AppStorage("useOurJoystick") private var useOurJoystick: Bool = true

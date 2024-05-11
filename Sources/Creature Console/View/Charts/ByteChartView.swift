@@ -3,6 +3,7 @@
 //
 
 import SwiftUI
+import Common
 
 
 struct ByteChartView: View {

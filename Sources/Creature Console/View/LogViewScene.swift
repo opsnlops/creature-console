@@ -1,20 +1,14 @@
 
 import Foundation
 import SwiftUI
+import Common
 
 #if os(macOS)
 struct LogViewScene: Scene {
-       
-    let server : CreatureServerClient
-    
-    init(server: CreatureServerClient) {
-        self.server = server
-    }
-    
-    
+
     var body: some Scene {
         Window("Server Logs", id: "serverLogs") {
-            LogViewView(server: server)
+            LogViewView()
         }
         .defaultPosition(.topTrailing)
         .defaultSize(width: 500, height: 300)

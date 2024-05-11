@@ -37,7 +37,7 @@ public struct FrameData: Hashable, Equatable {
 
 
 extension FrameData {
-    static func mock() -> FrameData {
+    public static func mock() -> FrameData {
         
         // Generate mock IDs and frame data
         let id = DataHelper.generateRandomData(byteCount: 12)

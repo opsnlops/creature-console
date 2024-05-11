@@ -14,7 +14,6 @@ public protocol CreatureServerClientProtocol: AnyObject {
     func close() throws
     func getHostname() -> String
     func streamLogs(queue: BlockingThreadSafeQueue<ServerLogItem>) async
-    //func streamJoystick(joystick: Joystick, creature: Creature, universe: UniverseIdentifier) async throws
     func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError>
     func getCreature(creatureId: CreatureIdentifier) async throws -> Result<Creature, ServerError>
     func getAllCreatures() async -> Result<[Creature], ServerError>

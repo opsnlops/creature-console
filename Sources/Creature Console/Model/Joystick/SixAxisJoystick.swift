@@ -3,6 +3,7 @@ import Foundation
 import GameController
 import OSLog
 import Combine
+import Common
 
 class Axis : ObservableObject, CustomStringConvertible {
     var axisType : AxisType = .gamepad

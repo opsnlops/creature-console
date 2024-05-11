@@ -31,5 +31,11 @@ let package = Package(
             ],
             path: "Sources/CreatureCLI/",
             exclude: ["README.md"]),
+
+            .target(
+                name: "Creature Console",
+                dependencies: ["Common"],
+                path: "Sources/Creature Console/",
+                exclude: ["README.md"]),
     ]
 )

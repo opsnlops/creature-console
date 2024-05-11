@@ -76,7 +76,7 @@ public class Creature : ObservableObject, Identifiable, Hashable, Equatable, Dec
 
 
 extension Creature {
-    static func mock() -> Creature {
+    public static func mock() -> Creature {
         let creature = Creature(id: DataHelper.generateRandomId(),
             name: "MockCreature",
             channelOffset: 7,

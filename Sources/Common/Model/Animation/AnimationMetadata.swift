@@ -71,7 +71,7 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
 
 extension AnimationMetadata {
     
-    static func mock() -> AnimationMetadata {
+    public static func mock() -> AnimationMetadata {
 
         let id = DataHelper.generateRandomId()
         let title = "Mock Animation Title"

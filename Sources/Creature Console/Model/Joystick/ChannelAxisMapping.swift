@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import OSLog
+import Common
 
 /**
  The channel on the creature. This are defined as the "inputs" in the creature JSON.

@@ -1,11 +1,6 @@
-//
-//  DebugJoystickScene.swift
-//  Creature Console
-//
-//  Created by April White on 4/9/23.
-//
 
 import SwiftUI
+import Common
 
 #if os(macOS)
 struct DebugJoystickScene: Scene {

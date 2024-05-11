@@ -1,5 +1,6 @@
 
 import SwiftUI
+import Common
 
 #if os(macOS)
 struct ACWDebugJoystickScene: Scene {

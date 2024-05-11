@@ -3,6 +3,7 @@
 import Foundation
 import OSLog
 import SwiftUI
+import Common
 
 
 
@@ -21,7 +22,6 @@ class CreatureManager {
 
 
     private init() {}
-
 
     func startStreamingToCreature(creatureId: CreatureIdentifier) -> Result<String, ServerError> {
         return .failure(.notImplemented("This hasn't been implemented yet"))
@@ -57,7 +57,7 @@ class CreatureManager {
      This requires a full [Animation] object, because we might not have saved it to the server. The idea is to be able
      to play it before we save it.
      */
-    func playAnimationLocally(animation: Animation, universe: UniverseIdentifier) async -> Result<String, ServerError> {
+    func playAnimationLocally(animation: Common.Animation, universe: UniverseIdentifier) async -> Result<String, ServerError> {
         return .failure(.notImplemented("This hasn't been implemented yet"))
     }
 }

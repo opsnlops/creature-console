@@ -1,6 +1,7 @@
 
 import SwiftUI
 import OSLog
+import Common
 
 #if os(macOS)
 

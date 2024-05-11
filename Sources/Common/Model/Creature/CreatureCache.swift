@@ -8,9 +8,9 @@ import OSLog
  This is designed to live in the Environment, as a store of the Creatures that we know exist
  */
 public class CreatureCache : ObservableObject {
-    @Published var creatures : [Creature]
-    @Published var empty : Bool = true
-   
+    @Published public var creatures : [Creature]
+    @Published public var empty : Bool = true
+
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureList")
     
     public init() {
@@ -38,7 +38,7 @@ public class CreatureCache : ObservableObject {
 
 
 extension CreatureCache {
-    static func mock() -> CreatureCache {
+    public static func mock() -> CreatureCache {
         let creaureList = CreatureCache()
 
         let id1 = Creature.mock()

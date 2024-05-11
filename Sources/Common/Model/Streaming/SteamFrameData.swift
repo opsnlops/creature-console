@@ -44,7 +44,7 @@ public struct StreamFrameData: Hashable, Equatable {
 
 extension StreamFrameData {
     
-    static func mock() -> StreamFrameData {
+    public static func mock() -> StreamFrameData {
     
         let creatureId = UUID().uuidString
         let data = DataHelper.generateRandomData(byteCount: 6)

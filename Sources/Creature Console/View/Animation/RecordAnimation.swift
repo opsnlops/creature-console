@@ -2,6 +2,8 @@
 import SwiftUI
 import OSLog
 import AVFoundation
+import Common
+
 
 struct RecordAnimation: View {
     
@@ -14,7 +16,7 @@ struct RecordAnimation: View {
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondsPerFrame = 20
 
-    @State var animation : Animation?
+    @State var animation : Common.Animation?
     @State private var errorMessage = ""
     @State private var showErrorMessage = false
     
@@ -229,12 +231,11 @@ struct RecordAnimation: View {
        
         // Start streaming to the creature
         streamingTask = Task {
-            do {
-                try await server.streamJoystick(joystick: joystick, creature: creature, universe: activeUniverse)
-            }
-            catch {
-                logger.error("Unable to stream: \(error.localizedDescription)")
-            }
+
+            await _ = creatureManager.startStreamingToCreature(creatureId: creature.id)
+
+
+
         }
         
         // Work in the background

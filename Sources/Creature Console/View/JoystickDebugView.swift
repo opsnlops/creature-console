@@ -3,6 +3,7 @@ import Combine
 import SwiftUI
 import OSLog
 import GameController
+import Common
 
 
 struct JoystickDebugView: View {

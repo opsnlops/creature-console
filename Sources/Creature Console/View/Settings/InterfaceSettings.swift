@@ -1,6 +1,7 @@
 
 import SwiftUI
 import OSLog
+import Common
 
 struct InterfaceSettings: View {
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 0

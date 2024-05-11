@@ -17,7 +17,7 @@ public class Playlist {
 
 
 extension Playlist {
-    static func mock() -> Playlist {
+    public static func mock() -> Playlist {
         
         let id = Data(DataHelper.generateRandomData(byteCount: 12))
         let name = "Mock Playlist"

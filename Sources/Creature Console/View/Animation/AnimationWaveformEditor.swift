@@ -1,9 +1,10 @@
 
 import SwiftUI
+import Common
 
 struct AnimationWaveformEditor: View {
     
-    @Binding var animation : Animation?
+    @Binding var animation : Common.Animation?
     @Binding var creature : Creature
     
     var body: some View {
@@ -23,7 +24,7 @@ struct AnimationWaveformEditor: View {
     }
     
     
-    private func processAnimationData(_ animation: Animation) -> [[UInt8]] {
+    private func processAnimationData(_ animation: Common.Animation) -> [[UInt8]] {
 //        var allAxes: [[UInt8]] = Array(repeating: [], count: Int(animation.metadata.numberOfMotors))
 //
 //        for i in 0..<animation.numberOfFrames {

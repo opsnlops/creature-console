@@ -2,6 +2,8 @@
 import Foundation
 import OSLog
 import SwiftUI
+import Common
+
 
 /**
  This EventLoop runs on a background thread!
@@ -47,7 +49,7 @@ class EventLoop : ObservableObject {
     
 
     // If we've got an animation loaded, keep track of it
-    var animation : Animation?
+    var animation : Common.Animation?
     var isRecording = false
 
     @AppStorage("audioFilePath") var audioFilePath: String = ""
