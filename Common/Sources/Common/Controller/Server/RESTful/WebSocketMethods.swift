@@ -146,12 +146,6 @@ extension CreatureServerClient {
         // Stop the ping timer
         stopPinging()
 
-        // Cancel all active subscriptions
-        for cancellable in cancellables {
-            cancellable.cancel()
-        }
-        cancellables.removeAll()
-
         // Clear the message processor
         self.processor = nil
 

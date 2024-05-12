@@ -1,5 +1,4 @@
 
-import Combine
 import Foundation
 import Logging
 
@@ -7,7 +6,6 @@ public class CreatureServerClient : CreatureServerClientProtocol {
 
     public static let shared = CreatureServerClient()
     var webSocketTask: URLSessionWebSocketTask?
-    var cancellables: Set<AnyCancellable> = []
 
     // WebSocket processing stuff
     var processor: MessageProcessor?

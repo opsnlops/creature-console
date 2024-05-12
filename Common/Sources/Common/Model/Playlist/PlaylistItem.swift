@@ -30,7 +30,7 @@ public class PlaylistItem : Hashable, Equatable, Identifiable {
 extension PlaylistItem {
     public static func mock() -> PlaylistItem {
         let animationId = Data(DataHelper.generateRandomData(byteCount: 12))
-        let weight: Int32 = Int32(arc4random_uniform(100)) // Random weight between 0 and 99
+        let weight: Int32 = Int32.random(in: 0..<100) // Random weight between 0 and 99
 
         return PlaylistItem(animationId: animationId, weight: weight)
     }

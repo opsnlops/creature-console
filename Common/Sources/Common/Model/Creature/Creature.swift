@@ -16,7 +16,7 @@ public class Creature : ObservableObject, Identifiable, Hashable, Equatable, Dec
     @Published public var channelOffset : Int
     @Published public var realData : Bool = false      // Set to true when there's non-mock data loaded
     @Published public var notes : String
-     @Published public var audioChannel : Int
+    @Published public var audioChannel : Int
 
     // Map our names to what the server is going to give us
     public enum CodingKeys: String, CodingKey {
