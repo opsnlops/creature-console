@@ -241,6 +241,13 @@ extension WebSocketClient: WebSocketDelegate {
                     self.logger.warning("Decoding a serverCounters message failed")
                 }
 
+            case .statusLights:
+                if case .statusLights(let statusLights) = incoming.payload {
+                    messageProcessor?.processStatusLights(statusLights)
+                } else {
+                    self.logger.warning("Decoding a statusLights message failed")
+                }
+
 
             default:
                 self.logger.warning("Unknown message type: \(incoming.command)")

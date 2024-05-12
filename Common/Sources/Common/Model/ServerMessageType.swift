@@ -6,6 +6,7 @@ public enum ServerMessageType: String {
     case database = "database"
     case logging = "log"
     case notice = "notice"
+    case statusLights = "status-lights"
     case unknown
 
     public init(from command: String) {

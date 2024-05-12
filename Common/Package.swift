@@ -16,7 +16,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
-        .package(url: "https://github.com/daltoniam/Starscream.git", from: "4.0.6"),
+        .package(url: "https://github.com/daltoniam/Starscream.git", from: "4.0.8"),
     ],
 
     targets: [

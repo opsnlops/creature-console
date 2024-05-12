@@ -15,6 +15,14 @@ class CLIMessageProcessor: MessageProcessor {
     }
 
     func processSystemCounters(_ counters: SystemCountersDTO) {
-        print("[COUNTERS] Server is on frame \(counters.totalFrames)")
+        print(
+            "[COUNTERS] Server is on frame \(counters.totalFrames)! \(counters.framesStreamed) frames have been streamed."
+        )
+    }
+
+    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
+        print(
+            "[STATUS LIGHTS] running: \(statusLights.running ? "on" : "off"), streaming: \(statusLights.streaming ? "on" : "off"), DMX: \(statusLights.dmx ? "on" : "off")"
+        )
     }
 }

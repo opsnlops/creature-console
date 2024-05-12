@@ -23,6 +23,7 @@ public struct WebSocketMessageDTO: Decodable {
         case notice(Notice)
         case log(ServerLogItem)
         case serverCounters(SystemCountersDTO)
+        case statusLights(VirtualStatusLightsDTO)
         case unknown
 
         // Decode based on the command type
@@ -47,6 +48,13 @@ public struct WebSocketMessageDTO: Decodable {
             case "server-counters":
                 if let counters = try? container.decode(SystemCountersDTO.self, forKey: .payload) {
                     self = .serverCounters(counters)
+                } else {
+                    self = .unknown
+                }
+
+            case "status-lights":
+                if let statusLights = try? container.decode(VirtualStatusLightsDTO.self, forKey: .payload) {
+                    self = .statusLights(statusLights)
                 } else {
                     self = .unknown
                 }

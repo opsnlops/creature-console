@@ -5,4 +5,5 @@ public protocol MessageProcessor {
     func processNotice(_ notice: Notice)
     func processLog(_ logItem: ServerLogItem)
     func processSystemCounters(_ counters: SystemCountersDTO)
+    func processStatusLights(_ statusLights: VirtualStatusLightsDTO)
 }
