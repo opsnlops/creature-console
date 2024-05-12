@@ -25,7 +25,8 @@ let package = Package(
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Starscream", package: "Starscream"),
-            ]),
+            ],
+            exclude: ["README.md"]),
 
         .executableTarget(
             name: "creature-cli",

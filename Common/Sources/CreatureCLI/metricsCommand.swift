@@ -1,8 +1,5 @@
-
 import ArgumentParser
 import Foundation
-
-
 
 extension CreatureCLI {
 
@@ -16,12 +13,11 @@ extension CreatureCLI {
         var globalOptions: GlobalOptions
 
 
-
-
         struct ServerCounters: AsyncParsableCommand {
             static var configuration = CommandConfiguration(
                 abstract: "Show the server's counters",
-                discussion: "This command requests that the server send over a copy of the current state of the internal counters and displays them."
+                discussion:
+                    "This command requests that the server send over a copy of the current state of the internal counters and displays them."
             )
 
             @OptionGroup()
@@ -47,8 +43,13 @@ extension CreatureCLI {
                     rows.append(["Sounds Played", formatNumber(counters.soundsPlayed)])
                     rows.append(["Playlists Started", formatNumber(counters.playlistsStarted)])
                     rows.append(["Playlists Stopped", formatNumber(counters.playlistsStopped)])
-                    rows.append(["Playlist Events Processed", formatNumber(counters.playlistsEventsProcessed)])
-                    rows.append(["Playlist Status Requests", formatNumber(counters.playlistStatusRequests)])
+                    rows.append([
+                        "Playlist Events Processed",
+                        formatNumber(counters.playlistsEventsProcessed),
+                    ])
+                    rows.append([
+                        "Playlist Status Requests", formatNumber(counters.playlistStatusRequests),
+                    ])
                     rows.append(["REST API Requests", formatNumber(counters.restRequestsProcessed)])
 
                     printTable(headers: headers, rows: rows)
@@ -64,5 +65,3 @@ extension CreatureCLI {
 
     }
 }
-
-

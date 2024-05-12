@@ -1,8 +1,6 @@
-
 import ArgumentParser
-import Foundation
 import Common
-
+import Foundation
 
 struct GlobalOptions: ParsableArguments {
     @Option(help: "The port to connect to")
@@ -28,17 +26,13 @@ struct CreatureCLI: AsyncParsableCommand {
 }
 
 
-
-
 func formatNumber(_ number: UInt64) -> String {
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
     return formatter.string(from: NSNumber(value: number)) ?? ""
 }
 
-/**
- Creates a fully configured server object
- */
+/// Creates a fully configured server object
 func getServer(config: GlobalOptions) -> CreatureServerClient {
 
     let server = CreatureServerClient()

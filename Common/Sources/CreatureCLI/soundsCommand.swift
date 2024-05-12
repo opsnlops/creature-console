@@ -1,8 +1,5 @@
-
 import ArgumentParser
 import Foundation
-
-
 
 extension CreatureCLI {
 
@@ -16,12 +13,11 @@ extension CreatureCLI {
         var globalOptions: GlobalOptions
 
 
-
-
         struct List: AsyncParsableCommand {
             static var configuration = CommandConfiguration(
                 abstract: "List the sound files on the server",
-                discussion: "This command returns a list of the sound files that the server knows about, along with their size."
+                discussion:
+                    "This command returns a list of the sound files that the server knows about, along with their size."
             )
 
             @OptionGroup()
@@ -48,16 +44,17 @@ extension CreatureCLI {
                     printTable(headers: headers, rows: rows)
 
                     print("\n\(sounds.count) sound file(s) available on server")
-                    case .failure(let error):
-                        print("Error fetching the available sounds: \(error)")
-                    }
+                case .failure(let error):
+                    print("Error fetching the available sounds: \(error)")
+                }
             }
         }
 
         struct Play: AsyncParsableCommand {
             static var configuration = CommandConfiguration(
                 abstract: "Play a specified sound file on the server",
-                discussion: "This command sends a request to the server to play a sound file that you specify. Ensure the sound file name is correctly spelled and available on the server."
+                discussion:
+                    "This command sends a request to the server to play a sound file that you specify. Ensure the sound file name is correctly spelled and available on the server."
             )
 
             @Argument(help: "The name of the sound file to play on the server")
@@ -67,13 +64,13 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                
+
                 print("attempting to play \(fileName) on the server...\n")
 
                 let server = getServer(config: globalOptions)
                 let result = await server.playSound(fileName)
 
-                switch(result) {
+                switch result {
                 case .success(let message):
                     print(message)
                 case .failure(let message):
@@ -83,4 +80,3 @@ extension CreatureCLI {
         }
     }
 }
-

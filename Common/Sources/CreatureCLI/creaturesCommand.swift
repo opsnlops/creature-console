@@ -1,7 +1,4 @@
-
 import ArgumentParser
-
-
 
 extension CreatureCLI {
 
@@ -10,21 +7,21 @@ extension CreatureCLI {
             abstract: "Mess with the Creatures",
             subcommands: [List.self, Search.self]
         )
-        
+
         @OptionGroup()
         var globalOptions: GlobalOptions
 
-        
 
         struct List: AsyncParsableCommand {
             static var configuration = CommandConfiguration(
                 abstract: "List the creatures on the server",
-                discussion: "This command will print out a table of the creatures that the server knows about."
+                discussion:
+                    "This command will print out a table of the creatures that the server knows about."
             )
 
             @OptionGroup()
             var globalOptions: GlobalOptions
-            
+
             func run() async throws {
 
                 let server = getServer(config: globalOptions)
@@ -39,18 +36,21 @@ extension CreatureCLI {
                     for creature in creatures {
 
                         // Add this to the table
-                        let row = [creature.name,
-                                   creature.id,
-                                   String(creature.channelOffset),
-                                   String(creature.audioChannel),
-                                   creature.notes]
+                        let row = [
+                            creature.name,
+                            creature.id,
+                            String(creature.channelOffset),
+                            String(creature.audioChannel),
+                            creature.notes,
+                        ]
                         rows.append(row)
                     }
 
                     print("\nKnown Creatures:\n")
                     printTable(headers: headers, rows: rows)
 
-                    print("\n\(creatures.count) creature(s) on server at \(server.serverHostname)\n")
+                    print(
+                        "\n\(creatures.count) creature(s) on server at \(server.serverHostname)\n")
 
                 case .failure(let error):
                     print("Error fetching creatures: \(error)")
@@ -58,17 +58,19 @@ extension CreatureCLI {
             }
 
         }
-        
+
         struct Search: AsyncParsableCommand {
             @Argument(help: "The name of the creature to search for.")
             var name: String
-            
+
             @OptionGroup()
             var globalOptions: GlobalOptions
-            
+
             func run() async throws {
                 // Use globalOptions here
-                print("Searching for creature \(name) on \(globalOptions.host):\(globalOptions.port) using TLS: \(globalOptions.useTLS)")
+                print(
+                    "Searching for creature \(name) on \(globalOptions.host):\(globalOptions.port) using TLS: \(globalOptions.useTLS)"
+                )
             }
         }
     }

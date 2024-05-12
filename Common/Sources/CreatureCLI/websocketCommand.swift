@@ -36,7 +36,7 @@ extension CreatureCLI {
 
                 sleep(seconds)
 
-                await server.disconnectWebsocket()
+                _ = await server.disconnectWebsocket()
                 print("\nTimeout reached! Disconnecting from the websocket.")
 
             }
@@ -85,7 +85,7 @@ extension CreatureCLI {
                     usleep(1_000 * pause)
                 }
 
-                await server.disconnectWebsocket()
+                _ = await server.disconnectWebsocket()
                 print("disconnected from websocket")
 
             }
