@@ -1,25 +1,22 @@
-
-
 import ArgumentParser
 import Foundation
-
-
 
 extension CreatureCLI {
 
     struct Websocket: AsyncParsableCommand {
-         static var configuration = CommandConfiguration(
-             abstract: "WebSocket things",
-             subcommands: [Monitor.self, Inject.self]
-         )
+        static var configuration = CommandConfiguration(
+            abstract: "WebSocket things",
+            subcommands: [Monitor.self, Inject.self]
+        )
 
-         @OptionGroup()
-         var globalOptions: GlobalOptions
+        @OptionGroup()
+        var globalOptions: GlobalOptions
 
         struct Monitor: AsyncParsableCommand {
             static var configuration = CommandConfiguration(
                 abstract: "Monitor websocket messages from the server",
-                discussion: "This command opens up a websocket connection to the server and leaves it open for a given number of seconds. Messages that it receives will be decoded to stdout."
+                discussion:
+                    "This command opens up a websocket connection to the server and leaves it open for a given number of seconds. Messages that it receives will be decoded to stdout."
             )
 
             @Option(help: "How many seconds to leave the monitor running")
@@ -46,52 +43,52 @@ extension CreatureCLI {
         }
 
 
-         struct Inject: AsyncParsableCommand {
-             static var configuration = CommandConfiguration(
-                 abstract: "Inject messages to the server",
-                 discussion: "Send some messages to the server for testing purposes"
-             )
+        struct Inject: AsyncParsableCommand {
+            static var configuration = CommandConfiguration(
+                abstract: "Inject messages to the server",
+                discussion: "Send some messages to the server for testing purposes"
+            )
 
-             @OptionGroup()
-             var globalOptions: GlobalOptions
+            @OptionGroup()
+            var globalOptions: GlobalOptions
 
-             @Option(help: "How many milliseconds to wait between messages")
-             var pause: UInt32 = 1000
+            @Option(help: "How many milliseconds to wait between messages")
+            var pause: UInt32 = 1000
 
-             @Option(help: "How many messages to inject")
-             var count: UInt32 = 30
+            @Option(help: "How many messages to inject")
+            var count: UInt32 = 30
 
 
-             func run() async throws {
+            func run() async throws {
 
-                 // Create our processor
-                 let processor = CLIMessageProcessor()
+                // Create our processor
+                let processor = CLIMessageProcessor()
 
-                 let server = getServer(config: globalOptions)
-                 await server.connectWebsocket(processor: processor)
-                 print("connected to websocket")
+                let server = getServer(config: globalOptions)
+                await server.connectWebsocket(processor: processor)
+                print("connected to websocket")
 
-                 for i in 1...count {
+                for i in 1...count {
 
-                     do {
-                         let result = await server.sendMessage("Hello! This is an injected message! \(i) of \(count)")
-                         switch(result) {
+                    do {
+                        let result = await server.sendMessage(
+                            "Hello! This is an injected message! \(i) of \(count)")
+                        switch result {
 
-                         case .failure(let error):
-                             print("Error sending message: \(error.localizedDescription)")
-                         default:
-                             break
-                         }
-                     }
+                        case .failure(let error):
+                            print("Error sending message: \(error.localizedDescription)")
+                        default:
+                            break
+                        }
+                    }
 
-                     usleep(1_000 * pause)
-                 }
+                    usleep(1_000 * pause)
+                }
 
-                 await server.disconnectWebsocket()
-                 print("disconnected from websocket")
+                await server.disconnectWebsocket()
+                print("disconnected from websocket")
 
-             }
-         }
-     }
+            }
+        }
+    }
 }
-

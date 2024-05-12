@@ -1,16 +1,18 @@
 import Foundation
 import Logging
+import Starscream
 
 public class CreatureServerClient: CreatureServerClientProtocol {
 
     public static let shared = CreatureServerClient()
-    var webSocketTask: URLSessionWebSocketTask?
 
     // WebSocket processing stuff
     var processor: MessageProcessor?
-    var pingTimer: Bool = true
+    var webSocketClient: WebSocketClient?
+    var isWebSocketConnected: Bool = false
 
-    let logger: Logger
+
+    var logger: Logger
     public var serverHostname: String =
         UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
     public var serverPort: Int = UserDefaults.standard.integer(forKey: "serverRestPort")
@@ -25,6 +27,7 @@ public class CreatureServerClient: CreatureServerClientProtocol {
 
     public init() {
         self.logger = Logger(label: "io.opsnlops.creature-controller.common")
+        self.logger.logLevel = .debug
         self.logger.info("Created new CreatureServerRestful")
     }
 
@@ -33,7 +36,7 @@ public class CreatureServerClient: CreatureServerClientProtocol {
 
      @param type Which type of URL to make (http or websocket)
      */
-    func makeBaseURL(_ type: UrlType) -> String {
+    public func makeBaseURL(_ type: UrlType) -> String {
 
         var prefix: String
         switch type {

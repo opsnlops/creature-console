@@ -1,10 +1,7 @@
-
 import Common
 import Foundation
 
-/**
- A simple `MessageProcessor` that prints things to the screen for debugging
- */
+/// A simple `MessageProcessor` that prints things to the screen for debugging
 class CLIMessageProcessor: MessageProcessor {
 
     func processNotice(_ notice: Notice) {
@@ -12,7 +9,9 @@ class CLIMessageProcessor: MessageProcessor {
     }
 
     func processLog(_ logItem: ServerLogItem) {
-        print("[LOG] [\(TimeHelper.formatToLocalTime(logItem.timestamp))] [\(logItem.level)] \(logItem.message)")
+        print(
+            "[LOG] [\(TimeHelper.formatToLocalTime(logItem.timestamp))] [\(logItem.level)] \(logItem.message)"
+        )
     }
 
     func processSystemCounters(_ counters: SystemCountersDTO) {
