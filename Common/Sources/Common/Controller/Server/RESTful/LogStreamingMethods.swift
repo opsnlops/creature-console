@@ -1,7 +1,5 @@
-
 import Foundation
 import Logging
-
 
 extension CreatureServerClient {
 

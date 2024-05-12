@@ -1,8 +1,7 @@
-
 import Foundation
 import Logging
 
-public class CreatureServerClient : CreatureServerClientProtocol {
+public class CreatureServerClient: CreatureServerClientProtocol {
 
     public static let shared = CreatureServerClient()
     var webSocketTask: URLSessionWebSocketTask?
@@ -12,7 +11,8 @@ public class CreatureServerClient : CreatureServerClientProtocol {
     var pingTimer: Bool = true
 
     let logger: Logger
-    public var serverHostname: String = UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
+    public var serverHostname: String =
+        UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
     public var serverPort: Int = UserDefaults.standard.integer(forKey: "serverRestPort")
     public var useTLS: Bool = UserDefaults.standard.bool(forKey: "serverUseTLS")
 
@@ -36,10 +36,10 @@ public class CreatureServerClient : CreatureServerClientProtocol {
     func makeBaseURL(_ type: UrlType) -> String {
 
         var prefix: String
-        switch(type) {
-        case(.http):
+        switch type {
+        case (.http):
             prefix = useTLS ? "https://" : "http://"
-        case(.websocket):
+        case (.websocket):
             prefix = useTLS ? "wss://" : "ws://"
         }
 
@@ -71,7 +71,7 @@ public class CreatureServerClient : CreatureServerClientProtocol {
 
 
     func fetchData<T: Decodable>(_ url: URL, returnType: T.Type) async -> Result<T, ServerError> {
-        
+
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -82,7 +82,7 @@ public class CreatureServerClient : CreatureServerClientProtocol {
             let decoder = JSONDecoder()
 
             switch httpResponse.statusCode {
-                
+
             case 200:
                 do {
 
@@ -93,13 +93,17 @@ public class CreatureServerClient : CreatureServerClientProtocol {
                     var errorMessage = "Decoding Error: "
                     switch decodingError {
                     case .typeMismatch(let type, let context):
-                        errorMessage += "Type mismatch for type \(type): \(context.debugDescription) - coding path: \(context.codingPath)"
+                        errorMessage +=
+                            "Type mismatch for type \(type): \(context.debugDescription) - coding path: \(context.codingPath)"
                     case .valueNotFound(let type, let context):
-                        errorMessage += "Value not found for type \(type): \(context.debugDescription) - coding path: \(context.codingPath)"
+                        errorMessage +=
+                            "Value not found for type \(type): \(context.debugDescription) - coding path: \(context.codingPath)"
                     case .keyNotFound(let key, let context):
-                        errorMessage += "Key '\(key.stringValue)' not found: \(context.debugDescription) - coding path: \(context.codingPath)"
+                        errorMessage +=
+                            "Key '\(key.stringValue)' not found: \(context.debugDescription) - coding path: \(context.codingPath)"
                     case .dataCorrupted(let context):
-                        errorMessage += "Data corrupted: \(context.debugDescription) - coding path: \(context.codingPath)"
+                        errorMessage +=
+                            "Data corrupted: \(context.debugDescription) - coding path: \(context.codingPath)"
                     @unknown default:
                         errorMessage += "Unknown decoding error."
                     }
@@ -135,11 +139,10 @@ public class CreatureServerClient : CreatureServerClientProtocol {
     }
 
 
-
-
-
     // Generic method to send data via a POST request and decode the response
-    func sendData<T: Decodable, U: Encodable>(_ url: URL, method: String = "POST", body: U, returnType: T.Type) async -> Result<T, ServerError> {
+    func sendData<T: Decodable, U: Encodable>(
+        _ url: URL, method: String = "POST", body: U, returnType: T.Type
+    ) async -> Result<T, ServerError> {
         do {
             // Convert the request body to JSON data
             let encoder = JSONEncoder()

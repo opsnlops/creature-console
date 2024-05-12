@@ -1,11 +1,7 @@
-
 import Foundation
 
-
-/**
- All incoming messages are going to look like this. The `payload` varies, but we can determine the decoder
- to use based on the command.
- */
+/// All incoming messages are going to look like this. The `payload` varies, but we can determine the decoder
+/// to use based on the command.
 public struct WebSocketMessageDTO: Decodable {
     let command: String
     let payload: PayloadContainer
@@ -30,7 +26,9 @@ public struct WebSocketMessageDTO: Decodable {
         case unknown
 
         // Decode based on the command type
-        public init(from container: KeyedDecodingContainer<WebSocketMessageDTO.CodingKeys>, command: String) throws {
+        public init(
+            from container: KeyedDecodingContainer<WebSocketMessageDTO.CodingKeys>, command: String
+        ) throws {
             switch command {
             case "notice":
                 if let notice = try? container.decode(Notice.self, forKey: .payload) {

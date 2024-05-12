@@ -1,9 +1,8 @@
-
 import Foundation
 
-public class PlaylistItem : Hashable, Equatable, Identifiable {
+public class PlaylistItem: Hashable, Equatable, Identifiable {
 
-    let animationId : Data
+    let animationId: Data
     let weight: Int32
 
     public init(animationId: Data, weight: Int32) {
@@ -12,10 +11,10 @@ public class PlaylistItem : Hashable, Equatable, Identifiable {
     }
 
     public static func == (lhs: PlaylistItem, rhs: PlaylistItem) -> Bool {
-        if lhs.animationId == rhs.animationId  && lhs.weight == rhs.weight {
+        if lhs.animationId == rhs.animationId && lhs.weight == rhs.weight {
             return true
         }
-        
+
         return false
     }
 
@@ -23,14 +22,14 @@ public class PlaylistItem : Hashable, Equatable, Identifiable {
         hasher.combine(animationId)
         hasher.combine(weight)
     }
-    
+
 }
 
 
 extension PlaylistItem {
     public static func mock() -> PlaylistItem {
         let animationId = Data(DataHelper.generateRandomData(byteCount: 12))
-        let weight: Int32 = Int32.random(in: 0..<100) // Random weight between 0 and 99
+        let weight: Int32 = Int32.random(in: 0..<100)  // Random weight between 0 and 99
 
         return PlaylistItem(animationId: animationId, weight: weight)
     }

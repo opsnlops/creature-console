@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 
-public class Sound : Identifiable, Hashable, Equatable, Codable {
+public class Sound: Identifiable, Hashable, Equatable, Codable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.Sound")
     public var fileName: String
     public var size: UInt32
@@ -31,14 +31,13 @@ public class Sound : Identifiable, Hashable, Equatable, Codable {
     }
 
     // The == operator
-    public static func ==(lhs: Sound, rhs: Sound) -> Bool {
+    public static func == (lhs: Sound, rhs: Sound) -> Bool {
         return lhs.fileName == rhs.fileName && lhs.size == rhs.size
     }
 }
 
 extension Sound {
     public static func mock() -> Sound {
-        return Sound(fileName: "amazingSound.mp3", size: 3409834)
+        return Sound(fileName: "amazingSound.mp3", size: 3_409_834)
     }
 }
-

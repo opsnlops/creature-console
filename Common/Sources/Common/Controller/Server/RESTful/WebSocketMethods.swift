@@ -1,19 +1,13 @@
-
-
 import Foundation
 import Logging
-
-
 
 extension Notification.Name {
     static let didReceiveCommand = Notification.Name("didReceiveCommand")
 }
 
 
-
 extension CreatureServerClient {
 
-    
 
     /**
      Connect to the websocket, using the following processor
@@ -44,17 +38,17 @@ extension CreatureServerClient {
 
         // Start the pinging
         Task {
-           // do {
-                 await startPinging()
-           // }
+            // do {
+            await startPinging()
+            // }
         }
     }
 
 
-
     private func receiveMessages() async throws {
         while let message = try await receiveMessage() {
-            NotificationCenter.default.post(name: .didReceiveCommand, object: nil, userInfo: ["message": message])
+            NotificationCenter.default.post(
+                name: .didReceiveCommand, object: nil, userInfo: ["message": message])
             if let incomingData = message.data(using: .utf8) {
                 decodeIncomingMessage(incomingData)
             }
@@ -65,14 +59,14 @@ extension CreatureServerClient {
         do {
             let result = try await webSocketTask?.receive()
             switch result {
-                case .string(let text):
-                    return text
-                case .data(let data):
-                    print("Received binary data: \(data)")
-                    // Optionally handle binary data
-                    return nil
-                default:
-                    fatalError("Unknown message type received from WebSocket")
+            case .string(let text):
+                return text
+            case .data(let data):
+                print("Received binary data: \(data)")
+                // Optionally handle binary data
+                return nil
+            default:
+                fatalError("Unknown message type received from WebSocket")
             }
         } catch {
             print("WebSocket receive error: \(error)")
@@ -106,13 +100,12 @@ extension CreatureServerClient {
     }
 
 
-
     private func sendPing() async throws {
         guard let webSocketTask = webSocketTask else {
             throw ServerError.serverError("Websocket not initialized")
         }
         do {
-             webSocketTask.sendPing { error in
+            webSocketTask.sendPing { error in
                 if let error = error {
                     self.logger.error("Ping failed with error: \(error.localizedDescription)")
                     // Here, handle the error without throwing, such as setting an internal state or logging.
@@ -122,8 +115,6 @@ extension CreatureServerClient {
             }
         }
     }
-
-
 
 
     public func sendMessage(_ message: String) async -> Result<String, ServerError> {
@@ -153,7 +144,6 @@ extension CreatureServerClient {
         self.logger.debug("WebSocket disconnected successfully.")
     }
 
-    
 
     private func decodeIncomingMessage(_ message: Data) {
         self.logger.debug("Attempting to decode an incoming message from the websocket")
@@ -196,7 +186,6 @@ extension CreatureServerClient {
                 }
 
 
-
             default:
                 self.logger.warning("Unknown message type: \(incoming.command)")
             }
@@ -207,6 +196,3 @@ extension CreatureServerClient {
     }
 
 }
-
-
-

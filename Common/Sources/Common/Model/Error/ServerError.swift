@@ -1,4 +1,3 @@
-
 import Foundation
 
 public enum ServerError: Error, LocalizedError {
@@ -16,14 +15,14 @@ public enum ServerError: Error, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .communicationError(let message),
-             .dataFormatError(let message),
-             .otherError(let message),
-             .databaseError(let message),
-             .notFound(let message),
-             .unknownError(let message),
-             .serverError(let message),
-             .websocketError(let message),
-             .notImplemented(let message):
+            .dataFormatError(let message),
+            .otherError(let message),
+            .databaseError(let message),
+            .notFound(let message),
+            .unknownError(let message),
+            .serverError(let message),
+            .websocketError(let message),
+            .notImplemented(let message):
             return message
         }
     }

@@ -1,10 +1,6 @@
-
 import Foundation
 
-
-/**
- This is a local version of the `AnimationMetadata` that's sent over the wire
- */
+/// This is a local version of the `AnimationMetadata` that's sent over the wire
 public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
 
     public var id: AnimationIdentifier
@@ -16,9 +12,9 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
     public var numberOfFrames: UInt32
     public var multitrackAudio: Bool = false
 
-    
+
     // Custom CodingKeys to map JSON keys to struct properties
-    public  enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case id = "animation_id"
         case title
         case lastUpdated = "last_updated"
@@ -29,7 +25,10 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
         case multitrackAudio = "multitrack_audio"
     }
 
-    public init(id: AnimationIdentifier, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32, note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool) {
+    public init(
+        id: AnimationIdentifier, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32,
+        note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool
+    ) {
         self.id = id
         self.title = title
         self.lastUpdated = lastUpdated
@@ -39,21 +38,16 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
         self.numberOfFrames = numberOfFrames
         self.multitrackAudio = multitrackAudio
     }
-    
 
-    
-    public static func ==(lhs: AnimationMetadata, rhs: AnimationMetadata) -> Bool {
-        return lhs.id == rhs.id &&
-               lhs.title == rhs.title &&
-               lhs.lastUpdated == rhs.lastUpdated &&
-               lhs.millisecondsPerFrame == rhs.millisecondsPerFrame &&
-               lhs.note == rhs.note &&
-               lhs.soundFile == rhs.soundFile &&
-               lhs.numberOfFrames == rhs.numberOfFrames &&
-               lhs.multitrackAudio == rhs.multitrackAudio
+
+    public static func == (lhs: AnimationMetadata, rhs: AnimationMetadata) -> Bool {
+        return lhs.id == rhs.id && lhs.title == rhs.title && lhs.lastUpdated == rhs.lastUpdated
+            && lhs.millisecondsPerFrame == rhs.millisecondsPerFrame && lhs.note == rhs.note
+            && lhs.soundFile == rhs.soundFile && lhs.numberOfFrames == rhs.numberOfFrames
+            && lhs.multitrackAudio == rhs.multitrackAudio
     }
-        
-    
+
+
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
         hasher.combine(title)
@@ -64,23 +58,26 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
         hasher.combine(numberOfFrames)
         hasher.combine(multitrackAudio)
     }
-    
+
 }
 
 
 extension AnimationMetadata {
-    
+
     public static func mock() -> AnimationMetadata {
 
         let id = DataHelper.generateRandomId()
         let title = "Mock Animation Title"
-        let lastUpdated = Date() // Current date and time
+        let lastUpdated = Date()  // Current date and time
         let millisecondsPerFrame: UInt32 = 20
         let note = "This is a mock note."
         let soundFile = "mock_sound_file.mp3"
-        let numberOfFrames: UInt32 = 100 // Example value
-        let multitrackAudio = false // Defaulting to false
-        
-        return AnimationMetadata(id: id, title: title, lastUpdated: lastUpdated, millisecondsPerFrame: millisecondsPerFrame, note: note, soundFile: soundFile, numberOfFrames: numberOfFrames, multitrackAudio: multitrackAudio)
+        let numberOfFrames: UInt32 = 100  // Example value
+        let multitrackAudio = false  // Defaulting to false
+
+        return AnimationMetadata(
+            id: id, title: title, lastUpdated: lastUpdated,
+            millisecondsPerFrame: millisecondsPerFrame, note: note, soundFile: soundFile,
+            numberOfFrames: numberOfFrames, multitrackAudio: multitrackAudio)
     }
 }

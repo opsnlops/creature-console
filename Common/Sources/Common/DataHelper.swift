@@ -1,18 +1,16 @@
-
 import Foundation
-
 
 public struct DataHelper {
 
     /**
      Generates random bytes
-     
+
      Can be used to generate MongoDB style OIDs.
      */
     public static func generateRandomData(byteCount: Int) -> Data {
         return Data((0..<byteCount).map { _ in UInt8.random(in: 0...UInt8.max) })
     }
-    
+
     public static func dataToHexString(data: Data) -> String {
         return data.map { String(format: "%02x", $0) }.joined()
     }
@@ -33,7 +31,7 @@ public struct DataHelper {
             if let b = UInt8(oid[index..<nextIndex], radix: 16) {
                 data.append(b)
             } else {
-                return nil // Return nil if the conversion fails
+                return nil  // Return nil if the conversion fails
             }
             index = nextIndex
         }

@@ -1,7 +1,5 @@
-
 import Foundation
 import Logging
-
 
 extension CreatureServerClient {
 
@@ -39,8 +37,8 @@ extension CreatureServerClient {
 
         let requestBody = PlaySoundRequestDTO(file_name: fileName)
 
-        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self).map { $0.message }
+        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self)
+            .map { $0.message }
     }
 
 }
-

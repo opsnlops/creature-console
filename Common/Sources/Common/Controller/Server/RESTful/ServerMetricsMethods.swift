@@ -1,7 +1,5 @@
-
 import Foundation
 import Logging
-
 
 extension CreatureServerClient {
 
@@ -26,14 +24,15 @@ extension CreatureServerClient {
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 self.logger.error("HTTP Error while trying to get the server's counters")
-                return .failure(.serverError("HTTP error while trying to get the server's counters"))
+                return .failure(
+                    .serverError("HTTP error while trying to get the server's counters"))
             }
 
             // DECODE ME!
             let decoder = JSONDecoder()
 
             do {
-                switch(httpResponse.statusCode) {
+                switch httpResponse.statusCode {
 
                 case 200:
                     let counters = try decoder.decode(SystemCountersDTO.self, from: data)
@@ -42,12 +41,18 @@ extension CreatureServerClient {
 
                 case 500:
                     let status = try decoder.decode(StatusDTO.self, from: data)
-                    logger.error("Server error while trying to get the server's counters: \(status.message)")
+                    logger.error(
+                        "Server error while trying to get the server's counters: \(status.message)")
                     return .failure(.serverError(status.message))
 
                 default:
-                    self.logger.error("unexpected return code from \(url) while to get the server's counters: \(httpResponse.statusCode)")
-                    return .failure(.serverError("Unexepcted status code while getting the server's counters: \(httpResponse.statusCode)"))
+                    self.logger.error(
+                        "unexpected return code from \(url) while to get the server's counters: \(httpResponse.statusCode)"
+                    )
+                    return .failure(
+                        .serverError(
+                            "Unexepcted status code while getting the server's counters: \(httpResponse.statusCode)"
+                        ))
                 }
 
             } catch {
@@ -59,4 +64,3 @@ extension CreatureServerClient {
     }
 
 }
-
