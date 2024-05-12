@@ -34,12 +34,12 @@ extension CreatureCLI {
                 let processor = CLIMessageProcessor()
 
                 let server = getServer(config: globalOptions)
-                server.connectWebsocket(processor: processor)
+                await server.connectWebsocket(processor: processor)
                 print("Connected to \(server.serverHostname)! Waiting for messages...\n")
 
                 sleep(seconds)
 
-                server.disconnectWebsocket()
+                await server.disconnectWebsocket()
                 print("\nTimeout reached! Disconnecting from the websocket.")
 
             }
@@ -68,7 +68,7 @@ extension CreatureCLI {
                  let processor = CLIMessageProcessor()
 
                  let server = getServer(config: globalOptions)
-                 server.connectWebsocket(processor: processor)
+                 await server.connectWebsocket(processor: processor)
                  print("connected to websocket")
 
                  for i in 1...count {
@@ -87,7 +87,7 @@ extension CreatureCLI {
                      usleep(1_000 * pause)
                  }
 
-                 server.disconnectWebsocket()
+                 await server.disconnectWebsocket()
                  print("disconnected from websocket")
 
              }

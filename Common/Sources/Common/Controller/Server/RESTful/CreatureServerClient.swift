@@ -11,7 +11,7 @@ public class CreatureServerClient : CreatureServerClientProtocol {
 
     // WebSocket processing stuff
     var processor: MessageProcessor?
-    var pingTimer: DispatchSourceTimer?
+    var pingTimer: Bool = true
 
     let logger: Logger
     public var serverHostname: String = UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
