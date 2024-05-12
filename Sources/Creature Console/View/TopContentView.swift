@@ -1,12 +1,9 @@
-
-
-import SwiftUI
-import OSLog
 import Common
-
+import OSLog
+import SwiftUI
 
 struct TopContentView: View {
-    
+
     let appState = AppState.shared
     let eventLoop = EventLoop.shared
     let server = CreatureServerClient.shared
@@ -16,17 +13,17 @@ struct TopContentView: View {
 
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
-    
+
     @State var navigationPath = NavigationPath()
 
     @State private var selectedCreature: Creature?
- 
-    
+
+
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "TopContentView")
 
-        
+
     var body: some View {
-        
+
         NavigationSplitView {
             List {
                 Section("Creatures") {
@@ -35,14 +32,13 @@ struct TopContentView: View {
                             creature in
                             NavigationLink(creature.name, value: creature.id)
                         }
-                    }
-                    else {
+                    } else {
                         Text("Trying to talk to \(server.getHostname())...")
                             .padding()
                     }
                 }
-                
-                
+
+
                 Section("Controls") {
                     NavigationLink {
                         JoystickDebugView(joystick: eventLoop.sixAxisJoystick)
@@ -72,35 +68,37 @@ struct TopContentView: View {
             }
             .toolbar {
                 ToolbarItem(id: "editCreature", placement: .primaryAction) {
-                    NavigationLink(destination: EmptyView(), label: {
-                        Image(systemName: "pencil")
-                    })
+                    NavigationLink(
+                        destination: EmptyView(),
+                        label: {
+                            Image(systemName: "pencil")
+                        })
                 }
             }
             .onAppear {
                 Task {
-                    
+
                     if !creatureCache.empty {
                         logger.debug("creature list exists, not re-loading")
                         return
                     }
-                
+
                     logger.info("Attempting to load the creatures from \(server.getHostname())")
 
                     let result = await server.getAllCreatures()
                     switch result {
                     case .success(let creatures):
-                       for creature in creatures {
-                           creatureCache.add(item: creature)
-                       }
+                        for creature in creatures {
+                            creatureCache.add(item: creature)
+                        }
                     case .failure(let error):
-                       let errorMessage = error.localizedDescription
-                       logger.critical("\(errorMessage)")
-                       showErrorAlert = true
-                       self.errorMessage = errorMessage
+                        let errorMessage = error.localizedDescription
+                        logger.critical("\(errorMessage)")
+                        showErrorAlert = true
+                        self.errorMessage = errorMessage
                     }
                 }
-                
+
             }.alert(isPresented: $showErrorAlert) {
                 Alert(
                     title: Text("Oooooh Shit"),
@@ -111,10 +109,9 @@ struct TopContentView: View {
         } detail: {
             NavigationStack(path: $navigationPath) {
                 Text("Please choose a thing!")
-                  .padding()
-                }
-           
+                    .padding()
+            }
+
         }
     }
 }
-

@@ -1,34 +1,32 @@
-
+import Common
 import Foundation
 import OSLog
-import Common
 
+class AppState: ObservableObject {
 
-class AppState : ObservableObject {
-    
     // Use the singleton pattern to make sure only one of these exists in a way
     // that can be used in non SwiftUI code
     static let shared = AppState()
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AppState")
-    
+
     @Published var currentActivity = Activity.idle
-    
-    
+
+
     // Make our constructor private so we don't accidentally
     // create more than one of these
     private init() {
         logger.info("AppState created")
     }
 
-    enum Activity : CustomStringConvertible {
+    enum Activity: CustomStringConvertible {
         case idle
         case streaming
         case recording
         case preparingToRecord
         case playingAnimation
         case connectingToServer
-        
+
         var description: String {
             switch self {
             case .idle:
@@ -46,7 +44,7 @@ class AppState : ObservableObject {
             }
         }
     }
-    
+
 }
 
 

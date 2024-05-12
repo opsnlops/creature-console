@@ -1,8 +1,6 @@
-
-import SwiftUI
-import OSLog
 import Common
-
+import OSLog
+import SwiftUI
 
 @main
 struct CreatureConsole: App {
@@ -13,17 +11,17 @@ struct CreatureConsole: App {
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
-        
-        
+
+
         /**
          Set up default prefs for static things
          */
         let defaultPreferences: [String: Any] = [
-            "serverAddress": "10.19.63.5",      // gRPC
-            "serverPort": 6666,                 // gRPC
-            "serverHostname": "localhost",      // REST
-            "serverRestPort": 3000,             // REST
-            "serverUseTLS": false,              // REST
+            "serverAddress": "10.19.63.5",  // gRPC
+            "serverPort": 6666,  // gRPC
+            "serverHostname": "localhost",  // REST
+            "serverRestPort": 3000,  // REST
+            "serverUseTLS": false,  // REST
             "serverLogsScrollBackLines": 150,
             "eventLoopMillisecondsPerFrame": 20,
             "logSpareTime": true,
@@ -32,46 +30,48 @@ struct CreatureConsole: App {
             "useOurJoystick": true,
             "activeUniverse": 1,
             "audioFilePath": "file:///Volumes/creatures/sounds",
-            "mfm2023PlaylistHack": "64d81c13568ab1d9860f23b8"
+            "mfm2023PlaylistHack": "64d81c13568ab1d9860f23b8",
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
-        
-        
+
+
         // Create the default channel and axis mappings
         let channelAxisMapping = ChannelAxisMapping()
         channelAxisMapping.registerDefaultMappingsAndNames()
-        
-        
+
+
         // Make sure the appState is good
         appState.currentActivity = .idle
-        
+
         // Init the joystick
         registerJoystickHandlers(eventLoop: self.eventLoop)
-        
+
         // Connect to the server
         do {
-            try CreatureServerClient.shared.connect(serverHostname: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1",
-                                                    serverPort: UserDefaults.standard.integer(forKey: "serverPort"))
+            try CreatureServerClient.shared.connect(
+                serverHostname: UserDefaults.standard.string(forKey: "serverAddress")
+                    ?? "127.0.0.1",
+                serverPort: UserDefaults.standard.integer(forKey: "serverPort"))
             logger.info("connected to server")
         } catch {
             print("Error opening connections: \(error)")
         }
-    
+
     }
-    
+
     var body: some Scene {
         WindowGroup {
             TopContentView()
         }
-        
-#if os(macOS)
-        DebugJoystickScene(joystick: eventLoop.sixAxisJoystick)
-        ACWDebugJoystickScene(joystick: eventLoop.acwJoystick)
-        //LogViewScene(server: CreatureServerClient.shared)
-        Settings {
-            SettingsView()
-        }
-#endif
-    
+
+        #if os(macOS)
+            DebugJoystickScene(joystick: eventLoop.sixAxisJoystick)
+            ACWDebugJoystickScene(joystick: eventLoop.acwJoystick)
+            //LogViewScene(server: CreatureServerClient.shared)
+            Settings {
+                SettingsView()
+            }
+        #endif
+
     }
 }
