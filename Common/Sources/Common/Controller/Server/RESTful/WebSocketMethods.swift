@@ -2,8 +2,8 @@ import Foundation
 import Logging
 import Starscream
 
-extension Notification.Name {
-    static let didReceiveCommand = Notification.Name("didReceiveCommand")
+struct BasicCommandDTO: Codable {
+    let command: String
 }
 
 
@@ -201,56 +201,36 @@ extension WebSocketClient: WebSocketDelegate {
         }
     }
 
-    private func decodeIncomingMessage(_ message: Data) {
+    private func decodeIncomingMessage(_ data: Data) {
         self.logger.debug("Attempting to decode an incoming message from the websocket")
-
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601  // Set to ISO 8601 strategy
 
         do {
-            // Decode the main WebSocket message DTO
-            let incoming = try decoder.decode(WebSocketMessageDTO.self, from: message)
+            // Decode just to get the command first
+            let commandDTO = try decoder.decode(BasicCommandDTO.self, from: data)
+            logger.debug("Incoming command: \(commandDTO.command)")
+            let messageType = ServerMessageType(from: commandDTO.command)
 
-            logger.debug("Incoming message is a command of: \(incoming.command)")
-            let messageType = ServerMessageType(from: incoming.command)
-
-            // Call specific handlers based on the message type
+            // Now decode the full message based on the command
             switch messageType {
-
-
             case .notice:
-                if case .notice(let notice) = incoming.payload {
-                    messageProcessor?.processNotice(notice)
-                } else {
-                    self.logger.warning("Decoding a notice failed")
-                }
-
-
+                let messageDTO = try decoder.decode(WebSocketMessageDTO<Notice>.self, from: data)
+                messageProcessor?.processNotice(messageDTO.payload)
             case .logging:
-                if case .log(let logItem) = incoming.payload {
-                    messageProcessor?.processLog(logItem)
-                } else {
-                    self.logger.warning("Decoding as Log failed")
-                }
-
-
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<ServerLogItem>.self, from: data)
+                messageProcessor?.processLog(messageDTO.payload)
             case .serverCounters:
-                if case .serverCounters(let counters) = incoming.payload {
-                    messageProcessor?.processSystemCounters(counters)
-                } else {
-                    self.logger.warning("Decoding a serverCounters message failed")
-                }
-
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<SystemCountersDTO>.self, from: data)
+                messageProcessor?.processSystemCounters(messageDTO.payload)
             case .statusLights:
-                if case .statusLights(let statusLights) = incoming.payload {
-                    messageProcessor?.processStatusLights(statusLights)
-                } else {
-                    self.logger.warning("Decoding a statusLights message failed")
-                }
-
-
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<VirtualStatusLightsDTO>.self, from: data)
+                messageProcessor?.processStatusLights(messageDTO.payload)
             default:
-                self.logger.warning("Unknown message type: \(incoming.command)")
+                self.logger.warning("Unknown message type: \(commandDTO.command)")
             }
 
         } catch {

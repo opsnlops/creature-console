@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ServerLogItem: Decodable {
+public struct ServerLogItem: Codable {
 
     public var timestamp: Date
     public var level: String

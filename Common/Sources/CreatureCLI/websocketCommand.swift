@@ -1,4 +1,5 @@
 import ArgumentParser
+import Common
 import Foundation
 
 extension CreatureCLI {
@@ -71,10 +72,21 @@ extension CreatureCLI {
                 for i in 1...count {
 
                     do {
-                        let result = await server.sendMessage(
-                            "Hello! This is an injected message! \(i) of \(count)")
-                        switch result {
 
+                        let clientMessage = String("Hello! This is an injected message! \(i) of \(count)")
+
+                        // Create a notice to send to the server
+                        var notice = Common.Notice()
+                        notice.message = clientMessage
+                        notice.timestamp = Date()
+
+                        // Use WebSocketMessageBuilder to create the JSON message
+                        let noticeJSON = try WebSocketMessageBuilder.createMessage(type: .notice, payload: notice)
+
+                        // Send the encoded JSON message
+                        let result = await server.sendMessage(noticeJSON)
+
+                        switch result {
                         case .failure(let error):
                             print("Error sending message: \(error.localizedDescription)")
                         default:

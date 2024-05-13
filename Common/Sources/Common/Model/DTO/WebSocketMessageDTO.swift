@@ -1,67 +1,37 @@
 import Foundation
 
-/// All incoming messages are going to look like this. The `payload` varies, but we can determine the decoder
-/// to use based on the command.
-public struct WebSocketMessageDTO: Decodable {
-    let command: String
-    let payload: PayloadContainer
+/// Represents a WebSocket message with a command and a dynamically typed payload.
+public struct WebSocketMessageDTO<T: Codable>: Codable {
+    public let command: String
+    public let payload: T
 
-    // Custom init to pass the command to PayloadContainer
+    public enum CodingKeys: String, CodingKey {
+        case command, payload
+    }
+
+
+    public init(command: String, payload: T) {
+        self.command = command
+        self.payload = payload
+    }
+
+    /// Custom initializer from decoder to handle dynamic decoding based on the command.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         command = try container.decode(String.self, forKey: .command)
-        payload = try PayloadContainer(from: container, command: command)
-    }
 
-    public enum CodingKeys: String, CodingKey {
-        case command
-        case payload
-    }
-
-    // Enum to handle multiple payloads
-    public enum PayloadContainer: Decodable {
-        case notice(Notice)
-        case log(ServerLogItem)
-        case serverCounters(SystemCountersDTO)
-        case statusLights(VirtualStatusLightsDTO)
-        case unknown
-
-        // Decode based on the command type
-        public init(
-            from container: KeyedDecodingContainer<WebSocketMessageDTO.CodingKeys>, command: String
-        ) throws {
-            switch command {
-            case "notice":
-                if let notice = try? container.decode(Notice.self, forKey: .payload) {
-                    self = .notice(notice)
-                } else {
-                    self = .unknown
-                }
-
-            case "log":
-                if let logItem = try? container.decode(ServerLogItem.self, forKey: .payload) {
-                    self = .log(logItem)
-                } else {
-                    self = .unknown
-                }
-
-            case "server-counters":
-                if let counters = try? container.decode(SystemCountersDTO.self, forKey: .payload) {
-                    self = .serverCounters(counters)
-                } else {
-                    self = .unknown
-                }
-
-            case "status-lights":
-                if let statusLights = try? container.decode(VirtualStatusLightsDTO.self, forKey: .payload) {
-                    self = .statusLights(statusLights)
-                } else {
-                    self = .unknown
-                }
-
-            default:
-                self = .unknown
-            }
+        switch ServerMessageType(rawValue: command) {
+        case .notice:
+            payload = try container.decode(Notice.self, forKey: .payload) as! T
+        case .logging:
+            payload = try container.decode(ServerLogItem.self, forKey: .payload) as! T
+        case .serverCounters:
+            payload = try container.decode(SystemCountersDTO.self, forKey: .payload) as! T
+        case .statusLights:
+            payload = try container.decode(VirtualStatusLightsDTO.self, forKey: .payload) as! T
+        default:
+            throw DecodingError.dataCorruptedError(
+                forKey: .payload, in: container, debugDescription: "Unknown command")
         }
     }
 }

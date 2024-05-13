@@ -1,7 +1,7 @@
 import Foundation
 
 /// Super simple view of the system counters from the server
-public struct SystemCountersDTO: Decodable {
+public struct SystemCountersDTO: Codable {
 
     public var totalFrames: UInt64
     public var eventsProcessed: UInt64

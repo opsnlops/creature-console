@@ -1,7 +1,7 @@
 import Foundation
 
 /// The generic Status DTO that we use on the server
-public struct StatusDTO: Decodable {
+public struct StatusDTO: Codable {
 
     // Status like OK, ERROR
     public var status: String

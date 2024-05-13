@@ -1,5 +1,5 @@
 /// Super simple view of the system counters from the server
-public struct VirtualStatusLightsDTO: Decodable {
+public struct VirtualStatusLightsDTO: Codable {
 
     public var running: Bool
     public var dmx: Bool
