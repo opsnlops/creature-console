@@ -9,8 +9,6 @@ public class CreatureServerClient: CreatureServerClientProtocol {
     // WebSocket processing stuff
     var processor: MessageProcessor?
     var webSocketClient: WebSocketClient?
-    var isWebSocketConnected: Bool = false
-
 
     var logger: Logger
     public var serverHostname: String =

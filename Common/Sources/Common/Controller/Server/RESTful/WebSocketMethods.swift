@@ -34,7 +34,7 @@ extension CreatureServerClient {
                 .websocketError("Unable to disconnect because the websocket client doesn't exist"))
         }
 
-        guard isWebSocketConnected else {
+        guard ws.isConnected else {
             return .failure(
                 .websocketError(
                     "Unable to disconnect the websocket because we're not already connected"))
@@ -99,6 +99,7 @@ class WebSocketClient {
     func connect() {
         socket?.delegate = self
         socket?.connect()
+        isConnected = true
         startPinging()
     }
 

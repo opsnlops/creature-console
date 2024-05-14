@@ -2,29 +2,37 @@ import Foundation
 import Logging
 
 /// This is a version of the StreamFrameData RPC object
-public struct StreamFrameData: Hashable, Equatable {
+public struct StreamFrameData: Hashable, Equatable, Codable {
 
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.StreamFrameData")
 
-    var ceatureId: CreatureIdentifier
-    var universe: UniverseIdentifier
-    var data: EncodedFrameData
+    public var creatureId: CreatureIdentifier
+    public var universe: UniverseIdentifier
+    public var data: EncodedFrameData
 
-    public init(ceatureId: CreatureIdentifier, universe: UniverseIdentifier, data: EncodedFrameData) {
-        self.ceatureId = ceatureId
+    public init(ceatureId: CreatureIdentifier, universe: UniverseIdentifier, data: EncodedFrameData)
+    {
+        self.creatureId = ceatureId
         self.universe = universe
         self.data = data
         logger.trace("Created a new StreamFrameData from init()")
     }
 
 
+    // Custom CodingKeys to exclude the logger from being encoded/decoded
+    private enum CodingKeys: String, CodingKey {
+        case creatureId = "creature_id"
+        case universe
+        case data
+    }
+
     public static func == (lhs: StreamFrameData, rhs: StreamFrameData) -> Bool {
-        return lhs.ceatureId == rhs.ceatureId && lhs.universe == rhs.universe
+        return lhs.creatureId == rhs.creatureId && lhs.universe == rhs.universe
             && lhs.data == rhs.data
     }
 
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(ceatureId)
+        hasher.combine(creatureId)
         hasher.combine(universe)
         hasher.combine(data)
     }
