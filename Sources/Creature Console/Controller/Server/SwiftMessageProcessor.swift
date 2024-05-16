@@ -25,9 +25,7 @@ class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     }
 
     func processSystemCounters(_ counters: SystemCountersDTO) {
-        logger.debug(
-            "[COUNTERS] Server is on frame \(counters.totalFrames)! \(counters.framesStreamed) frames have been streamed."
-        )
+        SystemCountersItemProcessor.processSystemCounters(counters)
     }
 
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {

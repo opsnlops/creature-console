@@ -38,6 +38,9 @@
 		1199D6BA2BF5C3A3004E0D64 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 1199D6B92BF5C3A3004E0D64 /* Logging */; };
 		1199D6BD2BF5C463004E0D64 /* LoggingOSLog in Frameworks */ = {isa = PBXBuildFile; productRef = 1199D6BC2BF5C463004E0D64 /* LoggingOSLog */; };
 		1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */; };
+		1199D6C12BF5CD80004E0D64 /* BottomToolBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */; };
+		1199D6C42BF5D230004E0D64 /* SystemCounters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C32BF5D230004E0D64 /* SystemCounters.swift */; };
+		1199D6C62BF5D588004E0D64 /* SystemCountersItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */; };
 		119A016329EE297800D3DA12 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
@@ -92,6 +95,9 @@
 		1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftMessageProcessor.swift; sourceTree = "<group>"; };
 		1199D6B62BF5BF53004E0D64 /* ConsoleAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleAppDelegate.swift; sourceTree = "<group>"; };
 		1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogItemProcessor.swift; sourceTree = "<group>"; };
+		1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomToolBarView.swift; sourceTree = "<group>"; };
+		1199D6C32BF5D230004E0D64 /* SystemCounters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCounters.swift; sourceTree = "<group>"; };
+		1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersItemProcessor.swift; sourceTree = "<group>"; };
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
@@ -232,6 +238,7 @@
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				1199D6C22BF5D222004E0D64 /* Server */,
 				110B12602A2491B9002C5585 /* Joystick */,
 				110B125F2A24918C002C5585 /* Audio */,
 			);
@@ -253,6 +260,7 @@
 				118A737F29EB772900EF8CDB /* LogViewView.swift */,
 				118A738129EB780A00EF8CDB /* LogViewScene.swift */,
 				11703D8D29DD197F00EF7E3D /* TopContentView.swift */,
+				1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -324,6 +332,15 @@
 			children = (
 				1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */,
 				1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */,
+				1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */,
+			);
+			path = Server;
+			sourceTree = "<group>";
+		};
+		1199D6C22BF5D222004E0D64 /* Server */ = {
+			isa = PBXGroup;
+			children = (
+				1199D6C32BF5D230004E0D64 /* SystemCounters.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -679,10 +696,12 @@
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
 				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
+				1199D6C42BF5D230004E0D64 /* SystemCounters.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
 				113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */,
+				1199D6C62BF5D588004E0D64 /* SystemCountersItemProcessor.swift in Sources */,
 				1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */,
 				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
 				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
@@ -698,6 +717,7 @@
 				1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
+				1199D6C12BF5CD80004E0D64 /* BottomToolBarView.swift in Sources */,
 				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
 			);

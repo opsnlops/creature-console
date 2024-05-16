@@ -121,5 +121,9 @@ struct TopContentView: View {
             }
 
         }
+        
+#if os(macOS)
+        BottomToolBarView()
+#endif
     }
 }
