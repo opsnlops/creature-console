@@ -6,7 +6,7 @@ import Foundation
 public protocol CreatureServerClientProtocol: AnyObject {
 
     func connect(serverHostname: String, serverPort: Int) throws
-    func close() throws
+    func close()
     func getHostname() -> String
     func streamLogs(queue: BlockingThreadSafeQueue<ServerLogItem>) async
     func searchCreatures(creatureName: String) async throws -> Result<Creature, ServerError>

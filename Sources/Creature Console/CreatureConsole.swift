@@ -1,4 +1,7 @@
 import Common
+// Needed to configure swift-log (which the Common packages use)
+import Logging
+import LoggingOSLog
 import OSLog
 import SwiftUI
 
@@ -8,10 +11,13 @@ struct CreatureConsole: App {
     let appState = AppState.shared
     let eventLoop = EventLoop.shared
     let audioManager = AudioManager.shared
+    let messageProcessor = SwiftMessageProcessor.shared
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
 
+        // Configure swift-log for the Common package
+        LoggingSystem.bootstrap(LoggingOSLog.init)
 
         /**
          Set up default prefs for static things
@@ -53,6 +59,7 @@ struct CreatureConsole: App {
                     ?? "127.0.0.1",
                 serverPort: UserDefaults.standard.integer(forKey: "serverPort"))
             logger.info("connected to server")
+
         } catch {
             print("Error opening connections: \(error)")
         }
@@ -74,4 +81,10 @@ struct CreatureConsole: App {
         #endif
 
     }
+
+    #if os(iOS)
+        @UIApplicationDelegateAdaptor(ConsoleAppDelegate.self) var appDelegate
+    #elseif os(macOS)
+        @NSApplicationDelegateAdaptor(ConsoleAppDelegate.self) var appDelegate
+    #endif
 }

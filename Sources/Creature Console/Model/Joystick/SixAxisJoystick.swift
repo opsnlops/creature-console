@@ -4,12 +4,13 @@ import GameController
 import OSLog
 import Combine
 import Common
+import SwiftUI
 
 class Axis : ObservableObject, CustomStringConvertible {
     var axisType : AxisType = .gamepad
     @Published var name: String = ""
     @Published var value: UInt8 = 127
-        
+
     var rawValue: Float = 0 {
         didSet {
             
@@ -60,6 +61,8 @@ class SixAxisJoystick : ObservableObject, Joystick {
     let objectWillChange = ObservableObjectPublisher()
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SixAxisJoystick")
     
+    @AppStorage("logJoystickPollEvents") var logJoystickPollEvents: Bool = false
+
     private var cancellables: Set<AnyCancellable> = []
     
     
@@ -214,8 +217,11 @@ class SixAxisJoystick : ObservableObject, Joystick {
                 didChange = true
             }
             
-            logger.trace("joystick polling done")
-       
+            // This is noisy! Make it optional
+            if logJoystickPollEvents {
+                logger.debug("joystick polling done")
+            }
+
             // If there's a change to be propogated out, let the main thread do it
             if didChange {
                 DispatchQueue.main.async {

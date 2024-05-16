@@ -6,7 +6,7 @@ extension CreatureServerClient {
     public func streamFrame(streamFrameData: StreamFrameData) async -> Result<String, ServerError> {
 
         // Make sure we're connected before we try this
-        guard let ws = webSocketClient?.isConnected else {
+        guard (webSocketClient?.isConnected) != nil else {
             return .failure(.websocketError("Web Socket is not connected"))
         }
 

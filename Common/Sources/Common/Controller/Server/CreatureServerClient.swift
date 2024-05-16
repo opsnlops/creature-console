@@ -53,7 +53,7 @@ public class CreatureServerClient: CreatureServerClientProtocol {
         logger.info("Set the server hostname to \(serverHostname) and the port to \(serverPort)")
     }
 
-    public func close() throws {
+    public func close() {
 
         // Nothing at the moment - most likely we should close the websocket here
     }

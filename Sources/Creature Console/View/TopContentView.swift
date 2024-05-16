@@ -7,6 +7,7 @@ struct TopContentView: View {
     let appState = AppState.shared
     let eventLoop = EventLoop.shared
     let server = CreatureServerClient.shared
+    let messageProcessor = SwiftMessageProcessor.shared
 
     // TODO: Is a StateObject actually what I want here?
     @StateObject var creatureCache = CreatureCache()
@@ -83,14 +84,21 @@ struct TopContentView: View {
                         return
                     }
 
+
                     logger.info("Attempting to load the creatures from \(server.getHostname())")
 
                     let result = await server.getAllCreatures()
                     switch result {
                     case .success(let creatures):
+
+                        // Since we know we can talk to the server, let's also bring up the websocket
+                        await server.connectWebsocket(processor: messageProcessor)
+
                         for creature in creatures {
                             creatureCache.add(item: creature)
                         }
+
+
                     case .failure(let error):
                         let errorMessage = error.localizedDescription
                         logger.critical("\(errorMessage)")

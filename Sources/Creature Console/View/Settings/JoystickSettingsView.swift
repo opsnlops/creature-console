@@ -4,13 +4,17 @@ import Common
 
 struct JoystickSettingsView: View {
     @AppStorage("useOurJoystick") private var useOurJoystick: Bool = true
-    
+    @AppStorage("logJoystickPollEvents") var logJoystickPollEvents: Bool = false
+
     var body: some View {
         VStack {
             Spacer()
             Form {
                 Toggle("Use our joystick if available", isOn: $useOurJoystick)
                 }
+            Form {
+                Toggle("Log joystick poll events", isOn: $logJoystickPollEvents)
+            }
             Spacer()
             }
     }

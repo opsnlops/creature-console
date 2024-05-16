@@ -33,6 +33,11 @@
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
 		118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */; };
 		118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118BF8722A255F5300D80AE6 /* AnimationTable.swift */; };
+		1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */; };
+		1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6B62BF5BF53004E0D64 /* ConsoleAppDelegate.swift */; };
+		1199D6BA2BF5C3A3004E0D64 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 1199D6B92BF5C3A3004E0D64 /* Logging */; };
+		1199D6BD2BF5C463004E0D64 /* LoggingOSLog in Frameworks */ = {isa = PBXBuildFile; productRef = 1199D6BC2BF5C463004E0D64 /* LoggingOSLog */; };
+		1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */; };
 		119A016329EE297800D3DA12 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
@@ -84,6 +89,9 @@
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
 		118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */ = {isa = PBXFileReference; lastKnownFileType = file; path = recordingCountdownSound.flac; sourceTree = "<group>"; };
 		118BF8722A255F5300D80AE6 /* AnimationTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationTable.swift; sourceTree = "<group>"; };
+		1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftMessageProcessor.swift; sourceTree = "<group>"; };
+		1199D6B62BF5BF53004E0D64 /* ConsoleAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleAppDelegate.swift; sourceTree = "<group>"; };
+		1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogItemProcessor.swift; sourceTree = "<group>"; };
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
@@ -157,8 +165,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1199D6BA2BF5C3A3004E0D64 /* Logging in Frameworks */,
 				1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */,
 				1110E9652BF035E500FCE26D /* Common in Frameworks */,
+				1199D6BD2BF5C463004E0D64 /* LoggingOSLog in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,6 +280,7 @@
 			isa = PBXGroup;
 			children = (
 				11703D8B29DD197F00EF7E3D /* CreatureConsole.swift */,
+				1199D6B62BF5BF53004E0D64 /* ConsoleAppDelegate.swift */,
 				11FDBF4B2BE0A60F008C5B3E /* Controller */,
 				1142E66029DFB21000B795F0 /* View */,
 				1142E65C29DFB19700B795F0 /* Model */,
@@ -306,6 +317,15 @@
 				118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */,
 			);
 			path = Assets;
+			sourceTree = "<group>";
+		};
+		1199D6B32BF5BA82004E0D64 /* Server */ = {
+			isa = PBXGroup;
+			children = (
+				1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */,
+				1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */,
+			);
+			path = Server;
 			sourceTree = "<group>";
 		};
 		119A016129EE28DB00D3DA12 /* Charts */ = {
@@ -364,6 +384,7 @@
 		11FDBF4B2BE0A60F008C5B3E /* Controller */ = {
 			isa = PBXGroup;
 			children = (
+				1199D6B32BF5BA82004E0D64 /* Server */,
 				1122A7B62A24440100D60464 /* AppState.swift */,
 				1182ED102BEDD1C500E1213F /* Joystick */,
 				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
@@ -576,6 +597,8 @@
 			name = "Creature Console";
 			packageProductDependencies = (
 				1110E9642BF035E500FCE26D /* Common */,
+				1199D6B92BF5C3A3004E0D64 /* Logging */,
+				1199D6BC2BF5C463004E0D64 /* LoggingOSLog */,
 			);
 			productName = "Creature Console";
 			productReference = 11703D8829DD197F00EF7E3D /* Creature Console.app */;
@@ -607,6 +630,8 @@
 			mainGroup = 11703D7F29DD197F00EF7E3D;
 			packageReferences = (
 				11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
+				1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */,
+				1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */,
 			);
 			productRefGroup = 11703D8929DD197F00EF7E3D /* Products */;
 			projectDirPath = "";
@@ -646,6 +671,7 @@
 				1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */,
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
+				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */,
@@ -662,12 +688,14 @@
 				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
+				1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */,
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */,
 				11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */,
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
 				1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */,
+				1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
 				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
@@ -913,6 +941,22 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-log.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.4;
+			};
+		};
+		1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/chrisaljoudi/swift-log-oslog.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.2;
+			};
+		};
 		11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
@@ -927,6 +971,16 @@
 		1110E9642BF035E500FCE26D /* Common */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Common;
+		};
+		1199D6B92BF5C3A3004E0D64 /* Logging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = Logging;
+		};
+		1199D6BC2BF5C463004E0D64 /* LoggingOSLog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */;
+			productName = LoggingOSLog;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

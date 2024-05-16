@@ -27,7 +27,7 @@ extension CreatureServerClient {
     }
 
 
-    public func disconnectWebsocket() async -> Result<String, ServerError> {
+    public func disconnectWebsocket() -> Result<String, ServerError> {
 
         guard let ws = webSocketClient else {
             return .failure(
