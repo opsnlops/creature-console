@@ -13,7 +13,7 @@ struct ACWDebugJoystickScene: Scene {
     
     var body: some Scene {
         Window("Debug ACW Joystick", id: "debugACWJoystick") {
-            ACWJoystickDebugView(joystick: joystick)
+            JoystickDebugView()
         }
         .defaultPosition(.bottomTrailing)
         .defaultSize(width: 400, height: 150)

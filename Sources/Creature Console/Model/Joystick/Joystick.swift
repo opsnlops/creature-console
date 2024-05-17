@@ -23,8 +23,10 @@ protocol Joystick {
     /**
     Who makes this joystick? Shown in the UI
      */
-    var manufacturer: String? { get }
-    
+    var manufacturer: String { get }
+    var serialNumber: String { get }
+    var versionNumber: Int { get }
+
     /**
      Buttons!
      */
@@ -32,7 +34,7 @@ protocol Joystick {
     var bButtonPressed: Bool { get }
     var xButtonPressed: Bool { get }
     var yButtonPressed: Bool { get }
-    
+
     /**
      What systemImage should we use for each button type?
      */

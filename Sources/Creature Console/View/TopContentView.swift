@@ -42,7 +42,7 @@ struct TopContentView: View {
 
                 Section("Controls") {
                     NavigationLink {
-                        JoystickDebugView(joystick: eventLoop.sixAxisJoystick)
+                        JoystickDebugView()
                     } label: {
                         Label("Debug Joystick", systemImage: "gamecontroller")
                     }
@@ -121,9 +121,9 @@ struct TopContentView: View {
             }
 
         }
-        
-#if os(macOS)
-        BottomToolBarView()
-#endif
+
+        #if os(macOS)
+            BottomToolBarView()
+        #endif
     }
 }

@@ -33,7 +33,7 @@ func inputReportCallback(context: UnsafeMutableRawPointer?, result: IOReturn, se
 
 class AprilsCreatureWorkshopJoystick : ObservableObject, Joystick
 {
-    
+
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AprilsCreatureWorkshopJoystick")
 
     // Use our singleton
@@ -45,9 +45,9 @@ class AprilsCreatureWorkshopJoystick : ObservableObject, Joystick
     private var manager: IOHIDManager?
     
     @Published var connected: Bool = false
-    @Published var serialNumber: String?
-    @Published var versionNumber: Int?
-    @Published var manufacturer: String?
+    @Published var serialNumber: String
+    @Published var versionNumber: Int
+    @Published var manufacturer: String
     var values: [UInt8] = Array(repeating: 0, count: 8)
     
     let objectWillChange = ObservableObjectPublisher()
@@ -66,7 +66,10 @@ class AprilsCreatureWorkshopJoystick : ObservableObject, Joystick
         self.vendorID = vendorID
         self.productID = productID
         self.manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-        
+        self.serialNumber = "--"
+        self.versionNumber = -1
+        self.manufacturer = "unknown"
+
         logger.info("AprilsCreatureWorkshopJoystick created for VID \(vendorID) and PID \(productID)")
     }
 
@@ -141,27 +144,15 @@ class AprilsCreatureWorkshopJoystick : ObservableObject, Joystick
         
         // Update the serial number
         if let device = device {
-            self.serialNumber = getSerialNumber(of: device)
-        } else {
-            serialNumber = nil
-        }
-        
-        // ...and the version
-        if let device = device {
-            self.versionNumber = getVersion(of: device)
-        } else {
-            versionNumber = nil
-        }
-        
-        // ...and the manufacturer
-        if let device = device {
-            self.manufacturer = getManufacturer(of: device)
-        } else {
-            manufacturer = nil
+
+            self.serialNumber = getSerialNumber(of: device) ?? "--"
+            self.versionNumber = getVersion(of: device) ?? -1
+            self.manufacturer = getManufacturer(of: device) ?? "unknown"
+
         }
         
         connected = true
-        logger.info("Device connected: \(String(describing: device)) \(device.debugDescription), S/N: \(self.serialNumber ?? "--")")
+        logger.info("Device connected: \(String(describing: device)) \(device.debugDescription), S/N: \(self.serialNumber)")
         
     }
 

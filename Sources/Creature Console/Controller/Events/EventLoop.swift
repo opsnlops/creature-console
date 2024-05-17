@@ -22,59 +22,35 @@ class EventLoop: ObservableObject {
     let appState = AppState.shared
     let audioManager = AudioManager.shared
     let creatureManager = CreatureManager.shared
+    let joystickManager = JoystickManager.shared
 
     @Published var frameIdleTime: Double
 
-    /**
-     These are populated from syncSettings()
-     */
-    var millisecondPerFrame: Int
-    var logSpareTimeFrameInterval: Int
-    var useOurJoystick: Bool = false
-    var logSpareTime: Bool = false
+
+    @AppStorage("audioFilePath") var audioFilePath: String = ""
+    @AppStorage("eventLoopMillisecondsPerFrame") var millisecondPerFrame: Int = 20
+    @AppStorage("logSpareTimeFrameInterval") var logSpareTimeFrameInterval: Int = 20
+    @AppStorage("logSpareTime") var logSpareTime: Bool = false
+
+
 
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "EventLoop")
     private let numberFormatter = NumberFormatter()
 
-    // Behold, the two genders
-    var sixAxisJoystick: SixAxisJoystick
-    #if os(macOS)
-        var acwJoystick: AprilsCreatureWorkshopJoystick
-    #endif
+
 
 
     // If we've got an animation loaded, keep track of it
     var animation: Common.Animation?
     var isRecording = false
 
-    @AppStorage("audioFilePath") var audioFilePath: String = ""
 
-    /**
-     Sync settings that may have changed from the user preferences
-     */
-    func syncSettings() {
-        self.millisecondPerFrame = UserDefaults.standard.integer(
-            forKey: "eventLoopMillisecondsPerFrame")
-        self.logSpareTimeFrameInterval = UserDefaults.standard.integer(
-            forKey: "logSpareTimeFrameInterval")
-        self.logSpareTime = UserDefaults.standard.bool(forKey: "logSpareTime")
-        self.useOurJoystick = UserDefaults.standard.bool(forKey: "useOurJoystick")
-    }
 
     /**
      Start up all of the things
      */
     init() {
-        self.sixAxisJoystick = SixAxisJoystick()
-        #if os(macOS)
-            self.acwJoystick = AprilsCreatureWorkshopJoystick(vendorID: 0x0666, productID: 0x0001)
-        #endif
-        self.millisecondPerFrame = UserDefaults.standard.integer(
-            forKey: "eventLoopMillisecondsPerFrame")
-        self.logSpareTimeFrameInterval = UserDefaults.standard.integer(
-            forKey: "logSpareTimeFrameInterval")
-        self.useOurJoystick = UserDefaults.standard.bool(forKey: "useOurJoystick")
-        self.logSpareTime = UserDefaults.standard.bool(forKey: "logSpareTime")
+
         self.frameIdleTime = 100.0
 
         // Configure the number formatter
@@ -82,7 +58,6 @@ class EventLoop: ObservableObject {
         numberFormatter.maximumFractionDigits = 2
         numberFormatter.minimumFractionDigits = 2
 
-        syncSettings()
         startTimer()
 
         logger.info("event loop started")
@@ -148,21 +123,12 @@ class EventLoop: ObservableObject {
         // Update our metrics
         number_of_frames += 1
 
-        // Which joystick should we use for this pass?
-        let joystick = getActiveJoystick()
+        // Tell the `JoystickManager` it's time to poll
+        joystickManager.poll()
 
 
-        // If we have a joystick, poll it
-        if joystick.isConnected() {
-            joystick.poll()
-        }
-
-        // If we are recording, grab the data now
-        if isRecording {
-            Task {
-                await creatureManager.grabFrame()
-            }
-        }
+        // Tell the creature manager we've set everything up for it
+        creatureManager.onEventLoopTick()
 
 
         // Update metrics
@@ -191,40 +157,9 @@ class EventLoop: ObservableObject {
 
         }
 
-        /**
-         Re-sync our settings
-         */
-        syncSettings()
-
     }
 
-    /**
-     Return whatever the joystick is we should use for an operation
-     */
-    func getActiveJoystick() -> Joystick {
-
-        var joystick: Joystick
-
-        /**
-         On macOS we could our joystick, or the system one.
-         */
-        #if os(macOS)
-            if acwJoystick.connected && useOurJoystick {
-                joystick = acwJoystick
-            } else {
-                joystick = sixAxisJoystick
-            }
-        #endif
-
-        /**
-         On iOS we don't have a choice. IOKit does not exist there.
-         */
-        #if os(iOS)
-            joystick = sixAxisJoystick
-        #endif
-
-        return joystick
-    }
+    
 
     private func startTimer() {
         logger.info("Starting event loop at \(self.millisecondPerFrame)ms per frame")
@@ -253,11 +188,6 @@ extension EventLoop {
         mockEventLoop.logSpareTimeFrameInterval = 100
         mockEventLoop.frameIdleTime = 100.0
 
-        // Configure the mock joystick if needed
-        mockEventLoop.sixAxisJoystick = .mock()
-        #if os(macOS)
-            mockEventLoop.acwJoystick = .mock()
-        #endif
 
         // Configure the mock animation if needed
         mockEventLoop.animation = .mock()

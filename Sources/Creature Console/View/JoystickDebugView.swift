@@ -1,107 +1,84 @@
 
-import Combine
 import SwiftUI
 import OSLog
-import GameController
 import Common
 
+#if os(macOS)
 
 struct JoystickDebugView: View {
-    var joystick: Joystick
-    @State private var values: [UInt8] = []
-    @State private var xButtonPressed = false
-    @State private var yButtonPressed = false
-    @State private var aButtonPressed = false
-    @State private var bButtonPressed = false
 
-    init(joystick: Joystick) {
-        self.joystick = joystick
-        self._values = State(initialValue: joystick.getValues())
-        self._aButtonPressed = State(initialValue: joystick.aButtonPressed)
-        self._bButtonPressed = State(initialValue: joystick.bButtonPressed)
-        self._xButtonPressed = State(initialValue: joystick.xButtonPressed)
-        self._yButtonPressed = State(initialValue: joystick.yButtonPressed)
-    }
-    
+    @ObservedObject var joystickManager = JoystickManager.shared
+
     var body: some View {
         GeometryReader { geometry in
             VStack {
                 
                 Spacer()
                 
-                Text(joystick.manufacturer ?? "Unknown")
+                Text("🎮 \(joystickManager.manufacturer ?? "Unknown manufacturer")")
                     .font(.headline)
-
+                Text("S/N: \(joystickManager.serialNumber ?? "Unknown SN"), Version: \(joystickManager.versionNumber ?? 0)")
+                    .font(.caption2)
+                    .foregroundStyle(.gray)
+    
                 Spacer()
                 
                 HStack {
-                    BarChart(data: Binding(get: { joystick.getValues() }, set: { _ in }),
+                    BarChart(data: Binding(get: { joystickManager.values }, set: { _ in }),
                              barSpacing: 4.0,
                              maxValue: 255)
                     .frame(height: geometry.size.height * 0.95)
                     .padding()
                     
                     VStack {
-                        Spacer()
-                        
-                        Image(systemName: joystick.getXButtonSymbol())
+                        ForEach(0..<joystickManager.values.count, id: \.self) { index in
+                            Text("\(index): \(joystickManager.values[index])")
+                            }
+
+
+                        Image(systemName: joystickManager.getActiveJoystick().getXButtonSymbol())
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(xButtonPressed ? .accentColor : .primary)
-                        
-                        Spacer()
-                        
-                        Image(systemName: joystick.getAButtonSymbol())
+                            .foregroundColor(joystickManager.xButtonPressed ? .accentColor : .primary)
+
+
+                        Image(systemName: joystickManager.getActiveJoystick().getAButtonSymbol())
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(aButtonPressed ? .accentColor : .primary)
+                            .foregroundColor(joystickManager.aButtonPressed ? .accentColor : .primary)
 
-                        Spacer()
 
-                        Image(systemName: joystick.getBButtonSymbol())
+                        Image(systemName: joystickManager.getActiveJoystick().getBButtonSymbol())
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(bButtonPressed ? .accentColor : .primary)
+                            .foregroundColor(joystickManager.bButtonPressed ? .accentColor : .primary)
 
-                        Spacer()
-                                                
-                        Image(systemName: joystick.getYButtonSymbol())
+
+                        Image(systemName: joystickManager.getActiveJoystick().getYButtonSymbol())
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(yButtonPressed ? .accentColor : .primary)
+                            .foregroundColor(joystickManager.yButtonPressed ? .accentColor : .primary)
 
-                        Spacer()
+                        }
+                    
+                    Spacer()
+                    
                     }
-                    .frame(width: 100.0)
                 }
-            }
-            .onAppear {
-                if let j = joystick as? SixAxisJoystick {
-                    j.showVirtualJoystickIfNeeded()
-                }
-            }
-            .onDisappear {
-                if let j = joystick as? SixAxisJoystick {
-                    j.removeVirtualJoystickIfNeeded()
-                }
-            }
-            .onReceive(joystick.changesPublisher) {
-                self.values = joystick.getValues()
-                self.aButtonPressed = joystick.aButtonPressed
-                self.bButtonPressed = joystick.bButtonPressed
-                self.xButtonPressed = joystick.xButtonPressed
-                self.yButtonPressed = joystick.yButtonPressed
             }
         }
     }
-}
+
 
 struct JoystickDebugView_Previews: PreviewProvider {
     static var previews: some View {
-        JoystickDebugView(joystick: SixAxisJoystick.mock())
+        JoystickDebugView()
     }
 }
+
+
+#endif

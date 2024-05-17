@@ -80,9 +80,7 @@ struct AnimationEditor: View {
             ToolbarItem(id: "re-record", placement: .secondaryAction) {
                 NavigationLink(destination: RecordAnimation(
                     animation: animation,
-                    creature: creature,
-                    joystick: eventLoop.getActiveJoystick()
-                    ), label: {
+                    creature: creature), label: {
                         Label("Re-Record", systemImage: "repeat.circle")
                     })
             }

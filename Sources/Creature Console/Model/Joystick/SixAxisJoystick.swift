@@ -50,6 +50,7 @@ class Axis : ObservableObject, CustomStringConvertible {
 
 
 class SixAxisJoystick : ObservableObject, Joystick {
+    
     @Published var axises : [Axis]
     @Published var aButtonPressed = false
     @Published var bButtonPressed = false
@@ -71,10 +72,18 @@ class SixAxisJoystick : ObservableObject, Joystick {
     var virtualJoystickConnected = false
 #endif
     
-    var manufacturer: String? {
+    var manufacturer: String {
         controller?.vendorName ?? "🎮"
     }
-    
+
+    var versionNumber: Int {
+        return -1
+    }
+
+    var serialNumber: String {
+        return "Unknown S/N"
+    }
+
     init() {
         self.axises = []
         

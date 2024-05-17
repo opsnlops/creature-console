@@ -24,7 +24,7 @@
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
 		1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */; };
 		1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1168DC982B4F99E000A9895A /* IOKit.framework */; };
-		1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC9A2B4FB2BE00A9895A /* ACWJoystickDebugView.swift */; };
+		1168DC9B2B4FB2BE00A9895A /* JoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC9A2B4FB2BE00A9895A /* JoystickDebugView.swift */; };
 		1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC9C2B4FB58800A9895A /* ACWDebugJoystickScene.swift */; };
 		11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8B29DD197F00EF7E3D /* CreatureConsole.swift */; };
 		11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* TopContentView.swift */; };
@@ -52,6 +52,7 @@
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureEdit.swift */; };
 		11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
+		11C288622BF70E8E00F7ACD8 /* JoystickManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */; };
 		11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */; };
 		11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */; };
 		11C326D029DD3FED00B169CD /* Credits.rtfd in Resources */ = {isa = PBXBuildFile; fileRef = 11C326CF29DD3FED00B169CD /* Credits.rtfd */; };
@@ -59,7 +60,7 @@
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
-		11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B829E3844B004C5181 /* JoystickDebugView.swift */; };
+		11FA32B929E3844B004C5181 /* OldJoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B829E3844B004C5181 /* OldJoystickDebugView.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
 /* End PBXBuildFile section */
 
@@ -83,7 +84,7 @@
 		11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Creature ConsoleDebug.entitlements"; sourceTree = "<group>"; };
 		1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AprilsCreatureWorkshopJoystick.swift; sourceTree = "<group>"; };
 		1168DC982B4F99E000A9895A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.2.sdk/System/Library/Frameworks/IOKit.framework; sourceTree = DEVELOPER_DIR; };
-		1168DC9A2B4FB2BE00A9895A /* ACWJoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ACWJoystickDebugView.swift; sourceTree = "<group>"; };
+		1168DC9A2B4FB2BE00A9895A /* JoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickDebugView.swift; sourceTree = "<group>"; };
 		1168DC9C2B4FB58800A9895A /* ACWDebugJoystickScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ACWDebugJoystickScene.swift; sourceTree = "<group>"; };
 		11703D8829DD197F00EF7E3D /* Creature Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11703D8B29DD197F00EF7E3D /* CreatureConsole.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureConsole.swift; sourceTree = "<group>"; };
@@ -112,6 +113,7 @@
 		11BC3C392A0DF62300410F63 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		11C03ACF29E3C346002E6720 /* CreatureEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureEdit.swift; sourceTree = "<group>"; };
 		11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
+		11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickManager.swift; sourceTree = "<group>"; };
 		11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteChartView.swift; sourceTree = "<group>"; };
 		11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLoop.swift; sourceTree = "<group>"; };
 		11C326CF29DD3FED00B169CD /* Credits.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Credits.rtfd; sourceTree = "<group>"; };
@@ -119,7 +121,7 @@
 		11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickSettingsView.swift; sourceTree = "<group>"; };
 		11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SixAxisJoystick.swift; sourceTree = "<group>"; };
-		11FA32B829E3844B004C5181 /* JoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickDebugView.swift; sourceTree = "<group>"; };
+		11FA32B829E3844B004C5181 /* OldJoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OldJoystickDebugView.swift; sourceTree = "<group>"; };
 		11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugJoystickScene.swift; sourceTree = "<group>"; };
 		11FF7C132BF0334E00BF5A09 /* Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animations.swift; sourceTree = "<group>"; };
 		11FF7C142BF0334E00BF5A09 /* Creatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creatures.swift; sourceTree = "<group>"; };
@@ -260,8 +262,8 @@
 				11A10A5C29F2429A000EB835 /* Animation */,
 				119A016429EE4B3700D3DA12 /* Settings */,
 				119A016129EE28DB00D3DA12 /* Charts */,
-				11FA32B829E3844B004C5181 /* JoystickDebugView.swift */,
-				1168DC9A2B4FB2BE00A9895A /* ACWJoystickDebugView.swift */,
+				11FA32B829E3844B004C5181 /* OldJoystickDebugView.swift */,
+				1168DC9A2B4FB2BE00A9895A /* JoystickDebugView.swift */,
 				11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */,
 				1168DC9C2B4FB58800A9895A /* ACWDebugJoystickScene.swift */,
 				11703D8D29DD197F00EF7E3D /* TopContentView.swift */,
@@ -320,6 +322,7 @@
 			isa = PBXGroup;
 			children = (
 				115DADA029DF95890021C4E0 /* JoystickHandler.swift */,
+				11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */,
 			);
 			path = Joystick;
 			sourceTree = "<group>";
@@ -709,11 +712,12 @@
 				1199D6CB2BF6F606004E0D64 /* LogManager.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
-				1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */,
+				1168DC9B2B4FB2BE00A9895A /* JoystickDebugView.swift in Sources */,
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
-				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
+				11FA32B929E3844B004C5181 /* OldJoystickDebugView.swift in Sources */,
 				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
+				11C288622BF70E8E00F7ACD8 /* JoystickManager.swift in Sources */,
 				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,

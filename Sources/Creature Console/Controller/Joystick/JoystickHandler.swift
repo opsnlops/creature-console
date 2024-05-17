@@ -11,6 +11,8 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "JoystickHandler")
 
+    let joystickManager = JoystickManager.shared
+
     NotificationCenter.default.addObserver(
         forName: .GCControllerDidConnect, object: nil, queue: .main
     ) { notification in
@@ -21,7 +23,7 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
 
             if (controller.extendedGamepad) != nil {
                 logger.debug("extended joystick connected, woot")
-                eventLoop.sixAxisJoystick.controller = controller
+                joystickManager.sixAxisJoystick.controller = controller
             }
         }
     }
@@ -30,7 +32,7 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
         forName: .GCControllerDidDisconnect, object: nil, queue: .main
     ) { notification in
         logger.info("Controller disconnected")
-        eventLoop.sixAxisJoystick.controller = nil
+        joystickManager.sixAxisJoystick.controller = nil
     }
 
     GCController.startWirelessControllerDiscovery(completionHandler: {
@@ -40,9 +42,9 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
 
 
     #if os(macOS)
-        eventLoop.acwJoystick.setMatchingCriteria()
-        eventLoop.acwJoystick.registerCallbacks()
-        eventLoop.acwJoystick.openManager()
-        eventLoop.acwJoystick.scheduleWithRunLoop()
+    joystickManager.acwJoystick.setMatchingCriteria()
+    joystickManager.acwJoystick.registerCallbacks()
+    joystickManager.acwJoystick.openManager()
+    joystickManager.acwJoystick.scheduleWithRunLoop()
     #endif
 }

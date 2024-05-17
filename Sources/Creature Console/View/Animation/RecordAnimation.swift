@@ -13,6 +13,8 @@ struct RecordAnimation: View {
     let server = CreatureServerClient.shared
     let creatureManager = CreatureManager.shared
 
+    @ObservedObject var joystickManager = JoystickManager.shared
+
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondsPerFrame = 20
 
@@ -21,12 +23,6 @@ struct RecordAnimation: View {
     @State private var showErrorMessage = false
     
     @State var creature : Creature
-    var joystick : Joystick
-    @State private var values: [UInt8] = []
-    @State private var xButtonPressed = false
-    @State private var yButtonPressed = false
-    @State private var aButtonPressed = false
-    @State private var bButtonPressed = false
 
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordAnimation")
@@ -66,7 +62,7 @@ struct RecordAnimation: View {
             HStack {
                 Text("Press")
                     .font(.title)
-                Image(systemName: eventLoop.sixAxisJoystick.controller?.extendedGamepad?.buttonX.sfSymbolsName ?? "x.circle")
+                Image(systemName: joystickManager.getActiveJoystick().getXButtonSymbol())
                     .font(.title)
                 if(appState.currentActivity == .recording) {
                     Text("to stop")
@@ -80,7 +76,7 @@ struct RecordAnimation: View {
            
             // Show either nothing, the joystick debugger, or a waveform if we have one
             if(appState.currentActivity == .preparingToRecord || appState.currentActivity == .recording) {
-                JoystickDebugView(joystick: joystick)
+                JoystickDebugView()
             } else {
                 if let animation = animation {
                     VStack {
@@ -130,31 +126,15 @@ struct RecordAnimation: View {
         .navigationSubtitle("Name: \(creature.name), Channel Offset: \(creature.channelOffset)")
 #endif
         .onDisappear{
-            if let j = joystick as? SixAxisJoystick {
-                j.removeVirtualJoystickIfNeeded()
-            }
+
             
             // Clean up our tasks if they're still running
             streamingTask?.cancel()
             recordingTask?.cancel()
             
         }
-        .onAppear {
-        
-            // Delay setting these values until after the init()'er is done
-            values = joystick.getValues()
-            xButtonPressed = joystick.xButtonPressed
-            yButtonPressed = joystick.yButtonPressed
-            aButtonPressed = joystick.aButtonPressed
-            bButtonPressed = joystick.bButtonPressed
-            
-            if let j = joystick as? SixAxisJoystick {
-                j.showVirtualJoystickIfNeeded()
-            }
-                    
-        }
-        .onChange(of: xButtonPressed) {            if xButtonPressed {
-                
+        .onChange(of: joystickManager.xButtonPressed) {            if joystickManager.xButtonPressed {
+
                 switch(appState.currentActivity) {
                 case .idle:
                     startRecording()
@@ -167,13 +147,13 @@ struct RecordAnimation: View {
                 }
             }
         }
-        .onReceive(joystick.changesPublisher) {
-            self.values = joystick.getValues()
-            self.aButtonPressed = joystick.aButtonPressed
-            self.bButtonPressed = joystick.bButtonPressed
-            self.xButtonPressed = joystick.xButtonPressed
-            self.yButtonPressed = joystick.yButtonPressed
-        }
+//        .onReceive(joystick.changesPublisher) {
+//            self.values = joystick.getValues()
+//            self.aButtonPressed = joystick.aButtonPressed
+//            self.bButtonPressed = joystick.bButtonPressed
+//            self.xButtonPressed = joystick.xButtonPressed
+//            self.yButtonPressed = joystick.yButtonPressed
+//        }
         .alert(isPresented: $showErrorMessage) {
             Alert(
                 title: Text("Server Error"),
@@ -322,7 +302,7 @@ struct RecordAnimation: View {
 
 struct RecordAnimation_Previews: PreviewProvider {
     static var previews: some View {
-        RecordAnimation(creature: .mock(), joystick: SixAxisJoystick.mock())
+        RecordAnimation(creature: .mock())
         .environmentObject(EventLoop.mock())
         .environmentObject(AppState.mock())
     }

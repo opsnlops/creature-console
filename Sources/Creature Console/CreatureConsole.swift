@@ -12,6 +12,7 @@ struct CreatureConsole: App {
     let eventLoop = EventLoop.shared
     let audioManager = AudioManager.shared
     let messageProcessor = SwiftMessageProcessor.shared
+    let joystickManager = JoystickManager.shared
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
@@ -72,8 +73,7 @@ struct CreatureConsole: App {
         }
 
         #if os(macOS)
-            DebugJoystickScene(joystick: eventLoop.sixAxisJoystick)
-            ACWDebugJoystickScene(joystick: eventLoop.acwJoystick)
+            DebugJoystickScene()
             LogViewScene()
             Settings {
                 SettingsView()

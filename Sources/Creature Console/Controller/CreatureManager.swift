@@ -12,6 +12,9 @@ import Common
  */
 class CreatureManager {
 
+    private var server = CreatureServerClient.shared
+    private var joystickManager = JoystickManager.shared
+
     // Allllll by my seeelllllffffff
     static let shared = CreatureManager()
 
@@ -21,21 +24,58 @@ class CreatureManager {
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
 
+
+
+
+    private var streamingCreature: CreatureIdentifier?
+    private var isStreaming: Bool = false
+
+
     private init() {}
 
     func startStreamingToCreature(creatureId: CreatureIdentifier) -> Result<String, ServerError> {
-        return .failure(.notImplemented("This hasn't been implemented yet"))
+
+        guard !isStreaming else {
+            return .failure(.communicationError("We're already streaming!"))
+        }
+
+        self.streamingCreature = creatureId
+        self.isStreaming = true
+
+        return .success("Started streaming to \(creatureId)")
     }
 
 
     func stopStreaming() -> Result<String, ServerError> {
-        return .failure(.notImplemented("This isn't implemented yet"))
+        
+        guard isStreaming else {
+            return .failure(.communicationError("Streaming not happening"))
+        }
+
+        self.isStreaming = false
+        self.streamingCreature = nil
+
+        return .success("Stopped streaming")
+
     }
 
     /**
      This is called from the event look when it's our time to grab a frame
      */
-    func grabFrame() async {
+    func onEventLoopTick() {
+
+        if isStreaming {
+
+            if let creatureId = streamingCreature  {
+
+                let motionData = Data(joystickManager.values).base64EncodedString()
+                let streamFrameData = StreamFrameData(ceatureId: creatureId, universe: activeUniverse, data: motionData)
+
+                Task {
+                    await server.streamFrame(streamFrameData: streamFrameData)
+                }
+            }
+        }
 
     }
 

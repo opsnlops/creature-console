@@ -6,6 +6,8 @@ import OSLog
 import Common
 
 
+/// This is the `GCVirtualController` offered by iOS. It doesn't exist on macOS because it can't.
+
 #if os(iOS)
 
 
