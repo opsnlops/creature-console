@@ -39,8 +39,12 @@
 		1199D6BD2BF5C463004E0D64 /* LoggingOSLog in Frameworks */ = {isa = PBXBuildFile; productRef = 1199D6BC2BF5C463004E0D64 /* LoggingOSLog */; };
 		1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */; };
 		1199D6C12BF5CD80004E0D64 /* BottomToolBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */; };
-		1199D6C42BF5D230004E0D64 /* SystemCounters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C32BF5D230004E0D64 /* SystemCounters.swift */; };
+		1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C32BF5D230004E0D64 /* SystemCountersStore.swift */; };
 		1199D6C62BF5D588004E0D64 /* SystemCountersItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */; };
+		1199D6C92BF6F51B004E0D64 /* LogItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C82BF6F51B004E0D64 /* LogItem.swift */; };
+		1199D6CB2BF6F606004E0D64 /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6CA2BF6F606004E0D64 /* LogManager.swift */; };
+		1199D6CE2BF6F7F8004E0D64 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6CD2BF6F7F8004E0D64 /* LogView.swift */; };
+		1199D6CF2BF6F811004E0D64 /* LogViewScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738129EB780A00EF8CDB /* LogViewScene.swift */; };
 		119A016329EE297800D3DA12 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
@@ -87,7 +91,6 @@
 		11703D8F29DD198000EF7E3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		11703D9329DD198000EF7E3D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		1182ED122BEDD28A00E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		118A737F29EB772900EF8CDB /* LogViewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewView.swift; sourceTree = "<group>"; };
 		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
 		118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */ = {isa = PBXFileReference; lastKnownFileType = file; path = recordingCountdownSound.flac; sourceTree = "<group>"; };
@@ -96,8 +99,11 @@
 		1199D6B62BF5BF53004E0D64 /* ConsoleAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleAppDelegate.swift; sourceTree = "<group>"; };
 		1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogItemProcessor.swift; sourceTree = "<group>"; };
 		1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomToolBarView.swift; sourceTree = "<group>"; };
-		1199D6C32BF5D230004E0D64 /* SystemCounters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCounters.swift; sourceTree = "<group>"; };
+		1199D6C32BF5D230004E0D64 /* SystemCountersStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersStore.swift; sourceTree = "<group>"; };
 		1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersItemProcessor.swift; sourceTree = "<group>"; };
+		1199D6C82BF6F51B004E0D64 /* LogItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogItem.swift; sourceTree = "<group>"; };
+		1199D6CA2BF6F606004E0D64 /* LogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogManager.swift; sourceTree = "<group>"; };
+		1199D6CD2BF6F7F8004E0D64 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
@@ -248,6 +254,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				1199D6CC2BF6F7E9004E0D64 /* Logging */,
 				110CABE52A9599DB007769E4 /* Processing */,
 				110B125C2A247BC4002C5585 /* Creatures */,
 				11A10A5C29F2429A000EB835 /* Animation */,
@@ -257,8 +264,6 @@
 				1168DC9A2B4FB2BE00A9895A /* ACWJoystickDebugView.swift */,
 				11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */,
 				1168DC9C2B4FB58800A9895A /* ACWDebugJoystickScene.swift */,
-				118A737F29EB772900EF8CDB /* LogViewView.swift */,
-				118A738129EB780A00EF8CDB /* LogViewScene.swift */,
 				11703D8D29DD197F00EF7E3D /* TopContentView.swift */,
 				1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */,
 			);
@@ -340,9 +345,20 @@
 		1199D6C22BF5D222004E0D64 /* Server */ = {
 			isa = PBXGroup;
 			children = (
-				1199D6C32BF5D230004E0D64 /* SystemCounters.swift */,
+				1199D6C32BF5D230004E0D64 /* SystemCountersStore.swift */,
+				1199D6C82BF6F51B004E0D64 /* LogItem.swift */,
+				1199D6CA2BF6F606004E0D64 /* LogManager.swift */,
 			);
 			path = Server;
+			sourceTree = "<group>";
+		};
+		1199D6CC2BF6F7E9004E0D64 /* Logging */ = {
+			isa = PBXGroup;
+			children = (
+				118A738129EB780A00EF8CDB /* LogViewScene.swift */,
+				1199D6CD2BF6F7F8004E0D64 /* LogView.swift */,
+			);
+			path = Logging;
 			sourceTree = "<group>";
 		};
 		119A016129EE28DB00D3DA12 /* Charts */ = {
@@ -683,12 +699,14 @@
 				11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */,
 				11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */,
 				114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */,
+				1199D6C92BF6F51B004E0D64 /* LogItem.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
 				1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */,
 				1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */,
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
+				1199D6CB2BF6F606004E0D64 /* LogManager.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* ACWJoystickDebugView.swift in Sources */,
@@ -696,7 +714,7 @@
 				11FA32B929E3844B004C5181 /* JoystickDebugView.swift in Sources */,
 				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
-				1199D6C42BF5D230004E0D64 /* SystemCounters.swift in Sources */,
+				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
@@ -718,7 +736,9 @@
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
 				1199D6C12BF5CD80004E0D64 /* BottomToolBarView.swift in Sources */,
+				1199D6CF2BF6F811004E0D64 /* LogViewScene.swift in Sources */,
 				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
+				1199D6CE2BF6F7F8004E0D64 /* LogView.swift in Sources */,
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

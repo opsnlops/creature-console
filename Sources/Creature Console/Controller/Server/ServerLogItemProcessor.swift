@@ -8,6 +8,9 @@ struct ServerLogItemProcessor {
 
     static public func processServerLogItem(_ serverLogItem: ServerLogItem) {
 
+        // Feed this to the logManager so it shows up in the UI
+        LogManager.shared.addLogMessage(from: serverLogItem)
+
         // Convert the level to our enum
         let level = ServerLogLevel(from: serverLogItem.level)
 

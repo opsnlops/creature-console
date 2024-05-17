@@ -8,7 +8,7 @@ struct LogViewScene: Scene {
 
     var body: some Scene {
         Window("Server Logs", id: "serverLogs") {
-            LogViewView()
+            LogView()
         }
         .defaultPosition(.topTrailing)
         .defaultSize(width: 500, height: 300)

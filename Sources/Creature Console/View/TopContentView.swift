@@ -46,11 +46,11 @@ struct TopContentView: View {
                     } label: {
                         Label("Debug Joystick", systemImage: "gamecontroller")
                     }
-                    //NavigationLink {
-                    //    LogViewView(server: client)
-                    //} label: {
-                    //    Label("Server Logs", systemImage: "server.rack")
-                    //}
+                    NavigationLink {
+                        LogView()
+                    } label: {
+                        Label("Server Logs", systemImage: "server.rack")
+                    }
                     NavigationLink {
                         SettingsView()
                     } label: {
