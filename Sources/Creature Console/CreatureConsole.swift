@@ -13,6 +13,7 @@ struct CreatureConsole: App {
     let audioManager = AudioManager.shared
     let messageProcessor = SwiftMessageProcessor.shared
     let joystickManager = JoystickManager.shared
+    let statusLights = StatusLightsManager.shared
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")

@@ -29,8 +29,6 @@ class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     }
 
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
-        logger.info(
-            "[STATUS LIGHTS] running: \(statusLights.running ? "on" : "off"), streaming: \(statusLights.streaming ? "on" : "off"), DMX: \(statusLights.dmx ? "on" : "off")"
-        )
+        VirtualStatusLightsProcessor.processVirtualStatusLights(statusLights)
     }
 }
