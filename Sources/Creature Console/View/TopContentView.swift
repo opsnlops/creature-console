@@ -122,8 +122,8 @@ struct TopContentView: View {
 
         }
 
-        #if os(macOS)
+        if UIDevice.current.systemName == "iPadOS" || UIDevice.current.systemName == "macOS" {
             BottomToolBarView()
-        #endif
+        }
     }
 }

@@ -3,7 +3,7 @@ import SwiftUI
 import OSLog
 import Common
 
-#if os(macOS)
+//#if os(macOS)
 
 struct JoystickDebugView: View {
 
@@ -81,4 +81,4 @@ struct JoystickDebugView_Previews: PreviewProvider {
 }
 
 
-#endif
+//#endif
