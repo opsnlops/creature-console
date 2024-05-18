@@ -6,6 +6,7 @@ import SwiftUI
 
 struct BottomToolBarView: View {
 
+    @ObservedObject var eventLoop = EventLoop.shared
     @ObservedObject var serverCounters = SystemCountersStore.shared
     @ObservedObject var statusLights = StatusLightsManager.shared
 
@@ -17,6 +18,7 @@ struct BottomToolBarView: View {
             Text("Server Frame: \(serverCounters.systemCounters.totalFrames)")
             Text("Rest Req: \(serverCounters.systemCounters.restRequestsProcessed)")
             Text("Streamed: \(serverCounters.systemCounters.framesStreamed)")
+            Text("Spare Time: \(String(format: "%.2f", eventLoop.frameSpareTime))%")
 
             Spacer()
 

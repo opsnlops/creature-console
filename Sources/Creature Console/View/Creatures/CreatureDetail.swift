@@ -210,11 +210,7 @@ struct CreatureDetail: View {
                     appState.currentActivity = .streaming
                 }
 
-                //                    if let j = eventLoop.getActiveJoystick() as? SixAxisJoystick {
-                //                        j.showVirtualJoystickIfNeeded()
-                //                    }
-
-                let result = await creatureManager.startStreamingToCreature(creatureId: creature.id)
+                let result = creatureManager.startStreamingToCreature(creatureId: creature.id)
                 switch result {
                 case .success(let message):
                     logger.info("Streaming result: \(message)")
@@ -238,10 +234,6 @@ struct CreatureDetail: View {
                 case .failure(let message):
                     logger.warning("Unable to stop streaming: \(message)")
                 }
-
-                //                if let j = eventLoop.getActiveJoystick() as? SixAxisJoystick {
-                //                    j.removeVirtualJoystickIfNeeded()
-                //                }
 
                 streamingTask?.cancel()
                 DispatchQueue.main.async {

@@ -19,24 +19,28 @@ class EventLoop: ObservableObject {
     private(set) var number_of_frames: Int64 = 0
 
     // Use the other Singletons
-    let appState = AppState.shared
+    let appState = AppState.shared  // No need to observe it from here, we don't care about changes
     let audioManager = AudioManager.shared
     let creatureManager = CreatureManager.shared
     let joystickManager = JoystickManager.shared
 
-    @Published var frameIdleTime: Double
+    /**
+     Keep track of how much spare time we have in each frame. I have nothing but very fast Macs, so this should rarely be
+     an issue, but if it is, I'd like for it to be shown to the status bar
+     */
+
+    @Published var frameSpareTime: Double = 0   // Published value (updates every `updateSpareTimeStatusInterval` frames)
+    var localFrameSpareTime: Double       = 0   // Updated every loop
 
 
     @AppStorage("audioFilePath") var audioFilePath: String = ""
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondPerFrame: Int = 20
-    @AppStorage("logSpareTimeFrameInterval") var logSpareTimeFrameInterval: Int = 20
+    @AppStorage("logSpareTimeFrameInterval") var logSpareTimeFrameInterval: Int = 1000
     @AppStorage("logSpareTime") var logSpareTime: Bool = false
-
-
+    @AppStorage("updateSpareTimeStatusInterval") var updateSpareTimeStatusInterval: Int = 20
 
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "EventLoop")
     private let numberFormatter = NumberFormatter()
-
 
 
 
@@ -51,7 +55,7 @@ class EventLoop: ObservableObject {
      */
     init() {
 
-        self.frameIdleTime = 100.0
+        self.frameSpareTime = 100.0
 
         // Configure the number formatter
         numberFormatter.numberStyle = .decimal
@@ -135,27 +139,29 @@ class EventLoop: ObservableObject {
         let endTime = DispatchTime.now()
         let elapsedTime = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
 
+        // Figure out our spare time this cycle
+        let elapsedTimeInMilliseconds = Double(elapsedTime) / 1_000_000.0
+        let frameTimeInNanoseconds = Double(millisecondPerFrame) * 1_000_000.0
+        localFrameSpareTime = (1 - (Double(elapsedTime) / frameTimeInNanoseconds)) * 100.0
 
         // If it's time to print out a logging message with our info, do it now
-
         if self.logSpareTime && number_of_frames % Int64(logSpareTimeFrameInterval) == 1 {
-            let elapsedTimeInMilliseconds = Double(elapsedTime) / 1_000_000.0
-            let frameTimeInNanoseconds = Double(millisecondPerFrame) * 1_000_000.0
-            let localFrameIdleTime = (1 - (Double(elapsedTime) / frameTimeInNanoseconds)) * 100.0
 
             let elapsedTimeString =
                 numberFormatter.string(from: NSNumber(value: elapsedTimeInMilliseconds)) ?? "0.00"
             let idleTimeString =
-                numberFormatter.string(from: NSNumber(value: localFrameIdleTime)) ?? "0.00"
+                numberFormatter.string(from: NSNumber(value: localFrameSpareTime)) ?? "0.00"
 
             logger.trace("Frame time: \(elapsedTimeString)ms (\(idleTimeString)% Idle)")
-
-            // Update this metric for anyone watching
-            DispatchQueue.main.async {
-                self.frameIdleTime = localFrameIdleTime
-            }
-
         }
+
+        // Send an update to things watching us every `updateSpareTimeStatusInterval` frames
+        if number_of_frames % Int64(updateSpareTimeStatusInterval) == 1 {
+            DispatchQueue.main.async {
+                self.frameSpareTime = self.localFrameSpareTime
+            }
+        }
+
 
     }
 
@@ -186,7 +192,7 @@ extension EventLoop {
         let mockEventLoop = EventLoop()
         mockEventLoop.millisecondPerFrame = 50
         mockEventLoop.logSpareTimeFrameInterval = 100
-        mockEventLoop.frameIdleTime = 100.0
+        mockEventLoop.frameSpareTime = 100.0
 
 
         // Configure the mock animation if needed

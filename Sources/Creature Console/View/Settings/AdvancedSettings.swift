@@ -8,6 +8,7 @@ import Common
 struct AdvancedSettingsView: View {
     @AppStorage("eventLoopMillisecondsPerFrame") private var eventLoopMillisecondsPerFrame: Int = 20
     @AppStorage("logSpareTimeFrameInterval") private var logSpareTimeFrameInterval: Int = 200
+    @AppStorage("updateSpareTimeStatusInterval") var updateSpareTimeStatusInterval: Int = 20
     @AppStorage("logSpareTime") private var logSpareTime: Bool = false
     @AppStorage("audioFilePath") private var audioFilePath: String = ""
     
@@ -25,6 +26,9 @@ struct AdvancedSettingsView: View {
                 }
                 Section(header: Text("Log Spare Time Frame Interval")) {
                     TextField("", value: $logSpareTimeFrameInterval, format: .number)
+                }
+                Section(header: Text("Status Bar Spare Time Update Interval")) {
+                    TextField("", value: $updateSpareTimeStatusInterval, format: .number)
                 }
                 Section(header: Text("Audio File Path")) {
                     TextField("", text: $audioFilePath)
