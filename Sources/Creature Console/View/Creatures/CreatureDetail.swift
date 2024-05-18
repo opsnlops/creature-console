@@ -13,7 +13,7 @@ struct CreatureDetail: View {
 
     let server = CreatureServerClient.shared
     let eventLoop = EventLoop.shared
-    let appState = AppState.shared
+    @ObservedObject var appState = AppState.shared
     let creatureManager = CreatureManager.shared
 
 
