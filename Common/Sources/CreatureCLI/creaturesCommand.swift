@@ -30,7 +30,7 @@ extension CreatureCLI {
                 switch result {
                 case .success(let creatures):
 
-                    let headers = ["Name", "ID", "Offset", "Audio", "Note"]
+                    let headers = ["Name", "ID", "Offset", "Audio"]
                     var rows = [[String]]()
 
                     for creature in creatures {
@@ -41,7 +41,6 @@ extension CreatureCLI {
                             creature.id,
                             String(creature.channelOffset),
                             String(creature.audioChannel),
-                            creature.notes,
                         ]
                         rows.append(row)
                     }

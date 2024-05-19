@@ -20,8 +20,6 @@ struct CreatureEdit : View {
             TextField("Name", text: $creature.name)
             TextField("Channel Offset", value: $creature.channelOffset, format: .number)
             TextField("Audio Channel", value: $creature.audioChannel, format: .number)
-            TextField("Notes", text: $creature.notes)
-
         }
         
     }

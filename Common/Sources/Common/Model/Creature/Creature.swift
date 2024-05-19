@@ -9,25 +9,22 @@ public class Creature: ObservableObject, Identifiable, Hashable, Equatable, Coda
     @Published public var name: String
     @Published public var channelOffset: Int
     @Published public var realData: Bool
-    @Published public var notes: String
     @Published public var audioChannel: Int
 
     enum CodingKeys: String, CodingKey {
         case id, name
         case channelOffset = "channel_offset"
-        case realData, notes
+        case realData
         case audioChannel = "audio_channel"
     }
 
     public init(
-        id: CreatureIdentifier, name: String, channelOffset: Int, audioChannel: Int, notes: String,
-        realData: Bool = false
+        id: CreatureIdentifier, name: String, channelOffset: Int, audioChannel: Int, realData: Bool = false
     ) {
         self.id = id
         self.name = name
         self.channelOffset = channelOffset
         self.audioChannel = audioChannel
-        self.notes = notes
         self.realData = realData
     }
 
@@ -37,7 +34,6 @@ public class Creature: ObservableObject, Identifiable, Hashable, Equatable, Coda
         name = try container.decode(String.self, forKey: .name)
         channelOffset = try container.decode(Int.self, forKey: .channelOffset)
         audioChannel = try container.decode(Int.self, forKey: .audioChannel)
-        notes = try container.decode(String.self, forKey: .notes)
         realData = try container.decodeIfPresent(Bool.self, forKey: .realData) ?? false
     }
 
@@ -47,7 +43,6 @@ public class Creature: ObservableObject, Identifiable, Hashable, Equatable, Coda
         try container.encode(name, forKey: .name)
         try container.encode(channelOffset, forKey: .channelOffset)
         try container.encode(audioChannel, forKey: .audioChannel)
-        try container.encode(notes, forKey: .notes)
         try container.encode(realData, forKey: .realData)
     }
 
@@ -56,13 +51,12 @@ public class Creature: ObservableObject, Identifiable, Hashable, Equatable, Coda
         hasher.combine(name)
         hasher.combine(channelOffset)
         hasher.combine(audioChannel)
-        hasher.combine(notes)
         hasher.combine(realData)
     }
 
     public static func == (lhs: Creature, rhs: Creature) -> Bool {
         lhs.id == rhs.id && lhs.name == rhs.name && lhs.channelOffset == rhs.channelOffset
-            && lhs.audioChannel == rhs.audioChannel && lhs.notes == rhs.notes
+            && lhs.audioChannel == rhs.audioChannel
             && lhs.realData == rhs.realData
     }
 }
@@ -74,8 +68,7 @@ extension Creature {
             id: DataHelper.generateRandomId(),
             name: "MockCreature",
             channelOffset: 7,
-            audioChannel: 5,
-            notes: "Mock Creature Notes")
+            audioChannel: 5)
 
         return creature
     }
