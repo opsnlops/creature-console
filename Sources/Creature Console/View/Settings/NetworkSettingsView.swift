@@ -5,7 +5,8 @@ import Common
 struct NetworkSettingsView: View {
     @AppStorage("serverAddress") private var serverAddress: String = ""
     @AppStorage("serverPort") private var serverPort: Int = 0
-    
+    @AppStorage("activeUniverse") private var activeUniverse: Int = 1
+
     var body: some View {
         VStack {
             Form {
@@ -14,6 +15,9 @@ struct NetworkSettingsView: View {
                 }
                 Section(header: Text("Server Port")) {
                     TextField("", value: $serverPort, format: .number)
+                }
+                Section(header: Text("Active Universe")) {
+                    TextField("", value: $activeUniverse, format: .number)
                 }
             }
             Spacer()

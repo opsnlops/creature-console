@@ -20,7 +20,6 @@ class EventLoop: ObservableObject {
 
     // Use the other Singletons
     let appState = AppState.shared  // No need to observe it from here, we don't care about changes
-    let audioManager = AudioManager.shared
     let creatureManager = CreatureManager.shared
     let joystickManager = JoystickManager.shared
 
@@ -32,8 +31,6 @@ class EventLoop: ObservableObject {
     @Published var frameSpareTime: Double = 0   // Published value (updates every `updateSpareTimeStatusInterval` frames)
     var localFrameSpareTime: Double       = 0   // Updated every loop
 
-
-    @AppStorage("audioFilePath") var audioFilePath: String = ""
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondPerFrame: Int = 20
     @AppStorage("logSpareTimeFrameInterval") var logSpareTimeFrameInterval: Int = 1000
     @AppStorage("logSpareTime") var logSpareTime: Bool = false
@@ -41,13 +38,6 @@ class EventLoop: ObservableObject {
 
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "EventLoop")
     private let numberFormatter = NumberFormatter()
-
-
-
-    // If we've got an animation loaded, keep track of it
-    var animation: Common.Animation?
-    var isRecording = false
-
 
 
     /**
@@ -73,47 +63,6 @@ class EventLoop: ObservableObject {
     }
 
 
-    func recordNewAnimation(metadata: AnimationMetadata) {
-        animation = Animation(
-            id: DataHelper.generateRandomId(),
-            metadata: metadata,
-            frameData: [])
-
-        // Set our state to recording
-        DispatchQueue.main.async {
-            self.appState.currentActivity = .recording
-        }
-
-        // If it has a sound file attached, let's play it
-        if !metadata.soundFile.isEmpty {
-
-            // See if it's a valid url
-            if let url = URL(string: audioFilePath + metadata.soundFile) {
-
-                do {
-                    logger.info("audiofile URL is \(url)")
-                    Task {
-                        await audioManager.play(url: url)
-                    }
-                }
-            } else {
-                logger.warning(
-                    "audioFile URL doesn't exist: \(self.audioFilePath + metadata.soundFile)")
-            }
-        } else {
-            logger.info("no audio file, skipping playback")
-        }
-
-        // Tell the system to start recording
-        isRecording = true
-    }
-
-    func stopRecording() {
-        isRecording = false
-        DispatchQueue.main.async {
-            self.appState.currentActivity = .idle
-        }
-    }
 
     /**
      Main Event Loop
@@ -193,10 +142,6 @@ extension EventLoop {
         mockEventLoop.millisecondPerFrame = 50
         mockEventLoop.logSpareTimeFrameInterval = 100
         mockEventLoop.frameSpareTime = 100.0
-
-
-        // Configure the mock animation if needed
-        mockEventLoop.animation = .mock()
 
         return mockEventLoop
     }

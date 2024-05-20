@@ -30,9 +30,7 @@ struct CreatureDetail: View {
 
     var body: some View {
         VStack {
-
             AnimationTable(creature: creature)
-
         }
         .toolbar(id: "\(creature.name) creatureDetail") {
             ToolbarItem(id: "control", placement: .primaryAction) {
@@ -55,21 +53,21 @@ struct CreatureDetail: View {
                         Image(systemName: "record.circle")
                     })
             }
-            ToolbarItem(id: "editCreature", placement: .secondaryAction) {
+            ToolbarItem(id: "creatureConfiguration", placement: .secondaryAction) {
                 NavigationLink(
-                    destination: CreatureEdit(creature: creature),
+                    destination: CreatureConfiguration(creature: creature),
                     label: {
-                        Image(systemName: "pencil")
+                        Image(systemName: "sparkle.magnifyingglass")
                     })
             }
             ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
                 Button(action: {
                     startMFM2023Playlist()
                 }) {
-                    Image(systemName: "figure.run")
+                    Image(systemName: "pawprint")
                 }
             }
-            ToolbarItem(id: "stopPlaylistPlayback", placement: .primaryAction) {
+            ToolbarItem(id: "stopPlaylistPlayback", placement: .secondaryAction) {
                 Button(action: {
                     stopPlaylistPlayback()
                 }) {
@@ -89,11 +87,6 @@ struct CreatureDetail: View {
         }
         .onDisappear {
             streamingTask?.cancel()
-
-            // Turn off the virtual joystick if it's visible
-            //            if let j = eventLoop.getActiveJoystick() as? SixAxisJoystick {
-            //                j.removeVirtualJoystickIfNeeded()
-            //            }
         }
         .navigationTitle(creature.name)
         #if os(macOS)

@@ -25,10 +25,8 @@ struct CreatureConsole: App {
          Set up default prefs for static things
          */
         let defaultPreferences: [String: Any] = [
-            "serverAddress": "10.19.63.5",  // gRPC
-            "serverPort": 6666,  // gRPC
-            "serverHostname": "localhost",  // REST
-            "serverRestPort": 3000,  // REST
+            "serverHostname": "10.3.2.5",  // REST
+            "serverRestPort": 8000,  // REST
             "serverUseTLS": false,  // REST
             "serverLogsScrollBackLines": 150,
             "eventLoopMillisecondsPerFrame": 20,

@@ -14,6 +14,7 @@ class CreatureManager {
 
     private var server = CreatureServerClient.shared
     private var joystickManager = JoystickManager.shared
+    private var audioManager = AudioManager.shared
 
     // Allllll by my seeelllllffffff
     static let shared = CreatureManager()
@@ -22,13 +23,15 @@ class CreatureManager {
 
     @ObservedObject var appState = AppState.shared
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
-
-
-
-
+    @AppStorage("audioFilePath") var audioFilePath: String = ""
 
     private var streamingCreature: CreatureIdentifier?
     private var isStreaming: Bool = false
+
+
+    // If we've got an animation loaded, keep track of it
+    var animation: Common.Animation?
+    var isRecording = false
 
 
     private init() {}
@@ -77,6 +80,50 @@ class CreatureManager {
             }
         }
 
+    }
+
+
+
+    func recordNewAnimation(metadata: AnimationMetadata) {
+        animation = Animation(
+            id: DataHelper.generateRandomId(),
+            metadata: metadata,
+            tracks: [:])
+
+        // Set our state to recording
+        DispatchQueue.main.async {
+            self.appState.currentActivity = .recording
+        }
+
+        // If it has a sound file attached, let's play it
+        if !metadata.soundFile.isEmpty {
+
+            // See if it's a valid url
+            if let url = URL(string: audioFilePath + metadata.soundFile) {
+
+                do {
+                    logger.info("audiofile URL is \(url)")
+                    Task {
+                        await audioManager.play(url: url)
+                    }
+                }
+            } else {
+                logger.warning(
+                    "audioFile URL doesn't exist: \(self.audioFilePath + metadata.soundFile)")
+            }
+        } else {
+            logger.info("no audio file, skipping playback")
+        }
+
+        // Tell the system to start recording
+        isRecording = true
+    }
+
+    func stopRecording() {
+        isRecording = false
+        DispatchQueue.main.async {
+            self.appState.currentActivity = .idle
+        }
     }
 
 

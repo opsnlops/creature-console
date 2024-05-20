@@ -212,7 +212,7 @@ struct RecordAnimation: View {
         // Start streaming to the creature
         streamingTask = Task {
 
-            await _ = creatureManager.startStreamingToCreature(creatureId: creature.id)
+            _ = creatureManager.startStreamingToCreature(creatureId: creature.id)
 
 
 
@@ -247,14 +247,14 @@ struct RecordAnimation: View {
             
             
             logger.info("asking new recording to start")
-            eventLoop.recordNewAnimation(metadata: metadata)
-            
+            creatureManager.recordNewAnimation(metadata: metadata)
+
         }
         
     }
     
     func stopRecording() {
-        eventLoop.stopRecording()
+        creatureManager.stopRecording()
         recordingTask?.cancel()
         logger.info("asked recording to stop")
         
@@ -265,15 +265,15 @@ struct RecordAnimation: View {
         appState.currentActivity = .idle
         
         // Point our stuff at it
-        animation = eventLoop.animation
+        animation = creatureManager.animation
     }
     
     func saveToServer() {
         savingMessage = "Saving animation to server..."
         isSaving = true
         Task {
-            if let a = eventLoop.animation {
-                
+            if let a = creatureManager.animation {
+
                 a.metadata.title = title
                 a.metadata.note = notes
                 a.metadata.soundFile = soundFile
@@ -303,7 +303,5 @@ struct RecordAnimation: View {
 struct RecordAnimation_Previews: PreviewProvider {
     static var previews: some View {
         RecordAnimation(creature: .mock())
-        .environmentObject(EventLoop.mock())
-        .environmentObject(AppState.mock())
     }
 }

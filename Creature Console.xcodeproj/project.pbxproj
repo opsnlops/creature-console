@@ -48,9 +48,10 @@
 		119A016329EE297800D3DA12 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
+		11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */; };
 		11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
-		11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureEdit.swift */; };
+		11C03AD029E3C346002E6720 /* CreatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */; };
 		11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
 		11C288622BF70E8E00F7ACD8 /* JoystickManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */; };
 		11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */; };
@@ -110,10 +111,11 @@
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
+		11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTable.swift; sourceTree = "<group>"; };
 		11AFC3182BE9ED7700602604 /* CreatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureManager.swift; sourceTree = "<group>"; };
 		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11BC3C392A0DF62300410F63 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
-		11C03ACF29E3C346002E6720 /* CreatureEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureEdit.swift; sourceTree = "<group>"; };
+		11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureConfiguration.swift; sourceTree = "<group>"; };
 		11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
 		11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickManager.swift; sourceTree = "<group>"; };
 		11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteChartView.swift; sourceTree = "<group>"; };
@@ -197,7 +199,8 @@
 			isa = PBXGroup;
 			children = (
 				1142E66129DFB22300B795F0 /* CreatureDetail.swift */,
-				11C03ACF29E3C346002E6720 /* CreatureEdit.swift */,
+				11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */,
+				11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */,
 			);
 			path = Creatures;
 			sourceTree = "<group>";
@@ -708,6 +711,7 @@
 				11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */,
 				11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */,
 				114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */,
+				11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */,
 				1199D6C92BF6F51B004E0D64 /* LogItem.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
 				1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */,
@@ -741,7 +745,7 @@
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */,
-				11C03AD029E3C346002E6720 /* CreatureEdit.swift in Sources */,
+				11C03AD029E3C346002E6720 /* CreatureConfiguration.swift in Sources */,
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
 				1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */,
 				1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */,

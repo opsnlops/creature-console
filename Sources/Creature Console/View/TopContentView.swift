@@ -67,15 +67,6 @@ struct TopContentView: View {
             .navigationDestination(for: CreatureIdentifier.self) { creature in
                 CreatureDetail(creature: creatureCache.getById(id: creature))
             }
-            .toolbar {
-                ToolbarItem(id: "editCreature", placement: .primaryAction) {
-                    NavigationLink(
-                        destination: EmptyView(),
-                        label: {
-                            Image(systemName: "pencil")
-                        })
-                }
-            }
             .onAppear {
                 Task {
 
