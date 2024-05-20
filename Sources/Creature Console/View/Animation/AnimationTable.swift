@@ -178,3 +178,11 @@ struct AnimationTable: View {
     }
 
 } //struct
+
+
+
+struct AnimationTable_Previews: PreviewProvider {
+    static var previews: some View {
+        AnimationTable(creature: .mock())
+    }
+}

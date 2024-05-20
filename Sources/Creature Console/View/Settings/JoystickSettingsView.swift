@@ -9,9 +9,11 @@ struct JoystickSettingsView: View {
     var body: some View {
         VStack {
             Spacer()
+            #if os(macOS)
             Form {
                 Toggle("Use our joystick if available", isOn: $useOurJoystick)
-                }
+            }
+            #endif
             Form {
                 Toggle("Log joystick poll events", isOn: $logJoystickPollEvents)
             }

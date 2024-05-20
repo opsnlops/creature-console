@@ -14,7 +14,7 @@ struct AnimationWaveformEditor: View {
                 Text(a.metadata.title)
                 ForEach(allAxes.indices, id: \.self) { i in
                     HStack {
-                        Text("Motor \(i)")
+                        Text("Input \(i)")
                             .frame(width: 100)
                         ByteChartView(data: allAxes[i])
                     }

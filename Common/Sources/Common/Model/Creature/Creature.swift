@@ -21,7 +21,8 @@ public class Creature: ObservableObject, Identifiable, Hashable, Equatable, Coda
     }
 
     public init(
-        id: CreatureIdentifier, name: String, channelOffset: Int, audioChannel: Int, inputs: [Input] = [], realData: Bool = false
+        id: CreatureIdentifier, name: String, channelOffset: Int, audioChannel: Int,
+        inputs: [Input] = [], realData: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -72,11 +73,15 @@ public class Creature: ObservableObject, Identifiable, Hashable, Equatable, Coda
 extension Creature {
     public static func mock() -> Creature {
         let creature = Creature(
-            id: DataHelper.generateRandomId(),
+            id: UUID().uuidString,
             name: "MockCreature",
             channelOffset: 7,
             audioChannel: 5,
-            inputs: [Input(name: "MockInput", slot: 1, width: 1, joystickAxis: 1)])
+            inputs: [
+                Input(name: "MockInput", slot: 1, width: 1, joystickAxis: 1),
+                Input(name: "Input 2", slot: 2, width: 2, joystickAxis: 2),
+            ]
+        )
 
         return creature
     }

@@ -25,7 +25,7 @@ struct CreatureConsole: App {
          Set up default prefs for static things
          */
         let defaultPreferences: [String: Any] = [
-            "serverHostname": "10.3.2.5",  // REST
+            "serverHostname": "10.19.63.5",  // REST
             "serverRestPort": 8000,  // REST
             "serverUseTLS": false,  // REST
             "serverLogsScrollBackLines": 150,
@@ -39,12 +39,6 @@ struct CreatureConsole: App {
             "mfm2023PlaylistHack": "64d81c13568ab1d9860f23b8",
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
-
-
-        // Create the default channel and axis mappings
-        let channelAxisMapping = ChannelAxisMapping()
-        channelAxisMapping.registerDefaultMappingsAndNames()
-
 
         // Make sure the appState is good
         appState.currentActivity = .idle

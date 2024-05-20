@@ -10,7 +10,6 @@
 		110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE72A959A00007769E4 /* SoundDataImporter.swift */; };
 		1110E9652BF035E500FCE26D /* Common in Frameworks */ = {isa = PBXBuildFile; productRef = 1110E9642BF035E500FCE26D /* Common */; };
 		1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110E9662BF03B2A00FCE26D /* CreatureCache.swift */; };
-		1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110EFF82B8D9C2300A00B89 /* ChannelAxisMapping.swift */; };
 		11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */; };
 		11218E802B67522500AFFF65 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11218E7F2B67522500AFFF65 /* Joystick.swift */; };
 		1122A7B72A24440100D60464 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B62A24440100D60464 /* AppState.swift */; };
@@ -63,7 +62,6 @@
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
-		11FA32B929E3844B004C5181 /* OldJoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B829E3844B004C5181 /* OldJoystickDebugView.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
 /* End PBXBuildFile section */
 
@@ -71,7 +69,6 @@
 		110CABE72A959A00007769E4 /* SoundDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataImporter.swift; sourceTree = "<group>"; };
 		1110E9632BF0359F00FCE26D /* Common */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Common; sourceTree = "<group>"; };
 		1110E9662BF03B2A00FCE26D /* CreatureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureCache.swift; sourceTree = "<group>"; };
-		1110EFF82B8D9C2300A00B89 /* ChannelAxisMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelAxisMapping.swift; sourceTree = "<group>"; };
 		11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationDetail.swift; sourceTree = "<group>"; };
 		11218E7F2B67522500AFFF65 /* Joystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Joystick.swift; sourceTree = "<group>"; };
 		1122A7B62A24440100D60464 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -127,7 +124,6 @@
 		11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickSettingsView.swift; sourceTree = "<group>"; };
 		11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SixAxisJoystick.swift; sourceTree = "<group>"; };
-		11FA32B829E3844B004C5181 /* OldJoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OldJoystickDebugView.swift; sourceTree = "<group>"; };
 		11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugJoystickScene.swift; sourceTree = "<group>"; };
 		11FF7C132BF0334E00BF5A09 /* Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animations.swift; sourceTree = "<group>"; };
 		11FF7C142BF0334E00BF5A09 /* Creatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Creatures.swift; sourceTree = "<group>"; };
@@ -221,7 +217,6 @@
 				11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */,
 				1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */,
 				11218E7F2B67522500AFFF65 /* Joystick.swift */,
-				1110EFF82B8D9C2300A00B89 /* ChannelAxisMapping.swift */,
 			);
 			path = Joystick;
 			sourceTree = "<group>";
@@ -263,13 +258,13 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				11A61AA12BFAF87C000A1B48 /* Audio */,
 				1199D6CC2BF6F7E9004E0D64 /* Logging */,
 				110CABE52A9599DB007769E4 /* Processing */,
 				110B125C2A247BC4002C5585 /* Creatures */,
 				11A10A5C29F2429A000EB835 /* Animation */,
 				119A016429EE4B3700D3DA12 /* Settings */,
 				119A016129EE28DB00D3DA12 /* Charts */,
-				11FA32B829E3844B004C5181 /* OldJoystickDebugView.swift */,
 				1168DC9A2B4FB2BE00A9895A /* JoystickDebugView.swift */,
 				11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */,
 				1168DC9C2B4FB58800A9895A /* ACWDebugJoystickScene.swift */,
@@ -402,11 +397,18 @@
 				1131763129FF0B66008B35E8 /* CategoryList.swift */,
 				11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */,
 				113896B42A0768860055BA70 /* AnimationEditor.swift */,
-				113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */,
 				114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */,
 				118BF8722A255F5300D80AE6 /* AnimationTable.swift */,
 			);
 			path = Animation;
+			sourceTree = "<group>";
+		};
+		11A61AA12BFAF87C000A1B48 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */,
+			);
+			path = Audio;
 			sourceTree = "<group>";
 		};
 		11C2E0DE29ECF6BC00B8A4F5 /* Events */ = {
@@ -726,8 +728,6 @@
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* JoystickDebugView.swift in Sources */,
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
-				11FA32B929E3844B004C5181 /* OldJoystickDebugView.swift in Sources */,
-				1110EFF92B8D9C2300A00B89 /* ChannelAxisMapping.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				11C288622BF70E8E00F7ACD8 /* JoystickManager.swift in Sources */,
 				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
@@ -885,7 +885,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202;
+				CURRENT_PROJECT_VERSION = 203;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -911,7 +911,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.0.2;
+				MARKETING_VERSION = 2.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -933,7 +933,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202;
+				CURRENT_PROJECT_VERSION = 203;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -959,7 +959,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.0.2;
+				MARKETING_VERSION = 2.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
