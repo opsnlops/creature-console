@@ -1,12 +1,13 @@
 import ArgumentParser
 import Common
+import Foundation
 
 extension CreatureCLI {
 
     struct Animations: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
             abstract: "View and work with animations",
-            subcommands: [List.self]
+            subcommands: [List.self, TestTrackEncoding.self]
         )
 
         @OptionGroup()
@@ -59,5 +60,34 @@ extension CreatureCLI {
                 }
             }
         }
+
+        struct TestTrackEncoding: AsyncParsableCommand {
+            static var configuration = CommandConfiguration(
+                abstract: "Test the track encoding to JSON",
+                discussion:
+                    "Creates a fake track via .mock() and then prints its JSON format to the terminal"
+            )
+
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let mockTrack = Track.mock()
+
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+
+                do {
+                    let jsonData = try encoder.encode(mockTrack)
+                    if let jsonString = String(data: jsonData, encoding: .utf8) {
+                        print(jsonString)
+                    }
+                } catch {
+                    print("Failed to encode Track: \(error)")
+                }
+            }
+        }
+
     }
 }
