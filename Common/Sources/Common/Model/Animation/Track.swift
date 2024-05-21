@@ -13,11 +13,14 @@ public struct Track: Hashable, Equatable, Codable, Identifiable {
 
     // The `id` property to conform to Identifiable
     public var id: TrackIdentifier
-    var creatureId: CreatureIdentifier
-    var animationId: AnimationIdentifier
-    var frames: [Data]
+    public var creatureId: CreatureIdentifier
+    public var animationId: AnimationIdentifier
+    public var frames: [Data]
 
-    public init(id: TrackIdentifier, creatureId: CreatureIdentifier, animationId: AnimationIdentifier, frames: [Data]) {
+    public init(
+        id: TrackIdentifier, creatureId: CreatureIdentifier, animationId: AnimationIdentifier,
+        frames: [Data]
+    ) {
         self.id = id
         self.creatureId = creatureId
         self.animationId = animationId
@@ -35,13 +38,13 @@ public struct Track: Hashable, Equatable, Codable, Identifiable {
 
     // Custom Encoder
     public func encode(to encoder: Encoder) throws {
-       var container = encoder.container(keyedBy: CodingKeys.self)
-       try container.encode(id.uuidString.lowercased(), forKey: .id) // Lowercase UUID string
-       try container.encode(creatureId.lowercased(), forKey: .creatureId) // Lowercase UUID string
-       try container.encode(animationId.lowercased(), forKey: .animationId) // Lowercase UUID string
-       let base64Frames = frames.map { $0.base64EncodedString() }
-       try container.encode(base64Frames, forKey: .frames)
-   }
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id.uuidString.lowercased(), forKey: .id)  // Lowercase UUID string
+        try container.encode(creatureId.lowercased(), forKey: .creatureId)  // Lowercase UUID string
+        try container.encode(animationId.lowercased(), forKey: .animationId)  // Lowercase UUID string
+        let base64Frames = frames.map { $0.base64EncodedString() }
+        try container.encode(base64Frames, forKey: .frames)
+    }
 
     // Custom Decoder
     public init(from decoder: Decoder) throws {
@@ -52,9 +55,10 @@ public struct Track: Hashable, Equatable, Codable, Identifiable {
         let base64Frames = try container.decode([String].self, forKey: .frames)
         self.frames = try base64Frames.map {
             guard let data = Data(base64Encoded: $0) else {
-                throw DecodingError.dataCorruptedError(forKey: .frames,
-                                                       in: container,
-                                                       debugDescription: "Invalid base64 string for frame data.")
+                throw DecodingError.dataCorruptedError(
+                    forKey: .frames,
+                    in: container,
+                    debugDescription: "Invalid base64 string for frame data.")
             }
             return data
         }
@@ -78,10 +82,9 @@ extension Track {
     public static func mock() -> Track {
         // Generate mock IDs and frame data
         let id = TrackIdentifier()
-        let creatureId = CreatureIdentifier(UUID().uuidString.lowercased()) // Random UUID as String
-        let animationId = AnimationIdentifier(UUID().uuidString.lowercased()) // Random UUID as String
-        let frames = (0..<15).map { _ in Data((0..<7).map { _ in UInt8.random(in: 0...255) }) }  // 15 frames of 7 bytes each
+        let creatureId = CreatureIdentifier(UUID().uuidString.lowercased())  // Random UUID as String
+        let animationId = AnimationIdentifier(UUID().uuidString.lowercased())  // Random UUID as String
+        let frames = (0..<8).map { _ in Data((0..<7).map { _ in UInt8.random(in: 0...255) }) }  // 8 frames of 7 bytes each
         return Track(id: id, creatureId: creatureId, animationId: animationId, frames: frames)
     }
 }
-

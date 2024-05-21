@@ -55,7 +55,7 @@ struct CreatureConsole: App {
             logger.info("connected to server")
 
         } catch {
-            print("Error opening connections: \(error)")
+            logger.critical("Error opening server connection: \(error)")
         }
 
     }

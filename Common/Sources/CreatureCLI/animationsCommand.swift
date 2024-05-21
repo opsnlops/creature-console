@@ -7,7 +7,7 @@ extension CreatureCLI {
     struct Animations: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
             abstract: "View and work with animations",
-            subcommands: [List.self, TestTrackEncoding.self]
+            subcommands: [List.self, TestAnimationEncoding.self, TestTrackEncoding.self]
         )
 
         @OptionGroup()
@@ -85,6 +85,34 @@ extension CreatureCLI {
                     }
                 } catch {
                     print("Failed to encode Track: \(error)")
+                }
+            }
+        }
+
+        struct TestAnimationEncoding: AsyncParsableCommand {
+            static var configuration = CommandConfiguration(
+                abstract: "Test encoding an Animation to JSON",
+                discussion:
+                    "Creates a fake Animation via .mock() and pretty-prints it to the console"
+            )
+
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let mockAnimation = Common.Animation.mock()
+
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+
+                do {
+                    let jsonData = try encoder.encode(mockAnimation)
+                    if let jsonString = String(data: jsonData, encoding: .utf8) {
+                        print(jsonString)
+                    }
+                } catch {
+                    print("Failed to encode Animation: \(error)")
                 }
             }
         }

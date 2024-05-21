@@ -54,3 +54,17 @@ public class Input: Identifiable, Hashable, Equatable, Codable {
 
 }
 
+
+extension Input {
+    public static func mock() -> Input {
+        let names = ["head_tilt", "neck_rotate", "beak", "stand_lean", "Clutch"]
+        let randomName = names.randomElement() ?? "Control"
+        let randomSlot = UInt16.random(in: 0...511)
+        let randomWidth: UInt8 = UInt8.random(in: 1...2)
+        let randomJoystickAxis = UInt8.random(in: 0...7)
+
+        return Input(
+            name: randomName, slot: randomSlot, width: randomWidth, joystickAxis: randomJoystickAxis
+        )
+    }
+}

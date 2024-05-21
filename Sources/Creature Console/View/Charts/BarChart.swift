@@ -44,7 +44,7 @@ struct BarChart_Previews: PreviewProvider {
                 .previewDisplayName("Default Bar Chart with Random Data")
 
             BarChartPreviewWrapper(barSpacing: 4.0)
-                .previewDisplayName("Custom Bar Chart with Random Data")
+                .previewDisplayName("Custom Bar Chart with Random Data and Spacing")
         }
     }
 }

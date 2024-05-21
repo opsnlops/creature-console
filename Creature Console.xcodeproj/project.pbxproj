@@ -48,6 +48,7 @@
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
 		11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */; };
+		11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61AA22BFC3739000A1B48 /* TrackViewer.swift */; };
 		11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11C03AD029E3C346002E6720 /* CreatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */; };
@@ -109,6 +110,7 @@
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
 		11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTable.swift; sourceTree = "<group>"; };
+		11A61AA22BFC3739000A1B48 /* TrackViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackViewer.swift; sourceTree = "<group>"; };
 		11AFC3182BE9ED7700602604 /* CreatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureManager.swift; sourceTree = "<group>"; };
 		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11BC3C392A0DF62300410F63 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
@@ -399,6 +401,7 @@
 				113896B42A0768860055BA70 /* AnimationEditor.swift */,
 				114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */,
 				118BF8722A255F5300D80AE6 /* AnimationTable.swift */,
+				11A61AA22BFC3739000A1B48 /* TrackViewer.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -737,6 +740,7 @@
 				113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */,
 				1199D6C62BF5D588004E0D64 /* SystemCountersItemProcessor.swift in Sources */,
 				1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */,
+				11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */,
 				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
 				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
