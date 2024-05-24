@@ -1,5 +1,5 @@
 
-
+import Combine
 import Foundation
 import OSLog
 import SwiftUI
@@ -10,11 +10,12 @@ import Common
 /**
  The `CreatureManager` is what owns talking to all of the creatures. This allows me to keep SwiftUI things out of the [CreatureServerClient]
  */
-class CreatureManager {
+class CreatureManager: ObservableObject {
 
-    private var server = CreatureServerClient.shared
-    private var joystickManager = JoystickManager.shared
-    private var audioManager = AudioManager.shared
+    var server = CreatureServerClient.shared
+    var joystickManager = JoystickManager.shared
+    var audioManager = AudioManager.shared
+    var creatureCache = CreatureCache.shared
 
     // Allllll by my seeelllllffffff
     static let shared = CreatureManager()
@@ -22,6 +23,7 @@ class CreatureManager {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureManager")
 
     @ObservedObject var appState = AppState.shared
+    
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
     @AppStorage("audioFilePath") var audioFilePath: String = ""
 
@@ -33,8 +35,19 @@ class CreatureManager {
     var animation: Common.Animation?
     var isRecording = false
 
+    private var cancellables = Set<AnyCancellable>()
 
-    private init() {}
+    private init() {
+        appState.$currentActivity
+            .sink { activity in
+                if activity == .recording {
+                    self.startRecording()
+                } else if activity == .idle {
+                    self.stopRecording()
+                }
+            }
+            .store(in: &cancellables)
+    }
 
     func startStreamingToCreature(creatureId: CreatureIdentifier) -> Result<String, ServerError> {
 
@@ -88,7 +101,7 @@ class CreatureManager {
         animation = Animation(
             id: DataHelper.generateRandomId(),
             metadata: metadata,
-            tracks: [:])
+            tracks: [])
 
         // Set our state to recording
         DispatchQueue.main.async {
@@ -119,13 +132,14 @@ class CreatureManager {
         isRecording = true
     }
 
-    func stopRecording() {
-        isRecording = false
-        DispatchQueue.main.async {
-            self.appState.currentActivity = .idle
-        }
-    }
+    private func startRecording() {
+//           AppState.shared.currentAnimation = Animation()
+//           AppState.shared.currentAnimation?.isRecording = true
+       }
 
+       private func stopRecording() {
+           //AppState.shared.currentAnimation?.isRecording = false
+       }
 
 
     /**

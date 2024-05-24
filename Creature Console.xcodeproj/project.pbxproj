@@ -29,6 +29,7 @@
 		11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* TopContentView.swift */; };
 		11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
 		11703D9429DD198000EF7E3D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D9329DD198000EF7E3D /* Preview Assets.xcassets */; };
+		11754B672C002940001A6C83 /* CacheMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11754B662C002940001A6C83 /* CacheMethods.swift */; };
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
 		118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */; };
 		118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118BF8722A255F5300D80AE6 /* AnimationTable.swift */; };
@@ -92,6 +93,7 @@
 		11703D8D29DD197F00EF7E3D /* TopContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopContentView.swift; sourceTree = "<group>"; };
 		11703D8F29DD198000EF7E3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		11703D9329DD198000EF7E3D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		11754B662C002940001A6C83 /* CacheMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheMethods.swift; sourceTree = "<group>"; };
 		1182ED122BEDD28A00E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
@@ -322,6 +324,15 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		11754B682C002CEB001A6C83 /* Creature Manager */ = {
+			isa = PBXGroup;
+			children = (
+				11AFC3182BE9ED7700602604 /* CreatureManager.swift */,
+				11754B662C002940001A6C83 /* CacheMethods.swift */,
+			);
+			path = "Creature Manager";
+			sourceTree = "<group>";
+		};
 		1182ED102BEDD1C500E1213F /* Joystick */ = {
 			isa = PBXGroup;
 			children = (
@@ -434,11 +445,11 @@
 		11FDBF4B2BE0A60F008C5B3E /* Controller */ = {
 			isa = PBXGroup;
 			children = (
+				11754B682C002CEB001A6C83 /* Creature Manager */,
 				1199D6B32BF5BA82004E0D64 /* Server */,
-				1122A7B62A24440100D60464 /* AppState.swift */,
 				1182ED102BEDD1C500E1213F /* Joystick */,
 				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
-				11AFC3182BE9ED7700602604 /* CreatureManager.swift */,
+				1122A7B62A24440100D60464 /* AppState.swift */,
 				1110E9662BF03B2A00FCE26D /* CreatureCache.swift */,
 			);
 			path = Controller;
@@ -744,6 +755,7 @@
 				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
 				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
+				11754B672C002940001A6C83 /* CacheMethods.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
 				1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */,
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,

@@ -19,8 +19,7 @@ struct AnimationEditor: View {
     var animationId: AnimationIdentifier?
 
     @State var creature : Creature
-    @State var animation : Common.Animation?
-    
+
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     
@@ -47,16 +46,16 @@ struct AnimationEditor: View {
                 TextField("Notes", text: $notes.onChange(updateAnimationNotes))
                     .textFieldStyle(.roundedBorder)
                 
-                SoundDataImport(animation: $animation)
-                
+                if let a = appState.currentAnimation {
+                    SoundDataImport()
+                }
+
             }
             .padding()
             
         
-            AnimationWaveformEditor(animation: $animation, creature: $creature)
-               
-            
-            
+            AnimationWaveformEditor(animation: appState.currentAnimation, creature: creature)
+
         }
         .navigationTitle("Animation Editor")
 #if os(macOS)
@@ -79,8 +78,9 @@ struct AnimationEditor: View {
             }
             ToolbarItem(id: "re-record", placement: .secondaryAction) {
                 NavigationLink(destination: RecordAnimation(
-                    animation: animation,
-                    creature: creature), label: {
+                    //animation: animation,
+                    //creature: creature
+                ), label: {
                         Label("Re-Record", systemImage: "repeat.circle")
                     })
             }
@@ -111,20 +111,20 @@ struct AnimationEditor: View {
     }
     
     func updateAnimationTitle(newValue: String) {
-        if let _ = animation {
-            animation?.metadata.title = newValue
+        if let a = appState.currentAnimation {
+            a.metadata.title = newValue
         }
     }
     
     func updateAnimationNotes(newValue: String) {
-        if let _ = animation {
-            animation?.metadata.note = newValue
+        if let a = appState.currentAnimation {
+            a.metadata.note = newValue
         }
     }
     
     func updateSoundFile(newValue: String) {
-        if let _ = animation {
-            animation?.metadata.soundFile = newValue
+        if let a = appState.currentAnimation {
+            a.metadata.soundFile = newValue
         }
     }
     
@@ -137,7 +137,7 @@ struct AnimationEditor: View {
                 switch(result) {
                 case .success(let data):
                     logger.debug("Sucessfully loaded the data!")
-                    self.animation = data
+                    //self.animation = data
                     title = data.metadata.title
                     notes = data.metadata.note
                     soundFile = data.metadata.soundFile
@@ -157,18 +157,18 @@ struct AnimationEditor: View {
         
         logger.info("play button pressed!")
       
-        Task {
-            if let a = animation {
-                
-                let result =  await creatureManager.playAnimationLocally(animation: a, universe: activeUniverse)
-                switch(result) {
-                case (.failure(let message)):
-                    logger.error("Unable to play animation: \(message))")
-                default:
-                    break
-                }
-            }
-        }
+//        Task {
+//            if let a = animation {
+//                
+//                let result =  await creatureManager.playAnimationLocally(animation: a, universe: activeUniverse)
+//                switch(result) {
+//                case (.failure(let message)):
+//                    logger.error("Unable to play animation: \(message))")
+//                default:
+//                    break
+//                }
+//            }
+//        }
         
         return .success("Queued up animation to play")
     }
@@ -177,32 +177,32 @@ struct AnimationEditor: View {
     func saveAnimationToServer() {
         savingMessage = "Saving animation to server..."
         isSaving = true
-        Task {
-            if let a = animation {
-                
-                let result = await server.createAnimation(animation: a)
-
-                switch(result) {
-                case .success(let data):
-                    savingMessage = data
-                    logger.debug("success!")
-                    
-                case .failure(let error):
-                    
-                    // If an error happens, pop up a warning
-                errorMessage = "Error: \(String(describing: error.localizedDescription))"
-                    showErrorAlert = true
-                    //logger.error(OSLogMessage(stringInterpolation: errorMessage))
-                    
-                }
-                do {
-                    try await Task.sleep(nanoseconds: 2_000_000_000)
-                }
-                catch {}
-                isSaving = false
-            }
-
-        }
+//        Task {
+//            if let a = animation {
+//                
+//                let result = await server.createAnimation(animation: a)
+//
+//                switch(result) {
+//                case .success(let data):
+//                    savingMessage = data
+//                    logger.debug("success!")
+//                    
+//                case .failure(let error):
+//                    
+//                    // If an error happens, pop up a warning
+//                errorMessage = "Error: \(String(describing: error.localizedDescription))"
+//                    showErrorAlert = true
+//                    //logger.error(OSLogMessage(stringInterpolation: errorMessage))
+//                    
+//                }
+//                do {
+//                    try await Task.sleep(nanoseconds: 2_000_000_000)
+//                }
+//                catch {}
+//                isSaving = false
+//            }
+//
+//        }
     }
     
     
@@ -227,8 +227,8 @@ struct AnimationEditor_Previews: PreviewProvider {
 
     static var previews: some View {
         AnimationEditor(animationId: DataHelper.generateRandomId(),
-                        creature: .mock(),
-                        animation: .mock()
+                        creature: .mock()
+                        /*animation: .mock() */
                         )
     }
 }

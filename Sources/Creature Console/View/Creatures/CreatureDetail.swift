@@ -47,7 +47,7 @@ struct CreatureDetail: View {
             ToolbarItem(id: "recordAnimation", placement: .secondaryAction) {
                 NavigationLink(
                     destination: RecordAnimation(
-                        creature: creature
+                        //creature: creature
                     ),
                     label: {
                         Image(systemName: "record.circle")

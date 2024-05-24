@@ -7,11 +7,10 @@ import OSLog
 import Common
 
 struct SoundDataImport: View {
+
     @State private var jsonString: String = ""
     @State private var isFileImporterPresented: Bool = false
 
-    @Binding var animation: Common.Animation?
-    
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
     
@@ -40,7 +39,7 @@ struct SoundDataImport: View {
                     if let soundData = try? decoder.decode(SoundData.self, from: jsonData) {
                         print("Sound file path: \(soundData.metadata.soundFile)")
                         print("First mouth cue value: \(soundData.mouthCues.first?.value ?? "")")
-                        if let a = animation {
+                        if let a = AppState.shared.currentAnimation {
                             soundDataProcessor.replaceTrackDataWithSoundData(soundData: soundData, track: 5, animation: a)
                         }
                         else {

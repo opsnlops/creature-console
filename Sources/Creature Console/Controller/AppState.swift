@@ -13,6 +13,9 @@ class AppState: ObservableObject {
     @Published var currentActivity = Activity.idle
 
 
+    @Published var currentAnimation: Common.Animation?
+    @Published var selectedTrack: Int?
+
     // Make our constructor private so we don't accidentally
     // create more than one of these
     private init() {

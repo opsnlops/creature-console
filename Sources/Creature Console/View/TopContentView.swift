@@ -9,8 +9,10 @@ struct TopContentView: View {
     let server = CreatureServerClient.shared
     let messageProcessor = SwiftMessageProcessor.shared
 
-    // TODO: Is a StateObject actually what I want here?
-    @StateObject var creatureCache = CreatureCache()
+
+    // Watch the cache to know what to do
+    @ObservedObject private var creatureCache = CreatureCache.shared
+
 
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
@@ -29,8 +31,7 @@ struct TopContentView: View {
             List {
                 Section("Creatures") {
                     if !creatureCache.empty {
-                        ForEach(creatureCache.creatures, id: \.id) {
-                            creature in
+                        ForEach(creatureCache.creatures.values.sorted(by: { $0.name < $1.name })) { creature in
                             NavigationLink(creature.name, value: creature.id)
                         }
                     } else {
@@ -65,36 +66,29 @@ struct TopContentView: View {
             }
             .navigationTitle("Creature Console")
             .navigationDestination(for: CreatureIdentifier.self) { creature in
-                CreatureDetail(creature: creatureCache.getById(id: creature))
+                creatureDetailView(for: creature)
             }
             .onAppear {
+
+                /**
+                 Now that we're all loaded, let's go get the first set of creatures from the server
+                 */
                 Task {
+                    let populateResult = await CreatureManager.shared.populateCache()
+                    switch(populateResult) {
+                    case .success(let message):
 
-                    if !creatureCache.empty {
-                        logger.debug("creature list exists, not re-loading")
-                        return
-                    }
-
-
-                    logger.info("Attempting to load the creatures from \(server.getHostname())")
-
-                    let result = await server.getAllCreatures()
-                    switch result {
-                    case .success(let creatures):
-
-                        // Since we know we can talk to the server, let's also bring up the websocket
-                        await server.connectWebsocket(processor: messageProcessor)
-
-                        for creature in creatures {
-                            creatureCache.add(item: creature)
+                        logger.info("Loaded the creature cache: \(message)")
+                        
+                        // Okay! We're talking to the server. Bring up the websocket! 🧦
+                        await server.connectWebsocket(processor: SwiftMessageProcessor.shared)
+                        
+                    case .failure(let error):
+                        DispatchQueue.main.async {
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
                         }
 
-
-                    case .failure(let error):
-                        let errorMessage = error.localizedDescription
-                        logger.critical("\(errorMessage)")
-                        showErrorAlert = true
-                        self.errorMessage = errorMessage
                     }
                 }
 
@@ -113,6 +107,10 @@ struct TopContentView: View {
 
         }
 
+
+
+
+
         #if os(macOS)
         BottomToolBarView()
         #endif
@@ -123,4 +121,19 @@ struct TopContentView: View {
         }
         #endif
     }
+
+
+    /**
+     Show either the CreatureDetail view, or a blank one.
+     */
+    func creatureDetailView(for id: CreatureIdentifier) -> some View {
+            switch creatureCache.getById(id: id) {
+            case .success(let creature):
+                return AnyView(CreatureDetail(creature: creature))
+            case .failure(let error):
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+                return AnyView(EmptyView())
+            }
+        }
 }

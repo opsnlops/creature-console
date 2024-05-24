@@ -1,60 +1,62 @@
-
-import Foundation
-import SwiftUI
-import OSLog
+import Combine
 import Common
+import Foundation
+import OSLog
 
 
-/**
- This is designed to live in the Environment, as a store of the Creatures that we know exist
- */
-public class CreatureCache : ObservableObject {
-    @Published public var creatures : [Creature]
-    @Published public var empty : Bool = true
+class CreatureCache: ObservableObject {
+    static let shared = CreatureCache()
 
-    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureList")
-    
-    public init() {
-        creatures = []
-    }
-    
-    public func getById(id: CreatureIdentifier) -> Creature {
-        for c in creatures {
-            if c.id == id {
-                return c
+    @Published public private(set) var creatures: [CreatureIdentifier: Creature] = [:]
+    @Published public private(set) var empty: Bool = true
+
+    private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureCache")
+    private let queue = DispatchQueue(label: "com.creaturecache.queue", attributes: .concurrent)
+
+    // Make sure we don't accidentally create two of these
+    private init() {}
+
+
+    func addCreature(_ creature: Creature, for id: CreatureIdentifier) {
+        queue.async(flags: .barrier) {
+            var updatedCreatures = self.creatures
+            updatedCreatures[id] = creature
+            DispatchQueue.main.async {
+                self.creatures = updatedCreatures
+                self.empty = updatedCreatures.isEmpty
             }
         }
-        logger.warning("getById() called on an ID that wasn't in the cache! \(id)")
-        
-        return Creature.mock()
     }
-    
-    public func add(item: Creature) {
-        creatures.append(item)
-        empty = false
+
+    func removeCreature(for id: CreatureIdentifier) {
+        queue.async(flags: .barrier) {
+            var updatedCreatures = self.creatures
+            updatedCreatures.removeValue(forKey: id)
+            DispatchQueue.main.async {
+                self.creatures = updatedCreatures
+                self.empty = updatedCreatures.isEmpty
+            }
+        }
     }
-}
 
+    public func reload(with creatures: [Creature]) {
+        queue.async(flags: .barrier) {
+            let reloadedCreatures = Dictionary(uniqueKeysWithValues: creatures.map { ($0.id, $0) })
+            DispatchQueue.main.async {
+                self.creatures = reloadedCreatures
+                self.empty = reloadedCreatures.isEmpty
+            }
+        }
+    }
 
-
-
-extension CreatureCache {
-    public static func mock() -> CreatureCache {
-        let creaureList = CreatureCache()
-
-        let id1 = Creature.mock()
-        id1.name = "Creature 1 🦜"
-
-        let id2 = Creature.mock()
-        id2.name = "Creature 2 🦖"
-
-        let id3 = Creature.mock()
-        id3.name = "Creature 3 🐰"
-
-        creaureList.add(item: id1)
-        creaureList.add(item: id2)
-        creaureList.add(item: id3)
-        
-        return creaureList
+    public func getById(id: CreatureIdentifier) -> Result<Creature, ServerError> {
+        queue.sync {
+            if let creature = creatures[id] {
+                return .success(creature)
+            } else {
+                logger.warning("getById() called on an ID that wasn't in the cache! \(id)")
+                return .failure(.notFound("Creature ID \(id) not found in the cache"))
+            }
+        }
     }
 }

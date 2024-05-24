@@ -9,16 +9,25 @@ struct BottomToolBarView: View {
     @ObservedObject var eventLoop = EventLoop.shared
     @ObservedObject var serverCounters = SystemCountersStore.shared
     @ObservedObject var statusLights = StatusLightsManager.shared
+    @ObservedObject var appState = AppState.shared
 
 
     var body: some View {
 
 
         HStack {
-            Text("Server Frame: \(serverCounters.systemCounters.totalFrames)")
-            Text("Rest Req: \(serverCounters.systemCounters.restRequestsProcessed)")
-            Text("Streamed: \(serverCounters.systemCounters.framesStreamed)")
-            Text("Spare Time: \(String(format: "%.2f", eventLoop.frameSpareTime))%")
+            VStack {
+                HStack {
+                    Text("Server Frame: \(serverCounters.systemCounters.totalFrames)")
+                    Text("Rest Req: \(serverCounters.systemCounters.restRequestsProcessed)")
+                    Text("Streamed: \(serverCounters.systemCounters.framesStreamed)")
+                    Text("Spare Time: \(String(format: "%.2f", eventLoop.frameSpareTime))%")
+                }
+                HStack {
+                    Text("State: \(appState.currentActivity)")
+                        .font(.footnote)
+                }
+            }
 
             Spacer()
 

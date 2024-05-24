@@ -4,19 +4,23 @@ import Common
 
 struct AnimationWaveformEditor: View {
     
-    @Binding var animation : Common.Animation?
-    @Binding var creature : Creature
-    
+   var animation : Common.Animation?
+   var creature : Creature
+   var inputs: [Input] =  [ Input.mock(), ]
+
     var body: some View {
         if let a = animation {
-            let allAxes = processAnimationData(a)
+
+            // Display each track
             VStack {
                 Text(a.metadata.title)
-                ForEach(allAxes.indices, id: \.self) { i in
+                ForEach(a.tracks) { track in
                     HStack {
-                        Text("Input \(i)")
-                            .frame(width: 100)
-                        ByteChartView(data: allAxes[i])
+                        TrackViewer(
+                            track: track,
+                            creature: creature,
+                            inputs: inputs
+                        )
                     }
                 }
             }
@@ -24,25 +28,14 @@ struct AnimationWaveformEditor: View {
     }
     
     
-    private func processAnimationData(_ animation: Common.Animation) -> [[UInt8]] {
-//        var allAxes: [[UInt8]] = Array(repeating: [], count: Int(animation.metadata.numberOfMotors))
-//
-//        for i in 0..<animation.numberOfFrames {
-//            let f = animation.frames[Int(i)].motorBytes
-//            for j in 0..<Int(animation.metadata.numberOfMotors) {
-//                allAxes[j].append(f[j])
-//            }
-//        }
-//
-//        return allAxes
 
-        return [[2], [3]]
-    }
 }
 
 struct AnimationWaveformEditor_Previews: PreviewProvider {
     static var previews: some View {
-        AnimationWaveformEditor(animation: .constant(.mock()),
-                                creature: .constant(.mock()))
+        AnimationWaveformEditor(
+            animation: .mock(),
+            creature: .mock()
+        )
     }
 }

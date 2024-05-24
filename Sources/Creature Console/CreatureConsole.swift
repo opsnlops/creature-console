@@ -14,6 +14,7 @@ struct CreatureConsole: App {
     let messageProcessor = SwiftMessageProcessor.shared
     let joystickManager = JoystickManager.shared
     let statusLights = StatusLightsManager.shared
+    let creatureCache = CreatureCache.shared
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
@@ -48,11 +49,14 @@ struct CreatureConsole: App {
 
         // Connect to the server
         do {
+            appState.currentActivity = .connectingToServer
             try CreatureServerClient.shared.connect(
                 serverHostname: UserDefaults.standard.string(forKey: "serverAddress")
                     ?? "127.0.0.1",
                 serverPort: UserDefaults.standard.integer(forKey: "serverPort"))
+
             logger.info("connected to server")
+            appState.currentActivity = .idle
 
         } catch {
             logger.critical("Error opening server connection: \(error)")
