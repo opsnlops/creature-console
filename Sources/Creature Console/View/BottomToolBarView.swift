@@ -9,7 +9,7 @@ struct BottomToolBarView: View {
     @ObservedObject var eventLoop = EventLoop.shared
     @ObservedObject var serverCounters = SystemCountersStore.shared
     @ObservedObject var statusLights = StatusLightsManager.shared
-    @ObservedObject var appState = AppState.shared
+    @StateObject var appState = AppState.shared
 
 
     var body: some View {
@@ -69,6 +69,13 @@ struct BottomToolBarView: View {
 
         }
         .padding()
+        .alert(isPresented: $appState.showSystemAlert) {
+            Alert(
+                title: Text("Server Message"),
+                message: Text("The server wants us to know: \(appState.systemAlertMessage)"),
+                dismissButton: .default(Text("Okay 😅"))
+            )
+        }
 
     }
 }

@@ -5,8 +5,8 @@ import AVFoundation
 import Common
 
 
-struct RecordAnimation: View {
-    
+struct RecordTrack: View {
+
     let appState = AppState.shared
     let audioManager = AudioManager.shared
     let eventLoop = EventLoop.shared
@@ -14,7 +14,7 @@ struct RecordAnimation: View {
     
     @ObservedObject var creatureManager = CreatureManager.shared
     @ObservedObject var joystickManager = JoystickManager.shared
-    
+
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondsPerFrame = 20
     
@@ -24,6 +24,7 @@ struct RecordAnimation: View {
     
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordAnimation")
     
+    @State var creature: Creature
     @State var title = ""
     @State var notes = ""
     @State var soundFile = ""
@@ -35,8 +36,7 @@ struct RecordAnimation: View {
     
     @State private var isSaving : Bool = false
     @State private var savingMessage : String = ""
-    
-    
+
     var body: some View {
         VStack {
             
@@ -113,18 +113,19 @@ struct RecordAnimation: View {
                     .padding()
                 }
                 else {
+                    // If I replace this with an EmptyView() the form at the top gets centered and
+                    // I just don't like how it looks
                     Spacer()
                 }
             }
             
         }
-        .navigationTitle("Record Animation")
-        //#if os(macOS)
-        //.navigationSubtitle("Name: \(creature.name), Channel Offset: \(creature.channelOffset)")
-        //#endif
+        .navigationTitle("Record Track")
+        #if os(macOS)
+        .navigationSubtitle("Name: \(creature.name), Channel Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)")
+        #endif
         .onDisappear{
-            
-            
+
             // Clean up our tasks if they're still running
             streamingTask?.cancel()
             recordingTask?.cancel()
@@ -135,11 +136,9 @@ struct RecordAnimation: View {
                 
                 switch(appState.currentActivity) {
                 case .idle:
-                    //startRecording()
-                    print("idle")
+                    startRecording()
                 case .recording:
-                    //stopRecording()
-                    print("recording")
+                    stopRecording()
                 case .preparingToRecord:
                     print("preparing to record")
                 default:
@@ -147,13 +146,6 @@ struct RecordAnimation: View {
                 }
             }
         }
-        //        .onReceive(joystick.changesPublisher) {
-        //            self.values = joystick.getValues()
-        //            self.aButtonPressed = joystick.aButtonPressed
-        //            self.bButtonPressed = joystick.bButtonPressed
-        //            self.xButtonPressed = joystick.xButtonPressed
-        //            self.yButtonPressed = joystick.yButtonPressed
-        //        }
         .alert(isPresented: $showErrorMessage) {
             Alert(
                 title: Text("Server Error"),
@@ -188,7 +180,7 @@ struct RecordAnimation: View {
     }
     
     func playAnimationLocally() {
-        
+
         //        if let a = animation {
         //            Task {
         //
@@ -204,9 +196,9 @@ struct RecordAnimation: View {
         //        else {
         //            logger.warning("attempted to play a nil animation?")
         //        }
-        //        
-        //    }
-        
+        //
+    }
+
         func startRecording() {
             
             // Start streaming to the creature
@@ -225,8 +217,7 @@ struct RecordAnimation: View {
                 
                 
                 let metadata = AnimationMetadata(
-                    // The animationID will be re-written by the server. This is just a placeholder.
-                    id: DataHelper.generateRandomId(),
+                    id: UUID().uuidString,
                     title: title,
                     lastUpdated: lastUpdated,
                     millisecondsPerFrame: UInt32(eventLoop.millisecondPerFrame),
@@ -262,7 +253,7 @@ struct RecordAnimation: View {
             //        //server.stopSignalReceived = true
             //        streamingTask?.cancel()
             //        
-            //        appState.currentActivity = .idle
+                    appState.currentActivity = .idle
             //        
             //        // Point our stuff at it
             //        animation = creatureManager.animation
@@ -298,10 +289,10 @@ struct RecordAnimation: View {
             }
         }
     }
-}
 
-//struct RecordAnimation_Previews: PreviewProvider {
-//    static var previews: some View {
-//        RecordAnimation(creature: .mock())
-//    }
-//}
+
+struct RecordTrack_Previews: PreviewProvider {
+    static var previews: some View {
+        RecordTrack(creature: .mock())
+    }
+}

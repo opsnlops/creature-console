@@ -16,6 +16,11 @@ class AppState: ObservableObject {
     @Published var currentAnimation: Common.Animation?
     @Published var selectedTrack: Int?
 
+    // The bottom toolbar watches these to know when to show an alert message, which
+    // normally comes in off the websocket from the server
+    @Published var showSystemAlert: Bool = false
+    @Published var systemAlertMessage: String = ""
+
     // Make our constructor private so we don't accidentally
     // create more than one of these
     private init() {

@@ -12,10 +12,10 @@ import Common
  */
 class CreatureManager: ObservableObject {
 
-    var server = CreatureServerClient.shared
-    var joystickManager = JoystickManager.shared
-    var audioManager = AudioManager.shared
-    var creatureCache = CreatureCache.shared
+    internal var server = CreatureServerClient.shared
+    private var joystickManager = JoystickManager.shared
+    private var audioManager = AudioManager.shared
+    internal var creatureCache = CreatureCache.shared
 
     // Allllll by my seeelllllffffff
     static let shared = CreatureManager()

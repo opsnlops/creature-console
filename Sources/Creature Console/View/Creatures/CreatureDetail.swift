@@ -7,7 +7,6 @@ import SwiftUI
 struct CreatureDetail: View {
 
     @AppStorage("mfm2023PlaylistHack") private var mfm2023PlaylistHack: PlaylistIdentifier = ""
-
     @AppStorage("activeUniverse") private var activeUniverse: UniverseIdentifier = 1
 
 
@@ -46,8 +45,8 @@ struct CreatureDetail: View {
             }
             ToolbarItem(id: "recordAnimation", placement: .secondaryAction) {
                 NavigationLink(
-                    destination: RecordAnimation(
-                        //creature: creature
+                    destination: RecordTrack(
+                        creature: creature
                     ),
                     label: {
                         Image(systemName: "record.circle")
@@ -60,21 +59,21 @@ struct CreatureDetail: View {
                         Image(systemName: "sparkle.magnifyingglass")
                     })
             }
-            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
-                Button(action: {
-                    startMFM2023Playlist()
-                }) {
-                    Image(systemName: "pawprint")
-                }
-            }
-            ToolbarItem(id: "stopPlaylistPlayback", placement: .secondaryAction) {
-                Button(action: {
-                    stopPlaylistPlayback()
-                }) {
-                    Image(systemName: "stop.circle.fill")
-                        .foregroundColor(.red)
-                }
-            }
+//            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
+//                Button(action: {
+//                    startMFM2023Playlist()
+//                }) {
+//                    Image(systemName: "pawprint")
+//                }
+//            }
+//            ToolbarItem(id: "stopPlaylistPlayback", placement: .secondaryAction) {
+//                Button(action: {
+//                    stopPlaylistPlayback()
+//                }) {
+//                    Image(systemName: "stop.circle.fill")
+//                        .foregroundColor(.red)
+//                }
+//            }
         }.toolbarRole(.editor)
         .overlay {
             if isDoingServerStuff {

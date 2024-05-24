@@ -16,8 +16,7 @@ class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     }
 
     func processNotice(_ notice: Notice) {
-        logger.notice(
-            "[NOTICE] [\(TimeHelper.formatToLocalTime(notice.timestamp))] \(notice.message)")
+        NoticeMessageProcessor.processNotice(notice)
     }
 
     func processLog(_ logItem: ServerLogItem) {

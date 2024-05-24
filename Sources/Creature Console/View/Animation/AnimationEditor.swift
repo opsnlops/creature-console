@@ -77,9 +77,8 @@ struct AnimationEditor: View {
                     }
             }
             ToolbarItem(id: "re-record", placement: .secondaryAction) {
-                NavigationLink(destination: RecordAnimation(
-                    //animation: animation,
-                    //creature: creature
+                NavigationLink(destination: RecordTrack(
+                    creature: creature
                 ), label: {
                         Label("Re-Record", systemImage: "repeat.circle")
                     })

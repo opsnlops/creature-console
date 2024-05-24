@@ -37,6 +37,7 @@
 		118331912C0059C30017DC2A /* ServerErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118331902C0059C30017DC2A /* ServerErrorTests.swift */; };
 		118331952C005A8E0017DC2A /* BottomToolBarViewTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118331942C005A8E0017DC2A /* BottomToolBarViewTest.swift */; };
 		1183319A2C005BD80017DC2A /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = 118331992C005BD80017DC2A /* ViewInspector */; };
+		1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */; };
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
 		118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */; };
 		118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118BF8722A255F5300D80AE6 /* AnimationTable.swift */; };
@@ -54,7 +55,7 @@
 		1199D6CF2BF6F811004E0D64 /* LogViewScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738129EB780A00EF8CDB /* LogViewScene.swift */; };
 		119A016329EE297800D3DA12 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
-		11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordAnimation.swift */; };
+		11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordTrack.swift */; };
 		11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */; };
 		11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61AA22BFC3739000A1B48 /* TrackViewer.swift */; };
 		11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
@@ -119,6 +120,7 @@
 		1183318E2C0059490017DC2A /* TrackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackTests.swift; sourceTree = "<group>"; };
 		118331902C0059C30017DC2A /* ServerErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerErrorTests.swift; sourceTree = "<group>"; };
 		118331942C005A8E0017DC2A /* BottomToolBarViewTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomToolBarViewTest.swift; sourceTree = "<group>"; };
+		1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoticeMessageProcessor.swift; sourceTree = "<group>"; };
 		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
 		118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */ = {isa = PBXFileReference; lastKnownFileType = file; path = recordingCountdownSound.flac; sourceTree = "<group>"; };
@@ -134,7 +136,7 @@
 		1199D6CD2BF6F7F8004E0D64 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
-		11A10A5D29F242B7000EB835 /* RecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAnimation.swift; sourceTree = "<group>"; };
+		11A10A5D29F242B7000EB835 /* RecordTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTrack.swift; sourceTree = "<group>"; };
 		11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTable.swift; sourceTree = "<group>"; };
 		11A61AA22BFC3739000A1B48 /* TrackViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackViewer.swift; sourceTree = "<group>"; };
 		11AFC3182BE9ED7700602604 /* CreatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureManager.swift; sourceTree = "<group>"; };
@@ -436,6 +438,7 @@
 				1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */,
 				1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */,
 				11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */,
+				1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -485,7 +488,7 @@
 		11A10A5C29F2429A000EB835 /* Animation */ = {
 			isa = PBXGroup;
 			children = (
-				11A10A5D29F242B7000EB835 /* RecordAnimation.swift */,
+				11A10A5D29F242B7000EB835 /* RecordTrack.swift */,
 				1131763129FF0B66008B35E8 /* CategoryList.swift */,
 				11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */,
 				113896B42A0768860055BA70 /* AnimationEditor.swift */,
@@ -847,6 +850,7 @@
 				1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */,
 				11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */,
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
+				1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
 				1199D6CB2BF6F606004E0D64 /* LogManager.swift in Sources */,
@@ -865,7 +869,7 @@
 				1199D6C62BF5D588004E0D64 /* SystemCountersItemProcessor.swift in Sources */,
 				1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */,
 				11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */,
-				11A10A5E29F242B7000EB835 /* RecordAnimation.swift in Sources */,
+				11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */,
 				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
 				11754B672C002940001A6C83 /* CacheMethods.swift in Sources */,
