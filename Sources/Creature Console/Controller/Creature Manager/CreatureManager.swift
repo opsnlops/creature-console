@@ -29,24 +29,12 @@ class CreatureManager: ObservableObject {
 
     private var streamingCreature: CreatureIdentifier?
     private var isStreaming: Bool = false
+    private var isRecording: Bool = false
 
-
-    // If we've got an animation loaded, keep track of it
-    var animation: Common.Animation?
-    var isRecording = false
-
-    private var cancellables = Set<AnyCancellable>()
+    // Create a buffer to use for recording
+    public private(set) var motionDataBuffer: [Data] = []
 
     private init() {
-        appState.$currentActivity
-            .sink { activity in
-                if activity == .recording {
-                    self.startRecording()
-                } else if activity == .idle {
-                    self.stopRecording()
-                }
-            }
-            .store(in: &cancellables)
     }
 
     func startStreamingToCreature(creatureId: CreatureIdentifier) -> Result<String, ServerError> {
@@ -93,26 +81,44 @@ class CreatureManager: ObservableObject {
             }
         }
 
+        if isRecording {
+
+            // Add the current value of the joystick to the buffer
+            motionDataBuffer.append(Data(joystickManager.values))
+
+        }
+
     }
 
 
+    /**
+     Called automatically when our state changes to recording
+     */
+    func startRecording() {
 
-    func recordNewAnimation(metadata: AnimationMetadata) {
-        animation = Animation(
-            id: DataHelper.generateRandomId(),
-            metadata: metadata,
-            tracks: [])
+        logger.info("CreatureManager told it's time to start recording!")
+
+        // Do we have a sound file to play?
+        var soundFile: String = ""
+        if let animation = appState.currentAnimation {
+
+            soundFile = animation.metadata.soundFile
+            logger.debug("Using sound file \(soundFile)")
+        }
 
         // Set our state to recording
         DispatchQueue.main.async {
             self.appState.currentActivity = .recording
         }
 
+        // Blank out the buffer
+        motionDataBuffer = []
+
         // If it has a sound file attached, let's play it
-        if !metadata.soundFile.isEmpty {
+        if !soundFile.isEmpty {
 
             // See if it's a valid url
-            if let url = URL(string: audioFilePath + metadata.soundFile) {
+            if let url = URL(string: audioFilePath + soundFile) {
 
                 do {
                     logger.info("audiofile URL is \(url)")
@@ -122,7 +128,7 @@ class CreatureManager: ObservableObject {
                 }
             } else {
                 logger.warning(
-                    "audioFile URL doesn't exist: \(self.audioFilePath + metadata.soundFile)")
+                    "audioFile URL doesn't exist: \(self.audioFilePath + soundFile)")
             }
         } else {
             logger.info("no audio file, skipping playback")
@@ -132,14 +138,13 @@ class CreatureManager: ObservableObject {
         isRecording = true
     }
 
-    private func startRecording() {
-//           AppState.shared.currentAnimation = Animation()
-//           AppState.shared.currentAnimation?.isRecording = true
-       }
-
-       private func stopRecording() {
-           //AppState.shared.currentAnimation?.isRecording = false
-       }
+    /**
+     Called automatically when our state changes to idle
+     */
+    func stopRecording() {
+        isRecording = false
+        logger.info("Stopped recording")
+    }
 
 
     /**

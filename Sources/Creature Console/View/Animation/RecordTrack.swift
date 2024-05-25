@@ -12,6 +12,9 @@ struct RecordTrack: View {
     let eventLoop = EventLoop.shared
     let server = CreatureServerClient.shared
     
+    @Binding var path: NavigationPath
+
+
     @ObservedObject var creatureManager = CreatureManager.shared
     @ObservedObject var joystickManager = JoystickManager.shared
 
@@ -21,146 +24,109 @@ struct RecordTrack: View {
     @State private var errorMessage = ""
     @State private var showErrorMessage = false
     
-    
-    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordAnimation")
-    
-    @State var creature: Creature
-    @State var title = ""
-    @State var notes = ""
-    @State var soundFile = ""
-    @State var multitrackAudio: Bool = false
+    @State private var currentTrack: Track?
+
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordTrack")
+
+
+    @State private var showCreatureSheet: Bool = true
+    @State var creature: Creature? {
+        didSet {
+            showCreatureSheet = creature == nil
+        }
+    }
+
     @State var lastUpdated: Date = Date()
     
+    var creaturePicked: Bool {
+            creature != nil
+        }
+
     @State private var streamingTask: Task<Void, Never>? = nil
     @State private var recordingTask: Task<Void, Never>? = nil
     
-    @State private var isSaving : Bool = false
-    @State private var savingMessage : String = ""
-
     var body: some View {
-        VStack {
-            
-            Form {
-                Section(header: Text("Title")) {
-                    TextField("", text: $title)
-                }
-                Section(header: Text("Sound File")) {
-                    TextField("", text: $soundFile)
-                }
-                Section(header: Text("Notes")) {
-                    TextField("", text: $notes)
-                }
-                Section(header: Text("Millisecond Per Frame")) {
-                    TextField("", value: $millisecondsPerFrame, format: .number)
-                        .disabled(true)
-                }
-            }
-            
-            HStack {
-                Text("Press")
-                    .font(.title)
-                Image(systemName: joystickManager.getActiveJoystick().getXButtonSymbol())
-                    .font(.title)
-                if(appState.currentActivity == .recording) {
-                    Text("to stop")
-                        .font(.title)
-                }
-                else {
-                    Text("to start")
-                        .font(.title)
-                }
-            }
-            
-            // Show either nothing, the joystick debugger, or a waveform if we have one
-            if(appState.currentActivity == .preparingToRecord || appState.currentActivity == .recording) {
-                JoystickDebugView()
-            } else {
-                if let animation = appState.currentAnimation {
-                    VStack {
-                        //AnimationWaveformEditor(animation: $animation, creature: $creature)
-                        HStack {
-                            //Text("Frames: \(animation.metadata.numberOfFrames)")
-                            
-                            // Allow it to be played before it's saved
-                            Button( action: {
-                                playAnimationLocally()
-                            }, label: {
-                                Label("Play Animation", systemImage: "play.fill")
-                                    .foregroundColor(.green)
-                            })
-                            
-                            // Discard this attempt and try again
-                            //                            Button( action: {
-                            //                                self.animation = nil
-                            //                            }, label: {
-                            //                                Label("Record Again", systemImage: "repeat.circle.fill")
-                            //                                    .foregroundColor(.accentColor)
-                            //                            })
-                            //                            .disabled(self.animation == nil)
-                            
-                            
-                            // If there's a title, allow saving to the database
-                            Button(action: {
-                                //saveToServer()
-                            }, label: {
-                                Label("Save to Server", systemImage: "square.and.arrow.down.fill")
-                                    .foregroundColor(title.isEmpty ? .secondary : .red)
-                            })
-                            .disabled(title.isEmpty)
-                            
-                        }
-                    }
-                    .padding()
-                }
-                else {
-                    // If I replace this with an EmptyView() the form at the top gets centered and
-                    // I just don't like how it looks
-                    Spacer()
-                }
-            }
-            
-        }
-        .navigationTitle("Record Track")
-        #if os(macOS)
-        .navigationSubtitle("Name: \(creature.name), Channel Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)")
-        #endif
-        .onDisappear{
+        if let c = creature {
+            VStack {
 
-            // Clean up our tasks if they're still running
-            streamingTask?.cancel()
-            recordingTask?.cancel()
-            
-        }
-        .onChange(of: joystickManager.xButtonPressed) {
-            if joystickManager.xButtonPressed {
-                
-                switch(appState.currentActivity) {
-                case .idle:
-                    startRecording()
-                case .recording:
-                    stopRecording()
-                case .preparingToRecord:
-                    print("preparing to record")
-                default:
-                    appState.currentActivity = .idle
+
+                HStack {
+                    Text("Press")
+                        .font(.title)
+                    Image(systemName: joystickManager.getActiveJoystick().getXButtonSymbol())
+                        .font(.title)
+                    if(appState.currentActivity == .recording) {
+                        Text("to stop")
+                            .font(.title)
+                    }
+                    else {
+                        Text("to start")
+                            .font(.title)
+                    }
+                }
+
+                // Show either nothing, the joystick debugger, or a waveform if we have one
+                if(appState.currentActivity == .preparingToRecord || appState.currentActivity == .recording) {
+                    JoystickDebugView()
+                } else {
+                    if let track = currentTrack {
+                        VStack {
+                            TrackViewer(track: track, creature: c, inputs: c.inputs)
+                                .padding()
+                            Button("Looks good") {
+                                saveAndGoHome()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+
+                    }
+                    else {
+                        // If I replace this with an EmptyView() the form at the top gets centered and
+                        // I just don't like how it looks
+                        Spacer()
+                    }
+                }
+
+
+            }
+            .navigationTitle("Record Track")
+#if os(macOS)
+            .navigationSubtitle("Name: \(c.name), Channel Offset: \(c.channelOffset), Active Universe: \(activeUniverse)")
+#endif
+            .onDisappear{
+
+                // Clean up our tasks if they're still running
+                streamingTask?.cancel()
+                recordingTask?.cancel()
+
+            }
+            .onChange(of: joystickManager.xButtonPressed) {
+                if joystickManager.xButtonPressed {
+                    switch(appState.currentActivity) {
+                    case .idle:
+                        startRecording()
+                    case .recording:
+                        stopRecording()
+                    case .preparingToRecord:
+                        print("preparing to record")
+                    default:
+                        appState.currentActivity = .idle
+                    }
                 }
             }
-        }
-        .alert(isPresented: $showErrorMessage) {
-            Alert(
-                title: Text("Server Error"),
-                message: Text(errorMessage),
-                dismissButton: .default(Text("OK"))
-            )
-        }
-        .overlay {
-            if isSaving {
-                Text(savingMessage)
-                    .font(.title)
-                    .padding()
-                    .background(Color.green.opacity(0.4))
-                    .cornerRadius(10)
+            .alert(isPresented: $showErrorMessage) {
+                Alert(
+                    title: Text("Error"),
+                    message: Text(errorMessage),
+                    dismissButton: .default(Text("WTF?"))
+                )
             }
+
+        } else {
+            Text("No creature is chosen to record with")
+                .sheet(isPresented: $showCreatureSheet ) {
+                    ChooseCreatureSheet(selectedCreature: $creature)
+                }
         }
     }
     
@@ -178,121 +144,108 @@ struct RecordTrack: View {
         }
         
     }
-    
-    func playAnimationLocally() {
-
-        //        if let a = animation {
-        //            Task {
-        //
-        //                let result = await creatureManager.playAnimationLocally(animation: a, universe: activeUniverse)
-        //                switch(result) {
-        //                case .failure(let error):
-        //                    logger.error("Unable to play animation locally: \(error.localizedDescription)")
-        //                default:
-        //                    break
-        //                }
-        //            }
-        //        }
-        //        else {
-        //            logger.warning("attempted to play a nil animation?")
-        //        }
-        //
-    }
 
         func startRecording() {
             
-            // Start streaming to the creature
-            streamingTask = Task {
-                
-                //_ = creatureManager.startStreamingToCreature(creatureId: creature.id)
-                
-                
-                
-            }
-            
-            // Work in the background
-            recordingTask = Task {
-                
-                appState.currentActivity = .preparingToRecord
-                
-                
-                let metadata = AnimationMetadata(
-                    id: UUID().uuidString,
-                    title: title,
-                    lastUpdated: lastUpdated,
-                    millisecondsPerFrame: UInt32(eventLoop.millisecondPerFrame),
-                    note: notes,
-                    soundFile: soundFile,
-                    numberOfFrames: 0,
-                    multitrackAudio: multitrackAudio)
-                
-                
-                do {
-                    playWarningTone()
-                    try await Task.sleep(nanoseconds: UInt64(3.8 * 1_000_000_000))
-                } catch {
-                    logger.error("couldn't sleep?")
+            // It doesn't make sense to do this if we don't have a creature picked
+            if let c = creature {
+
+                // Start streaming to the creature
+                streamingTask = Task {
+
+                    switch(creatureManager.startStreamingToCreature(creatureId: c.id)) {
+                    case .success(let message):
+                        logger.debug("was able to start streaming: \(message)")
+                    case .failure(let error):
+                        logger.warning("unable to stream during a recording: \(error.localizedDescription)")
+                        errorMessage = error.localizedDescription
+                        showErrorMessage = true
+                    }
                 }
-                
-                appState.currentActivity = .recording
-                
-                
-                logger.info("asking new recording to start")
-                creatureManager.recordNewAnimation(metadata: metadata)
-                
+
+                // Work in the background
+                recordingTask = Task {
+
+                    appState.currentActivity = .preparingToRecord
+
+                    if let animation = appState.currentAnimation {
+                        self.currentTrack = Track(id: UUID(), creatureId: c.id, animationId: animation.id, frames: [])
+
+                        do {
+                            playWarningTone()
+                            try await Task.sleep(nanoseconds: UInt64(3.8 * 1_000_000_000))
+                        } catch {
+                            logger.error("couldn't sleep?")
+                        }
+
+                        logger.info("setting state to recording")
+                        appState.currentActivity = .recording
+                        creatureManager.startRecording()
+                    }
+                }
+            } else {
+                logger.warning("unable to record with an un-chosen creature")
             }
-            
+
         }
         
         func stopRecording() {
-            //        creatureManager.stopRecording()
-            //        recordingTask?.cancel()
-            //        logger.info("asked recording to stop")
-            //        
-            //        // Stop streaming
-            //        //server.stopSignalReceived = true
-            //        streamingTask?.cancel()
-            //        
-                    appState.currentActivity = .idle
-            //        
-            //        // Point our stuff at it
-            //        animation = creatureManager.animation
-        }
-        
-        func saveToServer() {
-            savingMessage = "Saving animation to server..."
-            isSaving = true
-            Task {
-                if let a = creatureManager.animation {
+            creatureManager.stopRecording()
+            recordingTask?.cancel()
+            logger.info("asked recording to stop")
                     
-                    a.metadata.title = title
-                    a.metadata.note = notes
-                    a.metadata.soundFile = soundFile
-                    a.metadata.multitrackAudio = multitrackAudio
-                    a.metadata.lastUpdated = Date()     // Right now
+            // Stop streaming
+            switch(creatureManager.stopStreaming()) {
+            case .success(let message):
+                logger.debug("streaming stopped: \(message)")
+            case .failure(let error):
+                logger.warning("unable to stop streaming while recording: \(error.localizedDescription)")
+                errorMessage = error.localizedDescription
+                showErrorMessage = true
+            }
+            streamingTask?.cancel()
                     
-                    let result = await server.createAnimation(animation: a)
-                    switch(result) {
-                    case .success(let hooray):
-                        savingMessage = hooray
-                        logger.info("Server said: \(hooray)")
-                    case .failure(let shame):
-                        errorMessage = shame.localizedDescription
-                    }
+
+            appState.currentActivity = .idle
+
+            // If everything went well, we have a track!
+            if let creature = creature {
+                if let animation = appState.currentAnimation {
+                    currentTrack = Track(id: UUID(),
+                                  creatureId: creature.id,
+                                  animationId: animation.id,
+                                  frames: creatureManager.motionDataBuffer)
                 }
-                
-                do {
-                    try await Task.sleep(nanoseconds: 2_000_000_000)
-                }
-                catch {}
-                isSaving = false
             }
         }
+
+    func saveAndGoHome() {
+
+        // Add our track to the main animation
+        if let currentAnimation = appState.currentAnimation {
+            if let track = currentTrack {
+                DispatchQueue.main.async {
+                    currentAnimation.tracks.append(track)
+                }
+                logger.debug("added our track! count is now: \(currentAnimation.tracks.count)")
+            } else {
+                logger.warning("can't save because currentTank is nil")
+            }
+        } else {
+            logger.warning("can't save because currentAnimation is nil")
+        }
+
+       //path.removeLast()
+
     }
+
+}
 
 
 struct RecordTrack_Previews: PreviewProvider {
+    @State static var navigationPath = NavigationPath()
+
     static var previews: some View {
-        RecordTrack(creature: .mock())
+        RecordTrack(path: $navigationPath, creature: .mock())
     }
 }

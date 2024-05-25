@@ -41,6 +41,20 @@ struct TopContentView: View {
                 }
 
 
+                Section("Animations") {
+                    NavigationLink {
+                        AnimationTable()
+                    } label: {
+                        Label("List All", systemImage: "figure.socialdance")
+                    }
+                    NavigationLink {
+                        AnimationEditor(createNew: true)
+                    } label: {
+                        Label("Record New", systemImage: "hare")
+                    }
+                }
+
+
                 Section("Controls") {
                     NavigationLink {
                         JoystickDebugView()

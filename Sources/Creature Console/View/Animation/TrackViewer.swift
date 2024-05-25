@@ -10,9 +10,9 @@ struct TrackViewer: View {
     @State var track: Track
     @State var creature: Creature
     @State var inputs: [Input]
-    var chartColor: Color = .accentColor
+    @State var chartColor: Color = .accentColor
 
-    var height: CGFloat = 70.0
+    var height: CGFloat = 50.0
 
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
@@ -75,7 +75,6 @@ struct TrackViewer: View {
             return AnyView(
                 VStack(alignment: .leading) {
                     Text(formatInputName(input.name))
-                        .font(.headline)
                     Text("Axis: \(input.joystickAxis)")
                         .font(.caption)
                     // Only show the Slot if it differs from the axis
@@ -106,16 +105,15 @@ struct TrackViewer: View {
     }
 }
 
-struct TrackViewer_Previews: PreviewProvider {
-    static var previews: some View {
-        TrackViewer(
-            track: .mock(),
-            creature: .mock(),
-            inputs: [
-                .mock(), .mock(), .mock(), .mock(),
-                .mock(), .mock(), .mock(),
-            ],
-            chartColor: .orange  // Example color
-        )
-    }
+
+#Preview {
+    TrackViewer(
+        track: .mock(),
+        creature: .mock(),
+        inputs: [
+            .mock(), .mock(), .mock(), .mock(),
+            .mock(), .mock(), .mock(),
+        ],
+        chartColor: .orange  // Example color
+    )
 }

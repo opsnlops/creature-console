@@ -12,84 +12,91 @@ struct AnimationEditor: View {
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
     let server = CreatureServerClient.shared
-    let appState = AppState.shared
+
     let eventLoop = EventLoop.shared
     let creatureManager = CreatureManager.shared
 
-    var animationId: AnimationIdentifier?
+    // We need a path to ourselves! The track recorder needs it so it knows how
+    // to get back to us when it's done.
+    @State var path = NavigationPath()
 
-    @State var creature : Creature
+    @StateObject var appState = AppState.shared
+
+    // The parent view will set this to true if we're about to make a _new_ animation
+    @State var createNew: Bool = false
 
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
-    
-    
-
-    
-    @State private var title : String = ""
-    @State private var notes : String = ""
-    @State private var soundFile : String = ""
     
     @State private var isSaving : Bool = false
     @State private var savingMessage : String = ""
    
     var body: some View {
         VStack {
-            Form {
-                
-                TextField("Title", text: $title.onChange(updateAnimationTitle))
-                    .textFieldStyle(.roundedBorder)
-                
-                TextField("Sound File", text: $soundFile.onChange(updateSoundFile))
-                    .textFieldStyle(.roundedBorder)
-                
-                TextField("Notes", text: $notes.onChange(updateAnimationNotes))
-                    .textFieldStyle(.roundedBorder)
-                
-                if let a = appState.currentAnimation {
-                    SoundDataImport()
+
+            if appState.currentAnimation != nil {
+                Form {
+                    TextField("Title", text: binding(for: \.metadata.title))
+                        .textFieldStyle(.roundedBorder)
+
+                    TextField("Sound File", text: binding(for: \.metadata.soundFile))
+                        .textFieldStyle(.roundedBorder)
+
+                    TextField("Notes", text: binding(for: \.metadata.note))
+                        .textFieldStyle(.roundedBorder)
                 }
+                .padding()
+
+                TrackListingView()
+
+                Spacer()
 
             }
-            .padding()
-            
+
+
         
-            AnimationWaveformEditor(animation: appState.currentAnimation, creature: creature)
+            //AnimationWaveformEditor(animation: appState.currentAnimation, creature: creature)
 
         }
-        .navigationTitle("Animation Editor")
+        .navigationTitle(createNew ? "Record New Animation" : "Animation Editor")
 #if os(macOS)
-        .navigationSubtitle(creature.name)
+        .navigationSubtitle("Active Universe: \(activeUniverse)")
 #endif
         .toolbar(id: "animationEditor") {
-            ToolbarItem(id: "save", placement: .primaryAction) {
+            ToolbarItem(id: "save", placement: .secondaryAction) {
                     Button(action: {
                         saveAnimationToServer()
                     }) {
                         Image(systemName: "square.and.arrow.down")
                     }
             }
-            ToolbarItem(id:"play", placement: .primaryAction) {
+            ToolbarItem(id:"play", placement: .secondaryAction) {
                     Button(action: {
                         _ = playAnimation()
                     }) {
                         Image(systemName: "play.fill")
                     }
             }
-            ToolbarItem(id: "re-record", placement: .secondaryAction) {
-                NavigationLink(destination: RecordTrack(
-                    creature: creature
-                ), label: {
-                        Label("Re-Record", systemImage: "repeat.circle")
-                    })
+            ToolbarItem(id: "newTrack", placement: .primaryAction) {
+
+                NavigationLink(destination: RecordTrack(path: $path), label: {
+                    Label("Add Track", systemImage: "plus")
+                        .foregroundColor(.accentColor)
+                    }
+                )
             }
         }
         .onAppear {
-            print("hi I appear")
-            loadData()
-        }
-        .onChange(of: animationId) {
-            loadData()
+            if createNew {
+                logger.info("createNew is true, so I'm making a new Animation")
+                self.prepareAnimation()
+                createNew = false
+            }
+            else
+            {
+                print("hi I appear")
+                loadData()
+            }
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(
@@ -128,28 +135,7 @@ struct AnimationEditor: View {
     }
     
     func loadData() {
-        Task {
-            
-            if let idToFetch = animationId {
-                let result = await server.getAnimation(animationId: idToFetch)
 
-                switch(result) {
-                case .success(let data):
-                    logger.debug("Sucessfully loaded the data!")
-                    //self.animation = data
-                    title = data.metadata.title
-                    notes = data.metadata.note
-                    soundFile = data.metadata.soundFile
-                case .failure(let error):
-                     
-                    // If an error happens, pop up a warning
-                    errorMessage = "Error: \(String(describing: error.localizedDescription))"
-                    showErrorAlert = true
-                    logger.error("\(errorMessage)")
-                    
-                }
-            }
-        }
     }
     
     func playAnimation() -> Result<String, AnimationError> {
@@ -173,6 +159,19 @@ struct AnimationEditor: View {
     }
     
     
+    private func binding<T>(for keyPath: ReferenceWritableKeyPath<Common.Animation, T>) -> Binding<T> {
+        Binding(
+            get: {
+                appState.currentAnimation?[keyPath: keyPath] ?? "N/A" as! T
+            },
+            set: {
+                if appState.currentAnimation != nil {
+                    appState.currentAnimation?[keyPath: keyPath] = $0
+                }
+            }
+        )
+    }
+
     func saveAnimationToServer() {
         savingMessage = "Saving animation to server..."
         isSaving = true
@@ -204,30 +203,26 @@ struct AnimationEditor: View {
 //        }
     }
     
-    
-}
 
+    /**
+     Create a new animation and get it ready to go
+     */
+    func prepareAnimation() {
 
+        // TODO: Ask what do to if it exists, maybe?
+        appState.currentAnimation = Common.Animation()
+        logger.info("prepared a new Animation in the AppState")
 
-// Thank you ChatGPT for this amazing little function
-extension Binding {
-    func onChange(_ handler: @escaping (Value) -> Void) -> Binding<Value> {
-        return Binding<Value>(
-            get: { self.wrappedValue },
-            set: { newValue in
-                self.wrappedValue = newValue
-                handler(newValue)
-            }
-        )
     }
+
+
 }
+
+
 
 struct AnimationEditor_Previews: PreviewProvider {
 
     static var previews: some View {
-        AnimationEditor(animationId: DataHelper.generateRandomId(),
-                        creature: .mock()
-                        /*animation: .mock() */
-                        )
+        AnimationEditor(createNew: true)
     }
 }

@@ -41,8 +41,6 @@ struct InputTable: View {
 
 }
 
-struct InputTable_Previews: PreviewProvider {
-    static var previews: some View {
-        InputTable(creature: Creature.mock())
-    }
+#Preview {
+    InputTable(creature: Creature.mock())
 }

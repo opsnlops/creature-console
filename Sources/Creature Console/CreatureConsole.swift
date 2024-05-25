@@ -72,6 +72,7 @@ struct CreatureConsole: App {
         #if os(macOS)
             DebugJoystickScene()
             LogViewScene()
+            AppStateInspectorScene()
             Settings {
                 SettingsView()
             }

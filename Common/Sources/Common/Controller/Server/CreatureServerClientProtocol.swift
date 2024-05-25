@@ -13,7 +13,7 @@ public protocol CreatureServerClientProtocol: AnyObject {
     func getCreature(creatureId: CreatureIdentifier) async throws -> Result<Creature, ServerError>
     func getAllCreatures() async -> Result<[Creature], ServerError>
     func createAnimation(animation: Animation) async -> Result<String, ServerError>
-    func listAnimations(creatureId: CreatureIdentifier) async -> Result<
+    func listAnimations(creatureId: CreatureIdentifier?) async -> Result<
         [AnimationMetadata], ServerError
     >
     func getAnimation(animationId: PlaylistIdentifier) async -> Result<Animation, ServerError>

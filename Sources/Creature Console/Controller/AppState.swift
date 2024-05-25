@@ -1,3 +1,4 @@
+import Combine
 import Common
 import Foundation
 import OSLog
@@ -12,19 +13,32 @@ class AppState: ObservableObject {
 
     @Published var currentActivity = Activity.idle
 
-
     @Published var currentAnimation: Common.Animation?
-    @Published var selectedTrack: Int?
+    @Published var selectedTrack: CreatureIdentifier?
 
     // The bottom toolbar watches these to know when to show an alert message, which
     // normally comes in off the websocket from the server
     @Published var showSystemAlert: Bool = false
     @Published var systemAlertMessage: String = ""
 
+    private var cancellables = Set<AnyCancellable>()
+
     // Make our constructor private so we don't accidentally
     // create more than one of these
     private init() {
         logger.info("AppState created")
+
+        // Observe changes to the currentAnimation so we can inform others
+        $currentAnimation
+            .compactMap { $0 }
+            .flatMap { animation in
+                animation.objectWillChange
+            }
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
     }
 
     enum Activity: CustomStringConvertible {

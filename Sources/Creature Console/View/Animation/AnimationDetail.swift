@@ -22,8 +22,6 @@ struct AnimationDetail: View {
     }
 }
 
-struct AnimationDetail_Preview: PreviewProvider {
-    static var previews: some View {
-        AnimationDetail(animationMetadata: .mock())
-    }
+#Preview {
+    AnimationDetail(animationMetadata: .mock())
 }

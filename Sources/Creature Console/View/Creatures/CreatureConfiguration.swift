@@ -8,7 +8,7 @@ struct CreatureConfiguration: View {
 
     @ObservedObject var creature: Creature
 
-    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureDetail")
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConfiguration")
 
     init(creature: Creature) {
         self.creature = creature
@@ -44,8 +44,8 @@ struct CreatureConfiguration: View {
 
 
             Text("Inputs")
-                .font(.title2)
             InputTable(creature: creature)
+
 
             Text(
                 "💡 These values may not be changed in the console. To change something, submit an update from the Controller. The Creatures's JSON file is always the source of truth!"

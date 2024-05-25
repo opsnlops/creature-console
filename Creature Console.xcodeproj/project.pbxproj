@@ -11,12 +11,16 @@
 		1110E9652BF035E500FCE26D /* Common in Frameworks */ = {isa = PBXBuildFile; productRef = 1110E9642BF035E500FCE26D /* Common */; };
 		1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110E9662BF03B2A00FCE26D /* CreatureCache.swift */; };
 		11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */; };
+		111D52282C013E5F002CC23B /* AppStateInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111D52272C013E5F002CC23B /* AppStateInspectorView.swift */; };
+		111D522A2C014158002CC23B /* AppStateInspectorScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111D52292C014158002CC23B /* AppStateInspectorScene.swift */; };
 		11218E802B67522500AFFF65 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11218E7F2B67522500AFFF65 /* Joystick.swift */; };
 		1122A7B72A24440100D60464 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B62A24440100D60464 /* AppState.swift */; };
 		1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* CategoryList.swift */; };
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
 		113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
 		113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */; };
+		114147922C0145270046601D /* TrackListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147912C0145270046601D /* TrackListingView.swift */; };
+		114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147932C017E640046601D /* ChooseCreatureSheet.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */; };
@@ -35,7 +39,6 @@
 		1183318D2C00577D0017DC2A /* AnimationMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183318C2C00577D0017DC2A /* AnimationMetadataTests.swift */; };
 		1183318F2C0059490017DC2A /* TrackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183318E2C0059490017DC2A /* TrackTests.swift */; };
 		118331912C0059C30017DC2A /* ServerErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118331902C0059C30017DC2A /* ServerErrorTests.swift */; };
-		118331952C005A8E0017DC2A /* BottomToolBarViewTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118331942C005A8E0017DC2A /* BottomToolBarViewTest.swift */; };
 		1183319A2C005BD80017DC2A /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = 118331992C005BD80017DC2A /* ViewInspector */; };
 		1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */; };
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
@@ -90,12 +93,16 @@
 		1110E9632BF0359F00FCE26D /* Common */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Common; sourceTree = "<group>"; };
 		1110E9662BF03B2A00FCE26D /* CreatureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureCache.swift; sourceTree = "<group>"; };
 		11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationDetail.swift; sourceTree = "<group>"; };
+		111D52272C013E5F002CC23B /* AppStateInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateInspectorView.swift; sourceTree = "<group>"; };
+		111D52292C014158002CC23B /* AppStateInspectorScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateInspectorScene.swift; sourceTree = "<group>"; };
 		11218E7F2B67522500AFFF65 /* Joystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Joystick.swift; sourceTree = "<group>"; };
 		1122A7B62A24440100D60464 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1131763129FF0B66008B35E8 /* CategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryList.swift; sourceTree = "<group>"; };
 		113896B42A0768860055BA70 /* AnimationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditor.swift; sourceTree = "<group>"; };
 		113896B82A0CA3B40055BA70 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
 		113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilePicker.swift; sourceTree = "<group>"; };
+		114147912C0145270046601D /* TrackListingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackListingView.swift; sourceTree = "<group>"; };
+		114147932C017E640046601D /* ChooseCreatureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseCreatureSheet.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
 		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
 		115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrossHacksSettingsView.swift; sourceTree = "<group>"; };
@@ -119,7 +126,6 @@
 		1183318C2C00577D0017DC2A /* AnimationMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataTests.swift; sourceTree = "<group>"; };
 		1183318E2C0059490017DC2A /* TrackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackTests.swift; sourceTree = "<group>"; };
 		118331902C0059C30017DC2A /* ServerErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerErrorTests.swift; sourceTree = "<group>"; };
-		118331942C005A8E0017DC2A /* BottomToolBarViewTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomToolBarViewTest.swift; sourceTree = "<group>"; };
 		1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoticeMessageProcessor.swift; sourceTree = "<group>"; };
 		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
@@ -235,6 +241,7 @@
 				1142E66129DFB22300B795F0 /* CreatureDetail.swift */,
 				11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */,
 				11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */,
+				114147932C017E640046601D /* ChooseCreatureSheet.swift */,
 			);
 			path = Creatures;
 			sourceTree = "<group>";
@@ -308,6 +315,8 @@
 				1168DC9C2B4FB58800A9895A /* ACWDebugJoystickScene.swift */,
 				11703D8D29DD197F00EF7E3D /* TopContentView.swift */,
 				1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */,
+				111D52272C013E5F002CC23B /* AppStateInspectorView.swift */,
+				111D52292C014158002CC23B /* AppStateInspectorScene.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -418,7 +427,6 @@
 		118331932C005A680017DC2A /* View */ = {
 			isa = PBXGroup;
 			children = (
-				118331942C005A8E0017DC2A /* BottomToolBarViewTest.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -495,6 +503,7 @@
 				114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */,
 				118BF8722A255F5300D80AE6 /* AnimationTable.swift */,
 				11A61AA22BFC3739000A1B48 /* TrackViewer.swift */,
+				114147912C0145270046601D /* TrackListingView.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -853,9 +862,12 @@
 				1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
+				114147922C0145270046601D /* TrackListingView.swift in Sources */,
 				1199D6CB2BF6F606004E0D64 /* LogManager.swift in Sources */,
+				114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11C522372BF84E0C0009A53E /* StatusLightsManager.swift in Sources */,
+				111D522A2C014158002CC23B /* AppStateInspectorScene.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* JoystickDebugView.swift in Sources */,
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
@@ -884,6 +896,7 @@
 				1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
+				111D52282C013E5F002CC23B /* AppStateInspectorView.swift in Sources */,
 				1199D6C12BF5CD80004E0D64 /* BottomToolBarView.swift in Sources */,
 				1199D6CF2BF6F811004E0D64 /* LogViewScene.swift in Sources */,
 				11181BA22A04B4F4004FCD1F /* AnimationDetail.swift in Sources */,
@@ -901,7 +914,6 @@
 				11754B772C005124001A6C83 /* CreatureTests.swift in Sources */,
 				1183318D2C00577D0017DC2A /* AnimationMetadataTests.swift in Sources */,
 				1183318F2C0059490017DC2A /* TrackTests.swift in Sources */,
-				118331952C005A8E0017DC2A /* BottomToolBarViewTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1039,7 +1051,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 205;
+				CURRENT_PROJECT_VERSION = 207;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -1065,7 +1077,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1087,7 +1099,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 205;
+				CURRENT_PROJECT_VERSION = 207;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -1113,7 +1125,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

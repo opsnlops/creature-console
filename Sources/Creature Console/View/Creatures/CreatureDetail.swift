@@ -29,7 +29,7 @@ struct CreatureDetail: View {
 
     var body: some View {
         VStack {
-            AnimationTable(creature: creature)
+            CreatureConfiguration(creature: creature)
         }
         .toolbar(id: "\(creature.name) creatureDetail") {
             ToolbarItem(id: "control", placement: .primaryAction) {
@@ -42,22 +42,6 @@ struct CreatureDetail: View {
                     )
                     .foregroundColor((appState.currentActivity == .streaming) ? .green : .primary)
                 }
-            }
-            ToolbarItem(id: "recordAnimation", placement: .secondaryAction) {
-                NavigationLink(
-                    destination: RecordTrack(
-                        creature: creature
-                    ),
-                    label: {
-                        Image(systemName: "record.circle")
-                    })
-            }
-            ToolbarItem(id: "creatureConfiguration", placement: .secondaryAction) {
-                NavigationLink(
-                    destination: CreatureConfiguration(creature: creature),
-                    label: {
-                        Image(systemName: "sparkle.magnifyingglass")
-                    })
             }
 //            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
 //                Button(action: {
@@ -246,8 +230,6 @@ struct CreatureDetail: View {
 }
 
 
-struct CreatureDetail_Previews: PreviewProvider {
-    static var previews: some View {
-        CreatureDetail(creature: .mock())
-    }
+#Preview {
+    CreatureDetail(creature: .mock())
 }
