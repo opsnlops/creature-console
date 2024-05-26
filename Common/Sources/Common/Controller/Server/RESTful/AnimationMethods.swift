@@ -4,9 +4,29 @@ import Logging
 extension CreatureServerClient {
 
 
+    public func playStoredAnimation(animationId: AnimationIdentifier, universe: UniverseIdentifier)
+        async -> Result<String, ServerError>
+    {
+
+        logger.debug(
+            "attempting to play an already-stored animation \(animationId) on universe \(universe)")
+
+        // Construct the URL
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/play") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        let requestBody = PlayAnimationRequestDto(animation_id: animationId, universe: universe)
+
+        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self)
+            .map { $0.message }
+    }
+
+
     public func saveAnimation(animation: Animation) async -> Result<String, ServerError> {
 
-        logger.debug("attempting to save animatiom \(animation.metadata.title) on server")
+        logger.debug("attempting to save animation \(animation.metadata.title) on server")
 
         // Construct the URL
         guard let url = URL(string: makeBaseURL(.http) + "/animation") else {
@@ -31,8 +51,6 @@ extension CreatureServerClient {
                 "unable to save animation to server: \(error.localizedDescription)")
             return .failure(error)
         }
-
-
     }
 
     public func listAnimations(creatureId: CreatureIdentifier?) async -> Result<

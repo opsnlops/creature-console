@@ -12,6 +12,7 @@ class StatusLightsManager: ObservableObject {
     @Published var running: Bool = false
     @Published var dmx: Bool = false
     @Published var streaming: Bool = false
+    @Published var animationPlaying: Bool = false
 
     private init() {}
 
@@ -43,6 +44,14 @@ class StatusLightsManager: ObservableObject {
             }
 
             logger.info("set the streaming light to \(dto.streaming ? "on" : "off")")
+        }
+
+        if dto.animation_playing != self.animationPlaying {
+            DispatchQueue.main.async {
+                self.animationPlaying = dto.animation_playing
+            }
+
+            logger.info("set the animation playing light to \(dto.animation_playing ? "on" : "off")")
         }
     }
 

@@ -22,7 +22,7 @@ class CLIMessageProcessor: MessageProcessor {
 
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
         print(
-            "[STATUS LIGHTS] running: \(statusLights.running ? "on" : "off"), streaming: \(statusLights.streaming ? "on" : "off"), DMX: \(statusLights.dmx ? "on" : "off")"
+            "[STATUS LIGHTS] running: \(statusLights.running ? "on" : "off"), streaming: \(statusLights.streaming ? "on" : "off"), DMX: \(statusLights.dmx ? "on" : "off"), animation_playing: \(statusLights.animation_playing ? "on" : "off")"
         )
     }
 }

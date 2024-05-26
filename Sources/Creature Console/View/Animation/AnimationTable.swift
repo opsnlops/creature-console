@@ -22,6 +22,7 @@ struct AnimationTable: View {
 
     @State private var loadDataTask: Task<Void, Never>? = nil
     @State private var loadAnimationTask: Task<Void, Never>? = nil
+    @State private var playAnimationTask: Task<Void, Never>? = nil
 
     @State private var navigateToEditor = false
 
@@ -59,13 +60,7 @@ struct AnimationTable: View {
                                     .disabled(metadata.soundFile.isEmpty)
 
                                     Button {
-                                        // playAnimationLocally()
-                                    } label: {
-                                        Label("Play Locally", systemImage: "play.fill")
-                                    }
-
-                                    Button {
-                                        // playAnimationOnServer()
+                                        playStoredAnimation(animationId: selection)
                                     } label: {
                                         Label("Play on Server", systemImage: "play")
                                             .foregroundColor(.green)
@@ -85,16 +80,16 @@ struct AnimationTable: View {
 
                     // Buttons at the bottom
                     HStack {
-                        Button {
-                            // playAnimationLocally()
-                        } label: {
-                            Label("Play Locally", systemImage: "play.fill")
-                                .foregroundColor(.green)
-                        }
-                        .disabled(selection == nil)
+//                        Button {
+//                            // playAnimationLocally()
+//                        } label: {
+//                            Label("Play Locally", systemImage: "play.fill")
+//                                .foregroundColor(.green)
+//                        }
+//                        .disabled(selection == nil)
 
                         Button {
-                            // playAnimationOnServer()
+                            playStoredAnimation(animationId: selection)
                         } label: {
                             Label("Play on Server", systemImage: "play")
                                 .foregroundColor(.blue)
@@ -124,6 +119,7 @@ struct AnimationTable: View {
             .onDisappear {
                 loadDataTask?.cancel()
                 loadAnimationTask?.cancel()
+                playAnimationTask?.cancel()
             }
             .onChange(of: selection) {
                 logger.debug("selection is now \(String(describing: selection))")
@@ -195,6 +191,28 @@ struct AnimationTable: View {
             case .failure(let error):
                 alertMessage = "Error: \(error.localizedDescription)"
                 logger.warning("Unable to load animation for editing: \(alertMessage)")
+                showErrorAlert = true
+            }
+        }
+    }
+
+    func playStoredAnimation(animationId: AnimationIdentifier?) {
+
+        guard let animationId = animationId else {
+            logger.debug("playStoredAnimation was called with a nil selection")
+            return
+        }
+
+        playAnimationTask?.cancel()
+
+        playAnimationTask = Task {
+            let result = await creatureManager.playStoredAnimationOnServer(animationId: animationId, universe: activeUniverse)
+            switch(result) {
+            case .success(let message):
+                logger.info("Animation Scheduled: \(message)")
+            case .failure(let error):
+                logger.warning("Unable to schedule animation: \(error.localizedDescription)")
+                alertMessage = "Unable to schedule animation: \(error.localizedDescription)"
                 showErrorAlert = true
             }
         }

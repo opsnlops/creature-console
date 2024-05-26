@@ -66,6 +66,12 @@ struct BottomToolBarView: View {
             }
 
 
+            Image(systemName: "figure.socialdance")
+                .foregroundColor(statusLights.animationPlaying ? .accentColor : .primary)
+                .font(.system(size: 24))
+                .symbolRenderingMode(.multicolor)
+
+
 
         }
         .padding()

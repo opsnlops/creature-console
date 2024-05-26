@@ -4,5 +4,6 @@ public struct VirtualStatusLightsDTO: Codable {
     public var running: Bool
     public var dmx: Bool
     public var streaming: Bool
+    public var animation_playing: Bool
 
 }

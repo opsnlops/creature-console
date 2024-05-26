@@ -7,7 +7,7 @@ extension CreatureCLI {
     struct Animations: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
             abstract: "View and work with animations",
-            subcommands: [Get.self, List.self, TestAnimationEncoding.self, TestTrackEncoding.self, TestAnimationSaving.self]
+            subcommands: [Get.self, List.self, Play.self, TestAnimationEncoding.self, TestTrackEncoding.self, TestAnimationSaving.self]
         )
 
         @OptionGroup()
@@ -177,6 +177,38 @@ extension CreatureCLI {
             case .failure(let message):
                 print("Unable to get animation: \(message)")
             }
+        }
+    }
+
+    struct Play: AsyncParsableCommand {
+        static var configuration = CommandConfiguration(
+            abstract: "Plays an animation on the server",
+            discussion:
+                "Asks the server to play an animation that it already knows exists"
+        )
+
+        @Argument(help: "Animation ID to play")
+        var animationId: AnimationIdentifier
+
+        @OptionGroup()
+        var globalOptions: GlobalOptions
+
+        @Option(help: "Which universe?")
+        var universe: UniverseIdentifier = 1
+
+        func run() async throws {
+
+            print("attempting to fetch animation \(animationId) from the server...\n")
+
+            let server = getServer(config: globalOptions)
+            let result = await server.playStoredAnimation(animationId: animationId, universe: universe)
+            switch(result) {
+            case .success(let messsage):
+                print(messsage)
+            case .failure(let error):
+                print("Unable to play animation: \(error.localizedDescription)\n")
+            }
+
         }
     }
 }
