@@ -141,13 +141,13 @@ struct TopContentView: View {
      Show either the CreatureDetail view, or a blank one.
      */
     func creatureDetailView(for id: CreatureIdentifier) -> some View {
-            switch creatureCache.getById(id: id) {
-            case .success(let creature):
-                return AnyView(CreatureDetail(creature: creature))
-            case .failure(let error):
-                errorMessage = error.localizedDescription
-                showErrorAlert = true
-                return AnyView(EmptyView())
-            }
+        switch creatureCache.getById(id: id) {
+        case .success(let creature):
+            return AnyView(CreatureDetail(creature: creature))
+        case .failure(let error):
+            errorMessage = error.localizedDescription
+            showErrorAlert = true
+            return AnyView(EmptyView())
         }
+    }
 }

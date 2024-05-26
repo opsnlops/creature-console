@@ -31,6 +31,8 @@ struct TrackViewer: View {
                         .frame(height: height)
                 }
             }
+            Text("Number of Frames: \(track.frames.count)")
+                .font(.footnote)
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(

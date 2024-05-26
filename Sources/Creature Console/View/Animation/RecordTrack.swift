@@ -7,13 +7,13 @@ import Common
 
 struct RecordTrack: View {
 
+    @Environment(\.presentationMode) var presentationMode
+
     let appState = AppState.shared
     let audioManager = AudioManager.shared
     let eventLoop = EventLoop.shared
     let server = CreatureServerClient.shared
     
-    @Binding var path: NavigationPath
-
 
     @ObservedObject var creatureManager = CreatureManager.shared
     @ObservedObject var joystickManager = JoystickManager.shared
@@ -73,10 +73,24 @@ struct RecordTrack: View {
                         VStack {
                             TrackViewer(track: track, creature: c, inputs: c.inputs)
                                 .padding()
-                            Button("Looks good") {
-                                saveAndGoHome()
+
+                            HStack {
+
+                                Button(action: {
+                                    closeWithoutSaving()
+                                }) {
+                                    Label("Close Without Saving", systemImage: "nosign")
+                                }
+                                .padding()
+
+                                Button(action: {
+                                    saveAndGoHome()
+                                }) {
+                                    Label("Save Track", systemImage: "square.and.arrow.down")
+                                        .foregroundColor(.accentColor)
+                                }
+                                .padding()
                             }
-                            .buttonStyle(.borderedProminent)
                         }
 
                     }
@@ -221,6 +235,8 @@ struct RecordTrack: View {
 
     func saveAndGoHome() {
 
+        logger.info("saving and going home")
+
         // Add our track to the main animation
         if let currentAnimation = appState.currentAnimation {
             if let track = currentTrack {
@@ -235,17 +251,20 @@ struct RecordTrack: View {
             logger.warning("can't save because currentAnimation is nil")
         }
 
-       //path.removeLast()
+        // Now go back
+        presentationMode.wrappedValue.dismiss()
+    }
 
+    func closeWithoutSaving() {
+        logger.info("closing the RecordTrack view without saving")
+        presentationMode.wrappedValue.dismiss()
     }
 
 }
 
 
 struct RecordTrack_Previews: PreviewProvider {
-    @State static var navigationPath = NavigationPath()
-
     static var previews: some View {
-        RecordTrack(path: $navigationPath, creature: .mock())
+        RecordTrack(creature: .mock())
     }
 }

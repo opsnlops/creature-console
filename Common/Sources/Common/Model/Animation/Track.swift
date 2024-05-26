@@ -76,6 +76,7 @@ public struct Track: Hashable, Equatable, Codable, Identifiable {
         hasher.combine(animationId)
         frames.forEach { hasher.combine($0) }  // Hash each frame's data
     }
+
 }
 
 extension Track {

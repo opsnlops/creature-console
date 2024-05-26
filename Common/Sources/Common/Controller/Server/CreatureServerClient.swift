@@ -176,6 +176,10 @@ public class CreatureServerClient: CreatureServerClientProtocol {
                     return .failure(.serverError("Decoding error: \(error.localizedDescription)"))
                 }
 
+            case 400:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(.dataFormatError(status?.message ?? "Data format error"))
+
             case 404:
                 let status = try? decoder.decode(StatusDTO.self, from: data)
                 return .failure(.notFound(status?.message ?? "Resource not found"))

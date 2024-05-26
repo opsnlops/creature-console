@@ -1,16 +1,16 @@
-import SwiftUI
-import OSLog
 import Common
+import OSLog
+import SwiftUI
 
 struct AnimationTable: View {
-
     let eventLoop = EventLoop.shared
-    var creature: Creature?
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
     let server = CreatureServerClient.shared
     let creatureManager = CreatureManager.shared
+
+    var creature: Creature?
 
     @State var animations: [AnimationMetadata] = []
 
@@ -21,116 +21,144 @@ struct AnimationTable: View {
     @State private var selection: AnimationMetadata.ID? = nil
 
     @State private var loadDataTask: Task<Void, Never>? = nil
+    @State private var loadAnimationTask: Task<Void, Never>? = nil
+
+    @State private var navigateToEditor = false
 
     var body: some View {
-        VStack {
-            if !animations.isEmpty {
-                Table(of: AnimationMetadata.self, selection: $selection) {
-                    TableColumn("Name", value: \.title)
-                        .width(min: 120, ideal: 250)
-                    TableColumn("Frames") { a in
-                        Text(a.numberOfFrames, format: .number)
-                    }
-                    .width(60)
-                    TableColumn("Period") { a in
-                        Text("\(a.millisecondsPerFrame)ms")
-                    }
-                    .width(55)
-                    TableColumn("Audio") { a in
-                        Text(a.soundFile)
-                    }
-                    TableColumn("Time (ms)") { a in
-                        Text(a.numberOfFrames * a.millisecondsPerFrame, format: .number)
-                    }
-                    .width(80)
-                } rows: {
-                    ForEach(animations) { metadata in
-                        TableRow(metadata)
-                            .contextMenu {
-                                Button {
-                                    print("play sound file selected")
-                                } label: {
-                                    Label("Play Sound File", systemImage: "music.quarternote.3")
-                                }
-                                .disabled(metadata.soundFile.isEmpty)
+        NavigationStack {
+            VStack {
+                if !animations.isEmpty {
+                    Table(of: AnimationMetadata.self, selection: $selection) {
+                        TableColumn("Name", value: \.title)
+                            .width(min: 120, ideal: 250)
+                        TableColumn("Frames") { a in
+                            Text(a.numberOfFrames, format: .number)
+                        }
+                        .width(60)
+                        TableColumn("Period") { a in
+                            Text("\(a.millisecondsPerFrame)ms")
+                        }
+                        .width(55)
+                        TableColumn("Audio") { a in
+                            Text(a.soundFile)
+                        }
+                        TableColumn("Time (ms)") { a in
+                            Text(a.numberOfFrames * a.millisecondsPerFrame, format: .number)
+                        }
+                        .width(80)
+                    } rows: {
+                        ForEach(animations) { metadata in
+                            TableRow(metadata)
+                                .contextMenu {
+                                    Button {
+                                        print("play sound file selected")
+                                    } label: {
+                                        Label("Play Sound File", systemImage: "music.quarternote.3")
+                                    }
+                                    .disabled(metadata.soundFile.isEmpty)
 
-                                Button {
-                                    // playAnimationLocally()
-                                } label: {
-                                    Label("Play Locally", systemImage: "play.fill")
-                                }
+                                    Button {
+                                        // playAnimationLocally()
+                                    } label: {
+                                        Label("Play Locally", systemImage: "play.fill")
+                                    }
 
-                                Button {
-                                    // playAnimationOnServer()
-                                } label: {
-                                    Label("Play on Server", systemImage: "play")
-                                        .foregroundColor(.green)
-                                }
+                                    Button {
+                                        // playAnimationOnServer()
+                                    } label: {
+                                        Label("Play on Server", systemImage: "play")
+                                            .foregroundColor(.green)
+                                    }
 
-                                NavigationLink(destination: AnimationEditor(), label: {
-                                        Label("Edit", systemImage: "pencil")
-                                            .foregroundColor(.accentColor)
-                                    })
+                                    NavigationLink(
+                                        destination: AnimationEditor(),
+                                        label: {
+                                            Label("Edit", systemImage: "pencil")
+                                                .foregroundColor(.accentColor)
+                                        })
+                                }
+                        }
+                    }
+
+                    Spacer()
+
+                    // Buttons at the bottom
+                    HStack {
+                        Button {
+                            // playAnimationLocally()
+                        } label: {
+                            Label("Play Locally", systemImage: "play.fill")
+                                .foregroundColor(.green)
+                        }
+                        .disabled(selection == nil)
+
+                        Button {
+                            // playAnimationOnServer()
+                        } label: {
+                            Label("Play on Server", systemImage: "play")
+                                .foregroundColor(.blue)
+                        }
+                        .disabled(selection == nil)
+
+                        Button {
+                            if let selection = selection {
+                                loadAnimationToAppState(animationId: selection)
                             }
-                    }
-                }
-
-                Spacer()
-
-                // Buttons at the bottom
-                HStack {
-                    Button {
-                        // playAnimationLocally()
-                    } label: {
-                        Label("Play Locally", systemImage: "play.fill")
-                            .foregroundColor(.green)
-                    }
-                    .disabled(selection == nil)
-
-                    Button {
-                        // playAnimationOnServer()
-                    } label: {
-                        Label("Play on Server", systemImage: "play")
-                            .foregroundColor(.blue)
-                    }
-                    .disabled(selection == nil)
-
-                    NavigationLink(destination: AnimationEditor(
-                        //animationId: selection,
-                        ), label: {
+                        } label: {
                             Label("Edit", systemImage: "pencil")
                                 .foregroundColor(.accentColor)
-                        })
-                    .disabled(selection == nil)
-                } // Button bar HStack
-                .padding()
-            } else {
-                ProgressView("Loading animations...")
+                        }
+                        .disabled(selection == nil)
+                    }  // Button bar HStack
                     .padding()
+                } else {
+                    ProgressView("Loading animations...")
+                        .padding()
+                }
+            }  // VStack
+            .onAppear {
+                logger.debug("onAppear()")
+                loadData()
             }
-        } // VStack
-        .onAppear {
-            logger.debug("onAppear()")
-            loadData()
-        }
-        .onDisappear {
-            loadDataTask?.cancel()
-        }
-        .onChange(of: selection) {
-           print("selection is now \(String(describing: selection))")
-        }
-        .onChange(of: creature) {
-            logger.info("onChange() in AnimationTable")
-            loadData()
-        }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("Unable to load Animations"),
-                message: Text(alertMessage),
-                dismissButton: .default(Text("Fiiiiiine"))
-            )
-        }
-    } // body
+            .onDisappear {
+                loadDataTask?.cancel()
+                loadAnimationTask?.cancel()
+            }
+            .onChange(of: selection) {
+                logger.debug("selection is now \(String(describing: selection))")
+            }
+            .onChange(of: creature) {
+                logger.info("onChange() in AnimationTable")
+                loadData()
+            }
+            .alert(isPresented: $showErrorAlert) {
+                Alert(
+                    title: Text("Unable to load Animations"),
+                    message: Text(alertMessage),
+                    dismissButton: .default(Text("Fiiiiiine"))
+                )
+            }
+            .navigationTitle("Animations")
+            #if os(macOS)
+                .navigationSubtitle("Number of Animations: \(animations.count)")
+            #endif
+            .navigationDestination(isPresented: $navigateToEditor) {
+                AnimationEditor()
+            }
+            .toolbar(id: "animationTableToolbar") {
+                ToolbarItem(id: "newTrack", placement: .primaryAction) {
+
+                    NavigationLink(
+                        destination: AnimationEditor(createNew: true),
+                        label: {
+                            Label("Add Track", systemImage: "plus")
+                        }
+                    )
+                }
+            }
+        }  // NavigationStack
+    }  // body
 
     func loadData() {
         loadDataTask?.cancel()
@@ -146,7 +174,27 @@ struct AnimationTable: View {
                 self.animations = data
             case .failure(let error):
                 alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                logger.warning("Unable to load animations: \(String(describing: error.localizedDescription))")
+                logger.warning(
+                    "Unable to load animations: \(String(describing: error.localizedDescription))")
+                showErrorAlert = true
+            }
+        }
+    }
+
+    func loadAnimationToAppState(animationId: AnimationIdentifier) {
+        loadAnimationTask?.cancel()
+
+        loadAnimationTask = Task {
+            let result = await server.getAnimation(animationId: animationId)
+            switch result {
+            case .success(let animation):
+                DispatchQueue.main.async {
+                    AppState.shared.currentAnimation = animation
+                    navigateToEditor = true
+                }
+            case .failure(let error):
+                alertMessage = "Error: \(error.localizedDescription)"
+                logger.warning("Unable to load animation for editing: \(alertMessage)")
                 showErrorAlert = true
             }
         }
@@ -158,4 +206,3 @@ struct AnimationTable_Previews: PreviewProvider {
         AnimationTable(creature: .mock())
     }
 }
-

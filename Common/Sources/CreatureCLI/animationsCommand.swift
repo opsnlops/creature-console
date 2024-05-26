@@ -7,7 +7,7 @@ extension CreatureCLI {
     struct Animations: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
             abstract: "View and work with animations",
-            subcommands: [List.self, TestAnimationEncoding.self, TestTrackEncoding.self]
+            subcommands: [Get.self, List.self, TestAnimationEncoding.self, TestTrackEncoding.self, TestAnimationSaving.self]
         )
 
         @OptionGroup()
@@ -40,7 +40,7 @@ extension CreatureCLI {
                         // Add this to the table
                         let row = [
                             metadata.title,
-                            metadata.id,
+                            metadata.id.lowercased(),
                             metadata.soundFile,
                             formatNumber(UInt64(metadata.numberOfFrames)),
                             metadata.multitrackAudio ? "✅" : "🚫",
@@ -117,5 +117,66 @@ extension CreatureCLI {
             }
         }
 
+        struct TestAnimationSaving: AsyncParsableCommand {
+            static var configuration = CommandConfiguration(
+                abstract: "Test saving an animation to the server",
+                discussion:
+                    "Creates a fake Animation via .mock() and saves it to the server"
+            )
+
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let mockAnimation = Common.Animation.mock()
+
+                // Make it obvious this is a fake one in the system
+                mockAnimation.id = UUID().uuidString
+                mockAnimation.metadata.title = "Fake animation created by CreatureCLI at \(Date())"
+
+                let server = getServer(config: globalOptions)
+                let result = await server.saveAnimation(animation: mockAnimation)
+                switch(result) {
+
+                case .success(let message):
+                    print("Animation saved. Server said: \(message)")
+                case .failure(let error):
+                    print("Unable to save animation: \(error.localizedDescription)\n")
+                }
+
+            }
+        }
+    }
+
+    struct Get: AsyncParsableCommand {
+        static var configuration = CommandConfiguration(
+            abstract: "Fetches an animation from the server",
+            discussion:
+                "This command will download an animation from the server and display information about it."
+        )
+
+        @Argument(help: "Animation ID to fetch and display")
+        var animationId: AnimationIdentifier
+
+        @OptionGroup()
+        var globalOptions: GlobalOptions
+
+        func run() async throws {
+
+            print("attempting to fetch animation \(animationId) from the server...\n")
+
+            let server = getServer(config: globalOptions)
+            let result = await server.getAnimation(animationId: animationId)
+
+            switch result {
+            case .success(let animation):
+                print("\nTitle: \(animation.metadata.title)")
+                print("Tracks: \(animation.tracks.count)")
+                print("Number of Frames: \(animation.metadata.numberOfFrames)")
+            case .failure(let message):
+                print("Unable to get animation: \(message)")
+            }
+        }
     }
 }

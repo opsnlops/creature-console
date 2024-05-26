@@ -8,16 +8,20 @@ public class Animation: Hashable, Equatable, Identifiable, Codable, ObservableOb
 
     @Published public var id: AnimationIdentifier
     @Published public var metadata: AnimationMetadata
-    @Published public var tracks: [Track] = []
+    @Published public var tracks: [Track] = [] {
+        didSet {
+            updateNumberOfFrames()
+        }
+    }
 
     public init() {
-        self.id = UUID().uuidString
+        self.id = UUID().uuidString.lowercased()
 
         self.metadata = AnimationMetadata(
-            id: UUID().uuidString,
+            id: "",
             title: "",
             lastUpdated: Date(),
-            millisecondsPerFrame:  20,
+            millisecondsPerFrame: 20,
             note: "",
             soundFile: "",
             numberOfFrames: 0,
@@ -25,12 +29,17 @@ public class Animation: Hashable, Equatable, Identifiable, Codable, ObservableOb
         )
 
         self.tracks = []
+
+        // Make sure our metadata has our ID in it
+        self.metadata.id = self.id
     }
 
     public init(id: AnimationIdentifier, metadata: AnimationMetadata, tracks: [Track]) {
         self.id = id
         self.metadata = metadata
         self.tracks = tracks
+
+        self.metadata.id = self.id
     }
 
     public static func == (lhs: Animation, rhs: Animation) -> Bool {
@@ -59,6 +68,11 @@ public class Animation: Hashable, Equatable, Identifiable, Codable, ObservableOb
         try container.encode(id.lowercased(), forKey: .id)
         try container.encode(metadata, forKey: .metadata)
         try container.encode(tracks, forKey: .tracks)
+    }
+
+    private func updateNumberOfFrames() {
+        // Update the numberOfFrames in metadata to the highest frame count among tracks
+        metadata.numberOfFrames = tracks.map { UInt32($0.frames.count) }.max() ?? UInt32(0)
     }
 }
 
