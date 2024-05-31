@@ -1,9 +1,7 @@
-
-import SwiftUI
-import OSLog
 import AVFoundation
 import Common
-
+import OSLog
+import SwiftUI
 
 struct RecordTrack: View {
 
@@ -13,17 +11,17 @@ struct RecordTrack: View {
     let audioManager = AudioManager.shared
     let eventLoop = EventLoop.shared
     let server = CreatureServerClient.shared
-    
+
 
     @ObservedObject var creatureManager = CreatureManager.shared
     @ObservedObject var joystickManager = JoystickManager.shared
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondsPerFrame = 20
-    
+
     @State private var errorMessage = ""
     @State private var showErrorMessage = false
-    
+
     @State private var currentTrack: Track?
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordTrack")
@@ -37,14 +35,14 @@ struct RecordTrack: View {
     }
 
     @State var lastUpdated: Date = Date()
-    
+
     var creaturePicked: Bool {
-            creature != nil
-        }
+        creature != nil
+    }
 
     @State private var streamingTask: Task<Void, Never>? = nil
     @State private var recordingTask: Task<Void, Never>? = nil
-    
+
     var body: some View {
         if let c = creature {
             VStack {
@@ -55,18 +53,19 @@ struct RecordTrack: View {
                         .font(.title)
                     Image(systemName: joystickManager.getActiveJoystick().getBButtonSymbol())
                         .font(.title)
-                    if(appState.currentActivity == .recording) {
+                    if appState.currentActivity == .recording {
                         Text("to stop")
                             .font(.title)
-                    }
-                    else {
+                    } else {
                         Text("to start")
                             .font(.title)
                     }
                 }
 
                 // Show either nothing, the joystick debugger, or a waveform if we have one
-                if(appState.currentActivity == .preparingToRecord || appState.currentActivity == .recording) {
+                if appState.currentActivity == .preparingToRecord
+                    || appState.currentActivity == .recording
+                {
                     JoystickDebugView()
                 } else {
                     if let track = currentTrack {
@@ -91,10 +90,19 @@ struct RecordTrack: View {
                                 }
                                 .padding()
                             }
+
+                            // Unwrap the currentTrack and pass it as a Binding
+                            SoundDataImport(
+                                track: Binding(
+                                    get: {
+                                        currentTrack!
+                                    },
+                                    set: { newTrack in
+                                        currentTrack = newTrack
+                                    }))
                         }
 
-                    }
-                    else {
+                    } else {
                         // If I replace this with an EmptyView() the form at the top gets centered and
                         // I just don't like how it looks
                         Spacer()
@@ -104,10 +112,12 @@ struct RecordTrack: View {
 
             }
             .navigationTitle("Record Track")
-#if os(macOS)
-            .navigationSubtitle("Name: \(c.name), Channel Offset: \(c.channelOffset), Active Universe: \(activeUniverse)")
-#endif
-            .onDisappear{
+            #if os(macOS)
+                .navigationSubtitle(
+                    "Name: \(c.name), Channel Offset: \(c.channelOffset), Active Universe: \(activeUniverse)"
+                )
+            #endif
+            .onDisappear {
 
                 // Clean up our tasks if they're still running
                 streamingTask?.cancel()
@@ -116,7 +126,7 @@ struct RecordTrack: View {
             }
             .onChange(of: joystickManager.bButtonPressed) {
                 if joystickManager.bButtonPressed {
-                    switch(appState.currentActivity) {
+                    switch appState.currentActivity {
                     case .idle:
                         startRecording()
                     case .recording:
@@ -138,100 +148,105 @@ struct RecordTrack: View {
 
         } else {
             Text("No creature is chosen to record with")
-                .sheet(isPresented: $showCreatureSheet ) {
+                .sheet(isPresented: $showCreatureSheet) {
                     ChooseCreatureSheet(selectedCreature: $creature)
                 }
         }
     }
-    
+
     func playWarningTone() {
-        
+
         logger.info("attempting to play the warning tone")
-        
-        let result = audioManager.playBundledSound(name: "recordingCountdownSound", extension: "flac" )
-        
-        switch (result) {
+
+        let result = audioManager.playBundledSound(
+            name: "recordingCountdownSound", extension: "flac")
+
+        switch result {
         case .success(let data):
             logger.info("\(data.description)")
         case .failure(let data):
             logger.warning("\(data.localizedDescription)")
         }
-        
+
     }
 
-        func startRecording() {
-            
-            // It doesn't make sense to do this if we don't have a creature picked
-            if let c = creature {
+    func startRecording() {
 
-                // Start streaming to the creature
-                streamingTask = Task {
+        // It doesn't make sense to do this if we don't have a creature picked
+        if let c = creature {
 
-                    switch(creatureManager.startStreamingToCreature(creatureId: c.id)) {
-                    case .success(let message):
-                        logger.debug("was able to start streaming: \(message)")
-                    case .failure(let error):
-                        logger.warning("unable to stream during a recording: \(error.localizedDescription)")
-                        errorMessage = error.localizedDescription
-                        showErrorMessage = true
-                    }
+            // Start streaming to the creature
+            streamingTask = Task {
+
+                switch creatureManager.startStreamingToCreature(creatureId: c.id) {
+                case .success(let message):
+                    logger.debug("was able to start streaming: \(message)")
+                case .failure(let error):
+                    logger.warning(
+                        "unable to stream during a recording: \(error.localizedDescription)")
+                    errorMessage = error.localizedDescription
+                    showErrorMessage = true
                 }
-
-                // Work in the background
-                recordingTask = Task {
-
-                    appState.currentActivity = .preparingToRecord
-
-                    if let animation = appState.currentAnimation {
-                        self.currentTrack = Track(id: UUID(), creatureId: c.id, animationId: animation.id, frames: [])
-
-                        do {
-                            playWarningTone()
-                            try await Task.sleep(nanoseconds: UInt64(3.8 * 1_000_000_000))
-                        } catch {
-                            logger.error("couldn't sleep?")
-                        }
-
-                        logger.info("setting state to recording")
-                        appState.currentActivity = .recording
-                        creatureManager.startRecording()
-                    }
-                }
-            } else {
-                logger.warning("unable to record with an un-chosen creature")
             }
 
-        }
-        
-        func stopRecording() {
-            creatureManager.stopRecording()
-            recordingTask?.cancel()
-            logger.info("asked recording to stop")
-                    
-            // Stop streaming
-            switch(creatureManager.stopStreaming()) {
-            case .success(let message):
-                logger.debug("streaming stopped: \(message)")
-            case .failure(let error):
-                logger.warning("unable to stop streaming while recording: \(error.localizedDescription)")
-                errorMessage = error.localizedDescription
-                showErrorMessage = true
-            }
-            streamingTask?.cancel()
-                    
+            // Work in the background
+            recordingTask = Task {
 
-            appState.currentActivity = .idle
+                appState.currentActivity = .preparingToRecord
 
-            // If everything went well, we have a track!
-            if let creature = creature {
                 if let animation = appState.currentAnimation {
-                    currentTrack = Track(id: UUID(),
-                                  creatureId: creature.id,
-                                  animationId: animation.id,
-                                  frames: creatureManager.motionDataBuffer)
+                    self.currentTrack = Track(
+                        id: UUID(), creatureId: c.id, animationId: animation.id, frames: [])
+
+                    do {
+                        playWarningTone()
+                        try await Task.sleep(nanoseconds: UInt64(3.8 * 1_000_000_000))
+                    } catch {
+                        logger.error("couldn't sleep?")
+                    }
+
+                    logger.info("setting state to recording")
+                    appState.currentActivity = .recording
+                    creatureManager.startRecording()
                 }
             }
+        } else {
+            logger.warning("unable to record with an un-chosen creature")
         }
+
+    }
+
+    func stopRecording() {
+        creatureManager.stopRecording()
+        recordingTask?.cancel()
+        logger.info("asked recording to stop")
+
+        // Stop streaming
+        switch creatureManager.stopStreaming() {
+        case .success(let message):
+            logger.debug("streaming stopped: \(message)")
+        case .failure(let error):
+            logger.warning(
+                "unable to stop streaming while recording: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+            showErrorMessage = true
+        }
+        streamingTask?.cancel()
+
+
+        appState.currentActivity = .idle
+
+        // If everything went well, we have a track!
+        if let creature = creature {
+            if let animation = appState.currentAnimation {
+                currentTrack = Track(
+                    id: UUID(),
+                    creatureId: creature.id,
+                    animationId: animation.id,
+                    frames: creatureManager.motionDataBuffer)
+            }
+        }
+    }
 
     func saveAndGoHome() {
 

@@ -89,3 +89,26 @@ extension Track {
         return Track(id: id, creatureId: creatureId, animationId: animationId, frames: frames)
     }
 }
+
+
+extension Track {
+
+    mutating func replaceAxisData(axisIndex: Int, with byteArray: [UInt8]) {
+        guard axisIndex >= 0 && axisIndex < (frames.first?.count ?? 0) else {
+            logger.error("Track index out of bounds!")
+            return
+        }
+
+        for (index, value) in byteArray.enumerated() {
+            guard index < frames.count else {
+                logger.debug("No more values to replace!")
+                break
+            }
+            var frame = frames[index]
+            if axisIndex < frame.count {
+                frame[axisIndex] = value
+                frames[index] = frame
+            }
+        }
+    }
+}
