@@ -53,7 +53,7 @@ struct RecordTrack: View {
                 HStack {
                     Text("Press")
                         .font(.title)
-                    Image(systemName: joystickManager.getActiveJoystick().getXButtonSymbol())
+                    Image(systemName: joystickManager.getActiveJoystick().getBButtonSymbol())
                         .font(.title)
                     if(appState.currentActivity == .recording) {
                         Text("to stop")
@@ -114,8 +114,8 @@ struct RecordTrack: View {
                 recordingTask?.cancel()
 
             }
-            .onChange(of: joystickManager.xButtonPressed) {
-                if joystickManager.xButtonPressed {
+            .onChange(of: joystickManager.bButtonPressed) {
+                if joystickManager.bButtonPressed {
                     switch(appState.currentActivity) {
                     case .idle:
                         startRecording()

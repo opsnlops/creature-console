@@ -12,14 +12,14 @@ public class SoundDataProcessor {
         self.logger.debug("new SoundProcessorData")
     }
 
-    public func replaceTrackDataWithSoundData(soundData: SoundData, track: Int, animation: Animation) {
+    public func replaceAxisDataWithSoundData(soundData: SoundData, track: Int, axis: Int, animation: Animation) {
 
-        logger.info("received a request to replace track \(track) with sound data from \(soundData.metadata.soundFile)")
-        
+        logger.info("received a request to replace track \(track)'s axis \(axis) with sound data from \(soundData.metadata.soundFile)")
+
         _ = processSoundData(soundData: soundData, millisecondsPerFrame: animation.metadata.millisecondsPerFrame)
         logger.warning("replaceTrackData() is stubbed out")
-        //animation.replaceTrackData(trackIndex: track, with: newByteData)
-        
+        animation.replaceAxisData(track: track, axis: axis, with: newByteData)
+
     }
     
     public func processSoundData(soundData: SoundData, millisecondsPerFrame: UInt32) -> [UInt8] {

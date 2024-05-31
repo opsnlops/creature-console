@@ -21,7 +21,7 @@ struct SoundDataImport: View {
    
     var body: some View {
         VStack {
-            Button("Import Mouth Data to Track 5") {
+            Button("Import Mouth Data to Axis 2") {
                 isFileImporterPresented = true
             }
             .fileImporter(
@@ -40,7 +40,7 @@ struct SoundDataImport: View {
                         print("Sound file path: \(soundData.metadata.soundFile)")
                         print("First mouth cue value: \(soundData.mouthCues.first?.value ?? "")")
                         if let a = AppState.shared.currentAnimation {
-                            soundDataProcessor.replaceTrackDataWithSoundData(soundData: soundData, track: 5, animation: a)
+                            soundDataProcessor.replaceTrackDataWithSoundData(soundData: soundData, track: 2, animation: a)
                         }
                         else {
                             logger.info("didn't do anything since animation is nil")
