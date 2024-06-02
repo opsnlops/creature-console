@@ -19,8 +19,11 @@ struct CreatureCLI: AsyncParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "A utility for interacting with the Creature Server",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
-        version: "2.0.10",
-        subcommands: [Animations.self, Creatures.self, Sounds.self, Metrics.self, Util.self, Websocket.self],
+        version: "2.1.0",
+        subcommands: [
+            Animations.self, Creatures.self, Sounds.self, Metrics.self, Util.self, Voice.self,
+            Websocket.self,
+        ],
         helpNames: .shortAndLong
     )
 }

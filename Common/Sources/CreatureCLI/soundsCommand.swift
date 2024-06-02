@@ -32,12 +32,12 @@ extension CreatureCLI {
                 case .success(let sounds):
                     print("\nSounds available on server:\n")
 
-                    let headers = ["Name", "File Size"]
+                    let headers = ["Name", "File Size", "Has Transcript"]
                     var rows = [[String]]()
 
                     for sound in sounds {
                         // Add this to the table
-                        let row = [sound.fileName, formatNumber(UInt64(sound.size)) + " bytes"]
+                        let row = [sound.fileName, formatNumber(UInt64(sound.size)) + " bytes", sound.transcript.isEmpty ? "" : "✅"]
                         rows.append(row)
                     }
 

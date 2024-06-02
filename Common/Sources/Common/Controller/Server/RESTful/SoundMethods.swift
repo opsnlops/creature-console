@@ -9,7 +9,7 @@ extension CreatureServerClient {
      */
     public func listSounds() async -> Result<[Sound], ServerError> {
 
-        logger.debug("attempting to get all of the creatures")
+        logger.debug("attempting to get all of the sounds")
 
         guard let url = URL(string: makeBaseURL(.http) + "/sound") else {
             return .failure(.serverError("unable to make base URL"))
