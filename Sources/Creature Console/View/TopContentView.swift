@@ -55,6 +55,21 @@ struct TopContentView: View {
                 }
 
 
+                Section("Sound Files") {
+                    NavigationLink {
+                        SoundFileTable()
+                    } label: {
+                        Label("List All", systemImage: "music.note.list")
+                    }
+                    NavigationLink {
+                        CreateNewCreatureSoundView()
+                    } label: {
+                        Label("Create New", systemImage: "waveform.path.badge.plus")
+                            .symbolRenderingMode(.multicolor)
+                    }
+                }
+
+
                 Section("Controls") {
                     NavigationLink {
                         JoystickDebugView()

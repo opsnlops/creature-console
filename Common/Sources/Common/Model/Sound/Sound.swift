@@ -7,6 +7,12 @@ public class Sound: Identifiable, Hashable, Equatable, Codable {
     public var size: UInt32
     public var transcript: String
 
+    // Use the file name for the identifiable thing. Since these are files on the file system, all in the
+    // same directory, it's the file name that makes them unique
+    public var id: String {
+          return fileName
+      }
+
     public enum CodingKeys: String, CodingKey {
         case fileName = "file_name"
         case size
