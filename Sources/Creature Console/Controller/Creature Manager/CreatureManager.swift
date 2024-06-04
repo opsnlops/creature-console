@@ -156,12 +156,12 @@ class CreatureManager: ObservableObject {
         logger.debug("asking the server to play animation \(animationId) on universe \(universe)")
 
         guard !animationId.isEmpty else {
-            var errorMessage = "Unable to play an animation with an empty animationId"
+            let errorMessage = "Unable to play an animation with an empty animationId"
             logger.warning("Can't play animation: \(errorMessage)")
             return .failure(.dataFormatError(errorMessage))
         }
 
-        var result = await server.playStoredAnimation(animationId: animationId, universe: universe)
+        let result = await server.playStoredAnimation(animationId: animationId, universe: universe)
         switch(result) {
         case .success(let message):
             logger.info("Animation scheduled: \(message)")

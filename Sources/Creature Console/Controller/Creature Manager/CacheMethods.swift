@@ -13,7 +13,7 @@ extension CreatureManager {
 
         logger.info("(re)populating the CreatureCache")
 
-        var creatureList = await server.getAllCreatures()
+        let creatureList = await server.getAllCreatures()
         switch(creatureList) {
         case .success(let list):
             creatureCache.reload(with: list)
