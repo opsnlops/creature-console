@@ -59,7 +59,7 @@ import OSLog
         @Published var serialNumber: String
         @Published var versionNumber: Int
         @Published var manufacturer: String
-        var values: [UInt8] = Array(repeating: 0, count: 8)
+        var values: [UInt8] = Array(repeating: 127, count: 8)
 
         let objectWillChange = ObservableObjectPublisher()
 
