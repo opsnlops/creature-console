@@ -112,8 +112,8 @@ struct AnimationTable: View {
                         .padding()
                 }
             }  // VStack
-            .onAppear {
-                logger.debug("onAppear()")
+            .task {
+                logger.debug("in task()")
                 loadData()
             }
             .onDisappear {

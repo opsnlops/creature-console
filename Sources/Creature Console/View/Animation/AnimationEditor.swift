@@ -81,7 +81,7 @@ struct AnimationEditor: View {
                 )
             }
         }
-        .onAppear {
+        .task {
             if createNew {
                 logger.info("createNew is true, so I'm making a new Animation")
                 self.prepareAnimation()

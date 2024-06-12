@@ -97,28 +97,27 @@ struct TopContentView: View {
             .navigationDestination(for: CreatureIdentifier.self) { creature in
                 creatureDetailView(for: creature)
             }
-            .onAppear {
+            .task {
 
                 /**
                  Now that we're all loaded, let's go get the first set of creatures from the server
                  */
-                Task {
-                    let populateResult = await CreatureManager.shared.populateCache()
-                    switch(populateResult) {
-                    case .success(let message):
 
-                        logger.info("Loaded the creature cache: \(message)")
-                        
-                        // Okay! We're talking to the server. Bring up the websocket! 🧦
-                        await server.connectWebsocket(processor: SwiftMessageProcessor.shared)
-                        
-                    case .failure(let error):
-                        DispatchQueue.main.async {
-                            errorMessage = error.localizedDescription
-                            showErrorAlert = true
-                        }
+                let populateResult = await CreatureManager.shared.populateCache()
+                switch(populateResult) {
+                case .success(let message):
 
+                    logger.info("Loaded the creature cache: \(message)")
+
+                    // Okay! We're talking to the server. Bring up the websocket! 🧦
+                    await server.connectWebsocket(processor: SwiftMessageProcessor.shared)
+
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        errorMessage = error.localizedDescription
+                        showErrorAlert = true
                     }
+
                 }
 
             }.alert(isPresented: $showErrorAlert) {
@@ -135,10 +134,6 @@ struct TopContentView: View {
             }
 
         }
-
-
-
-
 
         #if os(macOS)
         BottomToolBarView()
