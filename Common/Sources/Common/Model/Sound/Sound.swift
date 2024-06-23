@@ -10,8 +10,8 @@ public class Sound: Identifiable, Hashable, Equatable, Codable {
     // Use the file name for the identifiable thing. Since these are files on the file system, all in the
     // same directory, it's the file name that makes them unique
     public var id: String {
-          return fileName
-      }
+        return fileName
+    }
 
     public enum CodingKeys: String, CodingKey {
         case fileName = "file_name"
@@ -43,7 +43,8 @@ public class Sound: Identifiable, Hashable, Equatable, Codable {
 
     // The == operator
     public static func == (lhs: Sound, rhs: Sound) -> Bool {
-        return lhs.fileName == rhs.fileName && lhs.size == rhs.size && lhs.transcript == rhs.transcript
+        return lhs.fileName == rhs.fileName && lhs.size == rhs.size
+            && lhs.transcript == rhs.transcript
     }
 }
 

@@ -73,6 +73,7 @@
 		11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */; };
 		11C5B8472C0D39C10037E70A /* SoundFileTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5B8462C0D39C10037E70A /* SoundFileTable.swift */; };
 		11C5B8492C0D57F40037E70A /* CreateNewCreatureSoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */; };
+		11C622F52C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift */; };
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
@@ -160,6 +161,7 @@
 		11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualStatusLightsProcessor.swift; sourceTree = "<group>"; };
 		11C5B8462C0D39C10037E70A /* SoundFileTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundFileTable.swift; sourceTree = "<group>"; usesTabs = 0; };
 		11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateNewCreatureSoundView.swift; sourceTree = "<group>"; };
+		11C622F42C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorReportMessageProcessor.swift; sourceTree = "<group>"; };
 		11F4BA5629EA7DF300078790 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickSettingsView.swift; sourceTree = "<group>"; };
@@ -452,6 +454,7 @@
 				1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */,
 				11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */,
 				1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */,
+				11C622F42C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -873,6 +876,7 @@
 				1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */,
 				11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */,
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
+				11C622F52C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift in Sources */,
 				1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,

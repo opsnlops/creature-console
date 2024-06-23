@@ -1,5 +1,3 @@
-
-
 import Foundation
 
 public enum ServerLogLevel: Int, CaseIterable {
@@ -14,27 +12,27 @@ public enum ServerLogLevel: Int, CaseIterable {
 
     public var description: String {
         switch self {
-            case .trace: return "trace"
-            case .debug: return "debug"
-            case .info: return "info"
-            case .warn: return "warning"
-            case .error: return "error"
-            case .critical: return "critical"
-            case .off: return "off"
-            case .unknown: return "unknown"
+        case .trace: return "trace"
+        case .debug: return "debug"
+        case .info: return "info"
+        case .warn: return "warning"
+        case .error: return "error"
+        case .critical: return "critical"
+        case .off: return "off"
+        case .unknown: return "unknown"
         }
     }
 
     public init(from string: String) {
         switch string.lowercased() {
-            case "trace": self = .trace
-            case "debug": self = .debug
-            case "info": self = .info
-            case "warning": self = .warn
-            case "error": self = .error
-            case "critical": self = .critical
-            case "off": self = .off
-            default: self = .unknown
+        case "trace": self = .trace
+        case "debug": self = .debug
+        case "info": self = .info
+        case "warning": self = .warn
+        case "error": self = .error
+        case "critical": self = .critical
+        case "off": self = .off
+        default: self = .unknown
         }
     }
 

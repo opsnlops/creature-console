@@ -230,6 +230,10 @@ extension WebSocketClient: WebSocketDelegate {
                 let messageDTO = try decoder.decode(
                     WebSocketMessageDTO<VirtualStatusLightsDTO>.self, from: data)
                 messageProcessor?.processStatusLights(messageDTO.payload)
+            case .creatureSensorReport:
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<SensorReport>.self, from: data)
+                messageProcessor?.processSensorReport(messageDTO.payload)
             default:
                 self.logger.warning("Unknown message type: \(commandDTO.command)")
             }

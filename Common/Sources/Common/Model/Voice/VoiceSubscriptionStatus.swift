@@ -42,15 +42,14 @@ public class VoiceSubscriptionStatus: Identifiable, Hashable, Equatable, Codable
 
     // The == operator
     public static func == (lhs: VoiceSubscriptionStatus, rhs: VoiceSubscriptionStatus) -> Bool {
-        return lhs.tier == rhs.tier &&
-               lhs.status == rhs.status &&
-               lhs.characterCount == rhs.characterCount &&
-               lhs.characterLimit == rhs.characterLimit
+        return lhs.tier == rhs.tier && lhs.status == rhs.status
+            && lhs.characterCount == rhs.characterCount && lhs.characterLimit == rhs.characterLimit
     }
 }
 
 extension VoiceSubscriptionStatus {
     public static func mock() -> VoiceSubscriptionStatus {
-        return VoiceSubscriptionStatus(tier: "Premium", status: "Active", characterCount: 1000, characterLimit: 5000)
+        return VoiceSubscriptionStatus(
+            tier: "Premium", status: "Active", characterCount: 1000, characterLimit: 5000)
     }
 }

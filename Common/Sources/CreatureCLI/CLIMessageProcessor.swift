@@ -25,4 +25,10 @@ class CLIMessageProcessor: MessageProcessor {
             "[STATUS LIGHTS] running: \(statusLights.running ? "on" : "off"), streaming: \(statusLights.streaming ? "on" : "off"), DMX: \(statusLights.dmx ? "on" : "off"), animation_playing: \(statusLights.animation_playing ? "on" : "off")"
         )
     }
+
+    func processSensorReport(_ sensorReport: SensorReport) {
+        print(
+            "[SENSORS] Creature: \(sensorReport.creatureId), board temperature: \(sensorReport.boardTemperature)F"
+        )
+    }
 }

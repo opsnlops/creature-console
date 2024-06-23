@@ -2,7 +2,7 @@ import Common
 import Foundation
 import OSLog
 
-/// A simple `MessageProcessor` that prints things to the screen for debugging
+/// The Swift version of our `MessageProcessor`
 class SwiftMessageProcessor: MessageProcessor, ObservableObject {
 
     // Yes! It singletons!
@@ -21,6 +21,10 @@ class SwiftMessageProcessor: MessageProcessor, ObservableObject {
 
     func processLog(_ logItem: ServerLogItem) {
         ServerLogItemProcessor.processServerLogItem(logItem)
+    }
+
+    func processSensorReport(_ sensorReport: SensorReport) {
+        SensorReportMessageProcessor.processSensorReport(sensorReport)
     }
 
     func processSystemCounters(_ counters: SystemCountersDTO) {

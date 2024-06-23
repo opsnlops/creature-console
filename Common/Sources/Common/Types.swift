@@ -1,6 +1,4 @@
-
 import Foundation
-
 
 /**
  These are various types used in the system

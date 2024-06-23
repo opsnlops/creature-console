@@ -7,6 +7,7 @@ public enum ServerMessageType: String {
     case notice = "notice"
     case statusLights = "status-lights"
     case streamFrame = "stream-frame"
+    case creatureSensorReport = "sensor-report"
     case unknown
 
     public init(from command: String) {

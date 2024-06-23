@@ -7,7 +7,10 @@ extension CreatureCLI {
     struct Animations: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
             abstract: "View and work with animations",
-            subcommands: [Get.self, List.self, Play.self, TestAnimationEncoding.self, TestTrackEncoding.self, TestAnimationSaving.self]
+            subcommands: [
+                Get.self, List.self, Play.self, TestAnimationEncoding.self, TestTrackEncoding.self,
+                TestAnimationSaving.self,
+            ]
         )
 
         @OptionGroup()
@@ -137,7 +140,7 @@ extension CreatureCLI {
 
                 let server = getServer(config: globalOptions)
                 let result = await server.saveAnimation(animation: mockAnimation)
-                switch(result) {
+                switch result {
 
                 case .success(let message):
                     print("Animation saved. Server said: \(message)")
@@ -201,8 +204,9 @@ extension CreatureCLI {
             print("attempting to fetch animation \(animationId) from the server...\n")
 
             let server = getServer(config: globalOptions)
-            let result = await server.playStoredAnimation(animationId: animationId, universe: universe)
-            switch(result) {
+            let result = await server.playStoredAnimation(
+                animationId: animationId, universe: universe)
+            switch result {
             case .success(let messsage):
                 print(messsage)
             case .failure(let error):

@@ -1,9 +1,9 @@
-
 import Foundation
 
-
 public struct WebSocketMessageBuilder {
-    public static func createMessage<T: Codable>(type: ServerMessageType, payload: T) throws -> String {
+    public static func createMessage<T: Codable>(type: ServerMessageType, payload: T) throws
+        -> String
+    {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
 

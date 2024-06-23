@@ -37,7 +37,10 @@ extension CreatureCLI {
 
                     for sound in sounds {
                         // Add this to the table
-                        let row = [sound.fileName, formatNumber(UInt64(sound.size)) + " bytes", sound.transcript.isEmpty ? "" : "✅"]
+                        let row = [
+                            sound.fileName, formatNumber(UInt64(sound.size)) + " bytes",
+                            sound.transcript.isEmpty ? "" : "✅",
+                        ]
                         rows.append(row)
                     }
 
