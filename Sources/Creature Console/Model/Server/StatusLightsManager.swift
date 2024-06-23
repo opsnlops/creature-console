@@ -3,7 +3,6 @@ import Foundation
 import OSLog
 import SwiftUI
 
-
 class StatusLightsManager: ObservableObject {
     static let shared = StatusLightsManager()
 
@@ -51,7 +50,8 @@ class StatusLightsManager: ObservableObject {
                 self.animationPlaying = dto.animation_playing
             }
 
-            logger.info("set the animation playing light to \(dto.animation_playing ? "on" : "off")")
+            logger.info(
+                "set the animation playing light to \(dto.animation_playing ? "on" : "off")")
         }
     }
 

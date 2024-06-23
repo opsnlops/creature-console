@@ -3,7 +3,6 @@ import Common
 import Foundation
 import OSLog
 
-
 class CreatureCache: ObservableObject {
     static let shared = CreatureCache()
 

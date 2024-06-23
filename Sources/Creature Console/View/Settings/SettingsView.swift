@@ -1,7 +1,6 @@
-
+import Common
 import Foundation
 import SwiftUI
-import Common
 
 struct SettingsView: View {
     private enum Tabs: Hashable {
@@ -37,7 +36,7 @@ struct SettingsView: View {
         }
         .padding(20)
         #if os(macOS)
-        .frame(width: 600, height: 400)
+            .frame(width: 600, height: 400)
         #endif
     }
 }

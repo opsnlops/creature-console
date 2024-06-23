@@ -2,9 +2,6 @@ import Common
 import Foundation
 import SwiftUI
 
-
-
-
 struct AppStateInspectorView: View {
 
     @ObservedObject var appState = AppState.shared
@@ -33,7 +30,6 @@ struct AppStateInspectorView: View {
 
     }
 }
-
 
 
 struct AppStateInspectorView_Previews: PreviewProvider {

@@ -1,6 +1,5 @@
-
-import SwiftUI
 import Common
+import SwiftUI
 
 struct BarChart: View {
     @Binding var data: [UInt8]
@@ -10,7 +9,7 @@ struct BarChart: View {
 
     var rainbowColors: [Color] {
         let baseColors: [Color] = [
-            .red, .orange, .yellow, .green, .blue, .indigo, .purple
+            .red, .orange, .yellow, .green, .blue, .indigo, .purple,
         ]
 
         switch colorScheme {
@@ -29,7 +28,9 @@ struct BarChart: View {
                         Spacer()
                         RoundedRectangle(cornerRadius: 4)
                             .fill(rainbowColors[index % rainbowColors.count])
-                            .frame(height: geometry.size.height * CGFloat(data[index]) / CGFloat(maxValue))
+                            .frame(
+                                height: geometry.size.height * CGFloat(data[index])
+                                    / CGFloat(maxValue))
                     }
                 }
             }

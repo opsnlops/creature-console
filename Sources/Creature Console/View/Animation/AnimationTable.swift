@@ -80,13 +80,13 @@ struct AnimationTable: View {
 
                     // Buttons at the bottom
                     HStack {
-//                        Button {
-//                            // playAnimationLocally()
-//                        } label: {
-//                            Label("Play Locally", systemImage: "play.fill")
-//                                .foregroundColor(.green)
-//                        }
-//                        .disabled(selection == nil)
+                        //                        Button {
+                        //                            // playAnimationLocally()
+                        //                        } label: {
+                        //                            Label("Play Locally", systemImage: "play.fill")
+                        //                                .foregroundColor(.green)
+                        //                        }
+                        //                        .disabled(selection == nil)
 
                         Button {
                             playStoredAnimation(animationId: selection)
@@ -206,8 +206,9 @@ struct AnimationTable: View {
         playAnimationTask?.cancel()
 
         playAnimationTask = Task {
-            let result = await creatureManager.playStoredAnimationOnServer(animationId: animationId, universe: activeUniverse)
-            switch(result) {
+            let result = await creatureManager.playStoredAnimationOnServer(
+                animationId: animationId, universe: activeUniverse)
+            switch result {
             case .success(let message):
                 logger.info("Animation Scheduled: \(message)")
             case .failure(let error):

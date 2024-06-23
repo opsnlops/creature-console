@@ -1,27 +1,26 @@
-
 import AVFoundation
+import Common
 import Foundation
 import OSLog
-import Common
 
+class StorageManager: ObservableObject {
 
-class StorageManager : ObservableObject {
-    
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "StorageManager")
-    
-    
+
+
     func getiCloudContainerURL() -> URL? {
-        
+
         // If 'forUbiquityContainerIdentifier' is nil, it will take the first one we've got. Since
         // there's only one, it will take that.
-        let containerUrl = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents")
-        
+        let containerUrl = FileManager.default.url(forUbiquityContainerIdentifier: nil)?
+            .appendingPathComponent("Documents")
+
         logger.info("iCloud Container URL: \(String(describing: containerUrl))")
-        
+
         return containerUrl
     }
 
-    
+
     func saveFileToiCloud(audioData: Data, fileName: String) {
         guard let containerURL = getiCloudContainerURL() else { return }
         let fileURL = containerURL.appendingPathComponent(fileName)
@@ -34,8 +33,8 @@ class StorageManager : ObservableObject {
     }
 
     func loadFileFromiCloud(fileName: String) -> Data? {
-        
-        
+
+
         guard let containerURL = getiCloudContainerURL() else { return nil }
         let fileURL = containerURL.appendingPathComponent(fileName)
 
@@ -49,14 +48,15 @@ class StorageManager : ObservableObject {
     }
 
     func listAllFilesIniCloud() -> [URL]? {
-        
+
         logger.info("listing all files in iCloud")
-        
+
         guard let containerURL = getiCloudContainerURL() else { return nil }
         logger.info("containerURL: \(containerURL.pathComponents)")
-        
+
         do {
-            let fileURLs = try FileManager.default.contentsOfDirectory(at: containerURL, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
+            let fileURLs = try FileManager.default.contentsOfDirectory(
+                at: containerURL, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
             return fileURLs
         } catch {
             print("Error listing files in iCloud container: \(error)")
@@ -64,6 +64,5 @@ class StorageManager : ObservableObject {
         }
     }
 
-    
-    
+
 }

@@ -1,15 +1,10 @@
-
 import Combine
+import Common
 import Foundation
 import OSLog
 import SwiftUI
-import Common
 
-
-
-/**
- The `CreatureManager` is what owns talking to all of the creatures. This allows me to keep SwiftUI things out of the [CreatureServerClient]
- */
+/// The `CreatureManager` is what owns talking to all of the creatures. This allows me to keep SwiftUI things out of the [CreatureServerClient]
 class CreatureManager: ObservableObject {
 
     internal var server = CreatureServerClient.shared
@@ -23,7 +18,7 @@ class CreatureManager: ObservableObject {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureManager")
 
     @ObservedObject var appState = AppState.shared
-    
+
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
     @AppStorage("audioFilePath") var audioFilePath: String = ""
 
@@ -51,7 +46,7 @@ class CreatureManager: ObservableObject {
 
 
     func stopStreaming() -> Result<String, ServerError> {
-        
+
         guard isStreaming else {
             return .failure(.communicationError("Streaming not happening"))
         }
@@ -70,10 +65,11 @@ class CreatureManager: ObservableObject {
 
         if isStreaming {
 
-            if let creatureId = streamingCreature  {
+            if let creatureId = streamingCreature {
 
                 let motionData = Data(joystickManager.values).base64EncodedString()
-                let streamFrameData = StreamFrameData(ceatureId: creatureId, universe: activeUniverse, data: motionData)
+                let streamFrameData = StreamFrameData(
+                    ceatureId: creatureId, universe: activeUniverse, data: motionData)
 
                 Task {
                     await server.streamFrame(streamFrameData: streamFrameData)
@@ -152,7 +148,9 @@ class CreatureManager: ObservableObject {
 
      This tells the server which animation to play, and on what universe.
      */
-    func playStoredAnimationOnServer(animationId: AnimationIdentifier, universe: UniverseIdentifier) async -> Result<String, ServerError> {
+    func playStoredAnimationOnServer(animationId: AnimationIdentifier, universe: UniverseIdentifier)
+        async -> Result<String, ServerError>
+    {
         logger.debug("asking the server to play animation \(animationId) on universe \(universe)")
 
         guard !animationId.isEmpty else {
@@ -162,7 +160,7 @@ class CreatureManager: ObservableObject {
         }
 
         let result = await server.playStoredAnimation(animationId: animationId, universe: universe)
-        switch(result) {
+        switch result {
         case .success(let message):
             logger.info("Animation scheduled: \(message)")
             return .success(message)
@@ -178,7 +176,9 @@ class CreatureManager: ObservableObject {
      This requires a full [Animation] object, because we might not have saved it to the server. The idea is to be able
      to play it before we save it.
      */
-    func playAnimationLocally(animation: Common.Animation, universe: UniverseIdentifier) async -> Result<String, ServerError> {
+    func playAnimationLocally(animation: Common.Animation, universe: UniverseIdentifier) async
+        -> Result<String, ServerError>
+    {
         return .failure(.notImplemented("This hasn't been implemented yet"))
     }
 }

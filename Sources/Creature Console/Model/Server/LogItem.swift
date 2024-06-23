@@ -1,7 +1,5 @@
-
 import Common
 import Foundation
-
 
 struct LogItem: Identifiable, Equatable {
     var id = UUID()

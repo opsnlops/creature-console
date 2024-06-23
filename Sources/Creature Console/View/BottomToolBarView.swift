@@ -1,8 +1,6 @@
-
 import Common
 import Foundation
 import SwiftUI
-
 
 struct BottomToolBarView: View {
 
@@ -42,8 +40,10 @@ struct BottomToolBarView: View {
                 Image(systemName: "rainbow")
 
                     .font(.system(size: 24))
-                    .symbolEffect(.variableColor.cumulative.dimInactiveLayers.nonReversing,
-                                  isActive: statusLights.streaming)
+                    .symbolEffect(
+                        .variableColor.cumulative.dimInactiveLayers.nonReversing,
+                        isActive: statusLights.streaming
+                    )
                     .symbolRenderingMode(.multicolor)
             } else {
                 Image(systemName: "rainbow")
@@ -57,7 +57,10 @@ struct BottomToolBarView: View {
                     .foregroundColor(.accentColor)
                     .opacity(0.8)
                     .font(.system(size: 30))
-                    .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing, isActive: statusLights.dmx)
+                    .symbolEffect(
+                        .variableColor.iterative.dimInactiveLayers.nonReversing,
+                        isActive: statusLights.dmx
+                    )
                     .symbolRenderingMode(.multicolor)
             } else {
                 Image(systemName: "antenna.radiowaves.left.and.right.circle.fill")
@@ -72,7 +75,6 @@ struct BottomToolBarView: View {
                 .symbolRenderingMode(.multicolor)
 
 
-
         }
         .padding()
         .alert(isPresented: $appState.showSystemAlert) {
@@ -85,4 +87,3 @@ struct BottomToolBarView: View {
 
     }
 }
-

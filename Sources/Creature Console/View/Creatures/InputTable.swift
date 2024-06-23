@@ -1,7 +1,7 @@
-import Foundation
-import SwiftUI
-import OSLog
 import Common
+import Foundation
+import OSLog
+import SwiftUI
 
 struct InputTable: View {
 
@@ -13,9 +13,7 @@ struct InputTable: View {
 
         if creature.inputs.isEmpty {
             Text("Creature has no inputs defined")
-        }
-        else
-        {
+        } else {
             Table(creature.inputs) {
                 TableColumn("Name", value: \.name)
                     .width(min: 120, ideal: 200)

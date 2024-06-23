@@ -1,12 +1,11 @@
-
-import SwiftUI
 import Common
+import SwiftUI
 
 struct AnimationDetail: View {
-    
-    var animationMetadata : AnimationMetadata
-    
-    
+
+    var animationMetadata: AnimationMetadata
+
+
     var body: some View {
         ScrollView(.horizontal) {
             LazyHGrid(rows: Array(repeating: .init(.flexible()), count: 2), spacing: 16) {

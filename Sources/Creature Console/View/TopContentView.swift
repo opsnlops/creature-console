@@ -31,7 +31,8 @@ struct TopContentView: View {
             List {
                 Section("Creatures") {
                     if !creatureCache.empty {
-                        ForEach(creatureCache.creatures.values.sorted(by: { $0.name < $1.name })) { creature in
+                        ForEach(creatureCache.creatures.values.sorted(by: { $0.name < $1.name })) {
+                            creature in
                             NavigationLink(creature.name, value: creature.id)
                         }
                     } else {
@@ -104,7 +105,7 @@ struct TopContentView: View {
                  */
 
                 let populateResult = await CreatureManager.shared.populateCache()
-                switch(populateResult) {
+                switch populateResult {
                 case .success(let message):
 
                     logger.info("Loaded the creature cache: \(message)")
@@ -136,13 +137,13 @@ struct TopContentView: View {
         }
 
         #if os(macOS)
-        BottomToolBarView()
+            BottomToolBarView()
         #endif
 
         #if os(iOS)
-        if UIDevice.current.systemName == "iPadOS" {
-            BottomToolBarView()
-        }
+            if UIDevice.current.systemName == "iPadOS" {
+                BottomToolBarView()
+            }
         #endif
     }
 

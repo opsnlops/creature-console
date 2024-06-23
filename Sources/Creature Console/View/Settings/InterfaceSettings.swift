@@ -1,24 +1,25 @@
-
-import SwiftUI
-import OSLog
 import Common
+import OSLog
+import SwiftUI
 
 struct InterfaceSettings: View {
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 0
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "InterfaceSettings")
-    
-    var intProxy: Binding<Double>{
-            Binding<Double>(get: {
-            
+
+    var intProxy: Binding<Double> {
+        Binding<Double>(
+            get: {
+
                 return Double(serverLogsScrollBackLines)
-                
-            }, set: {
+
+            },
+            set: {
                 // rounds the double to an Int
                 serverLogsScrollBackLines = Int($0)
             })
-        }
-    
+    }
+
     var body: some View {
         VStack {
             Form {
@@ -31,8 +32,7 @@ struct InterfaceSettings: View {
         }
 
     }
-    
-    
+
 
 }
 
@@ -41,4 +41,3 @@ struct InterfaceSettings_Previews: PreviewProvider {
         InterfaceSettings()
     }
 }
-

@@ -1,21 +1,20 @@
-
-import SwiftUI
-import OSLog
 import Common
+import OSLog
+import SwiftUI
 
 struct CategoryList: View {
-    
+
     let server = CreatureServerClient.shared
 
     @ObservedObject var creature: Creature
-    @State var animationMetas : [AnimationMetadata]?
+    @State var animationMetas: [AnimationMetadata]?
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationCategory")
-    
+
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
-    
+
     @State private var loadDataTask: Task<Void, Never>? = nil
-    
+
     var body: some View {
         ScrollView {
             if let metadatas = animationMetas {
@@ -25,7 +24,7 @@ struct CategoryList: View {
                     AnimationDetail(animationMetadata: metadata)
                         .frame(maxWidth: .infinity)
                 }
-                
+
             } else {
                 Text("Loading animations for \(creature.name)")
             }
@@ -50,24 +49,26 @@ struct CategoryList: View {
             )
         }
     }
-    
+
     func loadData() {
-        
+
         loadDataTask?.cancel()
-                
+
         loadDataTask = Task {
 
             // Go load the animations
             let result = await server.listAnimations(creatureId: creature.id)
             logger.debug("got it")
-            
-            switch(result) {
+
+            switch result {
             case .success(let data):
                 logger.debug("success!")
                 self.animationMetas = data
             case .failure(let error):
                 alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                logger.warning("Unable to load the animations for \(creature.name): \(String(describing: error.localizedDescription))")
+                logger.warning(
+                    "Unable to load the animations for \(creature.name): \(String(describing: error.localizedDescription))"
+                )
                 showErrorAlert = true
             }
         }

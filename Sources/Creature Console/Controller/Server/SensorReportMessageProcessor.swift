@@ -7,4 +7,3 @@ struct SensorReportMessageProcessor {
         print("Sensor report: temperature: \(sensorReport.boardTemperature)F")
     }
 }
-

@@ -1,13 +1,11 @@
-
 import AVFoundation
+import Common
+import OSLog
 import SwiftUI
 import UniformTypeIdentifiers
-import OSLog
-import Common
-
 
 struct AudioFilePicker: View {
- 
+
     let audioManager = AudioManager.shared
 
     @State private var importURL: URL?
@@ -15,13 +13,13 @@ struct AudioFilePicker: View {
 
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
-    
+
     @AppStorage("audioFilePath") private var audioFilePath: String = ""
-    
+
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AudioFilePicker")
-    
+
     private var audioData = Data()
-    
+
     var body: some View {
         VStack {
 
@@ -33,22 +31,22 @@ struct AudioFilePicker: View {
                 allowedContentTypes: [.audio],
                 onCompletion: { result in
                     // Start a new asynchronous task to handle the async function
-//                    Task {
-//                        do {
-//                            let fileURL = try result.get()
-//                            
-//                            // Store this path to where the sounds are
-//                            audioFilePath = fileURL.deletingLastPathComponent().absoluteString
-//                            
-//                            // Call the async function using `await`
-//                            let playResult = try await audioManager.play(url: fileURL)
-//                            logger.info("Played audio file: \(playResult)")
-//                        } catch {
-//                            logger.error("Error playing audio: \(error)")
-//                            alertMessage = "Error playing audio: \(error)"
-//                            showErrorAlert = true
-//                        }
-//                    }
+                    //                    Task {
+                    //                        do {
+                    //                            let fileURL = try result.get()
+                    //
+                    //                            // Store this path to where the sounds are
+                    //                            audioFilePath = fileURL.deletingLastPathComponent().absoluteString
+                    //
+                    //                            // Call the async function using `await`
+                    //                            let playResult = try await audioManager.play(url: fileURL)
+                    //                            logger.info("Played audio file: \(playResult)")
+                    //                        } catch {
+                    //                            logger.error("Error playing audio: \(error)")
+                    //                            alertMessage = "Error playing audio: \(error)"
+                    //                            showErrorAlert = true
+                    //                        }
+                    //                    }
                 }
 
             )
@@ -64,10 +62,8 @@ struct AudioFilePicker: View {
 }
 
 
-
 struct AudioFilePicker_Previews: PreviewProvider {
     static var previews: some View {
         AudioFilePicker()
     }
 }
-

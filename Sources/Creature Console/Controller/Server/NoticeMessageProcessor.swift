@@ -2,7 +2,6 @@ import Common
 import Foundation
 import SwiftUI
 
-
 struct NoticeMessageProcessor {
 
     public static func processNotice(_ notice: Notice) {
@@ -10,4 +9,3 @@ struct NoticeMessageProcessor {
         AppState.shared.showSystemAlert = true
     }
 }
-

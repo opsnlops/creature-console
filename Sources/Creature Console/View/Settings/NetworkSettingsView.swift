@@ -1,6 +1,5 @@
-
-import SwiftUI
 import Common
+import SwiftUI
 
 struct NetworkSettingsView: View {
     @AppStorage("serverAddress") private var serverAddress: String = ""

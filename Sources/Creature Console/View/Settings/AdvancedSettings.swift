@@ -1,9 +1,6 @@
-
-
+import Common
 import Foundation
 import SwiftUI
-import Common
-
 
 struct AdvancedSettingsView: View {
     @AppStorage("eventLoopMillisecondsPerFrame") private var eventLoopMillisecondsPerFrame: Int = 20
@@ -11,8 +8,8 @@ struct AdvancedSettingsView: View {
     @AppStorage("updateSpareTimeStatusInterval") var updateSpareTimeStatusInterval: Int = 20
     @AppStorage("logSpareTime") private var logSpareTime: Bool = false
     @AppStorage("audioFilePath") private var audioFilePath: String = ""
-    
-    
+
+
     var body: some View {
         VStack {
             Text("⚠️ Changing any of these values requires an app restart")

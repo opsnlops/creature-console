@@ -43,21 +43,21 @@ struct CreatureDetail: View {
                     .foregroundColor((appState.currentActivity == .streaming) ? .green : .primary)
                 }
             }
-//            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
-//                Button(action: {
-//                    startMFM2023Playlist()
-//                }) {
-//                    Image(systemName: "pawprint")
-//                }
-//            }
-//            ToolbarItem(id: "stopPlaylistPlayback", placement: .secondaryAction) {
-//                Button(action: {
-//                    stopPlaylistPlayback()
-//                }) {
-//                    Image(systemName: "stop.circle.fill")
-//                        .foregroundColor(.red)
-//                }
-//            }
+            //            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
+            //                Button(action: {
+            //                    startMFM2023Playlist()
+            //                }) {
+            //                    Image(systemName: "pawprint")
+            //                }
+            //            }
+            //            ToolbarItem(id: "stopPlaylistPlayback", placement: .secondaryAction) {
+            //                Button(action: {
+            //                    stopPlaylistPlayback()
+            //                }) {
+            //                    Image(systemName: "stop.circle.fill")
+            //                        .foregroundColor(.red)
+            //                }
+            //            }
         }.toolbarRole(.editor)
         .overlay {
             if isDoingServerStuff {

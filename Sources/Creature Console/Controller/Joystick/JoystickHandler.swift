@@ -42,9 +42,9 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
 
 
     #if os(macOS)
-    joystickManager.acwJoystick.setMatchingCriteria()
-    joystickManager.acwJoystick.registerCallbacks()
-    joystickManager.acwJoystick.openManager()
-    joystickManager.acwJoystick.scheduleWithRunLoop()
+        joystickManager.acwJoystick.setMatchingCriteria()
+        joystickManager.acwJoystick.registerCallbacks()
+        joystickManager.acwJoystick.openManager()
+        joystickManager.acwJoystick.scheduleWithRunLoop()
     #endif
 }

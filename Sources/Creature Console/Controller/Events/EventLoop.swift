@@ -28,8 +28,8 @@ class EventLoop: ObservableObject {
      an issue, but if it is, I'd like for it to be shown to the status bar
      */
 
-    @Published var frameSpareTime: Double = 0   // Published value (updates every `updateSpareTimeStatusInterval` frames)
-    var localFrameSpareTime: Double       = 0   // Updated every loop
+    @Published var frameSpareTime: Double = 0  // Published value (updates every `updateSpareTimeStatusInterval` frames)
+    var localFrameSpareTime: Double = 0  // Updated every loop
 
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondPerFrame: Int = 20
     @AppStorage("logSpareTimeFrameInterval") var logSpareTimeFrameInterval: Int = 1000
@@ -61,7 +61,6 @@ class EventLoop: ObservableObject {
         stopTimer()
         logger.info("event loop stopped")
     }
-
 
 
     /**
@@ -114,7 +113,6 @@ class EventLoop: ObservableObject {
 
     }
 
-    
 
     private func startTimer() {
         logger.info("Starting event loop at \(self.millisecondPerFrame)ms per frame")

@@ -1,18 +1,16 @@
-
-import SwiftUI
 import Common
+import SwiftUI
 
 #if os(macOS)
-struct AppStateInspectorScene: Scene {
+    struct AppStateInspectorScene: Scene {
 
-    var body: some Scene {
-        Window("AppState Inspector", id: "appStateInspector") {
-            AppStateInspectorView()
+        var body: some Scene {
+            Window("AppState Inspector", id: "appStateInspector") {
+                AppStateInspectorView()
+            }
+            .defaultPosition(.bottomTrailing)
+            .defaultSize(width: 400, height: 150)
+            .keyboardShortcut(".", modifiers: [.command])
         }
-        .defaultPosition(.bottomTrailing)
-        .defaultSize(width: 400, height: 150)
-        .keyboardShortcut(".", modifiers: [.command])
     }
-}
 #endif
-
