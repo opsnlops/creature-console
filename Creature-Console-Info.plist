@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>The Creature Console needs to communicate with the Creature Server, which is on the same network.</string>
+	<string>The Creature Console needs to communicate with the Creature Server</string>
 	<key>GCSupportedGameControllers</key>
 	<array>
 		<dict>
@@ -11,7 +11,5 @@
 			<string>ExtendedGamepad</string>
 		</dict>
 	</array>
-	<key>GCSupportsControllerUserInteraction</key>
-	<true/>
 </dict>
 </plist>
