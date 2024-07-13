@@ -69,7 +69,7 @@ extension CreatureCLI {
             func run() async throws {
                 // Use globalOptions here
                 print(
-                    "Searching for creature \(name) on \(globalOptions.host):\(globalOptions.port) using TLS: \(globalOptions.useTLS)"
+                    "Searching for creature \(name) on \(globalOptions.host):\(globalOptions.port) using TLS: \(!globalOptions.insecure)"
                 )
             }
         }

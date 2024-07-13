@@ -4,13 +4,13 @@ import Foundation
 
 struct GlobalOptions: ParsableArguments {
     @Option(help: "The port to connect to")
-    var port: Int = 8000
+    var port: Int = 443
 
     @Option(help: "The server name to connect to")
-    var host: String = "localhost"
+    var host: String = "server.dev.chirpchirp.dev"
 
-    @Flag(help: "Use TLS")
-    var useTLS: Bool = false
+    @Flag(help: "Don't use TLS")
+    var insecure: Bool = false
 }
 
 
@@ -19,7 +19,7 @@ struct CreatureCLI: AsyncParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "A utility for interacting with the Creature Server",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
-        version: "2.1.0",
+        version: "2.2.0",
         subcommands: [
             Animations.self, Creatures.self, Sounds.self, Metrics.self, Util.self, Voice.self,
             Websocket.self,
@@ -41,7 +41,7 @@ func getServer(config: GlobalOptions) -> CreatureServerClient {
     let server = CreatureServerClient()
     server.serverPort = config.port
     server.serverHostname = config.host
-    server.useTLS = config.useTLS
+    server.serverInsecure = config.insecure
 
     return server
 }

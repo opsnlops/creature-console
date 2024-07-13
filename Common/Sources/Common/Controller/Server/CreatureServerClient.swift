@@ -14,7 +14,7 @@ public class CreatureServerClient: CreatureServerClientProtocol {
     public var serverHostname: String =
         UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
     public var serverPort: Int = UserDefaults.standard.integer(forKey: "serverRestPort")
-    public var useTLS: Bool = UserDefaults.standard.bool(forKey: "serverUseTLS")
+    public var serverInsecure: Bool = UserDefaults.standard.bool(forKey: "serverInsecure")
 
 
     public enum UrlType {
@@ -39,9 +39,9 @@ public class CreatureServerClient: CreatureServerClientProtocol {
         var prefix: String
         switch type {
         case (.http):
-            prefix = useTLS ? "https://" : "http://"
+            prefix = serverInsecure ? "http://" : "https://"
         case (.websocket):
-            prefix = useTLS ? "wss://" : "ws://"
+            prefix = serverInsecure ? "ws://" : "wss://"
         }
 
         return "\(prefix)\(serverHostname):\(serverPort)/api/v1"

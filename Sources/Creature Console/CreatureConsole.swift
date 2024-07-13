@@ -26,9 +26,9 @@ struct CreatureConsole: App {
          Set up default prefs for static things
          */
         let defaultPreferences: [String: Any] = [
-            "serverHostname": "10.19.63.5",  // REST
-            "serverRestPort": 8000,  // REST
-            "serverUseTLS": false,  // REST
+            "serverHostname": "server.dev.chirpchirp.dev",
+            "serverRestPort": 443,
+            "serverUseTLS": true,
             "serverLogsScrollBackLines": 150,
             "eventLoopMillisecondsPerFrame": 20,
             "logSpareTime": true,
@@ -73,8 +73,19 @@ struct CreatureConsole: App {
             DebugJoystickScene()
             LogViewScene()
             AppStateInspectorScene()
+
             Settings {
                 SettingsView()
+            }
+
+            MenuBarExtra("Creatures", systemImage: "pawprint.fill") {
+                Button("Option 1") {
+                    print("Option 1")
+                }
+                Divider()
+                Button("Quit") {
+                    NSApplication.shared.terminate(nil)
+                }
             }
         #endif
 
