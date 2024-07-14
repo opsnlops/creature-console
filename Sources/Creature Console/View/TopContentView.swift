@@ -55,6 +55,15 @@ struct TopContentView: View {
                     }
                 }
 
+                Section("Playlists") {
+                    NavigationLink {
+                        PlaylistsTable()
+                    } label: {
+                        Label("List All", systemImage: "list.bullet.rectangle")
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                }
+
 
                 Section("Sound Files") {
                     NavigationLink {

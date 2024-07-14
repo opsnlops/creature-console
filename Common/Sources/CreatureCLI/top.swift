@@ -7,7 +7,13 @@ struct GlobalOptions: ParsableArguments {
     var port: Int = 443
 
     @Option(help: "The server name to connect to")
-    var host: String = "server.dev.chirpchirp.dev"
+    var host: String = {
+#if DEBUG
+        return "server.dev.chirpchirp.dev"
+#else
+        return "server.prod.chirpchirp.dev"
+#endif
+    }()
 
     @Flag(help: "Don't use TLS")
     var insecure: Bool = false
@@ -21,7 +27,7 @@ struct CreatureCLI: AsyncParsableCommand {
         discussion: "A tool for interacting and testing the Creature Server from the command line",
         version: "2.2.0",
         subcommands: [
-            Animations.self, Creatures.self, Sounds.self, Metrics.self, Util.self, Voice.self,
+            Animations.self, Creatures.self, Sounds.self, Metrics.self, Playlists.self, Util.self, Voice.self,
             Websocket.self,
         ],
         helpNames: .shortAndLong

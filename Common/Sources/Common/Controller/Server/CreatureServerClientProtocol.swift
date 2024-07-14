@@ -20,7 +20,7 @@ public protocol CreatureServerClientProtocol: AnyObject {
     func stopPlayingPlaylist(universe: UniverseIdentifier) async throws -> Result<
         String, ServerError
     >
-    func getPlaylist(playistId: PlaylistIdentifier) async throws -> Result<Playlist, ServerError>
+    func getPlaylist(playlistId: PlaylistIdentifier) async throws -> Result<Playlist, ServerError>
     func startPlayingPlaylist(universe: UniverseIdentifier, playlistId: PlaylistIdentifier)
         async throws -> Result<String, ServerError>
     func streamFrame(streamFrameData: StreamFrameData) async -> Result<String, ServerError>

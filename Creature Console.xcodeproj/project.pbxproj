@@ -23,7 +23,6 @@
 		114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147932C017E640046601D /* ChooseCreatureSheet.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
-		115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
 		1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */; };
 		1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1168DC982B4F99E000A9895A /* IOKit.framework */; };
@@ -42,6 +41,7 @@
 		1183319A2C005BD80017DC2A /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = 118331992C005BD80017DC2A /* ViewInspector */; };
 		1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */; };
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
+		118AE3622C439D8000346C0E /* PlaylistsTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118AE3612C439D8000346C0E /* PlaylistsTable.swift */; };
 		118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */; };
 		118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118BF8722A255F5300D80AE6 /* AnimationTable.swift */; };
 		1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */; };
@@ -108,7 +108,6 @@
 		114147932C017E640046601D /* ChooseCreatureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseCreatureSheet.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
 		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
-		115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrossHacksSettingsView.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
 		11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Creature ConsoleDebug.entitlements"; sourceTree = "<group>"; };
@@ -132,6 +131,7 @@
 		1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoticeMessageProcessor.swift; sourceTree = "<group>"; };
 		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
+		118AE3612C439D8000346C0E /* PlaylistsTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistsTable.swift; sourceTree = "<group>"; };
 		118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */ = {isa = PBXFileReference; lastKnownFileType = file; path = recordingCountdownSound.flac; sourceTree = "<group>"; };
 		118BF8722A255F5300D80AE6 /* AnimationTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationTable.swift; sourceTree = "<group>"; };
 		1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftMessageProcessor.swift; sourceTree = "<group>"; };
@@ -309,6 +309,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				118AE3602C439D1300346C0E /* Playlists */,
 				11A61AA12BFAF87C000A1B48 /* Audio */,
 				1199D6CC2BF6F7E9004E0D64 /* Logging */,
 				110CABE52A9599DB007769E4 /* Processing */,
@@ -438,6 +439,14 @@
 			path = View;
 			sourceTree = "<group>";
 		};
+		118AE3602C439D1300346C0E /* Playlists */ = {
+			isa = PBXGroup;
+			children = (
+				118AE3612C439D8000346C0E /* PlaylistsTable.swift */,
+			);
+			path = Playlists;
+			sourceTree = "<group>";
+		};
 		118BF86F2A253EF800D80AE6 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
@@ -496,7 +505,6 @@
 				11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */,
 				118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */,
 				119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */,
-				115B32432A91945300E9D583 /* GrossHacksSettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -900,9 +908,9 @@
 				1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */,
 				11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */,
 				11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */,
-				115B32442A91945300E9D583 /* GrossHacksSettingsView.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
 				11754B672C002940001A6C83 /* CacheMethods.swift in Sources */,
+				118AE3622C439D8000346C0E /* PlaylistsTable.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
 				1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */,
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,

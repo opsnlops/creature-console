@@ -1,35 +1,50 @@
 import Foundation
+import Logging
 
-public class PlaylistItem: Hashable, Equatable, Identifiable {
+public class PlaylistItem: Identifiable, Hashable, Equatable, Codable {
+    private let logger = Logger(label: "io.opsnlops.CreatureConsole.PlaylistItem")
+    public var animationId: AnimationIdentifier
+    public var weight: UInt32
 
-    let animationId: Data
-    let weight: Int32
+    // Use the animationId for the identifiable thing.
+    public var id: AnimationIdentifier {
+        return animationId
+    }
 
-    public init(animationId: Data, weight: Int32) {
+    public enum CodingKeys: String, CodingKey {
+        case animationId = "animation_id"
+        case weight
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        animationId = try container.decode(AnimationIdentifier.self, forKey: .animationId)
+        weight = try container.decode(UInt32.self, forKey: .weight)
+        logger.debug("Created a new PlaylistItem from init(from:)")
+    }
+
+    public init(animationId: AnimationIdentifier, weight: UInt32) {
         self.animationId = animationId
         self.weight = weight
+        logger.debug("Created a new PlaylistItem from init()")
     }
 
-    public static func == (lhs: PlaylistItem, rhs: PlaylistItem) -> Bool {
-        if lhs.animationId == rhs.animationId && lhs.weight == rhs.weight {
-            return true
-        }
-
-        return false
-    }
-
+    // hash(into:) function
     public func hash(into hasher: inout Hasher) {
         hasher.combine(animationId)
         hasher.combine(weight)
     }
 
+    // The == operator
+    public static func == (lhs: PlaylistItem, rhs: PlaylistItem) -> Bool {
+        return lhs.animationId == rhs.animationId && lhs.weight == rhs.weight
+    }
 }
-
 
 extension PlaylistItem {
     public static func mock() -> PlaylistItem {
-        let animationId = Data(DataHelper.generateRandomData(byteCount: 12))
-        let weight: Int32 = Int32.random(in: 0..<100)  // Random weight between 0 and 99
+        let animationId = UUID().uuidString
+        let weight: UInt32 = UInt32.random(in: 0..<100)  // Random weight between 0 and 99
 
         return PlaylistItem(animationId: animationId, weight: weight)
     }
