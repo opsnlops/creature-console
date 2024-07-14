@@ -99,7 +99,8 @@ struct TopContentView: View {
                     NavigationLink {
                         AudioFilePicker()
                     } label: {
-                        Label("Audio", systemImage: "music.note.list")
+                        Label("Audio", systemImage: "hifispeaker.2")
+                            .symbolRenderingMode(.hierarchical)
                     }
                 }
             }
