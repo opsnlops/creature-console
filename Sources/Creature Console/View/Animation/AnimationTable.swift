@@ -161,7 +161,7 @@ struct AnimationTable: View {
 
         loadDataTask = Task {
             // Go load the animations
-            let result = await server.listAnimations(creatureId: creature?.id)
+            let result = await server.listAnimations()
             logger.debug("Loaded animations")
 
             switch result {

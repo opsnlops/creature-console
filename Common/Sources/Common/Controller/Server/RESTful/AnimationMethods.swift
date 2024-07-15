@@ -53,12 +53,12 @@ extension CreatureServerClient {
         }
     }
 
-    public func listAnimations(creatureId: CreatureIdentifier?) async -> Result<
+    public func listAnimations() async -> Result<
         [AnimationMetadata], ServerError
     > {
 
         logger.debug(
-            "attempting to get all of the animation metadatas for creature \(creatureId ?? "everyone")"
+            "attempting to get all of the animation metadatas"
         )
 
         guard let url = URL(string: makeBaseURL(.http) + "/animation") else {

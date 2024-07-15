@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */; };
+		1107942D2C44E32C008EF68E /* AnimationMetadataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942C2C44E32C008EF68E /* AnimationMetadataCache.swift */; };
 		110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE72A959A00007769E4 /* SoundDataImporter.swift */; };
 		1110E9652BF035E500FCE26D /* Common in Frameworks */ = {isa = PBXBuildFile; productRef = 1110E9642BF035E500FCE26D /* Common */; };
 		1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110E9662BF03B2A00FCE26D /* CreatureCache.swift */; };
@@ -94,6 +95,7 @@
 
 /* Begin PBXFileReference section */
 		1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidationProcessor.swift; sourceTree = "<group>"; };
+		1107942C2C44E32C008EF68E /* AnimationMetadataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataCache.swift; sourceTree = "<group>"; };
 		110CABE72A959A00007769E4 /* SoundDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataImporter.swift; sourceTree = "<group>"; };
 		1110E9632BF0359F00FCE26D /* Common */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Common; sourceTree = "<group>"; };
 		1110E9662BF03B2A00FCE26D /* CreatureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureCache.swift; sourceTree = "<group>"; };
@@ -569,6 +571,7 @@
 				1182ED102BEDD1C500E1213F /* Joystick */,
 				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
 				1122A7B62A24440100D60464 /* AppState.swift */,
+				1107942C2C44E32C008EF68E /* AnimationMetadataCache.swift */,
 				1110E9662BF03B2A00FCE26D /* CreatureCache.swift */,
 			);
 			path = Controller;
@@ -906,6 +909,7 @@
 				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
+				1107942D2C44E32C008EF68E /* AnimationMetadataCache.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
 				113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */,
 				1199D6C62BF5D588004E0D64 /* SystemCountersItemProcessor.swift in Sources */,

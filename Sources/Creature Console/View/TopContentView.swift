@@ -9,6 +9,10 @@ struct TopContentView: View {
     let server = CreatureServerClient.shared
     let messageProcessor = SwiftMessageProcessor.shared
 
+    // This one does not need to be observed since we don't show the animation
+    // info in the sidebar
+    let animationMetadataCache = AnimationMetadataCache.shared
+
 
     // Watch the cache to know what to do
     @ObservedObject private var creatureCache = CreatureCache.shared
@@ -129,6 +133,19 @@ struct TopContentView: View {
                         showErrorAlert = true
                     }
 
+                }
+
+                // Now populate the animation metadata cache
+                let animationResult = animationMetadataCache.fetchMetadataListFromServer()
+                switch(animationResult) {
+                    case .success(let message):
+                        logger.debug("populated the metadata cache: \(message)")
+                    case .failure(let error):
+                        logger.warning("unable to fetch the metadata cache")
+                        DispatchQueue.main.async {
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
+                        }
                 }
 
             }.alert(isPresented: $showErrorAlert) {

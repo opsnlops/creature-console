@@ -23,15 +23,14 @@ struct CacheInvalidationProcessor {
 
         logger.info("attempting to rebuild the creature cache")
 
-        let server = CreatureServerClient.shared
+        let manager = CreatureManager.shared
 
         Task {
             logger.debug("calling out to the server now...")
-            let creatureRequest = await server.getAllCreatures()
-            switch creatureRequest {
-            case .success(let creatureList):
-                logger.info("got the latest creature list from the server, rebuilding cache now...")
-                CreatureCache.shared.reload(with: creatureList)
+            let populateResult = await manager.populateCache()
+            switch populateResult {
+            case .success:
+                logger.debug("the CreatureManager was able to reload the cache!")
             case .failure(let error):
                 logger.warning(
                     "unable to get a new copy of the creature list: \(error.localizedDescription)")
