@@ -31,4 +31,16 @@ class CLIMessageProcessor: MessageProcessor {
             "[SENSORS] Creature: \(sensorReport.creatureId), board temperature: \(sensorReport.boardTemperature)F"
         )
     }
+
+    func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
+        print(
+            "[PLAYLIST UPDATE] universe \(playlistStatus.universe), playing \(playlistStatus.playing), playlist \(playlistStatus.playlist), currentAnimation: \(playlistStatus.currentAnimation)"
+        )
+    }
+
+    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) {
+        print(
+            "[CACHE INVALIDATION] the server has requested that we invalidate the \(cacheInvalidation.cacheType.description) cache"
+        )
+    }
 }

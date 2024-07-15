@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */; };
 		110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110CABE72A959A00007769E4 /* SoundDataImporter.swift */; };
 		1110E9652BF035E500FCE26D /* Common in Frameworks */ = {isa = PBXBuildFile; productRef = 1110E9642BF035E500FCE26D /* Common */; };
 		1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110E9662BF03B2A00FCE26D /* CreatureCache.swift */; };
@@ -92,6 +93,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidationProcessor.swift; sourceTree = "<group>"; };
 		110CABE72A959A00007769E4 /* SoundDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataImporter.swift; sourceTree = "<group>"; };
 		1110E9632BF0359F00FCE26D /* Common */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Common; sourceTree = "<group>"; };
 		1110E9662BF03B2A00FCE26D /* CreatureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureCache.swift; sourceTree = "<group>"; };
@@ -464,6 +466,7 @@
 				11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */,
 				1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */,
 				11C622F42C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift */,
+				1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -886,6 +889,7 @@
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
 				11C622F52C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift in Sources */,
 				1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */,
+				1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
 				114147922C0145270046601D /* TrackListingView.swift in Sources */,
@@ -1088,7 +1092,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2201;
+				CURRENT_PROJECT_VERSION = 2202;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -1115,7 +1119,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.1;
+				MARKETING_VERSION = 2.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1137,7 +1141,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2201;
+				CURRENT_PROJECT_VERSION = 2202;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -1164,7 +1168,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.1;
+				MARKETING_VERSION = 2.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

@@ -34,4 +34,12 @@ class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
         VirtualStatusLightsProcessor.processVirtualStatusLights(statusLights)
     }
+
+    func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
+        // nop
+    }
+
+    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) {
+        CacheInvalidationProcessor.processCacheInvalidation(cacheInvalidation)
+    }
 }

@@ -8,6 +8,8 @@ public enum ServerMessageType: String {
     case statusLights = "status-lights"
     case streamFrame = "stream-frame"
     case creatureSensorReport = "sensor-report"
+    case cacheInvalidation = "cache-invalidation"
+    case playlistStatus = "playlist-status"
     case unknown
 
     public init(from command: String) {

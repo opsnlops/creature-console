@@ -28,34 +28,33 @@ extension CreatureCLI {
 
                 let result = await server.getAllPlaylists()
                 switch result {
-                    case .success(let playlists):
+                case .success(let playlists):
 
-                        let headers = ["Name", "ID", "Number Of Items"]
-                        var rows = [[String]]()
+                    let headers = ["Name", "ID", "Number Of Items"]
+                    var rows = [[String]]()
 
-                        for playlist in playlists {
+                    for playlist in playlists {
 
-                            // Add this to the table
-                            let row = [
-                                playlist.name,
-                                playlist.id,
-                                String(playlist.items.count),
-                            ]
-                            rows.append(row)
-                        }
+                        // Add this to the table
+                        let row = [
+                            playlist.name,
+                            playlist.id,
+                            String(playlist.items.count),
+                        ]
+                        rows.append(row)
+                    }
 
-                        print("\nOur playlists:\n")
-                        printTable(headers: headers, rows: rows)
+                    print("\nOur playlists:\n")
+                    printTable(headers: headers, rows: rows)
 
-                        print(
-                            "\n\(playlists.count) playlists(s) on server at \(server.serverHostname)\n")
+                    print(
+                        "\n\(playlists.count) playlists(s) on server at \(server.serverHostname)\n")
 
-                    case .failure(let error):
-                        print("Error fetching creatures: \(error)")
+                case .failure(let error):
+                    print("Error fetching creatures: \(error)")
                 }
             }
 
         }
     }
 }
-

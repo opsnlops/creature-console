@@ -234,6 +234,16 @@ extension WebSocketClient: WebSocketDelegate {
                 let messageDTO = try decoder.decode(
                     WebSocketMessageDTO<SensorReport>.self, from: data)
                 messageProcessor?.processSensorReport(messageDTO.payload)
+            case .cacheInvalidation:
+                logger.debug("cache-invalidation")
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<CacheInvalidation>.self, from: data)
+                messageProcessor?.processCacheInvalidation(messageDTO.payload)
+            case .playlistStatus:
+                logger.debug("playlist")
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<PlaylistStatus>.self, from: data)
+                messageProcessor?.processPlaylistStatus(messageDTO.payload)
             default:
                 self.logger.warning("Unknown message type: \(commandDTO.command)")
             }

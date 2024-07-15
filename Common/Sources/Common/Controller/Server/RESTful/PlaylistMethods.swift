@@ -23,7 +23,7 @@ extension CreatureServerClient {
     }
 
 
-    public func getAllPlaylists() async -> Result<[Playlist],ServerError> {
+    public func getAllPlaylists() async -> Result<[Playlist], ServerError> {
         logger.debug("attempting to get all the playlists")
 
         guard let url = URL(string: makeBaseURL(.http) + "/playlist") else {

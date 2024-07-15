@@ -33,6 +33,10 @@ public struct WebSocketMessageDTO<T: Codable>: Codable {
             payload = try container.decode(StreamFrameData.self, forKey: .payload) as! T
         case .statusLights:
             payload = try container.decode(VirtualStatusLightsDTO.self, forKey: .payload) as! T
+        case .cacheInvalidation:
+            payload = try container.decode(CacheInvalidation.self, forKey: .payload) as! T
+        case .playlistStatus:
+            payload = try container.decode(PlaylistStatus.self, forKey: .payload) as! T
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .payload, in: container, debugDescription: "Unknown command")

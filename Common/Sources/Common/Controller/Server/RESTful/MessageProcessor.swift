@@ -7,4 +7,6 @@ public protocol MessageProcessor {
     func processSystemCounters(_ counters: SystemCountersDTO)
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO)
     func processSensorReport(_ sensorReport: SensorReport)
+    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation)
+    func processPlaylistStatus(_ playlistStatus: PlaylistStatus)
 }
