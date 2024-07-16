@@ -30,7 +30,7 @@ extension CreatureCLI {
             func run() async throws {
                 let server = getServer(config: globalOptions)
 
-                let result = await server.listAnimations(creatureId: DataHelper.generateRandomId())
+                let result = await server.listAnimations()
 
                 switch result {
                 case .success(let animations):

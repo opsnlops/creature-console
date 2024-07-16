@@ -12,6 +12,8 @@ struct CacheInvalidationProcessor {
         switch request.cacheType {
         case .creature:
             rebuildCreatureCache()
+        case .animation:
+            rebuildAnimationCache()
         default:
             return
 
@@ -36,6 +38,30 @@ struct CacheInvalidationProcessor {
                     "unable to get a new copy of the creature list: \(error.localizedDescription)")
                 AppState.shared.systemAlertMessage =
                     "Unable to reload the creature cache after getting an invalidation message: \(error.localizedDescription)"
+                AppState.shared.showSystemAlert = true
+            }
+        }
+
+    }
+
+    static func rebuildAnimationCache() {
+
+        logger.info("attempting to rebuild the animation cache")
+
+        let cache = AnimationMetadataCache.shared
+
+        Task {
+            logger.debug("telling the cache to rebuild itself...")
+            let populateResult = cache.fetchMetadataListFromServer()
+            switch populateResult {
+            case .success(let message):
+                logger.debug("the cache said: \(message)")
+            case .failure(let error):
+                logger.warning(
+                    "unable to get a new copy of the animationMetadata list: \(error.localizedDescription)"
+                )
+                AppState.shared.systemAlertMessage =
+                    "Unable to reload the animation cache after getting an invalidation message: \(error.localizedDescription)"
                 AppState.shared.showSystemAlert = true
             }
         }

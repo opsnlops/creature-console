@@ -10,7 +10,7 @@ class CreatureCache: ObservableObject {
     @Published public private(set) var empty: Bool = true
 
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureCache")
-    private let queue = DispatchQueue(label: "com.creaturecache.queue", attributes: .concurrent)
+    private let queue = DispatchQueue(label: "io.opsnlops.CreatureConsole.CreatureCache.queue", attributes: .concurrent)
 
     // Make sure we don't accidentally create two of these
     private init() {}

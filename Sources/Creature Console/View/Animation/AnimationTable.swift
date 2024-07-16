@@ -12,24 +12,23 @@ struct AnimationTable: View {
 
     var creature: Creature?
 
-    @State var animations: [AnimationMetadata] = []
-
-    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
+    @ObservedObject private var animationCache = AnimationMetadataCache.shared
 
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
     @State private var selection: AnimationMetadata.ID? = nil
 
-    @State private var loadDataTask: Task<Void, Never>? = nil
     @State private var loadAnimationTask: Task<Void, Never>? = nil
     @State private var playAnimationTask: Task<Void, Never>? = nil
 
     @State private var navigateToEditor = false
 
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
+
     var body: some View {
         NavigationStack {
             VStack {
-                if !animations.isEmpty {
+                if !animationCache.metadatas.isEmpty {
                     Table(of: AnimationMetadata.self, selection: $selection) {
                         TableColumn("Name", value: \.title)
                             .width(min: 120, ideal: 250)
@@ -49,7 +48,8 @@ struct AnimationTable: View {
                         }
                         .width(80)
                     } rows: {
-                        ForEach(animations) { metadata in
+                        ForEach(animationCache.metadatas.values.sorted(by: { $0.title < $1.title }))
+                        { metadata in
                             TableRow(metadata)
                                 .contextMenu {
                                     Button {
@@ -112,12 +112,7 @@ struct AnimationTable: View {
                         .padding()
                 }
             }  // VStack
-            .task {
-                logger.debug("in task()")
-                loadData()
-            }
             .onDisappear {
-                loadDataTask?.cancel()
                 loadAnimationTask?.cancel()
                 playAnimationTask?.cancel()
             }
@@ -126,7 +121,6 @@ struct AnimationTable: View {
             }
             .onChange(of: creature) {
                 logger.info("onChange() in AnimationTable")
-                loadData()
             }
             .alert(isPresented: $showErrorAlert) {
                 Alert(
@@ -137,14 +131,13 @@ struct AnimationTable: View {
             }
             .navigationTitle("Animations")
             #if os(macOS)
-                .navigationSubtitle("Number of Animations: \(animations.count)")
+                .navigationSubtitle("Number of Animations: \(animationCache.metadatas.count)")
             #endif
             .navigationDestination(isPresented: $navigateToEditor) {
                 AnimationEditor()
             }
             .toolbar(id: "animationTableToolbar") {
                 ToolbarItem(id: "newTrack", placement: .primaryAction) {
-
                     NavigationLink(
                         destination: AnimationEditor(createNew: true),
                         label: {
@@ -155,27 +148,6 @@ struct AnimationTable: View {
             }
         }  // NavigationStack
     }  // body
-
-    func loadData() {
-        loadDataTask?.cancel()
-
-        loadDataTask = Task {
-            // Go load the animations
-            let result = await server.listAnimations()
-            logger.debug("Loaded animations")
-
-            switch result {
-            case .success(let data):
-                logger.debug("success!")
-                self.animations = data
-            case .failure(let error):
-                alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                logger.warning(
-                    "Unable to load animations: \(String(describing: error.localizedDescription))")
-                showErrorAlert = true
-            }
-        }
-    }
 
     func loadAnimationToAppState(animationId: AnimationIdentifier) {
         loadAnimationTask?.cancel()
@@ -197,7 +169,6 @@ struct AnimationTable: View {
     }
 
     func playStoredAnimation(animationId: AnimationIdentifier?) {
-
         guard let animationId = animationId else {
             logger.debug("playStoredAnimation was called with a nil selection")
             return

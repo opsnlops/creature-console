@@ -25,6 +25,11 @@ struct AppStateInspectorView: View {
                 Text(appState.currentActivity.description)
             }
 
+            Section("Caches") {
+                Text("Creature Cache: \(CreatureCache.shared.creatures.count)")
+                Text("Animation Cache: \(AnimationMetadataCache.shared.metadatas.count)")
+            }
+
             Spacer()
         }
 
