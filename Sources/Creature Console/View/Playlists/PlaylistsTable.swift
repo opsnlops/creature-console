@@ -18,7 +18,9 @@ struct PlaylistsTable: View {
     @State private var selection: Common.Playlist.ID? = nil
 
     @State private var loadDataTask: Task<Void, Never>? = nil
-    @State private var playSoundTask: Task<Void, Never>? = nil
+    @State private var playlistTask: Task<Void, Never>? = nil
+
+    @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
     var body: some View {
         NavigationStack {
@@ -38,11 +40,11 @@ struct PlaylistsTable: View {
                             TableRow(playlist)
                                 .contextMenu {
                                     Button {
-                                       // playSelected()
+                                       playSelected()
                                     } label: {
                                         Label("Play Playlist", systemImage: "music.quarternote.3")
                                     }
-                                    //.disabled(sound.transcript.isEmpty)
+
 
                                 }  //context Menu
                         }  // ForEach
@@ -66,6 +68,16 @@ struct PlaylistsTable: View {
                     message: Text(alertMessage),
                     dismissButton: .default(Text("List this!"))
                 )
+            }
+            .toolbar(id: "playlistList") {
+                ToolbarItem(id: "stop", placement: .secondaryAction) {
+                    Button(action: {
+                        stopPlayback()
+                    }) {
+                        Image(systemName: "stop.circle.fill")
+                            .symbolRenderingMode(.palette)
+                    }
+                }
             }
             .navigationTitle("Playlists")
 #if os(macOS)
@@ -97,6 +109,61 @@ struct PlaylistsTable: View {
             }
         }
     }
+
+    func playSelected() {
+
+        logger.debug("Attempting to play the selected playlist on the active universe")
+
+        playlistTask?.cancel()
+
+        playlistTask = Task {
+
+            // Go see what, if anything, is selected
+            if let playlistId = selection {
+                let result = await server.startPlayingPlaylist(universe: activeUniverse, playlistId: playlistId)
+                switch result {
+                case .success(let message):
+                    print(message)
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                        logger.warning(
+                            "Unable to start a playlist: \(String(describing: error.localizedDescription))"
+                        )
+                        showErrorAlert = true
+                    }
+
+                }
+            }
+
+        }
+    }
+
+        func stopPlayback() {
+
+            logger.debug("Attempting to stop playing a playlist on the active universe")
+
+            playlistTask?.cancel()
+
+            playlistTask = Task {
+                let result = await server.stopPlayingPlaylist(universe: activeUniverse)
+                switch result {
+                case .success(let message):
+                    print(message)
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                        logger.warning(
+                            "Unable to stop playlist playback: \(String(describing: error.localizedDescription))"
+                        )
+                        showErrorAlert = true
+                    }
+
+                }
+            }
+        }
+
+
 
 
 }  // struct
