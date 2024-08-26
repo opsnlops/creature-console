@@ -48,7 +48,7 @@ func getServer(config: GlobalOptions) -> CreatureServerClient {
     let server = CreatureServerClient()
     server.serverPort = config.port
     server.serverHostname = config.host
-    server.serverInsecure = config.insecure
+    server.useTLS = !config.insecure
 
     return server
 }

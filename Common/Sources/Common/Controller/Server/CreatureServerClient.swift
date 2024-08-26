@@ -14,7 +14,7 @@ public class CreatureServerClient: CreatureServerClientProtocol {
     public var serverHostname: String =
         UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
     public var serverPort: Int = UserDefaults.standard.integer(forKey: "serverRestPort")
-    public var serverInsecure: Bool = UserDefaults.standard.bool(forKey: "serverInsecure")
+    public var useTLS: Bool = true
 
 
     public enum UrlType {
@@ -39,17 +39,18 @@ public class CreatureServerClient: CreatureServerClientProtocol {
         var prefix: String
         switch type {
         case (.http):
-            prefix = serverInsecure ? "http://" : "https://"
+            prefix = useTLS ? "https://" : "http://"
         case (.websocket):
-            prefix = serverInsecure ? "ws://" : "wss://"
+            prefix = useTLS ? "wss://" : "ws://"
         }
 
         return "\(prefix)\(serverHostname):\(serverPort)/api/v1"
     }
 
-    public func connect(serverHostname: String, serverPort: Int) throws {
+    public func connect(serverHostname: String, serverPort: Int, useTLS: Bool) throws {
         self.serverHostname = serverHostname
         self.serverPort = serverPort
+        self.useTLS = useTLS
         logger.info("Set the server hostname to \(serverHostname) and the port to \(serverPort)")
     }
 

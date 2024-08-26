@@ -5,7 +5,7 @@ import Foundation
 /// that's broken up into a bunch of files via extentions.
 public protocol CreatureServerClientProtocol: AnyObject {
 
-    func connect(serverHostname: String, serverPort: Int) throws
+    func connect(serverHostname: String, serverPort: Int, useTLS: Bool) throws
     func close()
     func getHostname() -> String
     func streamLogs(queue: BlockingThreadSafeQueue<ServerLogItem>) async

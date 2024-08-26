@@ -52,7 +52,8 @@ struct CreatureConsole: App {
             try CreatureServerClient.shared.connect(
                 serverHostname: UserDefaults.standard.string(forKey: "serverAddress")
                     ?? "127.0.0.1",
-                serverPort: UserDefaults.standard.integer(forKey: "serverPort"))
+                serverPort: UserDefaults.standard.integer(forKey: "serverPort"),
+                useTLS: UserDefaults.standard.bool(forKey: "serverUseTLS"))
 
             logger.info("connected to server")
             appState.currentActivity = .idle
