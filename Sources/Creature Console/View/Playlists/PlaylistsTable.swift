@@ -14,18 +14,19 @@ struct PlaylistsTable: View {
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
 
-    @State var availablePlaylists: [Common.Playlist] = []
     @State private var selection: Common.Playlist.ID? = nil
 
-    @State private var loadDataTask: Task<Void, Never>? = nil
     @State private var playlistTask: Task<Void, Never>? = nil
+
+    // Update if this changes
+    @ObservedObject private var playlistCache = PlaylistCache.shared
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
     var body: some View {
         NavigationStack {
             VStack {
-                if !availablePlaylists.isEmpty {
+                if !playlistCache.playlists.isEmpty {
                     Table(of: Common.Playlist.self, selection: $selection) {
                         TableColumn("Name", value: \.name)
                             .width(min: 300, ideal: 500)
@@ -36,7 +37,7 @@ struct PlaylistsTable: View {
                         .width(min: 120)
 
                     } rows: {
-                        ForEach(availablePlaylists) { playlist in
+                        ForEach(playlistCache.playlists.values.sorted(by: { $0.name < $1.name })) { playlist in
                             TableRow(playlist)
                                 .contextMenu {
                                     Button {
@@ -52,21 +53,14 @@ struct PlaylistsTable: View {
                 }  // if !availablePlaylists.isEmpty
 
             }  // VStack
-            .onAppear {
-                logger.debug("onAppear()")
-                loadData()
-            }
-            .onDisappear {
-                loadDataTask?.cancel()
-            }
             .onChange(of: selection) {
                 logger.debug("selection is now \(String(describing: selection))")
             }
             .alert(isPresented: $showErrorAlert) {
                 Alert(
-                    title: Text("Unable to get the list of playlists"),
+                    title: Text("Error"),
                     message: Text(alertMessage),
-                    dismissButton: .default(Text("List this!"))
+                    dismissButton: .default(Text("Crap"))
                 )
             }
             .toolbar(id: "playlistList") {
@@ -74,41 +68,18 @@ struct PlaylistsTable: View {
                     Button(action: {
                         stopPlayback()
                     }) {
-                        Image(systemName: "stop.circle.fill")
+                        Image(systemName: "stop.circle")
                             .symbolRenderingMode(.palette)
                     }
                 }
             }
             .navigationTitle("Playlists")
 #if os(macOS)
-            .navigationSubtitle("Number of Playlists: \(self.availablePlaylists.count)")
+            .navigationSubtitle("Number of Playlists: \(self.playlistCache.playlists.values.count)")
 #endif
         }  // Navigation Stack
     }  // View
 
-
-    func loadData() {
-        loadDataTask?.cancel()
-
-        loadDataTask = Task {
-
-            // Go fetch all of the playlists
-            let result = await server.getAllPlaylists()
-            logger.debug("Loaded all playlists")
-
-            switch result {
-                case .success(let data):
-                    logger.debug("success!")
-                    self.availablePlaylists = data
-                case .failure(let error):
-                    alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                    logger.warning(
-                        "Unable to load our playlists: \(String(describing: error.localizedDescription))"
-                    )
-                    showErrorAlert = true
-            }
-        }
-    }
 
     func playSelected() {
 

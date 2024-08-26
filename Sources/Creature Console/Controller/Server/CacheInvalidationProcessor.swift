@@ -14,6 +14,8 @@ struct CacheInvalidationProcessor {
             rebuildCreatureCache()
         case .animation:
             rebuildAnimationCache()
+        case .playlist:
+            rebuildPlaylistCache()
         default:
             return
 
@@ -63,6 +65,29 @@ struct CacheInvalidationProcessor {
                 AppState.shared.systemAlertMessage =
                     "Unable to reload the animation cache after getting an invalidation message: \(error.localizedDescription)"
                 AppState.shared.showSystemAlert = true
+            }
+        }
+
+    }
+
+    static func rebuildPlaylistCache() {
+
+        logger.info("attempting to rebuild the playlist cache")
+
+        let cache = PlaylistCache.shared
+
+        Task {
+            logger.debug("calling out to the server now...")
+            let populateResult = cache.fetchPlaylistsFromServer()
+            switch populateResult {
+                case .success:
+                    logger.debug("rebuilt the playlist cache")
+                case .failure(let error):
+                    logger.warning(
+                        "unable to refresh the playlist cache: \(error.localizedDescription)")
+                    AppState.shared.systemAlertMessage =
+                    "Unable to reload the playlist cache after getting an invalidation message: \(error.localizedDescription)"
+                    AppState.shared.showSystemAlert = true
             }
         }
 

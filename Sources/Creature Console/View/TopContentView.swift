@@ -9,9 +9,9 @@ struct TopContentView: View {
     let server = CreatureServerClient.shared
     let messageProcessor = SwiftMessageProcessor.shared
 
-    // This one does not need to be observed since we don't show the animation
-    // info in the sidebar
+    // These do not need to be observed since we don't show the in the sidebar
     let animationMetadataCache = AnimationMetadataCache.shared
+    let playlistCache = PlaylistCache.shared
 
 
     // Watch the cache to know what to do
@@ -147,6 +147,20 @@ struct TopContentView: View {
                             showErrorAlert = true
                         }
                 }
+
+                // And the playlist cache
+                let playlistCacheResult = playlistCache.fetchPlaylistsFromServer()
+                switch(playlistCacheResult) {
+                    case .success(let message):
+                        logger.debug("populated the playlist cache: \(message)")
+                    case .failure(let error):
+                        logger.warning("unable to fetch the playlist cache")
+                        DispatchQueue.main.async {
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
+                        }
+                }
+
 
             }.alert(isPresented: $showErrorAlert) {
                 Alert(
