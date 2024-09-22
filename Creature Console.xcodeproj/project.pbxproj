@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -291,7 +291,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		117C876E2CA0CEFA007B5682 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		117C876E2CA0CEFA007B5682 /* Exceptions for "Creature" folder in "Creature TV" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealth.swift,
@@ -301,10 +301,29 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		117C86FF2CA0CC81007B5682 /* Creature TV */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Creature TV"; sourceTree = "<group>"; };
-		117C87122CA0CC82007B5682 /* Creature TVTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Creature TVTests"; sourceTree = "<group>"; };
-		117C871C2CA0CC82007B5682 /* Creature TVUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Creature TVUITests"; sourceTree = "<group>"; };
-		11E5CE7B2C9FDFB700749F94 /* Creature */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (117C876E2CA0CEFA007B5682 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Creature; sourceTree = "<group>"; };
+		117C86FF2CA0CC81007B5682 /* Creature TV */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Creature TV";
+			sourceTree = "<group>";
+		};
+		117C87122CA0CC82007B5682 /* Creature TVTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Creature TVTests";
+			sourceTree = "<group>";
+		};
+		117C871C2CA0CC82007B5682 /* Creature TVUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Creature TVUITests";
+			sourceTree = "<group>";
+		};
+		11E5CE7B2C9FDFB700749F94 /* Creature */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				117C876E2CA0CEFA007B5682 /* Exceptions for "Creature" folder in "Creature TV" target */,
+			);
+			path = Creature;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1033,7 +1052,6 @@
 				};
 			};
 			buildConfigurationList = 11703D8329DD197F00EF7E3D /* Build configuration list for PBXProject "Creature Console" */;
-			compatibilityVersion = "Xcode 15.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -1047,6 +1065,7 @@
 				1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */,
 				118331982C005BD80017DC2A /* XCRemoteSwiftPackageReference "ViewInspector" */,
 			);
+			preferredProjectObjectVersion = 77;
 			productRefGroup = 11703D8929DD197F00EF7E3D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
