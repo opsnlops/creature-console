@@ -23,8 +23,12 @@ class SwiftMessageProcessor: MessageProcessor, ObservableObject {
         ServerLogItemProcessor.processServerLogItem(logItem)
     }
 
-    func processSensorReport(_ sensorReport: SensorReport) {
-        SensorReportMessageProcessor.processSensorReport(sensorReport)
+    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
+        BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
+    }
+
+    func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) {
+        MotorSensorReportMessageProcessor.processMotorSensorReport(motorSensorReport)
     }
 
     func processSystemCounters(_ counters: SystemCountersDTO) {

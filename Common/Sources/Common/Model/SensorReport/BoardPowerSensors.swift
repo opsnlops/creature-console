@@ -1,7 +1,8 @@
 import Foundation
 
-public class BoardPowerSensors: ObservableObject, Codable, Hashable {
+public class BoardPowerSensors: ObservableObject, Codable, Hashable, Identifiable {
 
+    public let id = UUID() // Unique identifier for each instance
     @Published public var name: String
     @Published public var current: Double
     @Published public var power: Double

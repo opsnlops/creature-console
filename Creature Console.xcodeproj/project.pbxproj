@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -76,7 +76,10 @@
 		11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */; };
 		11C5B8472C0D39C10037E70A /* SoundFileTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5B8462C0D39C10037E70A /* SoundFileTable.swift */; };
 		11C5B8492C0D57F40037E70A /* CreateNewCreatureSoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */; };
-		11C622F52C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift */; };
+		11C622F52C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */; };
+		11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
+		11E5CE802C9FE1C600749F94 /* CreatureHealthCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */; };
+		11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE812C9FEA9D00749F94 /* SensorData.swift */; };
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
@@ -167,7 +170,10 @@
 		11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualStatusLightsProcessor.swift; sourceTree = "<group>"; };
 		11C5B8462C0D39C10037E70A /* SoundFileTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundFileTable.swift; sourceTree = "<group>"; usesTabs = 0; };
 		11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateNewCreatureSoundView.swift; sourceTree = "<group>"; };
-		11C622F42C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorReportMessageProcessor.swift; sourceTree = "<group>"; };
+		11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardSensorReportMessageProcessor.swift; sourceTree = "<group>"; };
+		11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorSensorReportProcessor.swift; sourceTree = "<group>"; };
+		11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureHealthCache.swift; sourceTree = "<group>"; };
+		11E5CE812C9FEA9D00749F94 /* SensorData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorData.swift; sourceTree = "<group>"; };
 		11F4BA5629EA7DF300078790 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickSettingsView.swift; sourceTree = "<group>"; };
@@ -224,6 +230,10 @@
 		11FF7C532BF0334E00BF5A09 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		11E5CE7B2C9FDFB700749F94 /* Creature */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Creature; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		11703D8529DD197F00EF7E3D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -250,6 +260,7 @@
 		110B125C2A247BC4002C5585 /* Creatures */ = {
 			isa = PBXGroup;
 			children = (
+				11E5CE812C9FEA9D00749F94 /* SensorData.swift */,
 				1142E66129DFB22300B795F0 /* CreatureDetail.swift */,
 				11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */,
 				11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */,
@@ -305,6 +316,7 @@
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				11E5CE7B2C9FDFB700749F94 /* Creature */,
 				1199D6C22BF5D222004E0D64 /* Server */,
 				110B12602A2491B9002C5585 /* Joystick */,
 				110B125F2A24918C002C5585 /* Audio */,
@@ -464,12 +476,13 @@
 		1199D6B32BF5BA82004E0D64 /* Server */ = {
 			isa = PBXGroup;
 			children = (
+				11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */,
 				1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */,
 				1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */,
 				1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */,
 				11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */,
 				1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */,
-				11C622F42C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift */,
+				11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */,
 				1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */,
 			);
 			path = Server;
@@ -575,6 +588,7 @@
 				1122A7B62A24440100D60464 /* AppState.swift */,
 				1107942C2C44E32C008EF68E /* AnimationMetadataCache.swift */,
 				1110E9662BF03B2A00FCE26D /* CreatureCache.swift */,
+				11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */,
 				113BA4C82C7CD7CC00C2DF27 /* PlaylistCache.swift */,
 			);
 			path = Controller;
@@ -780,6 +794,9 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				11E5CE7B2C9FDFB700749F94 /* Creature */,
+			);
 			name = "Creature Console";
 			packageProductDependencies = (
 				1110E9642BF035E500FCE26D /* Common */,
@@ -893,17 +910,19 @@
 				1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */,
 				11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */,
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
-				11C622F52C27CDD300D9AEE4 /* SensorReportMessageProcessor.swift in Sources */,
+				11C622F52C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift in Sources */,
 				1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */,
 				1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
 				114147922C0145270046601D /* TrackListingView.swift in Sources */,
+				11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */,
 				1199D6CB2BF6F606004E0D64 /* LogManager.swift in Sources */,
 				114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11C522372BF84E0C0009A53E /* StatusLightsManager.swift in Sources */,
 				111D522A2C014158002CC23B /* AppStateInspectorScene.swift in Sources */,
+				11E5CE802C9FE1C600749F94 /* CreatureHealthCache.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* JoystickDebugView.swift in Sources */,
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
@@ -911,6 +930,7 @@
 				11C288622BF70E8E00F7ACD8 /* JoystickManager.swift in Sources */,
 				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
+				11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				1107942D2C44E32C008EF68E /* AnimationMetadataCache.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
@@ -1100,7 +1120,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2204;
+				CURRENT_PROJECT_VERSION = 2300;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -1123,11 +1143,11 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.4;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 2.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1149,7 +1169,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2204;
+				CURRENT_PROJECT_VERSION = 2300;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
@@ -1172,11 +1192,11 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.2.4;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 2.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

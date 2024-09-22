@@ -15,6 +15,7 @@ struct CreatureConsole: App {
     let joystickManager = JoystickManager.shared
     let statusLights = StatusLightsManager.shared
     let creatureCache = CreatureCache.shared
+    let healthCache = CreatureHealthCache.shared
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")

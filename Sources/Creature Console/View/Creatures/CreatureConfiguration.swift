@@ -17,32 +17,6 @@ struct CreatureConfiguration: View {
     var body: some View {
         VStack {
 
-            #if os(macOS)
-                Form {
-                    TextField("Name", text: $creature.name)
-                        .disabled(true)
-                    TextField("Channel Offset", value: $creature.channelOffset, format: .number)
-                        .disabled(true)
-                    TextField("Audio Channel", value: $creature.audioChannel, format: .number)
-                        .disabled(true)
-                }.padding()
-            #endif
-
-            #if os(iOS)
-                Form {
-                    Section(header: Text("Name")) {
-                        TextField("", text: $creature.name)
-                    }
-                    Section(header: Text("Channel Offset")) {
-                        TextField("", value: $creature.channelOffset, format: .number)
-                    }
-                    Section(header: Text("Audio Channel")) {
-                        TextField("", value: $creature.audioChannel, format: .number)
-                    }
-                }
-            #endif
-
-
             Text("Inputs")
             InputTable(creature: creature)
 

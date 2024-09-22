@@ -30,6 +30,7 @@ struct CreatureDetail: View {
     var body: some View {
         VStack {
             CreatureConfiguration(creature: creature)
+            SensorData(creature: creature)
         }
         .toolbar(id: "\(creature.name) creatureDetail") {
             ToolbarItem(id: "control", placement: .primaryAction) {
@@ -80,7 +81,7 @@ struct CreatureDetail: View {
 
 
     func generateStatusString() -> String {
-        let status = "Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)"
+        let status = "ID: \(creature.id), Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)"
         return status
     }
 
