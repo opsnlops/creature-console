@@ -8,8 +8,6 @@ struct SensorData: View {
 
     var creature: Creature
 
-    @State private var minTemperature = 60.0
-    @State private var maxTemperature = 175.0
     let gradient = Gradient(colors: [.green, .yellow, .orange, .red])
     @State private var temperatureHistory: [TemperaturePoint] = []
 
@@ -29,23 +27,7 @@ struct SensorData: View {
                 // If we have a temperature, show it
                 if !report.boardTemperature.isNaN {
 
-                    Gauge(value: report.boardTemperature, in: minTemperature...maxTemperature) {
-                        Image(systemName: "thermometer.medium")
-                            .foregroundColor(.red)
-                    } currentValueLabel: {
-                        Text("\(Int(report.boardTemperature))")
-                            .foregroundColor(Color.blue)
-                    } minimumValueLabel: {
-                        Text("\(Int(minTemperature))")
-                            .foregroundColor(Color.green)
-                    } maximumValueLabel: {
-                        Text("\(Int(maxTemperature))")
-                            .foregroundColor(Color.red)
-                    }
-
-                    Gauge(value: report.boardTemperature, in: minTemperature...maxTemperature) {
-                        Text("Temperature")
-                    }
+                    Text("Temperature: \(report.boardTemperature)°F")
                     .onAppear {
                         // Add the current temperature to the history when the view appears
                         addTemperatureToHistory(report.boardTemperature)
@@ -73,9 +55,7 @@ struct SensorData: View {
                 if !report.boardPowerSensors.isEmpty {
                     ForEach(report.boardPowerSensors.indices, id: \.self) { index in
                         let sensor = report.boardPowerSensors[index]
-                        Gauge(value: sensor.voltage, in: 0...12) {
-                            Text("Power Sensor \(sensor.name)")
-                        }
+                        Text("Power Sensor \(sensor.name): \(sensor.voltage) volts")
                     }
                 }
 
@@ -109,5 +89,5 @@ struct SensorData: View {
 }
 
 #Preview {
-    InputTable(creature: Creature.mock())
+    SensorData(creature: Creature.mock())
 }

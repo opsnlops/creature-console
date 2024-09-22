@@ -18,7 +18,10 @@ struct CreatureConfiguration: View {
         VStack {
 
             Text("Inputs")
+
+            #if !os(tvOS)
             InputTable(creature: creature)
+            #endif
 
 
             Text(

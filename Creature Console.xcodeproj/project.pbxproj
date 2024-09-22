@@ -38,6 +38,49 @@
 		11754B672C002940001A6C83 /* CacheMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11754B662C002940001A6C83 /* CacheMethods.swift */; };
 		11754B772C005124001A6C83 /* CreatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11754B762C005124001A6C83 /* CreatureTests.swift */; };
 		11754B792C0054F0001A6C83 /* InputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11754B782C0054F0001A6C83 /* InputTests.swift */; };
+		117C872B2CA0CCB6007B5682 /* Common in Frameworks */ = {isa = PBXBuildFile; productRef = 117C872A2CA0CCB6007B5682 /* Common */; };
+		117C872D2CA0CCCD007B5682 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 117C872C2CA0CCCD007B5682 /* Logging */; };
+		117C872F2CA0CCCD007B5682 /* LoggingOSLog in Frameworks */ = {isa = PBXBuildFile; productRef = 117C872E2CA0CCCD007B5682 /* LoggingOSLog */; };
+		117C87302CA0CE3B007B5682 /* CreatureHealthCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */; };
+		117C87312CA0CE9F007B5682 /* SystemCountersItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */; };
+		117C87322CA0CE9F007B5682 /* CacheInvalidationProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */; };
+		117C87332CA0CE9F007B5682 /* NoticeMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */; };
+		117C87342CA0CE9F007B5682 /* SwiftMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */; };
+		117C87352CA0CE9F007B5682 /* ServerLogItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */; };
+		117C87362CA0CE9F007B5682 /* BoardSensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */; };
+		117C87372CA0CE9F007B5682 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
+		117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */; };
+		117C87392CA0CEB1007B5682 /* CacheMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11754B662C002940001A6C83 /* CacheMethods.swift */; };
+		117C873A2CA0CEB1007B5682 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
+		117C873B2CA0CEBE007B5682 /* CreatureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1110E9662BF03B2A00FCE26D /* CreatureCache.swift */; };
+		117C873C2CA0CEBE007B5682 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B62A24440100D60464 /* AppState.swift */; };
+		117C873D2CA0CEBE007B5682 /* PlaylistCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113BA4C82C7CD7CC00C2DF27 /* PlaylistCache.swift */; };
+		117C873E2CA0CEBE007B5682 /* AnimationMetadataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942C2C44E32C008EF68E /* AnimationMetadataCache.swift */; };
+		117C873F2CA0CEBE007B5682 /* EventLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */; };
+		117C87402CA0CEC3007B5682 /* JoystickManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */; };
+		117C87412CA0CEC3007B5682 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
+		117C87452CA0CEF9007B5682 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11218E7F2B67522500AFFF65 /* Joystick.swift */; };
+		117C87542CA0CEF9007B5682 /* SystemCountersStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C32BF5D230004E0D64 /* SystemCountersStore.swift */; };
+		117C87552CA0CEF9007B5682 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
+		117C87572CA0CEF9007B5682 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
+		117C87592CA0CEF9007B5682 /* AprilsCreatureWorkshopJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */; };
+		117C87602CA0CEF9007B5682 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
+		117C87652CA0CEF9007B5682 /* StatusLightsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522362BF84E0C0009A53E /* StatusLightsManager.swift */; };
+		117C87672CA0CEF9007B5682 /* LogItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C82BF6F51B004E0D64 /* LogItem.swift */; };
+		117C87692CA0CEF9007B5682 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
+		117C876C2CA0CEF9007B5682 /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6CA2BF6F606004E0D64 /* LogManager.swift */; };
+		117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */; };
+		117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
+		117C87712CA0D586007B5682 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
+		117C87722CA0D586007B5682 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
+		117C87732CA0D586007B5682 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
+		117C87742CA0D586007B5682 /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
+		117C87752CA0D710007B5682 /* JoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC9A2B4FB2BE00A9895A /* JoystickDebugView.swift */; };
+		117C87762CA0D727007B5682 /* ByteChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */; };
+		117C87772CA0D727007B5682 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
+		117C87812CA0D8C6007B5682 /* CreatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */; };
+		117C87832CA0DA3F007B5682 /* SensorData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE812C9FEA9D00749F94 /* SensorData.swift */; };
+		117C87842CA0E0EB007B5682 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
 		1183318D2C00577D0017DC2A /* AnimationMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183318C2C00577D0017DC2A /* AnimationMetadataTests.swift */; };
 		1183318F2C0059490017DC2A /* TrackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183318E2C0059490017DC2A /* TrackTests.swift */; };
 		118331912C0059C30017DC2A /* ServerErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118331902C0059C30017DC2A /* ServerErrorTests.swift */; };
@@ -95,6 +138,20 @@
 			remoteGlobalIDString = 11703D8729DD197F00EF7E3D;
 			remoteInfo = "Creature Console";
 		};
+		117C87102CA0CC82007B5682 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 117C86FD2CA0CC81007B5682;
+			remoteInfo = "Creature TV";
+		};
+		117C871A2CA0CC82007B5682 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 117C86FD2CA0CC81007B5682;
+			remoteInfo = "Creature TV";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -133,6 +190,9 @@
 		11754B6D2C0050AF001A6C83 /* Creature Console Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Creature Console Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11754B762C005124001A6C83 /* CreatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureTests.swift; sourceTree = "<group>"; };
 		11754B782C0054F0001A6C83 /* InputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTests.swift; sourceTree = "<group>"; };
+		117C86FE2CA0CC81007B5682 /* Creature TV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature TV.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Creature TVTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Creature TVUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1182ED122BEDD28A00E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1183318C2C00577D0017DC2A /* AnimationMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataTests.swift; sourceTree = "<group>"; };
 		1183318E2C0059490017DC2A /* TrackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackTests.swift; sourceTree = "<group>"; };
@@ -230,8 +290,21 @@
 		11FF7C532BF0334E00BF5A09 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		117C876E2CA0CEFA007B5682 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CreatureHealth.swift,
+			);
+			target = 117C86FD2CA0CC81007B5682 /* Creature TV */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		11E5CE7B2C9FDFB700749F94 /* Creature */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Creature; sourceTree = "<group>"; };
+		117C86FF2CA0CC81007B5682 /* Creature TV */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Creature TV"; sourceTree = "<group>"; };
+		117C87122CA0CC82007B5682 /* Creature TVTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Creature TVTests"; sourceTree = "<group>"; };
+		117C871C2CA0CC82007B5682 /* Creature TVUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Creature TVUITests"; sourceTree = "<group>"; };
+		11E5CE7B2C9FDFB700749F94 /* Creature */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (117C876E2CA0CEFA007B5682 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Creature; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -251,6 +324,30 @@
 			buildActionMask = 2147483647;
 			files = (
 				1183319A2C005BD80017DC2A /* ViewInspector in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		117C86FB2CA0CC81007B5682 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				117C872F2CA0CCCD007B5682 /* LoggingOSLog in Frameworks */,
+				117C872D2CA0CCCD007B5682 /* Logging in Frameworks */,
+				117C872B2CA0CCB6007B5682 /* Common in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		117C870C2CA0CC82007B5682 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		117C87162CA0CC82007B5682 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,6 +451,9 @@
 				113CC9B62BE6EE5F00DF7FF7 /* Sources */,
 				118BF86F2A253EF800D80AE6 /* Assets */,
 				11754B6E2C0050AF001A6C83 /* Creature Console Tests */,
+				117C86FF2CA0CC81007B5682 /* Creature TV */,
+				117C87122CA0CC82007B5682 /* Creature TVTests */,
+				117C871C2CA0CC82007B5682 /* Creature TVUITests */,
 				11703D8929DD197F00EF7E3D /* Products */,
 				11F1757029DD42D800ADD5FB /* Frameworks */,
 			);
@@ -364,6 +464,9 @@
 			children = (
 				11703D8829DD197F00EF7E3D /* Creature Console.app */,
 				11754B6D2C0050AF001A6C83 /* Creature Console Tests.xctest */,
+				117C86FE2CA0CC81007B5682 /* Creature TV.app */,
+				117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */,
+				117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -828,6 +931,77 @@
 			productReference = 11754B6D2C0050AF001A6C83 /* Creature Console Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		117C86FD2CA0CC81007B5682 /* Creature TV */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 117C87272CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TV" */;
+			buildPhases = (
+				117C86FA2CA0CC81007B5682 /* Sources */,
+				117C86FB2CA0CC81007B5682 /* Frameworks */,
+				117C86FC2CA0CC81007B5682 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				117C86FF2CA0CC81007B5682 /* Creature TV */,
+			);
+			name = "Creature TV";
+			packageProductDependencies = (
+				117C872A2CA0CCB6007B5682 /* Common */,
+				117C872C2CA0CCCD007B5682 /* Logging */,
+				117C872E2CA0CCCD007B5682 /* LoggingOSLog */,
+			);
+			productName = "Creature TV";
+			productReference = 117C86FE2CA0CC81007B5682 /* Creature TV.app */;
+			productType = "com.apple.product-type.application";
+		};
+		117C870E2CA0CC82007B5682 /* Creature TVTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 117C87282CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TVTests" */;
+			buildPhases = (
+				117C870B2CA0CC82007B5682 /* Sources */,
+				117C870C2CA0CC82007B5682 /* Frameworks */,
+				117C870D2CA0CC82007B5682 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				117C87112CA0CC82007B5682 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				117C87122CA0CC82007B5682 /* Creature TVTests */,
+			);
+			name = "Creature TVTests";
+			packageProductDependencies = (
+			);
+			productName = "Creature TVTests";
+			productReference = 117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		117C87182CA0CC82007B5682 /* Creature TVUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 117C87292CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TVUITests" */;
+			buildPhases = (
+				117C87152CA0CC82007B5682 /* Sources */,
+				117C87162CA0CC82007B5682 /* Frameworks */,
+				117C87172CA0CC82007B5682 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				117C871B2CA0CC82007B5682 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				117C871C2CA0CC82007B5682 /* Creature TVUITests */,
+			);
+			name = "Creature TVUITests";
+			packageProductDependencies = (
+			);
+			productName = "Creature TVUITests";
+			productReference = 117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -835,7 +1009,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1540;
+				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1530;
 				TargetAttributes = {
 					11703D8729DD197F00EF7E3D = {
@@ -844,6 +1018,17 @@
 					11754B6C2C0050AF001A6C83 = {
 						CreatedOnToolsVersion = 15.4;
 						TestTargetID = 11703D8729DD197F00EF7E3D;
+					};
+					117C86FD2CA0CC81007B5682 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					117C870E2CA0CC82007B5682 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 117C86FD2CA0CC81007B5682;
+					};
+					117C87182CA0CC82007B5682 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 117C86FD2CA0CC81007B5682;
 					};
 				};
 			};
@@ -868,6 +1053,9 @@
 			targets = (
 				11703D8729DD197F00EF7E3D /* Creature Console */,
 				11754B6C2C0050AF001A6C83 /* Creature Console Tests */,
+				117C86FD2CA0CC81007B5682 /* Creature TV */,
+				117C870E2CA0CC82007B5682 /* Creature TVTests */,
+				117C87182CA0CC82007B5682 /* Creature TVUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -885,6 +1073,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		11754B6B2C0050AF001A6C83 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		117C86FC2CA0CC81007B5682 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				117C87842CA0E0EB007B5682 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		117C870D2CA0CC82007B5682 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		117C87172CA0CC82007B5682 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -977,6 +1187,66 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		117C86FA2CA0CC81007B5682 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				117C87752CA0D710007B5682 /* JoystickDebugView.swift in Sources */,
+				117C87302CA0CE3B007B5682 /* CreatureHealthCache.swift in Sources */,
+				117C873B2CA0CEBE007B5682 /* CreatureCache.swift in Sources */,
+				117C873C2CA0CEBE007B5682 /* AppState.swift in Sources */,
+				117C873D2CA0CEBE007B5682 /* PlaylistCache.swift in Sources */,
+				117C87832CA0DA3F007B5682 /* SensorData.swift in Sources */,
+				117C873E2CA0CEBE007B5682 /* AnimationMetadataCache.swift in Sources */,
+				117C873F2CA0CEBE007B5682 /* EventLoop.swift in Sources */,
+				117C87392CA0CEB1007B5682 /* CacheMethods.swift in Sources */,
+				117C873A2CA0CEB1007B5682 /* CreatureManager.swift in Sources */,
+				117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */,
+				117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */,
+				117C87712CA0D586007B5682 /* AdvancedSettings.swift in Sources */,
+				117C87722CA0D586007B5682 /* SettingsView.swift in Sources */,
+				117C87732CA0D586007B5682 /* JoystickSettingsView.swift in Sources */,
+				117C87742CA0D586007B5682 /* InterfaceSettings.swift in Sources */,
+				117C87312CA0CE9F007B5682 /* SystemCountersItemProcessor.swift in Sources */,
+				117C87322CA0CE9F007B5682 /* CacheInvalidationProcessor.swift in Sources */,
+				117C87402CA0CEC3007B5682 /* JoystickManager.swift in Sources */,
+				117C87452CA0CEF9007B5682 /* Joystick.swift in Sources */,
+				117C87762CA0D727007B5682 /* ByteChartView.swift in Sources */,
+				117C87772CA0D727007B5682 /* BarChart.swift in Sources */,
+				117C87542CA0CEF9007B5682 /* SystemCountersStore.swift in Sources */,
+				117C87552CA0CEF9007B5682 /* VirtualJoystick.swift in Sources */,
+				117C87572CA0CEF9007B5682 /* SixAxisJoystick.swift in Sources */,
+				117C87592CA0CEF9007B5682 /* AprilsCreatureWorkshopJoystick.swift in Sources */,
+				117C87602CA0CEF9007B5682 /* StorageManager.swift in Sources */,
+				117C87652CA0CEF9007B5682 /* StatusLightsManager.swift in Sources */,
+				117C87672CA0CEF9007B5682 /* LogItem.swift in Sources */,
+				117C87692CA0CEF9007B5682 /* AudioManager.swift in Sources */,
+				117C87812CA0D8C6007B5682 /* CreatureConfiguration.swift in Sources */,
+				117C876C2CA0CEF9007B5682 /* LogManager.swift in Sources */,
+				117C87412CA0CEC3007B5682 /* JoystickHandler.swift in Sources */,
+				117C87332CA0CE9F007B5682 /* NoticeMessageProcessor.swift in Sources */,
+				117C87342CA0CE9F007B5682 /* SwiftMessageProcessor.swift in Sources */,
+				117C87352CA0CE9F007B5682 /* ServerLogItemProcessor.swift in Sources */,
+				117C87362CA0CE9F007B5682 /* BoardSensorReportMessageProcessor.swift in Sources */,
+				117C87372CA0CE9F007B5682 /* MotorSensorReportProcessor.swift in Sources */,
+				117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		117C870B2CA0CC82007B5682 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		117C87152CA0CC82007B5682 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -984,6 +1254,16 @@
 			isa = PBXTargetDependency;
 			target = 11703D8729DD197F00EF7E3D /* Creature Console */;
 			targetProxy = 11754B712C0050AF001A6C83 /* PBXContainerItemProxy */;
+		};
+		117C87112CA0CC82007B5682 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 117C86FD2CA0CC81007B5682 /* Creature TV */;
+			targetProxy = 117C87102CA0CC82007B5682 /* PBXContainerItemProxy */;
+		};
+		117C871B2CA0CC82007B5682 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 117C86FD2CA0CC81007B5682 /* Creature TV */;
+			targetProxy = 117C871A2CA0CC82007B5682 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1260,6 +1540,156 @@
 			};
 			name = Release;
 		};
+		117C87212CA0CC82007B5682 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Debug;
+		};
+		117C87222CA0CC82007B5682 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		117C87232CA0CC82007B5682 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TVTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Creature TV.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Creature TV";
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Debug;
+		};
+		117C87242CA0CC82007B5682 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TVTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Creature TV.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Creature TV";
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		117C87252CA0CC82007B5682 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TVUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_TARGET_NAME = "Creature TV";
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Debug;
+		};
+		117C87262CA0CC82007B5682 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TVUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_TARGET_NAME = "Creature TV";
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1286,6 +1716,33 @@
 			buildConfigurations = (
 				11754B742C0050AF001A6C83 /* Debug */,
 				11754B752C0050AF001A6C83 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		117C87272CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TV" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				117C87212CA0CC82007B5682 /* Debug */,
+				117C87222CA0CC82007B5682 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		117C87282CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TVTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				117C87232CA0CC82007B5682 /* Debug */,
+				117C87242CA0CC82007B5682 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		117C87292CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TVUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				117C87252CA0CC82007B5682 /* Debug */,
+				117C87262CA0CC82007B5682 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -1331,6 +1788,20 @@
 		1110E9642BF035E500FCE26D /* Common */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Common;
+		};
+		117C872A2CA0CCB6007B5682 /* Common */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Common;
+		};
+		117C872C2CA0CCCD007B5682 /* Logging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = Logging;
+		};
+		117C872E2CA0CCCD007B5682 /* LoggingOSLog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */;
+			productName = LoggingOSLog;
 		};
 		118331992C005BD80017DC2A /* ViewInspector */ = {
 			isa = XCSwiftPackageProductDependency;

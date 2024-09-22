@@ -22,12 +22,15 @@ struct InterfaceSettings: View {
 
     var body: some View {
         VStack {
+
+            #if !os(tvOS)
             Form {
                 Section(header: Text("Server Logs Scrollback Size")) {
                     Slider(value: intProxy, in: 10...200, step: 10.0)
                 }
                 Text("\(serverLogsScrollBackLines)")
             }
+            #endif
             Spacer()
         }
 

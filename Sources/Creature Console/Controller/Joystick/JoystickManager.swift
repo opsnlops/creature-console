@@ -133,7 +133,7 @@ class JoystickManager: ObservableObject {
         /**
          On iOS we don't have a choice. IOKit does not exist there.
          */
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
             joystick = sixAxisJoystick
         #endif
 
