@@ -245,7 +245,7 @@ extension WebSocketClient: WebSocketDelegate {
                     WebSocketMessageDTO<PlaylistStatus>.self, from: data)
                 messageProcessor?.processPlaylistStatus(messageDTO.payload)
             default:
-                self.logger.warning("Unknown message type: \(commandDTO.command)")
+                self.logger.warning("Unknown message type: \(commandDTO.command), data: \(data)")
             }
 
         } catch {

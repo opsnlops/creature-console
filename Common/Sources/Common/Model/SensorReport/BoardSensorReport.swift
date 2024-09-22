@@ -1,57 +1,57 @@
 import Foundation
 
-public class SensorReport: ObservableObject, Codable, Hashable {
+public class BoardSensorReport: ObservableObject, Codable, Hashable {
 
     @Published public var creatureId: CreatureIdentifier
     @Published public var boardTemperature: Double
-    @Published public var motors: [MotorSensorReport]
+    @Published public var powerSensors: [BoardPowerSensors]
 
     enum CodingKeys: String, CodingKey {
         case creatureId = "creature_id"
         case boardTemperature = "board_temperature"
-        case motors
+        case powerSensors
     }
 
     public init(
-        creatureId: CreatureIdentifier, boardTemperature: Double, motors: [MotorSensorReport]
+        creatureId: CreatureIdentifier, boardTemperature: Double, powerSensors: [BoardPowerSensors]
     ) {
         self.creatureId = creatureId
         self.boardTemperature = boardTemperature
-        self.motors = motors
+        self.powerSensors = powerSensors
     }
 
     required public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         creatureId = try container.decode(CreatureIdentifier.self, forKey: .creatureId)
         boardTemperature = try container.decode(Double.self, forKey: .boardTemperature)
-        motors = try container.decode([MotorSensorReport].self, forKey: .motors)
+        powerSensors = try container.decode([BoardPowerSensors].self, forKey: .powerSensors)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(creatureId, forKey: .creatureId)
         try container.encode(boardTemperature, forKey: .boardTemperature)
-        try container.encode(motors, forKey: .motors)
+        try container.encode(powerSensors, forKey: .powerSensors)
     }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(creatureId)
         hasher.combine(boardTemperature)
-        hasher.combine(motors)
+        hasher.combine(powerSensors)
     }
 
-    public static func == (lhs: SensorReport, rhs: SensorReport) -> Bool {
+    public static func == (lhs: BoardSensorReport, rhs: BoardSensorReport) -> Bool {
         lhs.creatureId == rhs.creatureId && lhs.boardTemperature == rhs.boardTemperature
-            && lhs.motors == rhs.motors
+            && lhs.powerSensors == rhs.powerSensors
     }
 }
 
-extension SensorReport {
-    public static func mock() -> SensorReport {
-        return SensorReport(
+extension BoardSensorReport {
+    public static func mock() -> BoardSensorReport {
+        return BoardSensorReport(
             creatureId: "MockCreatureID",
             boardTemperature: 25.0,
-            motors: [MotorSensorReport.mock()]
+            powerSensors: [BoardPowerSensors.mock()]
         )
     }
 }
