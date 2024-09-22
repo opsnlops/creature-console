@@ -230,10 +230,14 @@ extension WebSocketClient: WebSocketDelegate {
                 let messageDTO = try decoder.decode(
                     WebSocketMessageDTO<VirtualStatusLightsDTO>.self, from: data)
                 messageProcessor?.processStatusLights(messageDTO.payload)
-            case .creatureSensorReport:
+            case .motorSensorReport:
                 let messageDTO = try decoder.decode(
-                    WebSocketMessageDTO<SensorReport>.self, from: data)
-                messageProcessor?.processSensorReport(messageDTO.payload)
+                    WebSocketMessageDTO<MotorSensorReport>.self, from: data)
+                messageProcessor?.processMotorSensorReport(messageDTO.payload)
+            case .boardSensorReport:
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<BoardSensorReport>.self, from: data)
+                messageProcessor?.processBoardSensorReport(messageDTO.payload)
             case .cacheInvalidation:
                 logger.debug("cache-invalidation")
                 let messageDTO = try decoder.decode(
@@ -249,7 +253,8 @@ extension WebSocketClient: WebSocketDelegate {
             }
 
         } catch {
-            self.logger.error("Error decoding message: \(error.localizedDescription)")
+            self.logger.error(
+                "Error decoding message: \(error.localizedDescription), details: \(error)")
         }
     }
 }

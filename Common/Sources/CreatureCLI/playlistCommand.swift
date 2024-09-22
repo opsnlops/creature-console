@@ -80,7 +80,8 @@ extension CreatureCLI {
 
                 let server = getServer(config: globalOptions)
 
-                let result = await server.startPlayingPlaylist(universe: universe, playlistId: playlistId)
+                let result = await server.startPlayingPlaylist(
+                    universe: universe, playlistId: playlistId)
 
                 switch result {
                 case .success(let message):
@@ -124,7 +125,6 @@ extension CreatureCLI {
             }
 
         }
-
 
 
     }

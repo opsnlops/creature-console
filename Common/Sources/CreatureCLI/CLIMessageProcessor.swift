@@ -26,10 +26,46 @@ class CLIMessageProcessor: MessageProcessor {
         )
     }
 
-    func processSensorReport(_ sensorReport: SensorReport) {
+    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
         print(
-            "[SENSORS] Creature: \(sensorReport.creatureId), board temperature: \(sensorReport.boardTemperature)F"
+            "[BOARD_SENSORS] Creature: \(boardSensorReport.creatureId), board temperature: \(boardSensorReport.boardTemperature)F"
         )
+
+        let headers = ["Name", "Voltage", "Current", "Power"]
+        var rows = [[String]]()
+
+        for sensor in boardSensorReport.powerReports {
+            let row = [
+                String(sensor.name),
+                String(sensor.voltage),
+                String(sensor.current),
+                String(sensor.power),
+            ]
+            rows.append(row)
+        }
+        printTable(headers: headers, rows: rows)
+
+    }
+
+    func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) {
+        print(
+            "[MOTOR_SENSORS] Creature: \(motorSensorReport.creatureId)"
+        )
+
+        let headers = ["Number", "Position", "Voltage", "Current", "Power"]
+        var rows = [[String]]()
+
+        for sensor in motorSensorReport.motors {
+            let row = [
+                String(sensor.motorNumber),
+                String(sensor.position),
+                String(sensor.voltage),
+                String(sensor.current),
+                String(sensor.power),
+            ]
+            rows.append(row)
+        }
+        printTable(headers: headers, rows: rows)
     }
 
     func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {

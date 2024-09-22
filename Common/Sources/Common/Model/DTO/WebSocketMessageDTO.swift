@@ -21,8 +21,10 @@ public struct WebSocketMessageDTO<T: Codable>: Codable {
         command = try container.decode(String.self, forKey: .command)
 
         switch ServerMessageType(rawValue: command) {
-        case .creatureSensorReport:
-            payload = try container.decode(SensorReport.self, forKey: .payload) as! T
+        case .boardSensorReport:
+            payload = try container.decode(BoardSensorReport.self, forKey: .payload) as! T
+        case .motorSensorReport:
+            payload = try container.decode(MotorSensorReport.self, forKey: .payload) as! T
         case .notice:
             payload = try container.decode(Notice.self, forKey: .payload) as! T
         case .logging:

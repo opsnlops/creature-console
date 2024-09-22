@@ -25,7 +25,6 @@ extension CreatureServerClient {
     }
 
 
-
     public func startPlayingPlaylist(
         universe: UniverseIdentifier,
         playlistId: PlaylistIdentifier
