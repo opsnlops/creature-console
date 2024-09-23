@@ -37,7 +37,7 @@ struct CreatureConsole: App {
             "audioVolume": 0.8,
             "useOurJoystick": true,
             "activeUniverse": 1,
-            "audioFilePath": "file:///Volumes/creatures/sounds"
+            "audioFilePath": "file:///Users/april/Documents/"
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
 
@@ -92,7 +92,7 @@ struct CreatureConsole: App {
 
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
         @UIApplicationDelegateAdaptor(ConsoleAppDelegate.self) var appDelegate
     #elseif os(macOS)
         @NSApplicationDelegateAdaptor(ConsoleAppDelegate.self) var appDelegate

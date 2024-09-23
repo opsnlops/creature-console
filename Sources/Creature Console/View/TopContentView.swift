@@ -37,15 +37,17 @@ struct TopContentView: View {
                     if !creatureCache.empty {
                         ForEach(creatureCache.creatures.values.sorted(by: { $0.name < $1.name })) {
                             creature in
-                            NavigationLink(creature.name, value: creature.id)
+                            NavigationLink(value: creature.id) {
+                                Label(creature.name, systemImage: "pawprint.circle")
+                            }
                         }
                     } else {
-                        Text("Trying to talk to \(server.getHostname())...")
-                            .padding()
+                        Label("Loading...", systemImage: "server.rack")
                     }
                 }
 
 
+                #if os(iOS) || os(macOS)
                 Section("Animations") {
                     NavigationLink {
                         AnimationTable()
@@ -58,7 +60,9 @@ struct TopContentView: View {
                         Label("Record New", systemImage: "hare")
                     }
                 }
+                #endif
 
+                #if os(iOS) || os(macOS)
                 Section("Playlists") {
                     NavigationLink {
                         PlaylistsTable()
@@ -67,8 +71,9 @@ struct TopContentView: View {
                             .symbolRenderingMode(.hierarchical)
                     }
                 }
+                #endif
 
-
+                #if os(iOS) || os(macOS)
                 Section("Sound Files") {
                     NavigationLink {
                         SoundFileTable()
@@ -82,6 +87,7 @@ struct TopContentView: View {
                             .symbolRenderingMode(.multicolor)
                     }
                 }
+                #endif
 
 
                 Section("Controls") {
@@ -90,22 +96,28 @@ struct TopContentView: View {
                     } label: {
                         Label("Debug Joystick", systemImage: "gamecontroller")
                     }
+
+                    #if os(iOS) || os(macOS)
                     NavigationLink {
                         LogView()
                     } label: {
                         Label("Server Logs", systemImage: "server.rack")
                     }
+                    #endif
                     NavigationLink {
                         SettingsView()
                     } label: {
                         Label("Settings", systemImage: "gear")
                     }
+
+                    #if os(iOS) || os(macOS)
                     NavigationLink {
                         AudioFilePicker()
                     } label: {
                         Label("Audio", systemImage: "hifispeaker.2")
                             .symbolRenderingMode(.hierarchical)
                     }
+                    #endif
                 }
             }
             .navigationTitle("Creature Console")
@@ -171,13 +183,16 @@ struct TopContentView: View {
             }
         } detail: {
             NavigationStack(path: $navigationPath) {
-                Text("Please choose a thing!")
+                Text("Using server: \(server.getHostname())")
                     .padding()
+                    .navigationDestination(for: CreatureIdentifier.self) { creatureID in
+                        creatureDetailView(for: creatureID)
+                    }
             }
 
         }
 
-        #if os(macOS)
+        #if os(macOS) || os(tvOS)
             BottomToolBarView()
         #endif
 

@@ -17,17 +17,17 @@ struct CreatureConfiguration: View {
     var body: some View {
         VStack {
 
+            // Sadly tvOS doesn't yet support tables. Maybe someday!
+            #if !os(tvOS)
             Text("Inputs")
 
-            #if !os(tvOS)
             InputTable(creature: creature)
-            #endif
-
 
             Text(
                 "💡 These values may not be changed in the console. To change something, submit an update from the Controller. The Creatures's JSON file is always the source of truth!"
             )
             .padding()
+            #endif
         }
 
     }

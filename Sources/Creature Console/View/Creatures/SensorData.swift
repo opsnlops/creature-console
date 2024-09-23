@@ -27,9 +27,8 @@ struct SensorData: View {
                 // If we have a temperature, show it
                 if !report.boardTemperature.isNaN {
 
-                    Text("Temperature: \(report.boardTemperature)°F")
+                    Text("Temperature: \(String(format: "%.1f", report.boardTemperature))°F")
                     .onAppear {
-                        // Add the current temperature to the history when the view appears
                         addTemperatureToHistory(report.boardTemperature)
                     }
                     .onChange(of: report.boardTemperature) { oldTemperature, newTemperature in
@@ -39,8 +38,6 @@ struct SensorData: View {
                         }
                     }
 
-                    Text("Board Temperature: \(report.boardTemperature)")
-
                     // Swift Charts Line Plot for temperature over time
                     Chart(temperatureHistory) { point in
                         LineMark(
@@ -48,21 +45,22 @@ struct SensorData: View {
                             y: .value("Temperature", point.temperature)
                         )
                     }
-                    .frame(height: 200)  // Set height for the chart
+                    .frame(height: 200)
                 }
 
 
                 if !report.boardPowerSensors.isEmpty {
                     ForEach(report.boardPowerSensors.indices, id: \.self) { index in
                         let sensor = report.boardPowerSensors[index]
-                        Text("Power Sensor \(sensor.name): \(sensor.voltage) volts")
+                        Text("Power Sensor \(sensor.name): \(String(format: "%.3f", sensor.voltage)) volts")
+
                     }
                 }
 
 
             }
         case .failure:
-            Text("Creature has not had a health report yet")
+                Text("\(creature.name) has not sent a health report yet")
         }
 
     }

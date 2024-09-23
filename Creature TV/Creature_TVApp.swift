@@ -69,7 +69,7 @@ struct Creature_TVApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TopContentView()
         }
     }
 }
