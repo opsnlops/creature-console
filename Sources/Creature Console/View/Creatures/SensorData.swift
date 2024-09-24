@@ -9,7 +9,6 @@ struct SensorData: View {
     var creature: Creature
 
     let gradient = Gradient(colors: [.green, .yellow, .orange, .red])
-    @State private var temperatureHistory: [TemperaturePoint] = []
 
 
     @ObservedObject private var healthCache = CreatureHealthCache.shared
@@ -19,42 +18,40 @@ struct SensorData: View {
     var body: some View {
 
 
-        let healthReport = healthCache.getById(id: creature.id)
+        let healthReport = healthCache.allBoardSensorData(forCreature: creature.id)
         switch healthReport {
         case .success(let report):
             VStack {
 
-                // If we have a temperature, show it
-                if !report.boardTemperature.isNaN {
+                if let latestReport = report.last {
 
-                    Text("Temperature: \(String(format: "%.1f", report.boardTemperature))°F")
-                    .onAppear {
-                        addTemperatureToHistory(report.boardTemperature)
-                    }
-                    .onChange(of: report.boardTemperature) { oldTemperature, newTemperature in
-                        // Add the updated temperature to the history when it changes
-                        if oldTemperature != newTemperature {
-                            addTemperatureToHistory(newTemperature)
-                        }
-                    }
+                    // If we have a temperature, show it
+                    Text("Temperature: \(String(format: "%.1f", latestReport.boardTemperature))°F")
+
+                    // Extract the temperature points from the report
+                    let temperaturePoints = report.map { TemperaturePoint(timestamp: $0.timestamp, temperature: $0.boardTemperature) }
 
                     // Swift Charts Line Plot for temperature over time
-                    Chart(temperatureHistory) { point in
+                    Chart(temperaturePoints) { point in
                         LineMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Temperature", point.temperature)
                         )
                     }
                     .frame(height: 200)
-                }
 
 
-                if !report.boardPowerSensors.isEmpty {
-                    ForEach(report.boardPowerSensors.indices, id: \.self) { index in
-                        let sensor = report.boardPowerSensors[index]
-                        Text("Power Sensor \(sensor.name): \(String(format: "%.3f", sensor.voltage)) volts")
+                    HStack {
+                        if !latestReport.powerReports.isEmpty {
+                            ForEach(latestReport.powerReports.indices, id: \.self) { index in
+                                let sensor = latestReport.powerReports[index]
+                                VoltageMeterView(title: sensor.name, minValue: 0.0, maxValue: 5.0, currentValue: sensor.voltage)
 
+
+                            }
+                        }
                     }
+                    .frame(height: 400)
                 }
 
 
@@ -65,16 +62,6 @@ struct SensorData: View {
 
     }
 
-
-    private func addTemperatureToHistory(_ temperature: Double) {
-        let newPoint = TemperaturePoint(timestamp: Date(), temperature: temperature)
-        temperatureHistory.append(newPoint)
-
-        // Keep only the 100 most recent points
-        if temperatureHistory.count > 100 {
-            temperatureHistory.removeFirst(temperatureHistory.count - 100)
-        }
-    }
 
 
     // Model to represent temperature data at a point in time

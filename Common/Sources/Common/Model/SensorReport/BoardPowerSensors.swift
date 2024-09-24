@@ -1,12 +1,12 @@
 import Foundation
 
-public class BoardPowerSensors: ObservableObject, Codable, Hashable, Identifiable {
+public class BoardPowerSensors: Codable, Hashable, Identifiable {
 
-    public let id = UUID() // Unique identifier for each instance
-    @Published public var name: String
-    @Published public var current: Double
-    @Published public var power: Double
-    @Published public var voltage: Double
+    public let id = UUID()
+    public var name: String
+    public var current: Double
+    public var power: Double
+    public var voltage: Double
 
     enum CodingKeys: String, CodingKey {
         case name, current, power, voltage

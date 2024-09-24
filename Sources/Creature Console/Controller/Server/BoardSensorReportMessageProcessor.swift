@@ -12,7 +12,7 @@ struct BoardSensorReportMessageProcessor {
         logger.debug("Received board sensor report for creature: \(boardSensorReport.creatureId)")
 
         let cache = CreatureHealthCache.shared
-        cache.updateCreature(boardSensorReport)
+        cache.addBoardSensorData(boardSensorReport, forCreature: boardSensorReport.creatureId)
     }
 
 }

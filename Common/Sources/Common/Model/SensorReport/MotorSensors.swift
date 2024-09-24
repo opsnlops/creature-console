@@ -1,13 +1,14 @@
 import Foundation
 
 /// The sensors that we have on a motor
-public class MotorSensors: ObservableObject, Codable, Hashable {
+public class MotorSensors: Codable, Hashable, Identifiable {
 
-    @Published public var motorNumber: Int
-    @Published public var position: Int
-    @Published public var current: Double
-    @Published public var power: Double
-    @Published public var voltage: Double
+    public let id = UUID()
+    public var motorNumber: Int
+    public var position: Int
+    public var current: Double
+    public var power: Double
+    public var voltage: Double
 
     enum CodingKeys: String, CodingKey {
         case motorNumber = "number"
@@ -50,7 +51,8 @@ public class MotorSensors: ObservableObject, Codable, Hashable {
 
     public static func == (lhs: MotorSensors, rhs: MotorSensors) -> Bool {
         lhs.motorNumber == rhs.motorNumber && lhs.position == rhs.position
-            && lhs.current == rhs.current && lhs.power == rhs.power && lhs.voltage == rhs.voltage
+            && lhs.current == rhs.current && lhs.power == rhs.power
+            && lhs.voltage == rhs.voltage
     }
 }
 

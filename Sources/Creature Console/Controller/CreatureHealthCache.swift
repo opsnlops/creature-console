@@ -3,91 +3,114 @@ import Common
 import Foundation
 import OSLog
 
+enum CacheError: Error, CustomStringConvertible {
+    case noDataForCreature
+
+    var description: String {
+        switch self {
+            case .noDataForCreature:
+                return "No data available for the specified creature."
+        }
+    }
+}
+
 class CreatureHealthCache: ObservableObject {
     static let shared = CreatureHealthCache()
+    @Published private var motorSensorCache: [CreatureIdentifier: [MotorSensorReport]] = [:]
+    @Published private var boardSensorCache: [CreatureIdentifier: [BoardSensorReport]] = [:]
 
-    @Published public private(set) var healths: [CreatureIdentifier: CreatureHealth] = [:]
-    @Published public private(set) var empty: Bool = true
+    private let maxSensorCount = 100
 
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "CreatureHealthCache")
     private let queue = DispatchQueue(
         label: "io.opsnlops.CreatureConsole.CreatureHealthCache.queue", attributes: .concurrent)
 
-    // Make sure we don't accidentally create two of these
+    // Don't make more than one by accident
     private init() {}
 
-    func updateCreature(_ boardSensors: BoardSensorReport) {
+    // Add a new MotorSensorData for a Creature
+    func addMotorSensorData(_ sensorData: MotorSensorReport, forCreature creatureId: CreatureIdentifier) {
         queue.async(flags: .barrier) {
+            // Work on a local copy of the array to modify it in the background thread
+            var updatedCache = self.motorSensorCache[creatureId, default: []]
+            updatedCache.append(sensorData)
 
-            // See if it exists, and update if so
-            if let health = self.healths[boardSensors.creatureId] {
-                health.boardTemperature = boardSensors.boardTemperature
-                health.boardPowerSensors = boardSensors.powerReports
-
-                DispatchQueue.main.async {
-                    self.healths[boardSensors.creatureId] = health
-                    self.empty = false
-                }
+            // Trim to keep only the most recent 100 sensor data points
+            if updatedCache.count > self.maxSensorCount {
+                updatedCache.removeFirst()
             }
 
-            // It doesn't already exist, so let's make it
-            else {
-                let health = CreatureHealth(
-                    id: boardSensors.creatureId,
-                    boardTemperature: boardSensors.boardTemperature,
-                    boardPowerSensors: boardSensors.powerReports,
-                    motorSensors: [])
-
-                DispatchQueue.main.async {
-                    self.healths[boardSensors.creatureId] = health
-                    self.empty = false
-                }
+            // Now, update the @Published property on the main thread
+            DispatchQueue.main.async {
+                self.motorSensorCache[creatureId] = updatedCache
+                self.objectWillChange.send()  // Notify observers
             }
-
         }
-
     }
 
-    func updateCreature(_ motorSensors: MotorSensorReport) {
+    // Add a new BoardSensorData for a Creature
+    func addBoardSensorData(_ sensorData: BoardSensorReport, forCreature creatureId: CreatureIdentifier) {
         queue.async(flags: .barrier) {
+            // Work on a local copy of the array to modify it in the background thread
+            var updatedCache = self.boardSensorCache[creatureId, default: []]
+            updatedCache.append(sensorData)
 
-            // See if it exists, and update if so
-            if let health = self.healths[motorSensors.creatureId] {
-                health.motorSensors = motorSensors.motors
-
-                DispatchQueue.main.async {
-                    self.healths[motorSensors.creatureId] = health
-                    self.empty = false
-                }
+            // Trim to keep only the most recent 100 sensor data points
+            if updatedCache.count > self.maxSensorCount {
+                updatedCache.removeFirst()
             }
 
-            // It doesn't already exist, so let's make it
-            else {
-                let health = CreatureHealth(
-                    id: motorSensors.creatureId,
-                    boardTemperature: .nan,
-                    boardPowerSensors: [],
-                    motorSensors: motorSensors.motors)
-
-                DispatchQueue.main.async {
-                    self.healths[motorSensors.creatureId] = health
-                    self.empty = false
-                }
+            // Now, update the @Published property on the main thread
+            DispatchQueue.main.async {
+                self.boardSensorCache[creatureId] = updatedCache
+                self.objectWillChange.send()  // Notify observers
             }
-
         }
-
     }
 
-    public func getById(id: CreatureIdentifier) -> Result<CreatureHealth, ServerError> {
-        queue.sync {
-            if let health = healths[id] {
-                return .success(health)
+    // Get the most recent MotorSensorData for a Creature
+    func latestMotorSensorData(forCreature creatureId: CreatureIdentifier) -> Result<MotorSensorReport, CacheError> {
+        return queue.sync {
+            if let latestData = motorSensorCache[creatureId]?.last {
+                return .success(latestData)
             } else {
-                logger.warning("Unable to find creature \(id) in the health cache")
-                return .failure(.notFound("Unable to find creature \(id) in the health cache"))
+                return .failure(.noDataForCreature)
+            }
+        }
+    }
+
+    // Get all MotorSensorData for a Creature, sorted by time
+    func allMotorSensorData(forCreature creatureId: CreatureIdentifier) -> Result<[MotorSensorReport], CacheError> {
+        return queue.sync {
+            if let sensorData = motorSensorCache[creatureId], !sensorData.isEmpty {
+                return .success(sensorData.sorted(by: { $0.timestamp < $1.timestamp }))
+            } else {
+                return .failure(.noDataForCreature)
+            }
+        }
+    }
+
+    // Get the most recent BoardSensorData for a Creature
+    func latestBoardSensorData(forCreature creatureId: CreatureIdentifier) -> Result<BoardSensorReport, CacheError> {
+        return queue.sync {
+            if let latestData = boardSensorCache[creatureId]?.last {
+                return .success(latestData)
+            } else {
+                return .failure(.noDataForCreature)
+            }
+        }
+    }
+
+    // Get all BoardSensorData for a Creature, sorted by time
+    func allBoardSensorData(forCreature creatureId: CreatureIdentifier) -> Result<[BoardSensorReport], CacheError> {
+        return queue.sync {
+            if let sensorData = boardSensorCache[creatureId], !sensorData.isEmpty {
+                return .success(sensorData.sorted(by: { $0.timestamp < $1.timestamp }))
+            } else {
+                return .failure(.noDataForCreature)
             }
         }
     }
 }
+

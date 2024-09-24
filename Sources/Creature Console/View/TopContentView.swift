@@ -104,6 +104,7 @@ struct TopContentView: View {
                             Label("Server Logs", systemImage: "server.rack")
                         }
                     #endif
+
                     NavigationLink {
                         SettingsView()
                     } label: {

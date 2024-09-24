@@ -1,22 +1,25 @@
 import Foundation
 
-public class BoardSensorReport: ObservableObject, Codable, Hashable {
+public class BoardSensorReport: Codable, Hashable {
 
-    @Published public var creatureId: CreatureIdentifier
-    @Published public var boardTemperature: Double
-    @Published public var powerReports: [BoardPowerSensors]
+    public var creatureId: CreatureIdentifier
+    public var boardTemperature: Double
+    public var powerReports: [BoardPowerSensors]
+    public var timestamp: Date = .now
 
     enum CodingKeys: String, CodingKey {
         case creatureId = "creature_id"
         case boardTemperature = "board_temperature"
         case powerReports = "power_reports"
+        case timestamp
     }
 
     public init(
-        creatureId: CreatureIdentifier, boardTemperature: Double, powerReports: [BoardPowerSensors]
+        creatureId: CreatureIdentifier, boardTemperature: Double, timestamp: Date = .now, powerReports: [BoardPowerSensors]
     ) {
         self.creatureId = creatureId
         self.boardTemperature = boardTemperature
+        self.timestamp = timestamp
         self.powerReports = powerReports
     }
 
@@ -24,6 +27,9 @@ public class BoardSensorReport: ObservableObject, Codable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         creatureId = try container.decode(CreatureIdentifier.self, forKey: .creatureId)
         boardTemperature = try container.decode(Double.self, forKey: .boardTemperature)
+
+        // We're not sending a timestamp
+        //timestamp = try container.decode(Date.self, forKey: .timestamp)
         powerReports = try container.decode([BoardPowerSensors].self, forKey: .powerReports)
     }
 
@@ -31,18 +37,20 @@ public class BoardSensorReport: ObservableObject, Codable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(creatureId, forKey: .creatureId)
         try container.encode(boardTemperature, forKey: .boardTemperature)
+        try container.encode(timestamp, forKey: .timestamp)
         try container.encode(powerReports, forKey: .powerReports)
     }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(creatureId)
         hasher.combine(boardTemperature)
+        hasher.combine(timestamp)
         hasher.combine(powerReports)
     }
 
     public static func == (lhs: BoardSensorReport, rhs: BoardSensorReport) -> Bool {
         lhs.creatureId == rhs.creatureId && lhs.boardTemperature == rhs.boardTemperature
-            && lhs.powerReports == rhs.powerReports
+            && lhs.timestamp == rhs.timestamp && lhs.powerReports == rhs.powerReports
     }
 }
 
@@ -51,6 +59,7 @@ extension BoardSensorReport {
         return BoardSensorReport(
             creatureId: "MockCreatureID",
             boardTemperature: 25.0,
+            timestamp: .now,
             powerReports: [BoardPowerSensors.mock()]
         )
     }
