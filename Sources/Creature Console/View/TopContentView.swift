@@ -48,45 +48,45 @@ struct TopContentView: View {
 
 
                 #if os(iOS) || os(macOS)
-                Section("Animations") {
-                    NavigationLink {
-                        AnimationTable()
-                    } label: {
-                        Label("List All", systemImage: "figure.socialdance")
+                    Section("Animations") {
+                        NavigationLink {
+                            AnimationTable()
+                        } label: {
+                            Label("List All", systemImage: "figure.socialdance")
+                        }
+                        NavigationLink {
+                            AnimationEditor(createNew: true)
+                        } label: {
+                            Label("Record New", systemImage: "hare")
+                        }
                     }
-                    NavigationLink {
-                        AnimationEditor(createNew: true)
-                    } label: {
-                        Label("Record New", systemImage: "hare")
-                    }
-                }
                 #endif
 
                 #if os(iOS) || os(macOS)
-                Section("Playlists") {
-                    NavigationLink {
-                        PlaylistsTable()
-                    } label: {
-                        Label("List All", systemImage: "list.bullet.rectangle")
-                            .symbolRenderingMode(.hierarchical)
+                    Section("Playlists") {
+                        NavigationLink {
+                            PlaylistsTable()
+                        } label: {
+                            Label("List All", systemImage: "list.bullet.rectangle")
+                                .symbolRenderingMode(.hierarchical)
+                        }
                     }
-                }
                 #endif
 
                 #if os(iOS) || os(macOS)
-                Section("Sound Files") {
-                    NavigationLink {
-                        SoundFileTable()
-                    } label: {
-                        Label("List All", systemImage: "music.note.list")
+                    Section("Sound Files") {
+                        NavigationLink {
+                            SoundFileTable()
+                        } label: {
+                            Label("List All", systemImage: "music.note.list")
+                        }
+                        NavigationLink {
+                            CreateNewCreatureSoundView()
+                        } label: {
+                            Label("Create New", systemImage: "waveform.path.badge.plus")
+                                .symbolRenderingMode(.multicolor)
+                        }
                     }
-                    NavigationLink {
-                        CreateNewCreatureSoundView()
-                    } label: {
-                        Label("Create New", systemImage: "waveform.path.badge.plus")
-                            .symbolRenderingMode(.multicolor)
-                    }
-                }
                 #endif
 
 
@@ -98,11 +98,11 @@ struct TopContentView: View {
                     }
 
                     #if os(iOS) || os(macOS)
-                    NavigationLink {
-                        LogView()
-                    } label: {
-                        Label("Server Logs", systemImage: "server.rack")
-                    }
+                        NavigationLink {
+                            LogView()
+                        } label: {
+                            Label("Server Logs", systemImage: "server.rack")
+                        }
                     #endif
                     NavigationLink {
                         SettingsView()
@@ -111,12 +111,12 @@ struct TopContentView: View {
                     }
 
                     #if os(iOS) || os(macOS)
-                    NavigationLink {
-                        AudioFilePicker()
-                    } label: {
-                        Label("Audio", systemImage: "hifispeaker.2")
-                            .symbolRenderingMode(.hierarchical)
-                    }
+                        NavigationLink {
+                            AudioFilePicker()
+                        } label: {
+                            Label("Audio", systemImage: "hifispeaker.2")
+                                .symbolRenderingMode(.hierarchical)
+                        }
                     #endif
                 }
             }
@@ -149,28 +149,28 @@ struct TopContentView: View {
 
                 // Now populate the animation metadata cache
                 let animationResult = animationMetadataCache.fetchMetadataListFromServer()
-                switch(animationResult) {
-                    case .success(let message):
-                        logger.debug("populated the metadata cache: \(message)")
-                    case .failure(let error):
-                        logger.warning("unable to fetch the metadata cache")
-                        DispatchQueue.main.async {
-                            errorMessage = error.localizedDescription
-                            showErrorAlert = true
-                        }
+                switch animationResult {
+                case .success(let message):
+                    logger.debug("populated the metadata cache: \(message)")
+                case .failure(let error):
+                    logger.warning("unable to fetch the metadata cache")
+                    DispatchQueue.main.async {
+                        errorMessage = error.localizedDescription
+                        showErrorAlert = true
+                    }
                 }
 
                 // And the playlist cache
                 let playlistCacheResult = playlistCache.fetchPlaylistsFromServer()
-                switch(playlistCacheResult) {
-                    case .success(let message):
-                        logger.debug("populated the playlist cache: \(message)")
-                    case .failure(let error):
-                        logger.warning("unable to fetch the playlist cache")
-                        DispatchQueue.main.async {
-                            errorMessage = error.localizedDescription
-                            showErrorAlert = true
-                        }
+                switch playlistCacheResult {
+                case .success(let message):
+                    logger.debug("populated the playlist cache: \(message)")
+                case .failure(let error):
+                    logger.warning("unable to fetch the playlist cache")
+                    DispatchQueue.main.async {
+                        errorMessage = error.localizedDescription
+                        showErrorAlert = true
+                    }
                 }
 
 
