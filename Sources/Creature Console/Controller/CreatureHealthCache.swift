@@ -19,7 +19,7 @@ class CreatureHealthCache: ObservableObject {
     @Published private var motorSensorCache: [CreatureIdentifier: [MotorSensorReport]] = [:]
     @Published private var boardSensorCache: [CreatureIdentifier: [BoardSensorReport]] = [:]
 
-    private let maxSensorCount = 100
+    private let maxSensorCount = 1000
 
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "CreatureHealthCache")
