@@ -10,6 +10,7 @@ struct SoundFileTable: View {
 
     // Our Server
     let server = CreatureServerClient.shared
+    let audioManager = AudioManager.shared
 
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
@@ -43,14 +44,21 @@ struct SoundFileTable: View {
                             TableRow(sound)
                                 .contextMenu {
                                     Button {
-                                        playSelected()
+                                        playSelectedOnServer()
                                     } label: {
-                                        Label("Play Sound File", systemImage: "music.quarternote.3")
+                                        Label("Play Sound File On Server", systemImage: "music.quarternote.3")
                                     }
                                     //.disabled(sound.transcript.isEmpty)
 
+
                                     Button {
-                                        print("show transscript")
+                                        playSelectedLocally()
+                                    } label: {
+                                        Label("Play Sound File Locally", systemImage: "music.quarternote.3")
+                                    }
+
+                                    Button {
+                                        print("show transcript")
                                     } label: {
                                         Label("View Transcript", systemImage: "text.bubble.fill")
                                     }
@@ -111,7 +119,7 @@ struct SoundFileTable: View {
         }
     }
 
-    func playSelected() {
+    func playSelectedOnServer() {
 
         logger.debug("Attempting to play the selected sound file on the server")
 
@@ -122,6 +130,36 @@ struct SoundFileTable: View {
             // Go see what, if anything, is selected
             if let sound = selection {
                 let result = await server.playSound(sound)
+                switch result {
+                case .success(let message):
+                    print(message)
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                        logger.warning(
+                            "Unable to play a sound file: \(String(describing: error.localizedDescription))"
+                        )
+                        showErrorAlert = true
+                    }
+
+                }
+            }
+
+        }
+
+    }
+
+    func playSelectedLocally() {
+
+        logger.debug("Attempting to play the selected sound file locally")
+
+        playSoundTask?.cancel()
+
+        playSoundTask = Task {
+
+            // Go see what, if anything, is selected
+            if let sound = selection {
+                let result = await audioManager.playSoundFile(fileName: sound)
                 switch result {
                 case .success(let message):
                     print(message)

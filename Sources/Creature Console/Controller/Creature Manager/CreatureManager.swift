@@ -119,7 +119,7 @@ class CreatureManager: ObservableObject {
                 do {
                     logger.info("audiofile URL is \(url)")
                     Task {
-                        await audioManager.play(url: url)
+                        await audioManager.playFileName(url: url)
                     }
                 }
             } else {

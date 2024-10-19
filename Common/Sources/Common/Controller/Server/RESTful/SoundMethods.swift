@@ -41,4 +41,19 @@ extension CreatureServerClient {
             .map { $0.message }
     }
 
+    /**
+     Returns the URL to a sound file on the server
+     */
+    public func getSoundURL(_ fileName: String) -> Result<URL, ServerError> {
+
+        logger.debug("attempting to get sound URI for \(fileName)")
+        
+        guard let url = URL(string: makeBaseURL(.http) + "/sound/" + fileName) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+
+        logger.debug("Sound file URL: \(url)")
+        return .success(url);
+    }
+
 }

@@ -1,4 +1,5 @@
 import AVFoundation
+import AVKit
 import Common
 import Foundation
 import OSLog
@@ -8,6 +9,9 @@ class AudioManager: ObservableObject {
     // Only one of these can / should exist, so let's use the Singleton pattern
     static let shared = AudioManager()
 
+    let server = CreatureServerClient.shared
+
+    private var player: AVPlayer?
     private var audioPlayer: AVAudioPlayer?
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager")
 
@@ -35,8 +39,37 @@ class AudioManager: ObservableObject {
         #endif
     }
 
+    func playSoundFile(fileName: String) async -> Result<String, AudioError> {
+        logger.debug("Attempting to play \(fileName) locally")
 
-    func play(url: URL) async -> Result<String, AudioError> {
+        var soundUrl: URL?
+
+        let urlResult = server.getSoundURL(fileName)
+        switch(urlResult) {
+        case .failure(let error):
+            logger.warning("Failed to get sound URL: \(error.localizedDescription)")
+            return .failure(.systemError(error.localizedDescription))
+        case .success(let url):
+            logger.debug("URL to play is: \(url.absoluteString)")
+            soundUrl = url
+        }
+
+        // Make sure we have valid URL
+        guard let soundUrl else {
+            return .failure(.fileNotFound("🔎 No URL to play"))
+        }
+
+        // If this is in the local scope, it will go out of scope before
+        // the file even starts playing
+        logger.debug("calling AVPlayer.play")
+        self.player = AVPlayer(url: soundUrl)
+        player?.volume = volume
+        player?.play()
+
+        return .success("Played \(fileName)")
+    }
+
+    func playFileName(url: URL) async -> Result<String, AudioError> {
         logger.info("Attempting to play \(url)")
 
         // Check if the file exists at the given URL
@@ -61,8 +94,6 @@ class AudioManager: ObservableObject {
                 }
                 self.audioPlayer?.play()
 
-                // Assuming you want to wait for the audio to finish playing:
-                //await waitForAudioToEnd()
             } catch {
                 logger.error("Failed to initialize AVAudioPlayer: \(error.localizedDescription)")
                 return .failure(
