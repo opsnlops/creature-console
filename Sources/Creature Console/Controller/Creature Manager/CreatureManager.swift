@@ -20,7 +20,6 @@ class CreatureManager: ObservableObject {
     @ObservedObject var appState = AppState.shared
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
-    @AppStorage("audioFilePath") var audioFilePath: String = ""
 
     private var streamingCreature: CreatureIdentifier?
     private var isStreaming: Bool = false
@@ -114,18 +113,19 @@ class CreatureManager: ObservableObject {
         if !soundFile.isEmpty {
 
             // See if it's a valid url
-            if let url = URL(string: audioFilePath + soundFile) {
-
-                do {
-                    logger.info("audiofile URL is \(url)")
-                    Task {
-                        await audioManager.playFileName(url: url)
-                    }
+            let urlRequest = server.getSoundURL(soundFile)
+            switch (urlRequest) {
+            case .success(let url):
+                logger.info("audiofile URL is \(url)")
+                Task {
+                    audioManager.playURL(url)
                 }
-            } else {
+            case .failure(let error):
                 logger.warning(
-                    "audioFile URL doesn't exist: \(self.audioFilePath + soundFile)")
+                    "audioFile URL doesn't exist: \(soundFile)")
             }
+
+           
         } else {
             logger.info("no audio file, skipping playback")
         }

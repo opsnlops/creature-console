@@ -1,3 +1,4 @@
+import AVFoundation
 import Common
 import Foundation
 import OSLog
@@ -20,6 +21,8 @@ struct SoundFileTable: View {
 
     @State private var loadDataTask: Task<Void, Never>? = nil
     @State private var playSoundTask: Task<Void, Never>? = nil
+
+    @State var player: AVPlayer? = nil
 
     var body: some View {
         NavigationStack {
@@ -46,15 +49,17 @@ struct SoundFileTable: View {
                                     Button {
                                         playSelectedOnServer()
                                     } label: {
-                                        Label("Play Sound File On Server", systemImage: "music.quarternote.3")
+                                        Label(
+                                            "Play Sound File On Server",
+                                            systemImage: "music.note.tv")
                                     }
-                                    //.disabled(sound.transcript.isEmpty)
-
 
                                     Button {
                                         playSelectedLocally()
                                     } label: {
-                                        Label("Play Sound File Locally", systemImage: "music.quarternote.3")
+                                        Label(
+                                            "Play Sound File Locally",
+                                            systemImage: "music.quarternote.3")
                                     }
 
                                     Button {
@@ -157,26 +162,31 @@ struct SoundFileTable: View {
 
         playSoundTask = Task {
 
-            // Go see what, if anything, is selected
             if let sound = selection {
-                let result = await audioManager.playSoundFile(fileName: sound)
-                switch result {
-                case .success(let message):
-                    print(message)
+
+                let urlRequest = server.getSoundURL(sound)
+                switch urlRequest {
+                case .success(let url):
+
+                    logger.info("Playing \(url)")
+                    _ = audioManager.playURL(url)
+
                 case .failure(let error):
+
                     DispatchQueue.main.async {
                         alertMessage = "Error: \(String(describing: error.localizedDescription))"
                         logger.warning(
                             "Unable to play a sound file: \(String(describing: error.localizedDescription))"
                         )
-                        showErrorAlert = true
                     }
-
+                    showErrorAlert = true
                 }
+
             }
 
         }
 
     }
+
 
 }  // struct

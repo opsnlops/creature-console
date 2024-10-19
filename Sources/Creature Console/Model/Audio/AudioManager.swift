@@ -39,75 +39,21 @@ class AudioManager: ObservableObject {
         #endif
     }
 
-    func playSoundFile(fileName: String) async -> Result<String, AudioError> {
-        logger.debug("Attempting to play \(fileName) locally")
 
-        var soundUrl: URL?
+    func playURL(_ url: URL) -> Result<String, AudioError> {
 
-        let urlResult = server.getSoundURL(fileName)
-        switch(urlResult) {
-        case .failure(let error):
-            logger.warning("Failed to get sound URL: \(error.localizedDescription)")
-            return .failure(.systemError(error.localizedDescription))
-        case .success(let url):
-            logger.debug("URL to play is: \(url.absoluteString)")
-            soundUrl = url
-        }
+        logger.debug("Attempting to play \(url)")
 
-        // Make sure we have valid URL
-        guard let soundUrl else {
-            return .failure(.fileNotFound("🔎 No URL to play"))
-        }
+        let asset = AVURLAsset(url: url)
+        let playerItem = AVPlayerItem(asset: asset)
 
-        // If this is in the local scope, it will go out of scope before
-        // the file even starts playing
-        logger.debug("calling AVPlayer.play")
-        self.player = AVPlayer(url: soundUrl)
-        player?.volume = volume
+        self.player = AVPlayer(playerItem: playerItem)
         player?.play()
 
-        return .success("Played \(fileName)")
+        return .success("Played \(url)")
+
     }
 
-    func playFileName(url: URL) async -> Result<String, AudioError> {
-        logger.info("Attempting to play \(url)")
-
-        // Check if the file exists at the given URL
-        let fileManager = FileManager.default
-        guard fileManager.fileExists(atPath: url.path) else {
-            logger.error("File not found at URL: \(url)")
-            return .failure(.fileNotFound("🔎 File not found at URL: \(url)"))
-        }
-
-        // Begin accessing a security-scoped resource.
-        let didStartAccessing = url.startAccessingSecurityScopedResource()
-
-        if didStartAccessing {
-            defer { url.stopAccessingSecurityScopedResource() }
-
-            do {
-                self.audioPlayer = try AVAudioPlayer(contentsOf: url)
-                // Instead of immediately playing, wait for audioPlayer to be prepared to play
-                guard self.audioPlayer?.prepareToPlay() ?? false else {
-                    logger.error("AVAudioPlayer failed to prepare.")
-                    return .failure(.systemError("🔇 AVAudioPlayer failed to prepare."))
-                }
-                self.audioPlayer?.play()
-
-            } catch {
-                logger.error("Failed to initialize AVAudioPlayer: \(error.localizedDescription)")
-                return .failure(
-                    .systemError(
-                        "🔇 Failed to initialize AVAudioPlayer: \(error.localizedDescription)"))
-            }
-        } else {
-            logger.error("Couldn't access the security scoped resource.")
-            return .failure(.fileNotFound("🚫 Couldn't access the security scoped resource."))
-        }
-
-        self.logger.debug("Played \(url) successfuly!")
-        return .success("🎼 Played \(url)!")
-    }
 
     func playBundledSound(name: String, extension: String) -> Result<String, AudioError> {
         guard let url = Bundle.main.url(forResource: name, withExtension: `extension`) else {

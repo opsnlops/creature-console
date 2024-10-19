@@ -36,8 +36,7 @@ struct CreatureConsole: App {
             "logSpareTimeFrameInterval": 1000,
             "audioVolume": 0.8,
             "useOurJoystick": true,
-            "activeUniverse": 1,
-            "audioFilePath": "file:///Users/april/Documents/"
+            "activeUniverse": 1
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
 

@@ -20,7 +20,6 @@
 		1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* CategoryList.swift */; };
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
 		113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
-		113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */; };
 		113BA4C92C7CD7CC00C2DF27 /* PlaylistCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113BA4C82C7CD7CC00C2DF27 /* PlaylistCache.swift */; };
 		114147922C0145270046601D /* TrackListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147912C0145270046601D /* TrackListingView.swift */; };
 		114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147932C017E640046601D /* ChooseCreatureSheet.swift */; };
@@ -171,7 +170,6 @@
 		1131763129FF0B66008B35E8 /* CategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryList.swift; sourceTree = "<group>"; };
 		113896B42A0768860055BA70 /* AnimationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditor.swift; sourceTree = "<group>"; };
 		113896B82A0CA3B40055BA70 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
-		113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFilePicker.swift; sourceTree = "<group>"; };
 		113BA4C82C7CD7CC00C2DF27 /* PlaylistCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistCache.swift; sourceTree = "<group>"; };
 		114147912C0145270046601D /* TrackListingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackListingView.swift; sourceTree = "<group>"; };
 		114147932C017E640046601D /* ChooseCreatureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseCreatureSheet.swift; sourceTree = "<group>"; };
@@ -448,7 +446,6 @@
 			isa = PBXGroup;
 			children = (
 				118AE3602C439D1300346C0E /* Playlists */,
-				11A61AA12BFAF87C000A1B48 /* Audio */,
 				1199D6CC2BF6F7E9004E0D64 /* Logging */,
 				110CABE52A9599DB007769E4 /* Processing */,
 				110B125C2A247BC4002C5585 /* Creatures */,
@@ -669,14 +666,6 @@
 				114147912C0145270046601D /* TrackListingView.swift */,
 			);
 			path = Animation;
-			sourceTree = "<group>";
-		};
-		11A61AA12BFAF87C000A1B48 /* Audio */ = {
-			isa = PBXGroup;
-			children = (
-				113896BA2A0CA4FC0055BA70 /* AudioFilePicker.swift */,
-			);
-			path = Audio;
 			sourceTree = "<group>";
 		};
 		11C2E0DE29ECF6BC00B8A4F5 /* Events */ = {
@@ -1168,7 +1157,6 @@
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				1107942D2C44E32C008EF68E /* AnimationMetadataCache.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
-				113896BB2A0CA4FC0055BA70 /* AudioFilePicker.swift in Sources */,
 				1199D6C62BF5D588004E0D64 /* SystemCountersItemProcessor.swift in Sources */,
 				1110E9672BF03B2A00FCE26D /* CreatureCache.swift in Sources */,
 				11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */,

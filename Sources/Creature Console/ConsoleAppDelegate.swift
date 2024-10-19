@@ -23,6 +23,14 @@ import Common
     class ConsoleAppDelegate: NSObject, NSApplicationDelegate {
         let server = CreatureServerClient.shared
 
+        func applicationDidFinishLaunching(_ notification: Notification) {
+               // Enable AVPlayer logging for debugging
+               setenv("AVPlayerLogLevelKey", "4", 1)
+
+               // Continue with your setup code if needed
+               print("App launched, AVPlayer logging enabled.")
+           }
+
         func applicationWillTerminate(_ notification: Notification) {
             // We don't care about the returns, just close
             _ = server.disconnectWebsocket()

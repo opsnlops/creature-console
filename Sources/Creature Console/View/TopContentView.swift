@@ -111,14 +111,6 @@ struct TopContentView: View {
                         Label("Settings", systemImage: "gear")
                     }
 
-                    #if os(iOS) || os(macOS)
-                        NavigationLink {
-                            AudioFilePicker()
-                        } label: {
-                            Label("Audio", systemImage: "hifispeaker.2")
-                                .symbolRenderingMode(.hierarchical)
-                        }
-                    #endif
                 }
             }
             .navigationTitle("Creature Console")
