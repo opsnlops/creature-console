@@ -3,13 +3,13 @@ import Logging
 
 public class Sound: Identifiable, Hashable, Equatable, Codable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.Sound")
-    public var fileName: String
+    public var fileName: SoundIdentifier
     public var size: UInt32
     public var transcript: String
 
     // Use the file name for the identifiable thing. Since these are files on the file system, all in the
     // same directory, it's the file name that makes them unique
-    public var id: String {
+    public var id: SoundIdentifier {
         return fileName
     }
 
@@ -21,13 +21,13 @@ public class Sound: Identifiable, Hashable, Equatable, Codable {
 
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        fileName = try container.decode(String.self, forKey: .fileName)
+        fileName = try container.decode(SoundIdentifier.self, forKey: .fileName)
         size = try container.decode(UInt32.self, forKey: .size)
         transcript = try container.decode(String.self, forKey: .transcript)
         logger.debug("Created a new Sound from init(from:)")
     }
 
-    public init(fileName: String, size: UInt32, transcript: String) {
+    public init(fileName: SoundIdentifier, size: UInt32, transcript: String) {
         self.fileName = fileName
         self.size = size
         self.transcript = transcript

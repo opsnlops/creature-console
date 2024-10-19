@@ -12,6 +12,7 @@ struct TopContentView: View {
     // These do not need to be observed since we don't show the in the sidebar
     let animationMetadataCache = AnimationMetadataCache.shared
     let playlistCache = PlaylistCache.shared
+    let soundListCache = SoundListCache.shared
 
 
     // Watch the cache to know what to do
@@ -166,6 +167,18 @@ struct TopContentView: View {
                     }
                 }
 
+                // ..and finally the sound cache
+                let soundListCacheResult = soundListCache.fetchSoundsFromServer()
+                switch soundListCacheResult {
+                case .success(let message):
+                    logger.debug("populated the sound list cache: \(message)")
+                case .failure(let error):
+                    logger.warning("unable to fetch the sound list cache")
+                    DispatchQueue.main.async {
+                        errorMessage = error.localizedDescription
+                        showErrorAlert = true
+                    }
+                }
 
             }.alert(isPresented: $showErrorAlert) {
                 Alert(

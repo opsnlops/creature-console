@@ -7,6 +7,7 @@ import Foundation
 public typealias AnimationIdentifier = String
 public typealias CreatureIdentifier = String
 public typealias PlaylistIdentifier = String
+public typealias SoundIdentifier = String
 public typealias UniverseIdentifier = Int
 
 public typealias FrameDataIndentifier = String

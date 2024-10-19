@@ -16,6 +16,7 @@ struct CreatureConsole: App {
     let statusLights = StatusLightsManager.shared
     let creatureCache = CreatureCache.shared
     let healthCache = CreatureHealthCache.shared
+    let soundListCache = SoundListCache.shared
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
@@ -68,6 +69,24 @@ struct CreatureConsole: App {
         WindowGroup {
             TopContentView()
         }
+        #if os(macOS)
+        .commands {
+            CommandMenu("Caches") {
+                Button("Invalidate Animation Cache...") {
+                    CacheInvalidationProcessor.rebuildAnimationCache()
+                }
+                Button("Invalidate Creature Cache...") {
+                    CacheInvalidationProcessor.rebuildCreatureCache()
+                }
+                Button("Invalidate Playlist Cache...") {
+                    CacheInvalidationProcessor.rebuildPlaylistCache()
+                }
+                Button("Invalidate Sound List Cache...") {
+                    CacheInvalidationProcessor.rebuildSoundListCache()
+                }
+            }
+        }
+        #endif
 
         #if os(macOS)
             DebugJoystickScene()

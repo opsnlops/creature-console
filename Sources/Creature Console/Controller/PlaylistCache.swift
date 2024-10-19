@@ -59,9 +59,6 @@ class PlaylistCache: ObservableObject {
         let server = CreatureServerClient.shared
 
         Task {
-//
-//            #warning("Remove this delay after figuring out the server concurrency issues")
-//            try await Task.sleep(nanoseconds: 1_000_000_000)
 
             logger.info("attempting to fetch the playlists")
             let fetchResult = await server.getAllPlaylists()

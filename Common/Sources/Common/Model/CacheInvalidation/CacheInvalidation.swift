@@ -2,6 +2,7 @@ public enum CacheType: String, CustomStringConvertible, Codable {
     case animation = "animation"
     case creature = "creature"
     case playlist = "playlist"
+    case soundList = "sound-list"
     case unknown = "unknown"
 
     public var description: String {

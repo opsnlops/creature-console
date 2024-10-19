@@ -8,6 +8,7 @@ struct SoundFileTable: View {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundFileTable")
 
+    @ObservedObject private var soundListCache = SoundListCache.shared
 
     // Our Server
     let server = CreatureServerClient.shared
@@ -16,10 +17,8 @@ struct SoundFileTable: View {
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
 
-    @State var availableSoundFiles: [Common.Sound] = []
     @State private var selection: Common.Sound.ID? = nil
 
-    @State private var loadDataTask: Task<Void, Never>? = nil
     @State private var playSoundTask: Task<Void, Never>? = nil
 
     @State var player: AVPlayer? = nil
@@ -27,7 +26,7 @@ struct SoundFileTable: View {
     var body: some View {
         NavigationStack {
             VStack {
-                if !availableSoundFiles.isEmpty {
+                if !soundListCache.sounds.isEmpty {
                     Table(of: Common.Sound.self, selection: $selection) {
                         TableColumn("File Name", value: \.fileName)
                             .width(min: 300, ideal: 500)
@@ -43,7 +42,7 @@ struct SoundFileTable: View {
                         .width(100)
 
                     } rows: {
-                        ForEach(availableSoundFiles) { sound in
+                        ForEach(soundListCache.sounds.values.sorted(by: { $0.fileName < $1.fileName })) { sound in
                             TableRow(sound)
                                 .contextMenu {
                                     Button {
@@ -76,53 +75,23 @@ struct SoundFileTable: View {
                 }  // if !availableSoundFiles.isEmpty
 
             }  // VStack
-            .onAppear {
-                logger.debug("onAppear()")
-                loadData()
-            }
-            .onDisappear {
-                loadDataTask?.cancel()
-            }
             .onChange(of: selection) {
                 logger.debug("selection is now \(String(describing: selection))")
             }
             .alert(isPresented: $showErrorAlert) {
                 Alert(
-                    title: Text("Unable to the list of sound files"),
+                    title: Text("Error"),
                     message: Text(alertMessage),
-                    dismissButton: .default(Text("No Music for Us"))
+                    dismissButton: .default(Text("No Sounds for Us"))
                 )
             }
             .navigationTitle("Sound Files")
             #if os(macOS)
-                .navigationSubtitle("Number of Sounds: \(self.availableSoundFiles.count)")
+            .navigationSubtitle("Number of Sounds: \(self.soundListCache.sounds.count)")
             #endif
         }  // Navigation Stack
     }  // View
 
-
-    func loadData() {
-        loadDataTask?.cancel()
-
-        loadDataTask = Task {
-
-            // Go fetch all of the sound files
-            let result = await server.listSounds()
-            logger.debug("Loaded all sound")
-
-            switch result {
-            case .success(let data):
-                logger.debug("success!")
-                self.availableSoundFiles = data
-            case .failure(let error):
-                alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                logger.warning(
-                    "Unable to load the list of sound files: \(String(describing: error.localizedDescription))"
-                )
-                showErrorAlert = true
-            }
-        }
-    }
 
     func playSelectedOnServer() {
 

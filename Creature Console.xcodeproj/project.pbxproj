@@ -24,6 +24,8 @@
 		114147922C0145270046601D /* TrackListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147912C0145270046601D /* TrackListingView.swift */; };
 		114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147932C017E640046601D /* ChooseCreatureSheet.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
+		114576E22CC46E470031AF9C /* SoundListCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114576E12CC46E420031AF9C /* SoundListCache.swift */; };
+		114576E32CC46E470031AF9C /* SoundListCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114576E12CC46E420031AF9C /* SoundListCache.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
 		1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */; };
@@ -174,6 +176,7 @@
 		114147912C0145270046601D /* TrackListingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackListingView.swift; sourceTree = "<group>"; };
 		114147932C017E640046601D /* ChooseCreatureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseCreatureSheet.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
+		114576E12CC46E420031AF9C /* SoundListCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundListCache.swift; sourceTree = "<group>"; };
 		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
@@ -706,6 +709,7 @@
 				1110E9662BF03B2A00FCE26D /* CreatureCache.swift */,
 				11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */,
 				113BA4C82C7CD7CC00C2DF27 /* PlaylistCache.swift */,
+				114576E12CC46E420031AF9C /* SoundListCache.swift */,
 			);
 			path = Controller;
 			sourceTree = "<group>";
@@ -1135,6 +1139,7 @@
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
 				11C622F52C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift in Sources */,
 				1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */,
+				114576E22CC46E470031AF9C /* SoundListCache.swift in Sources */,
 				1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
@@ -1206,6 +1211,7 @@
 			files = (
 				117C87752CA0D710007B5682 /* JoystickDebugView.swift in Sources */,
 				117C87302CA0CE3B007B5682 /* CreatureHealthCache.swift in Sources */,
+				114576E32CC46E470031AF9C /* SoundListCache.swift in Sources */,
 				117C873B2CA0CEBE007B5682 /* CreatureCache.swift in Sources */,
 				117E5C4B2CA1271C00431420 /* TopContentView.swift in Sources */,
 				117C873C2CA0CEBE007B5682 /* AppState.swift in Sources */,
@@ -1442,7 +1448,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
-				MARKETING_VERSION = 2.3.4;
+				MARKETING_VERSION = 2.3.5;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1491,7 +1497,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
-				MARKETING_VERSION = 2.3.4;
+				MARKETING_VERSION = 2.3.5;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1567,6 +1573,7 @@
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Console;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
@@ -1599,6 +1606,7 @@
 				DEVELOPMENT_TEAM = YQ8A74NDMJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Console;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;

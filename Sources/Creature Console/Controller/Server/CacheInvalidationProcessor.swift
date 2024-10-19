@@ -16,6 +16,8 @@ struct CacheInvalidationProcessor {
             rebuildAnimationCache()
         case .playlist:
             rebuildPlaylistCache()
+        case .soundList:
+            rebuildSoundListCache()
         default:
             return
 
@@ -87,6 +89,30 @@ struct CacheInvalidationProcessor {
                         "unable to refresh the playlist cache: \(error.localizedDescription)")
                     AppState.shared.systemAlertMessage =
                     "Unable to reload the playlist cache after getting an invalidation message: \(error.localizedDescription)"
+                    AppState.shared.showSystemAlert = true
+            }
+        }
+
+    }
+
+
+    static func rebuildSoundListCache() {
+
+        logger.info("attempting to rebuild the sound list cache")
+
+        let cache = SoundListCache.shared
+
+        Task {
+            logger.debug("calling out to the server now...")
+            let populateResult = cache.fetchSoundsFromServer()
+            switch populateResult {
+                case .success:
+                    logger.debug("rebuilt the sound list cache")
+                case .failure(let error):
+                    logger.warning(
+                        "unable to refresh the sound list cache: \(error.localizedDescription)")
+                    AppState.shared.systemAlertMessage =
+                    "Unable to reload the sound list cache after getting an invalidation message: \(error.localizedDescription)"
                     AppState.shared.showSystemAlert = true
             }
         }
