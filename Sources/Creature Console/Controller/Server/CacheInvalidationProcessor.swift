@@ -8,6 +8,13 @@ struct CacheInvalidationProcessor {
     static let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "CacheInvalidationProcessor")
 
+    // TODO: Learn more about Swift 6 😅
+    static nonisolated(unsafe) private var loadCeaturesTask: Task<Void, Never>? = nil
+    static nonisolated(unsafe) private var loadAnimationsTask: Task<Void, Never>? = nil
+    static nonisolated(unsafe) private var loadPlaylistsTask: Task<Void, Never>? = nil
+    static nonisolated(unsafe) private var loadSoundListsTask: Task<Void, Never>? = nil
+
+
     static func processCacheInvalidation(_ request: CacheInvalidation) {
         switch request.cacheType {
         case .creature:
@@ -31,7 +38,9 @@ struct CacheInvalidationProcessor {
 
         let manager = CreatureManager.shared
 
-        Task {
+        loadCeaturesTask?.cancel()
+
+        loadCeaturesTask = Task {
             logger.debug("calling out to the server now...")
             let populateResult = await manager.populateCache()
             switch populateResult {
@@ -54,7 +63,9 @@ struct CacheInvalidationProcessor {
 
         let cache = AnimationMetadataCache.shared
 
-        Task {
+        loadAnimationsTask?.cancel()
+
+        loadAnimationsTask = Task {
             logger.debug("telling the cache to rebuild itself...")
             let populateResult = cache.fetchMetadataListFromServer()
             switch populateResult {
@@ -78,7 +89,9 @@ struct CacheInvalidationProcessor {
 
         let cache = PlaylistCache.shared
 
-        Task {
+        loadPlaylistsTask?.cancel()
+
+        loadPlaylistsTask = Task {
             logger.debug("calling out to the server now...")
             let populateResult = cache.fetchPlaylistsFromServer()
             switch populateResult {
@@ -102,12 +115,14 @@ struct CacheInvalidationProcessor {
 
         let cache = SoundListCache.shared
 
-        Task {
+        loadSoundListsTask?.cancel()
+
+        loadSoundListsTask = Task {
             logger.debug("calling out to the server now...")
             let populateResult = cache.fetchSoundsFromServer()
             switch populateResult {
                 case .success:
-                    logger.debug("rebuilt the sound list cache")
+                    logger.info("(re)built the sound list cache")
                 case .failure(let error):
                     logger.warning(
                         "unable to refresh the sound list cache: \(error.localizedDescription)")

@@ -9,6 +9,8 @@ class SoundListCache: ObservableObject {
     @Published public private(set) var sounds: [SoundIdentifier: Sound] = [:]
     @Published public private(set) var empty: Bool = true
 
+    private var loadCacheTask: Task<Void, Never>? = nil
+
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "SoundListCache")
     private let queue = DispatchQueue(
@@ -58,7 +60,10 @@ class SoundListCache: ObservableObject {
     public func fetchSoundsFromServer() -> Result<String, ServerError> {
         let server = CreatureServerClient.shared
 
-        Task {
+        // If there's one in flight, stop it
+        loadCacheTask?.cancel()
+
+        loadCacheTask = Task {
 
             logger.info("attempting to fetch the sounds")
             let fetchResult = await server.listSounds()

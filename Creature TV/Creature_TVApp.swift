@@ -16,6 +16,7 @@ struct Creature_TVApp: App {
     let statusLights = StatusLightsManager.shared
     let creatureCache = CreatureCache.shared
     let healthCache = CreatureHealthCache.shared
+    let soundListCache = SoundListCache.shared
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
@@ -36,8 +37,7 @@ struct Creature_TVApp: App {
             "logSpareTimeFrameInterval": 1000,
             "audioVolume": 0.8,
             "useOurJoystick": true,
-            "activeUniverse": 1,
-            "audioFilePath": "file:///Volumes/creatures/sounds"
+            "activeUniverse": 1
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
 
