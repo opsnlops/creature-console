@@ -29,7 +29,6 @@ struct CreatureDetail: View {
 
     var body: some View {
         VStack {
-            CreatureConfiguration(creature: creature)
             SensorData(creature: creature)
         }
         .toolbar(id: "\(creature.name) creatureDetail") {
