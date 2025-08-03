@@ -377,9 +377,9 @@ struct SensorData: View {
     // Helper functions for color coding
     private func temperatureColor(_ temperature: Double) -> Color {
         switch temperature {
-        case ..<60: return .blue
-        case 60..<80: return .green
-        case 80..<100: return .orange
+        case ..<80: return .blue
+        case 80..<100: return .green
+        case 100..<125: return .orange
         default: return .red
         }
     }
@@ -396,7 +396,7 @@ struct SensorData: View {
     private func motorVoltageColor(_ voltage: Double) -> Color {
         switch voltage {
         case ..<7.0: return .red  // Below acceptable range
-        case 7.0...8.4: return .green  // Acceptable range (7.0V - 8.4V)
+        case 7.0...8.8: return .green  // Acceptable range (7.0V - 8.4V)
         default: return .orange  // Above acceptable range
         }
     }
