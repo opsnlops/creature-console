@@ -28,22 +28,52 @@ struct CreatureDetail: View {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureDetail")
 
     var body: some View {
-        VStack {
-            CreatureConfiguration(creature: creature)
-            SensorData(creature: creature)
+        ScrollView {
+            VStack(spacing: 16) {
+                SensorData(creature: creature)
+            }
+            .padding()
         }
         .toolbar(id: "\(creature.name) creatureDetail") {
-            ToolbarItem(id: "control", placement: .primaryAction) {
-                Button(action: {
-                    toggleStreaming()
-                }) {
-                    Image(
-                        systemName: (appState.currentActivity == .streaming)
-                            ? "gamecontroller.fill" : "gamecontroller"
-                    )
-                    .foregroundColor((appState.currentActivity == .streaming) ? .green : .primary)
+            #if os(iOS)
+                ToolbarItem(id: "inputs", placement: .navigationBarTrailing) {
+                    NavigationLink(destination: InputTableView(creature: creature)) {
+                        Image(systemName: "slider.horizontal.3")
+                    }
                 }
-            }
+                ToolbarItem(id: "control", placement: .navigationBarTrailing) {
+                    Button(action: {
+                        toggleStreaming()
+                    }) {
+                        Image(
+                            systemName: (appState.currentActivity == .streaming)
+                                ? "gamecontroller.fill" : "gamecontroller"
+                        )
+                        .foregroundColor(
+                            (appState.currentActivity == .streaming) ? .green : .primary)
+                    }
+                }
+            #else
+                ToolbarItem(id: "inputs", placement: .secondaryAction) {
+                    NavigationLink(destination: InputTableView(creature: creature)) {
+                        Image(systemName: "slider.horizontal.3")
+                    }
+                    .help("View Input Configuration")
+                }
+                ToolbarItem(id: "control", placement: .primaryAction) {
+                    Button(action: {
+                        toggleStreaming()
+                    }) {
+                        Image(
+                            systemName: (appState.currentActivity == .streaming)
+                                ? "gamecontroller.fill" : "gamecontroller"
+                        )
+                        .foregroundColor(
+                            (appState.currentActivity == .streaming) ? .green : .primary)
+                    }
+                    .help("Toggle Streaming")
+                }
+            #endif
             //            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
             //                Button(action: {
             //                    startMFM2023Playlist()
@@ -81,7 +111,8 @@ struct CreatureDetail: View {
 
 
     func generateStatusString() -> String {
-        let status = "ID: \(creature.id), Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)"
+        let status =
+            "ID: \(creature.id), Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)"
         return status
     }
 

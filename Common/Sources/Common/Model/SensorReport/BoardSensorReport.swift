@@ -1,7 +1,8 @@
 import Foundation
 
-public class BoardSensorReport: Codable, Hashable {
+public class BoardSensorReport: Codable, Hashable, Identifiable {
 
+    public let id = UUID()
     public var creatureId: CreatureIdentifier
     public var boardTemperature: Double
     public var powerReports: [BoardPowerSensors]
@@ -15,7 +16,8 @@ public class BoardSensorReport: Codable, Hashable {
     }
 
     public init(
-        creatureId: CreatureIdentifier, boardTemperature: Double, timestamp: Date = .now, powerReports: [BoardPowerSensors]
+        creatureId: CreatureIdentifier, boardTemperature: Double, timestamp: Date = .now,
+        powerReports: [BoardPowerSensors]
     ) {
         self.creatureId = creatureId
         self.boardTemperature = boardTemperature
@@ -42,6 +44,7 @@ public class BoardSensorReport: Codable, Hashable {
     }
 
     public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
         hasher.combine(creatureId)
         hasher.combine(boardTemperature)
         hasher.combine(timestamp)
@@ -49,7 +52,8 @@ public class BoardSensorReport: Codable, Hashable {
     }
 
     public static func == (lhs: BoardSensorReport, rhs: BoardSensorReport) -> Bool {
-        lhs.creatureId == rhs.creatureId && lhs.boardTemperature == rhs.boardTemperature
+        lhs.id == rhs.id && lhs.creatureId == rhs.creatureId
+            && lhs.boardTemperature == rhs.boardTemperature
             && lhs.timestamp == rhs.timestamp && lhs.powerReports == rhs.powerReports
     }
 }

@@ -15,21 +15,37 @@ struct CreatureConfiguration: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(alignment: .leading, spacing: 12) {
+            // Basic creature information
+            HStack {
+                Text("Creature ID:")
+                    .fontWeight(.medium)
+                Text(creature.id)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
 
-            // Sadly tvOS doesn't yet support tables. Maybe someday!
-            #if !os(tvOS)
-            Text("Inputs")
+            HStack {
+                Text("Channel Offset:")
+                    .fontWeight(.medium)
+                Text(String(creature.channelOffset))
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
 
-            InputTable(creature: creature)
-
-            Text(
-                "💡 These values may not be changed in the console. To change something, submit an update from the Controller. The Creatures's JSON file is always the source of truth!"
-            )
-            .padding()
-            #endif
+            if !creature.inputs.isEmpty {
+                HStack {
+                    Text("Input Channels:")
+                        .fontWeight(.medium)
+                    Text("\(creature.inputs.count) configured")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+            }
         }
-
+        .padding()
+        .background(Color.secondary.opacity(0.1))
+        .cornerRadius(8)
     }
 }
 
