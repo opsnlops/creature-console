@@ -9,9 +9,7 @@ struct BottomToolBarView: View {
     @ObservedObject var statusLights = StatusLightsManager.shared
     @StateObject var appState = AppState.shared
 
-
     var body: some View {
-
 
         HStack {
             VStack {
@@ -29,51 +27,25 @@ struct BottomToolBarView: View {
 
             Spacer()
 
-            Image(systemName: "arrow.circlepath")
-                .foregroundColor(statusLights.running ? .accentColor : .primary)
-                .font(.system(size: 24))
-                .symbolRenderingMode(.multicolor)
-
-
-            // Change up the streaming one to color vs not
-            if statusLights.streaming {
-                Image(systemName: "rainbow")
-
-                    .font(.system(size: 24))
-                    .symbolEffect(
-                        .variableColor.cumulative.dimInactiveLayers.nonReversing,
-                        isActive: statusLights.streaming
-                    )
-                    .symbolRenderingMode(.multicolor)
-            } else {
-                Image(systemName: "rainbow")
-                    .foregroundColor(.primary)
-                    .font(.system(size: 24))
+            HStack(spacing: 16) {
+                StatusIndicator(
+                    systemName: "arrow.circlepath", isActive: statusLights.running,
+                    help: "Server Running")
+                StatusIndicator(
+                    systemName: "rainbow", isActive: statusLights.streaming, help: "Streaming")
+                StatusIndicator(
+                    systemName: "antenna.radiowaves.left.and.right.circle.fill",
+                    isActive: statusLights.dmx, help: "DMX Signal")
+                StatusIndicator(
+                    systemName: "figure.socialdance", isActive: statusLights.animationPlaying,
+                    help: "Animation Playing")
             }
-
-
-            if statusLights.dmx {
-                Image(systemName: "antenna.radiowaves.left.and.right.circle.fill")
-                    .foregroundColor(.accentColor)
-                    .opacity(0.8)
-                    .font(.system(size: 30))
-                    .symbolEffect(
-                        .variableColor.iterative.dimInactiveLayers.nonReversing,
-                        isActive: statusLights.dmx
-                    )
-                    .symbolRenderingMode(.multicolor)
-            } else {
-                Image(systemName: "antenna.radiowaves.left.and.right.circle.fill")
-                    .foregroundColor(.primary)
-                    .font(.system(size: 30))
-            }
-
-
-            Image(systemName: "figure.socialdance")
-                .foregroundColor(statusLights.animationPlaying ? .accentColor : .primary)
-                .font(.system(size: 24))
-                .symbolRenderingMode(.multicolor)
-
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(.ultraThinMaterial)
+            .shadow(color: .black.opacity(0.09), radius: 8, y: 2)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(.quaternary, lineWidth: 1))
 
         }
         .padding()
@@ -85,5 +57,22 @@ struct BottomToolBarView: View {
             )
         }
 
+    }
+}
+
+private struct StatusIndicator: View {
+    let systemName: String
+    let isActive: Bool
+    let help: String
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 22, weight: .medium))
+            .foregroundStyle(isActive ? .accent : .secondary)
+            .padding(8)
+            .background(
+                Circle()
+                    .fill(isActive ? Color.accentColor.opacity(0.15) : Color.clear)
+            )
+            .help(help)
     }
 }
