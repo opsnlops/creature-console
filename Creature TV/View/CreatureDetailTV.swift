@@ -28,6 +28,27 @@ struct CreatureDetail: View {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureDetail")
 
     var body: some View {
+    #if os(tvOS)
+        ZStack {
+            // Full-screen liquid glass effect
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 0) {
+                Text(creature.name)
+                    .font(.system(size: 60, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .shadow(radius: 8)
+                    .padding(.top, 36)
+                    .padding(.horizontal, 36)
+                    .padding(.bottom, 36)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .multilineTextAlignment(.center)
+                SensorData(creature: creature, showTitle: false)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    #else
         VStack {
             SensorData(creature: creature)
         }
@@ -43,21 +64,6 @@ struct CreatureDetail: View {
                     .foregroundColor((appState.currentActivity == .streaming) ? .green : .primary)
                 }
             }
-            //            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
-            //                Button(action: {
-            //                    startMFM2023Playlist()
-            //                }) {
-            //                    Image(systemName: "pawprint")
-            //                }
-            //            }
-            //            ToolbarItem(id: "stopPlaylistPlayback", placement: .secondaryAction) {
-            //                Button(action: {
-            //                    stopPlaylistPlayback()
-            //                }) {
-            //                    Image(systemName: "stop.circle.fill")
-            //                        .foregroundColor(.red)
-            //                }
-            //            }
         }
         #if !os(tvOS)
         .toolbarRole(.editor)
@@ -78,7 +84,7 @@ struct CreatureDetail: View {
         #if os(macOS)
             .navigationSubtitle(generateStatusString())
         #endif
-
+    #endif
     }
 
 

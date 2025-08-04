@@ -30,7 +30,16 @@ struct CreatureDetail: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                #if os(macOS)
                 SensorData(creature: creature)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(.regularMaterial)
+                    )
+                #else
+                SensorData(creature: creature)
+                #endif
             }
             .padding()
         }
@@ -57,6 +66,7 @@ struct CreatureDetail: View {
                 ToolbarItem(id: "inputs", placement: .secondaryAction) {
                     NavigationLink(destination: InputTableView(creature: creature)) {
                         Image(systemName: "slider.horizontal.3")
+                            .glassEffect(.regular)
                     }
                     .help("View Input Configuration")
                 }
@@ -64,38 +74,22 @@ struct CreatureDetail: View {
                     Button(action: {
                         toggleStreaming()
                     }) {
-                        Image(
-                            systemName: (appState.currentActivity == .streaming)
-                                ? "gamecontroller.fill" : "gamecontroller"
-                        )
-                        .foregroundColor(
-                            (appState.currentActivity == .streaming) ? .green : .primary)
+                        Label("Toggle Streaming", systemImage: (appState.currentActivity == .streaming)
+                            ? "gamecontroller.fill" : "gamecontroller")
+                            .labelStyle(.iconOnly)
+                            .symbolRenderingMode(.monochrome)
                     }
+                    .glassEffect(.regular.tint((appState.currentActivity == .streaming) ? .green : .none).interactive())
                     .help("Toggle Streaming")
                 }
             #endif
-            //            ToolbarItem(id: "startMFM2023PlaylistPlayback", placement: .secondaryAction) {
-            //                Button(action: {
-            //                    startMFM2023Playlist()
-            //                }) {
-            //                    Image(systemName: "pawprint")
-            //                }
-            //            }
-            //            ToolbarItem(id: "stopPlaylistPlayback", placement: .secondaryAction) {
-            //                Button(action: {
-            //                    stopPlaylistPlayback()
-            //                }) {
-            //                    Image(systemName: "stop.circle.fill")
-            //                        .foregroundColor(.red)
-            //                }
-            //            }
         }.toolbarRole(.editor)
         .overlay {
             if isDoingServerStuff {
                 Text(serverMessage)
                     .font(.title)
                     .padding()
-                    .background(Color.green.opacity(0.4))
+                    .background(.ultraThinMaterial)
                     .cornerRadius(10)
             }
         }
@@ -265,3 +259,4 @@ struct CreatureDetail: View {
 #Preview {
     CreatureDetail(creature: .mock())
 }
+

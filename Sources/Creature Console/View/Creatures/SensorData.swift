@@ -7,6 +7,7 @@ import SwiftUI
 struct SensorData: View {
 
     var creature: Creature
+    var showTitle: Bool = true
 
     @ObservedObject private var healthCache = CreatureHealthCache.shared
     @State private var showingHistoricalData = false
@@ -18,6 +19,14 @@ struct SensorData: View {
         return formatter
     }()
 
+    private var shouldShowHistoricalData: Bool {
+    #if os(tvOS)
+      return false
+    #else
+      return true
+    #endif
+    }
+
     var body: some View {
         let healthReport = healthCache.allBoardSensorData(forCreature: creature.id)
 
@@ -26,14 +35,16 @@ struct SensorData: View {
             if let latestReport = reports.last {
                 VStack(alignment: .leading, spacing: 16) {
                     // Header with timestamp
-                    HStack {
-                        Text("Sensor Data")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        Spacer()
-                        Text("Last updated: \(dateFormatter.string(from: latestReport.timestamp))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    if showTitle {
+                        HStack {
+                            Text("Sensor Data")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            Spacer()
+                            Text("Last updated: \(dateFormatter.string(from: latestReport.timestamp))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
 
                     // Critical metrics graphs
@@ -43,7 +54,7 @@ struct SensorData: View {
                     currentSensorTable(latestReport)
 
                     // Historical data toggle
-                    if reports.count > 1 {
+                    if shouldShowHistoricalData && reports.count > 1 {
                         Button(action: {
                             showingHistoricalData.toggle()
                         }) {
