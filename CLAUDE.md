@@ -8,6 +8,8 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 
 **Platform Support:** Always targets the latest versions of macOS, iOS, and tvOS with no backwards compatibility requirements. Favor the newest APIs and features available.
 
+**Development Environment:** This project uses Xcode 26. Always prefer the new Apple Liquid Glass UI elements when possible for modern visual design.
+
 ## Development Commands
 
 ### Building
