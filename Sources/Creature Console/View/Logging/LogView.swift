@@ -3,6 +3,8 @@ import SwiftUI
 
 struct LogView: View {
     @ObservedObject var logManager = LogManager.shared
+    @State private var isUserScrolling = false
+    @State private var autoScrollEnabled = true
 
     private let dateFormatter: DateFormatter
 
@@ -14,45 +16,55 @@ struct LogView: View {
     var body: some View {
         ScrollViewReader { scrollView in
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(logManager.logMessages) { log in
-                        HStack(alignment: .top) {
-                            Text("[\(formattedDate(log.timestamp))]")
-                                .font(.footnote)
-                                .foregroundColor(Color.secondary)  // Dynamic color
-                            Text("[\(log.level.description)]")
-                                .font(.footnote)
-                                .bold()
-                                .foregroundColor(levelColor(log.level))
-                            Text(log.message)
-                                .font(.body)
-                                .padding(.leading, 4)
-                                .foregroundColor(Color.primary)  // Dynamic color
-                        }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(backgroundColor(log.level))
-                        .padding(.vertical, 2)
+                        LogRowView(
+                            log: log,
+                            formattedDate: formattedDate(log.timestamp),
+                            levelColor: levelColor(log.level),
+                            backgroundColor: backgroundColor(log.level)
+                        )
+                        .id(log.id)
                     }
                 }
-                .onChange(of: logManager.logMessages) { newMessages, _ in
-                    if let last = newMessages.last {
-                        DispatchQueue.main.async {
-                            withAnimation {
-                                scrollView.scrollTo(last.id, anchor: .bottom)
+                .onTapGesture {
+                    // Allow user to disable auto-scroll by tapping
+                    autoScrollEnabled.toggle()
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if !autoScrollEnabled {
+                    Button("Auto-scroll") {
+                        autoScrollEnabled = true
+                        if let lastId = logManager.logMessages.last?.id {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                scrollView.scrollTo(lastId, anchor: .bottom)
                             }
                         }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .padding()
+                }
+            }
+            .onChange(of: logManager.logMessages) { _, newMessages in
+                if autoScrollEnabled, let lastMessage = newMessages.last {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                    }
+                }
+            }
+            .onAppear {
+                // Scroll to bottom on initial appearance
+                if let lastMessage = logManager.logMessages.last {
+                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                 }
             }
         }
-        .frame(minWidth: 500, minHeight: 300)  // Set a better initial size
+        .frame(minWidth: 500, minHeight: 300)
         .padding()
         #if os(iOS)
-            .background(Color(UIColor.systemBackground))  // Dynamic background color for iOS
+            .background(Color(UIColor.systemBackground))
         #endif
-
         #if os(macOS)
             .background(Color(NSColor.windowBackgroundColor))
         #endif
@@ -88,5 +100,33 @@ struct LogView: View {
         default:
             return Color.gray.opacity(0.1)
         }
+    }
+}
+
+private struct LogRowView: View {
+    let log: LogItem
+    let formattedDate: String
+    let levelColor: Color
+    let backgroundColor: Color
+    
+    var body: some View {
+        HStack(alignment: .top) {
+            Text("[\(formattedDate)]")
+                .font(.footnote)
+                .foregroundColor(Color.secondary)
+            Text("[\(log.level.description)]")
+                .font(.footnote)
+                .bold()
+                .foregroundColor(levelColor)
+            Text(log.message)
+                .font(.body)
+                .padding(.leading, 4)
+                .foregroundColor(Color.primary)
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(backgroundColor)
+        .padding(.vertical, 2)
     }
 }
