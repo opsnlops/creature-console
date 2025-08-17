@@ -10,7 +10,9 @@ import Common
 
         func applicationWillTerminate(_ notification: Notification) {
             // We don't care about the returns, just close
-            _ = server.disconnectWebsocket()
+            Task {
+                _ = await server.disconnectWebsocket()
+            }
             server.close()
         }
     }
@@ -24,16 +26,18 @@ import Common
         let server = CreatureServerClient.shared
 
         func applicationDidFinishLaunching(_ notification: Notification) {
-               // Enable AVPlayer logging for debugging
-               setenv("AVPlayerLogLevelKey", "4", 1)
+            // Enable AVPlayer logging for debugging
+            setenv("AVPlayerLogLevelKey", "4", 1)
 
-               // Continue with your setup code if needed
-               print("App launched, AVPlayer logging enabled.")
-           }
+            // Continue with your setup code if needed
+            print("App launched, AVPlayer logging enabled.")
+        }
 
         func applicationWillTerminate(_ notification: Notification) {
             // We don't care about the returns, just close
-            _ = server.disconnectWebsocket()
+            Task {
+                _ = await server.disconnectWebsocket()
+            }
             server.close()
             print("Bye! 🖖🏻")
         }

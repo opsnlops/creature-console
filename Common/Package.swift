@@ -16,7 +16,6 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
-        .package(url: "https://github.com/daltoniam/Starscream.git", from: "4.0.8"),
     ],
 
     targets: [
@@ -24,7 +23,6 @@ let package = Package(
             name: "Common",
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
-                .product(name: "Starscream", package: "Starscream"),
             ],
             exclude: ["README.md"]),
 

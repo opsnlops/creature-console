@@ -1,6 +1,5 @@
 import Foundation
 import Logging
-import Starscream
 
 public class CreatureServerClient: CreatureServerClientProtocol {
 
@@ -31,7 +30,7 @@ public class CreatureServerClient: CreatureServerClientProtocol {
 
     /**
      Returns the URL to our server
-
+    
      @param type Which type of URL to make (http or websocket)
      */
     public func makeBaseURL(_ type: UrlType) -> String {

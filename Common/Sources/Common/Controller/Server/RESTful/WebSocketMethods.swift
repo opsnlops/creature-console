@@ -1,6 +1,5 @@
 import Foundation
 import Logging
-import Starscream
 
 struct BasicCommandDTO: Codable {
     let command: String
@@ -23,24 +22,24 @@ extension CreatureServerClient {
 
         // Create the websocket client
         webSocketClient = WebSocketClient(url: url, messageProcessor: processor)
-        webSocketClient?.connect()
+        await webSocketClient?.connect()
     }
 
 
-    public func disconnectWebsocket() -> Result<String, ServerError> {
+    public func disconnectWebsocket() async -> Result<String, ServerError> {
 
         guard let ws = webSocketClient else {
             return .failure(
                 .websocketError("Unable to disconnect because the websocket client doesn't exist"))
         }
 
-        guard ws.isConnected else {
+        guard await ws.isWebSocketConnected else {
             return .failure(
                 .websocketError(
                     "Unable to disconnect the websocket because we're not already connected"))
         }
 
-        ws.disconnect()
+        await ws.disconnect()
         logger.info("disconnected from the websocket")
         return .success("Disconnected from the websocket")
 
@@ -73,15 +72,16 @@ extension CreatureServerClient {
 }
 
 
-class WebSocketClient {
-    var socket: WebSocket?
-    public var isConnected: Bool = false
-    private var pingTimer: Timer?
+actor WebSocketClient {
+    private var task: URLSessionWebSocketTask?
+    private let session: URLSession
+    private var isConnected: Bool = false
+    private var pingTask: Task<Void, Never>?
 
-    private var url: URL
+    private let url: URL
     private var messageProcessor: MessageProcessor?
 
-    private var logger = Logger(label: "io.opsnlops.CreatureController.WebSocketClient")
+    private let logger = Logger(label: "io.opsnlops.CreatureController.WebSocketClient")
 
     init(url: URL, messageProcessor: MessageProcessor?) {
         self.url = url
@@ -89,123 +89,133 @@ class WebSocketClient {
 
         logger.info("attempting to make a new WebSocketClient with url \(url)")
 
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 5  // Sets the timeout for the connection
-        socket = WebSocket(request: request)
-
-
+        // Create URLSession configuration
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 5.0
+        self.session = URLSession(configuration: config)
     }
 
     func connect() {
-        socket?.delegate = self
-        socket?.connect()
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+
+        task = session.webSocketTask(with: request)
+        task?.resume()
         isConnected = true
+
+        logger.info("websocket is connected")
+        startReceiving()
         startPinging()
     }
 
     func disconnect() {
-        socket?.disconnect()
+        task?.cancel(with: .goingAway, reason: nil)
+        pingTask?.cancel()
+        task = nil
+        pingTask = nil
         isConnected = false
-        socket = nil
+        logger.info("websocket is disconnected")
     }
 
-    private func startPinging() {
-        // Schedule a timer to send a ping every 10 seconds
-        pingTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
-            self?.sendPing()
+    nonisolated var isWebSocketConnected: Bool {
+        get async {
+            await isConnected
         }
     }
 
-    private func stopPinging() {
-        pingTimer?.invalidate()
-        pingTimer = nil
+    private func startReceiving() {
+        guard let task = task else { return }
+
+        Task { [weak self] in
+            do {
+                let message = try await task.receive()
+                await self?.handleMessage(message)
+
+                // Continue receiving if still connected
+                if await self?.isConnected == true {
+                    await self?.startReceiving()
+                }
+            } catch {
+                await self?.handleError(error)
+            }
+        }
     }
 
-    private func sendPing() {
-        guard isConnected else { return }
-        socket?.write(
-            ping: Data(),
-            completion: {
-                self.logger.debug("Ping sent")
-            })
+    private func startPinging() {
+        pingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(10))
+
+                guard !Task.isCancelled else { break }
+
+                if await self?.isConnected == true {
+                    await self?.task?.sendPing { [weak self] error in
+                        Task {
+                            if let error = error {
+                                self?.logger.warning("Ping failed: \(error.localizedDescription)")
+                            } else {
+                                self?.logger.debug("Ping sent")
+                            }
+                        }
+                    }
+                } else {
+                    break
+                }
+            }
+        }
+    }
+
+    private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
+        switch message {
+        case .string(let text):
+            logger.trace("string received from the websocket: \(text)")
+            if let data = text.data(using: .utf8) {
+                decodeIncomingMessage(data)
+            } else {
+                logger.warning("unable to decode incoming string as UTF-8: \(text)")
+            }
+        case .data(let data):
+            logger.debug("Received binary data: \(data.count) bytes")
+        @unknown default:
+            logger.warning("Received unknown message type")
+        }
+    }
+
+    private func handleError(_ error: Error) {
+        isConnected = false
+        pingTask?.cancel()
+
+        if let urlError = error as? URLError {
+            logger.warning("websocket encountered URLError: \(urlError.localizedDescription)")
+        } else {
+            logger.warning("websocket encountered an error: \(error.localizedDescription)")
+        }
     }
 
     func sendMessage(_ message: String) async -> Result<String, ServerError> {
-
-        guard let ws = socket else {
-            return .failure(.websocketError("websocket socket is nil"))
+        guard let task = task else {
+            return .failure(.websocketError("websocket task is nil"))
         }
 
         guard isConnected else {
             return .failure(.websocketError("Unable to send message because we're not connected"))
         }
 
-        logger.debug("sending message on websocket: \(message)")
-        ws.write(string: message)
-        return .success("Message written to websocket")
-    }
-}
-
-
-extension WebSocketClient: WebSocketDelegate {
-    func didReceive(event: Starscream.WebSocketEvent, client: Starscream.WebSocketClient) {
-        switch event {
-        case .connected(let headers):
-            isConnected = true
-            startPinging()
-            print("websocket is connected: \(headers)")
-        case .disconnected(let reason, let code):
-            isConnected = false
-            stopPinging()
-            print("websocket is disconnected: \(reason) with code: \(code)")
-        case .text(let string):
-            logger.trace("string received from the websocket: \(string)")
-
-            // Make sure we can decode this
-            if let data = string.data(using: .utf8) {
-                decodeIncomingMessage(data)
-            } else {
-                logger.warning("unable to decode incoming string as UTF-8: \(string)")
-            }
-
-
-        case .binary(let data):
-            logger.debug("Received data: \(data.count)")
-        case .ping(_):
-            logger.debug("ping received")
-        case .pong(_):
-            logger.debug("pong received")
-        case .viabilityChanged(_):
-            break
-        case .reconnectSuggested(_):
-            logger.info("reconnect suggested to the WebSocket")
-        case .cancelled:
-            isConnected = false
-        case .error(let error):
-            isConnected = false
-            _ = handleError(error)
-        case .peerClosed:
-            break
-        }
-    }
-
-    func handleError(_ error: Error?) -> ServerError {
-        if let e = error as? WSError {
-            logger.warning("websocket encountered an error: \(e.message)")
-            return .serverError("websocket encountered an error: \(e.message)")
-        } else if let e = error {
-            logger.warning("websocket encountered an error: \(e.localizedDescription)")
-            return .serverError("websocket encountered an error: \(e.localizedDescription)")
-        } else {
-            logger.warning("websocket encountered an error")
-            return .serverError("websocket encountered an error")
+        do {
+            logger.debug("sending message on websocket: \(message)")
+            try await task.send(.string(message))
+            return .success("Message sent successfully")
+        } catch {
+            logger.warning("Failed to send message: \(error.localizedDescription)")
+            return .failure(
+                .websocketError("Failed to send message: \(error.localizedDescription)"))
         }
     }
 
     private func decodeIncomingMessage(_ data: Data) {
-        self.logger.debug("Attempting to decode an incoming message from the websocket")
+        logger.debug("Attempting to decode an incoming message from the websocket")
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601  // Set to ISO 8601 strategy
+        decoder.dateDecodingStrategy = .iso8601
 
         do {
             // Decode just to get the command first
@@ -248,12 +258,22 @@ extension WebSocketClient: WebSocketDelegate {
                 let messageDTO = try decoder.decode(
                     WebSocketMessageDTO<PlaylistStatus>.self, from: data)
                 messageProcessor?.processPlaylistStatus(messageDTO.payload)
+            case .emergencyStop:
+                logger.debug("emergency-stop")
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<EmergencyStop>.self, from: data)
+                messageProcessor?.processEmergencyStop(messageDTO.payload)
+            case .watchdogWarning:
+                logger.debug("watchdog-warning")
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<WatchdogWarning>.self, from: data)
+                messageProcessor?.processWatchdogWarning(messageDTO.payload)
             default:
-                self.logger.warning("Unknown message type: \(commandDTO.command), data: \(data)")
+                logger.warning("Unknown message type: \(commandDTO.command), data: \(data)")
             }
 
         } catch {
-            self.logger.error(
+            logger.error(
                 "Error decoding message: \(error.localizedDescription), details: \(error)")
         }
     }

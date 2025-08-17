@@ -37,7 +37,7 @@ extension CreatureCLI {
 
                 sleep(seconds)
 
-                _ = server.disconnectWebsocket()
+                _ = await server.disconnectWebsocket()
                 print("\nTimeout reached! Disconnecting from the websocket.")
 
             }
@@ -102,7 +102,7 @@ extension CreatureCLI {
 
                 }
 
-                _ = server.disconnectWebsocket()
+                _ = await server.disconnectWebsocket()
             }
 
             /// A function to make the fake data for testing
@@ -193,7 +193,7 @@ extension CreatureCLI {
                     usleep(1_000 * pause)
                 }
 
-                _ = server.disconnectWebsocket()
+                _ = await server.disconnectWebsocket()
                 print("disconnected from websocket")
 
             }
