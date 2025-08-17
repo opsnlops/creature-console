@@ -15,35 +15,45 @@ class SwiftMessageProcessor: MessageProcessor, ObservableObject {
         logger.info("Swift-based MessageProcessor created")
     }
 
-    func processNotice(_ notice: Notice) {
-        NoticeMessageProcessor.processNotice(notice)
+    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
+        BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
+    }
+
+    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) {
+        CacheInvalidationProcessor.processCacheInvalidation(cacheInvalidation)
+    }
+
+    func processEmergencyStop(_ emergencyStop: EmergencyStop) {
+        EmergencyStopMessageProcessor.processEmergencyStop(emergencyStop)
     }
 
     func processLog(_ logItem: ServerLogItem) {
         ServerLogItemProcessor.processServerLogItem(logItem)
     }
 
-    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
-        BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
-    }
-
     func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) {
         MotorSensorReportMessageProcessor.processMotorSensorReport(motorSensorReport)
     }
 
-    func processSystemCounters(_ counters: SystemCountersDTO) {
-        SystemCountersItemProcessor.processSystemCounters(counters)
-    }
-
-    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
-        VirtualStatusLightsProcessor.processVirtualStatusLights(statusLights)
+    func processNotice(_ notice: Notice) {
+        NoticeMessageProcessor.processNotice(notice)
     }
 
     func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
         // nop
     }
 
-    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) {
-        CacheInvalidationProcessor.processCacheInvalidation(cacheInvalidation)
+    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
+        VirtualStatusLightsProcessor.processVirtualStatusLights(statusLights)
+    }
+
+    func processSystemCounters(_ counters: SystemCountersDTO) {
+        SystemCountersItemProcessor.processSystemCounters(counters)
+    }
+
+    func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) {
+        logger.info(
+            "Watchdog warning received: \(watchdogWarning.warningType) - \(watchdogWarning.currentValue)/\(watchdogWarning.threshold)"
+        )
     }
 }

@@ -11,6 +11,8 @@ public enum ServerMessageType: String {
     case boardSensorReport = "board-sensor-report"
     case cacheInvalidation = "cache-invalidation"
     case playlistStatus = "playlist-status"
+    case emergencyStop = "emergency-stop"
+    case watchdogWarning = "watchdog-warning"
     case unknown
 
     public init(from command: String) {
