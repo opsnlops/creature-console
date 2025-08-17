@@ -20,7 +20,7 @@ struct BottomToolBarView: View {
                     Text("Spare Time: \(String(format: "%.2f", eventLoop.frameSpareTime))%")
                 }
                 HStack {
-                    Text("State: \(appState.currentActivity)")
+                    Text("State: \(appState.currentActivity.description)")
                         .font(.footnote)
                 }
             }

@@ -8,7 +8,7 @@ import Common
     class ConsoleAppDelegate: NSObject, UIApplicationDelegate {
         let server = CreatureServerClient.shared
 
-        func applicationWillTerminate(_ notification: Notification) {
+        func applicationWillTerminate(_ application: UIApplication) {
             // We don't care about the returns, just close
             Task {
                 _ = await server.disconnectWebsocket()

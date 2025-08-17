@@ -117,26 +117,17 @@ struct CreatureDetail: View {
         isDoingServerStuff = true
 
         Task {
-            do {
-                let result = try await server.stopPlayingPlaylist(universe: activeUniverse)
+            let result = await server.stopPlayingPlaylist(universe: activeUniverse)
 
-                switch result {
-                case .failure(let value):
-                    DispatchQueue.main.async {
-                        errorMessage = "Unable to stop playlist playback: \(value)"
-                        showErrorAlert = true
-                    }
-                case .success(let value):
-                    logger.info("stopped! \(value)")
-                    serverMessage = value
-                }
-
-
-            } catch {
+            switch result {
+            case .failure(let value):
                 DispatchQueue.main.async {
-                    errorMessage = "Unable to stop playlist playback: \(error.localizedDescription)"
+                    errorMessage = "Unable to stop playlist playback: \(value)"
                     showErrorAlert = true
                 }
+            case .success(let value):
+                logger.info("stopped! \(value)")
+                serverMessage = value
             }
 
             do {
@@ -160,28 +151,18 @@ struct CreatureDetail: View {
             )
 
             Task {
-                do {
-                    let result = try await server.startPlayingPlaylist(
-                        universe: activeUniverse, playlistId: mfm2023PlaylistHack)
+                let result = await server.startPlayingPlaylist(
+                    universe: activeUniverse, playlistId: mfm2023PlaylistHack)
 
-                    switch result {
-                    case .failure(let value):
-                        DispatchQueue.main.async {
-                            errorMessage = "Unable to start playlist playback: \(value)"
-                            showErrorAlert = true
-                        }
-                    case .success(let value):
-                        logger.info("Gross hack accomplished! 🤮! \(value)")
-                        serverMessage = value
-                    }
-
-
-                } catch {
+                switch result {
+                case .failure(let value):
                     DispatchQueue.main.async {
-                        errorMessage =
-                            "Unable to start the gross hack: \(error.localizedDescription)"
+                        errorMessage = "Unable to start playlist playback: \(value)"
                         showErrorAlert = true
                     }
+                case .success(let value):
+                    logger.info("Gross hack accomplished! 🤮! \(value)")
+                    serverMessage = value
                 }
 
                 do {

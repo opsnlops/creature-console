@@ -120,7 +120,7 @@ class CreatureManager: ObservableObject {
                 Task {
                     audioManager.playURL(url)
                 }
-            case .failure(let error):
+            case .failure(_):
                 logger.warning(
                     "audioFile URL doesn't exist: \(soundFile)")
             }

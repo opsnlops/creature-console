@@ -20,7 +20,7 @@ struct LogView: View {
                             Text("[\(formattedDate(log.timestamp))]")
                                 .font(.footnote)
                                 .foregroundColor(Color.secondary)  // Dynamic color
-                            Text("[\(log.level)]")
+                            Text("[\(log.level.description)]")
                                 .font(.footnote)
                                 .bold()
                                 .foregroundColor(levelColor(log.level))
