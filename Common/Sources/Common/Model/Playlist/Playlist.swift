@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 
-public class Playlist: Identifiable, Hashable, Equatable, Codable {
+public final class Playlist: Identifiable, Hashable, Equatable, Codable, @unchecked Sendable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.Playlist")
     public var id: PlaylistIdentifier
     public var name: String

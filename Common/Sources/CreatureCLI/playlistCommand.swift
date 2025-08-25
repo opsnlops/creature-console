@@ -4,7 +4,7 @@ import Common
 extension CreatureCLI {
 
     struct Playlists: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Do things with playlists",
             subcommands: [List.self, Start.self, Stop.self]
         )
@@ -14,7 +14,7 @@ extension CreatureCLI {
 
 
         struct List: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "List the playlists on the server",
                 discussion:
                     "List out all of the playlists that exist on the server"
@@ -59,7 +59,7 @@ extension CreatureCLI {
         }
 
         struct Start: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Starts a playlist playing",
                 discussion:
                     "Asks the server to play a playlist on a given universe"
@@ -94,7 +94,7 @@ extension CreatureCLI {
         }
 
         struct Stop: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Stops playing a playlist",
                 discussion:
                     "Asks the server to stop playing a playlist on a given universe"

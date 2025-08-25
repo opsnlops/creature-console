@@ -1,12 +1,12 @@
 import Foundation
 
-public class BoardPowerSensors: Codable, Hashable, Identifiable {
+public final class BoardPowerSensors: Codable, Hashable, Identifiable, Sendable {
 
     public let id = UUID()
-    public var name: String
-    public var current: Double
-    public var power: Double
-    public var voltage: Double
+    public let name: String
+    public let current: Double
+    public let power: Double
+    public let voltage: Double
 
     enum CodingKeys: String, CodingKey {
         case name, current, power, voltage

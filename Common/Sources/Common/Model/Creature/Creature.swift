@@ -2,15 +2,15 @@ import Foundation
 import Logging
 
 /// This is the representation of a `Creature`
-public class Creature: ObservableObject, Identifiable, Hashable, Equatable, Codable {
-    private var logger = Logger(label: "io.opsnlops.CreatureConsole.Creature")
+public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendable {
+    private let logger = Logger(label: "io.opsnlops.CreatureConsole.Creature")
 
     public let id: CreatureIdentifier
-    @Published public var name: String
-    @Published public var channelOffset: Int
-    @Published public var realData: Bool
-    @Published public var audioChannel: Int
-    @Published public var inputs: [Input]
+    public let name: String
+    public let channelOffset: Int
+    public let realData: Bool
+    public let audioChannel: Int
+    public let inputs: [Input]
 
     enum CodingKeys: String, CodingKey {
         case id, name

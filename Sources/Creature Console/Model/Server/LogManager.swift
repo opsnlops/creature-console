@@ -1,25 +1,43 @@
-import Combine
 import Common
 import SwiftUI
 
-class LogManager: ObservableObject {
+struct LogManagerState: Sendable {
+    let logMessages: [LogItem]
+}
+
+actor LogManager {
     static let shared = LogManager()
-
-    @Published var logMessages: [LogItem] = []
-
-    @AppStorage("serverLogsScrollBackLines") var serverLogsScrollBackLines = 100
-
-    private var cancellables = Set<AnyCancellable>()
-
-    func addLogMessage(_ logItem: LogItem) {
-        DispatchQueue.main.async {
-            self.logMessages.append(logItem)
-            if self.logMessages.count > self.serverLogsScrollBackLines {
-                self.logMessages.removeFirst()
-            }
-        }
+    
+    private var logMessages: [LogItem] = []
+    private var serverLogsScrollBackLines: Int = 100
+    
+    private let (stateStream, stateContinuation) = AsyncStream.makeStream(of: LogManagerState.self)
+    var stateUpdates: AsyncStream<LogManagerState> { 
+        publishState() // Ensure initial state is published
+        return stateStream 
     }
-
+    
+    private init() {
+        // Initial state will be published on first access to stateUpdates
+    }
+    
+    private func publishState() {
+        let currentState = LogManagerState(logMessages: logMessages)
+        stateContinuation.yield(currentState)
+    }
+    
+    func setScrollBackLines(_ lines: Int) {
+        serverLogsScrollBackLines = lines
+    }
+    
+    func addLogMessage(_ logItem: LogItem) {
+        logMessages.append(logItem)
+        if logMessages.count > serverLogsScrollBackLines {
+            logMessages.removeFirst()
+        }
+        publishState()
+    }
+    
     func addLogMessage(from serverLogItem: ServerLogItem) {
         let logItem = LogItem(from: serverLogItem)
         addLogMessage(logItem)

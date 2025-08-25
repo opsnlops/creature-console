@@ -3,84 +3,85 @@ import Common
 import Foundation
 import OSLog
 
-class SoundListCache: ObservableObject {
+struct SoundListCacheState: Sendable {
+    let sounds: [SoundIdentifier: Sound]
+    let empty: Bool
+}
+
+actor SoundListCache {
     static let shared = SoundListCache()
 
-    @Published public private(set) var sounds: [SoundIdentifier: Sound] = [:]
-    @Published public private(set) var empty: Bool = true
-
+    private var sounds: [SoundIdentifier: Sound] = [:]
+    private var empty: Bool = true
     private var loadCacheTask: Task<Void, Never>? = nil
 
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "SoundListCache")
-    private let queue = DispatchQueue(
-        label: "io.opsnlops.CreatureConsole.SoundListCache.queue", attributes: .concurrent)
+
+    // AsyncStream for UI updates
+    private let (stateStream, stateContinuation) = AsyncStream.makeStream(
+        of: SoundListCacheState.self)
+
+    var stateUpdates: AsyncStream<SoundListCacheState> {
+        stateStream
+    }
 
     private init() {}
 
-    func addSound(_ sound: Sound, for id: PlaylistIdentifier) {
-        queue.async(flags: .barrier) {
-            DispatchQueue.main.async {
-                self.sounds[id] = sound
-                self.empty = self.sounds.isEmpty
-            }
-        }
+    func addSound(_ sound: Sound, for id: SoundIdentifier) {
+        sounds[id] = sound
+        empty = sounds.isEmpty
+        publishState()
+    }
+
+    private func publishState() {
+        let currentState = SoundListCacheState(
+            sounds: sounds,
+            empty: empty
+        )
+        stateContinuation.yield(currentState)
     }
 
     func removeSound(for id: SoundIdentifier) {
-        queue.async(flags: .barrier) {
-            DispatchQueue.main.async {
-                self.sounds.removeValue(forKey: id)
-                self.empty = self.sounds.isEmpty
-            }
-        }
+        sounds.removeValue(forKey: id)
+        empty = sounds.isEmpty
+        publishState()
     }
 
     public func reload(with sounds: [Sound]) {
-        queue.async(flags: .barrier) {
-            let reloadSounds = Dictionary(uniqueKeysWithValues: sounds.map { ($0.id, $0) })
-            DispatchQueue.main.async {
-                self.sounds = reloadSounds
-                self.empty = reloadSounds.isEmpty
-            }
-        }
+        let reloadedSounds = Dictionary(uniqueKeysWithValues: sounds.map { ($0.id, $0) })
+        self.sounds = reloadedSounds
+        self.empty = reloadedSounds.isEmpty
+        publishState()
     }
 
     public func getById(id: SoundIdentifier) -> Result<Sound, ServerError> {
-        queue.sync {
-            if let sound = sounds[id] {
-                return .success(sound)
-            } else {
-                logger.warning("SoundIdentifier.getById() called on an ID that wasn't in the cache! \(id)")
-                return .failure(.notFound("Sound ID \(id) not found in the cache"))
-            }
+        if let sound = sounds[id] {
+            return .success(sound)
+        } else {
+            logger.warning(
+                "SoundListCache.getById() called on an ID that wasn't in the cache! \(id)")
+            return .failure(.notFound("Sound ID \(id) not found in the cache"))
         }
     }
 
-    public func fetchSoundsFromServer() -> Result<String, ServerError> {
+    public func fetchSoundsFromServer() async -> Result<String, ServerError> {
         let server = CreatureServerClient.shared
 
         // If there's one in flight, stop it
         loadCacheTask?.cancel()
 
-        loadCacheTask = Task {
-
-            logger.info("attempting to fetch the sounds")
-            let fetchResult = await server.listSounds()
-            switch fetchResult {
-                case .success(let soundList):
-                    logger.debug("pulled \(soundList.count) sounds from the server")
-                    self.reload(with: soundList)
-                case .failure(let error):
-                    logger.warning("Unable to fetch the list of sounds from the server")
-                    DispatchQueue.main.async {
-                        AppState.shared.systemAlertMessage = error.localizedDescription
-                        AppState.shared.showSystemAlert = true
-                    }
-            }
+        logger.info("attempting to fetch the sounds")
+        let fetchResult = await server.listSounds()
+        switch fetchResult {
+        case .success(let soundList):
+            logger.debug("pulled \(soundList.count) sounds from the server")
+            self.reload(with: soundList)
+            return .success("Successfully loaded \(soundList.count) sounds")
+        case .failure(let error):
+            logger.warning("Unable to fetch the list of sounds from the server: \(error)")
+            await AppState.shared.setSystemAlert(show: true, message: error.localizedDescription)
+            return .failure(error)
         }
-        return .success("done")
     }
 }
-
-

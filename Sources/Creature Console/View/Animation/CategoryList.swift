@@ -6,7 +6,7 @@ struct CategoryList: View {
 
     let server = CreatureServerClient.shared
 
-    @ObservedObject var creature: Creature
+    let creature: Creature
     @State var animationMetas: [AnimationMetadata]?
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationCategory")
 

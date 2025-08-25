@@ -1,28 +1,23 @@
-import Combine
 import Common
 import Foundation
 import OSLog
 import SwiftUI
 
 /// The `CreatureManager` is what owns talking to all of the creatures. This allows me to keep SwiftUI things out of the [CreatureServerClient]
-class CreatureManager: ObservableObject {
+actor CreatureManager {
 
     internal var server = CreatureServerClient.shared
-    private var joystickManager = JoystickManager.shared
-    private var audioManager = AudioManager.shared
-    internal var creatureCache = CreatureCache.shared
 
     // Allllll by my seeelllllffffff
     static let shared = CreatureManager()
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureManager")
 
-    @ObservedObject var appState = AppState.shared
-
-    @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
+    private var activeUniverse: UniverseIdentifier {
+        UniverseIdentifier(UserDefaults.standard.integer(forKey: "activeUniverse"))
+    }
 
     private var streamingCreature: CreatureIdentifier?
-    private var isStreaming: Bool = false
     private var isRecording: Bool = false
 
     // Create a buffer to use for recording
@@ -31,80 +26,73 @@ class CreatureManager: ObservableObject {
     private init() {
     }
 
-    func startStreamingToCreature(creatureId: CreatureIdentifier) -> Result<String, ServerError> {
+    func startStreamingToCreature(creatureId: CreatureIdentifier) async -> Result<String, ServerError> {
 
-        guard !isStreaming else {
-            return .failure(.communicationError("We're already streaming!"))
-        }
-
+        logger.info("startStreamingToCreature called - creatureId: \(creatureId)")
+        
         self.streamingCreature = creatureId
-        self.isStreaming = true
+        
+        logger.info("Streaming started successfully")
 
         return .success("Started streaming to \(creatureId)")
     }
 
 
-    func stopStreaming() -> Result<String, ServerError> {
+    func stopStreaming() async -> Result<String, ServerError> {
 
-        guard isStreaming else {
-            return .failure(.communicationError("Streaming not happening"))
-        }
-
-        self.isStreaming = false
+        logger.info("stopStreaming called")
+        
         self.streamingCreature = nil
+        
+        logger.info("Streaming stopped successfully")
 
         return .success("Stopped streaming")
 
     }
 
-    /**
-     This is called from the event look when it's our time to grab a frame
-     */
-    func onEventLoopTick() {
+    /// This is called from the event look when it's our time to grab a frame
+    func onEventLoopTick() async {
 
-        if isStreaming {
+        let currentActivity = await AppState.shared.getCurrentActivity
+        if currentActivity == .streaming {
 
             if let creatureId = streamingCreature {
 
-                let motionData = Data(joystickManager.values).base64EncodedString()
+                let joystickValues = await JoystickManager.shared.getValues()
+                let motionData = Data(joystickValues).base64EncodedString()
                 let streamFrameData = StreamFrameData(
                     ceatureId: creatureId, universe: activeUniverse, data: motionData)
 
-                Task {
-                    await server.streamFrame(streamFrameData: streamFrameData)
-                }
+                await server.streamFrame(streamFrameData: streamFrameData)
             }
         }
 
         if isRecording {
 
             // Add the current value of the joystick to the buffer
-            motionDataBuffer.append(Data(joystickManager.values))
+            let joystickValues = await JoystickManager.shared.getValues()
+            motionDataBuffer.append(Data(joystickValues))
 
         }
 
     }
 
 
-    /**
-     Called automatically when our state changes to recording
-     */
-    func startRecording() {
+    /// Called automatically when our state changes to recording
+    func startRecording() async {
 
         logger.info("CreatureManager told it's time to start recording!")
 
         // Do we have a sound file to play?
         var soundFile: String = ""
-        if let animation = appState.currentAnimation {
-
+        let animation = await AppState.shared.getCurrentAnimation
+        if let animation = animation {
             soundFile = animation.metadata.soundFile
             logger.debug("Using sound file \(soundFile)")
         }
 
         // Set our state to recording
-        DispatchQueue.main.async {
-            self.appState.currentActivity = .recording
-        }
+        await AppState.shared.setCurrentActivity(.recording)
 
         // Blank out the buffer
         motionDataBuffer = []
@@ -114,18 +102,18 @@ class CreatureManager: ObservableObject {
 
             // See if it's a valid url
             let urlRequest = server.getSoundURL(soundFile)
-            switch (urlRequest) {
+            switch urlRequest {
             case .success(let url):
                 logger.info("audiofile URL is \(url)")
-                Task {
-                    audioManager.playURL(url)
+                Task { @MainActor in
+                    _ = AudioManager.shared.playURL(url)
                 }
             case .failure(_):
                 logger.warning(
                     "audioFile URL doesn't exist: \(soundFile)")
             }
 
-           
+
         } else {
             logger.info("no audio file, skipping playback")
         }
@@ -134,20 +122,16 @@ class CreatureManager: ObservableObject {
         isRecording = true
     }
 
-    /**
-     Called automatically when our state changes to idle
-     */
+    /// Called automatically when our state changes to idle
     func stopRecording() {
         isRecording = false
         logger.info("Stopped recording")
     }
 
 
-    /**
-     Play an animation on the server
-
-     This tells the server which animation to play, and on what universe.
-     */
+    /// Play an animation on the server
+    ///
+    /// This tells the server which animation to play, and on what universe.
     func playStoredAnimationOnServer(animationId: AnimationIdentifier, universe: UniverseIdentifier)
         async -> Result<String, ServerError>
     {
@@ -170,12 +154,10 @@ class CreatureManager: ObservableObject {
         }
     }
 
-    /**
-     Play an animation locally
-
-     This requires a full [Animation] object, because we might not have saved it to the server. The idea is to be able
-     to play it before we save it.
-     */
+    /// Play an animation locally
+    ///
+    /// This requires a full [Animation] object, because we might not have saved it to the server. The idea is to be able
+    /// to play it before we save it.
     func playAnimationLocally(animation: Common.Animation, universe: UniverseIdentifier) async
         -> Result<String, ServerError>
     {

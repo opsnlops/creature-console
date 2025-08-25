@@ -1,12 +1,12 @@
 import Foundation
 import Logging
 
-public class CreatureSpeechResponseDTO: Identifiable, Hashable, Equatable, Codable {
+public final class CreatureSpeechResponseDTO: Identifiable, Hashable, Equatable, Codable, Sendable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.CreatureSpeechResponseDTO")
-    public var soundFileName: String
-    public var transcriptFileName: String
-    public var soundFileSize: UInt32
-    public var success: Bool
+    public let soundFileName: String
+    public let transcriptFileName: String
+    public let soundFileSize: UInt32
+    public let success: Bool
 
     public enum CodingKeys: String, CodingKey {
         case soundFileName = "sound_file_name"

@@ -13,7 +13,7 @@ extension CreatureManager {
         let creatureList = await server.getAllCreatures()
         switch creatureList {
         case .success(let list):
-            creatureCache.reload(with: list)
+            await CreatureCache.shared.reload(with: list)
             logger.debug("(re)populated the cache")
         case .failure(let error):
             logger.warning(
@@ -22,7 +22,7 @@ extension CreatureManager {
         }
 
         return .success(
-            "Successfully populated the cache with \(creatureCache.creatures.count) creatures!")
+            "Successfully populated the cache with \(await CreatureCache.shared.count) creatures!")
     }
 
 

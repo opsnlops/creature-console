@@ -5,7 +5,7 @@ import Foundation
 extension CreatureCLI {
 
     struct Util: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Helper utils that might be fun!",
             subcommands: [Oid.self]
         )
@@ -15,7 +15,7 @@ extension CreatureCLI {
 
 
         struct Oid: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Generate a fresh OID",
                 discussion:
                     "This command does nothing more than generate an oid that can be used for other things"

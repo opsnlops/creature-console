@@ -41,15 +41,20 @@ struct Creature_TVApp: App {
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
 
-        // Make sure the appState is good
-        appState.currentActivity = .idle
-
-        // Init the joystick
-        registerJoystickHandlers(eventLoop: self.eventLoop)
+        // Initialize async components
+        Task {
+            // Make sure the appState is good
+            await AppState.shared.setCurrentActivity(.idle)
+            
+            // Init the joystick
+            await registerJoystickHandlers()
+            
+            // Set connecting state before server connection
+            await AppState.shared.setCurrentActivity(.connectingToServer)
+        }
 
         // Connect to the server
         do {
-            appState.currentActivity = .connectingToServer
             try CreatureServerClient.shared.connect(
                 serverHostname: UserDefaults.standard.string(forKey: "serverHostname")
                     ?? "127.0.0.1",
@@ -57,7 +62,9 @@ struct Creature_TVApp: App {
                 useTLS: UserDefaults.standard.bool(forKey: "serverUseTLS"))
 
             logger.info("connected to server")
-            appState.currentActivity = .idle
+            Task {
+                await AppState.shared.setCurrentActivity(.idle)
+            }
 
         } catch {
             logger.critical("Error opening server connection: \(error)")

@@ -5,7 +5,8 @@ import SwiftUI
 struct EmergencyStopMessageProcessor {
 
     public static func processEmergencyStop(_ emergencyStop: EmergencyStop) {
-        AppState.shared.systemAlertMessage = emergencyStop.reason
-        AppState.shared.showSystemAlert = true
+        Task {
+            await AppState.shared.setSystemAlert(show: true, message: emergencyStop.reason)
+        }
     }
 }

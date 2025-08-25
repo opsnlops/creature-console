@@ -10,7 +10,7 @@ struct CreateNewCreatureSoundView: View {
 
     let server = CreatureServerClient.shared
 
-    @ObservedObject var creatureCache = CreatureCache.shared
+    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
 
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
@@ -34,8 +34,8 @@ struct CreateNewCreatureSoundView: View {
 
                     Section(header: Text("Creature Information")) {
                         Picker("Creature", selection: $creatureId) {
-                            ForEach(creatureCache.creatures.keys.sorted(), id: \.self) { id in
-                                Text(creatureCache.creatures[id]?.name ?? "Unknown").tag(
+                            ForEach(creatureCacheState.creatures.keys.sorted(), id: \.self) { id in
+                                Text(creatureCacheState.creatures[id]?.name ?? "Unknown").tag(
                                     id as CreatureIdentifier?)
                             }
                         }
@@ -120,6 +120,13 @@ struct CreateNewCreatureSoundView: View {
             .padding()
 
         }  // Navigation Stack
+        .task {
+            for await state in await CreatureCache.shared.stateUpdates {
+                await MainActor.run {
+                    creatureCacheState = state
+                }
+            }
+        }
         .alert(isPresented: $showErrorAlert) {
             Alert(
                 title: Text("Unable to the list of sound files"),

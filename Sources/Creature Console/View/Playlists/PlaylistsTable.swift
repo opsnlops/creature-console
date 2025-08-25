@@ -22,7 +22,7 @@ struct PlaylistsTable: View {
     @State private var playlistTask: Task<Void, Never>? = nil
 
     // Update if this changes
-    @ObservedObject private var playlistCache = PlaylistCache.shared
+    @State private var playlistCacheState = PlaylistCacheState(playlists: [:], empty: true)
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
@@ -43,7 +43,7 @@ struct PlaylistsTable: View {
             .width(min: 100)
 
         } rows: {
-            ForEach(playlistCache.playlists.values.sorted(by: { $0.name < $1.name })) {
+            ForEach(playlistCacheState.playlists.values.sorted(by: { $0.name < $1.name })) {
                 playlist in
                 TableRow(playlist)
                     .contextMenu {
@@ -75,7 +75,7 @@ struct PlaylistsTable: View {
     var body: some View {
         NavigationStack {
             VStack {
-                if !playlistCache.playlists.isEmpty {
+                if !playlistCacheState.playlists.isEmpty {
                     playlistTable
                 } else {
                     ContentUnavailableView {
@@ -115,7 +115,7 @@ struct PlaylistsTable: View {
                     ToolbarItem(id: "edit", placement: .topBarTrailing) {
                         Button(action: {
                             if let selectedId = selection,
-                                let playlist = playlistCache.playlists[selectedId]
+                                let playlist = playlistCacheState.playlists[selectedId]
                             {
                                 editPlaylist(playlist)
                             }
@@ -145,7 +145,7 @@ struct PlaylistsTable: View {
                     ToolbarItem(id: "edit", placement: .secondaryAction) {
                         Button(action: {
                             if let selectedId = selection,
-                                let playlist = playlistCache.playlists[selectedId]
+                                let playlist = playlistCacheState.playlists[selectedId]
                             {
                                 editPlaylist(playlist)
                             }
@@ -168,7 +168,7 @@ struct PlaylistsTable: View {
             .navigationTitle("Playlists")
             #if os(macOS)
                 .navigationSubtitle(
-                    "Number of Playlists: \(self.playlistCache.playlists.values.count)")
+                    "Number of Playlists: \(self.playlistCacheState.playlists.values.count)")
             #endif
             .sheet(isPresented: $showingEditSheet) {
                 EditPlaylistSheet(
@@ -188,6 +188,20 @@ struct PlaylistsTable: View {
                     createPlaylist(newPlaylist)
                 }
                 .frame(width: 480, height: 400)
+            }
+            .task {
+                // Set initial state from current cache
+                let initialState = await PlaylistCache.shared.getCurrentState()
+                await MainActor.run {
+                    playlistCacheState = initialState
+                }
+
+                // Continue listening for updates
+                for await state in await PlaylistCache.shared.stateUpdates {
+                    await MainActor.run {
+                        playlistCacheState = state
+                    }
+                }
             }
         }  // Navigation Stack
     }  // View
@@ -211,16 +225,16 @@ struct PlaylistsTable: View {
                 case .success(let message):
                     logger.info("Playlist updated successfully: \(message)")
                     // Update the cache immediately with the saved playlist
-                    playlistCache.addPlaylist(playlist, for: playlist.id)
-                    // Force UI refresh by reassigning the published property
-                    playlistCache.objectWillChange.send()
-                    // Also trigger a full refresh from server
-                    let cacheResult = playlistCache.fetchPlaylistsFromServer()
-                    switch cacheResult {
-                    case .success(let message):
-                        logger.debug("Cache refresh successful: \(message)")
-                    case .failure(let error):
-                        logger.warning("Cache refresh failed: \(error.localizedDescription)")
+                    Task {
+                        await PlaylistCache.shared.addPlaylist(playlist, for: playlist.id)
+                        // Also trigger a full refresh from server
+                        let cacheResult = await PlaylistCache.shared.fetchPlaylistsFromServer()
+                        switch cacheResult {
+                        case .success(let message):
+                            logger.debug("Cache refresh successful: \(message)")
+                        case .failure(let error):
+                            logger.warning("Cache refresh failed: \(error.localizedDescription)")
+                        }
                     }
                     // Clean up and close dialog
                     showingEditSheet = false
@@ -246,16 +260,16 @@ struct PlaylistsTable: View {
                 case .success:
                     logger.info("Playlist created successfully")
                     // Add the new playlist to cache immediately
-                    playlistCache.addPlaylist(playlist, for: playlist.id)
-                    // Force UI refresh by reassigning the published property
-                    playlistCache.objectWillChange.send()
-                    // Also trigger a full refresh from server
-                    let cacheResult = playlistCache.fetchPlaylistsFromServer()
-                    switch cacheResult {
-                    case .success(let message):
-                        logger.debug("Cache refresh successful: \(message)")
-                    case .failure(let error):
-                        logger.warning("Cache refresh failed: \(error.localizedDescription)")
+                    Task {
+                        await PlaylistCache.shared.addPlaylist(playlist, for: playlist.id)
+                        // Also trigger a full refresh from server
+                        let cacheResult = await PlaylistCache.shared.fetchPlaylistsFromServer()
+                        switch cacheResult {
+                        case .success(let message):
+                            logger.debug("Cache refresh successful: \(message)")
+                        case .failure(let error):
+                            logger.warning("Cache refresh failed: \(error.localizedDescription)")
+                        }
                     }
                     showingCreateSheet = false
                 case .failure(let error):
@@ -469,6 +483,13 @@ struct EditPlaylistSheet: View {
             }
         }
         .frame(minWidth: 800, minHeight: 600)
+        .task {
+            for await state in await AnimationMetadataCache.shared.stateUpdates {
+                await MainActor.run {
+                    animationCacheState = state
+                }
+            }
+        }
         .onAppear {
             if editablePlaylist == nil {
                 editablePlaylist = playlist
@@ -476,10 +497,11 @@ struct EditPlaylistSheet: View {
         }
     }
 
-    @ObservedObject private var animationCache = AnimationMetadataCache.shared
+    @State private var animationCacheState = AnimationMetadataCacheState(
+        metadatas: [:], empty: true)
 
     private var availableAnimations: [AnimationMetadata] {
-        animationCache.metadatas.values.filter { metadata in
+        animationCacheState.metadatas.values.filter { metadata in
             !(editablePlaylist?.items.contains { $0.animationId == metadata.id } ?? false)
         }.sorted { $0.title < $1.title }
     }
@@ -491,7 +513,7 @@ struct EditPlaylistSheet: View {
     }
 
     private func animationName(for id: AnimationIdentifier) -> String {
-        animationCache.metadatas[id]?.title ?? "Unknown Animation"
+        animationCacheState.metadatas[id]?.title ?? "Unknown Animation"
     }
 
     private func totalWeight(for playlist: Common.Playlist) -> UInt32 {

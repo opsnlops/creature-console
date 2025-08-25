@@ -1,14 +1,13 @@
-import Combine
 import Foundation
 
 /// One full animation that has frame data!
 ///
 /// Most of the time we just use the Metadata
-public class Animation: Hashable, Equatable, Identifiable, Codable, ObservableObject {
+public final class Animation: Hashable, Equatable, Identifiable, Codable, @unchecked Sendable {
 
-    @Published public var id: AnimationIdentifier
-    @Published public var metadata: AnimationMetadata
-    @Published public var tracks: [Track] = [] {
+    public var id: AnimationIdentifier
+    public var metadata: AnimationMetadata
+    public var tracks: [Track] = [] {
         didSet {
             updateNumberOfFrames()
         }

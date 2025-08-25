@@ -46,4 +46,9 @@ protocol Joystick {
      Since this is a protocol, we can't be observed directly. Require implementors to be able to signal when their values change.
      */
     var changesPublisher: AnyPublisher<Void, Never> { get }
+
+    /**
+     Update joystick light based on activity state
+     */
+    func updateJoystickLight(activity: Activity)
 }

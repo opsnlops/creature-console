@@ -49,9 +49,10 @@ struct CacheInvalidationProcessor {
             case .failure(let error):
                 logger.warning(
                     "unable to get a new copy of the creature list: \(error.localizedDescription)")
-                AppState.shared.systemAlertMessage =
-                    "Unable to reload the creature cache after getting an invalidation message: \(error.localizedDescription)"
-                AppState.shared.showSystemAlert = true
+                await AppState.shared.setSystemAlert(
+                    show: true, 
+                    message: "Unable to reload the creature cache after getting an invalidation message: \(error.localizedDescription)"
+                )
             }
         }
 
@@ -67,7 +68,7 @@ struct CacheInvalidationProcessor {
 
         loadAnimationsTask = Task {
             logger.debug("telling the cache to rebuild itself...")
-            let populateResult = cache.fetchMetadataListFromServer()
+            let populateResult = await cache.fetchMetadataListFromServer()
             switch populateResult {
             case .success(let message):
                 logger.debug("the cache said: \(message)")
@@ -75,9 +76,10 @@ struct CacheInvalidationProcessor {
                 logger.warning(
                     "unable to get a new copy of the animationMetadata list: \(error.localizedDescription)"
                 )
-                AppState.shared.systemAlertMessage =
-                    "Unable to reload the animation cache after getting an invalidation message: \(error.localizedDescription)"
-                AppState.shared.showSystemAlert = true
+                await AppState.shared.setSystemAlert(
+                    show: true, 
+                    message: "Unable to reload the animation cache after getting an invalidation message: \(error.localizedDescription)"
+                )
             }
         }
 
@@ -93,16 +95,17 @@ struct CacheInvalidationProcessor {
 
         loadPlaylistsTask = Task {
             logger.debug("calling out to the server now...")
-            let populateResult = cache.fetchPlaylistsFromServer()
+            let populateResult = await cache.fetchPlaylistsFromServer()
             switch populateResult {
                 case .success:
                     logger.debug("rebuilt the playlist cache")
                 case .failure(let error):
                     logger.warning(
                         "unable to refresh the playlist cache: \(error.localizedDescription)")
-                    AppState.shared.systemAlertMessage =
-                    "Unable to reload the playlist cache after getting an invalidation message: \(error.localizedDescription)"
-                    AppState.shared.showSystemAlert = true
+                    await AppState.shared.setSystemAlert(
+                        show: true, 
+                        message: "Unable to reload the playlist cache after getting an invalidation message: \(error.localizedDescription)"
+                    )
             }
         }
 
@@ -119,16 +122,17 @@ struct CacheInvalidationProcessor {
 
         loadSoundListsTask = Task {
             logger.debug("calling out to the server now...")
-            let populateResult = cache.fetchSoundsFromServer()
+            let populateResult = await cache.fetchSoundsFromServer()
             switch populateResult {
                 case .success:
                     logger.info("(re)built the sound list cache")
                 case .failure(let error):
                     logger.warning(
                         "unable to refresh the sound list cache: \(error.localizedDescription)")
-                    AppState.shared.systemAlertMessage =
-                    "Unable to reload the sound list cache after getting an invalidation message: \(error.localizedDescription)"
-                    AppState.shared.showSystemAlert = true
+                    await AppState.shared.setSystemAlert(
+                        show: true, 
+                        message: "Unable to reload the sound list cache after getting an invalidation message: \(error.localizedDescription)"
+                    )
             }
         }
 

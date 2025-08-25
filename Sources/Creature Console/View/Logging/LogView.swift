@@ -2,7 +2,7 @@ import Common
 import SwiftUI
 
 struct LogView: View {
-    @ObservedObject var logManager = LogManager.shared
+    @State private var logManagerState = LogManagerState(logMessages: [])
     @State private var isUserScrolling = false
     @State private var autoScrollEnabled = true
 
@@ -17,7 +17,7 @@ struct LogView: View {
         ScrollViewReader { scrollView in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(logManager.logMessages) { log in
+                    ForEach(logManagerState.logMessages) { log in
                         LogRowView(
                             log: log,
                             formattedDate: formattedDate(log.timestamp),
@@ -36,7 +36,7 @@ struct LogView: View {
                 if !autoScrollEnabled {
                     Button("Auto-scroll") {
                         autoScrollEnabled = true
-                        if let lastId = logManager.logMessages.last?.id {
+                        if let lastId = logManagerState.logMessages.last?.id {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 scrollView.scrollTo(lastId, anchor: .bottom)
                             }
@@ -46,7 +46,7 @@ struct LogView: View {
                     .padding()
                 }
             }
-            .onChange(of: logManager.logMessages) { _, newMessages in
+            .onChange(of: logManagerState.logMessages) { _, newMessages in
                 if autoScrollEnabled, let lastMessage = newMessages.last {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         scrollView.scrollTo(lastMessage.id, anchor: .bottom)
@@ -55,8 +55,13 @@ struct LogView: View {
             }
             .onAppear {
                 // Scroll to bottom on initial appearance
-                if let lastMessage = logManager.logMessages.last {
+                if let lastMessage = logManagerState.logMessages.last {
                     scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                }
+            }
+            .task {
+                for await state in await LogManager.shared.stateUpdates {
+                    logManagerState = state
                 }
             }
         }

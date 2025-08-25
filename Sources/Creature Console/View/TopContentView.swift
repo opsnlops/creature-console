@@ -16,7 +16,7 @@ struct TopContentView: View {
 
 
     // Watch the cache to know what to do
-    @ObservedObject private var creatureCache = CreatureCache.shared
+    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
 
 
     @State private var showErrorAlert: Bool = false
@@ -35,8 +35,10 @@ struct TopContentView: View {
         NavigationSplitView {
             List {
                 Section("Creatures") {
-                    if !creatureCache.empty {
-                        ForEach(creatureCache.creatures.values.sorted(by: { $0.name < $1.name })) {
+                    if !creatureCacheState.empty {
+                        ForEach(
+                            creatureCacheState.creatures.values.sorted(by: { $0.name < $1.name })
+                        ) {
                             creature in
                             NavigationLink(value: creature.id) {
                                 Label(creature.name, systemImage: "pawprint.circle")
@@ -119,6 +121,14 @@ struct TopContentView: View {
                 creatureDetailView(for: creature)
             }
             .task {
+                // Subscribe to creature cache updates
+                Task {
+                    for await state in await CreatureCache.shared.stateUpdates {
+                        await MainActor.run {
+                            creatureCacheState = state
+                        }
+                    }
+                }
 
                 /**
                  Now that we're all loaded, let's go get the first set of creatures from the server
@@ -132,6 +142,9 @@ struct TopContentView: View {
 
                     // Okay! We're talking to the server. Bring up the websocket! 🧦
                     await server.connectWebsocket(processor: SwiftMessageProcessor.shared)
+                    
+                    // Update AppState to reflect successful connection
+                    await AppState.shared.setCurrentActivity(.idle)
 
                 case .failure(let error):
                     DispatchQueue.main.async {
@@ -142,7 +155,7 @@ struct TopContentView: View {
                 }
 
                 // Now populate the animation metadata cache
-                let animationResult = animationMetadataCache.fetchMetadataListFromServer()
+                let animationResult = await animationMetadataCache.fetchMetadataListFromServer()
                 switch animationResult {
                 case .success(let message):
                     logger.debug("populated the metadata cache: \(message)")
@@ -155,7 +168,7 @@ struct TopContentView: View {
                 }
 
                 // And the playlist cache
-                let playlistCacheResult = playlistCache.fetchPlaylistsFromServer()
+                let playlistCacheResult = await playlistCache.fetchPlaylistsFromServer()
                 switch playlistCacheResult {
                 case .success(let message):
                     logger.debug("populated the playlist cache: \(message)")
@@ -168,7 +181,7 @@ struct TopContentView: View {
                 }
 
                 // ..and finally the sound cache
-                let soundListCacheResult = soundListCache.fetchSoundsFromServer()
+                let soundListCacheResult = await soundListCache.fetchSoundsFromServer()
                 switch soundListCacheResult {
                 case .success(let message):
                     logger.debug("populated the sound list cache: \(message)")
@@ -214,12 +227,9 @@ struct TopContentView: View {
      Show either the CreatureDetail view, or a blank one.
      */
     func creatureDetailView(for id: CreatureIdentifier) -> some View {
-        switch creatureCache.getById(id: id) {
-        case .success(let creature):
+        if let creature = creatureCacheState.creatures[id] {
             return AnyView(CreatureDetail(creature: creature))
-        case .failure(let error):
-            errorMessage = error.localizedDescription
-            showErrorAlert = true
+        } else {
             return AnyView(EmptyView())
         }
     }

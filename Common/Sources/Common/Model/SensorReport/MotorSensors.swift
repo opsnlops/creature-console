@@ -1,14 +1,14 @@
 import Foundation
 
 /// The sensors that we have on a motor
-public class MotorSensors: Codable, Hashable, Identifiable {
+public final class MotorSensors: Codable, Hashable, Identifiable, Sendable {
 
     public let id = UUID()
-    public var motorNumber: Int
-    public var position: Int
-    public var current: Double
-    public var power: Double
-    public var voltage: Double
+    public let motorNumber: Int
+    public let position: Int
+    public let current: Double
+    public let power: Double
+    public let voltage: Double
 
     enum CodingKeys: String, CodingKey {
         case motorNumber = "number"

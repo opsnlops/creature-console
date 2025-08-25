@@ -4,10 +4,18 @@ import SwiftUI
 
 struct BottomToolBarView: View {
 
-    @ObservedObject var eventLoop = EventLoop.shared
+    @State private var frameSpareTime: Double = 0.0
     @ObservedObject var serverCounters = SystemCountersStore.shared
-    @ObservedObject var statusLights = StatusLightsManager.shared
-    @StateObject var appState = AppState.shared
+    @State private var statusLightsState = StatusLightsState(running: false, dmx: false, streaming: false, animationPlaying: false)
+    @State private var appState = AppStateData(
+        currentActivity: .idle,
+        currentAnimation: nil,
+        selectedTrack: nil,
+        showSystemAlert: false,
+        systemAlertMessage: ""
+    )
+    @State private var showingSystemAlert = false
+    @State private var systemAlertMessage = ""
 
     var body: some View {
 
@@ -17,7 +25,7 @@ struct BottomToolBarView: View {
                     Text("Server Frame: \(serverCounters.systemCounters.totalFrames)")
                     Text("Rest Req: \(serverCounters.systemCounters.restRequestsProcessed)")
                     Text("Streamed: \(serverCounters.systemCounters.framesStreamed)")
-                    Text("Spare Time: \(String(format: "%.2f", eventLoop.frameSpareTime))%")
+                    Text("Spare Time: \(String(format: "%.2f", frameSpareTime))%")
                 }
                 HStack {
                     Text("State: \(appState.currentActivity.description)")
@@ -29,15 +37,15 @@ struct BottomToolBarView: View {
 
             HStack(spacing: 16) {
                 StatusIndicator(
-                    systemName: "arrow.circlepath", isActive: statusLights.running,
+                    systemName: "arrow.circlepath", isActive: statusLightsState.running,
                     help: "Server Running")
                 StatusIndicator(
-                    systemName: "rainbow", isActive: statusLights.streaming, help: "Streaming")
+                    systemName: "rainbow", isActive: statusLightsState.streaming, help: "Streaming")
                 StatusIndicator(
                     systemName: "antenna.radiowaves.left.and.right.circle.fill",
-                    isActive: statusLights.dmx, help: "DMX Signal")
+                    isActive: statusLightsState.dmx, help: "DMX Signal")
                 StatusIndicator(
-                    systemName: "figure.socialdance", isActive: statusLights.animationPlaying,
+                    systemName: "figure.socialdance", isActive: statusLightsState.animationPlaying,
                     help: "Animation Playing")
             }
             .padding(.horizontal, 7)
@@ -49,12 +57,39 @@ struct BottomToolBarView: View {
 
         }
         .padding()
-        .alert(isPresented: $appState.showSystemAlert) {
+        .alert(isPresented: $showingSystemAlert) {
             Alert(
                 title: Text("Server Message"),
-                message: Text("The server wants us to know: \(appState.systemAlertMessage)"),
-                dismissButton: .default(Text("Okay 😅"))
+                message: Text("The server wants us to know: \(systemAlertMessage)"),
+                dismissButton: .default(Text("Okay 😅")) {
+                    Task {
+                        await AppState.shared.setSystemAlert(show: false)
+                    }
+                }
             )
+        }
+        .task {
+            // Update frameSpareTime from EventLoop actor
+            while !Task.isCancelled {
+                frameSpareTime = await EventLoop.shared.frameSpareTime
+                try? await Task.sleep(for: .seconds(1)) // Update once per second
+            }
+        }
+        .task {
+            for await state in await StatusLightsManager.shared.stateUpdates {
+                await MainActor.run {
+                    statusLightsState = state
+                }
+            }
+        }
+        .task {
+            for await state in await AppState.shared.stateUpdates {
+                await MainActor.run {
+                    appState = state
+                    showingSystemAlert = state.showSystemAlert
+                    systemAlertMessage = state.systemAlertMessage
+                }
+            }
         }
 
     }

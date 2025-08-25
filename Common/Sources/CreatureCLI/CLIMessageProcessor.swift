@@ -2,7 +2,7 @@ import Common
 import Foundation
 
 /// A simple `MessageProcessor` that prints things to the screen for debugging
-class CLIMessageProcessor: MessageProcessor {
+final class CLIMessageProcessor: MessageProcessor {
 
     func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
         print(

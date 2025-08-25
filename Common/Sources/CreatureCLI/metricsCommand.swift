@@ -4,7 +4,7 @@ import Foundation
 extension CreatureCLI {
 
     struct Metrics: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Items related to metrics",
             subcommands: [ServerCounters.self]
         )
@@ -14,7 +14,7 @@ extension CreatureCLI {
 
 
         struct ServerCounters: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Show the server's counters",
                 discussion:
                     "This command requests that the server send over a copy of the current state of the internal counters and displays them."

@@ -3,7 +3,7 @@ import SwiftUI
 
 #if os(macOS)
     struct ACWDebugJoystickScene: Scene {
-        @ObservedObject var joystick: AprilsCreatureWorkshopJoystick
+        let joystick: AprilsCreatureWorkshopJoystick
 
         init(joystick: AprilsCreatureWorkshopJoystick) {
             self.joystick = joystick

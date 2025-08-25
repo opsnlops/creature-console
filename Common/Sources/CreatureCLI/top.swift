@@ -22,7 +22,7 @@ struct GlobalOptions: ParsableArguments {
 
 @main
 struct CreatureCLI: AsyncParsableCommand {
-    static var configuration = CommandConfiguration(
+    static let configuration = CommandConfiguration(
         abstract: "A utility for interacting with the Creature Server",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
         version: "2.3.0",

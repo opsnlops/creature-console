@@ -1,19 +1,39 @@
 import Foundation
 import Logging
+import os
 
-public class CreatureServerClient: CreatureServerClientProtocol {
+public final class CreatureServerClient: CreatureServerClientProtocol, Sendable {
 
     public static let shared = CreatureServerClient()
 
     // WebSocket processing stuff
-    var processor: MessageProcessor?
-    var webSocketClient: WebSocketClient?
+    private let _processor: OSAllocatedUnfairLock<MessageProcessor?>
+    
+    var processor: MessageProcessor? {
+        get { _processor.withLock { $0 } }
+        set { _processor.withLock { $0 = newValue } }
+    }
+    nonisolated(unsafe) var webSocketClient: WebSocketClient?
 
-    var logger: Logger
-    public var serverHostname: String =
-        UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1"
-    public var serverPort: Int = UserDefaults.standard.integer(forKey: "serverRestPort")
-    public var useTLS: Bool = true
+    nonisolated(unsafe) var logger: Logging.Logger
+    private let _serverHostname: OSAllocatedUnfairLock<String>
+    private let _serverPort: OSAllocatedUnfairLock<Int>
+    private let _useTLS: OSAllocatedUnfairLock<Bool>
+    
+    public var serverHostname: String {
+        get { _serverHostname.withLock { $0 } }
+        set { _serverHostname.withLock { $0 = newValue } }
+    }
+    
+    public var serverPort: Int {
+        get { _serverPort.withLock { $0 } }
+        set { _serverPort.withLock { $0 = newValue } }
+    }
+    
+    public var useTLS: Bool {
+        get { _useTLS.withLock { $0 } }
+        set { _useTLS.withLock { $0 = newValue } }
+    }
 
 
     public enum UrlType {
@@ -23,8 +43,12 @@ public class CreatureServerClient: CreatureServerClientProtocol {
 
 
     public init() {
-        self.logger = Logger(label: "io.opsnlops.creature-controller.common")
+        self.logger = Logging.Logger(label: "io.opsnlops.creature-controller.common")
         self.logger.logLevel = .debug
+        self._processor = OSAllocatedUnfairLock(initialState: nil)
+        self._serverHostname = OSAllocatedUnfairLock(initialState: UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1")
+        self._serverPort = OSAllocatedUnfairLock(initialState: UserDefaults.standard.integer(forKey: "serverRestPort"))
+        self._useTLS = OSAllocatedUnfairLock(initialState: true)
         self.logger.info("Created new CreatureServerRestful")
     }
 

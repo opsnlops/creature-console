@@ -3,7 +3,7 @@ import Foundation
 import OSLog
 
 /// The Swift version of our `MessageProcessor`
-class SwiftMessageProcessor: MessageProcessor, ObservableObject {
+final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
 
     // Yes! It singletons!
     static let shared = SwiftMessageProcessor()
@@ -16,6 +16,7 @@ class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     }
 
     func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
+        logger.info("SwiftMessageProcessor: Processing board sensor report for creature \(boardSensorReport.creatureId)")
         BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
     }
 
