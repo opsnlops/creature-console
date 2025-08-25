@@ -3,7 +3,7 @@ import ArgumentParser
 extension CreatureCLI {
 
     struct Debug: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Debugging Helper Functions",
             subcommands: [
                 InvalidateAnimationCache.self, InvalidateCreatureCache.self,
@@ -15,7 +15,7 @@ extension CreatureCLI {
         var globalOptions: GlobalOptions
 
         struct InvalidateAnimationCache: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Test invalidating the animation cache",
                 discussion:
                     "This command tells the server to send a message to invalidate the client's animation cache"
@@ -38,7 +38,7 @@ extension CreatureCLI {
         }
 
         struct InvalidateCreatureCache: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Test invalidating the creature cache",
                 discussion:
                     "This command tells the server to send a message to invalidate the client's creature cache"
@@ -61,7 +61,7 @@ extension CreatureCLI {
         }
 
         struct InvalidatePlaylistCache: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Test invalidating the playlist cache",
                 discussion:
                     "This command tells the server to send a message to invalidate the client's playlist cache"
@@ -84,7 +84,7 @@ extension CreatureCLI {
         }
 
         struct TestPlaylistUpdates: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Test sending playlist update messages",
                 discussion: "This command tells the server to send a fake playlist update message"
             )

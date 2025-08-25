@@ -1,6 +1,6 @@
 import Foundation
 
-public struct SystemCountersDTO: Codable {
+public struct SystemCountersDTO: Codable, Sendable {
     public var totalFrames: UInt64
     public var eventsProcessed: UInt64
     public var framesStreamed: UInt64

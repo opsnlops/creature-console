@@ -1,7 +1,7 @@
 import Foundation
 
 /// This is a local version of the `AnimationMetadata` that's sent over the wire
-public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable {
+public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sendable {
 
     public var id: AnimationIdentifier
     public var title: String

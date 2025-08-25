@@ -1,12 +1,12 @@
 import Foundation
 
-public class BoardSensorReport: Codable, Hashable, Identifiable {
+public final class BoardSensorReport: Codable, Hashable, Identifiable, Sendable {
 
     public let id = UUID()
-    public var creatureId: CreatureIdentifier
-    public var boardTemperature: Double
-    public var powerReports: [BoardPowerSensors]
-    public var timestamp: Date = .now
+    public let creatureId: CreatureIdentifier
+    public let boardTemperature: Double
+    public let powerReports: [BoardPowerSensors]
+    public let timestamp: Date
 
     enum CodingKeys: String, CodingKey {
         case creatureId = "creature_id"
@@ -29,10 +29,8 @@ public class BoardSensorReport: Codable, Hashable, Identifiable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         creatureId = try container.decode(CreatureIdentifier.self, forKey: .creatureId)
         boardTemperature = try container.decode(Double.self, forKey: .boardTemperature)
-
-        // We're not sending a timestamp
-        //timestamp = try container.decode(Date.self, forKey: .timestamp)
         powerReports = try container.decode([BoardPowerSensors].self, forKey: .powerReports)
+        timestamp = .now
     }
 
     public func encode(to encoder: Encoder) throws {

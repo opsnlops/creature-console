@@ -3,7 +3,7 @@ import ArgumentParser
 extension CreatureCLI {
 
     struct Creatures: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Mess with the Creatures",
             subcommands: [List.self, Search.self]
         )
@@ -13,7 +13,7 @@ extension CreatureCLI {
 
 
         struct List: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "List the creatures on the server",
                 discussion:
                     "This command will print out a table of the creatures that the server knows about."

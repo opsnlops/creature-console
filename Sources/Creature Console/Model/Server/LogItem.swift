@@ -1,7 +1,7 @@
 import Common
 import Foundation
 
-struct LogItem: Identifiable, Equatable {
+struct LogItem: Identifiable, Equatable, Sendable {
     var id = UUID()
     var timestamp: Date
     var level: ServerLogLevel

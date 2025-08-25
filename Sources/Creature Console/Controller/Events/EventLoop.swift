@@ -10,7 +10,7 @@ import SwiftUI
 /// DispatchQueue.main.async {
 ///    doAThing();
 /// }
-class EventLoop: ObservableObject {
+actor EventLoop {
 
     // Make a singleton out of this
     static let shared = EventLoop()
@@ -18,17 +18,14 @@ class EventLoop: ObservableObject {
     private var timer: DispatchSourceTimer?
     private(set) var number_of_frames: Int64 = 0
 
-    // Use the other Singletons
-    let appState = AppState.shared  // No need to observe it from here, we don't care about changes
-    let creatureManager = CreatureManager.shared
-    let joystickManager = JoystickManager.shared
+    // Access other actors as needed - no stored references to avoid isolation issues
 
     /**
      Keep track of how much spare time we have in each frame. I have nothing but very fast Macs, so this should rarely be
      an issue, but if it is, I'd like for it to be shown to the status bar
      */
 
-    @Published var frameSpareTime: Double = 0  // Published value (updates every `updateSpareTimeStatusInterval` frames)
+    var frameSpareTime: Double = 0  // Updated value (no longer @Published since actors can't have @Published)
     var localFrameSpareTime: Double = 0  // Updated every loop
 
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondPerFrame: Int = 20
@@ -40,9 +37,7 @@ class EventLoop: ObservableObject {
     private let numberFormatter = NumberFormatter()
 
 
-    /**
-     Start up all of the things
-     */
+    /// Start up all of the things
     init() {
 
         self.frameSpareTime = 100.0
@@ -52,20 +47,21 @@ class EventLoop: ObservableObject {
         numberFormatter.maximumFractionDigits = 2
         numberFormatter.minimumFractionDigits = 2
 
-        startTimer()
+        Task {
+            await startTimer()
+        }
 
         logger.info("event loop started")
     }
 
     deinit {
-        stopTimer()
+        timer?.cancel()
+        timer = nil
         logger.info("event loop stopped")
     }
 
 
-    /**
-     Main Event Loop
-     */
+    /// Main Event Loop
     private func update() {
 
         // Keep metrics on how long the the loop takes
@@ -76,11 +72,14 @@ class EventLoop: ObservableObject {
         number_of_frames += 1
 
         // Tell the `JoystickManager` it's time to poll
-        joystickManager.poll()
-
+        Task {
+            await JoystickManager.shared.poll()
+        }
 
         // Tell the creature manager we've set everything up for it
-        creatureManager.onEventLoopTick()
+        Task {
+            await CreatureManager.shared.onEventLoopTick()
+        }
 
 
         // Update metrics
@@ -105,9 +104,7 @@ class EventLoop: ObservableObject {
 
         // Send an update to things watching us every `updateSpareTimeStatusInterval` frames
         if number_of_frames % Int64(updateSpareTimeStatusInterval) == 1 {
-            DispatchQueue.main.async {
-                self.frameSpareTime = self.localFrameSpareTime
-            }
+            self.frameSpareTime = self.localFrameSpareTime
         }
 
 
@@ -119,7 +116,10 @@ class EventLoop: ObservableObject {
 
         timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
         timer?.setEventHandler { [weak self] in
-            self?.update()
+            guard let self = self else { return }
+            Task {
+                await self.update()
+            }
         }
         timer?.schedule(
             deadline: .now(), repeating: .milliseconds(millisecondPerFrame), leeway: .nanoseconds(0)
@@ -132,15 +132,29 @@ class EventLoop: ObservableObject {
         timer = nil
     }
 
+    // Setter methods for mock setup
+    func setMillisecondPerFrame(_ value: Int) {
+        millisecondPerFrame = value
+    }
+
+    func setLogSpareTimeFrameInterval(_ value: Int) {
+        logSpareTimeFrameInterval = value
+    }
+
+    func setFrameSpareTime(_ value: Double) {
+        frameSpareTime = value
+    }
+
 }
 
 extension EventLoop {
     static func mock() -> EventLoop {
         let mockEventLoop = EventLoop()
-        mockEventLoop.millisecondPerFrame = 50
-        mockEventLoop.logSpareTimeFrameInterval = 100
-        mockEventLoop.frameSpareTime = 100.0
-
+        Task {
+            await mockEventLoop.setMillisecondPerFrame(50)
+            await mockEventLoop.setLogSpareTimeFrameInterval(100)
+            await mockEventLoop.setFrameSpareTime(100.0)
+        }
         return mockEventLoop
     }
 }

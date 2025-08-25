@@ -14,7 +14,7 @@ struct AnimationEditor: View {
     let eventLoop = EventLoop.shared
     let creatureManager = CreatureManager.shared
 
-    @StateObject var appState = AppState.shared
+    @State private var appState = AppStateData(currentActivity: .idle, currentAnimation: nil, selectedTrack: nil, showSystemAlert: false, systemAlertMessage: "")
 
     // The parent view will set this to true if we're about to make a _new_ animation
     @State var createNew: Bool = false
@@ -82,6 +82,14 @@ struct AnimationEditor: View {
             }
         }
         .task {
+            async let appStateTask: Void = {
+                for await state in await AppState.shared.stateUpdates {
+                    await MainActor.run {
+                        appState = state
+                    }
+                }
+            }()
+            
             if createNew {
                 logger.info("createNew is true, so I'm making a new Animation")
                 self.prepareAnimation()
@@ -90,6 +98,8 @@ struct AnimationEditor: View {
                 print("hi I appear")
                 loadData()
             }
+            
+            await appStateTask
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(
@@ -186,7 +196,9 @@ struct AnimationEditor: View {
     func prepareAnimation() {
 
         // TODO: Ask what do to if it exists, maybe?
-        appState.currentAnimation = Common.Animation()
+        Task {
+            await AppState.shared.setCurrentAnimation(Common.Animation())
+        }
         logger.info("prepared a new Animation in the AppState")
 
     }
@@ -197,6 +209,6 @@ struct AnimationEditor: View {
 
 struct AnimationEditor_Previews: PreviewProvider {
     static var previews: some View {
-        AnimationEditor(createNew: true)
+        AnimationEditor()
     }
 }

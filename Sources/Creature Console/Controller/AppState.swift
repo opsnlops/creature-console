@@ -1,79 +1,112 @@
-import Combine
 import Common
 import Foundation
 import OSLog
 
-class AppState: ObservableObject {
+enum Activity: CustomStringConvertible, Sendable {
+    case idle
+    case streaming
+    case recording
+    case preparingToRecord
+    case playingAnimation
+    case connectingToServer
 
-    // Use the singleton pattern to make sure only one of these exists in a way
-    // that can be used in non SwiftUI code
+    var description: String {
+        switch self {
+        case .idle:
+            return "Idle"
+        case .streaming:
+            return "Streaming"
+        case .recording:
+            return "Recording"
+        case .preparingToRecord:
+            return "Preparing to Record"
+        case .playingAnimation:
+            return "Playing Animation"
+        case .connectingToServer:
+            return "Connecting to Server"
+        }
+    }
+}
+
+struct AppStateData: Sendable {
+    let currentActivity: Activity
+    let currentAnimation: Common.Animation?
+    let selectedTrack: CreatureIdentifier?
+    let showSystemAlert: Bool
+    let systemAlertMessage: String
+}
+
+actor AppState {
     static let shared = AppState()
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AppState")
 
-    @Published var currentActivity = Activity.idle
+    private var currentActivity = Activity.idle
+    private var currentAnimation: Common.Animation?
+    private var selectedTrack: CreatureIdentifier?
+    private var showSystemAlert: Bool = false
+    private var systemAlertMessage: String = ""
 
-    @Published var currentAnimation: Common.Animation?
-    @Published var selectedTrack: CreatureIdentifier?
+    // AsyncStream for UI updates
+    private let (stateStream, stateContinuation) = AsyncStream.makeStream(of: AppStateData.self)
+    
+    var stateUpdates: AsyncStream<AppStateData> {
+        return stateStream
+    }
 
-    // The bottom toolbar watches these to know when to show an alert message, which
-    // normally comes in off the websocket from the server
-    @Published var showSystemAlert: Bool = false
-    @Published var systemAlertMessage: String = ""
-
-    private var cancellables = Set<AnyCancellable>()
-
-    // Make our constructor private so we don't accidentally
-    // create more than one of these
     private init() {
         logger.info("AppState created")
-
-        // Observe changes to the currentAnimation so we can inform others
-        $currentAnimation
-            .compactMap { $0 }
-            .flatMap { animation in
-                animation.objectWillChange
-            }
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
-
+        // Publish initial state synchronously
+        let state = AppStateData(
+            currentActivity: currentActivity,
+            currentAnimation: currentAnimation,
+            selectedTrack: selectedTrack,
+            showSystemAlert: showSystemAlert,
+            systemAlertMessage: systemAlertMessage
+        )
+        stateContinuation.yield(state)
     }
 
-    enum Activity: CustomStringConvertible {
-        case idle
-        case streaming
-        case recording
-        case preparingToRecord
-        case playingAnimation
-        case connectingToServer
-
-        var description: String {
-            switch self {
-            case .idle:
-                return "Idle"
-            case .streaming:
-                return "Streaming"
-            case .recording:
-                return "Recording"
-            case .preparingToRecord:
-                return "Preparing to Record"
-            case .playingAnimation:
-                return "Playing Animation"
-            case .connectingToServer:
-                return "Connecting to Server"
-            }
-        }
+    private func publishState() {
+        let state = AppStateData(
+            currentActivity: currentActivity,
+            currentAnimation: currentAnimation,
+            selectedTrack: selectedTrack,
+            showSystemAlert: showSystemAlert,
+            systemAlertMessage: systemAlertMessage
+        )
+        stateContinuation.yield(state)
     }
 
+    func setCurrentActivity(_ activity: Activity) {
+        logger.info("AppState: Setting activity to \(activity.description)")
+        currentActivity = activity
+        publishState()
+        logger.info("AppState: Published state with activity \(activity.description)")
+    }
+
+    func setCurrentAnimation(_ animation: Common.Animation?) {
+        currentAnimation = animation
+        publishState()
+    }
+
+    func setSelectedTrack(_ track: CreatureIdentifier?) {
+        selectedTrack = track
+        publishState()
+    }
+
+    func setSystemAlert(show: Bool, message: String = "") {
+        showSystemAlert = show
+        systemAlertMessage = message
+        publishState()
+    }
+
+    // Getters for actor access
+    var getCurrentActivity: Activity { currentActivity }
+    var getCurrentAnimation: Common.Animation? { currentAnimation }
+    var getSelectedTrack: CreatureIdentifier? { selectedTrack }
+    var getShowSystemAlert: Bool { showSystemAlert }
+    var getSystemAlertMessage: String { systemAlertMessage }
 }
 
 
-extension AppState {
-    static func mock() -> AppState {
-        let appState = AppState()
-        appState.currentActivity = .idle
-        return appState
-    }
-}

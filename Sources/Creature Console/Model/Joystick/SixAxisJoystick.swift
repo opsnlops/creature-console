@@ -56,7 +56,7 @@ class SixAxisJoystick: ObservableObject, Joystick {
     @Published var xButtonPressed = false
     @Published var yButtonPressed = false
 
-    let appState = AppState.shared
+    // Note: AppState access removed for Swift 6 actor compatibility
     var controller: GCController?
     let objectWillChange = ObservableObjectPublisher()
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SixAxisJoystick")
@@ -99,10 +99,7 @@ class SixAxisJoystick: ObservableObject, Joystick {
         // Pay attention to the joystick, even when in the background
         GCController.shouldMonitorBackgroundEvents = true
 
-        // Update the lights when there's a change in app state
-        appState.$currentActivity.sink { [weak self] newActivity in
-            self?.updateJoystickLight(activity: newActivity)
-        }.store(in: &cancellables)
+        // Note: Joystick light updates now handled by JoystickManager for Swift 6 compatibility
 
     }
 
@@ -139,10 +136,16 @@ class SixAxisJoystick: ObservableObject, Joystick {
     }
 
 
-    func updateJoystickLight(activity: AppState.Activity) {
+    func updateJoystickLight(activity: Activity) {
         // Update the light when this changes
-        guard let controller = GCController.current else { return }
-        controller.light?.color = activity.color
+        guard let controller = self.controller else {
+            logger.debug("No controller available for joystick light update")
+            return
+        }
+        let color = activity.color
+        logger.info("SixAxisJoystick: Setting joystick light to RGB(\(color.red),\(color.green),\(color.blue)) for activity: \(activity.description)")
+        controller.light?.color = color
+        logger.info("SixAxisJoystick: Light color set successfully")
     }
 
     func showVirtualJoystickIfNeeded() {
@@ -230,11 +233,9 @@ class SixAxisJoystick: ObservableObject, Joystick {
                 logger.debug("joystick polling done")
             }
 
-            // If there's a change to be propogated out, let the main thread do it
+            // If there's a change to be propogated out, send immediately since we're now inside an actor
             if didChange {
-                DispatchQueue.main.async {
-                    self.objectWillChange.send()
-                }
+                self.objectWillChange.send()
             }
         } else {
             logger.info("skipping polling because not extended gamepad")
@@ -246,7 +247,7 @@ class SixAxisJoystick: ObservableObject, Joystick {
 
 
 /// Since we're the ones that care about color, define the colors here
-extension AppState.Activity {
+extension Activity {
     var color: GCColor {
         switch self {
         case .idle:

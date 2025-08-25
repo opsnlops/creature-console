@@ -4,6 +4,7 @@ import Common
 import Foundation
 import OSLog
 
+@MainActor
 class AudioManager: ObservableObject {
 
     // Only one of these can / should exist, so let's use the Singleton pattern

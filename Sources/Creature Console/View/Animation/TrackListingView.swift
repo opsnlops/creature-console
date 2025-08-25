@@ -6,8 +6,10 @@ struct TrackListingView: View {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "TrackListingView")
 
-    @ObservedObject var appState = AppState.shared
-    @ObservedObject var creatureCache = CreatureCache.shared
+    @State private var appState = AppStateData(
+        currentActivity: .idle, currentAnimation: nil, selectedTrack: nil, showSystemAlert: false,
+        systemAlertMessage: "")
+    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
 
     @State var showErrorMessage: Bool = false
     @State var errorMessage: String = ""
@@ -37,6 +39,26 @@ struct TrackListingView: View {
                     dismissButton: .default(Text("Shit"))
                 )
             }
+            .task {
+                async let appStateTask: Void = {
+                    for await state in await AppState.shared.stateUpdates {
+                        await MainActor.run {
+                            appState = state
+                        }
+                    }
+                }()
+
+                async let creatureCacheTask: Void = {
+                    for await state in await CreatureCache.shared.stateUpdates {
+                        await MainActor.run {
+                            creatureCacheState = state
+                        }
+                    }
+                }()
+
+                await appStateTask
+                await creatureCacheTask
+            }
         }
 
     }
@@ -46,31 +68,30 @@ struct TrackListingView: View {
 
         logger.debug("preparing a track view!")
 
-        switch creatureCache.getById(id: track.creatureId) {
-        case .success(let creature):
+        if let creature = creatureCacheState.creatures[track.creatureId] {
             let inputs = creature.inputs
             return TrackViewer(
                 track: track,
                 creature: creature,
                 inputs: inputs,
                 chartColor: pickRandomColor())
-
-        case .failure(let error):
-            errorMessage = "Unable to locate creature in cache: \(error.localizedDescription)"
-            showErrorMessage = true
+        } else {
+            DispatchQueue.main.async {
+                errorMessage = "Unable to locate creature in cache: \(track.creatureId)"
+                showErrorMessage = true
+            }
             return TrackViewer(
                 track: track,
                 creature: .mock(),
                 inputs: [])
         }
+    }
 
-        func pickRandomColor() -> Color {
-            let colors: [Color] = [
-                .red, .green, .blue, .orange, .yellow, .pink, .purple, .teal, .accentColor,
-            ]
-            return colors.randomElement() ?? .accentColor
-        }
-
+    func pickRandomColor() -> Color {
+        let colors: [Color] = [
+            .red, .green, .blue, .orange, .yellow, .pink, .purple, .teal, .accentColor,
+        ]
+        return colors.randomElement() ?? .accentColor
     }
 
 
@@ -78,9 +99,6 @@ struct TrackListingView: View {
 
 
 struct TrackListingView_Previews: PreviewProvider {
-
-    var appState = AppState.shared
-    var creatureCache = CreatureCache.shared
 
     static var previews: some View {
         TrackListingView()

@@ -70,7 +70,33 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 - Server communication via REST API and WebSocket
 - WebSocket for real-time data (sensor reports, logs, status updates)
 - Caching layer for frequently accessed server data
-- SwiftUI @ObservableObject pattern for reactive UI updates
+- **Global State Architecture**: Single source of truth for controlling physical hardware
+
+### Global State Architecture (Critical Design Pattern)
+**This is an animatronics control application - it controls physical robots that can only be in one state at a time.**
+
+- **`AppState.shared`**: Single source of truth for what the robot is currently doing
+  - Only one activity can be active: `.idle`, `.streaming`, `.recording`, `.preparingToRecord`, `.playingAnimation`, `.connectingToServer`
+  - All components subscribe to `AppState.stateUpdates: AsyncStream<AppStateData>` for reactive updates
+  - When AppState changes, ALL subscribers automatically react (UI, joystick lights, hardware controllers, etc.)
+
+- **Reactive Subscription Pattern**: 
+  ```swift
+  .task {
+      for await state in await AppState.shared.stateUpdates {
+          // React to state changes automatically
+      }
+  }
+  ```
+
+- **Hardware Synchronization**: 
+  - JoystickManager subscribes to AppState changes and updates light colors automatically
+  - UI components subscribe to AppState changes for visual feedback
+  - **Never manually call hardware update methods** - let state propagation handle it
+
+- **State Changes**: Always change state through `await AppState.shared.setCurrentActivity(.streaming)` 
+  - This triggers automatic propagation to all subscribers
+  - Maintains physical reality: only one thing happening at a time
 
 ### Dependencies
 - **Starscream**: WebSocket client

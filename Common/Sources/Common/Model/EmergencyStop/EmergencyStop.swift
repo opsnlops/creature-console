@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents an emergency stop event from a controller node
-public struct EmergencyStop: Codable {
+public struct EmergencyStop: Codable, Sendable {
 
     public var reason: String
     public var timestamp: Date

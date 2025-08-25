@@ -3,6 +3,18 @@ import Common
 import Foundation
 import OSLog
 
+struct JoystickState: Sendable {
+    let connected: Bool
+    let values: [UInt8]
+    let aButtonPressed: Bool
+    let bButtonPressed: Bool
+    let xButtonPressed: Bool
+    let yButtonPressed: Bool
+    let serialNumber: String?
+    let versionNumber: Int?
+    let manufacturer: String?
+}
+
 /**
  IOKit is macOS only. None of this will work on iOS.
  */
@@ -42,35 +54,42 @@ import OSLog
     }
 
 
-    class AprilsCreatureWorkshopJoystick: ObservableObject, Joystick {
+    class AprilsCreatureWorkshopJoystick: Joystick {
 
         let logger = Logger(
             subsystem: "io.opsnlops.CreatureConsole", category: "AprilsCreatureWorkshopJoystick")
 
-        // Use our singleton
-        let appState = AppState.shared
+        // Use our singleton - access as computed property to handle MainActor isolation
+        nonisolated var appState: AppState {
+            get async { await AppState.shared }
+        }
 
         var vendorID: Int
         var productID: Int
 
         private var manager: IOHIDManager?
 
-        @Published var connected: Bool = false
-        @Published var serialNumber: String
-        @Published var versionNumber: Int
-        @Published var manufacturer: String
+        var connected: Bool = false
+        var serialNumber: String
+        var versionNumber: Int
+        var manufacturer: String
         var values: [UInt8] = Array(repeating: 127, count: 8)
 
-        let objectWillChange = ObservableObjectPublisher()
+        // Communication with UI layer via AsyncStream
+        private let (stateStream, stateContinuation) = AsyncStream.makeStream(of: JoystickState.self)
+        
+        var stateUpdates: AsyncStream<JoystickState> {
+            stateStream
+        }
 
         /**
      All of these just return false for now until I can get the new hardware made with
      proper buttons.
      */
-        @Published var aButtonPressed = false
-        @Published var bButtonPressed = false
-        @Published var xButtonPressed = false
-        @Published var yButtonPressed = false
+        var aButtonPressed = false
+        var bButtonPressed = false
+        var xButtonPressed = false
+        var yButtonPressed = false
 
 
         init(vendorID: Int, productID: Int) {
@@ -100,7 +119,8 @@ import OSLog
         }
 
         var changesPublisher: AnyPublisher<Void, Never> {
-            objectWillChange.eraseToAnyPublisher()
+            // Convert AsyncStream to Publisher for compatibility
+            Just(()).eraseToAnyPublisher()  // Simplified for now
         }
 
         func getAButtonSymbol() -> String {
@@ -289,15 +309,29 @@ import OSLog
                 break
             }
 
-            // If something changed, tell the main thread to let folks know, please
+            // If something changed, publish the new state
             if didChange {
-                DispatchQueue.main.async {
-                    self.objectWillChange.send()
-                }
+                let newState = JoystickState(
+                    connected: self.connected,
+                    values: self.values,
+                    aButtonPressed: self.aButtonPressed,
+                    bButtonPressed: self.bButtonPressed,
+                    xButtonPressed: self.xButtonPressed,
+                    yButtonPressed: self.yButtonPressed,
+                    serialNumber: self.serialNumber,
+                    versionNumber: self.versionNumber,
+                    manufacturer: self.manufacturer
+                )
+                stateContinuation.yield(newState)
             }
 
         }
 
+        func updateJoystickLight(activity: Activity) {
+            // AprilsCreatureWorkshopJoystick doesn't have programmable lights,
+            // but we need to implement this to conform to the Joystick protocol
+            // Could potentially control external LEDs here in the future
+        }
 
     }
 

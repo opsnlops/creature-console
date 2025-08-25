@@ -1,11 +1,11 @@
 import Foundation
 import Logging
 
-public class Sound: Identifiable, Hashable, Equatable, Codable {
+public final class Sound: Identifiable, Hashable, Equatable, Codable, Sendable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.Sound")
-    public var fileName: SoundIdentifier
-    public var size: UInt32
-    public var transcript: String
+    public let fileName: SoundIdentifier
+    public let size: UInt32
+    public let transcript: String
 
     // Use the file name for the identifiable thing. Since these are files on the file system, all in the
     // same directory, it's the file name that makes them unique

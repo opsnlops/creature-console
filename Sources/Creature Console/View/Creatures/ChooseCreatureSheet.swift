@@ -5,7 +5,7 @@ import SwiftUI
 struct ChooseCreatureSheet: View {
 
     @Environment(\.dismiss) var dismiss
-    @ObservedObject var creatureCache = CreatureCache.shared
+    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "ChooseCreatureSheet")
 
@@ -14,8 +14,9 @@ struct ChooseCreatureSheet: View {
     var body: some View {
         VStack {
             Picker("Choose a Creature", selection: $selectedCreature) {
-                ForEach(creatureCache.creatures.values.sorted(by: { $0.name < $1.name }), id: \.id)
-                { creature in
+                ForEach(
+                    creatureCacheState.creatures.values.sorted(by: { $0.name < $1.name }), id: \.id
+                ) { creature in
                     Text(creature.name).tag(creature as Creature?)
                 }
             }
@@ -39,6 +40,20 @@ struct ChooseCreatureSheet: View {
             }
         }
         .padding()
+        .task {
+            // Set initial state from current cache
+            let initialState = await CreatureCache.shared.getCurrentState()
+            await MainActor.run {
+                creatureCacheState = initialState
+            }
+
+            // Continue listening for updates
+            for await state in await CreatureCache.shared.stateUpdates {
+                await MainActor.run {
+                    creatureCacheState = state
+                }
+            }
+        }
     }
 }
 

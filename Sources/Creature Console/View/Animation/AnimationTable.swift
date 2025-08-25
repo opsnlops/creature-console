@@ -12,7 +12,8 @@ struct AnimationTable: View {
 
     var creature: Creature?
 
-    @ObservedObject private var animationCache = AnimationMetadataCache.shared
+    @State private var animationCacheState = AnimationMetadataCacheState(
+        metadatas: [:], empty: true)
 
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
@@ -28,7 +29,7 @@ struct AnimationTable: View {
     var body: some View {
         NavigationStack {
             VStack {
-                if !animationCache.metadatas.isEmpty {
+                if !animationCacheState.metadatas.isEmpty {
                     Table(of: AnimationMetadata.self, selection: $selection) {
                         TableColumn("Name", value: \.title)
                             .width(min: 120, ideal: 250)
@@ -48,8 +49,9 @@ struct AnimationTable: View {
                         }
                         .width(80)
                     } rows: {
-                        ForEach(animationCache.metadatas.values.sorted(by: { $0.title < $1.title }))
-                        { metadata in
+                        ForEach(
+                            animationCacheState.metadatas.values.sorted(by: { $0.title < $1.title })
+                        ) { metadata in
                             TableRow(metadata)
                                 .contextMenu {
                                     Button {
@@ -131,8 +133,15 @@ struct AnimationTable: View {
             }
             .navigationTitle("Animations")
             #if os(macOS)
-                .navigationSubtitle("Number of Animations: \(animationCache.metadatas.count)")
+                .navigationSubtitle("Number of Animations: \(animationCacheState.metadatas.count)")
             #endif
+            .task {
+                for await state in await AnimationMetadataCache.shared.stateUpdates {
+                    await MainActor.run {
+                        animationCacheState = state
+                    }
+                }
+            }
             .navigationDestination(isPresented: $navigateToEditor) {
                 AnimationEditor()
             }
@@ -156,10 +165,10 @@ struct AnimationTable: View {
             let result = await server.getAnimation(animationId: animationId)
             switch result {
             case .success(let animation):
-                DispatchQueue.main.async {
-                    AppState.shared.currentAnimation = animation
+                await MainActor.run {
                     navigateToEditor = true
                 }
+                await AppState.shared.setCurrentAnimation(animation)
             case .failure(let error):
                 alertMessage = "Error: \(error.localizedDescription)"
                 logger.warning("Unable to load animation for editing: \(alertMessage)")
@@ -176,9 +185,12 @@ struct AnimationTable: View {
 
         playAnimationTask?.cancel()
 
+        let manager = creatureManager
+        let universe = activeUniverse
+        
         playAnimationTask = Task {
-            let result = await creatureManager.playStoredAnimationOnServer(
-                animationId: animationId, universe: activeUniverse)
+            let result = await manager.playStoredAnimationOnServer(
+                animationId: animationId, universe: universe)
             switch result {
             case .success(let message):
                 logger.info("Animation Scheduled: \(message)")
