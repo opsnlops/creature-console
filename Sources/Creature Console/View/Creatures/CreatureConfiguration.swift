@@ -6,7 +6,7 @@ import SwiftUI
 
 struct CreatureConfiguration: View {
 
-    @ObservedObject var creature: Creature
+    let creature: Creature
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConfiguration")
 

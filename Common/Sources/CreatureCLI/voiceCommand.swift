@@ -5,7 +5,7 @@ import Foundation
 extension CreatureCLI {
 
     struct Voice: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Interacts with ElevenLabs.io, our voice provider",
             subcommands: [CreateSoundFile.self, List.self, SubscriptionStatus.self]
         )
@@ -15,7 +15,7 @@ extension CreatureCLI {
 
 
         struct List: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "List the available voices",
                 discussion:
                     "This command lists the voices that we currently have access to at elevenlabs.io"
@@ -53,7 +53,7 @@ extension CreatureCLI {
 
 
         struct SubscriptionStatus: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Get the status of our subscription",
                 discussion:
                     "This command prints out the current status of our subscription for elevenlabs.io"
@@ -90,7 +90,7 @@ extension CreatureCLI {
 
 
         struct CreateSoundFile: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Create sound file for a Creature",
                 discussion:
                     "Creates a new sound file for a Creature, using the voice parameters that they have in the database"

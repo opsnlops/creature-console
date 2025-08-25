@@ -5,7 +5,7 @@ import Foundation
 extension CreatureCLI {
 
     struct Websocket: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "WebSocket things",
             subcommands: [Monitor.self, Inject.self, StreamTest.self]
         )
@@ -14,7 +14,7 @@ extension CreatureCLI {
         var globalOptions: GlobalOptions
 
         struct Monitor: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Monitor websocket messages from the server",
                 discussion:
                     "This command opens up a websocket connection to the server and leaves it open for a given number of seconds. Messages that it receives will be decoded to stdout."
@@ -45,7 +45,7 @@ extension CreatureCLI {
 
 
         struct StreamTest: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Generate fake streaming frames",
                 discussion:
                     "Generates fake streamed frames and send them to the server. This will use an actual creature, so beware! 😅"
@@ -139,7 +139,7 @@ extension CreatureCLI {
         }
 
         struct Inject: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Inject messages to the server",
                 discussion: "Send some messages to the server for testing purposes"
             )

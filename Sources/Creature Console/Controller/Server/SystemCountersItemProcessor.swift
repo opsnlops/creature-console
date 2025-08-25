@@ -5,6 +5,8 @@ import SwiftUI
 struct SystemCountersItemProcessor {
 
     public static func processSystemCounters(_ counters: SystemCountersDTO) {
-        SystemCountersStore.shared.update(with: counters)
+        Task { @MainActor in
+            SystemCountersStore.shared.update(with: counters)
+        }
     }
 }

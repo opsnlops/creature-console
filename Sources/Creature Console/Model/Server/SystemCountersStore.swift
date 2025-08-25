@@ -2,6 +2,7 @@ import Common
 import SwiftUI
 
 /// Wrapper around the SystemCountersDTO to allow for it to be observed and updated properly
+@MainActor
 public class SystemCountersStore: ObservableObject {
     public static let shared = SystemCountersStore()
 

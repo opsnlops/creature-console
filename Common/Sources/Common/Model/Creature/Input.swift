@@ -2,13 +2,13 @@ import Foundation
 import Logging
 
 /// This is the representation of a `Input`
-public class Input: Identifiable, Hashable, Equatable, Codable {
-    private var logger = Logger(label: "io.opsnlops.CreatureConsole.Creature.Input")
+public final class Input: Identifiable, Hashable, Equatable, Codable, Sendable {
+    private let logger = Logger(label: "io.opsnlops.CreatureConsole.Creature.Input")
 
-    public var name: String
-    public var slot: UInt16
-    public var width: UInt8
-    public var joystickAxis: UInt8
+    public let name: String
+    public let slot: UInt16
+    public let width: UInt8
+    public let joystickAxis: UInt8
 
     enum CodingKeys: String, CodingKey {
         case name, slot, width

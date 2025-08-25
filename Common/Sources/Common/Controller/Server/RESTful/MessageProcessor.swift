@@ -1,7 +1,7 @@
 import Foundation
 
 /// This protocol provides a way to abstract out the message processor for the web socket
-public protocol MessageProcessor {
+public protocol MessageProcessor: Sendable {
     func processBoardSensorReport(_ boardSensorReport: BoardSensorReport)
     func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation)
     func processEmergencyStop(_ emergencyStop: EmergencyStop)

@@ -4,7 +4,7 @@ import Foundation
 extension CreatureCLI {
 
     struct Sounds: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Get information on the sound file subsystem",
             subcommands: [List.self, Play.self]
         )
@@ -14,7 +14,7 @@ extension CreatureCLI {
 
 
         struct List: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "List the sound files on the server",
                 discussion:
                     "This command returns a list of the sound files that the server knows about, along with their size."
@@ -54,7 +54,7 @@ extension CreatureCLI {
         }
 
         struct Play: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Play a specified sound file on the server",
                 discussion:
                     "This command sends a request to the server to play a sound file that you specify. Ensure the sound file name is correctly spelled and available on the server."

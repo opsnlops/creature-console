@@ -8,7 +8,7 @@ struct SoundFileTable: View {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundFileTable")
 
-    @ObservedObject private var soundListCache = SoundListCache.shared
+    @State private var soundListCacheState = SoundListCacheState(sounds: [:], empty: true)
 
     // Our Server
     let server = CreatureServerClient.shared
@@ -26,7 +26,7 @@ struct SoundFileTable: View {
     var body: some View {
         NavigationStack {
             VStack {
-                if !soundListCache.sounds.isEmpty {
+                if !soundListCacheState.sounds.isEmpty {
                     Table(of: Common.Sound.self, selection: $selection) {
                         TableColumn("File Name", value: \.fileName)
                             .width(min: 300, ideal: 500)
@@ -42,7 +42,11 @@ struct SoundFileTable: View {
                         .width(100)
 
                     } rows: {
-                        ForEach(soundListCache.sounds.values.sorted(by: { $0.fileName < $1.fileName })) { sound in
+                        ForEach(
+                            soundListCacheState.sounds.values.sorted(by: {
+                                $0.fileName < $1.fileName
+                            })
+                        ) { sound in
                             TableRow(sound)
                                 .contextMenu {
                                     Button {
@@ -87,8 +91,15 @@ struct SoundFileTable: View {
             }
             .navigationTitle("Sound Files")
             #if os(macOS)
-            .navigationSubtitle("Number of Sounds: \(self.soundListCache.sounds.count)")
+                .navigationSubtitle("Number of Sounds: \(self.soundListCacheState.sounds.count)")
             #endif
+            .task {
+                for await state in await SoundListCache.shared.stateUpdates {
+                    await MainActor.run {
+                        soundListCacheState = state
+                    }
+                }
+            }
         }  // Navigation Stack
     }  // View
 

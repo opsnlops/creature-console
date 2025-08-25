@@ -36,7 +36,8 @@ struct SoundDataImport: View {
                     if let soundData = try? decoder.decode(SoundData.self, from: jsonData) {
                         print("Sound file path: \(soundData.metadata.soundFile)")
                         print("First mouth cue value: \(soundData.mouthCues.first?.value ?? "")")
-                        if let a = AppState.shared.currentAnimation {
+                        Task {
+                            if let a = await AppState.shared.getCurrentAnimation {
                             let result = soundDataProcessor.replaceAxisDataWithSoundData(
                                 soundData: soundData, axis: 4, track: track,
                                 millisecondsPerFrame: a.metadata.millisecondsPerFrame)
@@ -48,8 +49,9 @@ struct SoundDataImport: View {
                                 alertMessage = "Failed to update track: \(error)"
                                 showErrorAlert = true
                             }
-                        } else {
-                            logger.info("didn't do anything since animation is nil")
+                            } else {
+                                logger.info("didn't do anything since animation is nil")
+                            }
                         }
                     }
 

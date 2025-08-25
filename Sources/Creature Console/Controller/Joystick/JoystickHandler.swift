@@ -7,7 +7,10 @@ import OSLog
     import IOKit
 #endif
 
-func registerJoystickHandlers(eventLoop: EventLoop) {
+// Make GCController sendable for our concurrency needs - it's effectively thread-safe for our usage
+extension GCController: @unchecked Sendable {}
+
+func registerJoystickHandlers() async {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "JoystickHandler")
 
@@ -23,7 +26,9 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
 
             if (controller.extendedGamepad) != nil {
                 logger.debug("extended joystick connected, woot")
-                joystickManager.sixAxisJoystick.controller = controller
+                Task {
+                    await joystickManager.setSixAxisController(controller)
+                }
             }
         }
     }
@@ -32,7 +37,9 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
         forName: .GCControllerDidDisconnect, object: nil, queue: .main
     ) { notification in
         logger.info("Controller disconnected")
-        joystickManager.sixAxisJoystick.controller = nil
+        Task {
+            await joystickManager.setSixAxisController(nil as GCController?)
+        }
     }
 
     GCController.startWirelessControllerDiscovery(completionHandler: {
@@ -41,10 +48,5 @@ func registerJoystickHandlers(eventLoop: EventLoop) {
     )
 
 
-    #if os(macOS)
-        joystickManager.acwJoystick.setMatchingCriteria()
-        joystickManager.acwJoystick.registerCallbacks()
-        joystickManager.acwJoystick.openManager()
-        joystickManager.acwJoystick.scheduleWithRunLoop()
-    #endif
+    await joystickManager.configureACWJoystick()
 }

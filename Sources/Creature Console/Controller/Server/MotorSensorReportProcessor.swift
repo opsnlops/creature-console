@@ -13,7 +13,9 @@ struct MotorSensorReportMessageProcessor {
         logger.debug("Received motor sensor report for creature: \(motorSenseReport.creatureId)")
 
         let cache = CreatureHealthCache.shared
-        cache.addMotorSensorData(motorSenseReport, forCreature: motorSenseReport.creatureId)
+        let creatureId = motorSenseReport.creatureId
+        Task {
+            await cache.addMotorSensorData(motorSenseReport, forCreature: creatureId)
+        }
     }
 }
-

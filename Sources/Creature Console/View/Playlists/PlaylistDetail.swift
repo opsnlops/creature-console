@@ -12,7 +12,8 @@ struct PlaylistDetail: View {
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
 
-    @ObservedObject private var animationCache = AnimationMetadataCache.shared
+    @State private var animationCacheState = AnimationMetadataCacheState(
+        metadatas: [:], empty: true)
 
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "PlaylistDetail")
@@ -53,7 +54,8 @@ struct PlaylistDetail: View {
                     Text("Weight Distribution")
                         .font(.headline)
 
-                    WeightDistributionView(items: playlist.items, animationCache: animationCache)
+                    WeightDistributionView(
+                        items: playlist.items, animationCacheState: animationCacheState)
                 }
                 .padding()
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -110,6 +112,13 @@ struct PlaylistDetail: View {
             Spacer()
         }
         .padding()
+        .task {
+            for await state in await AnimationMetadataCache.shared.stateUpdates {
+                await MainActor.run {
+                    animationCacheState = state
+                }
+            }
+        }
         .onAppear {
             editingName = playlist.name
         }
@@ -129,13 +138,13 @@ struct PlaylistDetail: View {
     }
 
     private var availableAnimations: [AnimationMetadata] {
-        animationCache.metadatas.values.filter { metadata in
+        animationCacheState.metadatas.values.filter { metadata in
             !playlist.items.contains { $0.animationId == metadata.id }
         }.sorted { $0.title < $1.title }
     }
 
     private func animationName(for id: AnimationIdentifier) -> String {
-        animationCache.metadatas[id]?.title ?? "Unknown Animation"
+        animationCacheState.metadatas[id]?.title ?? "Unknown Animation"
     }
 
     private func percentage(for item: PlaylistItem) -> Double {
@@ -250,7 +259,7 @@ struct PlaylistItemRow: View {
 
 struct WeightDistributionView: View {
     let items: [PlaylistItem]
-    let animationCache: AnimationMetadataCache
+    let animationCacheState: AnimationMetadataCacheState
 
     private var totalWeight: UInt32 {
         items.reduce(0) { $0 + $1.weight }
@@ -300,7 +309,7 @@ struct WeightDistributionView: View {
     }
 
     private func animationName(for id: AnimationIdentifier) -> String {
-        animationCache.metadatas[id]?.title ?? "Unknown"
+        animationCacheState.metadatas[id]?.title ?? "Unknown"
     }
 
     private func colorForAnimation(_ id: AnimationIdentifier) -> Color {
@@ -386,9 +395,9 @@ struct AddAnimationToPlaylistView: View {
             }
             .padding()
             .navigationTitle("Add Animation")
-#if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-#endif
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

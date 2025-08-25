@@ -1,6 +1,6 @@
 import Foundation
 
-public enum ServerLogLevel: Int, CaseIterable {
+public enum ServerLogLevel: Int, CaseIterable, Sendable {
     case trace = 0
     case debug = 1
     case info = 2

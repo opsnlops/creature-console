@@ -1,10 +1,10 @@
 import Foundation
 
-public class MotorSensorReport: ObservableObject, Codable, Hashable {
+public final class MotorSensorReport: Codable, Hashable, Sendable {
 
-    @Published public var creatureId: CreatureIdentifier
-    @Published public var motors: [MotorSensors]
-    @Published public var timestamp: Date = .now
+    public let creatureId: CreatureIdentifier
+    public let motors: [MotorSensors]
+    public let timestamp: Date
 
     enum CodingKeys: String, CodingKey {
         case creatureId = "creature_id"
@@ -24,7 +24,7 @@ public class MotorSensorReport: ObservableObject, Codable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         creatureId = try container.decode(CreatureIdentifier.self, forKey: .creatureId)
         motors = try container.decode([MotorSensors].self, forKey: .motors)
-        //timestamp = try container.decode(Date.self, forKey: .timestamp)
+        timestamp = .now
     }
 
     public func encode(to encoder: Encoder) throws {

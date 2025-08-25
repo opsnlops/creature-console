@@ -9,7 +9,8 @@ struct SensorData: View {
     var creature: Creature
     var showTitle: Bool = true
 
-    @ObservedObject private var healthCache = CreatureHealthCache.shared
+    @State private var healthCacheState = CreatureHealthCacheState(
+        motorSensorCache: [:], boardSensorCache: [:])
     @State private var showingHistoricalData = false
 
     private let dateFormatter: DateFormatter = {
@@ -20,65 +21,82 @@ struct SensorData: View {
     }()
 
     private var shouldShowHistoricalData: Bool {
-    #if os(tvOS)
-      return false
-    #else
-      return true
-    #endif
+        #if os(tvOS)
+            return false
+        #else
+            return true
+        #endif
+    }
+
+    private var healthReport: Result<[BoardSensorReport], CacheError> {
+        if let sensorData = healthCacheState.boardSensorCache[creature.id], !sensorData.isEmpty {
+            return .success(sensorData.sorted(by: { $0.timestamp < $1.timestamp }))
+        } else {
+            return .failure(.noDataForCreature)
+        }
     }
 
     var body: some View {
-        let healthReport = healthCache.allBoardSensorData(forCreature: creature.id)
-
-        switch healthReport {
-        case .success(let reports):
-            if let latestReport = reports.last {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Header with timestamp
-                    if showTitle {
-                        HStack {
-                            Text("Sensor Data")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                            Spacer()
-                            Text("Last updated: \(dateFormatter.string(from: latestReport.timestamp))")
+        Group {
+            switch healthReport {
+            case .success(let reports):
+                if let latestReport = reports.last {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Header with timestamp
+                        if showTitle {
+                            HStack {
+                                Text("Sensor Data")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Text(
+                                    "Last updated: \(dateFormatter.string(from: latestReport.timestamp))"
+                                )
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                        }
-                    }
-
-                    // Critical metrics graphs
-                    criticalMetricsGraphs(reports)
-
-                    // Current sensor readings table
-                    currentSensorTable(latestReport)
-
-                    // Historical data toggle
-                    if shouldShowHistoricalData && reports.count > 1 {
-                        Button(action: {
-                            showingHistoricalData.toggle()
-                        }) {
-                            HStack {
-                                Text("Historical Data (\(reports.count) readings)")
-                                Spacer()
-                                Image(
-                                    systemName: showingHistoricalData
-                                        ? "chevron.up" : "chevron.down")
                             }
                         }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.accentColor)
 
-                        if showingHistoricalData {
-                            historicalDataTable(reports)
+                        // Critical metrics graphs
+                        criticalMetricsGraphs(reports)
+
+                        // Current sensor readings table
+                        currentSensorTable(latestReport)
+
+                        // Historical data toggle
+                        if shouldShowHistoricalData && reports.count > 1 {
+                            Button(action: {
+                                showingHistoricalData.toggle()
+                            }) {
+                                HStack {
+                                    Text("Historical Data (\(reports.count) readings)")
+                                    Spacer()
+                                    Image(
+                                        systemName: showingHistoricalData
+                                            ? "chevron.up" : "chevron.down")
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.accentColor)
+
+                            if showingHistoricalData {
+                                historicalDataTable(reports)
+                            }
                         }
                     }
+                } else {
+                    emptyStateView()
                 }
-            } else {
+            case .failure:
                 emptyStateView()
             }
-        case .failure:
-            emptyStateView()
+        }
+        .task {
+            for await state in await CreatureHealthCache.shared.stateUpdates {
+                await MainActor.run {
+                    healthCacheState = state
+                }
+            }
         }
     }
 

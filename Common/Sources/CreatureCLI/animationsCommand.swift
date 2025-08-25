@@ -5,7 +5,7 @@ import Foundation
 extension CreatureCLI {
 
     struct Animations: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "View and work with animations",
             subcommands: [
                 Get.self, List.self, Play.self, TestAnimationEncoding.self, TestTrackEncoding.self,
@@ -17,7 +17,7 @@ extension CreatureCLI {
         var globalOptions: GlobalOptions
 
         struct List: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "List the animations for a creature",
                 discussion:
                     "This command lists the animations that are found for a given creature, or at least will when I add that 😅"
@@ -65,7 +65,7 @@ extension CreatureCLI {
         }
 
         struct TestTrackEncoding: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Test the track encoding to JSON",
                 discussion:
                     "Creates a fake track via .mock() and then prints its JSON format to the terminal"
@@ -93,7 +93,7 @@ extension CreatureCLI {
         }
 
         struct TestAnimationEncoding: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Test encoding an Animation to JSON",
                 discussion:
                     "Creates a fake Animation via .mock() and pretty-prints it to the console"
@@ -121,7 +121,7 @@ extension CreatureCLI {
         }
 
         struct TestAnimationSaving: AsyncParsableCommand {
-            static var configuration = CommandConfiguration(
+            static let configuration = CommandConfiguration(
                 abstract: "Test saving an animation to the server",
                 discussion:
                     "Creates a fake Animation via .mock() and saves it to the server"
@@ -153,7 +153,7 @@ extension CreatureCLI {
     }
 
     struct Get: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Fetches an animation from the server",
             discussion:
                 "This command will download an animation from the server and display information about it."
@@ -184,7 +184,7 @@ extension CreatureCLI {
     }
 
     struct Play: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             abstract: "Plays an animation on the server",
             discussion:
                 "Asks the server to play an animation that it already knows exists"
