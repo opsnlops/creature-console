@@ -94,6 +94,13 @@ struct SoundFileTable: View {
                 .navigationSubtitle("Number of Sounds: \(self.soundListCacheState.sounds.count)")
             #endif
             .task {
+                // First, get the current state immediately
+                let currentState = await SoundListCache.shared.getCurrentState()
+                await MainActor.run {
+                    soundListCacheState = currentState
+                }
+
+                // Then listen for updates
                 for await state in await SoundListCache.shared.stateUpdates {
                     await MainActor.run {
                         soundListCacheState = state
