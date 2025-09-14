@@ -5,6 +5,7 @@ struct LogView: View {
     @State private var logManagerState = LogManagerState(logMessages: [])
     @State private var isUserScrolling = false
     @State private var autoScrollEnabled = true
+    @State private var selectedLogLevel: ServerLogLevel = .debug
 
     private let dateFormatter: DateFormatter
 
@@ -13,66 +14,119 @@ struct LogView: View {
         dateFormatter.dateFormat = "YYYY-MM-dd HH:mm:ss"
     }
 
+    // Filter messages based on selected log level
+    private var filteredMessages: [LogItem] {
+        logManagerState.logMessages.filter { message in
+            message.level.rawValue >= selectedLogLevel.rawValue
+        }
+    }
+
     var body: some View {
-        ScrollViewReader { scrollView in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(logManagerState.logMessages) { log in
-                        LogRowView(
-                            log: log,
-                            formattedDate: formattedDate(log.timestamp),
-                            levelColor: levelColor(log.level),
-                            backgroundColor: backgroundColor(log.level)
-                        )
-                        .id(log.id)
+        VStack(spacing: 0) {
+            // Compact log level filter
+            HStack {
+                Text("Level:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Picker("Log Level", selection: $selectedLogLevel) {
+                    ForEach(
+                        ServerLogLevel.allCases.filter { $0 != .off && $0 != .unknown }, id: \.self
+                    ) {
+                        level in
+                        Text(level.description.capitalized).tag(level)
                     }
                 }
-                .onTapGesture {
-                    // Allow user to disable auto-scroll by tapping
-                    autoScrollEnabled.toggle()
-                }
+                .pickerStyle(.menu)
+                .fixedSize()
+
+                Spacer()
+
+                Text("\(filteredMessages.count)/\(logManagerState.logMessages.count)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .monospacedDigit()
             }
-            .overlay(alignment: .bottomTrailing) {
-                if !autoScrollEnabled {
-                    Button("Auto-scroll") {
-                        autoScrollEnabled = true
-                        if let lastId = logManagerState.logMessages.last?.id {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                scrollView.scrollTo(lastId, anchor: .bottom)
-                            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+
+            ScrollViewReader { scrollView in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(filteredMessages) { log in
+                            LogRowView(
+                                log: log,
+                                formattedDate: formattedDate(log.timestamp),
+                                levelColor: levelColor(log.level),
+                                backgroundColor: backgroundColor(log.level)
+                            )
+                            .id(log.id)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .padding()
+                    .onTapGesture {
+                        // Allow user to disable auto-scroll by tapping
+                        autoScrollEnabled.toggle()
+                    }
                 }
-            }
-            .onChange(of: logManagerState.logMessages) { _, newMessages in
-                if autoScrollEnabled, let lastMessage = newMessages.last {
-                    withAnimation(.easeInOut(duration: 0.3)) {
+                .overlay(alignment: .bottomTrailing) {
+                    if !autoScrollEnabled {
+                        Button("Auto-scroll") {
+                            autoScrollEnabled = true
+                            if let lastId = filteredMessages.last?.id {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    scrollView.scrollTo(lastId, anchor: .bottom)
+                                }
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding()
+                    }
+                }
+                .onChange(of: filteredMessages) { _, newMessages in
+                    if autoScrollEnabled, let lastMessage = newMessages.last {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+                    }
+                }
+                .onChange(of: selectedLogLevel) { _, _ in
+                    // When filter changes, scroll to bottom if auto-scroll is enabled
+                    if autoScrollEnabled, let lastMessage = filteredMessages.last {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+                    }
+                }
+                .onAppear {
+                    // Scroll to bottom on initial appearance
+                    if let lastMessage = filteredMessages.last {
                         scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
-            }
-            .onAppear {
-                // Scroll to bottom on initial appearance
-                if let lastMessage = logManagerState.logMessages.last {
-                    scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                .task {
+                    // First, get the current state immediately
+                    let currentState = await LogManager.shared.getCurrentState()
+                    await MainActor.run {
+                        logManagerState = currentState
+                    }
+
+                    // Then listen for updates
+                    for await state in await LogManager.shared.stateUpdates {
+                        await MainActor.run {
+                            logManagerState = state
+                        }
+                    }
                 }
             }
-            .task {
-                for await state in await LogManager.shared.stateUpdates {
-                    logManagerState = state
-                }
-            }
+            .frame(minWidth: 500, minHeight: 300)
+            .padding()
+            #if os(iOS)
+                .background(Color(UIColor.systemBackground))
+            #endif
+            #if os(macOS)
+                .background(Color(NSColor.windowBackgroundColor))
+            #endif
         }
-        .frame(minWidth: 500, minHeight: 300)
-        .padding()
-        #if os(iOS)
-            .background(Color(UIColor.systemBackground))
-        #endif
-        #if os(macOS)
-            .background(Color(NSColor.windowBackgroundColor))
-        #endif
     }
 
     private func formattedDate(_ date: Date) -> String {
@@ -113,7 +167,7 @@ private struct LogRowView: View {
     let formattedDate: String
     let levelColor: Color
     let backgroundColor: Color
-    
+
     var body: some View {
         HStack(alignment: .top) {
             Text("[\(formattedDate)]")

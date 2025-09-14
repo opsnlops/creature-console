@@ -136,6 +136,13 @@ struct AnimationTable: View {
                 .navigationSubtitle("Number of Animations: \(animationCacheState.metadatas.count)")
             #endif
             .task {
+                // First, get the current state immediately
+                let currentState = await AnimationMetadataCache.shared.getCurrentState()
+                await MainActor.run {
+                    animationCacheState = currentState
+                }
+                
+                // Then listen for updates
                 for await state in await AnimationMetadataCache.shared.stateUpdates {
                     await MainActor.run {
                         animationCacheState = state

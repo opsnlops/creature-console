@@ -80,8 +80,13 @@ actor SoundListCache {
             return .success("Successfully loaded \(soundList.count) sounds")
         case .failure(let error):
             logger.warning("Unable to fetch the list of sounds from the server: \(error)")
-            await AppState.shared.setSystemAlert(show: true, message: error.localizedDescription)
+            await AppState.shared.setSystemAlert(
+                show: true, message: error.localizedDescription)
             return .failure(error)
         }
+    }
+
+    public func getCurrentState() -> SoundListCacheState {
+        return SoundListCacheState(sounds: sounds, empty: empty)
     }
 }

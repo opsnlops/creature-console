@@ -42,4 +42,8 @@ actor LogManager {
         let logItem = LogItem(from: serverLogItem)
         addLogMessage(logItem)
     }
+
+    func getCurrentState() -> LogManagerState {
+        return LogManagerState(logMessages: logMessages)
+    }
 }
