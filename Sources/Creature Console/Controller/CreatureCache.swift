@@ -16,59 +16,84 @@ actor CreatureCache {
 
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureCache")
 
-    // AsyncStream for UI updates
-    private let (stateStream, stateContinuation) = AsyncStream.makeStream(
-        of: CreatureCacheState.self)
+    private var continuations: [UUID: AsyncStream<CreatureCacheState>.Continuation] = [:]
 
     var stateUpdates: AsyncStream<CreatureCacheState> {
-        stateStream
+        AsyncStream { continuation in
+            let id = UUID()
+            Task { [weak self] in
+                await self?.addContinuation(id: id, continuation)
+            }
+            continuation.onTermination = { [weak self] _ in
+                Task { await self?.removeContinuation(id) }
+            }
+        }
     }
 
     // Make sure we don't accidentally create two of these
     private init() {}
 
-
     func addCreature(_ creature: Creature, for id: CreatureIdentifier) {
-        creatures[id] = creature
-        empty = creatures.isEmpty
-        publishState()
+        self.creatures[id] = creature
+        self.empty = self.creatures.isEmpty
+        self.logger.debug("CreatureCache: Added/Updated creature \(id); count: \(self.creatures.count), empty: \(self.empty)")
+        self.publishState()
+    }
+
+    private func currentSnapshot() -> CreatureCacheState {
+        CreatureCacheState(
+            creatures: self.creatures,
+            empty: self.empty
+        )
+    }
+
+    private func addContinuation(id: UUID, _ continuation: AsyncStream<CreatureCacheState>.Continuation) {
+        self.continuations[id] = continuation
+        // Seed with the current state immediately
+        continuation.yield(self.currentSnapshot())
+    }
+
+    private func removeContinuation(_ id: UUID) {
+        self.continuations[id] = nil
     }
 
     private func publishState() {
-        let currentState = CreatureCacheState(
-            creatures: creatures,
-            empty: empty
-        )
-        stateContinuation.yield(currentState)
+        let snapshot = self.currentSnapshot()
+        self.logger.debug("CreatureCache: Broadcasting state (count: \(self.creatures.count), empty: \(self.empty))")
+        for continuation in self.continuations.values {
+            continuation.yield(snapshot)
+        }
     }
 
     func removeCreature(for id: CreatureIdentifier) {
-        creatures.removeValue(forKey: id)
-        empty = creatures.isEmpty
-        publishState()
+        self.creatures.removeValue(forKey: id)
+        self.empty = self.creatures.isEmpty
+        self.logger.debug("CreatureCache: Removed creature \(id); count: \(self.creatures.count), empty: \(self.empty)")
+        self.publishState()
     }
 
     public func reload(with creatures: [Creature]) {
         let reloadedCreatures = Dictionary(uniqueKeysWithValues: creatures.map { ($0.id, $0) })
         self.creatures = reloadedCreatures
         self.empty = reloadedCreatures.isEmpty
-        publishState()
+        self.logger.info("CreatureCache: Reloaded with \(self.creatures.count) creatures (empty: \(self.empty))")
+        self.publishState()
     }
 
     public func getById(id: CreatureIdentifier) -> Result<Creature, ServerError> {
-        if let creature = creatures[id] {
+        if let creature = self.creatures[id] {
             return .success(creature)
         } else {
-            logger.warning("getById() called on an ID that wasn't in the cache! \(id)")
+            self.logger.warning("getById() called on an ID that wasn't in the cache! \(id)")
             return .failure(.notFound("Creature ID \(id) not found in the cache"))
         }
     }
 
     public var count: Int {
-        return creatures.count
+        return self.creatures.count
     }
 
     public func getCurrentState() -> CreatureCacheState {
-        return CreatureCacheState(creatures: creatures, empty: empty)
+        return CreatureCacheState(creatures: self.creatures, empty: self.empty)
     }
 }

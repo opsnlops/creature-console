@@ -17,12 +17,35 @@ actor AnimationMetadataCache {
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "AnimationMetadataCache")
 
-    // AsyncStream for UI updates
-    private let (stateStream, stateContinuation) = AsyncStream.makeStream(
-        of: AnimationMetadataCacheState.self)
+    private var continuations: [UUID: AsyncStream<AnimationMetadataCacheState>.Continuation] = [:]
 
     var stateUpdates: AsyncStream<AnimationMetadataCacheState> {
-        stateStream
+        AsyncStream { continuation in
+            let id = UUID()
+            Task { [weak self] in
+                await self?.addContinuation(id: id, continuation)
+            }
+            continuation.onTermination = { [weak self] _ in
+                Task { await self?.removeContinuation(id) }
+            }
+        }
+    }
+
+    private func currentSnapshot() -> AnimationMetadataCacheState {
+        AnimationMetadataCacheState(
+            metadatas: metadatas,
+            empty: empty
+        )
+    }
+
+    private func addContinuation(id: UUID, _ continuation: AsyncStream<AnimationMetadataCacheState>.Continuation) {
+        continuations[id] = continuation
+        // Seed with the current state immediately
+        continuation.yield(currentSnapshot())
+    }
+
+    private func removeContinuation(_ id: UUID) {
+        continuations[id] = nil
     }
 
     private init() {}
@@ -34,11 +57,11 @@ actor AnimationMetadataCache {
     }
 
     private func publishState() {
-        let currentState = AnimationMetadataCacheState(
-            metadatas: metadatas,
-            empty: empty
-        )
-        stateContinuation.yield(currentState)
+        let snapshot = currentSnapshot()
+        logger.debug("AnimationMetadataCache: Broadcasting state (count: \(self.metadatas.count), empty: \(self.empty))")
+        for continuation in continuations.values {
+            continuation.yield(snapshot)
+        }
     }
 
     func removeAnimationMetadata(for id: AnimationIdentifier) {

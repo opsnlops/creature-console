@@ -12,13 +12,14 @@ struct CreatureDetail: View {
 
     let server = CreatureServerClient.shared
     let eventLoop = EventLoop.shared
-    @ObservedObject var appState = AppState.shared
+    // Removed @ObservedObject var appState = AppState.shared
     let creatureManager = CreatureManager.shared
 
 
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     @State private var streamingTask: Task<Void, Never>? = nil
+    @State private var currentActivity: Activity = .idle
 
     var creature: Creature
 
@@ -48,6 +49,14 @@ struct CreatureDetail: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .task {
+            // Seed initial activity and subscribe to updates
+            let initial = await AppState.shared.getCurrentActivity
+            await MainActor.run { currentActivity = initial }
+            for await state in await AppState.shared.stateUpdates {
+                await MainActor.run { currentActivity = state.currentActivity }
+            }
+        }
     #else
         VStack {
             SensorData(creature: creature)
@@ -58,10 +67,10 @@ struct CreatureDetail: View {
                     toggleStreaming()
                 }) {
                     Image(
-                        systemName: (appState.currentActivity == .streaming)
+                        systemName: (currentActivity == .streaming)
                             ? "gamecontroller.fill" : "gamecontroller"
                     )
-                    .foregroundColor((appState.currentActivity == .streaming) ? .green : .primary)
+                    .foregroundColor((currentActivity == .streaming) ? .green : .primary)
                 }
             }
         }
@@ -84,6 +93,14 @@ struct CreatureDetail: View {
         #if os(macOS)
             .navigationSubtitle(generateStatusString())
         #endif
+        .task {
+            // Seed initial activity and subscribe to updates
+            let initial = await AppState.shared.getCurrentActivity
+            await MainActor.run { currentActivity = initial }
+            for await state in await AppState.shared.stateUpdates {
+                await MainActor.run { currentActivity = state.currentActivity }
+            }
+        }
     #endif
     }
 
@@ -183,56 +200,40 @@ struct CreatureDetail: View {
 
 
     func toggleStreaming() {
+        Task {
+            let appStateActivity = await AppState.shared.getCurrentActivity
+            logger.info("Toggling streaming - current activity: \(appStateActivity.description)")
 
-        logger.info("Toggling streaming")
-
-        if appState.currentActivity == .idle {
-
-            logger.debug("starting streaming")
-            streamingTask?.cancel()
-            streamingTask = Task {
-                DispatchQueue.main.async {
-                    appState.currentActivity = .streaming
-                }
-
-                let result = creatureManager.startStreamingToCreature(creatureId: creature.id)
-                switch result {
-                case .success(let message):
-                    logger.info("Streaming result: \(message)")
-                case .failure(let error):
-                    logger.warning("Unable to stream: \(error)")
-                    DispatchQueue.main.async {
-                        errorMessage = "Unable to start streaming: \(error)"
-                        showErrorAlert = true
-                    }
-                }
-            }
-        } else {
-            // If we're streaming, stop
-            if appState.currentActivity == .streaming {
-
-                logger.debug("stopping streaming")
-                let result = creatureManager.stopStreaming()
+            if appStateActivity == .streaming {
+                // Stop streaming
+                let result = await creatureManager.stopStreaming()
                 switch result {
                 case .success:
-                    logger.debug("we were able to stop streaming!")
-                case .failure(let message):
-                    logger.warning("Unable to stop streaming: \(message)")
+                    logger.debug("Successfully stopped streaming")
+                    await AppState.shared.setCurrentActivity(.idle)
+                    await MainActor.run { currentActivity = .idle }
+                case .failure(let error):
+                    logger.warning("Unable to stop streaming: \(error)")
                 }
-
-                streamingTask?.cancel()
-                DispatchQueue.main.async {
-                    appState.currentActivity = .idle
+            } else if appStateActivity == .idle || appStateActivity == .connectingToServer {
+                // Start streaming
+                await AppState.shared.setCurrentActivity(.streaming)
+                let result = await creatureManager.startStreamingToCreature(creatureId: creature.id)
+                switch result {
+                case .success(let message):
+                    logger.info("Streaming started: \(message)")
+                    await MainActor.run { currentActivity = .streaming }
+                case .failure(let error):
+                    logger.warning("Unable to start streaming: \(error)")
+                    // Revert state on failure
+                    await AppState.shared.setCurrentActivity(.idle)
+                    await MainActor.run { currentActivity = .idle }
                 }
-
             } else {
-
-                DispatchQueue.main.async {
-                    errorMessage =
-                        "Unable to start streaming while in the \(appState.currentActivity.description) state"
+                await MainActor.run {
+                    errorMessage = "Unable to start streaming while in the \(appStateActivity.description) state"
                     showErrorAlert = true
                 }
-
             }
         }
     }

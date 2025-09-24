@@ -18,12 +18,18 @@ actor SoundListCache {
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "SoundListCache")
 
-    // AsyncStream for UI updates
-    private let (stateStream, stateContinuation) = AsyncStream.makeStream(
-        of: SoundListCacheState.self)
+    private var continuations: [UUID: AsyncStream<SoundListCacheState>.Continuation] = [:]
 
     var stateUpdates: AsyncStream<SoundListCacheState> {
-        stateStream
+        AsyncStream { continuation in
+            let id = UUID()
+            Task { [weak self] in
+                await self?.addContinuation(id: id, continuation)
+            }
+            continuation.onTermination = { [weak self] _ in
+                Task { await self?.removeContinuation(id) }
+            }
+        }
     }
 
     private init() {}
@@ -34,12 +40,29 @@ actor SoundListCache {
         publishState()
     }
 
-    private func publishState() {
-        let currentState = SoundListCacheState(
+    private func currentSnapshot() -> SoundListCacheState {
+        SoundListCacheState(
             sounds: sounds,
             empty: empty
         )
-        stateContinuation.yield(currentState)
+    }
+
+    private func addContinuation(id: UUID, _ continuation: AsyncStream<SoundListCacheState>.Continuation) {
+        continuations[id] = continuation
+        // Seed with the current state immediately
+        continuation.yield(currentSnapshot())
+    }
+
+    private func removeContinuation(_ id: UUID) {
+        continuations[id] = nil
+    }
+
+    private func publishState() {
+        let snapshot = currentSnapshot()
+        logger.debug("SoundListCache: Broadcasting state (count: \(self.sounds.count), empty: \(self.empty))")
+        for continuation in continuations.values {
+            continuation.yield(snapshot)
+        }
     }
 
     func removeSound(for id: SoundIdentifier) {
@@ -90,3 +113,4 @@ actor SoundListCache {
         return SoundListCacheState(sounds: sounds, empty: empty)
     }
 }
+

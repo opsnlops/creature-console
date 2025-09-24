@@ -7,10 +7,10 @@ struct TrackViewer: View {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "TrackViewer")
 
-    @State var track: Track
-    @State var creature: Creature
-    @State var inputs: [Input]
-    @State var chartColor: Color = .accentColor
+    let track: Track
+    let creature: Creature
+    let inputs: [Input]
+    var chartColor: Color = .accentColor
 
     var height: CGFloat = 50.0
 

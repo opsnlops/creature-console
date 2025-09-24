@@ -49,9 +49,19 @@ actor JoystickManager {
     var versionNumber: Int?
     var manufacturer: String?
 
-    private let (stateStream, stateContinuation) = AsyncStream.makeStream(
-        of: JoystickManagerState.self)
-    var stateUpdates: AsyncStream<JoystickManagerState> { stateStream }
+    private var continuations: [UUID: AsyncStream<JoystickManagerState>.Continuation] = [:]
+
+    var stateUpdates: AsyncStream<JoystickManagerState> {
+        AsyncStream { continuation in
+            let id = UUID()
+            Task { [weak self] in
+                await self?.addContinuation(id: id, continuation)
+            }
+            continuation.onTermination = { [weak self] _ in
+                Task { await self?.removeContinuation(id) }
+            }
+        }
+    }
 
 
     // Behold, the two genders
@@ -66,15 +76,6 @@ actor JoystickManager {
         #if os(macOS)
             self.acwJoystick = AprilsCreatureWorkshopJoystick(vendorID: 0x0666, productID: 0x0001)
         #endif
-        // Publish initial state synchronously with default values
-        let currentState = JoystickManagerState(
-            aButtonPressed: aButtonPressed,
-            bButtonPressed: bButtonPressed,
-            xButtonPressed: xButtonPressed,
-            yButtonPressed: yButtonPressed,
-            selectedJoystick: .none  // Will be updated properly when poll() is first called
-        )
-        stateContinuation.yield(currentState)
 
         // Subscribe to AppState changes to update joystick light automatically
         Task {
@@ -212,7 +213,7 @@ actor JoystickManager {
     var getSerialNumber: String? { serialNumber }
     var getVersionNumber: Int? { versionNumber }
 
-    private func publishState() {
+    private func currentSnapshot() -> JoystickManagerState {
         let selectedJoystick: SelectedJoystick
         #if os(macOS)
             if acwJoystick.connected && useOurJoystick {
@@ -223,15 +224,31 @@ actor JoystickManager {
         #else
             selectedJoystick = .sixAxis
         #endif
-
-        let currentState = JoystickManagerState(
+        return JoystickManagerState(
             aButtonPressed: aButtonPressed,
             bButtonPressed: bButtonPressed,
             xButtonPressed: xButtonPressed,
             yButtonPressed: yButtonPressed,
             selectedJoystick: selectedJoystick
         )
-        stateContinuation.yield(currentState)
+    }
+
+    private func addContinuation(id: UUID, _ continuation: AsyncStream<JoystickManagerState>.Continuation) {
+        continuations[id] = continuation
+        // Seed with the current state immediately
+        continuation.yield(currentSnapshot())
+    }
+
+    private func removeContinuation(_ id: UUID) {
+        continuations[id] = nil
+    }
+
+    private func publishState() {
+        let snapshot = currentSnapshot()
+        logger.debug("JoystickManager: Broadcasting state (A: \(self.aButtonPressed), B: \(self.bButtonPressed), X: \(self.xButtonPressed), Y: \(self.yButtonPressed), selected: \(String(describing: snapshot.selectedJoystick)))")
+        for continuation in continuations.values {
+            continuation.yield(snapshot)
+        }
     }
 
     func updateJoystickLight(activity: Activity) {
@@ -270,8 +287,8 @@ actor JoystickManager {
         return joystick.getYButtonSymbol()
     }
 
-    func setSixAxisController(_ controller: GCController?) {
-        sixAxisJoystick.controller = controller
+    func setSixAxisController(_ controller: SendableGCController?) {
+        sixAxisJoystick.controller = controller?.controller
 
         // Update light when controller connects based on current AppState
         if controller != nil {

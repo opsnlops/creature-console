@@ -1,38 +1,44 @@
 import Foundation
 
-public class BlockingThreadSafeQueue<T> {
-    private var queue: [T] = []
-    private let accessQueue = DispatchQueue(
-        label: "BlockingThreadSafeQueueAccess", attributes: .concurrent)
-    private let semaphore = DispatchSemaphore(value: 0)
-    private var isCancelled = false  // Flag for cancellation state
+public actor BlockingThreadSafeQueue<Element: Sendable> {
+    private var buffer: [Element] = []
+    private var waiters: [CheckedContinuation<Element?, Never>] = []
+    private var isCancelled = false
 
-    public func enqueue(_ element: T) {
-        accessQueue.async(flags: .barrier) {
-            self.queue.append(element)
-            self.semaphore.signal()  // Signal to wake up any waiting dequeue
+    public init() {}
+
+    // Enqueue an element. If a waiter is pending, resume it immediately; otherwise buffer.
+    public func enqueue(_ element: Element) {
+        guard !isCancelled else { return }
+        if let waiter = waiters.first {
+            waiters.removeFirst()
+            waiter.resume(returning: element)
+        } else {
+            buffer.append(element)
         }
     }
 
+    // Cancel the queue: unblocks all pending and future dequeues with nil.
     public func cancel() {
-        accessQueue.async(flags: .barrier) {
-            self.isCancelled = true  // Set cancellation flag
-            self.semaphore.signal()  // Signal to wake up any waiting dequeue
+        guard !isCancelled else { return }
+        isCancelled = true
+        let pending = waiters
+        waiters.removeAll()
+        for waiter in pending {
+            waiter.resume(returning: nil)
         }
     }
 
-    public func dequeue() -> T? {
-        semaphore.wait()  // Block until semaphore is signaled
-
-        if isCancelled {
-            return nil  // Return nil if cancellation flag is set
+    // Dequeue the next element, suspending until available. Returns nil if the queue is cancelled.
+    public func dequeue() async -> Element? {
+        if !buffer.isEmpty {
+            return buffer.removeFirst()
         }
-
-        return accessQueue.sync {
-            if !self.queue.isEmpty {
-                return self.queue.removeFirst()  // Return the first element
-            }
-            return nil  // Return nil if queue is empty
+        if isCancelled {
+            return nil
+        }
+        return await withCheckedContinuation { (continuation: CheckedContinuation<Element?, Never>) in
+            waiters.append(continuation)
         }
     }
 }

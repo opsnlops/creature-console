@@ -16,12 +16,24 @@ struct BottomToolBarView: View {
     )
     @State private var showingSystemAlert = false
     @State private var systemAlertMessage = ""
+    @Namespace private var glassNamespace
+
+    private func activityTint(for activity: Activity) -> Color {
+        switch activity {
+        case .idle:               return .blue
+        case .streaming:          return .green
+        case .recording:          return .red
+        case .preparingToRecord:  return .yellow
+        case .playingAnimation:   return .purple
+        case .connectingToServer: return .pink
+        }
+    }
 
     var body: some View {
 
         HStack {
-            VStack {
-                HStack {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 16) {
                     Text("Server Frame: \(serverCounters.systemCounters.totalFrames)")
                     Text("Rest Req: \(serverCounters.systemCounters.restRequestsProcessed)")
                     Text("Streamed: \(serverCounters.systemCounters.framesStreamed)")
@@ -30,30 +42,62 @@ struct BottomToolBarView: View {
                 HStack {
                     Text("State: \(appState.currentActivity.description)")
                         .font(.footnote)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .glassEffect(
+                            .regular
+                                .tint(activityTint(for: appState.currentActivity).opacity(0.35))
+                                .interactive(),
+                            in: .capsule
+                        )
+                        .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
+                        .animation(.easeInOut(duration: 0.25), value: appState.currentActivity)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+            .glassEffectUnion(id: "bottomToolbar", namespace: glassNamespace)
 
             Spacer()
 
-            HStack(spacing: 16) {
-                StatusIndicator(
-                    systemName: "arrow.circlepath", isActive: statusLightsState.running,
-                    help: "Server Running")
-                StatusIndicator(
-                    systemName: "rainbow", isActive: statusLightsState.streaming, help: "Streaming")
-                StatusIndicator(
-                    systemName: "antenna.radiowaves.left.and.right.circle.fill",
-                    isActive: statusLightsState.dmx, help: "DMX Signal")
-                StatusIndicator(
-                    systemName: "figure.socialdance", isActive: statusLightsState.animationPlaying,
-                    help: "Animation Playing")
+            GlassEffectContainer(spacing: 14) {
+                HStack(spacing: 10) {
+                    StatusIndicator(
+                        systemName: "arrow.circlepath",
+                        isActive: statusLightsState.running,
+                        help: "Server Running",
+                        tint: .green,
+                        namespace: glassNamespace,
+                        unionGroup: "statusCluster"
+                    )
+                    StatusIndicator(
+                        systemName: "rainbow",
+                        isActive: statusLightsState.streaming,
+                        help: "Streaming",
+                        tint: .teal,
+                        namespace: glassNamespace,
+                        unionGroup: "statusCluster"
+                    )
+                    StatusIndicator(
+                        systemName: "antenna.radiowaves.left.and.right.circle.fill",
+                        isActive: statusLightsState.dmx,
+                        help: "DMX Signal",
+                        tint: .blue,
+                        namespace: glassNamespace,
+                        unionGroup: "statusCluster"
+                    )
+                    StatusIndicator(
+                        systemName: "figure.socialdance",
+                        isActive: statusLightsState.animationPlaying,
+                        help: "Animation Playing",
+                        tint: .purple,
+                        namespace: glassNamespace,
+                        unionGroup: "statusCluster"
+                    )
+                }
             }
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(.ultraThinMaterial)
-            .shadow(color: .black.opacity(0.09), radius: 8, y: 2)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(.quaternary, lineWidth: 1))
+            .padding(.horizontal, 4)
 
         }
         .padding()
@@ -82,13 +126,23 @@ struct BottomToolBarView: View {
                 }
             }
         }
-        .task {
-            for await state in await AppState.shared.stateUpdates {
-                await MainActor.run {
-                    appState = state
-                    showingSystemAlert = state.showSystemAlert
-                    systemAlertMessage = state.systemAlertMessage
-                }
+        .task { @MainActor in
+            // Seed with the current activity so the UI reflects the latest state immediately
+            let initialActivity = await AppState.shared.getCurrentActivity
+            appState = AppStateData(
+                currentActivity: initialActivity,
+                currentAnimation: appState.currentAnimation,
+                selectedTrack: appState.selectedTrack,
+                showSystemAlert: appState.showSystemAlert,
+                systemAlertMessage: appState.systemAlertMessage
+            )
+
+            // Capture the async sequence once, then iterate on the main actor to avoid dropping updates
+            let updates = await AppState.shared.stateUpdates
+            for await state in updates {
+                appState = state
+                showingSystemAlert = state.showSystemAlert
+                systemAlertMessage = state.systemAlertMessage
             }
         }
 
@@ -99,15 +153,25 @@ private struct StatusIndicator: View {
     let systemName: String
     let isActive: Bool
     let help: String
+    let tint: Color
+    let namespace: Namespace.ID
+    let unionGroup: String
+
     var body: some View {
         Image(systemName: systemName)
-            .font(.system(size: 22, weight: .medium))
-            .foregroundStyle(isActive ? .accent : .secondary)
-            .padding(8)
-            .background(
-                Circle()
-                    .fill(isActive ? Color.accentColor.opacity(0.15) : Color.clear)
+            .font(.system(size: 20, weight: .semibold))
+            .foregroundStyle(isActive ? .white : .secondary)
+            .padding(10)
+            .glassEffect(
+                .regular
+                    .tint(tint.opacity(isActive ? 0.85 : 0.25))
+                    .interactive(),
+                in: .circle
             )
+            .glassEffectUnion(id: unionGroup, namespace: namespace)
+            .scaleEffect(isActive ? 1.06 : 1.0)
+            .opacity(isActive ? 1.0 : 0.8)
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isActive)
             .help(help)
     }
 }

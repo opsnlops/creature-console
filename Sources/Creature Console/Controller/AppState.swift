@@ -47,66 +47,81 @@ actor AppState {
     private var showSystemAlert: Bool = false
     private var systemAlertMessage: String = ""
 
-    // AsyncStream for UI updates
-    private let (stateStream, stateContinuation) = AsyncStream.makeStream(of: AppStateData.self)
-    
+    private var continuations: [UUID: AsyncStream<AppStateData>.Continuation] = [:]
+
     var stateUpdates: AsyncStream<AppStateData> {
-        return stateStream
+        AsyncStream { continuation in
+            let id = UUID()
+            // Register this continuation and seed it with the current snapshot on the actor
+            Task { [weak self] in
+                await self?.addContinuation(id: id, continuation)
+            }
+            // Clean up when the subscriber finishes
+            continuation.onTermination = { [weak self] _ in
+                Task { await self?.removeContinuation(id) }
+            }
+        }
     }
 
     private init() {
         logger.info("AppState created")
-        // Publish initial state synchronously
-        let state = AppStateData(
-            currentActivity: currentActivity,
-            currentAnimation: currentAnimation,
-            selectedTrack: selectedTrack,
-            showSystemAlert: showSystemAlert,
-            systemAlertMessage: systemAlertMessage
+    }
+
+    private func currentSnapshot() -> AppStateData {
+        AppStateData(
+            currentActivity: self.currentActivity,
+            currentAnimation: self.currentAnimation,
+            selectedTrack: self.selectedTrack,
+            showSystemAlert: self.showSystemAlert,
+            systemAlertMessage: self.systemAlertMessage
         )
-        stateContinuation.yield(state)
+    }
+
+    private func addContinuation(id: UUID, _ continuation: AsyncStream<AppStateData>.Continuation) {
+        self.continuations[id] = continuation
+        // Seed with the current state immediately
+        continuation.yield(self.currentSnapshot())
+    }
+
+    private func removeContinuation(_ id: UUID) {
+        self.continuations[id] = nil
     }
 
     private func publishState() {
-        let state = AppStateData(
-            currentActivity: currentActivity,
-            currentAnimation: currentAnimation,
-            selectedTrack: selectedTrack,
-            showSystemAlert: showSystemAlert,
-            systemAlertMessage: systemAlertMessage
-        )
-        stateContinuation.yield(state)
+        self.logger.debug("AppState: Broadcasting state (activity: \(self.currentActivity.description), showAlert: \(self.showSystemAlert))")
+        let state = self.currentSnapshot()
+        for continuation in self.continuations.values {
+            continuation.yield(state)
+        }
     }
 
     func setCurrentActivity(_ activity: Activity) {
-        logger.info("AppState: Setting activity to \(activity.description)")
-        currentActivity = activity
-        publishState()
-        logger.info("AppState: Published state with activity \(activity.description)")
+        self.logger.info("AppState: Setting activity to \(activity.description)")
+        self.currentActivity = activity
+        self.publishState()
+        self.logger.info("AppState: Published state with activity \(activity.description)")
     }
 
     func setCurrentAnimation(_ animation: Common.Animation?) {
-        currentAnimation = animation
-        publishState()
+        self.currentAnimation = animation
+        self.publishState()
     }
 
     func setSelectedTrack(_ track: CreatureIdentifier?) {
-        selectedTrack = track
-        publishState()
+        self.selectedTrack = track
+        self.publishState()
     }
 
     func setSystemAlert(show: Bool, message: String = "") {
-        showSystemAlert = show
-        systemAlertMessage = message
-        publishState()
+        self.showSystemAlert = show
+        self.systemAlertMessage = message
+        self.publishState()
     }
 
     // Getters for actor access
-    var getCurrentActivity: Activity { currentActivity }
-    var getCurrentAnimation: Common.Animation? { currentAnimation }
-    var getSelectedTrack: CreatureIdentifier? { selectedTrack }
-    var getShowSystemAlert: Bool { showSystemAlert }
-    var getSystemAlertMessage: String { systemAlertMessage }
+    var getCurrentActivity: Activity { self.currentActivity }
+    var getCurrentAnimation: Common.Animation? { self.currentAnimation }
+    var getSelectedTrack: CreatureIdentifier? { self.selectedTrack }
+    var getShowSystemAlert: Bool { self.showSystemAlert }
+    var getSystemAlertMessage: String { self.systemAlertMessage }
 }
-
-

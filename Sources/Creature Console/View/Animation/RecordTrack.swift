@@ -14,7 +14,6 @@ struct RecordTrack: View {
     let eventLoop = EventLoop.shared
     let server = CreatureServerClient.shared
 
-
     let creatureManager = CreatureManager.shared
     @State private var joystickState = JoystickManagerState(
         aButtonPressed: false, bButtonPressed: false, xButtonPressed: false, yButtonPressed: false,
@@ -28,6 +27,10 @@ struct RecordTrack: View {
     @State private var showErrorMessage = false
 
     @State private var currentTrack: Track?
+
+    @State private var isRecordingLocal = false
+    @State private var isTransitioning = false
+    @State private var previousBPressed = false
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordTrack")
 
@@ -46,9 +49,9 @@ struct RecordTrack: View {
         true  // Always true since creature is required
     }
 
-    // Use local animation if provided, otherwise fall back to AppState
+    // Use only localAnimation, do not fall back to appState.currentAnimation
     private var currentAnimation: Common.Animation? {
-        return localAnimation ?? appState.currentAnimation
+        return localAnimation
     }
 
     @State private var streamingTask: Task<Void, Never>? = nil
@@ -63,7 +66,7 @@ struct RecordTrack: View {
                     .font(.title)
                 Image(systemName: bButtonSymbol)
                     .font(.title)
-                if appState.currentActivity == .recording {
+                if isRecordingLocal {
                     Text("to stop")
                         .font(.title)
                 } else {
@@ -73,9 +76,7 @@ struct RecordTrack: View {
             }
 
             // Show either nothing, the joystick debugger, or a waveform if we have one
-            if appState.currentActivity == .preparingToRecord
-                || appState.currentActivity == .recording
-            {
+            if isRecordingLocal {
                 JoystickDebugView()
             } else {
                 if let track = currentTrack {
@@ -93,7 +94,7 @@ struct RecordTrack: View {
                             .padding()
 
                             Button(action: {
-                                saveAndGoHome()
+                                Task { await saveAndGoHome() }
                             }) {
                                 Label("Save Track", systemImage: "square.and.arrow.down")
                                     .foregroundColor(.accentColor)
@@ -109,7 +110,10 @@ struct RecordTrack: View {
                                 },
                                 set: { newTrack in
                                     currentTrack = newTrack
-                                }))
+                                }
+                            ),
+                            millisecondsPerFrame: currentAnimation?.metadata.millisecondsPerFrame ?? 20
+                        )
                     }
 
                 } else {
@@ -133,34 +137,6 @@ struct RecordTrack: View {
             streamingTask?.cancel()
             recordingTask?.cancel()
 
-        }
-        .onChange(of: joystickState.bButtonPressed) {
-            logger.info("B button state changed: \(joystickState.bButtonPressed)")
-            if joystickState.bButtonPressed {
-                Task {
-                    let currentActivity = await AppState.shared.getCurrentActivity
-                    logger.info(
-                        "B button pressed! Current activity from AppState: \(currentActivity.description)"
-                    )
-                    switch currentActivity {
-                    case .idle:
-                        await MainActor.run {
-                            startRecording()
-                        }
-                    case .recording:
-                        await MainActor.run {
-                            stopRecording()
-                        }
-                    case .preparingToRecord:
-                        logger.debug("preparing to record - ignoring button press")
-                    default:
-                        logger.info(
-                            "Setting activity to idle from state: \(currentActivity.description)"
-                        )
-                        await AppState.shared.setCurrentActivity(.idle)
-                    }
-                }
-            }
         }
         .alert(isPresented: $showErrorMessage) {
             Alert(
@@ -190,10 +166,8 @@ struct RecordTrack: View {
             logger.info(
                 "RecordTrack: Initial state loaded - activity: \(initialAppState.currentActivity.description)"
             )
-            if let animation = initialAppState.currentAnimation {
+            if let animation = localAnimation {
                 logger.info("RecordTrack: Current animation: \(animation.metadata.title)")
-            } else {
-                logger.warning("RecordTrack: No current animation set!")
             }
 
             for await state in await AppState.shared.stateUpdates {
@@ -212,6 +186,22 @@ struct RecordTrack: View {
                 let buttonSymbol = await JoystickManager.shared.getBButtonSymbol()
                 await MainActor.run {
                     bButtonSymbol = buttonSymbol
+                }
+
+                // Rising-edge detection for B button (no gate)
+                let newB = state.bButtonPressed
+                let wasB = previousBPressed
+                previousBPressed = newB
+                if newB && !wasB {
+                    await MainActor.run {
+                        if isRecordingLocal {
+                            // Do not toggle isRecordingLocal here; stopRecording will set it when done.
+                            stopRecording()
+                        } else {
+                            startRecording()
+                            isRecordingLocal = true
+                        }
+                    }
                 }
             }
         }
@@ -239,6 +229,7 @@ struct RecordTrack: View {
         logger.info("startRecording() called")
         // Stream to the creature for recording
         logger.info("Starting recording for creature: \(creature.name)")
+        Task { await AppState.shared.setCurrentActivity(.preparingToRecord) }
         // Start streaming to the creature
         streamingTask = Task {
 
@@ -256,35 +247,30 @@ struct RecordTrack: View {
 
         // Work in the background
         recordingTask = Task {
+            logger.info("recordingTask started (local state)")
 
-            logger.info("recordingTask started - setting state to preparingToRecord")
-            await AppState.shared.setCurrentActivity(.preparingToRecord)
-
-            if let animation = currentAnimation {
-                logger.info("Found current animation: \(animation.metadata.title)")
-                self.currentTrack = Track(
-                    id: UUID(), creatureId: creature.id, animationId: animation.id, frames: [])
-
-                do {
-                    logger.info("Playing warning tone...")
-                    await MainActor.run {
-                        playWarningTone()
-                    }
-                    logger.info("Sleeping for 3.8 seconds...")
-                    try await Task.sleep(nanoseconds: UInt64(3.8 * 1_000_000_000))
-                    logger.info("Sleep completed")
-                } catch {
-                    logger.error("couldn't sleep: \(error)")
-                }
-
-                logger.info("setting state to recording")
-                await AppState.shared.setCurrentActivity(.recording)
-                logger.info("calling creatureManager.startRecording()")
-                await creatureManager.startRecording()
-                logger.info("creatureManager.startRecording() completed")
-            } else {
+            guard let animation = currentAnimation else {
                 logger.warning("No current animation found - cannot record")
+                return
             }
+
+            self.currentTrack = Track(
+                id: UUID(), creatureId: creature.id, animationId: animation.id, frames: [])
+
+            do {
+                logger.info("Playing warning tone...")
+                await MainActor.run { playWarningTone() }
+                logger.info("Sleeping for 3.8 seconds...")
+                try await Task.sleep(nanoseconds: UInt64(3.8 * 1_000_000_000))
+                logger.info("Sleep completed")
+            } catch {
+                logger.error("couldn't sleep: \(error)")
+            }
+
+            logger.info("calling creatureManager.startRecording(soundFile:)")
+            await creatureManager.startRecording(soundFile: animation.metadata.soundFile)
+            logger.info("creatureManager.startRecording() completed")
+            await AppState.shared.setCurrentActivity(.recording)
         }
 
     }
@@ -308,28 +294,33 @@ struct RecordTrack: View {
             }
             streamingTask?.cancel()
 
-            await AppState.shared.setCurrentActivity(.idle)
-
             // If everything went well, we have a track!
             if let animation = currentAnimation {
-                let motionBuffer = await creatureManager.motionDataBuffer
-                currentTrack = Track(
-                    id: UUID(),
-                    creatureId: creature.id,
-                    animationId: animation.id,
-                    frames: motionBuffer)
+                let motionBuffer = await creatureManager.drainMotionBuffer()
+                await MainActor.run {
+                    currentTrack = Track(
+                        id: UUID(),
+                        creatureId: creature.id,
+                        animationId: animation.id,
+                        frames: motionBuffer)
+                }
+                
+                await MainActor.run {
+                    isRecordingLocal = false
+                }
+                await AppState.shared.setCurrentActivity(.idle)
             }
         }
     }
 
-    func saveAndGoHome() {
+    func saveAndGoHome() async {
 
         logger.info("saving and going home")
 
         // Add our track to the main animation
         if let animation = currentAnimation {
             if let track = currentTrack {
-                DispatchQueue.main.async {
+                await MainActor.run {
                     animation.tracks.append(track)
                 }
                 logger.debug("added our track! count is now: \(animation.tracks.count)")
@@ -357,3 +348,4 @@ struct RecordTrack_Previews: PreviewProvider {
         RecordTrack(creature: .mock())
     }
 }
+

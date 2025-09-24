@@ -7,14 +7,13 @@ import OSLog
     import IOKit
 #endif
 
-// Make GCController sendable for our concurrency needs - it's effectively thread-safe for our usage
-extension GCController: @unchecked Sendable {}
+struct SendableGCController: @unchecked Sendable {
+    let controller: GCController
+}
 
 func registerJoystickHandlers() async {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "JoystickHandler")
-
-    let joystickManager = JoystickManager.shared
 
     NotificationCenter.default.addObserver(
         forName: .GCControllerDidConnect, object: nil, queue: .main
@@ -26,8 +25,9 @@ func registerJoystickHandlers() async {
 
             if (controller.extendedGamepad) != nil {
                 logger.debug("extended joystick connected, woot")
-                Task {
-                    await joystickManager.setSixAxisController(controller)
+                let sendableController = SendableGCController(controller: controller)
+                Task { [sendableController] in
+                    await JoystickManager.shared.setSixAxisController(sendableController)
                 }
             }
         }
@@ -38,7 +38,7 @@ func registerJoystickHandlers() async {
     ) { notification in
         logger.info("Controller disconnected")
         Task {
-            await joystickManager.setSixAxisController(nil as GCController?)
+            await JoystickManager.shared.setSixAxisController(nil)
         }
     }
 
@@ -47,6 +47,5 @@ func registerJoystickHandlers() async {
     }
     )
 
-
-    await joystickManager.configureACWJoystick()
+    await JoystickManager.shared.configureACWJoystick()
 }

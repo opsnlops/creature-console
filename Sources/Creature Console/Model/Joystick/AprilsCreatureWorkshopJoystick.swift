@@ -59,9 +59,9 @@ struct JoystickState: Sendable {
         let logger = Logger(
             subsystem: "io.opsnlops.CreatureConsole", category: "AprilsCreatureWorkshopJoystick")
 
-        // Use our singleton - access as computed property to handle MainActor isolation
+        // Use our singleton - synchronous access (no MainActor hop)
         nonisolated var appState: AppState {
-            get async { await AppState.shared }
+            AppState.shared
         }
 
         var vendorID: Int
@@ -351,3 +351,4 @@ struct JoystickState: Sendable {
 
 
 #endif
+

@@ -53,17 +53,17 @@ actor CreatureManager {
     /// This is called from the event look when it's our time to grab a frame
     func onEventLoopTick() async {
 
-        let currentActivity = await AppState.shared.getCurrentActivity
-        if currentActivity == .streaming {
-
-            if let creatureId = streamingCreature {
-
-                let joystickValues = await JoystickManager.shared.getValues()
-                let motionData = Data(joystickValues).base64EncodedString()
-                let streamFrameData = StreamFrameData(
-                    ceatureId: creatureId, universe: activeUniverse, data: motionData)
-
-                await server.streamFrame(streamFrameData: streamFrameData)
+        if let creatureId = streamingCreature {
+            let joystickValues = await JoystickManager.shared.getValues()
+            let motionData = Data(joystickValues).base64EncodedString()
+            let streamFrameData = StreamFrameData(
+                ceatureId: creatureId, universe: activeUniverse, data: motionData)
+            let streamResult = await server.streamFrame(streamFrameData: streamFrameData)
+            switch streamResult {
+            case .success:
+                break
+            case .failure(let error):
+                logger.warning("Failed to stream frame: \(error.localizedDescription)")
             }
         }
 
@@ -79,46 +79,28 @@ actor CreatureManager {
 
 
     /// Called automatically when our state changes to recording
-    func startRecording() async {
-
+    func startRecording(soundFile: String) async {
         logger.info("CreatureManager told it's time to start recording!")
 
-        // Do we have a sound file to play?
-        var soundFile: String = ""
-        let animation = await AppState.shared.getCurrentAnimation
-        if let animation = animation {
-            soundFile = animation.metadata.soundFile
-            logger.debug("Using sound file \(soundFile)")
-        }
-
-        // Set our state to recording
-        await AppState.shared.setCurrentActivity(.recording)
-
-        // Blank out the buffer
+        // Reset recording state and buffer
+        isRecording = false
         motionDataBuffer = []
 
         // If it has a sound file attached, let's play it
         if !soundFile.isEmpty {
-
-            // See if it's a valid url
             let urlRequest = server.getSoundURL(soundFile)
             switch urlRequest {
             case .success(let url):
                 logger.info("audiofile URL is \(url)")
-                Task { @MainActor in
-                    _ = AudioManager.shared.playURL(url)
-                }
+                await MainActor.run { _ = AudioManager.shared.playURL(url) }
             case .failure(_):
-                logger.warning(
-                    "audioFile URL doesn't exist: \(soundFile)")
+                logger.warning("audioFile URL doesn't exist: \(soundFile)")
             }
-
-
         } else {
             logger.info("no audio file, skipping playback")
         }
 
-        // Tell the system to start recording
+        // Begin recording
         isRecording = true
     }
 
@@ -126,6 +108,12 @@ actor CreatureManager {
     func stopRecording() {
         isRecording = false
         logger.info("Stopped recording")
+    }
+
+    func drainMotionBuffer() -> [Data] {
+        let buffer = motionDataBuffer
+        motionDataBuffer = []
+        return buffer
     }
 
 
@@ -164,3 +152,4 @@ actor CreatureManager {
         return .failure(.notImplemented("This hasn't been implemented yet"))
     }
 }
+

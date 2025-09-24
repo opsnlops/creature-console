@@ -7,9 +7,9 @@ import Logging
  The `creatureId` tells the server which Creature this track is connected to. It's up to the server to look up which offset to use for sending frames, not the Console.
  */
 
-public struct Track: Hashable, Equatable, Codable, Identifiable {
+public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
 
-    private let logger = Logger(label: "io.opsnlops.CreatureConsole.Track")
+    private static let logger = Logger(label: "io.opsnlops.CreatureConsole.Track")
 
     // The `id` property to conform to Identifiable
     public var id: TrackIdentifier
@@ -25,7 +25,7 @@ public struct Track: Hashable, Equatable, Codable, Identifiable {
         self.creatureId = creatureId
         self.animationId = animationId
         self.frames = frames
-        logger.trace("Created a new Track from init()")
+        Self.logger.trace("Created a new Track from init()")
     }
 
     // Enum for CodingKeys
@@ -62,7 +62,7 @@ public struct Track: Hashable, Equatable, Codable, Identifiable {
             }
             return data
         }
-        logger.trace("Created a new Track from decoder")
+        Self.logger.trace("Created a new Track from decoder")
     }
 
     public static func == (lhs: Track, rhs: Track) -> Bool {
@@ -95,13 +95,13 @@ extension Track {
 
     mutating func replaceAxisData(axisIndex: Int, with byteArray: [UInt8]) {
         guard axisIndex >= 0 && axisIndex < (frames.first?.count ?? 0) else {
-            logger.error("Track index out of bounds!")
+            Self.logger.error("Track index out of bounds!")
             return
         }
 
         for (index, value) in byteArray.enumerated() {
             guard index < frames.count else {
-                logger.debug("No more values to replace!")
+                Self.logger.debug("No more values to replace!")
                 break
             }
             var frame = frames[index]
