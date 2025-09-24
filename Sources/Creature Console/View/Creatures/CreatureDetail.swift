@@ -6,9 +6,7 @@ import SwiftUI
 
 struct CreatureDetail: View {
 
-    @AppStorage("mfm2023PlaylistHack") private var mfm2023PlaylistHack: PlaylistIdentifier = ""
     @AppStorage("activeUniverse") private var activeUniverse: UniverseIdentifier = 1
-
 
     let server = CreatureServerClient.shared
 
@@ -21,52 +19,58 @@ struct CreatureDetail: View {
 
     @State private var isDoingServerStuff: Bool = false
     @State private var serverMessage: String = ""
+    @Namespace private var glassNamespace
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureDetail")
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                #if os(macOS)
-                    SensorData(creature: creature)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(.regularMaterial)
-                        )
-                #else
-                    SensorData(creature: creature)
-                #endif
+                SensorData(creature: creature)
+                    .padding()
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 16))
             }
             .padding()
         }
-        .toolbar(id: "\(creature.name) creatureDetail") {
+        .toolbar {
             #if os(iOS)
-                ToolbarItem(id: "inputs", placement: .navigationBarTrailing) {
-                    NavigationLink(destination: InputTableView(creature: creature)) {
-                        Image(systemName: "slider.horizontal.3")
-                    }
-                }
-                ToolbarItem(id: "control", placement: .navigationBarTrailing) {
-                    Button(action: {
-                        toggleStreaming()
-                    }) {
-                        Image(
-                            systemName: (currentActivity == .streaming)
-                                ? "gamecontroller.fill" : "gamecontroller"
-                        )
-                        .foregroundColor(
-                            (currentActivity == .streaming) ? .green : .primary)
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    GlassEffectContainer(spacing: 20) {
+                        HStack(spacing: 12) {
+                            NavigationLink(destination: InputTableView(creature: creature)) {
+                                Image(systemName: "slider.horizontal.3")
+                                    .padding(8)
+                            }
+
+                            Button(action: {
+                                toggleStreaming()
+                            }) {
+                                Image(
+                                    systemName: (currentActivity == .streaming)
+                                        ? "gamecontroller.fill" : "gamecontroller"
+                                )
+                                .padding(8)
+                            }
+                            .glassEffect(
+                                (currentActivity == .streaming)
+                                    ? .regular.tint(.green).interactive()
+                                    : .regular.interactive(),
+                                in: .capsule
+                            )
+                            .glassEffectUnion(id: "toolbar", namespace: glassNamespace)
+                        }
+                        .animation(.easeInOut, value: currentActivity)
                     }
                 }
             #else
-                ToolbarItem(id: "inputs", placement: .secondaryAction) {
+                ToolbarItem(placement: .secondaryAction) {
                     NavigationLink(destination: InputTableView(creature: creature)) {
                         Image(systemName: "slider.horizontal.3")
+                            .padding(8)
                     }
                     .help("View Input Configuration")
                 }
-                ToolbarItem(id: "control", placement: .primaryAction) {
+                ToolbarItem(placement: .primaryAction) {
                     Button(action: {
                         toggleStreaming()
                     }) {
@@ -76,9 +80,15 @@ struct CreatureDetail: View {
                                 ? "gamecontroller.fill" : "gamecontroller"
                         )
                         .labelStyle(.iconOnly)
-                        .foregroundColor(
-                            (currentActivity == .streaming) ? .green : .primary)
+                        .padding(8)
                     }
+                    .glassEffect(
+                        (currentActivity == .streaming)
+                            ? .regular.tint(.green).interactive()
+                            : .regular.interactive(),
+                        in: .capsule
+                    )
+                    .animation(.easeInOut, value: currentActivity)
                     .help("Toggle Streaming")
                 }
             #endif
@@ -88,8 +98,7 @@ struct CreatureDetail: View {
                 Text(serverMessage)
                     .font(.title)
                     .padding()
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(10)
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
             }
         }
         .onDisappear {
@@ -100,6 +109,14 @@ struct CreatureDetail: View {
                 let appStateActivity = await AppState.shared.getCurrentActivity
                 await MainActor.run {
                     currentActivity = appStateActivity
+                }
+            }
+        }
+        .task {
+            // Keep local currentActivity in sync with global AppState
+            for await state in await AppState.shared.stateUpdates {
+                await MainActor.run {
+                    currentActivity = state.currentActivity
                 }
             }
         }
@@ -143,50 +160,6 @@ struct CreatureDetail: View {
             isDoingServerStuff = false
         }
     }
-
-
-    func startMFM2023Playlist() {
-
-        logger.info("Doing the gross thing")
-        serverMessage = "🤢 Doing the gross thing"
-        isDoingServerStuff = true
-
-        if let playlistId = DataHelper.stringToOidData(oid: mfm2023PlaylistHack) {
-
-            logger.debug(
-                "string: \(mfm2023PlaylistHack), data: \(DataHelper.dataToHexString(data: playlistId))"
-            )
-
-            Task {
-                let result = await server.startPlayingPlaylist(
-                    universe: activeUniverse, playlistId: mfm2023PlaylistHack)
-
-                switch result {
-                case .failure(let value):
-                    await MainActor.run {
-                        errorMessage = "Unable to start playlist playback: \(value)"
-                        showErrorAlert = true
-                    }
-                case .success(let value):
-                    logger.info("Gross hack accomplished! 🤮! \(value)")
-                    serverMessage = value
-                }
-
-                do {
-                    try await Task.sleep(nanoseconds: 4_000_000_000)
-                } catch {}
-                isDoingServerStuff = false
-            }
-        } else {
-            Task {
-                await MainActor.run {
-                    errorMessage = "Can't convert \(mfm2023PlaylistHack) to an OID"
-                    showErrorAlert = true
-                }
-            }
-        }
-    }
-
 
     func toggleStreaming() {
         Task {
@@ -240,3 +213,4 @@ struct CreatureDetail: View {
 #Preview {
     CreatureDetail(creature: .mock())
 }
+

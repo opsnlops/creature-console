@@ -3,12 +3,9 @@ import OSLog
 import SwiftUI
 
 struct TrackListingView: View {
-
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "TrackListingView")
+    let animation: Common.Animation?
 
-    @State private var appState = AppStateData(
-        currentActivity: .idle, currentAnimation: nil, selectedTrack: nil, showSystemAlert: false,
-        systemAlertMessage: "")
     @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
 
     @State var showErrorMessage: Bool = false
@@ -17,8 +14,7 @@ struct TrackListingView: View {
     var body: some View {
         ScrollView {
             VStack {
-                if let currentAnimation = appState.currentAnimation {
-
+                if let currentAnimation = animation {
                     if currentAnimation.tracks.isEmpty {
                         Text("No tracks")
                     } else {
@@ -26,10 +22,8 @@ struct TrackListingView: View {
                             prepareTrackView(for: track)
                         }
                     }
-
-
                 } else {
-                    Text("No animation loaded into the appState")
+                    Text("No animation loaded")
                 }
             }
             .alert(isPresented: $showErrorMessage) {
@@ -40,24 +34,11 @@ struct TrackListingView: View {
                 )
             }
             .task {
-                async let appStateTask: Void = {
-                    for await state in await AppState.shared.stateUpdates {
-                        await MainActor.run {
-                            appState = state
-                        }
+                for await state in await CreatureCache.shared.stateUpdates {
+                    await MainActor.run {
+                        creatureCacheState = state
                     }
-                }()
-
-                async let creatureCacheTask: Void = {
-                    for await state in await CreatureCache.shared.stateUpdates {
-                        await MainActor.run {
-                            creatureCacheState = state
-                        }
-                    }
-                }()
-
-                await appStateTask
-                await creatureCacheTask
+                }
             }
         }
 
@@ -99,8 +80,8 @@ struct TrackListingView: View {
 
 
 struct TrackListingView_Previews: PreviewProvider {
-
     static var previews: some View {
-        TrackListingView()
+        TrackListingView(animation: .mock())
     }
 }
+

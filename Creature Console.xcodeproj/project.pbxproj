@@ -29,6 +29,7 @@
 		114576E22CC46E470031AF9C /* SoundListCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114576E12CC46E420031AF9C /* SoundListCache.swift */; };
 		114576E32CC46E470031AF9C /* SoundListCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114576E12CC46E420031AF9C /* SoundListCache.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
+		1156EBCB2E76640500CBC202 /* ButtonGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1156EBCA2E76640500CBC202 /* ButtonGate.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
 		1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */; };
 		1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1168DC982B4F99E000A9895A /* IOKit.framework */; };
@@ -183,6 +184,7 @@
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
 		114576E12CC46E420031AF9C /* SoundListCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundListCache.swift; sourceTree = "<group>"; };
 		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
+		1156EBCA2E76640500CBC202 /* ButtonGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonGate.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
 		11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Creature ConsoleDebug.entitlements"; sourceTree = "<group>"; };
@@ -677,6 +679,7 @@
 				118BF8722A255F5300D80AE6 /* AnimationTable.swift */,
 				11A61AA22BFC3739000A1B48 /* TrackViewer.swift */,
 				114147912C0145270046601D /* TrackListingView.swift */,
+				1156EBCA2E76640500CBC202 /* ButtonGate.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -1188,6 +1191,7 @@
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */,
 				11C03AD029E3C346002E6720 /* CreatureConfiguration.swift in Sources */,
+				1156EBCB2E76640500CBC202 /* ButtonGate.swift in Sources */,
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
 				113BA4C92C7CD7CC00C2DF27 /* PlaylistCache.swift in Sources */,
 				1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */,

@@ -153,6 +153,12 @@ actor WebSocketClient {
         await pausePinging()
     }
 
+    private func handleWillSleep() async {
+        logger.debug("System will sleep. Marking connection down and pausing.")
+        isConnected = false
+        await pausePinging()
+    }
+
     private func handleWakeOrActivate() async {
         logger.debug("Wake/Activate. Considering reconnect and resuming pings.")
         if shouldStayConnected, !isConnected {
@@ -219,9 +225,7 @@ actor WebSocketClient {
             ) { [weak self] (_: Notification) in
                 Task { [weak self] in
                     guard let self else { return }
-                    self.logger.debug("System will sleep. Marking connection down and pausing.")
-                    self.isConnected = false
-                    await self.pausePinging()
+                    await self.handleWillSleep()
                 }
             }
 

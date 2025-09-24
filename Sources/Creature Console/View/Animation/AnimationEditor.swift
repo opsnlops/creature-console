@@ -21,23 +21,6 @@ struct AnimationEditor: View {
     // Local animation state
     @State private var currentAnimation: Common.Animation?
 
-    // Initializers
-    init() {
-        self.createNew = false
-    }
-
-    init(createNew: Bool) {
-        self.createNew = createNew
-        if createNew {
-            self._currentAnimation = State(initialValue: Common.Animation())
-        }
-    }
-
-    init(animation: Common.Animation) {
-        self.createNew = false
-        self._currentAnimation = State(initialValue: animation)
-    }
-
     // Recording session management
     @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
     @State private var availableCreatures: [Creature] = []
@@ -56,109 +39,149 @@ struct AnimationEditor: View {
     @State private var isSaving: Bool = false
     @State private var savingMessage: String = ""
 
+    @State private var selectedCreatureForRecording: Creature? = nil
+    // Removed @State private var navPath = NavigationPath()
+    // Removed @State private var navigateToRecord: Bool = false
+
+    // Initializers
+    init() {
+        self.createNew = false
+    }
+
+    init(createNew: Bool) {
+        self.createNew = createNew
+        if createNew {
+            self._currentAnimation = State(initialValue: Common.Animation())
+        }
+    }
+
+    init(animation: Common.Animation) {
+        self.createNew = false
+        self._currentAnimation = State(initialValue: animation)
+    }
+
+
     var body: some View {
-        VStack {
-            if currentAnimation != nil {
-                if createNew {
-                    // New animation workflow - show comprehensive setup
-                    newAnimationWorkflowView
+        NavigationStack {
+            VStack {
+                if currentAnimation != nil {
+                    if createNew {
+                        // New animation workflow - show comprehensive setup
+                        newAnimationWorkflowView
+                    } else {
+                        // Existing animation editing
+                        existingAnimationEditingView
+                    }
+                } else if createNew {
+                    // Show loading while preparing new animation
+                    VStack {
+                        ProgressView()
+                        Text("Preparing new animation...")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(40)
+                    .task {
+                        logger.debug("New animation view loaded, currentAnimation: \(currentAnimation != nil ? "present" : "nil")")
+                        loadAnimationMetadata()
+                    }
                 } else {
-                    // Existing animation editing
-                    existingAnimationEditingView
-                }
-            } else if createNew {
-                // Show loading while preparing new animation
-                VStack {
-                    ProgressView()
-                    Text("Preparing new animation...")
+                    // No animation loaded
+                    Text("No animation loaded")
                         .font(.headline)
                         .foregroundColor(.secondary)
                 }
-                .padding(40)
-                .task {
-                    logger.debug("New animation view loaded, currentAnimation: \(currentAnimation != nil ? "present" : "nil")")
-                    loadAnimationMetadata()
-                }
-            } else {
-                // No animation loaded
-                Text("No animation loaded")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
             }
-        }
-        .navigationTitle(createNew ? "Record New Animation" : "Animation Editor")
-        #if os(macOS)
-            .navigationSubtitle("Active Universe: \(activeUniverse)")
-        #endif
-        .toolbar(id: "animationEditor") {
-            ToolbarItem(id: "save", placement: .secondaryAction) {
-                Button(action: {
-                    saveAnimationToServer()
-                }) {
-                    Image(systemName: "square.and.arrow.down")
-                        .symbolRenderingMode(.palette)
-                }
-            }
-            ToolbarItem(id: "play", placement: .secondaryAction) {
-                Button(action: {
-                    _ = playAnimation()
-                }) {
-                    Image(systemName: "play.fill")
-                }
-            }
-
-            ToolbarItem(id: "newTrack", placement: .primaryAction) {
-                if !availableCreatures.isEmpty && currentAnimation != nil {
-                    Menu {
-                        ForEach(availableCreatures) { creature in
-                            NavigationLink(
-                                destination: RecordTrack(
-                                    creature: creature, localAnimation: currentAnimation)
-                            ) {
-                                Label(creature.name, systemImage: "record.circle")
-                            }
-                        }
-                    } label: {
-                        Label("Add Track", systemImage: "waveform.path.badge.plus")
-                            .symbolRenderingMode(.multicolor)
-                    }
-                } else {
+            .navigationTitle(createNew ? "Record New Animation" : "Animation Editor")
+            #if os(macOS)
+                .navigationSubtitle("Active Universe: \(activeUniverse)")
+            #endif
+            .toolbar(id: "animationEditor") {
+                ToolbarItem(id: "save", placement: .secondaryAction) {
                     Button(action: {
-                        logger.debug("Add Track button pressed - creatures: \(availableCreatures.count), animation: \(currentAnimation != nil ? "present" : "nil")")
+                        saveAnimationToServer()
                     }) {
-                        Label("Add Track", systemImage: "waveform.path.badge.plus")
-                            .symbolRenderingMode(.multicolor)
+                        Image(systemName: "square.and.arrow.down")
+                            .symbolRenderingMode(.palette)
                     }
-                    .disabled(true)
+                }
+                ToolbarItem(id: "play", placement: .secondaryAction) {
+                    Button(action: {
+                        _ = playAnimation()
+                    }) {
+                        Image(systemName: "play.fill")
+                    }
+                }
+
+                ToolbarItem(id: "newTrack", placement: .primaryAction) {
+                    if currentAnimation != nil {
+                        Menu {
+                            if availableCreatures.isEmpty {
+                                Label("No creatures available", systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(.secondary)
+                                    .disabled(true)
+                            } else {
+                                ForEach(availableCreatures) { creature in
+                                    Button {
+                                        selectedCreatureForRecording = creature
+                                    } label: {
+                                        Label(creature.name, systemImage: "record.circle")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Label("Add Track", systemImage: "waveform.path.badge.plus")
+                                .symbolRenderingMode(.multicolor)
+                        }
+                        .disabled(animationTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    } else {
+                        Button(action: {
+                            logger.debug("Add Track button pressed - creatures: \(availableCreatures.count), animation: \(currentAnimation != nil ? "present" : "nil")")
+                        }) {
+                            Label("Add Track", systemImage: "waveform.path.badge.plus")
+                                .symbolRenderingMode(.multicolor)
+                        }
+                        .disabled(true)
+                    }
                 }
             }
-        }
-        .task {
-            // Load creature data
-            for await state in await CreatureCache.shared.stateUpdates {
+            .task {
+                // First, get the current state immediately (so toolbar enables correctly)
+                let currentState = await CreatureCache.shared.getCurrentState()
                 await MainActor.run {
-                    creatureCacheState = state
-                    availableCreatures = Array(state.creatures.values).sorted {
-                        $0.name < $1.name
+                    creatureCacheState = currentState
+                    availableCreatures = Array(currentState.creatures.values).sorted { $0.name < $1.name }
+                }
+
+                // Load creature data
+                for await state in await CreatureCache.shared.stateUpdates {
+                    await MainActor.run {
+                        creatureCacheState = state
+                        availableCreatures = Array(state.creatures.values).sorted {
+                            $0.name < $1.name
+                        }
+                        logger.debug("Loaded \(availableCreatures.count) creatures")
                     }
-                    logger.debug("Loaded \(availableCreatures.count) creatures")
                 }
             }
-        }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("Oooooh Shit"),
-                message: Text(errorMessage),
-                dismissButton: .default(Text("Fuck"))
-            )
-        }
-        .overlay {
-            if isSaving {
-                Text(savingMessage)
-                    .font(.title)
-                    .padding()
-                    .background(Color.green.opacity(0.4))
-                    .cornerRadius(10)
+            .alert(isPresented: $showErrorAlert) {
+                Alert(
+                    title: Text("Oooooh Shit"),
+                    message: Text(errorMessage),
+                    dismissButton: .default(Text("Fuck"))
+                )
+            }
+            .overlay {
+                if isSaving {
+                    Text(savingMessage)
+                        .font(.title)
+                        .padding()
+                        .background(Color.green.opacity(0.4))
+                        .cornerRadius(10)
+                }
+            }
+            .navigationDestination(item: $selectedCreatureForRecording) { creature in
+                RecordTrack(creature: creature, localAnimation: currentAnimation)
             }
         }
     }
@@ -253,6 +276,9 @@ struct AnimationEditor: View {
                 creatureRecordingSection
             }
 
+            // Show recorded tracks for the current animation
+            TrackListingView(animation: currentAnimation)
+
             Spacer()
         }
         .padding()
@@ -261,7 +287,7 @@ struct AnimationEditor: View {
     private var existingAnimationEditingView: some View {
         VStack {
             animationMetadataForm
-            TrackListingView()
+            TrackListingView(animation: currentAnimation)
             Spacer()
         }
     }
@@ -409,3 +435,4 @@ struct AnimationEditor_Previews: PreviewProvider {
         AnimationEditor()
     }
 }
+

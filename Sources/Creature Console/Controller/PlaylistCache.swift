@@ -17,15 +17,38 @@ actor PlaylistCache {
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "PlaylistCache")
 
-    // AsyncStream for UI updates
-    private let (stateStream, stateContinuation) = AsyncStream.makeStream(
-        of: PlaylistCacheState.self)
+    private var continuations: [UUID: AsyncStream<PlaylistCacheState>.Continuation] = [:]
 
     var stateUpdates: AsyncStream<PlaylistCacheState> {
-        stateStream
+        AsyncStream { continuation in
+            let id = UUID()
+            Task { [weak self] in
+                await self?.addContinuation(id: id, continuation)
+            }
+            continuation.onTermination = { [weak self] _ in
+                Task { await self?.removeContinuation(id) }
+            }
+        }
     }
 
     private init() {}
+
+    private func currentSnapshot() -> PlaylistCacheState {
+        PlaylistCacheState(
+            playlists: playlists,
+            empty: empty
+        )
+    }
+
+    private func addContinuation(id: UUID, _ continuation: AsyncStream<PlaylistCacheState>.Continuation) {
+        continuations[id] = continuation
+        // Seed with the current state immediately
+        continuation.yield(currentSnapshot())
+    }
+
+    private func removeContinuation(_ id: UUID) {
+        continuations[id] = nil
+    }
 
     func addPlaylist(_ playlist: Playlist, for id: PlaylistIdentifier) {
         playlists[id] = playlist
@@ -34,11 +57,11 @@ actor PlaylistCache {
     }
 
     private func publishState() {
-        let currentState = PlaylistCacheState(
-            playlists: playlists,
-            empty: empty
-        )
-        stateContinuation.yield(currentState)
+        let snapshot = currentSnapshot()
+        logger.debug("PlaylistCache: Broadcasting state (count: \(self.playlists.count), empty: \(self.empty))")
+        for continuation in continuations.values {
+            continuation.yield(snapshot)
+        }
     }
 
     func removePlaylist(for id: PlaylistIdentifier) {

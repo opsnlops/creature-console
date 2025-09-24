@@ -1,8 +1,5 @@
 import Foundation
 
-/// One full animation that has frame data!
-///
-/// Most of the time we just use the Metadata
 public final class Animation: Hashable, Equatable, Identifiable, Codable, @unchecked Sendable {
 
     public var id: AnimationIdentifier
@@ -72,6 +69,28 @@ public final class Animation: Hashable, Equatable, Identifiable, Codable, @unche
     private func updateNumberOfFrames() {
         // Update the numberOfFrames in metadata to the highest frame count among tracks
         metadata.numberOfFrames = tracks.map { UInt32($0.frames.count) }.max() ?? UInt32(0)
+    }
+}
+
+public struct AnimationSnapshot: Sendable, Codable, Equatable, Hashable, Identifiable {
+    public var id: AnimationIdentifier
+    public var metadata: AnimationMetadata
+    public var tracks: [Track]
+
+    public init(id: AnimationIdentifier, metadata: AnimationMetadata, tracks: [Track]) {
+        self.id = id
+        self.metadata = metadata
+        self.tracks = tracks
+    }
+}
+
+extension Animation {
+    public func snapshot() -> AnimationSnapshot {
+        AnimationSnapshot(id: id, metadata: metadata, tracks: tracks)
+    }
+
+    public static func from(snapshot: AnimationSnapshot) -> Animation {
+        Animation(id: snapshot.id, metadata: snapshot.metadata, tracks: snapshot.tracks)
     }
 }
 
