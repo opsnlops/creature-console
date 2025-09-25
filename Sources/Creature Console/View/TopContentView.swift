@@ -142,7 +142,7 @@ struct TopContentView: View {
 
                     // Okay! We're talking to the server. Bring up the websocket! 🧦
                     await server.connectWebsocket(processor: SwiftMessageProcessor.shared)
-                    
+
                     // Update AppState to reflect successful connection
                     await AppState.shared.setCurrentActivity(.idle)
 
@@ -200,6 +200,13 @@ struct TopContentView: View {
                     dismissButton: .default(Text("Fuck"))
                 )
             }
+            #if os(iOS)
+                .toolbar(id: "global-bottom-status") {
+                    ToolbarItem(id: "status", placement: .bottomBar) {
+                        BottomStatusToolbarContent()
+                    }
+                }
+            #endif
         } detail: {
             NavigationStack(path: $navigationPath) {
                 Text("Using server: \(server.getHostname())")
@@ -207,10 +214,16 @@ struct TopContentView: View {
                     .navigationDestination(for: CreatureIdentifier.self) { creatureID in
                         creatureDetailView(for: creatureID)
                     }
+                    #if os(iOS)
+                        .toolbar(id: "global-bottom-status") {
+                            ToolbarItem(id: "status", placement: .bottomBar) {
+                                BottomStatusToolbarContent()
+                            }
+                        }
+                    #endif
             }
 
         }
-
         #if os(macOS) || os(tvOS)
             BottomToolBarView()
         #endif

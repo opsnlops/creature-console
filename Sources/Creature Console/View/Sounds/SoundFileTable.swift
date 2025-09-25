@@ -107,6 +107,13 @@ struct SoundFileTable: View {
                     }
                 }
             }
+            #if os(iOS)
+            .toolbar(id: "global-bottom-status") {
+                ToolbarItem(id: "status", placement: .bottomBar) {
+                    BottomStatusToolbarContent()
+                }
+            }
+            #endif
         }  // Navigation Stack
     }  // View
 
@@ -177,3 +184,5 @@ struct SoundFileTable: View {
 
 
 }  // struct
+
+

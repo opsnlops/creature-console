@@ -134,13 +134,19 @@ struct CreateNewCreatureSoundView: View {
                 dismissButton: .default(Text("No Music for Us"))
             )
         }
+#if os(iOS)
+            .toolbar(id: "global-bottom-status") {
+                ToolbarItem(id: "status", placement: .bottomBar) {
+                    BottomStatusToolbarContent()
+                }
+            }
+#endif
         .onDisappear {
 
             // Clean up if either of these is still running
             playSoundTask?.cancel()
             createSoundTask?.cancel()
         }
-
     }  // View
 
 
@@ -240,3 +246,4 @@ struct CreateNewCreatureSoundView: View {
 #Preview {
     CreateNewCreatureSoundView()
 }
+

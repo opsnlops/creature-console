@@ -141,7 +141,7 @@ struct AnimationTable: View {
                 await MainActor.run {
                     animationCacheState = currentState
                 }
-                
+
                 // Then listen for updates
                 for await state in await AnimationMetadataCache.shared.stateUpdates {
                     await MainActor.run {
@@ -162,6 +162,13 @@ struct AnimationTable: View {
                     )
                 }
             }
+            #if os(iOS)
+                .toolbar(id: "global-bottom-status") {
+                    ToolbarItem(id: "status", placement: .bottomBar) {
+                        BottomStatusToolbarContent()
+                    }
+                }
+            #endif
         }  // NavigationStack
     }  // body
 
@@ -194,7 +201,7 @@ struct AnimationTable: View {
 
         let manager = creatureManager
         let universe = activeUniverse
-        
+
         playAnimationTask = Task {
             let result = await manager.playStoredAnimationOnServer(
                 animationId: animationId, universe: universe)

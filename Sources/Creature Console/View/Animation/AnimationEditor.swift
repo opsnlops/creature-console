@@ -82,7 +82,9 @@ struct AnimationEditor: View {
                     }
                     .padding(40)
                     .task {
-                        logger.debug("New animation view loaded, currentAnimation: \(currentAnimation != nil ? "present" : "nil")")
+                        logger.debug(
+                            "New animation view loaded, currentAnimation: \(currentAnimation != nil ? "present" : "nil")"
+                        )
                         loadAnimationMetadata()
                     }
                 } else {
@@ -117,9 +119,12 @@ struct AnimationEditor: View {
                     if currentAnimation != nil {
                         Menu {
                             if availableCreatures.isEmpty {
-                                Label("No creatures available", systemImage: "exclamationmark.triangle")
-                                    .foregroundStyle(.secondary)
-                                    .disabled(true)
+                                Label(
+                                    "No creatures available",
+                                    systemImage: "exclamationmark.triangle"
+                                )
+                                .foregroundStyle(.secondary)
+                                .disabled(true)
                             } else {
                                 ForEach(availableCreatures) { creature in
                                     Button {
@@ -133,10 +138,13 @@ struct AnimationEditor: View {
                             Label("Add Track", systemImage: "waveform.path.badge.plus")
                                 .symbolRenderingMode(.multicolor)
                         }
-                        .disabled(animationTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(
+                            animationTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     } else {
                         Button(action: {
-                            logger.debug("Add Track button pressed - creatures: \(availableCreatures.count), animation: \(currentAnimation != nil ? "present" : "nil")")
+                            logger.debug(
+                                "Add Track button pressed - creatures: \(availableCreatures.count), animation: \(currentAnimation != nil ? "present" : "nil")"
+                            )
                         }) {
                             Label("Add Track", systemImage: "waveform.path.badge.plus")
                                 .symbolRenderingMode(.multicolor)
@@ -150,7 +158,9 @@ struct AnimationEditor: View {
                 let currentState = await CreatureCache.shared.getCurrentState()
                 await MainActor.run {
                     creatureCacheState = currentState
-                    availableCreatures = Array(currentState.creatures.values).sorted { $0.name < $1.name }
+                    availableCreatures = Array(currentState.creatures.values).sorted {
+                        $0.name < $1.name
+                    }
                 }
 
                 // Load creature data
@@ -183,6 +193,13 @@ struct AnimationEditor: View {
             .navigationDestination(item: $selectedCreatureForRecording) { creature in
                 RecordTrack(creature: creature, localAnimation: currentAnimation)
             }
+            #if os(iOS)
+                .toolbar(id: "global-bottom-status") {
+                    ToolbarItem(id: "status", placement: .bottomBar) {
+                        BottomStatusToolbarContent()
+                    }
+                }
+            #endif
         }
     }
 
@@ -435,4 +452,3 @@ struct AnimationEditor_Previews: PreviewProvider {
         AnimationEditor()
     }
 }
-

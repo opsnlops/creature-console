@@ -142,7 +142,7 @@ class SixAxisJoystick: ObservableObject, Joystick {
             logger.debug("No controller available for joystick light update")
             return
         }
-        let color = activity.color
+        let color = activity.controllerLightColor
         logger.info("SixAxisJoystick: Setting joystick light to RGB(\(color.red),\(color.green),\(color.blue)) for activity: \(activity.description)")
         controller.light?.color = color
         logger.info("SixAxisJoystick: Light color set successfully")
@@ -243,27 +243,6 @@ class SixAxisJoystick: ObservableObject, Joystick {
 
     }
 
-}
-
-
-/// Since we're the ones that care about color, define the colors here
-extension Activity {
-    var color: GCColor {
-        switch self {
-        case .idle:
-            return GCColor(red: 0.0, green: 0.0, blue: 1.0)
-        case .streaming:
-            return GCColor(red: 0.0, green: 1.0, blue: 0.0)
-        case .recording:
-            return GCColor(red: 1.0, green: 0.0, blue: 0.0)
-        case .preparingToRecord:
-            return GCColor(red: 1.0, green: 1.0, blue: 0.0)
-        case .playingAnimation:
-            return GCColor(red: 1.0, green: 0.0, blue: 1.0)
-        case .connectingToServer:
-            return GCColor(red: 1.0, green: 0.529, blue: 0.653)
-        }
-    }
 }
 
 extension SixAxisJoystick {
