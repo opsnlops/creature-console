@@ -2,6 +2,9 @@ import Common
 import Foundation
 import OSLog
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 struct CreateNewCreatureSoundView: View {
 
@@ -136,8 +139,10 @@ struct CreateNewCreatureSoundView: View {
         }
 #if os(iOS)
             .toolbar(id: "global-bottom-status") {
-                ToolbarItem(id: "status", placement: .bottomBar) {
-                    BottomStatusToolbarContent()
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    ToolbarItem(id: "status", placement: .bottomBar) {
+                        BottomStatusToolbarContent()
+                    }
                 }
             }
 #endif
@@ -246,4 +251,3 @@ struct CreateNewCreatureSoundView: View {
 #Preview {
     CreateNewCreatureSoundView()
 }
-

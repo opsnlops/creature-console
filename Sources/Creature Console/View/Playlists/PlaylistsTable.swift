@@ -2,6 +2,9 @@ import Common
 import Foundation
 import OSLog
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 struct PlaylistsTable: View {
 
@@ -166,13 +169,15 @@ struct PlaylistsTable: View {
                     }
                 #endif
             }
-            #if os(iOS)
-                .toolbar(id: "global-bottom-status") {
+#if os(iOS)
+            .toolbar(id: "global-bottom-status") {
+                if UIDevice.current.userInterfaceIdiom == .phone {
                     ToolbarItem(id: "status", placement: .bottomBar) {
                         BottomStatusToolbarContent()
                     }
                 }
-            #endif
+            }
+#endif
             .navigationTitle("Playlists")
             #if os(macOS)
                 .navigationSubtitle(
@@ -737,3 +742,4 @@ struct AddAnimationToEditPlaylistSheet: View {
         dismiss()
     }
 }
+

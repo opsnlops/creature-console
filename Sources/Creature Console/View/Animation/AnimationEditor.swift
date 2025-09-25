@@ -2,6 +2,10 @@ import Common
 import OSLog
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
 // This is the main animation editor for all of the Animations
 struct AnimationEditor: View {
 
@@ -195,8 +199,10 @@ struct AnimationEditor: View {
             }
             #if os(iOS)
                 .toolbar(id: "global-bottom-status") {
-                    ToolbarItem(id: "status", placement: .bottomBar) {
-                        BottomStatusToolbarContent()
+                    if UIDevice.current.userInterfaceIdiom == .phone {
+                        ToolbarItem(id: "status", placement: .bottomBar) {
+                            BottomStatusToolbarContent()
+                        }
                     }
                 }
             #endif
