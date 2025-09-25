@@ -30,12 +30,38 @@ actor CreatureHealthCache {
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "CreatureHealthCache")
 
-    // AsyncStream for UI updates
-    private let (stateStream, stateContinuation) = AsyncStream.makeStream(
-        of: CreatureHealthCacheState.self)
+    // Broadcasting AsyncStream for UI updates
+    private var subscribers: [UUID: AsyncStream<CreatureHealthCacheState>.Continuation] = [:]
 
     var stateUpdates: AsyncStream<CreatureHealthCacheState> {
-        stateStream
+        AsyncStream { continuation in
+            let id = UUID()
+            subscribers[id] = continuation
+
+            // Send current state immediately to new subscriber
+            let currentState = CreatureHealthCacheState(
+                motorSensorCache: motorSensorCache,
+                boardSensorCache: boardSensorCache
+            )
+            continuation.yield(currentState)
+
+            continuation.onTermination = { @Sendable _ in
+                Task { [id] in
+                    await self.removeSubscriber(id)
+                }
+            }
+        }
+    }
+
+    private func removeSubscriber(_ id: UUID) {
+        subscribers.removeValue(forKey: id)
+    }
+
+    func getCurrentState() -> CreatureHealthCacheState {
+        CreatureHealthCacheState(
+            motorSensorCache: motorSensorCache,
+            boardSensorCache: boardSensorCache
+        )
     }
 
     // Don't make more than one by accident
@@ -62,8 +88,14 @@ actor CreatureHealthCache {
             motorSensorCache: motorSensorCache,
             boardSensorCache: boardSensorCache
         )
-        logger.info("CreatureHealthCache: Publishing state update - board sensors for \(self.boardSensorCache.keys.count) creatures")
-        stateContinuation.yield(currentState)
+        logger.debug(
+            "CreatureHealthCache: Publishing state update to \(self.subscribers.count) subscribers - board sensors for \(self.boardSensorCache.keys.count) creatures"
+        )
+
+        // Broadcast to all active subscribers
+        for continuation in subscribers.values {
+            continuation.yield(currentState)
+        }
     }
 
     // Add a new BoardSensorData for a Creature

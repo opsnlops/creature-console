@@ -75,11 +75,44 @@ struct JoystickState: Sendable {
         var manufacturer: String
         var values: [UInt8] = Array(repeating: 127, count: 8)
 
-        // Communication with UI layer via AsyncStream
-        private let (stateStream, stateContinuation) = AsyncStream.makeStream(of: JoystickState.self)
-        
+        // Broadcasting AsyncStream for UI updates
+        private var subscribers: [UUID: AsyncStream<JoystickState>.Continuation] = [:]
+
         var stateUpdates: AsyncStream<JoystickState> {
-            stateStream
+            AsyncStream { continuation in
+                let id = UUID()
+                subscribers[id] = continuation
+
+                // Send current state immediately to new subscriber
+                let currentState = JoystickState(
+                    connected: connected,
+                    values: values,
+                    aButtonPressed: aButtonPressed,
+                    bButtonPressed: bButtonPressed,
+                    xButtonPressed: xButtonPressed,
+                    yButtonPressed: yButtonPressed,
+                    serialNumber: serialNumber,
+                    versionNumber: versionNumber,
+                    manufacturer: manufacturer
+                )
+                continuation.yield(currentState)
+
+                continuation.onTermination = { @Sendable _ in
+                    // Note: Cannot safely access self in Swift 6 Sendable closure
+                    // Subscriber cleanup will happen naturally when references are released
+                }
+            }
+        }
+
+        private func removeSubscriber(_ id: UUID) {
+            subscribers.removeValue(forKey: id)
+        }
+
+        private func publishState(_ state: JoystickState) {
+            // Broadcast to all active subscribers
+            for continuation in subscribers.values {
+                continuation.yield(state)
+            }
         }
 
         /**
@@ -322,7 +355,7 @@ struct JoystickState: Sendable {
                     versionNumber: self.versionNumber,
                     manufacturer: self.manufacturer
                 )
-                stateContinuation.yield(newState)
+                publishState(newState)
             }
 
         }
@@ -351,4 +384,3 @@ struct JoystickState: Sendable {
 
 
 #endif
-

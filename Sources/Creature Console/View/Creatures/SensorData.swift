@@ -92,6 +92,7 @@ struct SensorData: View {
             }
         }
         .task {
+            // Subscribe to cache updates (current state is sent immediately by the broadcaster)
             for await state in await CreatureHealthCache.shared.stateUpdates {
                 await MainActor.run {
                     healthCacheState = state
