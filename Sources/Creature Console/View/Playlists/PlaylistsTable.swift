@@ -133,6 +133,7 @@ struct PlaylistsTable: View {
                                 .symbolRenderingMode(.palette)
                         }
                     }
+
                 #else
                     ToolbarItem(id: "create", placement: .primaryAction) {
                         Button(action: {
@@ -165,6 +166,13 @@ struct PlaylistsTable: View {
                     }
                 #endif
             }
+            #if os(iOS)
+                .toolbar(id: "global-bottom-status") {
+                    ToolbarItem(id: "status", placement: .bottomBar) {
+                        BottomStatusToolbarContent()
+                    }
+                }
+            #endif
             .navigationTitle("Playlists")
             #if os(macOS)
                 .navigationSubtitle(

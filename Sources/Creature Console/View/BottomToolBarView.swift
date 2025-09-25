@@ -6,7 +6,8 @@ struct BottomToolBarView: View {
 
     @State private var frameSpareTime: Double = 0.0
     @ObservedObject var serverCounters = SystemCountersStore.shared
-    @State private var statusLightsState = StatusLightsState(running: false, dmx: false, streaming: false, animationPlaying: false)
+    @State private var statusLightsState = StatusLightsState(
+        running: false, dmx: false, streaming: false, animationPlaying: false)
     @State private var appState = AppStateData(
         currentActivity: .idle,
         currentAnimation: nil,
@@ -17,17 +18,6 @@ struct BottomToolBarView: View {
     @State private var showingSystemAlert = false
     @State private var systemAlertMessage = ""
     @Namespace private var glassNamespace
-
-    private func activityTint(for activity: Activity) -> Color {
-        switch activity {
-        case .idle:               return .blue
-        case .streaming:          return .green
-        case .recording:          return .red
-        case .preparingToRecord:  return .yellow
-        case .playingAnimation:   return .purple
-        case .connectingToServer: return .pink
-        }
-    }
 
     var body: some View {
 
@@ -46,7 +36,7 @@ struct BottomToolBarView: View {
                         .padding(.vertical, 6)
                         .glassEffect(
                             .regular
-                                .tint(activityTint(for: appState.currentActivity).opacity(0.35))
+                                .tint(appState.currentActivity.tintColor.opacity(0.35))
                                 .interactive(),
                             in: .capsule
                         )
@@ -69,7 +59,7 @@ struct BottomToolBarView: View {
                         help: "Server Running",
                         tint: .green,
                         namespace: glassNamespace,
-                        unionGroup: "statusCluster"
+                        unionGroup: "statusLights"
                     )
                     StatusIndicator(
                         systemName: "rainbow",
@@ -77,7 +67,7 @@ struct BottomToolBarView: View {
                         help: "Streaming",
                         tint: .teal,
                         namespace: glassNamespace,
-                        unionGroup: "statusCluster"
+                        unionGroup: "statusLights"
                     )
                     StatusIndicator(
                         systemName: "antenna.radiowaves.left.and.right.circle.fill",
@@ -85,7 +75,7 @@ struct BottomToolBarView: View {
                         help: "DMX Signal",
                         tint: .blue,
                         namespace: glassNamespace,
-                        unionGroup: "statusCluster"
+                        unionGroup: "statusLights"
                     )
                     StatusIndicator(
                         systemName: "figure.socialdance",
@@ -93,7 +83,7 @@ struct BottomToolBarView: View {
                         help: "Animation Playing",
                         tint: .purple,
                         namespace: glassNamespace,
-                        unionGroup: "statusCluster"
+                        unionGroup: "statusLights"
                     )
                 }
             }
@@ -116,7 +106,7 @@ struct BottomToolBarView: View {
             // Update frameSpareTime from EventLoop actor
             while !Task.isCancelled {
                 frameSpareTime = await EventLoop.shared.frameSpareTime
-                try? await Task.sleep(for: .seconds(1)) // Update once per second
+                try? await Task.sleep(for: .seconds(1))  // Update once per second
             }
         }
         .task {

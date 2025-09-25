@@ -53,7 +53,7 @@ struct CreatureDetail: View {
                             }
                             .glassEffect(
                                 (currentActivity == .streaming)
-                                    ? .regular.tint(.green).interactive()
+                                    ? .regular.tint(Activity.streaming.tintColor).interactive()
                                     : .regular.interactive(),
                                 in: .capsule
                             )
@@ -84,7 +84,7 @@ struct CreatureDetail: View {
                     }
                     .glassEffect(
                         (currentActivity == .streaming)
-                            ? .regular.tint(.green).interactive()
+                            ? .regular.tint(Activity.streaming.tintColor).interactive()
                             : .regular.interactive(),
                         in: .capsule
                     )
@@ -92,7 +92,15 @@ struct CreatureDetail: View {
                     .help("Toggle Streaming")
                 }
             #endif
-        }.toolbarRole(.editor)
+        }
+        #if os(iOS)
+            .toolbar(id: "global-bottom-status") {
+                ToolbarItem(id: "status", placement: .bottomBar) {
+                    BottomStatusToolbarContent()
+                }
+            }
+        #endif
+        .toolbarRole(.editor)
         .overlay {
             if isDoingServerStuff {
                 Text(serverMessage)
@@ -213,4 +221,3 @@ struct CreatureDetail: View {
 #Preview {
     CreatureDetail(creature: .mock())
 }
-
