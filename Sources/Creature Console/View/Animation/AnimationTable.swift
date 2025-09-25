@@ -1,6 +1,9 @@
 import Common
 import OSLog
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 struct AnimationTable: View {
     let eventLoop = EventLoop.shared
@@ -164,8 +167,10 @@ struct AnimationTable: View {
             }
             #if os(iOS)
                 .toolbar(id: "global-bottom-status") {
-                    ToolbarItem(id: "status", placement: .bottomBar) {
-                        BottomStatusToolbarContent()
+                    if UIDevice.current.userInterfaceIdiom == .phone {
+                        ToolbarItem(id: "status", placement: .bottomBar) {
+                            BottomStatusToolbarContent()
+                        }
                     }
                 }
             #endif
