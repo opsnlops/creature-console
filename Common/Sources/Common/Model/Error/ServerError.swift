@@ -26,4 +26,12 @@ public enum ServerError: Error, LocalizedError {
             return message
         }
     }
+
+    /// Get detailed error message for UI display, with fallback for any Error type
+    public static func detailedMessage(from error: Error) -> String {
+        if let serverError = error as? ServerError {
+            return serverError.errorDescription ?? "Unknown server error"
+        }
+        return error.localizedDescription
+    }
 }

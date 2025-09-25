@@ -2,8 +2,9 @@ import Common
 import Foundation
 import OSLog
 import SwiftUI
+
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 struct PlaylistsTable: View {
@@ -15,7 +16,9 @@ struct PlaylistsTable: View {
     let server = CreatureServerClient.shared
 
     @State private var showErrorAlert = false
+    @State private var showSuccessAlert = false
     @State private var alertMessage = ""
+    @State private var successMessage = ""
 
     @State private var selection: Common.Playlist.ID? = nil
     @State private var editingPlaylist: Common.Playlist? = nil
@@ -67,7 +70,7 @@ struct PlaylistsTable: View {
             Divider()
 
             Button {
-                playSelected()
+                playPlaylist(playlist)
             } label: {
                 Label("Play Playlist", systemImage: "music.quarternote.3")
             }
@@ -98,12 +101,15 @@ struct PlaylistsTable: View {
             .onChange(of: selection) {
                 logger.debug("selection is now \(String(describing: selection))")
             }
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text("Error"),
-                    message: Text(alertMessage),
-                    dismissButton: .default(Text("Crap"))
-                )
+            .alert("Error", isPresented: $showErrorAlert) {
+                Button("Shit") {}
+            } message: {
+                Text(alertMessage)
+            }
+            .alert("Success", isPresented: $showSuccessAlert) {
+                Button("OK") {}
+            } message: {
+                Text(successMessage)
             }
             .toolbar(id: "playlistList") {
                 #if os(iOS)
@@ -169,15 +175,15 @@ struct PlaylistsTable: View {
                     }
                 #endif
             }
-#if os(iOS)
-            .toolbar(id: "global-bottom-status") {
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    ToolbarItem(id: "status", placement: .bottomBar) {
-                        BottomStatusToolbarContent()
+            #if os(iOS)
+                .toolbar(id: "global-bottom-status") {
+                    if UIDevice.current.userInterfaceIdiom == .phone {
+                        ToolbarItem(id: "status", placement: .bottomBar) {
+                            BottomStatusToolbarContent()
+                        }
                     }
                 }
-            }
-#endif
+            #endif
             .navigationTitle("Playlists")
             #if os(macOS)
                 .navigationSubtitle(
@@ -253,11 +259,12 @@ struct PlaylistsTable: View {
                     showingEditSheet = false
                     editingPlaylist = nil
                 case .failure(let error):
+                    let detailedError = ServerError.detailedMessage(from: error)
                     logger.error("Save failed with error: \(error)")
                     logger.error("Error type: \(type(of: error))")
-                    alertMessage = "Failed to save playlist: \(error.localizedDescription)"
+                    alertMessage = "Failed to save playlist: \(detailedError)"
                     showErrorAlert = true
-                    logger.error("Failed to save playlist: \(error.localizedDescription)")
+                    logger.error("Failed to save playlist: \(detailedError)")
                     logger.error(
                         "Playlist data: \(playlist.name) with \(playlist.items.count) items")
                 }
@@ -286,9 +293,10 @@ struct PlaylistsTable: View {
                     }
                     showingCreateSheet = false
                 case .failure(let error):
-                    alertMessage = "Failed to create playlist: \(error.localizedDescription)"
+                    let detailedError = ServerError.detailedMessage(from: error)
+                    alertMessage = "Failed to create playlist: \(detailedError)"
                     showErrorAlert = true
-                    logger.error("Failed to create playlist: \(error.localizedDescription)")
+                    logger.error("Failed to create playlist: \(detailedError)")
                 }
             }
         }
@@ -296,32 +304,40 @@ struct PlaylistsTable: View {
 
 
     func playSelected() {
-
         logger.debug("Attempting to play the selected playlist on the active universe")
 
+        // Go see what, if anything, is selected
+        if let playlistId = selection {
+            playPlaylistById(playlistId)
+        }
+    }
+
+    func playPlaylist(_ playlist: Common.Playlist) {
+        logger.debug("Attempting to play playlist '\(playlist.name)' on the active universe")
+        playPlaylistById(playlist.id)
+    }
+
+    private func playPlaylistById(_ playlistId: PlaylistIdentifier) {
         playlistTask?.cancel()
 
         playlistTask = Task {
-
-            // Go see what, if anything, is selected
-            if let playlistId = selection {
-                let result = await server.startPlayingPlaylist(
-                    universe: activeUniverse, playlistId: playlistId)
-                switch result {
-                case .success(let message):
-                    print(message)
-                case .failure(let error):
-                    await MainActor.run {
-                        alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                        logger.warning(
-                            "Unable to start a playlist: \(String(describing: error.localizedDescription))"
-                        )
-                        showErrorAlert = true
-                    }
-
+            let result = await server.startPlayingPlaylist(
+                universe: activeUniverse, playlistId: playlistId)
+            switch result {
+            case .success(let message):
+                await MainActor.run {
+                    successMessage = message
+                    showSuccessAlert = true
+                    logger.info("Successfully started playlist: \(message)")
+                }
+            case .failure(let error):
+                await MainActor.run {
+                    let detailedError = ServerError.detailedMessage(from: error)
+                    alertMessage = "Error starting playlist: \(detailedError)"
+                    logger.warning("Unable to start a playlist: \(detailedError)")
+                    showErrorAlert = true
                 }
             }
-
         }
     }
 
@@ -335,16 +351,18 @@ struct PlaylistsTable: View {
             let result = await server.stopPlayingPlaylist(universe: activeUniverse)
             switch result {
             case .success(let message):
-                print(message)
+                await MainActor.run {
+                    successMessage = message
+                    showSuccessAlert = true
+                    logger.info("Successfully stopped playlist playback: \(message)")
+                }
             case .failure(let error):
                 await MainActor.run {
-                    alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                    logger.warning(
-                        "Unable to stop playlist playback: \(String(describing: error.localizedDescription))"
-                    )
+                    let detailedError = ServerError.detailedMessage(from: error)
+                    alertMessage = "Error stopping playlist: \(detailedError)"
+                    logger.warning("Unable to stop playlist playback: \(detailedError)")
                     showErrorAlert = true
                 }
-
             }
         }
     }
@@ -742,4 +760,3 @@ struct AddAnimationToEditPlaylistSheet: View {
         dismiss()
     }
 }
-

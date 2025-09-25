@@ -98,6 +98,21 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
   - This triggers automatic propagation to all subscribers
   - Maintains physical reality: only one thing happening at a time
 
+### Server Communication Best Practices
+**The server returns detailed, user-friendly messages for all operations.** Always preserve and display these messages in the UI.
+
+- **Error Handling**: Use `ServerError.detailedMessage(from: error)` to extract full server error details
+  - ❌ **Never use**: `error.localizedDescription` (loses server context)
+  - ✅ **Always use**: `ServerError.detailedMessage(from: error)` (preserves server details)
+
+- **Success Messages**: Display the complete server response message directly
+  - Server provides detailed confirmation messages with context
+  - Example: "Playlist 'My Playlist' started successfully on universe 1 - estimated duration 5m 32s"
+
+- **User Feedback**: Both success and error cases should show informative dialogs on mobile
+  - Use `.alert()` modifiers for clear user feedback
+  - Include the full server response when possible
+
 ### Dependencies
 - **Starscream**: WebSocket client
 - **swift-log**: Structured logging
