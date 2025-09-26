@@ -70,6 +70,11 @@ public final class Animation: Hashable, Equatable, Identifiable, Codable, @unche
         // Update the numberOfFrames in metadata to the highest frame count among tracks
         metadata.numberOfFrames = tracks.map { UInt32($0.frames.count) }.max() ?? UInt32(0)
     }
+    
+    public func recalculateNumberOfFrames() {
+        // Recompute to the highest frame count among tracks
+        metadata.numberOfFrames = tracks.map { UInt32($0.frames.count) }.max() ?? 0
+    }
 }
 
 public struct AnimationSnapshot: Sendable, Codable, Equatable, Hashable, Identifiable {

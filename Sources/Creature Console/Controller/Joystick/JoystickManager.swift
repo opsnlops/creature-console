@@ -94,22 +94,12 @@ actor JoystickManager {
         }
     }
 
-    private var lastKnownActivity: Activity = .idle
 
     /// Called from the EventManager when it's time for us to poll the joystick and update any changed values
     func poll() {
 
-        // Check if AppState has changed and update joystick light if needed
-        Task {
-            let currentActivity = await AppState.shared.getCurrentActivity
-            if currentActivity != self.lastKnownActivity {
-                logger.info(
-                    "JoystickManager: AppState changed from \(self.lastKnownActivity.description) to \(currentActivity.description) - updating light"
-                )
-                self.lastKnownActivity = currentActivity
-                self.updateJoystickLight(activity: currentActivity)
-            }
-        }
+        // AppState changes are handled by the stateUpdates subscription in startListeningForAppStateChanges()
+        // No need to poll AppState here since we already have a reactive subscription
 
         // Which joystick should we use for this pass?
         let joystick = getActiveJoystick()
@@ -233,7 +223,9 @@ actor JoystickManager {
         )
     }
 
-    private func addContinuation(id: UUID, _ continuation: AsyncStream<JoystickManagerState>.Continuation) {
+    private func addContinuation(
+        id: UUID, _ continuation: AsyncStream<JoystickManagerState>.Continuation
+    ) {
         continuations[id] = continuation
         // Seed with the current state immediately
         continuation.yield(currentSnapshot())
@@ -245,7 +237,9 @@ actor JoystickManager {
 
     private func publishState() {
         let snapshot = currentSnapshot()
-        logger.debug("JoystickManager: Broadcasting state (A: \(self.aButtonPressed), B: \(self.bButtonPressed), X: \(self.xButtonPressed), Y: \(self.yButtonPressed), selected: \(String(describing: snapshot.selectedJoystick)))")
+        logger.debug(
+            "JoystickManager: Broadcasting state (A: \(self.aButtonPressed), B: \(self.bButtonPressed), X: \(self.xButtonPressed), Y: \(self.yButtonPressed), selected: \(String(describing: snapshot.selectedJoystick)))"
+        )
         for continuation in continuations.values {
             continuation.yield(snapshot)
         }
