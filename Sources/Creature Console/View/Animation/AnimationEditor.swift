@@ -3,7 +3,7 @@ import OSLog
 import SwiftUI
 
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 // This is the main animation editor for all of the Animations
@@ -15,17 +15,14 @@ struct AnimationEditor: View {
 
     let server = CreatureServerClient.shared
 
-    let creatureManager = CreatureManager.shared
-
 
     // The parent view will set this to true if we're about to make a _new_ animation
     @State var createNew: Bool = false
 
     // Local animation state
-    @StateObject private var model: AnimationEditorViewModel = AnimationEditorViewModel(animation: Common.Animation())
+    @StateObject private var model: AnimationEditorViewModel = AnimationEditorViewModel(
+        animation: Common.Animation())
 
-    // Recording session management
-    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
     @State private var availableCreatures: [Creature] = []
 
 
@@ -41,12 +38,14 @@ struct AnimationEditor: View {
     // Initializers
     init() {
         self.createNew = false
-        self._model = StateObject(wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
+        self._model = StateObject(
+            wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
     }
 
     init(createNew: Bool) {
         self.createNew = createNew
-        self._model = StateObject(wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
+        self._model = StateObject(
+            wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
     }
 
     init(animation: Common.Animation) {
@@ -119,7 +118,6 @@ struct AnimationEditor: View {
                 // First, get the current state immediately (so toolbar enables correctly)
                 let currentState = await CreatureCache.shared.getCurrentState()
                 await MainActor.run {
-                    creatureCacheState = currentState
                     availableCreatures = Array(currentState.creatures.values).sorted {
                         $0.name < $1.name
                     }
@@ -128,7 +126,6 @@ struct AnimationEditor: View {
                 // Load creature data
                 for await state in await CreatureCache.shared.stateUpdates {
                     await MainActor.run {
-                        creatureCacheState = state
                         availableCreatures = Array(state.creatures.values).sorted {
                             $0.name < $1.name
                         }
@@ -146,10 +143,10 @@ struct AnimationEditor: View {
             .overlay {
                 if isSaving {
                     Text(savingMessage)
-                        .font(.title)
-                        .padding()
-                        .background(Color.green.opacity(0.4))
-                        .cornerRadius(10)
+                        .font(.title3)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .glassEffect(.regular.tint(.green), in: .capsule)
                 }
             }
             .navigationDestination(item: $selectedCreatureForRecording) { creature in
@@ -159,7 +156,8 @@ struct AnimationEditor: View {
                 }
                 .task {
                     // Align event loop/recording cadence with the animation's frame period
-                    UserDefaults.standard.set(Int(model.millisecondsPerFrame), forKey: "eventLoopMillisecondsPerFrame")
+                    UserDefaults.standard.set(
+                        Int(model.millisecondsPerFrame), forKey: "eventLoopMillisecondsPerFrame")
                 }
             }
             #if os(iOS)
@@ -178,19 +176,6 @@ struct AnimationEditor: View {
     func playAnimation() -> Result<String, AnimationError> {
 
         logger.info("play button pressed!")
-
-        //        Task {
-        //            if let a = animation {
-        //
-        //                let result =  await creatureManager.playAnimationLocally(animation: a, universe: activeUniverse)
-        //                switch(result) {
-        //                case (.failure(let message)):
-        //                    logger.error("Unable to play animation: \(message))")
-        //                default:
-        //                    break
-        //                }
-        //            }
-        //        }
 
         return .success("Queued up animation to play")
     }
@@ -233,39 +218,43 @@ struct AnimationEditor: View {
 
     private var newAnimationWorkflowView: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Animation metadata section
-                animationMetadataForm
+            GlassEffectContainer(spacing: 24) {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Animation metadata section
+                    animationMetadataForm
 
-                // Recording instructions
-                recordingInstructionsView
+                    // Recording instructions
+                    recordingInstructionsView
 
-                // Creatures section
-                if !availableCreatures.isEmpty {
-                    creatureRecordingSection
+                    // Creatures section
+                    if !availableCreatures.isEmpty {
+                        creatureRecordingSection
+                    }
+
+                    // Show recorded tracks for the current animation
+                    TrackListingView(animation: model.animation)
+                        .id(model.tracksVersion)
+
+                    Spacer(minLength: 0)
                 }
-
-                // Show recorded tracks for the current animation
-                TrackListingView(animation: model.animation)
-                    .id(model.tracksVersion)
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
         }
     }
 
     private var existingAnimationEditingView: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                animationMetadataForm
-                TrackListingView(animation: model.animation)
-                    .id(model.tracksVersion)
-                Spacer(minLength: 0)
+            GlassEffectContainer(spacing: 24) {
+                VStack(alignment: .leading, spacing: 16) {
+                    animationMetadataForm
+                    TrackListingView(animation: model.animation)
+                        .id(model.tracksVersion)
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
         }
     }
 
@@ -306,7 +295,9 @@ struct AnimationEditor: View {
                 }
         }
         .formStyle(.grouped)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: 640)
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var recordingInstructionsView: some View {
@@ -328,8 +319,9 @@ struct AnimationEditor: View {
             .foregroundColor(.secondary)
         }
         .padding()
-        .background(.regularMaterial)
-        .cornerRadius(12)
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .frame(maxWidth: 640)
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var creatureRecordingSection: some View {
@@ -411,18 +403,11 @@ struct CreatureRecordingCardView: View {
                     Label("Record Track", systemImage: "record.circle")
                 }
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             .controlSize(.small)
         }
         .padding()
-        .background(.regularMaterial)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(
-                    hasTrack ? Color.green : .secondary,
-                    lineWidth: hasTrack ? 2 : 1)
-        )
-        .cornerRadius(8)
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 
 

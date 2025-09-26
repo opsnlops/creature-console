@@ -60,72 +60,68 @@ struct RecordTrack: View {
     @State private var recordingTask: Task<Void, Never>? = nil
 
     var body: some View {
-        VStack {
+        GlassEffectContainer(spacing: 28) {
+            VStack(spacing: 16) {
+                HStack(spacing: 8) {
+                    Text("Press")
+                    Image(systemName: bButtonSymbol)
+                    Text(isRecordingLocal ? "to stop" : "to start")
+                }
+                .font(.title)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .frame(maxWidth: .infinity, alignment: .center)
 
-
-            HStack {
-                Text("Press")
-                    .font(.title)
-                Image(systemName: bButtonSymbol)
-                    .font(.title)
                 if isRecordingLocal {
-                    Text("to stop")
-                        .font(.title)
+                    JoystickDebugView()
                 } else {
-                    Text("to start")
-                        .font(.title)
-                }
-            }
+                    if let track = currentTrack {
+                        VStack(spacing: 16) {
+                            TrackViewer(track: track, creature: creature, inputs: creature.inputs)
+                                .padding(.horizontal)
 
-            // Show either nothing, the joystick debugger, or a waveform if we have one
-            if isRecordingLocal {
-                JoystickDebugView()
-            } else {
-                if let track = currentTrack {
-                    VStack {
-                        TrackViewer(track: track, creature: creature, inputs: creature.inputs)
-                            .padding()
+                            SoundDataImport(
+                                track: Binding(
+                                    get: {
+                                        currentTrack!
+                                    },
+                                    set: { newTrack in
+                                        currentTrack = newTrack
+                                    }
+                                ),
+                                millisecondsPerFrame: currentAnimation?.metadata.millisecondsPerFrame ?? 20
+                            )
+                            .frame(maxWidth: .infinity)
 
-                        HStack {
-
-                            Button(action: {
-                                closeWithoutSaving()
-                            }) {
-                                Label("Close Without Saving", systemImage: "nosign")
-                            }
-                            .padding()
-
-                            Button(action: {
-                                Task { await saveAndGoHome() }
-                            }) {
-                                Label("Save Track", systemImage: "square.and.arrow.down")
-                                    .foregroundColor(.accentColor)
-                            }
-                            .padding()
-                        }
-
-                        // Unwrap the currentTrack and pass it as a Binding
-                        SoundDataImport(
-                            track: Binding(
-                                get: {
-                                    currentTrack!
-                                },
-                                set: { newTrack in
-                                    currentTrack = newTrack
+                            HStack {
+                                Button(action: {
+                                    closeWithoutSaving()
+                                }) {
+                                    Label("Close Without Saving", systemImage: "nosign")
                                 }
-                            ),
-                            millisecondsPerFrame: currentAnimation?.metadata.millisecondsPerFrame ?? 20
-                        )
-                    }
+                                .buttonStyle(.glass)
 
-                } else {
-                    // If I replace this with an EmptyView() the form at the top gets centered and
-                    // I just don't like how it looks
-                    Spacer()
+                                Spacer()
+
+                                Button(action: {
+                                    Task { await saveAndGoHome() }
+                                }) {
+                                    Label("Save Track", systemImage: "square.and.arrow.down")
+                                }
+                                .buttonStyle(.glassProminent)
+                            }
+                            .padding(12)
+                            .frame(maxWidth: 640)
+                            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+                            .frame(maxWidth: .infinity)
+                        }
+                    } else {
+                        Spacer()
+                    }
                 }
             }
-
-
+            .padding(.horizontal)
         }
         .navigationTitle("Record Track")
         #if os(macOS)
