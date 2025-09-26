@@ -15,7 +15,6 @@ struct AnimationEditor: View {
 
     let server = CreatureServerClient.shared
 
-    let eventLoop = EventLoop.shared
     let creatureManager = CreatureManager.shared
 
 
@@ -23,19 +22,12 @@ struct AnimationEditor: View {
     @State var createNew: Bool = false
 
     // Local animation state
-    @State private var currentAnimation: Common.Animation?
+    @StateObject private var model: AnimationEditorViewModel = AnimationEditorViewModel(animation: Common.Animation())
 
     // Recording session management
     @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
     @State private var availableCreatures: [Creature] = []
-    @State private var showCreatureSelector = false
 
-    // Local animation metadata state for binding
-    @State private var animationTitle = ""
-    @State private var animationSoundFile = ""
-    @State private var animationNotes = ""
-    @State private var animationMultitrackAudio = false
-    @State private var animationMillisecondsPerFrame: UInt32 = 20
 
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
@@ -44,59 +36,38 @@ struct AnimationEditor: View {
     @State private var savingMessage: String = ""
 
     @State private var selectedCreatureForRecording: Creature? = nil
-    // Removed @State private var navPath = NavigationPath()
-    // Removed @State private var navigateToRecord: Bool = false
+
 
     // Initializers
     init() {
         self.createNew = false
+        self._model = StateObject(wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
     }
 
     init(createNew: Bool) {
         self.createNew = createNew
-        if createNew {
-            self._currentAnimation = State(initialValue: Common.Animation())
-        }
+        self._model = StateObject(wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
     }
 
     init(animation: Common.Animation) {
         self.createNew = false
-        self._currentAnimation = State(initialValue: animation)
+        self._model = StateObject(wrappedValue: AnimationEditorViewModel(animation: animation))
     }
 
 
     var body: some View {
         NavigationStack {
             VStack {
-                if currentAnimation != nil {
-                    if createNew {
-                        // New animation workflow - show comprehensive setup
-                        newAnimationWorkflowView
-                    } else {
-                        // Existing animation editing
-                        existingAnimationEditingView
-                    }
-                } else if createNew {
-                    // Show loading while preparing new animation
-                    VStack {
-                        ProgressView()
-                        Text("Preparing new animation...")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(40)
-                    .task {
-                        logger.debug(
-                            "New animation view loaded, currentAnimation: \(currentAnimation != nil ? "present" : "nil")"
-                        )
-                        loadAnimationMetadata()
-                    }
+                if createNew {
+                    // New animation workflow - show comprehensive setup
+                    newAnimationWorkflowView
                 } else {
-                    // No animation loaded
-                    Text("No animation loaded")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                    // Existing animation editing
+                    existingAnimationEditingView
                 }
+            }
+            .onAppear {
+                model.syncFromAnimation()
             }
             .navigationTitle(createNew ? "Record New Animation" : "Animation Editor")
             #if os(macOS)
@@ -120,41 +91,28 @@ struct AnimationEditor: View {
                 }
 
                 ToolbarItem(id: "newTrack", placement: .primaryAction) {
-                    if currentAnimation != nil {
-                        Menu {
-                            if availableCreatures.isEmpty {
-                                Label(
-                                    "No creatures available",
-                                    systemImage: "exclamationmark.triangle"
-                                )
-                                .foregroundStyle(.secondary)
-                                .disabled(true)
-                            } else {
-                                ForEach(availableCreatures) { creature in
-                                    Button {
-                                        selectedCreatureForRecording = creature
-                                    } label: {
-                                        Label(creature.name, systemImage: "record.circle")
-                                    }
+                    Menu {
+                        if availableCreatures.isEmpty {
+                            Label(
+                                "No creatures available",
+                                systemImage: "exclamationmark.triangle"
+                            )
+                            .foregroundStyle(.secondary)
+                            .disabled(true)
+                        } else {
+                            ForEach(availableCreatures) { creature in
+                                Button {
+                                    selectedCreatureForRecording = creature
+                                } label: {
+                                    Label(creature.name, systemImage: "record.circle")
                                 }
                             }
-                        } label: {
-                            Label("Add Track", systemImage: "waveform.path.badge.plus")
-                                .symbolRenderingMode(.multicolor)
                         }
-                        .disabled(
-                            animationTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    } else {
-                        Button(action: {
-                            logger.debug(
-                                "Add Track button pressed - creatures: \(availableCreatures.count), animation: \(currentAnimation != nil ? "present" : "nil")"
-                            )
-                        }) {
-                            Label("Add Track", systemImage: "waveform.path.badge.plus")
-                                .symbolRenderingMode(.multicolor)
-                        }
-                        .disabled(true)
+                    } label: {
+                        Label("Add Track", systemImage: "waveform.path.badge.plus")
+                            .symbolRenderingMode(.multicolor)
                     }
+                    .disabled(model.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .task {
@@ -195,7 +153,14 @@ struct AnimationEditor: View {
                 }
             }
             .navigationDestination(item: $selectedCreatureForRecording) { creature in
-                RecordTrack(creature: creature, localAnimation: currentAnimation)
+                RecordTrack(creature: creature, localAnimation: model.animation) { track in
+                    model.appendTrack(track)
+                    model.syncFromAnimation()
+                }
+                .task {
+                    // Align event loop/recording cadence with the animation's frame period
+                    UserDefaults.standard.set(Int(model.millisecondsPerFrame), forKey: "eventLoopMillisecondsPerFrame")
+                }
             }
             #if os(iOS)
                 .toolbar(id: "global-bottom-status") {
@@ -231,28 +196,8 @@ struct AnimationEditor: View {
     }
 
 
-    private func updateAnimationMetadata() {
-        guard let animation = currentAnimation else { return }
-
-        animation.metadata.title = animationTitle
-        animation.metadata.soundFile = animationSoundFile
-        animation.metadata.note = animationNotes
-        animation.metadata.multitrackAudio = animationMultitrackAudio
-        animation.metadata.millisecondsPerFrame = animationMillisecondsPerFrame
-    }
-
-    private func loadAnimationMetadata() {
-        guard let animation = currentAnimation else { return }
-
-        animationTitle = animation.metadata.title
-        animationSoundFile = animation.metadata.soundFile
-        animationNotes = animation.metadata.note
-        animationMultitrackAudio = animation.metadata.multitrackAudio
-        animationMillisecondsPerFrame = animation.metadata.millisecondsPerFrame
-    }
-
     func saveAnimationToServer() {
-        guard let animation = currentAnimation else { return }
+        let animation = model.animation
 
         savingMessage = "Saving animation to server..."
         isSaving = true
@@ -287,60 +232,81 @@ struct AnimationEditor: View {
     // MARK: - View Components
 
     private var newAnimationWorkflowView: some View {
-        VStack(spacing: 20) {
-            // Animation metadata section
-            animationMetadataForm
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Animation metadata section
+                animationMetadataForm
 
-            // Recording instructions
-            recordingInstructionsView
+                // Recording instructions
+                recordingInstructionsView
 
-            // Creatures section
-            if !availableCreatures.isEmpty {
-                creatureRecordingSection
+                // Creatures section
+                if !availableCreatures.isEmpty {
+                    creatureRecordingSection
+                }
+
+                // Show recorded tracks for the current animation
+                TrackListingView(animation: model.animation)
+                    .id(model.tracksVersion)
+
+                Spacer(minLength: 0)
             }
-
-            // Show recorded tracks for the current animation
-            TrackListingView(animation: currentAnimation)
-
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
         }
-        .padding()
     }
 
     private var existingAnimationEditingView: some View {
-        VStack {
-            animationMetadataForm
-            TrackListingView(animation: currentAnimation)
-            Spacer()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                animationMetadataForm
+                TrackListingView(animation: model.animation)
+                    .id(model.tracksVersion)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
         }
     }
 
     private var animationMetadataForm: some View {
         Form {
-            TextField("Title", text: $animationTitle)
+            TextField("Title", text: $model.title)
                 .textFieldStyle(.roundedBorder)
-                .onChange(of: animationTitle) {
-                    updateAnimationMetadata()
+                .onChange(of: model.title) { _ in
+                    model.updateMetadataFromFields()
                 }
 
-            TextField("Sound File", text: $animationSoundFile)
+            TextField("Sound File", text: $model.soundFile)
                 .textFieldStyle(.roundedBorder)
-                .onChange(of: animationSoundFile) {
-                    updateAnimationMetadata()
+                .onChange(of: model.soundFile) { _ in
+                    model.updateMetadataFromFields()
                 }
 
-            Toggle("Multi-Track Audio", isOn: $animationMultitrackAudio)
-                .onChange(of: animationMultitrackAudio) {
-                    updateAnimationMetadata()
+            Toggle("Multi-Track Audio", isOn: $model.multitrackAudio)
+                .onChange(of: model.multitrackAudio) { _ in
+                    model.updateMetadataFromFields()
                 }
 
-            TextField("Notes", text: $animationNotes)
+            HStack {
+                Text("Frame Period (ms)")
+                Spacer()
+                Stepper(value: $model.millisecondsPerFrame, in: 5...100, step: 1) {
+                    Text("\(model.millisecondsPerFrame) ms")
+                }
+            }
+            .onChange(of: model.millisecondsPerFrame) { _ in
+                model.updateMetadataFromFields()
+            }
+
+            TextField("Notes", text: $model.note)
                 .textFieldStyle(.roundedBorder)
-                .onChange(of: animationNotes) {
-                    updateAnimationMetadata()
+                .onChange(of: model.note) { _ in
+                    model.updateMetadataFromFields()
                 }
         }
-        .padding()
+        .formStyle(.grouped)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var recordingInstructionsView: some View {
@@ -384,7 +350,11 @@ struct AnimationEditor: View {
                     CreatureRecordingCardView(
                         creature: creature,
                         hasTrack: hasTrackForCreature(creature.id),
-                        animation: currentAnimation
+                        animation: model.animation,
+                        onTrackSaved: { track in
+                            model.appendTrack(track)
+                            model.syncFromAnimation()
+                        }
                     )
                 }
             }
@@ -392,7 +362,7 @@ struct AnimationEditor: View {
     }
 
     private func hasTrackForCreature(_ creatureId: CreatureIdentifier) -> Bool {
-        return currentAnimation?.tracks.contains { $0.creatureId == creatureId } ?? false
+        return model.animation.tracks.contains { $0.creatureId == creatureId }
     }
 
 
@@ -404,6 +374,7 @@ struct CreatureRecordingCardView: View {
     let creature: Creature
     let hasTrack: Bool
     let animation: Common.Animation?
+    let onTrackSaved: ((Track) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -427,8 +398,13 @@ struct CreatureRecordingCardView: View {
                     .foregroundColor(.green)
             }
 
-            NavigationLink(destination: RecordTrack(creature: creature, localAnimation: animation))
-            {
+            NavigationLink(
+                destination: RecordTrack(
+                    creature: creature,
+                    localAnimation: animation,
+                    onTrackSaved: onTrackSaved
+                )
+            ) {
                 if hasTrack {
                     Label("Re-record Track", systemImage: "arrow.clockwise")
                 } else {

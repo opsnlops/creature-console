@@ -8,9 +8,6 @@ struct TrackListingView: View {
 
     @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
 
-    @State var showErrorMessage: Bool = false
-    @State var errorMessage: String = ""
-
     var body: some View {
         ScrollView {
             VStack {
@@ -26,14 +23,14 @@ struct TrackListingView: View {
                     Text("No animation loaded")
                 }
             }
-            .alert(isPresented: $showErrorMessage) {
-                Alert(
-                    title: Text("Error Viewing Track"),
-                    message: Text(errorMessage),
-                    dismissButton: .default(Text("Shit"))
-                )
-            }
             .task {
+                // Seed with current cache state first
+                let initial = await CreatureCache.shared.getCurrentState()
+                await MainActor.run {
+                    creatureCacheState = initial
+                }
+
+                // Then listen for updates
                 for await state in await CreatureCache.shared.stateUpdates {
                     await MainActor.run {
                         creatureCacheState = state
@@ -46,35 +43,41 @@ struct TrackListingView: View {
 
 
     func prepareTrackView(for track: Track) -> some View {
-
         logger.debug("preparing a track view!")
 
         if let creature = creatureCacheState.creatures[track.creatureId] {
             let inputs = creature.inputs
-            return TrackViewer(
-                track: track,
-                creature: creature,
-                inputs: inputs,
-                chartColor: pickRandomColor())
+            return AnyView(
+                TrackViewer(
+                    track: track,
+                    creature: creature,
+                    inputs: inputs,
+                    chartColor: colorForTrack(track)
+                )
+            )
         } else {
-            DispatchQueue.main.async {
-                errorMessage = "Unable to locate creature in cache: \(track.creatureId)"
-                showErrorMessage = true
-            }
-            return TrackViewer(
-                track: track,
-                creature: .mock(),
-                inputs: [])
+            return AnyView(
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Missing creature for track", systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.yellow)
+                    Text("Creature id \(track.creatureId) not found in cache.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+            )
         }
     }
 
-    func pickRandomColor() -> Color {
-        let colors: [Color] = [
-            .red, .green, .blue, .orange, .yellow, .pink, .purple, .teal, .accentColor,
-        ]
-        return colors.randomElement() ?? .accentColor
+    func colorForTrack(_ track: Track) -> Color {
+        let palette: [Color] = [.red, .green, .blue, .orange, .yellow, .pink, .purple, .teal, .accentColor]
+        // Create a stable hash from the track id
+        var hasher = Hasher()
+        hasher.combine(track.id)
+        let index = abs(hasher.finalize()) % palette.count
+        return palette[index]
     }
-
 
 }
 
@@ -84,4 +87,3 @@ struct TrackListingView_Previews: PreviewProvider {
         TrackListingView(animation: .mock())
     }
 }
-

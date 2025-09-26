@@ -34,13 +34,15 @@ struct RecordTrack: View {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordTrack")
 
-
     let creature: Creature
     let localAnimation: Common.Animation?
 
-    init(creature: Creature, localAnimation: Common.Animation? = nil) {
+    let onTrackSaved: ((Track) -> Void)?
+
+    init(creature: Creature, localAnimation: Common.Animation? = nil, onTrackSaved: ((Track) -> Void)? = nil) {
         self.creature = creature
         self.localAnimation = localAnimation
+        self.onTrackSaved = onTrackSaved
     }
 
     @State var lastUpdated: Date = Date()
@@ -317,18 +319,13 @@ struct RecordTrack: View {
 
         logger.info("saving and going home")
 
-        // Add our track to the main animation
-        if let animation = currentAnimation {
-            if let track = currentTrack {
-                await MainActor.run {
-                    animation.tracks.append(track)
-                }
-                logger.debug("added our track! count is now: \(animation.tracks.count)")
-            } else {
-                logger.warning("can't save because currentTank is nil")
-            }
+        // Produce the track and hand it back to the caller
+        if let track = currentTrack {
+            // Prefer handing the track back to the parent, which can append and refresh UI
+            onTrackSaved?(track)
+            logger.debug("handed track back to parent via callback")
         } else {
-            logger.warning("can't save because currentAnimation is nil")
+            logger.warning("can't save because currentTrack is nil")
         }
 
         // Now go back

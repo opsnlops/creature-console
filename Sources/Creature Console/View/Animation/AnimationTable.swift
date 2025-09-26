@@ -26,6 +26,7 @@ struct AnimationTable: View {
     @State private var playAnimationTask: Task<Void, Never>? = nil
 
     @State private var navigateToEditor = false
+    @State private var animationToEdit: Common.Animation? = nil
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
 
@@ -71,12 +72,12 @@ struct AnimationTable: View {
                                             .foregroundColor(.green)
                                     }
 
-                                    NavigationLink(
-                                        destination: AnimationEditor(),
-                                        label: {
-                                            Label("Edit", systemImage: "pencil")
-                                                .foregroundColor(.accentColor)
-                                        })
+                                    Button {
+                                        loadAnimationForEditing(animationId: metadata.id)
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                            .foregroundColor(.accentColor)
+                                    }
                                 }
                         }
                     }
@@ -103,7 +104,7 @@ struct AnimationTable: View {
 
                         Button {
                             if let selection = selection {
-                                loadAnimationToAppState(animationId: selection)
+                                loadAnimationForEditing(animationId: selection)
                             }
                         } label: {
                             Label("Edit", systemImage: "pencil")
@@ -153,7 +154,12 @@ struct AnimationTable: View {
                 }
             }
             .navigationDestination(isPresented: $navigateToEditor) {
-                AnimationEditor()
+                if let animation = animationToEdit {
+                    AnimationEditor(animation: animation)
+                } else {
+                    // Fallback: if somehow no animation is loaded, present create-new
+                    AnimationEditor(createNew: true)
+                }
             }
             .toolbar(id: "animationTableToolbar") {
                 ToolbarItem(id: "newTrack", placement: .primaryAction) {
@@ -177,7 +183,7 @@ struct AnimationTable: View {
         }  // NavigationStack
     }  // body
 
-    func loadAnimationToAppState(animationId: AnimationIdentifier) {
+    func loadAnimationForEditing(animationId: AnimationIdentifier) {
         loadAnimationTask?.cancel()
 
         loadAnimationTask = Task {
@@ -185,13 +191,13 @@ struct AnimationTable: View {
             switch result {
             case .success(let animation):
                 await MainActor.run {
+                    animationToEdit = animation
                     navigateToEditor = true
                 }
-                await AppState.shared.setCurrentAnimation(animation)
             case .failure(let error):
                 alertMessage = "Error: \(error.localizedDescription)"
                 logger.warning("Unable to load animation for editing: \(alertMessage)")
-                showErrorAlert = true
+                await MainActor.run { showErrorAlert = true }
             }
         }
     }

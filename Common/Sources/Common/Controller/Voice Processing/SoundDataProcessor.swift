@@ -14,11 +14,26 @@ public class SoundDataProcessor {
         soundData: SoundData, axis: Int, track: Track, millisecondsPerFrame: UInt32
     ) -> Result<Track, ServerError> {
         logger.info(
-            "received a request to replace track \(track)'s axis \(axis) with sound data from \(soundData.metadata.soundFile)"
+            "Replacing axis \(axis) on track id: \(track.id) using imported mouth data (Rhubarb JSON)."
         )
 
+        // Validate track has frames
+        guard let firstFrame = track.frames.first else {
+            return .failure(.dataFormatError("Track has no frames to replace"))
+        }
+
+        // Validate axis is in bounds for this track's frame width
+        let width = firstFrame.count
+        guard axis >= 0 && axis < width else {
+            return .failure(
+                .dataFormatError("Axis index \(axis) out of bounds for frame width \(width)"))
+        }
+
         let newByteData = processSoundData(
-            soundData: soundData, millisecondsPerFrame: millisecondsPerFrame)
+            soundData: soundData,
+            millisecondsPerFrame: millisecondsPerFrame,
+            targetFrameCount: track.frames.count
+        )
 
         var mutableTrack = track
         mutableTrack.replaceAxisData(axisIndex: axis, with: newByteData)
@@ -26,33 +41,31 @@ public class SoundDataProcessor {
         return .success(mutableTrack)
     }
 
-    public func processSoundData(soundData: SoundData, millisecondsPerFrame: UInt32) -> [UInt8] {
+    public func processSoundData(
+        soundData: SoundData, millisecondsPerFrame: UInt32, targetFrameCount: Int
+    ) -> [UInt8] {
 
         logger.info(
-            "sound file was: \(soundData.metadata.soundFile), duration: \(soundData.metadata.duration * 1000)ms, animationMsPerFrame: \(millisecondsPerFrame)"
+            "Rhubarb JSON duration: \(soundData.metadata.duration * 1000)ms, animationMsPerFrame: \(millisecondsPerFrame), targetFrameCount: \(targetFrameCount)"
         )
 
-        // How many frames are in this?
-        let numberOfFrames = UInt32(soundData.metadata.duration * 1000) / millisecondsPerFrame
-        logger.info("this is \(numberOfFrames) frames total")
+        var byteData = [UInt8](repeating: 0, count: targetFrameCount)
 
-        var byteData = [UInt8](repeating: 0, count: Int(numberOfFrames))
-
-        // soundData.cue is an array of MouthCue
+        // Map each cue's time range to frame indices, clamped to the target frame count
         for cue in soundData.mouthCues {
-
-            let startFrame = Int(cue.start * 1000) / Int(millisecondsPerFrame)
-            let endFrame = Int(cue.end * 1000) / Int(millisecondsPerFrame)
-
-            // Fill the array with cue.intValue from startFrame to endFrame
-            byteData.replaceSubrange(
-                startFrame..<endFrame,
-                with: repeatElement(cue.intValue, count: endFrame - startFrame))
+            let startFrame = max(
+                0, min(targetFrameCount, Int((cue.start * 1000.0) / Double(millisecondsPerFrame))))
+            let endFrame = max(
+                startFrame,
+                min(targetFrameCount, Int((cue.end * 1000.0) / Double(millisecondsPerFrame))))
+            if endFrame > startFrame {
+                let count = endFrame - startFrame
+                byteData.replaceSubrange(
+                    startFrame..<endFrame, with: repeatElement(cue.intValue, count: count))
+            }
         }
 
-        // All done!
         return byteData
-
     }
 
 }

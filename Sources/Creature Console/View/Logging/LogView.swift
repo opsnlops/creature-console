@@ -1,7 +1,8 @@
 import Common
 import SwiftUI
+
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 struct LogView: View {
@@ -106,18 +107,15 @@ struct LogView: View {
                         scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
-                .task {
-                    // First, get the current state immediately
+                .task { @MainActor in
+                    // Get initial state immediately
                     let currentState = await LogManager.shared.getCurrentState()
-                    await MainActor.run {
-                        logManagerState = currentState
-                    }
+                    logManagerState = currentState
 
-                    // Then listen for updates
+                    // Then subscribe to updates with proper cancellation checking
                     for await state in await LogManager.shared.stateUpdates {
-                        await MainActor.run {
-                            logManagerState = state
-                        }
+                        guard !Task.isCancelled else { break }
+                        logManagerState = state
                     }
                 }
             }
@@ -131,13 +129,13 @@ struct LogView: View {
             #endif
         }
         #if os(iOS)
-        .toolbar(id: "global-bottom-status") {
-            if UIDevice.current.userInterfaceIdiom == .phone {
-                ToolbarItem(id: "status", placement: .bottomBar) {
-                    BottomStatusToolbarContent()
+            .toolbar(id: "global-bottom-status") {
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    ToolbarItem(id: "status", placement: .bottomBar) {
+                        BottomStatusToolbarContent()
+                    }
                 }
             }
-        }
         #endif
     }
 

@@ -17,22 +17,49 @@ struct TrackViewer: View {
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
 
+    @State private var cachedStreams: [[UInt8]] = []
+    @State private var cacheKey: String = ""
+
+    enum TrackViewerError: LocalizedError {
+        case inconsistentFrameSizes(expected: Int, found: Int)
+
+        var errorDescription: String? {
+            switch self {
+            case .inconsistentFrameSizes(let expected, let found):
+                return "Inconsistent frame sizes detected. Expected size: \(expected), but found size: \(found)"
+            }
+        }
+    }
+
     var body: some View {
-        let byteStreams = extractByteStreams(from: track.frames)
+        let result = extractByteStreams(from: track.frames)
 
         VStack {
             Text(creature.name)
-            ForEach(0..<byteStreams.count, id: \.self) { index in
-                HStack {
-                    getInputView(for: index)
-                        .frame(width: 80, alignment: .leading)
-                        .padding()
-                    ByteChartView(data: byteStreams[index], color: chartColor)
-                        .frame(height: height)
+            switch result {
+            case .success:
+                ForEach(0..<cachedStreams.count, id: \.self) { index in
+                    HStack {
+                        getInputView(for: index)
+                            .frame(width: 80, alignment: .leading)
+                            .padding()
+                        ByteChartView(data: cachedStreams[index], color: chartColor)
+                            .frame(height: height)
+                    }
                 }
+                Text("Number of Frames: \(track.frames.count)")
+                    .font(.footnote)
+            case .failure(let error):
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                    Text("Unable to display frame data")
+                        .font(.headline)
+                    Text(error.localizedDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 8)
             }
-            Text("Number of Frames: \(track.frames.count)")
-                .font(.footnote)
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(
@@ -41,21 +68,36 @@ struct TrackViewer: View {
                 dismissButton: .default(Text("Oh no!"))
             )
         }
+        .task(id: makeCacheKey(frames: track.frames)) {
+            // Validate data and show alert if needed
+            let result = extractByteStreams(from: track.frames)
+            if case .failure(let error) = result {
+                alertMessage = error.localizedDescription
+                showErrorAlert = true
+            }
+
+            // Update memoized cache
+            if case .success(let streams) = result {
+                cachedStreams = streams
+            } else {
+                cachedStreams = []
+            }
+
+            // Update our local cache key (optional bookkeeping)
+            cacheKey = makeCacheKey(frames: track.frames)
+        }
     }
 
-    func extractByteStreams(from frames: [Data]) -> [[UInt8]] {
-        guard let firstFrame = frames.first else { return [] }
+    func extractByteStreams(from frames: [Data]) -> Result<[[UInt8]], TrackViewerError> {
+        guard let firstFrame = frames.first else { return .success([]) }
         let frameSize = firstFrame.count
 
         // Ensure all frames have the same size
         for frame in frames {
             if frame.count != frameSize {
-                alertMessage = String(
-                    "Inconsistent frame sizes detected. Expected size: \(frameSize), but found size: \(frame.count)"
-                )
-                logger.warning("\(alertMessage, privacy: .public)")
-                showErrorAlert = true
-                return []
+                let error: TrackViewerError = .inconsistentFrameSizes(expected: frameSize, found: frame.count)
+                logger.warning("\(error.localizedDescription, privacy: .public)")
+                return .failure(error)
             }
         }
 
@@ -69,7 +111,7 @@ struct TrackViewer: View {
             }
         }
 
-        return byteStreams
+        return .success(byteStreams)
     }
 
     func getInputView(for axis: Int) -> AnyView {
@@ -104,6 +146,20 @@ struct TrackViewer: View {
         return name.split(separator: "_")
             .map { $0.capitalized }
             .joined(separator: " ")
+    }
+
+    func makeCacheKey(frames: [Data]) -> String {
+        let count = frames.count
+        let width = frames.first?.count ?? 0
+        var hasher = Hasher()
+        hasher.combine(count)
+        hasher.combine(width)
+        // Incorporate frame contents to detect in-place updates (e.g., mouth data import)
+        for frame in frames {
+            hasher.combine(frame)
+        }
+        let contentHash = hasher.finalize()
+        return "\(track.id.uuidString)-\(count)-\(width)-\(contentHash)"
     }
 }
 

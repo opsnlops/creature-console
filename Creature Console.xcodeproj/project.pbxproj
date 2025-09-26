@@ -114,6 +114,8 @@
 		11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordTrack.swift */; };
 		11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */; };
 		11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61AA22BFC3739000A1B48 /* TrackViewer.swift */; };
+		11AF090F2E864F2400E0BE28 /* AnimationEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AF090E2E864F2400E0BE28 /* AnimationEditorViewModel.swift */; };
+		11AF09122E8651C500E0BE28 /* TrackViewerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AF09102E8650A700E0BE28 /* TrackViewerTests.swift */; };
 		11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11BF13972E42D32E00728799 /* CreatePlaylistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF13952E42D32E00728799 /* CreatePlaylistView.swift */; };
@@ -229,6 +231,8 @@
 		11A10A5D29F242B7000EB835 /* RecordTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTrack.swift; sourceTree = "<group>"; };
 		11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTable.swift; sourceTree = "<group>"; };
 		11A61AA22BFC3739000A1B48 /* TrackViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackViewer.swift; sourceTree = "<group>"; };
+		11AF090E2E864F2400E0BE28 /* AnimationEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditorViewModel.swift; sourceTree = "<group>"; };
+		11AF09102E8650A700E0BE28 /* TrackViewerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackViewerTests.swift; sourceTree = "<group>"; };
 		11AFC3182BE9ED7700602604 /* CreatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureManager.swift; sourceTree = "<group>"; };
 		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11BC3C392A0DF62300410F63 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
@@ -680,6 +684,8 @@
 				11A61AA22BFC3739000A1B48 /* TrackViewer.swift */,
 				114147912C0145270046601D /* TrackListingView.swift */,
 				1156EBCA2E76640500CBC202 /* ButtonGate.swift */,
+				11AF090E2E864F2400E0BE28 /* AnimationEditorViewModel.swift */,
+				11AF09102E8650A700E0BE28 /* TrackViewerTests.swift */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -1144,6 +1150,7 @@
 				11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */,
 				114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */,
 				11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */,
+				11AF090F2E864F2400E0BE28 /* AnimationEditorViewModel.swift in Sources */,
 				1199D6C92BF6F51B004E0D64 /* LogItem.swift in Sources */,
 				119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */,
 				1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */,
@@ -1219,6 +1226,7 @@
 				11754B772C005124001A6C83 /* CreatureTests.swift in Sources */,
 				1183318D2C00577D0017DC2A /* AnimationMetadataTests.swift in Sources */,
 				1183318F2C0059490017DC2A /* TrackTests.swift in Sources */,
+				11AF09122E8651C500E0BE28 /* TrackViewerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

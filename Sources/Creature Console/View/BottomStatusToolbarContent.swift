@@ -5,13 +5,7 @@ struct BottomStatusToolbarContent: View {
     @Environment(\.horizontalSizeClass) private var hSize
     @State private var statusLightsState = StatusLightsState(
         running: false, dmx: false, streaming: false, animationPlaying: false)
-    @State private var appState = AppStateData(
-        currentActivity: .idle,
-        currentAnimation: nil,
-        selectedTrack: nil,
-        showSystemAlert: false,
-        systemAlertMessage: ""
-    )
+    @State private var currentActivity: Activity = .idle
     @Namespace private var glassNamespace
 
     var body: some View {
@@ -19,33 +13,33 @@ struct BottomStatusToolbarContent: View {
             // State chip (compact = dot)
             if hSize == .regular {
                 HStack(spacing: 6) {
-                    Image(systemName: symbolForActivity(appState.currentActivity))
+                    Image(systemName: symbolForActivity(currentActivity))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.95))
-                    Text("State: \(appState.currentActivity.description)")
+                    Text("State: \(currentActivity.description)")
                         .font(.footnote)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .glassEffect(
                     .regular
-                        .tint(appState.currentActivity.tintColor.opacity(0.35))
+                        .tint(currentActivity.tintColor.opacity(0.35))
                         .interactive(),
                     in: .capsule
                 )
-                .animation(.easeInOut(duration: 0.25), value: appState.currentActivity)
+                .animation(.easeInOut(duration: 0.25), value: currentActivity)
             } else {
-                Image(systemName: symbolForActivity(appState.currentActivity))
+                Image(systemName: symbolForActivity(currentActivity))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.95))
                     .padding(8)
                     .glassEffect(
                         .regular
-                            .tint(appState.currentActivity.tintColor.opacity(0.6))
+                            .tint(currentActivity.tintColor.opacity(0.6))
                             .interactive(),
                         in: .circle
                     )
-                    .animation(.easeInOut(duration: 0.25), value: appState.currentActivity)
+                    .animation(.easeInOut(duration: 0.25), value: currentActivity)
             }
 
             // Cluster of status lights
@@ -81,25 +75,25 @@ struct BottomStatusToolbarContent: View {
         .task {
             // Listen for status light updates
             for await state in await StatusLightsManager.shared.stateUpdates {
+                guard !Task.isCancelled else { break }
                 await MainActor.run {
                     statusLightsState = state
                 }
             }
         }
         .task { @MainActor in
-            // Seed and listen for AppState updates
-            let initialActivity = await AppState.shared.getCurrentActivity
-            appState = AppStateData(
-                currentActivity: initialActivity,
-                currentAnimation: appState.currentAnimation,
-                selectedTrack: appState.selectedTrack,
-                showSystemAlert: appState.showSystemAlert,
-                systemAlertMessage: appState.systemAlertMessage
-            )
+            do {
+                // Get initial state immediately
+                let initialActivity = await AppState.shared.getCurrentActivity
+                currentActivity = initialActivity
 
-            let updates = await AppState.shared.stateUpdates
-            for await state in updates {
-                appState = state
+                // Then subscribe to updates with proper cancellation checking
+                for await state in await AppState.shared.stateUpdates {
+                    guard !Task.isCancelled else { break }
+                    currentActivity = state.currentActivity
+                }
+            } catch {
+                // Handle any errors gracefully
             }
         }
     }

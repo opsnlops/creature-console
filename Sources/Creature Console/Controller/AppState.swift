@@ -52,13 +52,20 @@ actor AppState {
     var stateUpdates: AsyncStream<AppStateData> {
         AsyncStream { continuation in
             let id = UUID()
-            // Register this continuation and seed it with the current snapshot on the actor
-            Task { [weak self] in
-                await self?.addContinuation(id: id, continuation)
-            }
-            // Clean up when the subscriber finishes
-            continuation.onTermination = { [weak self] _ in
-                Task { await self?.removeContinuation(id) }
+            continuations[id] = continuation
+
+            let currentState = self.currentSnapshot()
+            self.logger.debug(
+                "AppState: New subscriber \(id) - seeding with activity: \(currentState.currentActivity.description)"
+            )
+
+            // Send current state immediately to new subscriber
+            continuation.yield(currentState)
+
+            continuation.onTermination = { @Sendable _ in
+                Task { [id] in
+                    await self.removeContinuation(id)
+                }
             }
         }
     }
@@ -77,26 +84,27 @@ actor AppState {
         )
     }
 
-    private func addContinuation(id: UUID, _ continuation: AsyncStream<AppStateData>.Continuation) {
-        self.continuations[id] = continuation
-        // Seed with the current state immediately
-        continuation.yield(self.currentSnapshot())
+    private func removeContinuation(_ id: UUID) {
+        self.logger.debug("AppState: Removing subscriber \(id)")
+        continuations.removeValue(forKey: id)
     }
 
-    private func removeContinuation(_ id: UUID) {
-        self.continuations[id] = nil
+    func getCurrentState() -> AppStateData {
+        return currentSnapshot()
     }
 
     private func publishState() {
-        self.logger.debug("AppState: Broadcasting state (activity: \(self.currentActivity.description), showAlert: \(self.showSystemAlert))")
         let state = self.currentSnapshot()
+        self.logger.debug(
+            "AppState: Broadcasting state (activity: \(state.currentActivity.description), showAlert: \(state.showSystemAlert)) to \(self.continuations.count) subscribers"
+        )
         for continuation in self.continuations.values {
             continuation.yield(state)
         }
     }
 
     func setCurrentActivity(_ activity: Activity) {
-        self.logger.info("AppState: Setting activity to \(activity.description)")
+        self.logger.info("AppState: Setting activity to \(activity.description) (from: \(Thread.callStackSymbols.first ?? "unknown"))")
         self.currentActivity = activity
         self.publishState()
         self.logger.info("AppState: Published state with activity \(activity.description)")
@@ -119,7 +127,11 @@ actor AppState {
     }
 
     // Getters for actor access
-    var getCurrentActivity: Activity { self.currentActivity }
+    var getCurrentActivity: Activity {
+        self.logger.debug(
+            "AppState: getCurrentActivity called - returning \(self.currentActivity.description)")
+        return self.currentActivity
+    }
     var getCurrentAnimation: Common.Animation? { self.currentAnimation }
     var getSelectedTrack: CreatureIdentifier? { self.selectedTrack }
     var getShowSystemAlert: Bool { self.showSystemAlert }
