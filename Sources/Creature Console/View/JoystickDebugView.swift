@@ -3,7 +3,7 @@ import OSLog
 import SwiftUI
 
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 //#if os(macOS)
@@ -31,11 +31,11 @@ struct JoystickDebugView: View {
 
                 Text("🎮 \(manufacturer)")
                     .font(.headline)
-                Text(
-                    "S/N: \(serialNumber), Version: \(versionNumber)"
-                )
-                .font(.caption2)
-                .foregroundStyle(.gray)
+                //                Text(
+                //                    "S/N: \(serialNumber), Version: \(versionNumber)"
+                //                )
+                //                .font(.caption2)
+                //                .foregroundStyle(.gray)
 
                 Spacer()
 
@@ -48,43 +48,73 @@ struct JoystickDebugView: View {
                     .frame(height: geometry.size.height * 0.95)
                     .padding()
 
-                    VStack {
-                        ForEach(0..<joystickValues.count, id: \.self) { index in
-                            Text("\(index): \(joystickValues[index])")
+                    GlassEffectContainer(spacing: 14) {
+                        VStack(alignment: .trailing, spacing: 12) {
+                            // Values card
+                            VStack(alignment: .trailing, spacing: 4) {
+                                ForEach(0..<joystickValues.count, id: \.self) { index in
+                                    Text("\(index): \(joystickValues[index])")
+                                        .font(.footnote.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(10)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+
+                            // Button chips
+                            Image(systemName: xButtonSymbol)
+                                .font(.system(size: 36, weight: .semibold))
+                                .foregroundStyle(joystickState.xButtonPressed ? .white : .primary)
+                                .padding(8)
+                                .glassEffect(
+                                    joystickState.xButtonPressed
+                                        ? .regular.tint(.blue.opacity(0.35)).interactive()
+                                        : .regular.interactive(),
+                                    in: .circle
+                                )
+                                .animation(
+                                    .easeInOut(duration: 0.2), value: joystickState.xButtonPressed)
+
+                            Image(systemName: aButtonSymbol)
+                                .font(.system(size: 36, weight: .semibold))
+                                .foregroundStyle(joystickState.aButtonPressed ? .white : .primary)
+                                .padding(8)
+                                .glassEffect(
+                                    joystickState.aButtonPressed
+                                        ? .regular.tint(.green.opacity(0.35)).interactive()
+                                        : .regular.interactive(),
+                                    in: .circle
+                                )
+                                .animation(
+                                    .easeInOut(duration: 0.2), value: joystickState.aButtonPressed)
+
+                            Image(systemName: bButtonSymbol)
+                                .font(.system(size: 36, weight: .semibold))
+                                .foregroundStyle(joystickState.bButtonPressed ? .white : .primary)
+                                .padding(8)
+                                .glassEffect(
+                                    joystickState.bButtonPressed
+                                        ? .regular.tint(.red.opacity(0.35)).interactive()
+                                        : .regular.interactive(),
+                                    in: .circle
+                                )
+                                .animation(
+                                    .easeInOut(duration: 0.2), value: joystickState.bButtonPressed)
+
+                            Image(systemName: yButtonSymbol)
+                                .font(.system(size: 36, weight: .semibold))
+                                .foregroundStyle(joystickState.yButtonPressed ? .white : .primary)
+                                .padding(8)
+                                .glassEffect(
+                                    joystickState.yButtonPressed
+                                        ? .regular.tint(.yellow.opacity(0.35)).interactive()
+                                        : .regular.interactive(),
+                                    in: .circle
+                                )
+                                .animation(
+                                    .easeInOut(duration: 0.2), value: joystickState.yButtonPressed)
                         }
-
-
-                        Image(systemName: xButtonSymbol)  // X button symbol
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(
-                                joystickState.xButtonPressed ? .accentColor : .primary)
-
-
-                        Image(systemName: aButtonSymbol)  // A button symbol
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(
-                                joystickState.aButtonPressed ? .accentColor : .primary)
-
-
-                        Image(systemName: bButtonSymbol)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(
-                                joystickState.bButtonPressed ? .accentColor : .primary)
-
-
-                        Image(systemName: yButtonSymbol)  // Y button symbol
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100 / 2.5)
-                            .foregroundColor(
-                                joystickState.yButtonPressed ? .accentColor : .primary)
-
+                        .frame(minWidth: 120)
                     }
 
                     Spacer()
@@ -133,15 +163,15 @@ struct JoystickDebugView: View {
                 try? await Task.sleep(for: .milliseconds(50))  // 20fps update rate for real-time debugging
             }
         }
-#if os(iOS)
-        .toolbar(id: "global-bottom-status") {
-            if UIDevice.current.userInterfaceIdiom == .phone {
-                ToolbarItem(id: "status", placement: .bottomBar) {
-                    BottomStatusToolbarContent()
+        #if os(iOS)
+            .toolbar(id: "global-bottom-status") {
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    ToolbarItem(id: "status", placement: .bottomBar) {
+                        BottomStatusToolbarContent()
+                    }
                 }
             }
-        }
-#endif
+        #endif
     }
 }
 
@@ -154,4 +184,3 @@ struct JoystickDebugView_Previews: PreviewProvider {
 
 
 //#endif
-

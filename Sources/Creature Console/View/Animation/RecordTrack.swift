@@ -39,7 +39,10 @@ struct RecordTrack: View {
 
     let onTrackSaved: ((Track) -> Void)?
 
-    init(creature: Creature, localAnimation: Common.Animation? = nil, onTrackSaved: ((Track) -> Void)? = nil) {
+    init(
+        creature: Creature, localAnimation: Common.Animation? = nil,
+        onTrackSaved: ((Track) -> Void)? = nil
+    ) {
         self.creature = creature
         self.localAnimation = localAnimation
         self.onTrackSaved = onTrackSaved
@@ -90,17 +93,25 @@ struct RecordTrack: View {
                                         currentTrack = newTrack
                                     }
                                 ),
-                                millisecondsPerFrame: currentAnimation?.metadata.millisecondsPerFrame ?? 20
+                                millisecondsPerFrame: currentAnimation?.metadata
+                                    .millisecondsPerFrame ?? 20
                             )
                             .frame(maxWidth: .infinity)
 
                             HStack {
-                                Button(action: {
-                                    closeWithoutSaving()
-                                }) {
+                                Button(
+                                    role: .destructive,
+                                    action: {
+                                        closeWithoutSaving()
+                                    }
+                                ) {
                                     Label("Close Without Saving", systemImage: "nosign")
                                 }
-                                .buttonStyle(.glass)
+                                .buttonStyle(.bordered)
+                                .controlSize(.large)
+                                .tint(.red.opacity(0.6))
+                                .keyboardShortcut(.cancelAction)
+                                .help("Close without saving any changes")
 
                                 Spacer()
 
@@ -109,7 +120,9 @@ struct RecordTrack: View {
                                 }) {
                                     Label("Save Track", systemImage: "square.and.arrow.down")
                                 }
-                                .buttonStyle(.glassProminent)
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.large)
+                                .tint(.green)
                             }
                             .padding(12)
                             .frame(maxWidth: 640)
@@ -302,7 +315,7 @@ struct RecordTrack: View {
                         animationId: animation.id,
                         frames: motionBuffer)
                 }
-                
+
                 await MainActor.run {
                     isRecordingLocal = false
                 }
@@ -341,4 +354,3 @@ struct RecordTrack_Previews: PreviewProvider {
         RecordTrack(creature: .mock())
     }
 }
-

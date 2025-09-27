@@ -1,8 +1,9 @@
 import Common
 import OSLog
 import SwiftUI
+
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 struct AnimationTable: View {
@@ -35,8 +36,13 @@ struct AnimationTable: View {
             VStack {
                 if !animationCacheState.metadatas.isEmpty {
                     Table(of: AnimationMetadata.self, selection: $selection) {
-                        TableColumn("Name", value: \.title)
-                            .width(min: 120, ideal: 250)
+                        TableColumn("Name") { a in
+                            Text(a.title)
+                                .onTapGesture(count: 2) {
+                                    loadAnimationForEditing(animationId: a.id)
+                                }
+                        }
+                        .width(min: 120, ideal: 250)
                         TableColumn("Frames") { a in
                             Text(a.numberOfFrames, format: .number)
                         }
@@ -57,62 +63,46 @@ struct AnimationTable: View {
                             animationCacheState.metadatas.values.sorted(by: { $0.title < $1.title })
                         ) { metadata in
                             TableRow(metadata)
-                                .contextMenu {
-                                    Button {
-                                        print("play sound file selected")
-                                    } label: {
-                                        Label("Play Sound File", systemImage: "music.quarternote.3")
-                                    }
-                                    .disabled(metadata.soundFile.isEmpty)
-
-                                    Button {
-                                        playStoredAnimation(animationId: selection)
-                                    } label: {
-                                        Label("Play on Server", systemImage: "play")
-                                            .foregroundColor(.green)
-                                    }
-
-                                    Button {
-                                        loadAnimationForEditing(animationId: metadata.id)
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                            .foregroundColor(.accentColor)
-                                    }
-                                }
                         }
+                    }
+                    .contextMenu(forSelectionType: AnimationMetadata.ID.self) {
+                        (items: Set<AnimationMetadata.ID>) in
+                        // Determine if we have a selected ID (right-click updates selection automatically)
+                        let hasSelection = (items.first ?? selection) != nil
+
+                        Button {
+                            playStoredAnimation(animationId: items.first ?? selection)
+                        } label: {
+                            Label("Play on Server", systemImage: "play")
+                        }
+                        .disabled(!hasSelection)
+
+                        Button {
+                            if let id = items.first ?? selection {
+                                loadAnimationForEditing(animationId: id)
+                            }
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        .disabled(!hasSelection)
+
+                        // Sound file action (kept as a stub; disabled when no sound file)
+                        let hasSound: Bool = {
+                            guard let id = items.first ?? selection,
+                                let md = animationCacheState.metadatas[id]
+                            else { return false }
+                            return !md.soundFile.isEmpty
+                        }()
+                        Button {
+                            print("play sound file selected")
+                        } label: {
+                            Label("Play Sound File", systemImage: "music.quarternote.3")
+                        }
+                        .disabled(!hasSound)
                     }
 
                     Spacer()
 
-                    // Buttons at the bottom
-                    HStack {
-                        //                        Button {
-                        //                            // playAnimationLocally()
-                        //                        } label: {
-                        //                            Label("Play Locally", systemImage: "play.fill")
-                        //                                .foregroundColor(.green)
-                        //                        }
-                        //                        .disabled(selection == nil)
-
-                        Button {
-                            playStoredAnimation(animationId: selection)
-                        } label: {
-                            Label("Play on Server", systemImage: "play")
-                                .foregroundColor(.blue)
-                        }
-                        .disabled(selection == nil)
-
-                        Button {
-                            if let selection = selection {
-                                loadAnimationForEditing(animationId: selection)
-                            }
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                                .foregroundColor(.accentColor)
-                        }
-                        .disabled(selection == nil)
-                    }  // Button bar HStack
-                    .padding()
                 } else {
                     ProgressView("Loading animations...")
                         .padding()

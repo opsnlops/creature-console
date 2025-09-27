@@ -26,26 +26,33 @@ struct SoundDataImport: View {
     var body: some View {
         GlassEffectContainer(spacing: 24) {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Replace Axis")
-                    Spacer()
+                        .font(.headline)
                     Picker("Axis", selection: $selectedAxis) {
                         ForEach(0..<(max(frameWidth, 1)), id: \.self) { idx in
                             Text("\(idx)").tag(idx)
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(maxWidth: 220)
+                    .frame(maxWidth: 320)
                     .disabled(frameWidth == 0)
                 }
 
-                Button {
-                    isFileImporterPresented = true
-                } label: {
-                    Label(
-                        "Import Mouth Data to Axis \(selectedAxis)", systemImage: "arrow.down.doc")
+                HStack {
+                    Spacer()
+                    Button {
+                        isFileImporterPresented = true
+                    } label: {
+                        Label(
+                            "Import Mouth Data to Axis \(selectedAxis)",
+                            systemImage: "arrow.down.doc")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .tint(.accentColor)
+                    Spacer()
                 }
-                .buttonStyle(.glassProminent)
                 .fileImporter(
                     isPresented: $isFileImporterPresented,
                     allowedContentTypes: [UTType.json],
