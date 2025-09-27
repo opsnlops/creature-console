@@ -37,7 +37,7 @@ struct CreatureConsole: App {
             "logSpareTimeFrameInterval": 1000,
             "audioVolume": 0.8,
             "useOurJoystick": true,
-            "activeUniverse": 1
+            "activeUniverse": 1,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
 
@@ -45,12 +45,15 @@ struct CreatureConsole: App {
         Task {
             // Make sure the appState is good
             await AppState.shared.setCurrentActivity(.idle)
-            
+
             // Init the joystick
             await registerJoystickHandlers()
-            
-            // Set connecting state before server connection
-            await AppState.shared.setCurrentActivity(.connectingToServer)
+
+            // Removed the connectingToServer state set here as bootstrapper handles it
+        }
+
+        Task { @MainActor in
+            MetricKitManager.shared.start()
         }
 
         // Connect to the server
@@ -71,25 +74,51 @@ struct CreatureConsole: App {
 
     var body: some Scene {
         WindowGroup {
-            TopContentView()
+            RootView()
         }
         #if os(macOS)
-        .commands {
-            CommandMenu("Caches") {
-                Button("Invalidate Animation Cache...") {
-                    CacheInvalidationProcessor.rebuildAnimationCache()
+            .commands {
+                CommandMenu("Caches") {
+                    Button("Invalidate Animation Cache...") {
+                        CacheInvalidationProcessor.rebuildAnimationCache()
+                    }
+                    Button("Invalidate Creature Cache...") {
+                        CacheInvalidationProcessor.rebuildCreatureCache()
+                    }
+                    Button("Invalidate Playlist Cache...") {
+                        CacheInvalidationProcessor.rebuildPlaylistCache()
+                    }
+                    Button("Invalidate Sound List Cache...") {
+                        CacheInvalidationProcessor.rebuildSoundListCache()
+                    }
                 }
-                Button("Invalidate Creature Cache...") {
-                    CacheInvalidationProcessor.rebuildCreatureCache()
-                }
-                Button("Invalidate Playlist Cache...") {
-                    CacheInvalidationProcessor.rebuildPlaylistCache()
-                }
-                Button("Invalidate Sound List Cache...") {
-                    CacheInvalidationProcessor.rebuildSoundListCache()
+                CommandMenu("Diagnostics") {
+                    Button("Report Issue…") {
+                        let subject = "Creature Console Issue Report"
+                        let os = ProcessInfo.processInfo.operatingSystemVersionString
+                        let appVersion =
+                            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+                            ?? "unknown"
+                        let build =
+                            Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+                        let timestamp = ISO8601DateFormatter().string(from: Date())
+                        let diagSummary = MetricKitManager.shared.latestSummary(limit: 5)
+                        let body = """
+                            Please describe what you were doing:
+
+                            App Version: \(appVersion) (\(build))
+                            OS: \(os)
+                            Timestamp: \(timestamp)
+
+
+                            Diagnostics Summary:
+                            \(diagSummary)
+                            """
+                        MailComposer.present(subject: subject, body: body)
+                    }
+                    .keyboardShortcut("d", modifiers: [.command, .shift])
                 }
             }
-        }
         #endif
 
         #if os(macOS)

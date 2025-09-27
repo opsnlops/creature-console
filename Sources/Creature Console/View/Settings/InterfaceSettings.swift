@@ -6,6 +6,11 @@ struct InterfaceSettings: View {
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 0
     @AppStorage("mouthImportDefaultAxis") private var defaultMouthAxis: Int = 2
 
+    #if os(tvOS)
+        @State private var tvDefaultMouthAxisText: String = ""
+        @State private var tvServerLogsScrollbackText: String = ""
+    #endif
+
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "InterfaceSettings")
 
     var body: some View {
@@ -31,49 +36,96 @@ struct InterfaceSettings: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Label("Mouth Import", systemImage: "waveform.path")
                             .font(.headline)
-                        HStack {
-                            Text("Default Axis")
-                            Spacer()
-                            Stepper(
-                                value: Binding<Double>(
-                                    get: { Double(defaultMouthAxis) },
-                                    set: { defaultMouthAxis = Int($0) }
-                                ), in: 0...15, step: 1
-                            ) {
-                                Text("Axis \(defaultMouthAxis)")
+                        #if os(tvOS)
+                            HStack {
+                                Text("Default Axis")
+                                Spacer()
+                                TextField("0–15", text: $tvDefaultMouthAxisText)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(maxWidth: 120)
+                                    .submitLabel(.done)
+                                    .onSubmit {
+                                        let val = Int(tvDefaultMouthAxisText) ?? defaultMouthAxis
+                                        let clamped = min(15, max(0, val))
+                                        defaultMouthAxis = clamped
+                                        tvDefaultMouthAxisText = String(clamped)
+                                    }
                             }
-                            .frame(maxWidth: 180)
-                        }
-                        .padding(12)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                            .padding(12)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #else
+                            HStack {
+                                Text("Default Axis")
+                                Spacer()
+                                Stepper(
+                                    value: Binding<Double>(
+                                        get: { Double(defaultMouthAxis) },
+                                        set: { defaultMouthAxis = Int($0) }
+                                    ), in: 0...15, step: 1
+                                ) {
+                                    Text("Axis \(defaultMouthAxis)")
+                                }
+                                .frame(maxWidth: 180)
+                            }
+                            .padding(12)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #endif
                     }
 
                     // Card 2: Server Logs
                     VStack(alignment: .leading, spacing: 12) {
                         Label("Server Logs", systemImage: "text.alignleft")
                             .font(.headline)
-                        HStack {
-                            Text("Scrollback Lines")
-                            Spacer()
-                            Slider(
-                                value: Binding<Double>(
-                                    get: { Double(serverLogsScrollBackLines) },
-                                    set: { serverLogsScrollBackLines = Int($0) }
-                                ), in: 10...200, step: 10
-                            )
-                            .frame(maxWidth: 280)
-                            Text("\(serverLogsScrollBackLines)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(12)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #if os(tvOS)
+                            HStack {
+                                Text("Scrollback Lines")
+                                Spacer()
+                                TextField("10–200", text: $tvServerLogsScrollbackText)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(maxWidth: 120)
+                                    .submitLabel(.done)
+                                    .onSubmit {
+                                        let val =
+                                            Int(tvServerLogsScrollbackText)
+                                            ?? serverLogsScrollBackLines
+                                        let clamped = min(200, max(10, val))
+                                        let snapped = Int((Double(clamped) / 10.0).rounded()) * 10
+                                        serverLogsScrollBackLines = snapped
+                                        tvServerLogsScrollbackText = String(snapped)
+                                    }
+                            }
+                            .padding(12)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #else
+                            HStack {
+                                Text("Scrollback Lines")
+                                Spacer()
+                                Slider(
+                                    value: Binding<Double>(
+                                        get: { Double(serverLogsScrollBackLines) },
+                                        set: { serverLogsScrollBackLines = Int($0) }
+                                    ), in: 10...200, step: 10
+                                )
+                                .frame(maxWidth: 280)
+                                Text("\(serverLogsScrollBackLines)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(12)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #endif
                     }
                 }
 
                 Spacer(minLength: 0)
             }
             .padding(24)
+            #if os(tvOS)
+                .onAppear {
+                    tvDefaultMouthAxisText = String(defaultMouthAxis)
+                    tvServerLogsScrollbackText = String(serverLogsScrollBackLines)
+                }
+            #endif
         }
     }
 }

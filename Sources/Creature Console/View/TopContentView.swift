@@ -1,8 +1,9 @@
 import Common
 import OSLog
 import SwiftUI
+
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 struct TopContentView: View {
@@ -132,70 +133,6 @@ struct TopContentView: View {
                         }
                     }
                 }
-
-                /**
-                 Now that we're all loaded, let's go get the first set of creatures from the server
-                 */
-
-                let populateResult = await CreatureManager.shared.populateCache()
-                switch populateResult {
-                case .success(let message):
-
-                    logger.info("Loaded the creature cache: \(message)")
-
-                    // Okay! We're talking to the server. Bring up the websocket! 🧦
-                    await server.connectWebsocket(processor: SwiftMessageProcessor.shared)
-
-                    // Update AppState to reflect successful connection
-                    await AppState.shared.setCurrentActivity(.idle)
-
-                case .failure(let error):
-                    DispatchQueue.main.async {
-                        errorMessage = error.localizedDescription
-                        showErrorAlert = true
-                    }
-
-                }
-
-                // Now populate the animation metadata cache
-                let animationResult = await animationMetadataCache.fetchMetadataListFromServer()
-                switch animationResult {
-                case .success(let message):
-                    logger.debug("populated the metadata cache: \(message)")
-                case .failure(let error):
-                    logger.warning("unable to fetch the metadata cache")
-                    DispatchQueue.main.async {
-                        errorMessage = error.localizedDescription
-                        showErrorAlert = true
-                    }
-                }
-
-                // And the playlist cache
-                let playlistCacheResult = await playlistCache.fetchPlaylistsFromServer()
-                switch playlistCacheResult {
-                case .success(let message):
-                    logger.debug("populated the playlist cache: \(message)")
-                case .failure(let error):
-                    logger.warning("unable to fetch the playlist cache")
-                    DispatchQueue.main.async {
-                        errorMessage = error.localizedDescription
-                        showErrorAlert = true
-                    }
-                }
-
-                // ..and finally the sound cache
-                let soundListCacheResult = await soundListCache.fetchSoundsFromServer()
-                switch soundListCacheResult {
-                case .success(let message):
-                    logger.debug("populated the sound list cache: \(message)")
-                case .failure(let error):
-                    logger.warning("unable to fetch the sound list cache")
-                    DispatchQueue.main.async {
-                        errorMessage = error.localizedDescription
-                        showErrorAlert = true
-                    }
-                }
-
             }.alert(isPresented: $showErrorAlert) {
                 Alert(
                     title: Text("Oooooh Shit"),

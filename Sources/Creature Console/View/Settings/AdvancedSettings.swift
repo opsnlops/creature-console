@@ -8,6 +8,12 @@ struct AdvancedSettingsView: View {
     @AppStorage("updateSpareTimeStatusInterval") var updateSpareTimeStatusInterval: Int = 20
     @AppStorage("logSpareTime") private var logSpareTime: Bool = false
 
+    #if os(tvOS)
+        @State private var tvEventLoopMsText: String = ""
+        @State private var tvUpdateSpareTimeText: String = ""
+        @State private var tvLogSpareTimeIntervalText: String = ""
+    #endif
+
     private let trailingControlWidth: CGFloat = 160
 
     var body: some View {
@@ -45,38 +51,67 @@ struct AdvancedSettingsView: View {
                         HStack {
                             Text("Milliseconds Per Frame")
                             Spacer()
-                            HStack(spacing: 8) {
-                                Text("\(eventLoopMillisecondsPerFrame) ms")
-                                    .monospacedDigit()
-                                    .frame(width: 70, alignment: .trailing)
-                                Stepper(
-                                    "",
-                                    value: Binding<Double>(
-                                        get: { Double(eventLoopMillisecondsPerFrame) },
-                                        set: { eventLoopMillisecondsPerFrame = Int($0) }
-                                    ), in: 1...100, step: 1
-                                )
-                                .labelsHidden()
-                            }
-                            .frame(width: trailingControlWidth, alignment: .trailing)
+                            #if os(tvOS)
+                                TextField("1–100", text: $tvEventLoopMsText)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: trailingControlWidth)
+                                    .submitLabel(.done)
+                                    .onSubmit {
+                                        let val =
+                                            Int(tvEventLoopMsText) ?? eventLoopMillisecondsPerFrame
+                                        let clamped = min(100, max(1, val))
+                                        eventLoopMillisecondsPerFrame = clamped
+                                        tvEventLoopMsText = String(clamped)
+                                    }
+                            #else
+                                HStack(spacing: 8) {
+                                    Text("\(eventLoopMillisecondsPerFrame) ms")
+                                        .monospacedDigit()
+                                        .frame(width: 70, alignment: .trailing)
+                                    Stepper(
+                                        "",
+                                        value: Binding<Double>(
+                                            get: { Double(eventLoopMillisecondsPerFrame) },
+                                            set: { eventLoopMillisecondsPerFrame = Int($0) }
+                                        ), in: 1...100, step: 1
+                                    )
+                                    .labelsHidden()
+                                }
+                                .frame(width: trailingControlWidth, alignment: .trailing)
+                            #endif
                         }
                         HStack {
                             Text("Status Bar Spare Time Update Interval")
                             Spacer()
-                            HStack(spacing: 8) {
-                                Text("\(updateSpareTimeStatusInterval) ms")
-                                    .monospacedDigit()
-                                    .frame(width: 70, alignment: .trailing)
-                                Stepper(
-                                    "",
-                                    value: Binding<Double>(
-                                        get: { Double(updateSpareTimeStatusInterval) },
-                                        set: { updateSpareTimeStatusInterval = Int($0) }
-                                    ), in: 1...1000, step: 1
-                                )
-                                .labelsHidden()
-                            }
-                            .frame(width: trailingControlWidth, alignment: .trailing)
+                            #if os(tvOS)
+                                TextField("1–1000", text: $tvUpdateSpareTimeText)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: trailingControlWidth)
+                                    .submitLabel(.done)
+                                    .onSubmit {
+                                        let val =
+                                            Int(tvUpdateSpareTimeText)
+                                            ?? updateSpareTimeStatusInterval
+                                        let clamped = min(1000, max(1, val))
+                                        updateSpareTimeStatusInterval = clamped
+                                        tvUpdateSpareTimeText = String(clamped)
+                                    }
+                            #else
+                                HStack(spacing: 8) {
+                                    Text("\(updateSpareTimeStatusInterval) ms")
+                                        .monospacedDigit()
+                                        .frame(width: 70, alignment: .trailing)
+                                    Stepper(
+                                        "",
+                                        value: Binding<Double>(
+                                            get: { Double(updateSpareTimeStatusInterval) },
+                                            set: { updateSpareTimeStatusInterval = Int($0) }
+                                        ), in: 1...1000, step: 1
+                                    )
+                                    .labelsHidden()
+                                }
+                                .frame(width: trailingControlWidth, alignment: .trailing)
+                            #endif
                         }
                     }
                     .padding(12)
@@ -95,20 +130,35 @@ struct AdvancedSettingsView: View {
                         HStack {
                             Text("Log Spare Time Frame Interval")
                             Spacer()
-                            HStack(spacing: 8) {
-                                Text("\(logSpareTimeFrameInterval) ms")
-                                    .monospacedDigit()
-                                    .frame(width: 70, alignment: .trailing)
-                                Stepper(
-                                    "",
-                                    value: Binding<Double>(
-                                        get: { Double(logSpareTimeFrameInterval) },
-                                        set: { logSpareTimeFrameInterval = Int($0) }
-                                    ), in: 10...5000, step: 10
-                                )
-                                .labelsHidden()
-                            }
-                            .frame(width: trailingControlWidth, alignment: .trailing)
+                            #if os(tvOS)
+                                TextField("10–5000", text: $tvLogSpareTimeIntervalText)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: trailingControlWidth)
+                                    .submitLabel(.done)
+                                    .onSubmit {
+                                        let val =
+                                            Int(tvLogSpareTimeIntervalText)
+                                            ?? logSpareTimeFrameInterval
+                                        let clamped = min(5000, max(10, val))
+                                        logSpareTimeFrameInterval = clamped
+                                        tvLogSpareTimeIntervalText = String(clamped)
+                                    }
+                            #else
+                                HStack(spacing: 8) {
+                                    Text("\(logSpareTimeFrameInterval) ms")
+                                        .monospacedDigit()
+                                        .frame(width: 70, alignment: .trailing)
+                                    Stepper(
+                                        "",
+                                        value: Binding<Double>(
+                                            get: { Double(logSpareTimeFrameInterval) },
+                                            set: { logSpareTimeFrameInterval = Int($0) }
+                                        ), in: 10...5000, step: 10
+                                    )
+                                    .labelsHidden()
+                                }
+                                .frame(width: trailingControlWidth, alignment: .trailing)
+                            #endif
                         }
                     }
                     .padding(12)
@@ -118,6 +168,13 @@ struct AdvancedSettingsView: View {
                 Spacer(minLength: 0)
             }
             .padding(24)
+            #if os(tvOS)
+                .onAppear {
+                    tvEventLoopMsText = String(eventLoopMillisecondsPerFrame)
+                    tvUpdateSpareTimeText = String(updateSpareTimeStatusInterval)
+                    tvLogSpareTimeIntervalText = String(logSpareTimeFrameInterval)
+                }
+            #endif
         }
     }
 }

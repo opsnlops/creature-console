@@ -25,6 +25,10 @@ extension CreatureServerClient {
 
         guard let url = URL(string: makeBaseURL(.websocket) + "/websocket") else {
             logger.error("Invalid URL for WebSocket connection.")
+            NotificationCenter.default.post(
+                name: WebSocketClient.didEncounterErrorNotification,
+                object: "Invalid URL for WebSocket connection."
+            )
             return
         }
 
@@ -109,6 +113,9 @@ actor WebSocketClient {
     private let logger = Logger(label: "io.opsnlops.CreatureController.WebSocketClient")
 
     static let shouldRefreshCachesNotification = Notification.Name("WebSocketShouldRefreshCaches")
+    static let didEncounterErrorNotification = Notification.Name("WebSocketDidEncounterError")
+
+    private var hasAlertedForDisconnect: Bool = false
 
     init(url: URL, messageProcessor: MessageProcessor?) {
         self.url = url
@@ -314,6 +321,7 @@ actor WebSocketClient {
         task = session.webSocketTask(with: request)
         task?.resume()
         isConnected = true
+        hasAlertedForDisconnect = false
         reconnectAttempt = 0
 
         logger.info("websocket is connected")
@@ -426,6 +434,15 @@ actor WebSocketClient {
             logger.warning("websocket encountered URLError: \(urlError.localizedDescription)")
         } else {
             logger.warning("websocket encountered an error: \(error.localizedDescription)")
+        }
+
+        if !hasAlertedForDisconnect {
+            NotificationCenter.default.post(
+                name: WebSocketClient.didEncounterErrorNotification,
+                object:
+                    "Lost connection to server. Will attempt to reconnect. Error: \(error.localizedDescription)"
+            )
+            hasAlertedForDisconnect = true
         }
     }
 

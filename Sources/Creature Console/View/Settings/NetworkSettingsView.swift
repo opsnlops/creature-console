@@ -37,7 +37,11 @@ struct NetworkSettingsView: View {
                             Text("Address")
                             Spacer()
                             TextField("Address", text: $serverAddress)
-                                .textFieldStyle(.roundedBorder)
+                                #if os(tvOS)
+                                    .textFieldStyle(.plain)
+                                #else
+                                    .textFieldStyle(.roundedBorder)
+                                #endif
                                 .frame(maxWidth: 280)
                                 .autocorrectionDisabled(true)
                                 #if os(iOS) || os(tvOS)
@@ -50,7 +54,11 @@ struct NetworkSettingsView: View {
                             Text("Port")
                             Spacer()
                             TextField("", value: $serverPort, format: .number)
-                                .textFieldStyle(.roundedBorder)
+                                #if os(tvOS)
+                                    .textFieldStyle(.plain)
+                                #else
+                                    .textFieldStyle(.roundedBorder)
+                                #endif
                                 .frame(width: numericFieldWidth)
                         }
                         Toggle("Use TLS", isOn: $serverUseTLS)
@@ -67,7 +75,11 @@ struct NetworkSettingsView: View {
                         Text("Universe ID")
                         Spacer()
                         TextField("1–63999", text: $activeUniverseString)
-                            .textFieldStyle(.roundedBorder)
+                            #if os(tvOS)
+                                .textFieldStyle(.plain)
+                            #else
+                                .textFieldStyle(.roundedBorder)
+                            #endif
                             .frame(width: numericFieldWidth)
                             #if os(iOS) || os(tvOS)
                                 .keyboardType(.numberPad)
@@ -75,7 +87,7 @@ struct NetworkSettingsView: View {
                             .onAppear {
                                 activeUniverseString = String(activeUniverse)
                             }
-                            .onChange(of: activeUniverseString) { newValue in
+                            .onChange(of: activeUniverseString) { oldValue, newValue in
                                 // Keep only digits
                                 let filtered = newValue.filter { $0.isNumber }
                                 if filtered != newValue { activeUniverseString = filtered }
