@@ -12,6 +12,7 @@ enum DiagnosticReporter {
         return fmt.string(from: Date()).replacingOccurrences(of: ":", with: "-")
     }
 
+    @MainActor
     private static func appInfo() -> [String: Any] {
         let info = Bundle.main.infoDictionary ?? [:]
         var dict: [String: Any] = [:]
@@ -77,17 +78,16 @@ enum DiagnosticReporter {
         return nil
     }
 
+    @MainActor
     private static func buildSummaryFile() -> URL? {
         var summary: [String: Any] = [:]
         summary["timestamp"] = isoTimestamp()
         summary["app"] = appInfo()
         summary["settings"] = settingsSnapshot()
-        #if canImport(MetricKit)
-            let recent = MetricKitManager.shared.listRecentDiagnostics(limit: 10)
-            summary["recentDiagnosticFiles"] = recent.map { $0.lastPathComponent }
-        #else
-            summary["recentDiagnosticFiles"] = []
-        #endif
+
+        let recent = MetricKitManager.shared.listRecentDiagnostics(limit: 10)
+        summary["recentDiagnosticFiles"] = recent.map { $0.lastPathComponent }
+
         return writeJSON(summary, suggestedName: "console-summary")
     }
 
@@ -96,23 +96,30 @@ enum DiagnosticReporter {
         var urls: [URL] = []
         if let summary = buildSummaryFile() { urls.append(summary) }
         if let counters = writeCountersIfAvailable() { urls.append(counters) }
-        #if canImport(MetricKit)
-            urls.append(contentsOf: MetricKitManager.shared.listRecentDiagnostics(limit: 5))
-        #endif
+
+        urls.append(contentsOf: MetricKitManager.shared.listRecentDiagnostics(limit: 5))
+
         return urls
     }
 
     @MainActor
     public static func presentDiagnosticsEmail() {
         let attachments = collectAttachments()
-        #if canImport(MetricKit)
-            let summaryList = MetricKitManager.shared.latestSummary(limit: 10)
-        #else
-            let summaryList = "MetricKit not available on this platform."
-        #endif
+
+        let summaryList = MetricKitManager.shared.latestSummary(limit: 10)
+
         let subject = "Creature Console Diagnostics"
         let body =
             "Attached are diagnostic files and a summary.\n\nRecent files:\n\n\(summaryList)\n\nThank you!"
-        MailComposer.present(subject: subject, body: body, to: [], attachments: attachments)
+
+        #if os(tvOS)
+            // Mail composer is not available on tvOS. Log file paths instead.
+            print("[DiagnosticReporter] Diagnostics prepared. Attachments:")
+            for url in attachments {
+                print(" - \(url.path)")
+            }
+        #else
+            MailComposer.present(subject: subject, body: body, to: [], attachments: attachments)
+        #endif
     }
 }

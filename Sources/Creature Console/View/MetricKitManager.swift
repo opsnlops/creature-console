@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-#if canImport(MetricKit)
+#if canImport(MetricKit) && !os(tvOS)
     import MetricKit
 
     final class MetricKitManager: NSObject, MXMetricManagerSubscriber, @unchecked Sendable {
@@ -134,5 +134,9 @@ import os
         func latestSummary(limit: Int = 10) -> String {
             "MetricKit is not available on this platform."
         }
+
+        func listRecentDiagnostics(limit: Int = 10) -> [URL] { [] }
+
+        func loadFile(_ url: URL) -> String? { nil }
     }
 #endif

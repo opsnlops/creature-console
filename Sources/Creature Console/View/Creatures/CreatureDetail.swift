@@ -30,10 +30,20 @@ struct CreatureDetail: View {
         ScrollView {
             VStack(spacing: 16) {
                 SensorData(creature: creature)
-                    .padding()
-                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 16))
+                    #if os(tvOS)
+                        .padding(8)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        .scaleEffect(0.7)
+                    #else
+                        .padding()
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 16))
+                    #endif
             }
-            .padding()
+            #if os(tvOS)
+                .padding(8)
+            #else
+                .padding()
+            #endif
         }
         .toolbar {
             #if os(iOS)
@@ -109,7 +119,11 @@ struct CreatureDetail: View {
         .overlay {
             if isDoingServerStuff {
                 Text(serverMessage)
-                    .font(.title)
+                    #if os(tvOS)
+                        .font(.headline)
+                    #else
+                        .font(.title)
+                    #endif
                     .padding()
                     .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
             }
@@ -134,6 +148,9 @@ struct CreatureDetail: View {
             }
         }
         .navigationTitle(creature.name)
+        #if os(tvOS)
+            .navigationBarTitleDisplayMode(.inline)
+        #endif
         #if os(macOS)
             .navigationSubtitle(generateStatusString())
         #endif

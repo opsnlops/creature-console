@@ -46,9 +46,9 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         self.logger = Logging.Logger(label: "io.opsnlops.creature-controller.common")
         self.logger.logLevel = .debug
         self._processor = OSAllocatedUnfairLock(initialState: nil)
-        self._serverHostname = OSAllocatedUnfairLock(initialState: UserDefaults.standard.string(forKey: "serverHostname") ?? "127.0.0.1")
-        self._serverPort = OSAllocatedUnfairLock(initialState: UserDefaults.standard.integer(forKey: "serverRestPort"))
-        self._useTLS = OSAllocatedUnfairLock(initialState: true)
+        self._serverHostname = OSAllocatedUnfairLock(initialState: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1")
+        self._serverPort = OSAllocatedUnfairLock(initialState: UserDefaults.standard.integer(forKey: "serverPort"))
+        self._useTLS = OSAllocatedUnfairLock(initialState: UserDefaults.standard.object(forKey: "serverUseTLS") as? Bool ?? true)
         self.logger.info("Created new CreatureServerRestful")
     }
 

@@ -61,40 +61,51 @@ struct RootView: View {
                     }
                 )
             ) { item in
-                Alert(
-                    title: Text("Connection Issue"),
-                    message: Text(item.value),
-                    primaryButton: .default(Text("Report Issue")) {
-                        let subject = "Creature Console Issue Report"
-                        let os = ProcessInfo.processInfo.operatingSystemVersionString
-                        let appVersion =
-                            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-                            ?? "unknown"
-                        let build =
-                            Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
-                        let timestamp = ISO8601DateFormatter().string(from: Date())
-                        let diagSummary = MetricKitManager.shared.latestSummary(limit: 3)
-                        let body = """
-                            Please describe what you were doing:
+                #if os(tvOS)
+                    // tvOS: No email composer; present a simple OK alert
+                    return Alert(
+                        title: Text("Connection Issue"),
+                        message: Text(item.value),
+                        dismissButton: .default(Text("OK")) {
+                            websocketErrorMessage = nil
+                        }
+                    )
+                #else
+                    return Alert(
+                        title: Text("Connection Issue"),
+                        message: Text(item.value),
+                        primaryButton: .default(Text("Report Issue")) {
+                            let subject = "Creature Console Issue Report"
+                            let os = ProcessInfo.processInfo.operatingSystemVersionString
+                            let appVersion =
+                                Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+                                ?? "unknown"
+                            let build =
+                                Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+                            let timestamp = ISO8601DateFormatter().string(from: Date())
+                            let diagSummary = MetricKitManager.shared.latestSummary(limit: 3)
+                            let body = """
+                                Please describe what you were doing:
 
-                            Error:
-                            \(item.value)
+                                Error:
+                                \(item.value)
 
-                            App Version: \(appVersion) (\(build))
-                            OS: \(os)
-                            Timestamp: \(timestamp)
+                                App Version: \(appVersion) (\(build))
+                                OS: \(os)
+                                Timestamp: \(timestamp)
 
 
-                            Diagnostics Summary:
-                            \(diagSummary)
-                            """
-                        MailComposer.present(subject: subject, body: body)
-                        websocketErrorMessage = nil
-                    },
-                    secondaryButton: .cancel(Text("OK")) {
-                        websocketErrorMessage = nil
-                    }
-                )
+                                Diagnostics Summary:
+                                \(diagSummary)
+                                """
+                            MailComposer.present(subject: subject, body: body)
+                            websocketErrorMessage = nil
+                        },
+                        secondaryButton: .cancel(Text("OK")) {
+                            websocketErrorMessage = nil
+                        }
+                    )
+                #endif
             }
     }
 }

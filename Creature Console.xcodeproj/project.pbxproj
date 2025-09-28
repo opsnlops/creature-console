@@ -140,6 +140,9 @@
 		11E53CCB2E88981A00C17F16 /* Activity+Tint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D713112E84B85E00F7FC9A /* Activity+Tint.swift */; };
 		11E53CCD2E889BB700C17F16 /* DiagnosticReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CCC2E889BB700C17F16 /* DiagnosticReporter.swift */; };
 		11E53CCE2E889BB700C17F16 /* DiagnosticReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CCC2E889BB700C17F16 /* DiagnosticReporter.swift */; };
+		11E53CCF2E88A0B100C17F16 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC52E888F3C00C17F16 /* RootView.swift */; };
+		11E53CD02E88A0C400C17F16 /* AppBootstrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC32E888F3900C17F16 /* AppBootstrapper.swift */; };
+		11E53CD22E88A51B00C17F16 /* MetricKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC72E88964100C17F16 /* MetricKitManager.swift */; };
 		11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
 		11E5CE802C9FE1C600749F94 /* CreatureHealthCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */; };
 		11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE812C9FEA9D00749F94 /* SensorData.swift */; };
@@ -1244,6 +1247,7 @@
 				117C873F2CA0CEBE007B5682 /* EventLoop.swift in Sources */,
 				117C87392CA0CEB1007B5682 /* CacheMethods.swift in Sources */,
 				117C873A2CA0CEB1007B5682 /* CreatureManager.swift in Sources */,
+				11E53CD02E88A0C400C17F16 /* AppBootstrapper.swift in Sources */,
 				117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */,
 				117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */,
 				117C87712CA0D586007B5682 /* AdvancedSettings.swift in Sources */,
@@ -1267,12 +1271,14 @@
 				117C87672CA0CEF9007B5682 /* LogItem.swift in Sources */,
 				117C87692CA0CEF9007B5682 /* AudioManager.swift in Sources */,
 				117C87812CA0D8C6007B5682 /* CreatureConfiguration.swift in Sources */,
+				11E53CCF2E88A0B100C17F16 /* RootView.swift in Sources */,
 				117C876C2CA0CEF9007B5682 /* LogManager.swift in Sources */,
 				117C87412CA0CEC3007B5682 /* JoystickHandler.swift in Sources */,
 				117C87332CA0CE9F007B5682 /* NoticeMessageProcessor.swift in Sources */,
 				117C87342CA0CE9F007B5682 /* SwiftMessageProcessor.swift in Sources */,
 				11E53CCD2E889BB700C17F16 /* DiagnosticReporter.swift in Sources */,
 				117C87352CA0CE9F007B5682 /* ServerLogItemProcessor.swift in Sources */,
+				11E53CD22E88A51B00C17F16 /* MetricKitManager.swift in Sources */,
 				117C87362CA0CE9F007B5682 /* BoardSensorReportMessageProcessor.swift in Sources */,
 				117C87372CA0CE9F007B5682 /* MotorSensorReportProcessor.swift in Sources */,
 				117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */,
@@ -1445,7 +1451,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2702;
+				CURRENT_PROJECT_VERSION = 2703;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1477,7 +1483,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.7.2;
+				MARKETING_VERSION = 2.7.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1499,7 +1505,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2702;
+				CURRENT_PROJECT_VERSION = 2703;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1531,7 +1537,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.7.2;
+				MARKETING_VERSION = 2.7.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

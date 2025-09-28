@@ -28,8 +28,8 @@ struct Creature_TVApp: App {
          Set up default prefs for static things
          */
         let defaultPreferences: [String: Any] = [
-            "serverHostname": "server.prod.chirpchirp.dev",
-            "serverRestPort": 443,
+            "serverAddress": "server.prod.chirpchirp.dev",
+            "serverPort": 443,
             "serverUseTLS": true,
             "serverLogsScrollBackLines": 150,
             "eventLoopMillisecondsPerFrame": 20,
@@ -37,7 +37,7 @@ struct Creature_TVApp: App {
             "logSpareTimeFrameInterval": 1000,
             "audioVolume": 0.8,
             "useOurJoystick": true,
-            "activeUniverse": 1
+            "activeUniverse": 1,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
 
@@ -45,21 +45,19 @@ struct Creature_TVApp: App {
         Task {
             // Make sure the appState is good
             await AppState.shared.setCurrentActivity(.idle)
-            
+
             // Init the joystick
             await registerJoystickHandlers()
-            
-            // Set connecting state before server connection
-            await AppState.shared.setCurrentActivity(.connectingToServer)
         }
 
         // Connect to the server
         do {
             try CreatureServerClient.shared.connect(
-                serverHostname: UserDefaults.standard.string(forKey: "serverHostname")
+                serverHostname: UserDefaults.standard.string(forKey: "serverAddress")
                     ?? "127.0.0.1",
-                serverPort: UserDefaults.standard.integer(forKey: "serverRestPort"),
-                useTLS: UserDefaults.standard.bool(forKey: "serverUseTLS"))
+                serverPort: UserDefaults.standard.integer(forKey: "serverPort"),
+                useTLS: UserDefaults.standard.bool(forKey: "serverUseTLS")
+            )
 
             logger.info("connected to server")
             Task {
@@ -72,11 +70,9 @@ struct Creature_TVApp: App {
 
     }
 
-
-
     var body: some Scene {
         WindowGroup {
-            TopContentView()
+            RootView()
         }
     }
 }
