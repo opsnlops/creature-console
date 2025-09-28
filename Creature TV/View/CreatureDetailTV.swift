@@ -6,7 +6,6 @@ import SwiftUI
 
 struct CreatureDetail: View {
 
-    @AppStorage("mfm2023PlaylistHack") private var mfm2023PlaylistHack: PlaylistIdentifier = ""
     @AppStorage("activeUniverse") private var activeUniverse: UniverseIdentifier = 1
 
 
@@ -136,45 +135,7 @@ struct CreatureDetail: View {
     }
 
 
-    func startMFM2023Playlist() {
-
-        logger.info("Doing the gross thing")
-        serverMessage = "🤢 Doing the gross thing"
-        isDoingServerStuff = true
-
-        if let playlistId = DataHelper.stringToOidData(oid: mfm2023PlaylistHack) {
-
-            logger.debug(
-                "string: \(mfm2023PlaylistHack), data: \(DataHelper.dataToHexString(data: playlistId))"
-            )
-
-            Task {
-                let result = await server.startPlayingPlaylist(
-                    universe: activeUniverse, playlistId: mfm2023PlaylistHack)
-
-                switch result {
-                case .failure(let value):
-                    DispatchQueue.main.async {
-                        errorMessage = "Unable to start playlist playback: \(value)"
-                        showErrorAlert = true
-                    }
-                case .success(let value):
-                    logger.info("Gross hack accomplished! 🤮! \(value)")
-                    serverMessage = value
-                }
-
-                try? await Task.sleep(nanoseconds: 4_000_000_000)
-                isDoingServerStuff = false
-            }
-        } else {
-            DispatchQueue.main.async {
-                errorMessage = "Can't convert \(mfm2023PlaylistHack) to an OID"
-                showErrorAlert = true
-            }
-
-        }
-    }
-
+    
 
     func toggleStreaming() {
         Task {

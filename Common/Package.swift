@@ -1,11 +1,11 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
 
 let package = Package(
     name: "Common",
     platforms: [
-        .macOS(.v14), .iOS(.v17),
+        .macOS(.v26), .iOS(.v26),
     ],
     products: [
         .library(
@@ -14,8 +14,8 @@ let package = Package(
 
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.1"),
     ],
 
     targets: [
@@ -35,5 +35,11 @@ let package = Package(
             path: "Sources/CreatureCLI/",
             exclude: ["README.md"]),
 
+        .testTarget(
+            name: "CommonTests",
+            dependencies: [
+                "Common",
+            ]
+        ),
     ]
 )

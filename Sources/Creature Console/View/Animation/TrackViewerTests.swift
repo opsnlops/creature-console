@@ -51,8 +51,13 @@ struct TrackViewerTests {
             #expect(false, "Expected failure due to mismatched frame sizes")
         case .failure(let error):
             switch error {
-            case TrackViewer.TrackViewerError.inconsistentFrameSizes(_, _):
-                #expect(true)
+            case let tvError as TrackViewer.TrackViewerError:
+                switch tvError {
+                case .inconsistentFrameSizes(_, _):
+                    #expect(true)
+                default:
+                    #expect(false, "Unexpected TrackViewer error: \(tvError)")
+                }
             default:
                 #expect(false, "Unexpected error type: \(error)")
             }

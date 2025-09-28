@@ -111,6 +111,10 @@
 		1199D6CF2BF6F811004E0D64 /* LogViewScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738129EB780A00EF8CDB /* LogViewScene.swift */; };
 		119A016329EE297800D3DA12 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		119A016629EE4C2600D3DA12 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
+		119A44CC2E88CD3A0053B250 /* SensorDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44CA2E88CCFB0053B250 /* SensorDataTests.swift */; };
+		119A44CE2E88D6E70053B250 /* SensorDataLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44CD2E88D6E70053B250 /* SensorDataLogic.swift */; };
+		119A44D82E88D9240053B250 /* SystemCountersStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44D52E88D9120053B250 /* SystemCountersStoreTests.swift */; };
+		119A44DC2E88DA330053B250 /* LogItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44D92E88DA290053B250 /* LogItemTests.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordTrack.swift */; };
 		11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */; };
 		11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61AA22BFC3739000A1B48 /* TrackViewer.swift */; };
@@ -240,6 +244,10 @@
 		1199D6CD2BF6F7F8004E0D64 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
+		119A44CA2E88CCFB0053B250 /* SensorDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorDataTests.swift; sourceTree = "<group>"; };
+		119A44CD2E88D6E70053B250 /* SensorDataLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorDataLogic.swift; sourceTree = "<group>"; };
+		119A44D52E88D9120053B250 /* SystemCountersStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersStoreTests.swift; sourceTree = "<group>"; };
+		119A44D92E88DA290053B250 /* LogItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogItemTests.swift; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTrack.swift; sourceTree = "<group>"; };
 		11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTable.swift; sourceTree = "<group>"; };
 		11A61AA22BFC3739000A1B48 /* TrackViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackViewer.swift; sourceTree = "<group>"; };
@@ -335,6 +343,20 @@
 			);
 			target = 117C86FD2CA0CC81007B5682 /* Creature TV */;
 		};
+		119A44D22E88D8A80053B250 /* Exceptions for "Creature" folder in "Creature Console" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CreatureHealthTests.swift,
+			);
+			target = 11703D8729DD197F00EF7E3D /* Creature Console */;
+		};
+		119A44D42E88D8AE0053B250 /* Exceptions for "Creature" folder in "Creature Console Tests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CreatureHealthTests.swift,
+			);
+			target = 11754B6C2C0050AF001A6C83 /* Creature Console Tests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -356,6 +378,8 @@
 		11E5CE7B2C9FDFB700749F94 /* Creature */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				119A44D22E88D8A80053B250 /* Exceptions for "Creature" folder in "Creature Console" target */,
+				119A44D42E88D8AE0053B250 /* Exceptions for "Creature" folder in "Creature Console Tests" target */,
 				117C876E2CA0CEFA007B5682 /* Exceptions for "Creature" folder in "Creature TV" target */,
 			);
 			path = Creature;
@@ -408,6 +432,8 @@
 				11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */,
 				11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */,
 				114147932C017E640046601D /* ChooseCreatureSheet.swift */,
+				119A44CA2E88CCFB0053B250 /* SensorDataTests.swift */,
+				119A44CD2E88D6E70053B250 /* SensorDataLogic.swift */,
 			);
 			path = Creatures;
 			sourceTree = "<group>";
@@ -652,6 +678,8 @@
 				1199D6C82BF6F51B004E0D64 /* LogItem.swift */,
 				1199D6CA2BF6F606004E0D64 /* LogManager.swift */,
 				11C522362BF84E0C0009A53E /* StatusLightsManager.swift */,
+				119A44D52E88D9120053B250 /* SystemCountersStoreTests.swift */,
+				119A44D92E88DA290053B250 /* LogItemTests.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -1183,6 +1211,7 @@
 				11D713142E84BCC900F7FC9A /* BottomStatusToolbarContent.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */,
+				119A44CE2E88D6E70053B250 /* SensorDataLogic.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				1107942D2C44E32C008EF68E /* AnimationMetadataCache.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
@@ -1226,8 +1255,11 @@
 				11754B792C0054F0001A6C83 /* InputTests.swift in Sources */,
 				118331912C0059C30017DC2A /* ServerErrorTests.swift in Sources */,
 				11754B772C005124001A6C83 /* CreatureTests.swift in Sources */,
+				119A44CC2E88CD3A0053B250 /* SensorDataTests.swift in Sources */,
+				119A44DC2E88DA330053B250 /* LogItemTests.swift in Sources */,
 				1183318D2C00577D0017DC2A /* AnimationMetadataTests.swift in Sources */,
 				1183318F2C0059490017DC2A /* TrackTests.swift in Sources */,
+				119A44D82E88D9240053B250 /* SystemCountersStoreTests.swift in Sources */,
 				11AF09122E8651C500E0BE28 /* TrackViewerTests.swift in Sources */,
 			);
 		};

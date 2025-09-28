@@ -152,7 +152,7 @@ struct SensorData: View {
                 }
 
                 // Motor Power Graph (finding "Motor Power In" sensor)
-                if let motorPowerData = extractMotorPowerData(from: reports) {
+                if let motorPowerData = SensorDataLogic.extractMotorPowerData(from: reports) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Motor Power In (Watts)")
                             .font(.subheadline)
@@ -200,36 +200,6 @@ struct SensorData: View {
         .padding()
         .background(Color.secondary.opacity(0.05))
         .cornerRadius(12)
-    }
-
-    // Helper function to extract motor power data
-    private func extractMotorPowerData(from reports: [BoardSensorReport]) -> [PowerDataPoint]? {
-        var motorPowerData: [PowerDataPoint] = []
-
-        for report in reports {
-            // Look for motor power sensor with various possible names
-            if let motorPowerSensor = report.powerReports.first(where: {
-                $0.name.lowercased().contains("motor_power_in")
-                    || $0.name.lowercased().contains("motor power in")
-                    || $0.name.lowercased().contains("motor")
-                        && $0.name.lowercased().contains("power")
-            }) {
-                motorPowerData.append(
-                    PowerDataPoint(
-                        timestamp: report.timestamp,
-                        power: motorPowerSensor.power
-                    ))
-            }
-        }
-
-        return motorPowerData.isEmpty ? nil : motorPowerData
-    }
-
-    // Data model for power graph
-    struct PowerDataPoint: Identifiable {
-        let id = UUID()
-        let timestamp: Date
-        let power: Double
     }
 
     @ViewBuilder
@@ -439,6 +409,16 @@ struct SensorData: View {
         }
     }
 }
+
+#if DEBUG
+// Test-only helpers to expose private logic for unit tests
+extension SensorData {
+    /// Wrapper that exposes the private motor power extraction logic to tests.
+    func _test_extractMotorPowerData(from reports: [BoardSensorReport]) -> [SensorPowerDataPoint]? {
+        SensorDataLogic.extractMotorPowerData(from: reports)
+    }
+}
+#endif
 
 #Preview {
     SensorData(creature: Creature.mock())
