@@ -32,6 +32,7 @@ struct CreatureConsole: App {
             "serverRestPort": 443,
             "serverUseTLS": true,
             "serverLogsScrollBackLines": 150,
+            "mouthImportDefaultAxis": 2,
             "eventLoopMillisecondsPerFrame": 20,
             "logSpareTime": true,
             "logSpareTimeFrameInterval": 1000,
@@ -40,6 +41,9 @@ struct CreatureConsole: App {
             "activeUniverse": 1,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
+
+        // Clean up any stale/partial mono preview cache files on launch
+        AudioManager.cleanupMonoPreviewCacheOnLaunch()
 
         // Initialize async components
         Task {
@@ -149,3 +153,4 @@ struct CreatureConsole: App {
         @NSApplicationDelegateAdaptor(ConsoleAppDelegate.self) var appDelegate
     #endif
 }
+

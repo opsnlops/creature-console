@@ -24,6 +24,7 @@ struct SoundFileTable: View {
     @State private var selection: Common.Sound.ID? = nil
 
     @State private var playSoundTask: Task<Void, Never>? = nil
+    @State private var preparingFile: String? = nil
 
     @State var player: AVPlayer? = nil
 
@@ -54,7 +55,7 @@ struct SoundFileTable: View {
                             TableRow(sound)
                                 .contextMenu {
                                     Button {
-                                        playSelectedOnServer()
+                                        playOnServer(fileName: sound.fileName)
                                     } label: {
                                         Label(
                                             "Play Sound File On Server",
@@ -62,7 +63,7 @@ struct SoundFileTable: View {
                                     }
 
                                     Button {
-                                        playSelectedLocally()
+                                        playLocally(fileName: sound.fileName)
                                     } label: {
                                         Label(
                                             "Play Sound File Locally",
@@ -120,11 +121,28 @@ struct SoundFileTable: View {
                 }
             }
             #endif
+            .overlay {
+                if let name = preparingFile {
+                    ZStack {
+                        Color.black.opacity(0.15).ignoresSafeArea()
+                        VStack(spacing: 10) {
+                            ProgressView()
+                            Text("Preparing \(name)…")
+                                .font(.callout)
+                        }
+                        .padding(16)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(.default, value: preparingFile != nil)
         }  // Navigation Stack
     }  // View
 
 
-    func playSelectedOnServer() {
+    func playOnServer(fileName: String) {
 
         logger.debug("Attempting to play the selected sound file on the server")
 
@@ -132,64 +150,83 @@ struct SoundFileTable: View {
 
         playSoundTask = Task {
 
-            // Go see what, if anything, is selected
-            if let sound = selection {
-                let result = await server.playSound(sound)
-                switch result {
-                case .success(let message):
-                    print(message)
-                case .failure(let error):
-                    DispatchQueue.main.async {
-                        alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                        logger.warning(
-                            "Unable to play a sound file: \(String(describing: error.localizedDescription))"
-                        )
-                        showErrorAlert = true
-                    }
-
+            let result = await server.playSound(fileName)
+            switch result {
+            case .success(let message):
+                print(message)
+            case .failure(let error):
+                await MainActor.run {
+                    alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                    logger.warning(
+                        "Unable to play a sound file: \(String(describing: error.localizedDescription))"
+                    )
+                    showErrorAlert = true
                 }
             }
-
         }
-
     }
 
-    func playSelectedLocally() {
+
+    func playLocally(fileName: String) {
 
         logger.debug("Attempting to play the selected sound file locally")
 
         playSoundTask?.cancel()
 
         playSoundTask = Task {
+            await MainActor.run { preparingFile = fileName }
 
-            if let sound = selection {
+            let urlRequest = server.getSoundURL(fileName)
+            switch urlRequest {
+            case .success(let url):
 
-                let urlRequest = server.getSoundURL(sound)
-                switch urlRequest {
-                case .success(let url):
-
-                    logger.info("Playing \(url)")
-                    _ = audioManager.playURL(url)
-
-                case .failure(let error):
-
-                    DispatchQueue.main.async {
-                        alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                        logger.warning(
-                            "Unable to play a sound file: \(String(describing: error.localizedDescription))"
-                        )
+                if fileName.lowercased().hasSuffix(".wav") {
+                    // For WAVs, prepare a mono preview and play via AVAudioEngine
+                    logger.info("Preparing mono preview for WAV: \(fileName)")
+                    let prepResult = await audioManager.prepareMonoPreview(for: url, cacheKey: fileName)
+                    switch prepResult {
+                    case .success(let monoURL):
+                        let armResult = audioManager.armPreviewPlayback(fileURL: monoURL)
+                        switch armResult {
+                        case .success:
+                            _ = audioManager.startArmedPreview(in: 0.1)
+                            await MainActor.run { preparingFile = nil }
+                        case .failure(let err):
+                            await MainActor.run {
+                                alertMessage = "Error: \(err)"
+                                logger.warning("Unable to arm preview: \(String(describing: err))")
+                                showErrorAlert = true
+                                preparingFile = nil
+                            }
+                        }
+                    case .failure(let err):
+                        await MainActor.run {
+                            alertMessage = "Error: \(err)"
+                            logger.warning("Unable to prepare mono preview: \(String(describing: err))")
+                            showErrorAlert = true
+                            preparingFile = nil
+                        }
                     }
-                    showErrorAlert = true
+                } else {
+                    // For non-WAVs, fall back to AVPlayer
+                    logger.info("Playing via AVPlayer: \(url)")
+                    _ = audioManager.playURL(url)
+                    await MainActor.run { preparingFile = nil }
                 }
 
+            case .failure(let error):
+
+                await MainActor.run {
+                    alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                    logger.warning(
+                        "Unable to play a sound file: \(String(describing: error.localizedDescription))"
+                    )
+                    showErrorAlert = true
+                    preparingFile = nil
+                }
             }
-
         }
-
     }
 
 
 }  // struct
-
-
-
