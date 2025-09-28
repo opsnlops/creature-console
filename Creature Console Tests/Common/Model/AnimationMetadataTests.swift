@@ -55,16 +55,17 @@ class AnimationMetadataTests: XCTestCase {
         // Arrange
         let id1 = UUID().uuidString
         let id2 = UUID().uuidString
+        let testDate = Date()
         let metadata1 = AnimationMetadata(
-            id: id1, title: "Test Animation", lastUpdated: Date(), millisecondsPerFrame: 20,
+            id: id1, title: "Test Animation", lastUpdated: testDate, millisecondsPerFrame: 20,
             note: "Test Note", soundFile: "test_sound.mp3", numberOfFrames: 120,
             multitrackAudio: true)
         let metadata2 = AnimationMetadata(
-            id: id1, title: "Test Animation", lastUpdated: Date(), millisecondsPerFrame: 20,
+            id: id1, title: "Test Animation", lastUpdated: testDate, millisecondsPerFrame: 20,
             note: "Test Note", soundFile: "test_sound.mp3", numberOfFrames: 120,
             multitrackAudio: true)
         let metadata3 = AnimationMetadata(
-            id: id2, title: "Another Animation", lastUpdated: Date(), millisecondsPerFrame: 25,
+            id: id2, title: "Another Animation", lastUpdated: testDate, millisecondsPerFrame: 25,
             note: "Another Note", soundFile: "another_sound.mp3", numberOfFrames: 150,
             multitrackAudio: false)
 
