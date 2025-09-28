@@ -32,7 +32,7 @@ extension CreatureCLI {
                 case .success(let status):
                     print("Success! Server said: \(status.message)")
                 case .failure(let error):
-                    print("Error invalidating animation cache: \(error)")
+                    throw failWithMessage("Error invalidating animation cache: \(error.localizedDescription)")
                 }
             }
         }
@@ -55,7 +55,7 @@ extension CreatureCLI {
                 case .success(let status):
                     print("Success! Server said: \(status.message)")
                 case .failure(let error):
-                    print("Error invalidating creature cache: \(error)")
+                    throw failWithMessage("Error invalidating creature cache: \(error.localizedDescription)")
                 }
             }
         }
@@ -78,7 +78,7 @@ extension CreatureCLI {
                 case .success(let status):
                     print("Success! Server said: \(status.message)")
                 case .failure(let error):
-                    print("Error invalidating playlist cache: \(error)")
+                    throw failWithMessage("Error invalidating playlist cache: \(error.localizedDescription)")
                 }
             }
         }
@@ -100,7 +100,7 @@ extension CreatureCLI {
                 case .success(let status):
                     print("Success! Server said: \(status.message)")
                 case .failure(let error):
-                    print("Error sending a fake playlist update request: \(error)")
+                    throw failWithMessage("Error sending a fake playlist update request: \(error.localizedDescription)")
                 }
             }
         }

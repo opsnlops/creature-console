@@ -14,6 +14,15 @@ extension CreatureCLI {
         var globalOptions: GlobalOptions
 
         struct Monitor: AsyncParsableCommand {
+            enum OutputFormat: String, CaseIterable, ExpressibleByArgument {
+                case text
+                case json
+
+                static var helpDescription: String {
+                    Self.allCases.map(\.rawValue).joined(separator: ", ")
+                }
+            }
+
             static let configuration = CommandConfiguration(
                 abstract: "Monitor websocket messages from the server",
                 discussion:
@@ -23,22 +32,65 @@ extension CreatureCLI {
             @Option(help: "How many seconds to leave the monitor running")
             var seconds: UInt32 = 3600
 
+            @Option(
+                name: [.customShort("H"), .customLong("hide")],
+                parsing: .upToNextOption,
+                help: ArgumentHelp(
+                    "Hide specific message types (repeatable). Options: \(CLIMessageProcessor.MessageType.helpText)",
+                    valueName: "type"
+                )
+            )
+            var hide: [CLIMessageProcessor.MessageType] = []
+
+            @Option(
+                name: [.customShort("O"), .customLong("only")],
+                parsing: .upToNextOption,
+                help: ArgumentHelp(
+                    "Show only the specified message types (repeatable). Options: \(CLIMessageProcessor.MessageType.helpText)",
+                    valueName: "type"
+                )
+            )
+            var only: [CLIMessageProcessor.MessageType] = []
+
+            @Flag(name: .long, help: "Disable colored output")
+            var noColor: Bool = false
+
+            @Option(
+                name: .long,
+                help: ArgumentHelp("Output format (\(OutputFormat.helpDescription))", valueName: "format")
+            )
+            var format: OutputFormat = .text
+
             @OptionGroup()
             var globalOptions: GlobalOptions
 
             func run() async throws {
 
                 // Create our processor
-                let processor = CLIMessageProcessor()
+                let hiddenTypes = Set(hide)
+                let allowedTypes = only.isEmpty ? nil : Set(only)
+                let outputFormat: CLIMessageProcessor.OutputFormat = (format == .json) ? .json : .text
+                let enableColor = (outputFormat == .text) && !noColor
+
+                let processor = CLIMessageProcessor(
+                    hiddenTypes: hiddenTypes,
+                    allowedTypes: allowedTypes,
+                    outputFormat: outputFormat,
+                    useColor: enableColor
+                )
 
                 let server = getServer(config: globalOptions)
                 await server.connectWebsocket(processor: processor)
-                print("Connected to \(server.serverHostname)! Waiting for messages...\n")
+                if format == .text {
+                    print("Connected to \(server.serverHostname)! Waiting for messages...\n")
+                }
 
-                sleep(seconds)
+                try await Task.sleep(for: .seconds(Int(seconds)))
 
                 _ = await server.disconnectWebsocket()
-                print("\nTimeout reached! Disconnecting from the websocket.")
+                if format == .text {
+                    print("\nTimeout reached! Disconnecting from the websocket.")
+                }
 
             }
         }
@@ -93,12 +145,13 @@ extension CreatureCLI {
                     let result = await server.streamFrame(streamFrameData: frame)
                     switch result {
                     case .failure(let error):
-                        print("Error sending frame: \(error.localizedDescription)")
+                        _ = await server.disconnectWebsocket()
+                        throw failWithMessage("Error sending frame: \(error.localizedDescription)")
                     default:
                         break
                     }
 
-                    usleep(1_000 * frameTimeMs)
+                    try await Task.sleep(for: .milliseconds(Int(frameTimeMs)))
 
                 }
 
@@ -184,13 +237,14 @@ extension CreatureCLI {
 
                         switch result {
                         case .failure(let error):
-                            print("Error sending message: \(error.localizedDescription)")
+                            _ = await server.disconnectWebsocket()
+                            throw failWithMessage("Error sending message: \(error.localizedDescription)")
                         default:
                             break
                         }
                     }
 
-                    usleep(1_000 * pause)
+                    try await Task.sleep(for: .milliseconds(Int(pause)))
                 }
 
                 _ = await server.disconnectWebsocket()

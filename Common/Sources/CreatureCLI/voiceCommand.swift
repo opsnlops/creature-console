@@ -33,20 +33,14 @@ extension CreatureCLI {
                 case .success(let voices):
                     print("Voices we have access to:\n")
 
-                    let headers = ["Name", "ID"]
-                    var rows = [[String]]()
-
-                    for voice in voices {
-                        // Add this to the table
-                        let row = [voice.name, voice.voiceId]
-                        rows.append(row)
-                    }
-
-                    printTable(headers: headers, rows: rows)
+                    printTable(voices, columns: [
+                        TableColumn(title: "Name", valueProvider: { $0.name }),
+                        TableColumn(title: "ID", valueProvider: { $0.voiceId }),
+                    ])
 
                     print("\nWe have access to \(voices.count) voice(s)")
                 case .failure(let error):
-                    print("Error fetching the available voices: \(error)")
+                    throw failWithMessage("Error fetching the available voices: \(error.localizedDescription)")
                 }
             }
         }
@@ -83,7 +77,8 @@ extension CreatureCLI {
 
 
                 case .failure(let error):
-                    print("Error fetching the status of our 11labs subscription: \(error)")
+                    throw failWithMessage(
+                        "Error fetching the status of our 11labs subscription: \(error.localizedDescription)")
                 }
             }
         }
@@ -129,7 +124,7 @@ extension CreatureCLI {
                     )
 
                 case .failure(let error):
-                    print("Error creating a new sound file: \(error)")
+                    throw failWithMessage("Error creating a new sound file: \(error.localizedDescription)")
                 }
             }
         }

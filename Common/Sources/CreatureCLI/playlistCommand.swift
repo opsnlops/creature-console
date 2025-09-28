@@ -31,28 +31,19 @@ extension CreatureCLI {
                 switch result {
                 case .success(let playlists):
 
-                    let headers = ["Name", "ID", "Number Of Items"]
-                    var rows = [[String]]()
-
-                    for playlist in playlists {
-
-                        // Add this to the table
-                        let row = [
-                            playlist.name,
-                            playlist.id,
-                            String(playlist.items.count),
-                        ]
-                        rows.append(row)
-                    }
-
                     print("\nOur playlists:\n")
-                    printTable(headers: headers, rows: rows)
+                    printTable(playlists, columns: [
+                        TableColumn(title: "Name", valueProvider: { $0.name }),
+                        TableColumn(title: "ID", valueProvider: { $0.id }),
+                        TableColumn(
+                            title: "Number Of Items", valueProvider: { String($0.items.count) }),
+                    ])
 
                     print(
                         "\n\(playlists.count) playlists(s) on server at \(server.serverHostname)\n")
 
                 case .failure(let error):
-                    print("Error fetching creatures: \(error)")
+                    throw failWithMessage("Error fetching playlists: \(error.localizedDescription)")
                 }
             }
 
@@ -86,8 +77,8 @@ extension CreatureCLI {
                 switch result {
                 case .success(let message):
                     print(message)
-                case .failure(let message):
-                    print("Unable to start playlist: \(message)")
+                case .failure(let error):
+                    throw failWithMessage("Unable to start playlist: \(error.localizedDescription)")
                 }
             }
 
@@ -117,8 +108,8 @@ extension CreatureCLI {
                 switch result {
                 case .success(let message):
                     print(message)
-                case .failure(let message):
-                    print("Unable to stop playing a playlist: \(message)")
+                case .failure(let error):
+                    throw failWithMessage("Unable to stop playing a playlist: \(error.localizedDescription)")
                 }
 
 

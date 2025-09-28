@@ -25,7 +25,7 @@ struct CreatureCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "A utility for interacting with the Creature Server",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
-        version: "2.7.2",
+        version: "2.8.1",
         subcommands: [
             Animations.self, Creatures.self, Debug.self, Sounds.self, Metrics.self, Playlists.self,
             Util.self,
@@ -54,27 +54,46 @@ func getServer(config: GlobalOptions) -> CreatureServerClient {
 }
 
 
-func printTable(headers: [String], rows: [[String]]) {
-    let columnWidths = headers.map { header -> Int in
-        rows.reduce(header.count) { max($0, $1[headers.firstIndex(of: header) ?? 0].count) }
+struct TableColumn<Value> {
+    let title: String
+    let valueProvider: (Value) -> String
+}
+
+func printTable<Value>(_ values: [Value], columns: [TableColumn<Value>], colorCode: String? = nil) {
+    guard !columns.isEmpty else { return }
+
+    let columnWidths = columns.map { column in
+        values.reduce(column.title.count) { partialResult, value in
+            max(partialResult, column.valueProvider(value).count)
+        }
     }
 
-    let headerString = headers.enumerated().map { index, header -> String in
-        header.padding(toLength: columnWidths[index], withPad: " ", startingAt: 0)
+    let header = columns.enumerated().map { index, column in
+        column.title.padding(toLength: columnWidths[index], withPad: " ", startingAt: 0)
     }.joined(separator: " | ")
 
-    print(headerString)
-    print(String(repeating: "-", count: headerString.count))
+    let prefix = colorCode.map { "\u{001B}[\($0)m" } ?? ""
+    let suffix = colorCode == nil ? "" : "\u{001B}[0m"
 
-    for row in rows {
-        let rowString = row.enumerated().map { index, column -> String in
-            column.padding(toLength: columnWidths[index], withPad: " ", startingAt: 0)
+    print("\(prefix)\(header)\(suffix)")
+    print("\(prefix)\(String(repeating: "-", count: header.count))\(suffix)")
+
+    for value in values {
+        let row = columns.enumerated().map { index, column in
+            column.valueProvider(value).padding(
+                toLength: columnWidths[index], withPad: " ", startingAt: 0)
         }.joined(separator: " | ")
-        print(rowString)
+        print("\(prefix)\(row)\(suffix)")
     }
 }
 
 
 func urlEncode(_ string: String) -> String? {
     return string.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+}
+
+@discardableResult
+func failWithMessage(_ message: String) -> ExitCode {
+    fputs("Error: \(message)\n", stderr)
+    return .failure
 }

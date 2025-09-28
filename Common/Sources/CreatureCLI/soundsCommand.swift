@@ -32,23 +32,21 @@ extension CreatureCLI {
                 case .success(let sounds):
                     print("\nSounds available on server:\n")
 
-                    let headers = ["Name", "File Size", "Has Transcript"]
-                    var rows = [[String]]()
-
-                    for sound in sounds {
-                        // Add this to the table
-                        let row = [
-                            sound.fileName, formatNumber(UInt64(sound.size)) + " bytes",
-                            sound.transcript.isEmpty ? "" : "✅",
-                        ]
-                        rows.append(row)
-                    }
-
-                    printTable(headers: headers, rows: rows)
+                    printTable(sounds, columns: [
+                        TableColumn(title: "Name", valueProvider: { $0.fileName }),
+                        TableColumn(
+                            title: "File Size",
+                            valueProvider: { "\(formatNumber(UInt64($0.size))) bytes" }
+                        ),
+                        TableColumn(
+                            title: "Has Transcript",
+                            valueProvider: { $0.transcript.isEmpty ? "" : "✅" }
+                        ),
+                    ])
 
                     print("\n\(sounds.count) sound file(s) available on server")
                 case .failure(let error):
-                    print("Error fetching the available sounds: \(error)")
+                    throw failWithMessage("Error fetching the available sounds: \(error.localizedDescription)")
                 }
             }
         }
@@ -76,8 +74,8 @@ extension CreatureCLI {
                 switch result {
                 case .success(let message):
                     print(message)
-                case .failure(let message):
-                    print("Unable to play sound: \(message)")
+                case .failure(let error):
+                    throw failWithMessage("Unable to play sound: \(error.localizedDescription)")
                 }
             }
         }

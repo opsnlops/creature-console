@@ -35,31 +35,24 @@ extension CreatureCLI {
                 switch result {
                 case .success(let animations):
 
-                    let headers = ["Title", "ID", "Sound File", "Frames", "Mutlitrack"]
-                    var rows = [[String]]()
-
-                    for metadata in animations {
-
-                        // Add this to the table
-                        let row = [
-                            metadata.title,
-                            metadata.id.lowercased(),
-                            metadata.soundFile,
-                            formatNumber(UInt64(metadata.numberOfFrames)),
-                            metadata.multitrackAudio ? "✅" : "🚫",
-                        ]
-                        rows.append(row)
-                    }
-
                     print("\nAnimations for (well. will be real):\n")
-                    printTable(headers: headers, rows: rows)
+                    printTable(animations, columns: [
+                        TableColumn(title: "Title", valueProvider: { $0.title }),
+                        TableColumn(title: "ID", valueProvider: { $0.id.lowercased() }),
+                        TableColumn(title: "Sound File", valueProvider: { $0.soundFile }),
+                        TableColumn(
+                            title: "Frames",
+                            valueProvider: { formatNumber(UInt64($0.numberOfFrames)) }),
+                        TableColumn(
+                            title: "Multitrack", valueProvider: { $0.multitrackAudio ? "✅" : "🚫" }),
+                    ])
 
                     print(
                         "\n\(animations.count) animation(s) for creature (yes) on server at \(server.serverHostname)\n"
                     )
 
                 case .failure(let error):
-                    print("Error fetching animations: \(error.localizedDescription)")
+                    throw failWithMessage("Error fetching animations: \(error.localizedDescription)")
                 }
             }
         }
@@ -87,7 +80,7 @@ extension CreatureCLI {
                         print(jsonString)
                     }
                 } catch {
-                    print("Failed to encode Track: \(error)")
+                    throw failWithMessage("Failed to encode Track: \(error.localizedDescription)")
                 }
             }
         }
@@ -115,7 +108,7 @@ extension CreatureCLI {
                         print(jsonString)
                     }
                 } catch {
-                    print("Failed to encode Animation: \(error)")
+                    throw failWithMessage("Failed to encode Animation: \(error.localizedDescription)")
                 }
             }
         }
@@ -145,7 +138,7 @@ extension CreatureCLI {
                 case .success(let message):
                     print("Animation saved. Server said: \(message)")
                 case .failure(let error):
-                    print("Unable to save animation: \(error.localizedDescription)\n")
+                    throw failWithMessage("Unable to save animation: \(error.localizedDescription)")
                 }
 
             }
@@ -177,8 +170,8 @@ extension CreatureCLI {
                 print("\nTitle: \(animation.metadata.title)")
                 print("Tracks: \(animation.tracks.count)")
                 print("Number of Frames: \(animation.metadata.numberOfFrames)")
-            case .failure(let message):
-                print("Unable to get animation: \(message)")
+            case .failure(let error):
+                throw failWithMessage("Unable to get animation: \(error.localizedDescription)")
             }
         }
     }
@@ -210,7 +203,7 @@ extension CreatureCLI {
             case .success(let messsage):
                 print(messsage)
             case .failure(let error):
-                print("Unable to play animation: \(error.localizedDescription)\n")
+                throw failWithMessage("Unable to play animation: \(error.localizedDescription)")
             }
 
         }

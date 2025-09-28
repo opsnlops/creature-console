@@ -32,33 +32,30 @@ extension CreatureCLI {
                 case .success(let counters):
                     print("\nCurrent counters on \(server.serverHostname):\n")
 
-                    let headers = ["Metric", "Count"]
-                    var rows = [[String]]()
+                    let rows: [(String, String)] = [
+                        ("Total Frames", formatNumber(counters.totalFrames)),
+                        ("Events Processed", formatNumber(counters.eventsProcessed)),
+                        ("Frames Streamed", formatNumber(counters.framesStreamed)),
+                        ("DMX Events Processed", formatNumber(counters.dmxEventsProcessed)),
+                        ("Animations Played", formatNumber(counters.animationsPlayed)),
+                        ("Sounds Played", formatNumber(counters.soundsPlayed)),
+                        ("Playlists Started", formatNumber(counters.playlistsStarted)),
+                        ("Playlists Stopped", formatNumber(counters.playlistsStopped)),
+                        ("Playlist Events Processed", formatNumber(counters.playlistsEventsProcessed)),
+                        ("Playlist Status Requests", formatNumber(counters.playlistStatusRequests)),
+                        ("REST API Requests", formatNumber(counters.restRequestsProcessed)),
+                    ]
 
-                    rows.append(["Total Frames", formatNumber(counters.totalFrames)])
-                    rows.append(["Events Processed", formatNumber(counters.eventsProcessed)])
-                    rows.append(["Frames Streamed", formatNumber(counters.framesStreamed)])
-                    rows.append(["DMX Events Processed", formatNumber(counters.dmxEventsProcessed)])
-                    rows.append(["Animations Played", formatNumber(counters.animationsPlayed)])
-                    rows.append(["Sounds Played", formatNumber(counters.soundsPlayed)])
-                    rows.append(["Playlists Started", formatNumber(counters.playlistsStarted)])
-                    rows.append(["Playlists Stopped", formatNumber(counters.playlistsStopped)])
-                    rows.append([
-                        "Playlist Events Processed",
-                        formatNumber(counters.playlistsEventsProcessed),
+                    printTable(rows, columns: [
+                        TableColumn(title: "Metric", valueProvider: { $0.0 }),
+                        TableColumn(title: "Count", valueProvider: { $0.1 }),
                     ])
-                    rows.append([
-                        "Playlist Status Requests", formatNumber(counters.playlistStatusRequests),
-                    ])
-                    rows.append(["REST API Requests", formatNumber(counters.restRequestsProcessed)])
-
-                    printTable(headers: headers, rows: rows)
 
                     print("")
 
 
                 case .failure(let error):
-                    print("Error fetching the available sounds: \(error)")
+                    throw failWithMessage("Error fetching the available sounds: \(error.localizedDescription)")
                 }
             }
         }

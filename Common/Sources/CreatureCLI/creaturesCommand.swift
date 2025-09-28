@@ -30,30 +30,23 @@ extension CreatureCLI {
                 switch result {
                 case .success(let creatures):
 
-                    let headers = ["Name", "ID", "Offset", "Audio", "Inputs"]
-                    var rows = [[String]]()
-
-                    for creature in creatures {
-
-                        // Add this to the table
-                        let row = [
-                            creature.name,
-                            creature.id,
-                            String(creature.channelOffset),
-                            String(creature.audioChannel),
-                            String(creature.inputs.count),
-                        ]
-                        rows.append(row)
-                    }
-
                     print("\nKnown Creatures:\n")
-                    printTable(headers: headers, rows: rows)
+                    printTable(creatures, columns: [
+                        TableColumn(title: "Name", valueProvider: { $0.name }),
+                        TableColumn(title: "ID", valueProvider: { $0.id }),
+                        TableColumn(
+                            title: "Offset", valueProvider: { String($0.channelOffset) }),
+                        TableColumn(
+                            title: "Audio", valueProvider: { String($0.audioChannel) }),
+                        TableColumn(
+                            title: "Inputs", valueProvider: { String($0.inputs.count) }),
+                    ])
 
                     print(
                         "\n\(creatures.count) creature(s) on server at \(server.serverHostname)\n")
 
                 case .failure(let error):
-                    print("Error fetching creatures: \(error)")
+                    throw failWithMessage("Error fetching creatures: \(error.localizedDescription)")
                 }
             }
 
