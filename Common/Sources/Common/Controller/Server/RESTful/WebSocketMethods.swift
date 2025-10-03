@@ -117,6 +117,10 @@ actor WebSocketClient {
 
     private var hasAlertedForDisconnect: Bool = false
 
+    private var consecutiveErrorCount: Int = 0
+    private let errorNotificationSuppressionThreshold: Int = 2
+    private var suppressErrorNotifications: Bool = false
+
     init(url: URL, messageProcessor: MessageProcessor?) {
         self.url = url
         self.messageProcessor = messageProcessor
@@ -132,11 +136,13 @@ actor WebSocketClient {
     private func handlePathUpdate(_ path: NWPath) async {
         if path.status == .satisfied {
             logger.debug("Network reachable. Considering reconnect if needed.")
+            suppressErrorNotifications = false
             if shouldStayConnected, !isConnected {
                 await scheduleReconnect(immediate: true)
             }
         } else {
             logger.warning("Network unreachable. Marking connection as down.")
+            suppressErrorNotifications = true
             isConnected = false
         }
     }
@@ -150,6 +156,8 @@ actor WebSocketClient {
 
     private func handleAppWillEnterForeground() async {
         logger.debug("App will enter foreground. Considering reconnect.")
+        suppressErrorNotifications = false
+        consecutiveErrorCount = 0
         if shouldStayConnected, !isConnected {
             await scheduleReconnect(immediate: true)
         }
@@ -157,17 +165,21 @@ actor WebSocketClient {
 
     private func handleDidEnterBackground() async {
         logger.debug("App did enter background. Pausing pings.")
+        suppressErrorNotifications = true
         await pausePinging()
     }
 
     private func handleWillSleep() async {
         logger.debug("System will sleep. Marking connection down and pausing.")
+        suppressErrorNotifications = true
         isConnected = false
         await pausePinging()
     }
 
     private func handleWakeOrActivate() async {
         logger.debug("Wake/Activate. Considering reconnect and resuming pings.")
+        suppressErrorNotifications = false
+        consecutiveErrorCount = 0
         if shouldStayConnected, !isConnected {
             await scheduleReconnect(immediate: true)
         }
@@ -323,6 +335,8 @@ actor WebSocketClient {
         isConnected = true
         hasAlertedForDisconnect = false
         reconnectAttempt = 0
+        consecutiveErrorCount = 0
+        suppressErrorNotifications = false
 
         logger.info("websocket is connected")
         startReceiving()
@@ -409,6 +423,7 @@ actor WebSocketClient {
     }
 
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
+        consecutiveErrorCount = 0
         switch message {
         case .string(let text):
             logger.trace("string received from the websocket: \(text)")
@@ -436,13 +451,24 @@ actor WebSocketClient {
             logger.warning("websocket encountered an error: \(error.localizedDescription)")
         }
 
-        if !hasAlertedForDisconnect {
-            NotificationCenter.default.post(
-                name: WebSocketClient.didEncounterErrorNotification,
-                object:
-                    "Lost connection to server. Will attempt to reconnect. Error: \(error.localizedDescription)"
+        if suppressErrorNotifications {
+            logger.info(
+                "Suppressing websocket error while in background/sleep or offline: \(error.localizedDescription)"
             )
-            hasAlertedForDisconnect = true
+        } else {
+            consecutiveErrorCount += 1
+            if consecutiveErrorCount <= errorNotificationSuppressionThreshold {
+                logger.info(
+                    "Suppressing transient websocket error (\(consecutiveErrorCount)/\(errorNotificationSuppressionThreshold)): \(error.localizedDescription)"
+                )
+            } else if !hasAlertedForDisconnect {
+                NotificationCenter.default.post(
+                    name: WebSocketClient.didEncounterErrorNotification,
+                    object:
+                        "Lost connection to server. Will attempt to reconnect. Error: \(error.localizedDescription)"
+                )
+                hasAlertedForDisconnect = true
+            }
         }
     }
 
