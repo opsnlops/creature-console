@@ -300,6 +300,17 @@ actor JoystickManager {
             acwJoystick.scheduleWithRunLoop()
         #endif
     }
+
+    func playRecordingCountdownHaptics() async {
+        // Capture the reference on this actor to satisfy isolation
+        let joystick = self.sixAxisJoystick
+        await joystick.playRecordingCountdownHapticsFromAnyActor()
+    }
+
+    func cancelRecordingCountdownHaptics() async {
+        let joystick = self.sixAxisJoystick
+        await joystick.cancelRecordingCountdownHapticsFromAnyActor()
+    }
 }
 
 

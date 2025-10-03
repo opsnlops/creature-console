@@ -270,9 +270,10 @@ struct RecordTrack: View {
 
             do {
                 logger.info("Playing warning tone...")
+                await JoystickManager.shared.playRecordingCountdownHaptics()
                 await MainActor.run { playWarningTone() }
-                logger.info("Sleeping for 3.8 seconds...")
-                try await Task.sleep(nanoseconds: UInt64(3.8 * 1_000_000_000))
+                logger.info("Sleeping for 3.5 seconds...")
+                try await Task.sleep(nanoseconds: UInt64(3.5 * 1_000_000_000))
                 logger.info("Sleep completed")
             } catch {
                 logger.error("couldn't sleep: \(error)")
@@ -288,6 +289,7 @@ struct RecordTrack: View {
 
     func stopRecording() {
         Task {
+            await JoystickManager.shared.cancelRecordingCountdownHaptics()
             await creatureManager.stopRecording()
             recordingTask?.cancel()
             logger.info("asked recording to stop")

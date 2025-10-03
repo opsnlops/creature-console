@@ -1,5 +1,6 @@
 import Combine
 import Common
+import CoreHaptics
 import Foundation
 import GameController
 import OSLog
@@ -65,6 +66,8 @@ class SixAxisJoystick: ObservableObject, Joystick {
 
     private var cancellables: Set<AnyCancellable> = []
 
+    // Retain a controller haptics engine for countdown pulses so it isn't deallocated between calls
+    private var countdownHapticsEngine: CHHapticEngine?
 
     #if os(iOS)
         var virtualJoysick = VirtualJoystick()
@@ -143,7 +146,9 @@ class SixAxisJoystick: ObservableObject, Joystick {
             return
         }
         let color = activity.controllerLightColor
-        logger.info("SixAxisJoystick: Setting joystick light to RGB(\(color.red),\(color.green),\(color.blue)) for activity: \(activity.description)")
+        logger.info(
+            "SixAxisJoystick: Setting joystick light to RGB(\(color.red),\(color.green),\(color.blue)) for activity: \(activity.description)"
+        )
         controller.light?.color = color
         logger.info("SixAxisJoystick: Light color set successfully")
     }
@@ -243,6 +248,146 @@ class SixAxisJoystick: ObservableObject, Joystick {
 
     }
 
+}
+
+// SixAxisJoystick is used across actor boundaries only to schedule @MainActor haptic work.
+// Marking it @unchecked Sendable is safe in this context because all mutable state that
+// interacts with system frameworks (GameController/CoreHaptics) is accessed on the main actor.
+extension SixAxisJoystick: @unchecked Sendable {}
+
+@MainActor
+extension SixAxisJoystick {
+    /// Task used to coordinate and cancel any in-flight countdown sequence.
+    private static var recordingCountdownTask: Task<Void, Never>? = nil
+
+    /// Plays a short countdown rumble sequence at 2.0s, 2.5s, 3.0s and a heavy pulse at 3.5s.
+    /// Call this at the same moment you start the countdown audio.
+    func playRecordingCountdownHaptics() {
+        // Cancel any existing sequence first
+        SixAxisJoystick.recordingCountdownTask?.cancel()
+        SixAxisJoystick.recordingCountdownTask = Task { @MainActor in
+            await self.playCountdown(times: [
+                (seconds: 2.0, intensity: 0.45, sharpness: 0.4, duration: 0.06),
+                (seconds: 2.5, intensity: 0.65, sharpness: 0.4, duration: 0.06),
+                (seconds: 3.0, intensity: 0.85, sharpness: 0.4, duration: 0.06),
+                (seconds: 3.5, intensity: 1.0, sharpness: 0.9, duration: 0.20),
+            ])
+        }
+    }
+
+    /// Cancel any pending countdown pulses (e.g., user backs out).
+    func cancelRecordingCountdownHaptics() {
+        SixAxisJoystick.recordingCountdownTask?.cancel()
+        SixAxisJoystick.recordingCountdownTask = nil
+        Task { @MainActor in
+            do {
+                try await countdownHapticsEngine?.stop()
+            } catch {
+                logger.debug(
+                    "Failed to stop haptics engine on cancel: \(String(describing: error))")
+            }
+        }
+        countdownHapticsEngine = nil
+    }
+
+    /// Convenience methods to safely trigger/cancel the countdown from any actor context.
+    nonisolated func playRecordingCountdownHapticsFromAnyActor() async {
+        await MainActor.run { self.playRecordingCountdownHaptics() }
+    }
+
+    nonisolated func cancelRecordingCountdownHapticsFromAnyActor() async {
+        await MainActor.run { self.cancelRecordingCountdownHaptics() }
+    }
+
+    // MARK: - Private helpers
+
+    /// Play a single transient pulse using an AHAP dictionary via Core Haptics.
+    private func playPulse(intensity: Float, sharpness: Float, duration: Double) {
+        guard let controller = self.controller, let haptics = controller.haptics else {
+            logger.debug("Haptics unavailable on controller; skipping pulse")
+            return
+        }
+
+        // Lazily create and start a retained engine
+        if countdownHapticsEngine == nil {
+            // Prefer the right handle where the face buttons are located on DualSense
+            countdownHapticsEngine =
+                haptics.createEngine(withLocality: .all)
+                ?? haptics.createEngine(withLocality: .default)
+            do {
+                try countdownHapticsEngine?.start()
+            } catch {
+                logger.error(
+                    "Failed to start controller haptics engine: \(String(describing: error))")
+                countdownHapticsEngine = nil
+                return
+            }
+        }
+
+        guard let engine = countdownHapticsEngine else { return }
+
+        do {
+            let pattern: CHHapticPattern
+            if duration > 0 {
+                // Use a continuous event for a stronger, longer pulse
+                let event = CHHapticEvent(
+                    eventType: .hapticContinuous,
+                    parameters: [
+                        CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                        CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
+                    ],
+                    relativeTime: 0,
+                    duration: duration)
+                pattern = try CHHapticPattern(events: [event], parameters: [])
+            } else {
+                // Short transient tap
+                let event = CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [
+                        CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                        CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
+                    ],
+                    relativeTime: 0)
+                pattern = try CHHapticPattern(events: [event], parameters: [])
+            }
+
+            let player = try engine.makePlayer(with: pattern)
+            try player.start(atTime: 0)
+        } catch {
+            logger.error("Failed to play controller haptic: \(String(describing: error))")
+        }
+    }
+
+    /// Schedule pulses at absolute offsets from now using ContinuousClock for precise timing.
+    private func playCountdown(
+        times: [(seconds: Double, intensity: Float, sharpness: Float, duration: Double)]
+    ) async {
+        let clock = ContinuousClock()
+        let start = clock.now
+        for (sec, intensity, sharpness, duration) in times {
+            let deadline = start.advanced(by: .seconds(sec))
+            do {
+                try await clock.sleep(until: deadline)
+            } catch {
+                // Cancelled or interrupted
+                return
+            }
+            // We are on @MainActor; safe to touch controller.
+            playPulse(intensity: intensity, sharpness: sharpness, duration: duration)
+        }
+        // Ensure the final pulse (especially continuous) has time to complete before stopping the engine
+        if let last = times.last, last.duration > 0 {
+            try? await Task.sleep(for: .seconds(last.duration))
+        }
+        // After finishing the sequence, stop and release the engine
+        do {
+            try await countdownHapticsEngine?.stop()
+        } catch {
+            logger.debug(
+                "Failed to stop haptics engine after sequence: \(String(describing: error))")
+        }
+        countdownHapticsEngine = nil
+    }
 }
 
 extension SixAxisJoystick {
