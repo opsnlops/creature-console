@@ -37,6 +37,7 @@
 		1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC9C2B4FB58800A9895A /* ACWDebugJoystickScene.swift */; };
 		116C63A42CA280F400549CC4 /* VoltageMeterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116C63A32CA280F000549CC4 /* VoltageMeterView.swift */; };
 		116C63A52CA280F400549CC4 /* VoltageMeterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116C63A32CA280F000549CC4 /* VoltageMeterView.swift */; };
+		116F19212E8F7C04005AD8DD /* Creature-Console-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 116F19202E8F7C04005AD8DD /* Creature-Console-Info.plist */; };
 		11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8B29DD197F00EF7E3D /* CreatureConsole.swift */; };
 		11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* TopContentView.swift */; };
 		11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
@@ -211,6 +212,7 @@
 		1168DC9A2B4FB2BE00A9895A /* JoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickDebugView.swift; sourceTree = "<group>"; };
 		1168DC9C2B4FB58800A9895A /* ACWDebugJoystickScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ACWDebugJoystickScene.swift; sourceTree = "<group>"; };
 		116C63A32CA280F000549CC4 /* VoltageMeterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoltageMeterView.swift; sourceTree = "<group>"; };
+		116F19202E8F7C04005AD8DD /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Creature-Console-Info.plist"; sourceTree = "<group>"; };
 		11703D8829DD197F00EF7E3D /* Creature Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11703D8B29DD197F00EF7E3D /* CreatureConsole.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureConsole.swift; sourceTree = "<group>"; };
 		11703D8D29DD197F00EF7E3D /* TopContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopContentView.swift; sourceTree = "<group>"; };
@@ -563,6 +565,7 @@
 				11703D9229DD198000EF7E3D /* Preview Content */,
 				11C326CF29DD3FED00B169CD /* Credits.rtfd */,
 				1182ED122BEDD28A00E1213F /* README.md */,
+				116F19202E8F7C04005AD8DD /* Creature-Console-Info.plist */,
 			);
 			path = "Creature Console";
 			sourceTree = "<group>";
@@ -1137,6 +1140,7 @@
 			isa = PBXResourcesBuildPhase;
 			files = (
 				11703D9429DD198000EF7E3D /* Preview Assets.xcassets in Resources */,
+				116F19212E8F7C04005AD8DD /* Creature-Console-Info.plist in Resources */,
 				11C326D029DD3FED00B169CD /* Credits.rtfd in Resources */,
 				11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */,
 				118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */,
@@ -1483,7 +1487,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2800;
+				CURRENT_PROJECT_VERSION = 2801;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1515,7 +1519,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.8.0;
+				MARKETING_VERSION = 2.8.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1537,7 +1541,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2800;
+				CURRENT_PROJECT_VERSION = 2801;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1569,7 +1573,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.8.0;
+				MARKETING_VERSION = 2.8.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
