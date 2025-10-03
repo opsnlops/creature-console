@@ -33,12 +33,10 @@ struct RootView: View {
             }
             .task {
                 let name = Notification.Name("WebSocketDidEncounterError")
-                for await note in NotificationCenter.default.notifications(named: name, object: nil)
-                {
-                    if let message = note.object as? String {
-                        websocketErrorMessage = message
-                    } else {
-                        websocketErrorMessage = "WebSocket error occurred."
+                for await note in NotificationCenter.default.notifications(named: name, object: nil) {
+                    let msg = (note.object as? String) ?? "WebSocket error occurred."
+                    await MainActor.run {
+                        websocketErrorMessage = msg
                     }
                 }
             }

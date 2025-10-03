@@ -36,7 +36,6 @@ struct CreatureConsole: App {
             "eventLoopMillisecondsPerFrame": 20,
             "logSpareTime": true,
             "logSpareTimeFrameInterval": 1000,
-            "audioVolume": 0.8,
             "useOurJoystick": true,
             "activeUniverse": 1,
         ]

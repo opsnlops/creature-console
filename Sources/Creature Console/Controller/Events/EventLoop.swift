@@ -28,10 +28,10 @@ actor EventLoop {
     var frameSpareTime: Double = 0  // Updated value (no longer @Published since actors can't have @Published)
     var localFrameSpareTime: Double = 0  // Updated every loop
 
-    @AppStorage("eventLoopMillisecondsPerFrame") var millisecondPerFrame: Int = 20
-    @AppStorage("logSpareTimeFrameInterval") var logSpareTimeFrameInterval: Int = 1000
-    @AppStorage("logSpareTime") var logSpareTime: Bool = false
-    @AppStorage("updateSpareTimeStatusInterval") var updateSpareTimeStatusInterval: Int = 20
+    private var millisecondPerFrame: Int
+    private var logSpareTimeFrameInterval: Int
+    private var logSpareTime: Bool
+    private var updateSpareTimeStatusInterval: Int
 
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "EventLoop")
     private let numberFormatter = NumberFormatter()
@@ -41,6 +41,13 @@ actor EventLoop {
     init() {
 
         self.frameSpareTime = 100.0
+
+        // Read configuration once at startup
+        let defaults = UserDefaults.standard
+        self.millisecondPerFrame = (defaults.object(forKey: "eventLoopMillisecondsPerFrame") as? Int) ?? 20
+        self.logSpareTimeFrameInterval = (defaults.object(forKey: "logSpareTimeFrameInterval") as? Int) ?? 1000
+        self.logSpareTime = (defaults.object(forKey: "logSpareTime") as? Bool) ?? false
+        self.updateSpareTimeStatusInterval = (defaults.object(forKey: "updateSpareTimeStatusInterval") as? Int) ?? 20
 
         // Configure the number formatter
         numberFormatter.numberStyle = .decimal
@@ -158,3 +165,4 @@ extension EventLoop {
         return mockEventLoop
     }
 }
+

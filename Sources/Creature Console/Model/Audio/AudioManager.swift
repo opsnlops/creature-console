@@ -35,28 +35,10 @@ class AudioManager: ObservableObject {
         self.lastError = error
     }
 
-    @Published var volume: Float {
-
-        // If the user updates the volume, update the preferences
-        didSet {
-            UserDefaults.standard.set(Double(volume), forKey: "audioVolume")
-            self.audioPlayer?.volume = volume
-            self.player?.volume = volume
-            self.previewPlayer?.volume = volume
-        }
-    }
+    private let volume: Float = 1.0
 
     // This is private to make it impossible to make more than one
     private init() {
-
-        if let storedDouble = UserDefaults.standard.object(forKey: "audioVolume") as? Double {
-            self.volume = Float(storedDouble)
-        } else if let storedFloat = UserDefaults.standard.object(forKey: "audioVolume") as? Float {
-            self.volume = storedFloat
-        } else {
-            self.volume = 1.0
-            UserDefaults.standard.set(1.0, forKey: "audioVolume")
-        }
 
         #if os(iOS)
             do {
@@ -67,13 +49,6 @@ class AudioManager: ObservableObject {
                 print("Failed to set audio session category.")
             }
         #endif
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(userDefaultsDidChange(_:)),
-            name: UserDefaults.didChangeNotification,
-            object: nil
-        )
     }
 
 
@@ -465,18 +440,4 @@ class AudioManager: ObservableObject {
         self.audioPlayer?.pause()
         self.player?.pause()
     }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self, name: UserDefaults.didChangeNotification, object: nil)
-    }
-
-    @objc private func userDefaultsDidChange(_ notification: Notification) {
-        // Read as Double for consistency
-        let newVal = UserDefaults.standard.object(forKey: "audioVolume") as? Double
-        let newVolume = Float(newVal ?? Double(self.volume))
-        if newVolume != self.volume {
-            self.volume = newVolume
-        }
-    }
 }
-
