@@ -16,7 +16,6 @@ struct TopContentView: View {
     // These do not need to be observed since we don't show the in the sidebar
     let animationMetadataCache = AnimationMetadataCache.shared
     let playlistCache = PlaylistCache.shared
-    let soundListCache = SoundListCache.shared
 
 
     // Watch the cache to know what to do
@@ -83,7 +82,7 @@ struct TopContentView: View {
                 #if os(iOS) || os(macOS)
                     Section("Sound Files") {
                         NavigationLink {
-                            SoundFileTable()
+                            SoundFileListView()
                         } label: {
                             Label("List All", systemImage: "music.note.list")
                         }
@@ -191,3 +190,4 @@ struct TopContentView: View {
         }
     }
 }
+

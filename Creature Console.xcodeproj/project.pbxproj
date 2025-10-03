@@ -133,7 +133,6 @@
 		11C326D029DD3FED00B169CD /* Credits.rtfd in Resources */ = {isa = PBXBuildFile; fileRef = 11C326CF29DD3FED00B169CD /* Credits.rtfd */; };
 		11C522372BF84E0C0009A53E /* StatusLightsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522362BF84E0C0009A53E /* StatusLightsManager.swift */; };
 		11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */; };
-		11C5B8472C0D39C10037E70A /* SoundFileTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5B8462C0D39C10037E70A /* SoundFileTable.swift */; };
 		11C5B8492C0D57F40037E70A /* CreateNewCreatureSoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */; };
 		11C622F52C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */; };
 		11D713122E84B85E00F7FC9A /* Activity+Tint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D713112E84B85E00F7FC9A /* Activity+Tint.swift */; };
@@ -151,6 +150,12 @@
 		11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
 		11E5CE802C9FE1C600749F94 /* CreatureHealthCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */; };
 		11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE812C9FEA9D00749F94 /* SensorData.swift */; };
+		11F0E4992E9089970085918D /* SoundModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E4982E9089970085918D /* SoundModel.swift */; };
+		11F0E49A2E9089970085918D /* SoundModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E4982E9089970085918D /* SoundModel.swift */; };
+		11F0E49C2E90899C0085918D /* SoundImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49B2E90899C0085918D /* SoundImporter.swift */; };
+		11F0E49D2E90899C0085918D /* SoundImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49B2E90899C0085918D /* SoundImporter.swift */; };
+		11F0E49F2E9089AD0085918D /* SoundFileListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49E2E9089AD0085918D /* SoundFileListView.swift */; };
+		11F0E4A02E9089AD0085918D /* SoundFileListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49E2E9089AD0085918D /* SoundFileListView.swift */; };
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
@@ -268,7 +273,6 @@
 		11C326CF29DD3FED00B169CD /* Credits.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Credits.rtfd; sourceTree = "<group>"; };
 		11C522362BF84E0C0009A53E /* StatusLightsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusLightsManager.swift; sourceTree = "<group>"; };
 		11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualStatusLightsProcessor.swift; sourceTree = "<group>"; };
-		11C5B8462C0D39C10037E70A /* SoundFileTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundFileTable.swift; sourceTree = "<group>"; usesTabs = 0; };
 		11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateNewCreatureSoundView.swift; sourceTree = "<group>"; };
 		11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardSensorReportMessageProcessor.swift; sourceTree = "<group>"; };
 		11D713112E84B85E00F7FC9A /* Activity+Tint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Activity+Tint.swift"; sourceTree = "<group>"; };
@@ -281,6 +285,9 @@
 		11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorSensorReportProcessor.swift; sourceTree = "<group>"; };
 		11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureHealthCache.swift; sourceTree = "<group>"; };
 		11E5CE812C9FEA9D00749F94 /* SensorData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorData.swift; sourceTree = "<group>"; };
+		11F0E4982E9089970085918D /* SoundModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundModel.swift; sourceTree = "<group>"; };
+		11F0E49B2E90899C0085918D /* SoundImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundImporter.swift; sourceTree = "<group>"; };
+		11F0E49E2E9089AD0085918D /* SoundFileListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundFileListView.swift; sourceTree = "<group>"; };
 		11F4BA5629EA7DF300078790 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickSettingsView.swift; sourceTree = "<group>"; };
@@ -526,6 +533,7 @@
 		11703D7F29DD197F00EF7E3D = {
 			isa = PBXGroup;
 			children = (
+				11F0E4A72E908D4A0085918D /* Tests */,
 				1110E9632BF0359F00FCE26D /* Common */,
 				113CC9B62BE6EE5F00DF7FF7 /* Sources */,
 				118BF86F2A253EF800D80AE6 /* Assets */,
@@ -748,10 +756,24 @@
 		11C5B8452C0D39750037E70A /* Sounds */ = {
 			isa = PBXGroup;
 			children = (
-				11C5B8462C0D39C10037E70A /* SoundFileTable.swift */,
 				11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */,
 			);
 			path = Sounds;
+			sourceTree = "<group>";
+		};
+		11F0E4A62E908D4A0085918D /* CreatureConsoleTests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = CreatureConsoleTests;
+			sourceTree = "<group>";
+		};
+		11F0E4A72E908D4A0085918D /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				11F0E4A62E908D4A0085918D /* CreatureConsoleTests */,
+			);
+			path = Tests;
 			sourceTree = "<group>";
 		};
 		11F1757029DD42D800ADD5FB /* Frameworks */ = {
@@ -776,6 +798,9 @@
 				11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */,
 				113BA4C82C7CD7CC00C2DF27 /* PlaylistCache.swift */,
 				114576E12CC46E420031AF9C /* SoundListCache.swift */,
+				11F0E4982E9089970085918D /* SoundModel.swift */,
+				11F0E49B2E90899C0085918D /* SoundImporter.swift */,
+				11F0E49E2E9089AD0085918D /* SoundFileListView.swift */,
 			);
 			path = Controller;
 			sourceTree = "<group>";
@@ -1194,6 +1219,7 @@
 				1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
+				11F0E4A02E9089AD0085918D /* SoundFileListView.swift in Sources */,
 				114147922C0145270046601D /* TrackListingView.swift in Sources */,
 				11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */,
 				1199D6CB2BF6F606004E0D64 /* LogManager.swift in Sources */,
@@ -1210,8 +1236,10 @@
 				110CABE82A959A00007769E4 /* SoundDataImporter.swift in Sources */,
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				11C288622BF70E8E00F7ACD8 /* JoystickManager.swift in Sources */,
+				11F0E49A2E9089970085918D /* SoundModel.swift in Sources */,
 				11E53CC82E88964100C17F16 /* MetricKitManager.swift in Sources */,
 				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
+				11F0E49C2E90899C0085918D /* SoundImporter.swift in Sources */,
 				11D713142E84BCC900F7FC9A /* BottomStatusToolbarContent.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */,
@@ -1240,7 +1268,6 @@
 				11C5B8492C0D57F40037E70A /* CreateNewCreatureSoundView.swift in Sources */,
 				1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
-				11C5B8472C0D39C10037E70A /* SoundFileTable.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
 				11E53CC42E888F3900C17F16 /* AppBootstrapper.swift in Sources */,
 				111D52282C013E5F002CC23B /* AppStateInspectorView.swift in Sources */,
@@ -1274,11 +1301,13 @@
 				117C87302CA0CE3B007B5682 /* CreatureHealthCache.swift in Sources */,
 				110C412B2E516F270079CA75 /* EmergencyStopMessageProcessor.swift in Sources */,
 				114576E32CC46E470031AF9C /* SoundListCache.swift in Sources */,
+				11F0E49D2E90899C0085918D /* SoundImporter.swift in Sources */,
 				117C873B2CA0CEBE007B5682 /* CreatureCache.swift in Sources */,
 				117E5C4B2CA1271C00431420 /* TopContentView.swift in Sources */,
 				117C873C2CA0CEBE007B5682 /* AppState.swift in Sources */,
 				117C873D2CA0CEBE007B5682 /* PlaylistCache.swift in Sources */,
 				117C87832CA0DA3F007B5682 /* SensorData.swift in Sources */,
+				11F0E4992E9089970085918D /* SoundModel.swift in Sources */,
 				117C873E2CA0CEBE007B5682 /* AnimationMetadataCache.swift in Sources */,
 				117C873F2CA0CEBE007B5682 /* EventLoop.swift in Sources */,
 				117C87392CA0CEB1007B5682 /* CacheMethods.swift in Sources */,
@@ -1295,6 +1324,7 @@
 				117C87322CA0CE9F007B5682 /* CacheInvalidationProcessor.swift in Sources */,
 				117C87402CA0CEC3007B5682 /* JoystickManager.swift in Sources */,
 				117C87452CA0CEF9007B5682 /* Joystick.swift in Sources */,
+				11F0E49F2E9089AD0085918D /* SoundFileListView.swift in Sources */,
 				117C87762CA0D727007B5682 /* ByteChartView.swift in Sources */,
 				117C87772CA0D727007B5682 /* BarChart.swift in Sources */,
 				117C87542CA0CEF9007B5682 /* SystemCountersStore.swift in Sources */,
@@ -1503,7 +1533,6 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "The Creature Console needs to communicate with the Creature Server";
-				INFOPLIST_KEY_NSLocationUsageDescription = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -1557,7 +1586,6 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "The Creature Console needs to communicate with the Creature Server";
-				INFOPLIST_KEY_NSLocationUsageDescription = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

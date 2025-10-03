@@ -1,6 +1,7 @@
 import Common
 import OSLog
 import SwiftUI
+import SwiftData
 
 actor AppBootstrapper {
     static let shared = AppBootstrapper()
@@ -18,7 +19,7 @@ actor AppBootstrapper {
         async let animationMetadataResult = AnimationMetadataCache.shared
             .fetchMetadataListFromServer()
         async let playlistsResult = PlaylistCache.shared.fetchPlaylistsFromServer()
-        async let soundsResult = SoundListCache.shared.fetchSoundsFromServer()
+        async let soundsResult = importSoundsIntoSwiftData()
 
         await CreatureServerClient.shared.connectWebsocket(processor: SwiftMessageProcessor.shared)
 
@@ -59,7 +60,7 @@ actor AppBootstrapper {
         case .success:
             break
         case .failure(let error):
-            logger.warning("Failed to fetch sounds: \(error.localizedDescription)")
+            logger.warning("Failed to import sounds: \(error.localizedDescription)")
             errors.append("Sounds: \(error.localizedDescription)")
         }
 
@@ -79,7 +80,7 @@ actor AppBootstrapper {
         async let animationMetadataResult = AnimationMetadataCache.shared
             .fetchMetadataListFromServer()
         async let playlistsResult = PlaylistCache.shared.fetchPlaylistsFromServer()
-        async let soundsResult = SoundListCache.shared.fetchSoundsFromServer()
+        async let soundsResult = importSoundsIntoSwiftData()
 
         let results = await (
             creaturesResult,
@@ -120,7 +121,7 @@ actor AppBootstrapper {
         case .success:
             break
         case .failure(let error):
-            logger.warning("Failed to fetch sounds after wake: \(error.localizedDescription)")
+            logger.warning("Failed to import sounds after wake: \(error.localizedDescription)")
             errors.append("Sounds: \(error.localizedDescription)")
         }
 
@@ -128,6 +129,29 @@ actor AppBootstrapper {
             let message =
                 "Some data failed to refresh:\n" + errors.map { "• \($0)" }.joined(separator: "\n")
             await AppState.shared.setSystemAlert(show: true, message: message)
+        }
+    }
+
+    private func importSoundsIntoSwiftData() async -> Result<String, Error> {
+        do {
+            // Build a temporary ModelContainer pointing to the same store URL used by the app
+            let fm = FileManager.default
+            let appSupport = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let storeURL = appSupport.appendingPathComponent("SoundStore", isDirectory: true)
+            let config = ModelConfiguration(url: storeURL)
+            let container = try ModelContainer(for: SoundModel.self, configurations: config)
+            let importer = SoundImporter(modelContainer: container)
+            let server = CreatureServerClient.shared
+            let result = await server.listSounds()
+            switch result {
+            case .success(let list):
+                try await importer.upsertBatch(list)
+                return .success("Imported \(list.count) sounds")
+            case .failure(let serverError):
+                return .failure(serverError)
+            }
+        } catch {
+            return .failure(error)
         }
     }
 }

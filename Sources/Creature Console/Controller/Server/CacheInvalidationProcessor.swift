@@ -2,6 +2,7 @@ import Common
 import Foundation
 import OSLog
 import SwiftUI
+import SwiftData
 
 struct CacheInvalidationProcessor {
 
@@ -114,27 +115,41 @@ struct CacheInvalidationProcessor {
 
     static func rebuildSoundListCache() {
 
-        logger.info("attempting to rebuild the sound list cache")
-
-        let cache = SoundListCache.shared
+        logger.info("attempting to rebuild the sound list (SwiftData import)")
 
         loadSoundListsTask?.cancel()
 
         loadSoundListsTask = Task {
             logger.debug("calling out to the server now...")
-            let populateResult = await cache.fetchSoundsFromServer()
-            switch populateResult {
-                case .success:
-                    logger.info("(re)built the sound list cache")
-                case .failure(let error):
-                    logger.warning(
-                        "unable to refresh the sound list cache: \(error.localizedDescription)")
+            let server = CreatureServerClient.shared
+            let result = await server.listSounds()
+            switch result {
+            case .success(let sounds):
+                do {
+                    let fm = FileManager.default
+                    let appSupport = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                    let storeURL = appSupport.appendingPathComponent("SoundStore", isDirectory: true)
+                    let config = ModelConfiguration(url: storeURL)
+                    let container = try ModelContainer(for: SoundModel.self, configurations: config)
+                    let importer = SoundImporter(modelContainer: container)
+                    try await importer.upsertBatch(sounds)
+                    logger.info("(re)built the sound list in SwiftData: imported \(sounds.count) sounds")
+                } catch {
+                    logger.warning("unable to import sounds into SwiftData: \(error.localizedDescription)")
                     await AppState.shared.setSystemAlert(
-                        show: true, 
-                        message: "Unable to reload the sound list cache after getting an invalidation message: \(error.localizedDescription)"
+                        show: true,
+                        message: "Unable to reload the sound list after getting an invalidation message: \(error.localizedDescription)"
                     )
+                }
+            case .failure(let error):
+                logger.warning("unable to fetch sounds from server: \(error.localizedDescription)")
+                await AppState.shared.setSystemAlert(
+                    show: true,
+                    message: "Unable to fetch sounds after invalidation: \(error.localizedDescription)"
+                )
             }
         }
 
     }
 }
+
