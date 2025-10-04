@@ -43,8 +43,8 @@ creature-console/
 
 ### Prerequisites
 
-- **Xcode 16.0** or later
-- **macOS 15.0** (Sequoia) or later for development
+- **Xcode 26** (required)
+- **macOS 26**, **iOS 26**, or **tvOS 26** (no older versions supported)
 - A creature server instance (see [creature.engineering](https://creature.engineering) for details)
 
 ### Building

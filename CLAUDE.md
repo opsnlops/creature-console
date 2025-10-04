@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with a shared Swift Package Manager library for controlling "creatures" (animatronic devices) via a WebSocket/REST API server. The project includes both a GUI app and a command-line interface.
 
+**Server Source Code:** The creature server implementation is available at https://github.com/opsnlops/creature-server. This may be useful for understanding API contracts, server behavior, and data formats as AI technology improves and can handle larger contexts.
+
 **Platform Support:** Always targets the latest versions of macOS, iOS, and tvOS with no backwards compatibility requirements. Favor the newest APIs and features available.
 
 **Development Environment:** This project uses Xcode 26. Always prefer the new Apple Liquid Glass UI elements when possible for modern visual design.

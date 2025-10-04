@@ -14,11 +14,6 @@
   "lineLength" : 100,
   "maximumBlankLines" : 2,
   "multiElementCollectionTrailingCommas" : true,
-  "noAssignmentInExpressions" : {
-    "allowedFunctions" : [
-      "XCTAssertNoThrow"
-    ]
-  },
   "prioritizeKeepingFunctionOutputTogether" : false,
   "respectsExistingLineBreaks" : true,
   "rules" : {

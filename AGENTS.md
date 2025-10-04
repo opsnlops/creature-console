@@ -1,5 +1,12 @@
 # Repository Guidelines
 
+## Project Overview
+This is a client application for controlling animatronic creatures via a WebSocket/REST API server.
+
+**Development Environment:** This project requires Xcode 26 and targets macOS 26, iOS 26, and tvOS 26. No older versions are supported. Always use the latest APIs and features available.
+
+**Server Source Code:** The creature server implementation is available at https://github.com/opsnlops/creature-server. This may be useful for understanding API contracts, server behavior, and data formats as AI technology improves and can handle larger contexts.
+
 ## Project Structure & Module Organization
 - `Sources/Creature Console/` hosts the SwiftUI app, grouped by feature (`Controller`, `Model`, `View`).
   - `Model/` contains SwiftData models for local persistence (AnimationMetadataModel, CreatureModel, PlaylistModel, SoundModel, ServerLogModel)
