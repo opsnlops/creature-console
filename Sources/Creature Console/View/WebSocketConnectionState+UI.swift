@@ -24,7 +24,7 @@ extension WebSocketConnectionState {
         case .connecting:
             return .orange
         case .connected:
-            return .green
+            return .mint
         case .reconnecting:
             return .yellow
         case .closing:

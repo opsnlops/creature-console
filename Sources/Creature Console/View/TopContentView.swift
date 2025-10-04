@@ -32,139 +32,127 @@ struct TopContentView: View {
 
 
     var body: some View {
-
-        NavigationSplitView {
-            List {
-                Section("Creatures") {
-                    if !creatures.isEmpty {
-                        ForEach(creatures) { creature in
-                            NavigationLink(value: creature.id) {
-                                Label(creature.name, systemImage: "pawprint.circle")
-                            }
-                        }
-                    } else {
-                        Label("Loading...", systemImage: "server.rack")
-                    }
-                }
-
-
-                #if os(iOS) || os(macOS)
-                    Section("Animations") {
-                        NavigationLink {
-                            AnimationTable()
-                        } label: {
-                            Label("List All", systemImage: "figure.socialdance")
-                        }
-                        NavigationLink {
-                            AnimationEditor(createNew: true)
-                        } label: {
-                            Label("Record New", systemImage: "hare")
-                        }
-                    }
-                #endif
-
-                #if os(iOS) || os(macOS)
-                    Section("Playlists") {
-                        NavigationLink {
-                            PlaylistsTable()
-                        } label: {
-                            Label("List All", systemImage: "list.bullet.rectangle")
-                                .symbolRenderingMode(.hierarchical)
-                        }
-                    }
-                #endif
-
-                #if os(iOS) || os(macOS)
-                    Section("Sound Files") {
-                        NavigationLink {
-                            SoundFileListView()
-                        } label: {
-                            Label("List All", systemImage: "music.note.list")
-                        }
-                        NavigationLink {
-                            CreateNewCreatureSoundView()
-                        } label: {
-                            Label("Create New", systemImage: "waveform.path.badge.plus")
-                                .symbolRenderingMode(.multicolor)
-                        }
-                    }
-                #endif
-
-
-                Section("Controls") {
-                    NavigationLink {
-                        JoystickDebugView()
-                    } label: {
-                        Label("Debug Joystick", systemImage: "gamecontroller")
-                    }
-
-                    #if os(iOS) || os(macOS)
-                        NavigationLink {
-                            LogView()
-                        } label: {
-                            Label("Server Logs", systemImage: "server.rack")
-                        }
-                    #endif
-
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        Label("Settings", systemImage: "gear")
-                    }
-
-                }
-            }
-            .navigationTitle("Creature Console")
-            .navigationDestination(for: CreatureIdentifier.self) { creature in
-                creatureDetailView(for: creature)
-            }
-            .task {
-                await importFromServerIfNeeded()
-            }
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text("Oooooh Shit"),
-                    message: Text(errorMessage),
-                    dismissButton: .default(Text("Fuck"))
-                )
-            }
-            #if os(iOS)
-                .toolbar(id: "global-bottom-status") {
-                    if UIDevice.current.userInterfaceIdiom == .phone {
-                        ToolbarItem(id: "status", placement: .bottomBar) {
-                            BottomStatusToolbarContent()
-                        }
-                    }
-                }
-            #endif
-        } detail: {
-            NavigationStack(path: $navigationPath) {
-                Text("Using server: \(server.getHostname())")
-                    .padding()
-                    .navigationDestination(for: CreatureIdentifier.self) { creatureID in
-                        creatureDetailView(for: creatureID)
-                    }
-                    #if os(iOS)
-                        .toolbar(id: "global-bottom-status") {
-                            if UIDevice.current.userInterfaceIdiom == .phone {
-                                ToolbarItem(id: "status", placement: .bottomBar) {
-                                    BottomStatusToolbarContent()
+        ZStack(alignment: .bottom) {
+            NavigationSplitView {
+                List {
+                    Section("Creatures") {
+                        if !creatures.isEmpty {
+                            ForEach(creatures) { creature in
+                                NavigationLink(value: creature.id) {
+                                    Label(creature.name, systemImage: "pawprint.circle")
                                 }
                             }
+                        } else {
+                            Label("Loading...", systemImage: "server.rack")
+                        }
+                    }
+
+
+                    #if os(iOS) || os(macOS)
+                        Section("Animations") {
+                            NavigationLink {
+                                AnimationTable()
+                            } label: {
+                                Label("List All", systemImage: "figure.socialdance")
+                            }
+                            NavigationLink {
+                                AnimationEditor(createNew: true)
+                            } label: {
+                                Label("Record New", systemImage: "hare")
+                            }
                         }
                     #endif
+
+                    #if os(iOS) || os(macOS)
+                        Section("Playlists") {
+                            NavigationLink {
+                                PlaylistsTable()
+                            } label: {
+                                Label("List All", systemImage: "list.bullet.rectangle")
+                                    .symbolRenderingMode(.hierarchical)
+                            }
+                        }
+                    #endif
+
+                    #if os(iOS) || os(macOS)
+                        Section("Sound Files") {
+                            NavigationLink {
+                                SoundFileListView()
+                            } label: {
+                                Label("List All", systemImage: "music.note.list")
+                            }
+                            NavigationLink {
+                                CreateNewCreatureSoundView()
+                            } label: {
+                                Label("Create New", systemImage: "waveform.path.badge.plus")
+                                    .symbolRenderingMode(.multicolor)
+                            }
+                        }
+                    #endif
+
+
+                    Section("Controls") {
+                        NavigationLink {
+                            JoystickDebugView()
+                        } label: {
+                            Label("Debug Joystick", systemImage: "gamecontroller")
+                        }
+
+                        #if os(iOS) || os(macOS)
+                            NavigationLink {
+                                LogView()
+                            } label: {
+                                Label("Server Logs", systemImage: "server.rack")
+                            }
+                        #endif
+
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Label("Settings", systemImage: "gear")
+                        }
+
+                    }
+                }
+                .navigationTitle("Creature Console")
+                .navigationDestination(for: CreatureIdentifier.self) { creature in
+                    creatureDetailView(for: creature)
+                }
+                .task {
+                    await importFromServerIfNeeded()
+                }
+                .alert(isPresented: $showErrorAlert) {
+                    Alert(
+                        title: Text("Oooooh Shit"),
+                        message: Text(errorMessage),
+                        dismissButton: .default(Text("Fuck"))
+                    )
+                }
+            } detail: {
+                NavigationStack(path: $navigationPath) {
+                    Text("Using server: \(server.getHostname())")
+                        .padding()
+                        .navigationDestination(for: CreatureIdentifier.self) { creatureID in
+                            creatureDetailView(for: creatureID)
+                        }
+                }
+
+            }
+            .safeAreaInset(edge: .bottom) {
+                // Reserve space so content doesn't get completely hidden behind the floating bar
+                Color.clear.frame(height: 100)
             }
 
-        }
-        #if os(macOS) || os(tvOS)
-            BottomToolBarView()
-        #endif
-
-        #if os(iOS)
-            if UIDevice.current.systemName == "iPadOS" {
+            #if os(macOS) || os(tvOS)
                 BottomToolBarView()
-            }
-        #endif
+            #endif
+
+            #if os(iOS)
+                if UIDevice.current.systemName == "iPadOS" {
+                    BottomToolBarView()
+                }
+            #endif
+        }
     }
 
 

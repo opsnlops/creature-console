@@ -77,41 +77,21 @@ struct BottomToolBarView: View {
 
             GlassEffectContainer(spacing: 14) {
                 HStack(spacing: 10) {
-                    StatusIndicator(
-                        systemName: "arrow.circlepath",
-                        isActive: statusLightsState.running,
-                        help: "Server Running",
-                        tint: .green,
-                        namespace: glassNamespace,
-                        unionGroup: "statusLights"
-                    )
-                    StatusIndicator(
-                        systemName: "rainbow",
-                        isActive: statusLightsState.streaming,
-                        help: "Streaming",
-                        tint: .teal,
-                        namespace: glassNamespace,
-                        unionGroup: "statusLights"
-                    )
-                    StatusIndicator(
-                        systemName: "antenna.radiowaves.left.and.right.circle.fill",
-                        isActive: statusLightsState.dmx,
-                        help: "DMX Signal",
-                        tint: .blue,
-                        namespace: glassNamespace,
-                        unionGroup: "statusLights"
-                    )
-                    StatusIndicator(
-                        systemName: "figure.socialdance",
-                        isActive: statusLightsState.animationPlaying,
-                        help: "Animation Playing",
-                        tint: .purple,
-                        namespace: glassNamespace,
-                        unionGroup: "statusLights"
-                    )
+                    ForEach(StatusLightsState.allLights, id: \.self) { light in
+                        StatusIndicator(
+                            systemName: light.symbolName,
+                            isActive: light.isActive(in: statusLightsState),
+                            help: light.helpText,
+                            tint: light.tintColor,
+                            namespace: glassNamespace,
+                            unionGroup: "statusLights"
+                        )
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
             }
-            .padding(.horizontal, 4)
+            .glassEffect(.regular.interactive(), in: .capsule)
 
         }
         .padding()

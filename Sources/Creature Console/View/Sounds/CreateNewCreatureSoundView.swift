@@ -135,15 +135,6 @@ struct CreateNewCreatureSoundView: View {
                 dismissButton: .default(Text("No Music for Us"))
             )
         }
-        #if os(iOS)
-            .toolbar(id: "global-bottom-status") {
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    ToolbarItem(id: "status", placement: .bottomBar) {
-                        BottomStatusToolbarContent()
-                    }
-                }
-            }
-        #endif
         .onDisappear {
 
             // Clean up if either of these is still running

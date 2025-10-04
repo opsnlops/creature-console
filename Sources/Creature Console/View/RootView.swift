@@ -2,6 +2,10 @@ import Foundation
 import OSLog
 import SwiftUI
 
+#if os(iOS)
+    import UIKit
+#endif
+
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RootView")
@@ -10,11 +14,36 @@ struct RootView: View {
     @State private var systemAlertMessage = ""
     @State private var websocketErrorMessage: String? = nil
 
-    var body: some View {
-        TopContentView()
+    // iOS: Use ZStack to overlay persistent bottom status bar (like Slack/Apple apps)
+    // macOS/tvOS: No ZStack needed - they use BottomToolBarView directly in TopContentView
+    @ViewBuilder
+    private var contentView: some View {
+        #if os(iOS)
+            ZStack {
+                TopContentView()
+
+                VStack {
+                    Spacer()
+                    if UIDevice.current.userInterfaceIdiom == .phone {
+                        BottomStatusToolbarContent()
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 8)
+                    }
+                }
+            }
             .task {
                 await AppBootstrapper.shared.startIfNeeded()
             }
+        #else
+            TopContentView()
+                .task {
+                    await AppBootstrapper.shared.startIfNeeded()
+                }
+        #endif
+    }
+
+    var body: some View {
+        contentView
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 if newPhase == .active {
                     Task {
@@ -33,7 +62,8 @@ struct RootView: View {
             }
             .task {
                 let name = Notification.Name("WebSocketDidEncounterError")
-                for await note in NotificationCenter.default.notifications(named: name, object: nil) {
+                for await note in NotificationCenter.default.notifications(named: name, object: nil)
+                {
                     let msg = (note.object as? String) ?? "WebSocket error occurred."
                     await MainActor.run {
                         websocketErrorMessage = msg
@@ -79,7 +109,8 @@ struct RootView: View {
                                 Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
                                 ?? "unknown"
                             let build =
-                                Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+                                Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+                                ?? "unknown"
                             let timestamp = ISO8601DateFormatter().string(from: Date())
                             let diagSummary = MetricKitManager.shared.latestSummary(limit: 3)
                             let body = """

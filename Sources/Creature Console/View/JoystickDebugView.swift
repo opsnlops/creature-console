@@ -163,15 +163,6 @@ struct JoystickDebugView: View {
                 try? await Task.sleep(for: .milliseconds(50))  // 20fps update rate for real-time debugging
             }
         }
-        #if os(iOS)
-            .toolbar(id: "global-bottom-status") {
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    ToolbarItem(id: "status", placement: .bottomBar) {
-                        BottomStatusToolbarContent()
-                    }
-                }
-            }
-        #endif
     }
 }
 

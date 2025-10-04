@@ -3,8 +3,9 @@ import Dispatch
 import Foundation
 import OSLog
 import SwiftUI
+
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 struct CreatureDetail: View {
@@ -106,15 +107,6 @@ struct CreatureDetail: View {
                 }
             #endif
         }
-        #if os(iOS)
-            .toolbar(id: "global-bottom-status") {
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    ToolbarItem(id: "status", placement: .bottomBar) {
-                        BottomStatusToolbarContent()
-                    }
-                }
-            }
-        #endif
         .toolbarRole(.editor)
         .overlay {
             if isDoingServerStuff {
@@ -243,4 +235,3 @@ struct CreatureDetail: View {
 #Preview {
     CreatureDetail(creature: .mock())
 }
-

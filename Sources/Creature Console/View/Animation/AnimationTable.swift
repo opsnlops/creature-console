@@ -98,9 +98,6 @@ struct AnimationTable: View {
                         }
                         .disabled(!hasSound)
                     }
-
-                    Spacer()
-
                 } else {
                     ProgressView("Loading animations...")
                         .padding()
@@ -145,15 +142,6 @@ struct AnimationTable: View {
                     )
                 }
             }
-            #if os(iOS)
-                .toolbar(id: "global-bottom-status") {
-                    if UIDevice.current.userInterfaceIdiom == .phone {
-                        ToolbarItem(id: "status", placement: .bottomBar) {
-                            BottomStatusToolbarContent()
-                        }
-                    }
-                }
-            #endif
         }  // NavigationStack
     }  // body
 

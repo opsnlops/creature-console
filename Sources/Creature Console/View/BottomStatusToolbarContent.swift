@@ -10,75 +10,43 @@ struct BottomStatusToolbarContent: View {
     @Namespace private var glassNamespace
 
     var body: some View {
-        HStack(spacing: 12) {
-            // State chip (compact = dot)
-            if hSize == .regular {
-                HStack(spacing: 6) {
-                    Image(systemName: currentActivity.symbolName)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.95))
-                    Text(currentActivity.description)
-                        .font(.footnote)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .glassEffect(
-                    .regular
-                        .tint(currentActivity.tintColor.opacity(0.35))
-                        .interactive(),
-                    in: .capsule
+        GlassEffectContainer(spacing: 12) {
+            HStack(spacing: 12) {
+                // Current activity indicator
+                ToolbarStatusDot(
+                    systemName: currentActivity.symbolName,
+                    active: currentActivity != .idle,
+                    tint: currentActivity.tintColor,
+                    namespace: glassNamespace,
+                    unionID: "activityStatus"
                 )
-                .animation(.easeInOut(duration: 0.25), value: currentActivity)
-            } else {
-                Image(systemName: currentActivity.symbolName)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.95))
-                    .padding(8)
-                    .glassEffect(
-                        .regular
-                            .tint(currentActivity.tintColor.opacity(0.6))
-                            .interactive(),
-                        in: .circle
-                    )
-                    .animation(.easeInOut(duration: 0.25), value: currentActivity)
-            }
 
-            // Cluster of status lights
-            GlassEffectContainer(spacing: 14) {
+                // WebSocket status indicator
+                ToolbarStatusDot(
+                    systemName: websocketState.symbolName,
+                    active: websocketState == .connected,
+                    tint: websocketState.tintColor,
+                    namespace: glassNamespace,
+                    unionID: "websocketStatus"
+                )
+
+                // Cluster of status lights
                 HStack(spacing: 10) {
-                    ToolbarStatusDot(
-                        systemName: websocketState.symbolName,
-                        active: websocketState == .connected,
-                        tint: websocketState.tintColor,
-                        namespace: glassNamespace
-                    )
-                    ToolbarStatusDot(
-                        systemName: "arrow.circlepath",
-                        active: statusLightsState.running,
-                        tint: .green,
-                        namespace: glassNamespace
-                    )
-                    ToolbarStatusDot(
-                        systemName: "rainbow",
-                        active: statusLightsState.streaming,
-                        tint: .teal,
-                        namespace: glassNamespace
-                    )
-                    ToolbarStatusDot(
-                        systemName: "antenna.radiowaves.left.and.right.circle.fill",
-                        active: statusLightsState.dmx,
-                        tint: .blue,
-                        namespace: glassNamespace
-                    )
-                    ToolbarStatusDot(
-                        systemName: "figure.socialdance",
-                        active: statusLightsState.animationPlaying,
-                        tint: .purple,
-                        namespace: glassNamespace
-                    )
+                    ForEach(StatusLightsState.allLights, id: \.self) { light in
+                        ToolbarStatusDot(
+                            systemName: light.symbolName,
+                            active: light.isActive(in: statusLightsState),
+                            tint: light.tintColor,
+                            namespace: glassNamespace,
+                            unionID: "statusLights"
+                        )
+                    }
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
+        .glassEffect(.regular.interactive(), in: .capsule)
         .task {
             // Listen for status light updates
             for await state in await StatusLightsManager.shared.stateUpdates {
@@ -118,12 +86,12 @@ private struct ToolbarStatusDot: View {
     let active: Bool
     let tint: Color
     let namespace: Namespace.ID
+    let unionID: String
 
     var body: some View {
         Image(systemName: systemName)
             .font(.system(size: 18, weight: .semibold))
             .imageScale(.medium)
-            .frame(width: 20, height: 20, alignment: .center)
             .foregroundStyle(active ? .white : .secondary)
             .padding(8)
             .glassEffect(
@@ -132,7 +100,7 @@ private struct ToolbarStatusDot: View {
                     .interactive(),
                 in: .circle
             )
-            .glassEffectUnion(id: "statusLights", namespace: namespace)
+            .glassEffectUnion(id: unionID, namespace: namespace)
             .scaleEffect(active ? 1.06 : 1.0)
             .opacity(active ? 1.0 : 0.85)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: active)

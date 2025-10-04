@@ -194,15 +194,6 @@ struct PlaylistsTable: View {
                     }
                 #endif
             }
-            #if os(iOS)
-                .toolbar(id: "global-bottom-status") {
-                    if UIDevice.current.userInterfaceIdiom == .phone {
-                        ToolbarItem(id: "status", placement: .bottomBar) {
-                            BottomStatusToolbarContent()
-                        }
-                    }
-                }
-            #endif
             .navigationTitle("Playlists")
             #if os(macOS)
                 .navigationSubtitle("Number of Playlists: \(playlists.count)")

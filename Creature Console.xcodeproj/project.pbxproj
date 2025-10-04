@@ -153,6 +153,8 @@
 		11C326D029DD3FED00B169CD /* Credits.rtfd in Resources */ = {isa = PBXBuildFile; fileRef = 11C326CF29DD3FED00B169CD /* Credits.rtfd */; };
 		11C522372BF84E0C0009A53E /* StatusLightsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522362BF84E0C0009A53E /* StatusLightsManager.swift */; };
 		11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */; };
+		11C54A4A2E91A1E0003CD966 /* StatusLightsState+UI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C54A492E91A1E0003CD966 /* StatusLightsState+UI.swift */; };
+		11C54A4B2E91A1E0003CD966 /* StatusLightsState+UI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C54A492E91A1E0003CD966 /* StatusLightsState+UI.swift */; };
 		11C5B8492C0D57F40037E70A /* CreateNewCreatureSoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */; };
 		11C622F52C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */; };
 		11D713122E84B85E00F7FC9A /* Activity+Tint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D713112E84B85E00F7FC9A /* Activity+Tint.swift */; };
@@ -307,6 +309,7 @@
 		11C326CF29DD3FED00B169CD /* Credits.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Credits.rtfd; sourceTree = "<group>"; };
 		11C522362BF84E0C0009A53E /* StatusLightsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusLightsManager.swift; sourceTree = "<group>"; };
 		11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualStatusLightsProcessor.swift; sourceTree = "<group>"; };
+		11C54A492E91A1E0003CD966 /* StatusLightsState+UI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StatusLightsState+UI.swift"; sourceTree = "<group>"; };
 		11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateNewCreatureSoundView.swift; sourceTree = "<group>"; };
 		11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardSensorReportMessageProcessor.swift; sourceTree = "<group>"; };
 		11D713112E84B85E00F7FC9A /* Activity+Tint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Activity+Tint.swift"; sourceTree = "<group>"; };
@@ -551,6 +554,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				11C54A492E91A1E0003CD966 /* StatusLightsState+UI.swift */,
 				119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */,
 				114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */,
 				118AE3602C439D1300346C0E /* Playlists */,
@@ -1333,6 +1337,7 @@
 				11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */,
 				11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
+				11C54A4A2E91A1E0003CD966 /* StatusLightsState+UI.swift in Sources */,
 				11754B672C002940001A6C83 /* CacheMethods.swift in Sources */,
 				118AE3622C439D8000346C0E /* PlaylistsTable.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
@@ -1404,6 +1409,7 @@
 				117C873F2CA0CEBE007B5682 /* EventLoop.swift in Sources */,
 				117C87392CA0CEB1007B5682 /* CacheMethods.swift in Sources */,
 				117C873A2CA0CEB1007B5682 /* CreatureManager.swift in Sources */,
+				11C54A4B2E91A1E0003CD966 /* StatusLightsState+UI.swift in Sources */,
 				11E53CD02E88A0C400C17F16 /* AppBootstrapper.swift in Sources */,
 				117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */,
 				117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */,
@@ -1617,7 +1623,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2901;
+				CURRENT_PROJECT_VERSION = 2902;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1648,7 +1654,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.9.1;
+				MARKETING_VERSION = 2.9.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1670,7 +1676,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2901;
+				CURRENT_PROJECT_VERSION = 2902;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1701,7 +1707,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.9.1;
+				MARKETING_VERSION = 2.9.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

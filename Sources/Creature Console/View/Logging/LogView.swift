@@ -162,15 +162,6 @@ struct LogView: View {
                 .background(Color(NSColor.windowBackgroundColor))
             #endif
         }
-        #if os(iOS)
-            .toolbar(id: "global-bottom-status") {
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    ToolbarItem(id: "status", placement: .bottomBar) {
-                        BottomStatusToolbarContent()
-                    }
-                }
-            }
-        #endif
     }
 
     private func formattedDate(_ date: Date) -> String {
