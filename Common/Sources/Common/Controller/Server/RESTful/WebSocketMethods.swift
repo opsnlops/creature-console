@@ -117,6 +117,9 @@ actor WebSocketClient {
     private let session: URLSession
     private var isConnected: Bool = false
     private var pingTask: Task<Void, Never>?
+    private var lastPongReceivedAt: Date?
+    private let pingInterval: TimeInterval = 15  // Send ping every 15 seconds
+    private let pingTimeoutInterval: TimeInterval = 30  // Consider dead if no pong in 30 seconds
 
     private var reconnectTask: Task<Void, Never>?
     private var reconnectAttempt: Int = 0
@@ -172,6 +175,11 @@ actor WebSocketClient {
             logger.warning("Network unreachable. Marking connection as down.")
             suppressErrorNotifications = true
             isConnected = false
+            if shouldStayConnected {
+                await WebSocketStateManager.shared.setState(.reconnecting)
+            } else {
+                await WebSocketStateManager.shared.setState(.disconnected)
+            }
         }
     }
 
@@ -366,6 +374,7 @@ actor WebSocketClient {
         reconnectAttempt = 0
         consecutiveErrorCount = 0
         suppressErrorNotifications = false
+        lastPongReceivedAt = Date()  // Reset pong timer on connect
 
         logger.info("websocket is connected")
         Task {
@@ -428,24 +437,73 @@ actor WebSocketClient {
     private func startPinging() {
         pingTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(10))
+                guard let self = self else { break }
 
-                guard !Task.isCancelled else { break }
-
-                if await self?.isConnected == true {
-                    await self?.task?.sendPing { [weak self] error in
+                // Send ping if connected
+                if await self.isConnected {
+                    await self.task?.sendPing { [weak self] error in
                         Task {
+                            guard let self = self else { return }
                             if let error = error {
-                                self?.logger.warning("Ping failed: \(error.localizedDescription)")
+                                self.logger.warning("Ping failed: \(error.localizedDescription)")
+                                await self.handlePingFailure(error)
                             } else {
-                                self?.logger.debug("Ping sent")
+                                self.logger.debug("Ping sent successfully")
+                                await self.recordPongReceived()
                             }
                         }
                     }
                 } else {
                     break
                 }
+
+                // Sleep in smaller intervals to check timeout more frequently
+                for _ in 0..<3 {
+                    try? await Task.sleep(for: .seconds(5))
+                    guard !Task.isCancelled else { break }
+
+                    // Check for ping timeout every 5 seconds
+                    let lastPong = await self.lastPongReceivedAt
+                    if let lastPong = lastPong {
+                        let timeSinceLastPong = Date().timeIntervalSince(lastPong)
+                        if timeSinceLastPong > self.pingTimeoutInterval {
+                            self.logger.warning(
+                                "Ping timeout: no pong received in \(String(format: "%.1f", timeSinceLastPong))s"
+                            )
+                            await self.handlePingTimeout()
+                            return
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    private func recordPongReceived() {
+        lastPongReceivedAt = Date()
+    }
+
+    private func handlePingTimeout() async {
+        logger.warning("Ping timeout detected, treating as disconnection")
+        isConnected = false
+        pingTask?.cancel()
+        pingTask = nil
+        await WebSocketStateManager.shared.setState(.disconnected)
+
+        if shouldStayConnected {
+            await scheduleReconnect()
+        }
+    }
+
+    private func handlePingFailure(_ error: Error) async {
+        logger.warning("Ping failure detected, treating as disconnection")
+        isConnected = false
+        pingTask?.cancel()
+        pingTask = nil
+        await WebSocketStateManager.shared.setState(.disconnected)
+
+        if shouldStayConnected {
+            await scheduleReconnect()
         }
     }
 
