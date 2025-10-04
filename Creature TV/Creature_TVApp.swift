@@ -15,7 +15,6 @@ struct Creature_TVApp: App {
     let messageProcessor = SwiftMessageProcessor.shared
     let joystickManager = JoystickManager.shared
     let statusLights = StatusLightsManager.shared
-    let creatureCache = CreatureCache.shared
     let healthCache = CreatureHealthCache.shared
 
     let modelContainer: ModelContainer
@@ -71,12 +70,25 @@ struct Creature_TVApp: App {
 
         // Set up SwiftData model container (local file-backed; no CloudKit)
         do {
-            let container = try SoundDataStore.createModelContainer()
+            let fm = FileManager.default
+            let appSupport = try fm.url(
+                for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil,
+                create: true)
+            let storeURL = appSupport.appendingPathComponent(
+                "CreatureConsoleTVStore", isDirectory: true)
+
+            let config = ModelConfiguration(url: storeURL)
+            let container = try ModelContainer(
+                for: SoundModel.self, CreatureModel.self, InputModel.self,
+                AnimationMetadataModel.self, PlaylistModel.self, PlaylistItemModel.self,
+                ServerLogModel.self,
+                configurations: config)
+
             self.modelContainer = container
 
-            // Set the container in the actor
+            // Set the container in the shared data store
             Task {
-                await SoundDataStore.shared.setContainer(container)
+                await SwiftDataStore.shared.setContainer(container)
             }
         } catch {
             fatalError("Failed to create SwiftData ModelContainer: \(error)")

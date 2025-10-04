@@ -1,11 +1,16 @@
 import Common
 import OSLog
+import SwiftData
 import SwiftUI
 
 struct ChooseCreatureSheet: View {
 
     @Environment(\.dismiss) var dismiss
-    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
+    @Environment(\.modelContext) private var modelContext
+
+    // Lazily fetched by SwiftData
+    @Query(sort: \CreatureModel.name, order: .forward)
+    private var creatures: [CreatureModel]
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "ChooseCreatureSheet")
 
@@ -14,10 +19,8 @@ struct ChooseCreatureSheet: View {
     var body: some View {
         VStack {
             Picker("Choose a Creature", selection: $selectedCreature) {
-                ForEach(
-                    creatureCacheState.creatures.values.sorted(by: { $0.name < $1.name }), id: \.id
-                ) { creature in
-                    Text(creature.name).tag(creature as Creature?)
+                ForEach(creatures) { creature in
+                    Text(creature.name).tag(creature.toDTO() as Creature?)
                 }
             }
             .pickerStyle(.automatic)
@@ -40,20 +43,6 @@ struct ChooseCreatureSheet: View {
             }
         }
         .padding()
-        .task {
-            // Set initial state from current cache
-            let initialState = await CreatureCache.shared.getCurrentState()
-            await MainActor.run {
-                creatureCacheState = initialState
-            }
-
-            // Continue listening for updates
-            for await state in await CreatureCache.shared.stateUpdates {
-                await MainActor.run {
-                    creatureCacheState = state
-                }
-            }
-        }
     }
 }
 

@@ -8,9 +8,16 @@ struct ServerLogItemProcessor {
 
     static public func processServerLogItem(_ serverLogItem: ServerLogItem) {
 
-        // Feed this to the logManager so it shows up in the UI
+        // Feed this to SwiftData so it shows up in the UI
         Task {
-            await LogManager.shared.addLogMessage(from: serverLogItem)
+            do {
+                let container = await SwiftDataStore.shared.container()
+                let importer = ServerLogImporter(modelContainer: container)
+                try await importer.addLog(serverLogItem)
+            } catch {
+                logger.warning(
+                    "Failed to save server log to SwiftData: \(error.localizedDescription)")
+            }
         }
 
         // Convert the level to our enum

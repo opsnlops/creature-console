@@ -1,5 +1,6 @@
 import Common
 import OSLog
+import SwiftData
 import SwiftUI
 
 #if os(iOS)
@@ -16,12 +17,15 @@ struct AnimationTable: View {
 
     var creature: Creature?
 
-    @State private var animationCacheState = AnimationMetadataCacheState(
-        metadatas: [:], empty: true)
+    @Environment(\.modelContext) private var modelContext
+
+    // Lazily fetched by SwiftData
+    @Query(sort: \AnimationMetadataModel.title, order: .forward)
+    private var animations: [AnimationMetadataModel]
 
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
-    @State private var selection: AnimationMetadata.ID? = nil
+    @State private var selection: AnimationIdentifier? = nil
 
     @State private var loadAnimationTask: Task<Void, Never>? = nil
     @State private var playAnimationTask: Task<Void, Never>? = nil
@@ -34,8 +38,8 @@ struct AnimationTable: View {
     var body: some View {
         NavigationStack {
             VStack {
-                if !animationCacheState.metadatas.isEmpty {
-                    Table(of: AnimationMetadata.self, selection: $selection) {
+                if !animations.isEmpty {
+                    Table(of: AnimationMetadataModel.self, selection: $selection) {
                         TableColumn("Name") { a in
                             Text(a.title)
                                 .onTapGesture(count: 2) {
@@ -59,14 +63,12 @@ struct AnimationTable: View {
                         }
                         .width(80)
                     } rows: {
-                        ForEach(
-                            animationCacheState.metadatas.values.sorted(by: { $0.title < $1.title })
-                        ) { metadata in
+                        ForEach(animations) { metadata in
                             TableRow(metadata)
                         }
                     }
-                    .contextMenu(forSelectionType: AnimationMetadata.ID.self) {
-                        (items: Set<AnimationMetadata.ID>) in
+                    .contextMenu(forSelectionType: AnimationIdentifier.self) {
+                        (items: Set<AnimationIdentifier>) in
                         // Determine if we have a selected ID (right-click updates selection automatically)
                         let hasSelection = (items.first ?? selection) != nil
 
@@ -89,7 +91,7 @@ struct AnimationTable: View {
                         // Sound file action (kept as a stub; disabled when no sound file)
                         let hasSound: Bool = {
                             guard let id = items.first ?? selection,
-                                let md = animationCacheState.metadatas[id]
+                                let md = animations.first(where: { $0.id == id })
                             else { return false }
                             return !md.soundFile.isEmpty
                         }()
@@ -127,22 +129,8 @@ struct AnimationTable: View {
             }
             .navigationTitle("Animations")
             #if os(macOS)
-                .navigationSubtitle("Number of Animations: \(animationCacheState.metadatas.count)")
+                .navigationSubtitle("Number of Animations: \(animations.count)")
             #endif
-            .task {
-                // First, get the current state immediately
-                let currentState = await AnimationMetadataCache.shared.getCurrentState()
-                await MainActor.run {
-                    animationCacheState = currentState
-                }
-
-                // Then listen for updates
-                for await state in await AnimationMetadataCache.shared.stateUpdates {
-                    await MainActor.run {
-                        animationCacheState = state
-                    }
-                }
-            }
             .navigationDestination(isPresented: $navigateToEditor) {
                 if let animation = animationToEdit {
                     AnimationEditor(animation: animation)

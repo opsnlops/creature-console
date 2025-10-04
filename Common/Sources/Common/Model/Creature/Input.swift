@@ -2,6 +2,9 @@ import Foundation
 import Logging
 
 /// This is the representation of a `Input`
+///
+/// **IMPORTANT**: This DTO must stay in sync with `InputModel` in the GUI package.
+/// Any changes to fields here must be reflected in InputModel.swift and vice versa.
 public final class Input: Identifiable, Hashable, Equatable, Codable, Sendable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.Creature.Input")
 

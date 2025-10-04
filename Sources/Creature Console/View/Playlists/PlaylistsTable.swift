@@ -1,6 +1,7 @@
 import Common
 import Foundation
 import OSLog
+import SwiftData
 import SwiftUI
 
 #if os(iOS)
@@ -11,6 +12,10 @@ struct PlaylistsTable: View {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "PlaylistsTable")
 
+    @Environment(\.modelContext) private var modelContext
+
+    @Query(sort: \PlaylistModel.name, order: .forward)
+    private var playlists: [PlaylistModel]
 
     // Our Server
     let server = CreatureServerClient.shared
@@ -26,9 +31,6 @@ struct PlaylistsTable: View {
     @State private var showingCreateSheet = false
 
     @State private var playlistTask: Task<Void, Never>? = nil
-
-    // Update if this changes
-    @State private var playlistCacheState = PlaylistCacheState(playlists: [:], empty: true)
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
@@ -49,8 +51,8 @@ struct PlaylistsTable: View {
             .width(min: 100)
 
         } rows: {
-            ForEach(playlistCacheState.playlists.values.sorted(by: { $0.name < $1.name })) {
-                playlist in
+            ForEach(playlists) { playlistModel in
+                let playlist = playlistModel.toDTO()
                 TableRow(playlist)
                     .contextMenu {
                         playlistContextMenu(for: playlist)
@@ -81,7 +83,7 @@ struct PlaylistsTable: View {
     var body: some View {
         NavigationStack {
             VStack {
-                if !playlistCacheState.playlists.isEmpty {
+                if !playlists.isEmpty {
                     playlistTable
                 } else {
                     ContentUnavailableView {
@@ -124,9 +126,9 @@ struct PlaylistsTable: View {
                     ToolbarItem(id: "edit", placement: .topBarTrailing) {
                         Button(action: {
                             if let selectedId = selection,
-                                let playlist = playlistCacheState.playlists[selectedId]
+                                let playlistModel = playlists.first(where: { $0.id == selectedId })
                             {
-                                editPlaylist(playlist)
+                                editPlaylist(playlistModel.toDTO())
                             }
                         }) {
                             Image(systemName: "pencil")
@@ -155,9 +157,9 @@ struct PlaylistsTable: View {
                     ToolbarItem(id: "edit", placement: .secondaryAction) {
                         Button(action: {
                             if let selectedId = selection,
-                                let playlist = playlistCacheState.playlists[selectedId]
+                                let playlistModel = playlists.first(where: { $0.id == selectedId })
                             {
-                                editPlaylist(playlist)
+                                editPlaylist(playlistModel.toDTO())
                             }
                         }) {
                             Image(systemName: "pencil")
@@ -186,8 +188,7 @@ struct PlaylistsTable: View {
             #endif
             .navigationTitle("Playlists")
             #if os(macOS)
-                .navigationSubtitle(
-                    "Number of Playlists: \(self.playlistCacheState.playlists.values.count)")
+                .navigationSubtitle("Number of Playlists: \(playlists.count)")
             #endif
             .sheet(isPresented: $showingEditSheet) {
                 EditPlaylistSheet(
@@ -207,20 +208,6 @@ struct PlaylistsTable: View {
                     createPlaylist(newPlaylist)
                 }
                 .frame(width: 480, height: 400)
-            }
-            .task {
-                // Set initial state from current cache
-                let initialState = await PlaylistCache.shared.getCurrentState()
-                await MainActor.run {
-                    playlistCacheState = initialState
-                }
-
-                // Continue listening for updates
-                for await state in await PlaylistCache.shared.stateUpdates {
-                    await MainActor.run {
-                        playlistCacheState = state
-                    }
-                }
             }
         }  // Navigation Stack
     }  // View
@@ -243,16 +230,23 @@ struct PlaylistsTable: View {
                 switch result {
                 case .success(let message):
                     logger.info("Playlist updated successfully: \(message)")
-                    // Update the cache immediately with the saved playlist
+                    // Refresh from server
                     Task {
-                        await PlaylistCache.shared.addPlaylist(playlist, for: playlist.id)
-                        // Also trigger a full refresh from server
-                        let cacheResult = await PlaylistCache.shared.fetchPlaylistsFromServer()
-                        switch cacheResult {
-                        case .success(let message):
-                            logger.debug("Cache refresh successful: \(message)")
+                        let container = await SwiftDataStore.shared.container()
+                        let importer = PlaylistImporter(modelContainer: container)
+                        let result = await server.getAllPlaylists()
+                        switch result {
+                        case .success(let list):
+                            do {
+                                try await importer.upsertBatch(list)
+                                logger.debug("Cache refresh successful")
+                            } catch {
+                                logger.warning(
+                                    "Cache refresh failed: \(error.localizedDescription)")
+                            }
                         case .failure(let error):
-                            logger.warning("Cache refresh failed: \(error.localizedDescription)")
+                            logger.warning(
+                                "Failed to fetch playlists: \(error.localizedDescription)")
                         }
                     }
                     // Clean up and close dialog
@@ -279,16 +273,23 @@ struct PlaylistsTable: View {
                 switch result {
                 case .success:
                     logger.info("Playlist created successfully")
-                    // Add the new playlist to cache immediately
+                    // Refresh from server
                     Task {
-                        await PlaylistCache.shared.addPlaylist(playlist, for: playlist.id)
-                        // Also trigger a full refresh from server
-                        let cacheResult = await PlaylistCache.shared.fetchPlaylistsFromServer()
-                        switch cacheResult {
-                        case .success(let message):
-                            logger.debug("Cache refresh successful: \(message)")
+                        let container = await SwiftDataStore.shared.container()
+                        let importer = PlaylistImporter(modelContainer: container)
+                        let result = await server.getAllPlaylists()
+                        switch result {
+                        case .success(let list):
+                            do {
+                                try await importer.upsertBatch(list)
+                                logger.debug("Cache refresh successful")
+                            } catch {
+                                logger.warning(
+                                    "Cache refresh failed: \(error.localizedDescription)")
+                            }
                         case .failure(let error):
-                            logger.warning("Cache refresh failed: \(error.localizedDescription)")
+                            logger.warning(
+                                "Failed to fetch playlists: \(error.localizedDescription)")
                         }
                     }
                     showingCreateSheet = false
@@ -371,6 +372,11 @@ struct PlaylistsTable: View {
 }  // struct
 
 struct EditPlaylistSheet: View {
+    @Environment(\.modelContext) private var modelContext
+
+    @Query(sort: \AnimationMetadataModel.title, order: .forward)
+    private var animations: [AnimationMetadataModel]
+
     @Binding var playlist: Common.Playlist?
     let onSave: (Common.Playlist) -> Void
     let onCancel: () -> Void
@@ -514,13 +520,6 @@ struct EditPlaylistSheet: View {
             }
         }
         .frame(minWidth: 800, minHeight: 600)
-        .task {
-            for await state in await AnimationMetadataCache.shared.stateUpdates {
-                await MainActor.run {
-                    animationCacheState = state
-                }
-            }
-        }
         .onAppear {
             if editablePlaylist == nil {
                 editablePlaylist = playlist
@@ -528,11 +527,8 @@ struct EditPlaylistSheet: View {
         }
     }
 
-    @State private var animationCacheState = AnimationMetadataCacheState(
-        metadatas: [:], empty: true)
-
     private var availableAnimations: [AnimationMetadata] {
-        animationCacheState.metadatas.values.filter { metadata in
+        animations.map { $0.toDTO() }.filter { metadata in
             !(editablePlaylist?.items.contains { $0.animationId == metadata.id } ?? false)
         }.sorted { $0.title < $1.title }
     }
@@ -544,7 +540,7 @@ struct EditPlaylistSheet: View {
     }
 
     private func animationName(for id: AnimationIdentifier) -> String {
-        animationCacheState.metadatas[id]?.title ?? "Unknown Animation"
+        animations.first(where: { $0.id == id })?.title ?? "Unknown Animation"
     }
 
     private func totalWeight(for playlist: Common.Playlist) -> UInt32 {

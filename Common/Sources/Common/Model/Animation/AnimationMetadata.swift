@@ -1,6 +1,9 @@
 import Foundation
 
 /// This is a local version of the `AnimationMetadata` that's sent over the wire
+///
+/// **IMPORTANT**: This DTO must stay in sync with `AnimationMetadataModel` in the GUI package.
+/// Any changes to fields here must be reflected in AnimationMetadataModel.swift and vice versa.
 public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sendable {
 
     public var id: AnimationIdentifier

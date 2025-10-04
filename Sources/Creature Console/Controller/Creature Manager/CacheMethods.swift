@@ -1,6 +1,7 @@
 import Common
 import Foundation
 import OSLog
+import SwiftData
 import SwiftUI
 
 extension CreatureManager {
@@ -8,21 +9,28 @@ extension CreatureManager {
 
     func populateCache() async -> Result<String, ServerError> {
 
-        logger.info("(re)populating the CreatureCache")
+        logger.info("(re)populating the Creature SwiftData cache")
 
         let creatureList = await server.getAllCreatures()
         switch creatureList {
         case .success(let list):
-            await CreatureCache.shared.reload(with: list)
-            logger.debug("(re)populated the cache")
+            do {
+                let container = await SwiftDataStore.shared.container()
+                let importer = CreatureImporter(modelContainer: container)
+                try await importer.upsertBatch(list)
+                logger.debug("(re)populated the SwiftData cache with \(list.count) creatures")
+                return .success("Successfully populated the cache with \(list.count) creatures!")
+            } catch {
+                logger.warning(
+                    "Unable to import creatures into SwiftData: \(error.localizedDescription)")
+                return .failure(
+                    .databaseError("SwiftData import failed: \(error.localizedDescription)"))
+            }
         case .failure(let error):
             logger.warning(
                 "Unable to (re)populate the creature cache: \(error.localizedDescription)")
             return .failure(error)
         }
-
-        return .success(
-            "Successfully populated the cache with \(await CreatureCache.shared.count) creatures!")
     }
 
 

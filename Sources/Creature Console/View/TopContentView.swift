@@ -1,5 +1,6 @@
 import Common
 import OSLog
+import SwiftData
 import SwiftUI
 
 #if os(iOS)
@@ -13,14 +14,11 @@ struct TopContentView: View {
     let server = CreatureServerClient.shared
     let messageProcessor = SwiftMessageProcessor.shared
 
-    // These do not need to be observed since we don't show the in the sidebar
-    let animationMetadataCache = AnimationMetadataCache.shared
-    let playlistCache = PlaylistCache.shared
+    @Environment(\.modelContext) private var modelContext
 
-
-    // Watch the cache to know what to do
-    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
-
+    // Lazily fetched by SwiftData
+    @Query(sort: \CreatureModel.name, order: .forward)
+    private var creatures: [CreatureModel]
 
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
@@ -38,11 +36,8 @@ struct TopContentView: View {
         NavigationSplitView {
             List {
                 Section("Creatures") {
-                    if !creatureCacheState.empty {
-                        ForEach(
-                            creatureCacheState.creatures.values.sorted(by: { $0.name < $1.name })
-                        ) {
-                            creature in
+                    if !creatures.isEmpty {
+                        ForEach(creatures) { creature in
                             NavigationLink(value: creature.id) {
                                 Label(creature.name, systemImage: "pawprint.circle")
                             }
@@ -124,15 +119,9 @@ struct TopContentView: View {
                 creatureDetailView(for: creature)
             }
             .task {
-                // Subscribe to creature cache updates
-                Task {
-                    for await state in await CreatureCache.shared.stateUpdates {
-                        await MainActor.run {
-                            creatureCacheState = state
-                        }
-                    }
-                }
-            }.alert(isPresented: $showErrorAlert) {
+                await importFromServerIfNeeded()
+            }
+            .alert(isPresented: $showErrorAlert) {
                 Alert(
                     title: Text("Oooooh Shit"),
                     message: Text(errorMessage),
@@ -183,11 +172,35 @@ struct TopContentView: View {
      Show either the CreatureDetail view, or a blank one.
      */
     func creatureDetailView(for id: CreatureIdentifier) -> some View {
-        if let creature = creatureCacheState.creatures[id] {
-            return AnyView(CreatureDetail(creature: creature))
+        if let creature = creatures.first(where: { $0.id == id }) {
+            return AnyView(CreatureDetail(creature: creature.toDTO()))
         } else {
             return AnyView(EmptyView())
         }
     }
-}
 
+    private func importFromServerIfNeeded() async {
+        // If we already have creatures, skip fetch
+        if !creatures.isEmpty { return }
+        do {
+            let importer = CreatureImporter(modelContainer: modelContext.container)
+            logger.info("Fetching creature list from server for SwiftData import")
+            let result = await server.getAllCreatures()
+            switch result {
+            case .success(let list):
+                try await importer.upsertBatch(list)
+                logger.info("Imported \(list.count) creatures into SwiftData")
+            case .failure(let error):
+                await MainActor.run {
+                    errorMessage = ServerError.detailedMessage(from: error)
+                    showErrorAlert = true
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = "Error importing creatures: \(error.localizedDescription)"
+                showErrorAlert = true
+            }
+        }
+    }
+}

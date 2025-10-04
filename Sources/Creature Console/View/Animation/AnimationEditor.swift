@@ -1,5 +1,6 @@
 import Common
 import OSLog
+import SwiftData
 import SwiftUI
 
 #if os(iOS)
@@ -15,6 +16,11 @@ struct AnimationEditor: View {
 
     let server = CreatureServerClient.shared
 
+    @Environment(\.modelContext) private var modelContext
+
+    // Lazily fetched by SwiftData
+    @Query(sort: \CreatureModel.name, order: .forward)
+    private var creatures: [CreatureModel]
 
     // The parent view will set this to true if we're about to make a _new_ animation
     @State var createNew: Bool = false
@@ -113,24 +119,12 @@ struct AnimationEditor: View {
                     .disabled(model.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .task {
-                // First, get the current state immediately (so toolbar enables correctly)
-                let currentState = await CreatureCache.shared.getCurrentState()
-                await MainActor.run {
-                    availableCreatures = Array(currentState.creatures.values).sorted {
-                        $0.name < $1.name
-                    }
-                }
-
-                // Load creature data
-                for await state in await CreatureCache.shared.stateUpdates {
-                    await MainActor.run {
-                        availableCreatures = Array(state.creatures.values).sorted {
-                            $0.name < $1.name
-                        }
-                        logger.debug("Loaded \(availableCreatures.count) creatures")
-                    }
-                }
+            .onChange(of: creatures) { _, newCreatures in
+                availableCreatures = newCreatures.map { $0.toDTO() }
+                logger.debug("Loaded \(availableCreatures.count) creatures from SwiftData")
+            }
+            .onAppear {
+                availableCreatures = creatures.map { $0.toDTO() }
             }
             .alert(
                 "Oooooh Shit", isPresented: $showErrorAlert,

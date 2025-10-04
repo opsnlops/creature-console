@@ -3,6 +3,11 @@ import OSLog
 import SwiftUI
 
 struct InterfaceSettings: View {
+    // Configuration constants
+    private let maxScrollbackLines = 500
+    private let minScrollbackLines = 10
+    private let scrollbackLineStep = 10
+
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 0
     @AppStorage("mouthImportDefaultAxis") private var defaultMouthAxis: Int = 2
 
@@ -80,19 +85,27 @@ struct InterfaceSettings: View {
                             HStack {
                                 Text("Scrollback Lines")
                                 Spacer()
-                                TextField("10–200", text: $tvServerLogsScrollbackText)
-                                    .multilineTextAlignment(.trailing)
-                                    .frame(maxWidth: 120)
-                                    .submitLabel(.done)
-                                    .onSubmit {
-                                        let val =
-                                            Int(tvServerLogsScrollbackText)
-                                            ?? serverLogsScrollBackLines
-                                        let clamped = min(200, max(10, val))
-                                        let snapped = Int((Double(clamped) / 10.0).rounded()) * 10
-                                        serverLogsScrollBackLines = snapped
-                                        tvServerLogsScrollbackText = String(snapped)
-                                    }
+                                TextField(
+                                    "\(minScrollbackLines)–\(maxScrollbackLines)",
+                                    text: $tvServerLogsScrollbackText
+                                )
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: 120)
+                                .submitLabel(.done)
+                                .onSubmit {
+                                    let val =
+                                        Int(tvServerLogsScrollbackText)
+                                        ?? serverLogsScrollBackLines
+                                    let clamped = min(
+                                        maxScrollbackLines, max(minScrollbackLines, val))
+                                    let snapped =
+                                        Int(
+                                            (Double(clamped) / Double(scrollbackLineStep)).rounded()
+                                        )
+                                        * scrollbackLineStep
+                                    serverLogsScrollBackLines = snapped
+                                    tvServerLogsScrollbackText = String(snapped)
+                                }
                             }
                             .padding(12)
                             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
@@ -104,7 +117,9 @@ struct InterfaceSettings: View {
                                     value: Binding<Double>(
                                         get: { Double(serverLogsScrollBackLines) },
                                         set: { serverLogsScrollBackLines = Int($0) }
-                                    ), in: 10...200, step: 10
+                                    ),
+                                    in: Double(minScrollbackLines)...Double(maxScrollbackLines),
+                                    step: Double(scrollbackLineStep)
                                 )
                                 .frame(maxWidth: 280)
                                 Text("\(serverLogsScrollBackLines)")

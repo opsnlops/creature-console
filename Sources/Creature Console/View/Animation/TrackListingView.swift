@@ -1,12 +1,16 @@
 import Common
 import OSLog
+import SwiftData
 import SwiftUI
 
 struct TrackListingView: View {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "TrackListingView")
     let animation: Common.Animation?
 
-    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
+    @Environment(\.modelContext) private var modelContext
+
+    // Lazily fetched by SwiftData
+    @Query private var creatures: [CreatureModel]
 
     var body: some View {
         ScrollView {
@@ -23,20 +27,6 @@ struct TrackListingView: View {
                     Text("No animation loaded")
                 }
             }
-            .task {
-                // Seed with current cache state first
-                let initial = await CreatureCache.shared.getCurrentState()
-                await MainActor.run {
-                    creatureCacheState = initial
-                }
-
-                // Then listen for updates
-                for await state in await CreatureCache.shared.stateUpdates {
-                    await MainActor.run {
-                        creatureCacheState = state
-                    }
-                }
-            }
         }
 
     }
@@ -45,12 +35,13 @@ struct TrackListingView: View {
     func prepareTrackView(for track: Track) -> some View {
         logger.debug("preparing a track view!")
 
-        if let creature = creatureCacheState.creatures[track.creatureId] {
-            let inputs = creature.inputs
+        if let creature = creatures.first(where: { $0.id == track.creatureId }) {
+            let creatureDTO = creature.toDTO()
+            let inputs = creatureDTO.inputs
             return AnyView(
                 TrackViewer(
                     track: track,
-                    creature: creature,
+                    creature: creatureDTO,
                     inputs: inputs,
                     chartColor: colorForTrack(track)
                 )
@@ -71,7 +62,9 @@ struct TrackListingView: View {
     }
 
     func colorForTrack(_ track: Track) -> Color {
-        let palette: [Color] = [.red, .green, .blue, .orange, .yellow, .pink, .purple, .teal, .accentColor]
+        let palette: [Color] = [
+            .red, .green, .blue, .orange, .yellow, .pink, .purple, .teal, .accentColor,
+        ]
         // Create a stable hash from the track id
         var hasher = Hasher()
         hasher.combine(track.id)

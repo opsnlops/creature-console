@@ -1,7 +1,7 @@
 import Common
 import OSLog
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 actor AppBootstrapper {
     static let shared = AppBootstrapper()
@@ -16,9 +16,8 @@ actor AppBootstrapper {
         await AppState.shared.setCurrentActivity(.connectingToServer)
 
         async let creaturesResult = CreatureManager.shared.populateCache()
-        async let animationMetadataResult = AnimationMetadataCache.shared
-            .fetchMetadataListFromServer()
-        async let playlistsResult = PlaylistCache.shared.fetchPlaylistsFromServer()
+        async let animationMetadataResult = importAnimationsIntoSwiftData()
+        async let playlistsResult = importPlaylistsIntoSwiftData()
         async let soundsResult = importSoundsIntoSwiftData()
 
         await CreatureServerClient.shared.connectWebsocket(processor: SwiftMessageProcessor.shared)
@@ -77,9 +76,8 @@ actor AppBootstrapper {
         logger.debug("Refreshing caches after wake")
 
         async let creaturesResult = CreatureManager.shared.populateCache()
-        async let animationMetadataResult = AnimationMetadataCache.shared
-            .fetchMetadataListFromServer()
-        async let playlistsResult = PlaylistCache.shared.fetchPlaylistsFromServer()
+        async let animationMetadataResult = importAnimationsIntoSwiftData()
+        async let playlistsResult = importPlaylistsIntoSwiftData()
         async let soundsResult = importSoundsIntoSwiftData()
 
         let results = await (
@@ -134,7 +132,7 @@ actor AppBootstrapper {
 
     private func importSoundsIntoSwiftData() async -> Result<String, Error> {
         do {
-            let container = await SoundDataStore.shared.container()
+            let container = await SwiftDataStore.shared.container()
             let importer = SoundImporter(modelContainer: container)
             let server = CreatureServerClient.shared
             let result = await server.listSounds()
@@ -142,6 +140,42 @@ actor AppBootstrapper {
             case .success(let list):
                 try await importer.upsertBatch(list)
                 return .success("Imported \(list.count) sounds")
+            case .failure(let serverError):
+                return .failure(serverError)
+            }
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    private func importAnimationsIntoSwiftData() async -> Result<String, Error> {
+        do {
+            let container = await SwiftDataStore.shared.container()
+            let importer = AnimationMetadataImporter(modelContainer: container)
+            let server = CreatureServerClient.shared
+            let result = await server.listAnimations()
+            switch result {
+            case .success(let list):
+                try await importer.upsertBatch(list)
+                return .success("Imported \(list.count) animations")
+            case .failure(let serverError):
+                return .failure(serverError)
+            }
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    private func importPlaylistsIntoSwiftData() async -> Result<String, Error> {
+        do {
+            let container = await SwiftDataStore.shared.container()
+            let importer = PlaylistImporter(modelContainer: container)
+            let server = CreatureServerClient.shared
+            let result = await server.getAllPlaylists()
+            switch result {
+            case .success(let list):
+                try await importer.upsertBatch(list)
+                return .success("Imported \(list.count) playlists")
             case .failure(let serverError):
                 return .failure(serverError)
             }

@@ -1,8 +1,8 @@
 import Common
 import Foundation
 import OSLog
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct CacheInvalidationProcessor {
 
@@ -35,24 +35,39 @@ struct CacheInvalidationProcessor {
 
     static func rebuildCreatureCache() {
 
-        logger.info("attempting to rebuild the creature cache")
-
-        let manager = CreatureManager.shared
+        logger.info("attempting to rebuild the creature cache (SwiftData import)")
 
         loadCeaturesTask?.cancel()
 
         loadCeaturesTask = Task {
             logger.debug("calling out to the server now...")
-            let populateResult = await manager.populateCache()
-            switch populateResult {
-            case .success:
-                logger.debug("the CreatureManager was able to reload the cache!")
+            let server = CreatureServerClient.shared
+            let result = await server.getAllCreatures()
+            switch result {
+            case .success(let creatures):
+                do {
+                    let container = await SwiftDataStore.shared.container()
+                    let importer = CreatureImporter(modelContainer: container)
+                    try await importer.upsertBatch(creatures)
+                    logger.info(
+                        "(re)built the creature cache in SwiftData: imported \(creatures.count) creatures"
+                    )
+                } catch {
+                    logger.warning(
+                        "unable to import creatures into SwiftData: \(error.localizedDescription)")
+                    await AppState.shared.setSystemAlert(
+                        show: true,
+                        message:
+                            "Unable to reload the creature cache after getting an invalidation message: \(error.localizedDescription)"
+                    )
+                }
             case .failure(let error):
                 logger.warning(
-                    "unable to get a new copy of the creature list: \(error.localizedDescription)")
+                    "unable to fetch creatures from server: \(error.localizedDescription)")
                 await AppState.shared.setSystemAlert(
-                    show: true, 
-                    message: "Unable to reload the creature cache after getting an invalidation message: \(error.localizedDescription)"
+                    show: true,
+                    message:
+                        "Unable to fetch creatures after invalidation: \(error.localizedDescription)"
                 )
             }
         }
@@ -61,25 +76,39 @@ struct CacheInvalidationProcessor {
 
     static func rebuildAnimationCache() {
 
-        logger.info("attempting to rebuild the animation cache")
-
-        let cache = AnimationMetadataCache.shared
+        logger.info("attempting to rebuild the animation cache (SwiftData import)")
 
         loadAnimationsTask?.cancel()
 
         loadAnimationsTask = Task {
-            logger.debug("telling the cache to rebuild itself...")
-            let populateResult = await cache.fetchMetadataListFromServer()
-            switch populateResult {
-            case .success(let message):
-                logger.debug("the cache said: \(message)")
+            logger.debug("calling out to the server now...")
+            let server = CreatureServerClient.shared
+            let result = await server.listAnimations()
+            switch result {
+            case .success(let animations):
+                do {
+                    let container = await SwiftDataStore.shared.container()
+                    let importer = AnimationMetadataImporter(modelContainer: container)
+                    try await importer.upsertBatch(animations)
+                    logger.info(
+                        "(re)built the animation cache in SwiftData: imported \(animations.count) animations"
+                    )
+                } catch {
+                    logger.warning(
+                        "unable to import animations into SwiftData: \(error.localizedDescription)")
+                    await AppState.shared.setSystemAlert(
+                        show: true,
+                        message:
+                            "Unable to reload the animation cache after getting an invalidation message: \(error.localizedDescription)"
+                    )
+                }
             case .failure(let error):
                 logger.warning(
-                    "unable to get a new copy of the animationMetadata list: \(error.localizedDescription)"
-                )
+                    "unable to fetch animations from server: \(error.localizedDescription)")
                 await AppState.shared.setSystemAlert(
-                    show: true, 
-                    message: "Unable to reload the animation cache after getting an invalidation message: \(error.localizedDescription)"
+                    show: true,
+                    message:
+                        "Unable to fetch animations after invalidation: \(error.localizedDescription)"
                 )
             }
         }
@@ -88,25 +117,40 @@ struct CacheInvalidationProcessor {
 
     static func rebuildPlaylistCache() {
 
-        logger.info("attempting to rebuild the playlist cache")
-
-        let cache = PlaylistCache.shared
+        logger.info("attempting to rebuild the playlist cache (SwiftData import)")
 
         loadPlaylistsTask?.cancel()
 
         loadPlaylistsTask = Task {
             logger.debug("calling out to the server now...")
-            let populateResult = await cache.fetchPlaylistsFromServer()
-            switch populateResult {
-                case .success:
-                    logger.debug("rebuilt the playlist cache")
-                case .failure(let error):
-                    logger.warning(
-                        "unable to refresh the playlist cache: \(error.localizedDescription)")
-                    await AppState.shared.setSystemAlert(
-                        show: true, 
-                        message: "Unable to reload the playlist cache after getting an invalidation message: \(error.localizedDescription)"
+            let server = CreatureServerClient.shared
+            let result = await server.getAllPlaylists()
+            switch result {
+            case .success(let playlists):
+                do {
+                    let container = await SwiftDataStore.shared.container()
+                    let importer = PlaylistImporter(modelContainer: container)
+                    try await importer.upsertBatch(playlists)
+                    logger.info(
+                        "(re)built the playlist cache in SwiftData: imported \(playlists.count) playlists"
                     )
+                } catch {
+                    logger.warning(
+                        "unable to import playlists into SwiftData: \(error.localizedDescription)")
+                    await AppState.shared.setSystemAlert(
+                        show: true,
+                        message:
+                            "Unable to reload the playlist cache after getting an invalidation message: \(error.localizedDescription)"
+                    )
+                }
+            case .failure(let error):
+                logger.warning(
+                    "unable to fetch playlists from server: \(error.localizedDescription)")
+                await AppState.shared.setSystemAlert(
+                    show: true,
+                    message:
+                        "Unable to fetch playlists after invalidation: \(error.localizedDescription)"
+                )
             }
         }
 
@@ -126,26 +170,29 @@ struct CacheInvalidationProcessor {
             switch result {
             case .success(let sounds):
                 do {
-                    let container = await SoundDataStore.shared.container()
+                    let container = await SwiftDataStore.shared.container()
                     let importer = SoundImporter(modelContainer: container)
                     try await importer.upsertBatch(sounds)
-                    logger.info("(re)built the sound list in SwiftData: imported \(sounds.count) sounds")
+                    logger.info(
+                        "(re)built the sound list in SwiftData: imported \(sounds.count) sounds")
                 } catch {
-                    logger.warning("unable to import sounds into SwiftData: \(error.localizedDescription)")
+                    logger.warning(
+                        "unable to import sounds into SwiftData: \(error.localizedDescription)")
                     await AppState.shared.setSystemAlert(
                         show: true,
-                        message: "Unable to reload the sound list after getting an invalidation message: \(error.localizedDescription)"
+                        message:
+                            "Unable to reload the sound list after getting an invalidation message: \(error.localizedDescription)"
                     )
                 }
             case .failure(let error):
                 logger.warning("unable to fetch sounds from server: \(error.localizedDescription)")
                 await AppState.shared.setSystemAlert(
                     show: true,
-                    message: "Unable to fetch sounds after invalidation: \(error.localizedDescription)"
+                    message:
+                        "Unable to fetch sounds after invalidation: \(error.localizedDescription)"
                 )
             }
         }
 
     }
 }
-

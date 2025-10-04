@@ -1,5 +1,6 @@
 import Common
 import Foundation
+import SwiftData
 import SwiftUI
 
 struct AppStateInspectorView: View {
@@ -11,9 +12,12 @@ struct AppStateInspectorView: View {
         showSystemAlert: false,
         systemAlertMessage: ""
     )
-    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
-    @State private var animationCacheState = AnimationMetadataCacheState(
-        metadatas: [:], empty: true)
+
+    @Environment(\.modelContext) private var modelContext
+
+    // Lazily fetched by SwiftData
+    @Query private var creatures: [CreatureModel]
+    @Query private var animations: [AnimationMetadataModel]
 
     var body: some View {
 
@@ -24,39 +28,19 @@ struct AppStateInspectorView: View {
             }
 
             Section("Caches") {
-                Text("Creature Cache: \(creatureCacheState.creatures.count)")
-                Text("Animation Cache: \(animationCacheState.metadatas.count)")
+                Text("Creature Cache: \(creatures.count)")
+                Text("Animation Cache: \(animations.count)")
             }
 
             Spacer()
         }
         .task {
-            // Subscribe to cache updates
-            async let creatureTask: Void = {
-                for await state in await CreatureCache.shared.stateUpdates {
-                    await MainActor.run {
-                        creatureCacheState = state
-                    }
+            // Subscribe to AppState updates
+            for await state in await AppState.shared.stateUpdates {
+                await MainActor.run {
+                    appState = state
                 }
-            }()
-
-            async let animationTask: Void = {
-                for await state in await AnimationMetadataCache.shared.stateUpdates {
-                    await MainActor.run {
-                        animationCacheState = state
-                    }
-                }
-            }()
-
-            async let appStateTask: Void = {
-                for await state in await AppState.shared.stateUpdates {
-                    await MainActor.run {
-                        appState = state
-                    }
-                }
-            }()
-
-            _ = await (creatureTask, animationTask, appStateTask)
+            }
         }
 
     }
@@ -68,4 +52,3 @@ struct AppStateInspectorView_Previews: PreviewProvider {
         AppStateInspectorView()
     }
 }
-

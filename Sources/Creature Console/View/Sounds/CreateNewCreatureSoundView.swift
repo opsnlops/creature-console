@@ -1,9 +1,11 @@
 import Common
 import Foundation
 import OSLog
+import SwiftData
 import SwiftUI
+
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 struct CreateNewCreatureSoundView: View {
@@ -13,7 +15,11 @@ struct CreateNewCreatureSoundView: View {
 
     let server = CreatureServerClient.shared
 
-    @State private var creatureCacheState = CreatureCacheState(creatures: [:], empty: true)
+    @Environment(\.modelContext) private var modelContext
+
+    // Lazily fetched by SwiftData
+    @Query(sort: \CreatureModel.name, order: .forward)
+    private var creatures: [CreatureModel]
 
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
@@ -37,9 +43,8 @@ struct CreateNewCreatureSoundView: View {
 
                     Section(header: Text("Creature Information")) {
                         Picker("Creature", selection: $creatureId) {
-                            ForEach(creatureCacheState.creatures.keys.sorted(), id: \.self) { id in
-                                Text(creatureCacheState.creatures[id]?.name ?? "Unknown").tag(
-                                    id as CreatureIdentifier?)
+                            ForEach(creatures) { creature in
+                                Text(creature.name).tag(creature.id as CreatureIdentifier?)
                             }
                         }
                         .pickerStyle(MenuPickerStyle())
@@ -123,13 +128,6 @@ struct CreateNewCreatureSoundView: View {
             .padding()
 
         }  // Navigation Stack
-        .task {
-            for await state in await CreatureCache.shared.stateUpdates {
-                await MainActor.run {
-                    creatureCacheState = state
-                }
-            }
-        }
         .alert(isPresented: $showErrorAlert) {
             Alert(
                 title: Text("Unable to the list of sound files"),
@@ -137,7 +135,7 @@ struct CreateNewCreatureSoundView: View {
                 dismissButton: .default(Text("No Music for Us"))
             )
         }
-#if os(iOS)
+        #if os(iOS)
             .toolbar(id: "global-bottom-status") {
                 if UIDevice.current.userInterfaceIdiom == .phone {
                     ToolbarItem(id: "status", placement: .bottomBar) {
@@ -145,7 +143,7 @@ struct CreateNewCreatureSoundView: View {
                     }
                 }
             }
-#endif
+        #endif
         .onDisappear {
 
             // Clean up if either of these is still running

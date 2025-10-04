@@ -1,8 +1,14 @@
 import Common
 import OSLog
+import SwiftData
 import SwiftUI
 
 struct PlaylistDetail: View {
+    @Environment(\.modelContext) private var modelContext
+
+    @Query(sort: \AnimationMetadataModel.title, order: .forward)
+    private var animations: [AnimationMetadataModel]
+
     @Binding var playlist: Common.Playlist
 
     @State private var editingName: String = ""
@@ -11,9 +17,6 @@ struct PlaylistDetail: View {
     @State private var newWeight: String = "1"
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
-
-    @State private var animationCacheState = AnimationMetadataCacheState(
-        metadatas: [:], empty: true)
 
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "PlaylistDetail")
@@ -54,8 +57,7 @@ struct PlaylistDetail: View {
                     Text("Weight Distribution")
                         .font(.headline)
 
-                    WeightDistributionView(
-                        items: playlist.items, animationCacheState: animationCacheState)
+                    WeightDistributionView(items: playlist.items, animations: animations)
                 }
                 .padding()
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -112,13 +114,6 @@ struct PlaylistDetail: View {
             Spacer()
         }
         .padding()
-        .task {
-            for await state in await AnimationMetadataCache.shared.stateUpdates {
-                await MainActor.run {
-                    animationCacheState = state
-                }
-            }
-        }
         .onAppear {
             editingName = playlist.name
         }
@@ -138,13 +133,13 @@ struct PlaylistDetail: View {
     }
 
     private var availableAnimations: [AnimationMetadata] {
-        animationCacheState.metadatas.values.filter { metadata in
+        animations.map { $0.toDTO() }.filter { metadata in
             !playlist.items.contains { $0.animationId == metadata.id }
         }.sorted { $0.title < $1.title }
     }
 
     private func animationName(for id: AnimationIdentifier) -> String {
-        animationCacheState.metadatas[id]?.title ?? "Unknown Animation"
+        animations.first(where: { $0.id == id })?.title ?? "Unknown Animation"
     }
 
     private func percentage(for item: PlaylistItem) -> Double {
@@ -259,7 +254,7 @@ struct PlaylistItemRow: View {
 
 struct WeightDistributionView: View {
     let items: [PlaylistItem]
-    let animationCacheState: AnimationMetadataCacheState
+    let animations: [AnimationMetadataModel]
 
     private var totalWeight: UInt32 {
         items.reduce(0) { $0 + $1.weight }
@@ -309,7 +304,7 @@ struct WeightDistributionView: View {
     }
 
     private func animationName(for id: AnimationIdentifier) -> String {
-        animationCacheState.metadatas[id]?.title ?? "Unknown"
+        animations.first(where: { $0.id == id })?.title ?? "Unknown"
     }
 
     private func colorForAnimation(_ id: AnimationIdentifier) -> Color {

@@ -1,6 +1,8 @@
 import Foundation
 import Logging
 
+/// **IMPORTANT**: This DTO must stay in sync with `PlaylistItemModel` in the GUI package.
+/// Any changes to fields here must be reflected in PlaylistItemModel.swift and vice versa.
 public class PlaylistItem: Identifiable, Hashable, Equatable, Codable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.PlaylistItem")
     public var animationId: AnimationIdentifier

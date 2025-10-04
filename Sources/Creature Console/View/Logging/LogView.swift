@@ -1,4 +1,5 @@
 import Common
+import SwiftData
 import SwiftUI
 
 #if os(iOS)
@@ -6,10 +7,20 @@ import SwiftUI
 #endif
 
 struct LogView: View {
-    @State private var logManagerState = LogManagerState(logMessages: [])
-    @State private var isUserScrolling = false
+    @Environment(\.modelContext) private var modelContext
+
+    @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 150
+
+    // Fetch logs in reverse order (newest first)
+    @Query(
+        sort: \ServerLogModel.timestamp,
+        order: .reverse
+    )
+    private var serverLogsReversed: [ServerLogModel]
+
     @State private var autoScrollEnabled = true
     @State private var selectedLogLevel: ServerLogLevel = .debug
+    @State private var searchText = ""
 
     private let dateFormatter: DateFormatter
 
@@ -18,22 +29,49 @@ struct LogView: View {
         dateFormatter.dateFormat = "YYYY-MM-dd HH:mm:ss"
     }
 
-    // Filter messages based on selected log level
+    // Reverse back to chronological order and take only the configured number of recent logs
+    private var serverLogs: [ServerLogModel] {
+        let limit = max(10, min(500, serverLogsScrollBackLines))
+        return Array(serverLogsReversed.prefix(limit).reversed())
+    }
+
+    // Convert ServerLogModel to LogItem for display
+    private var logItems: [LogItem] {
+        serverLogs.map { $0.toLogItem() }
+    }
+
+    // Filter messages based on selected log level and search text
     private var filteredMessages: [LogItem] {
-        logManagerState.logMessages.filter { message in
-            message.level.rawValue >= selectedLogLevel.rawValue
+        logItems.filter { message in
+            let matchesLevel = message.level.rawValue >= selectedLogLevel.rawValue
+            let matchesSearch =
+                searchText.isEmpty
+                || message.message.localizedCaseInsensitiveContains(searchText)
+                || message.logger_name.localizedCaseInsensitiveContains(searchText)
+            return matchesLevel && matchesSearch
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Compact log level filter
-            HStack {
+            // Search and filter toolbar
+            HStack(spacing: 8) {
+                TextField("Search logs...", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 300)
+
+                if !searchText.isEmpty {
+                    Button("Clear") { searchText = "" }
+                        .buttonStyle(.borderless)
+                }
+
+                Spacer()
+
                 Text("Level:")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
-                Picker("Log Level", selection: $selectedLogLevel) {
+                Picker("Level", selection: $selectedLogLevel) {
                     ForEach(
                         ServerLogLevel.allCases.filter { $0 != .off && $0 != .unknown }, id: \.self
                     ) {
@@ -44,11 +82,9 @@ struct LogView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
 
-                Spacer()
-
-                Text("\(filteredMessages.count)/\(logManagerState.logMessages.count)")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                Text("\(filteredMessages.count)/\(serverLogs.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
             .padding(.horizontal)
@@ -86,8 +122,9 @@ struct LogView: View {
                         .padding()
                     }
                 }
-                .onChange(of: filteredMessages) { _, newMessages in
-                    if autoScrollEnabled, let lastMessage = newMessages.last {
+                .onChange(of: serverLogsReversed.count) { _, _ in
+                    // When new logs arrive, scroll to bottom if auto-scroll is enabled
+                    if autoScrollEnabled, let lastMessage = filteredMessages.last {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                         }
@@ -101,21 +138,18 @@ struct LogView: View {
                         }
                     }
                 }
+                .onChange(of: searchText) { _, _ in
+                    // When search changes, scroll to bottom if auto-scroll is enabled
+                    if autoScrollEnabled, let lastMessage = filteredMessages.last {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            scrollView.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+                    }
+                }
                 .onAppear {
                     // Scroll to bottom on initial appearance
                     if let lastMessage = filteredMessages.last {
                         scrollView.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
-                }
-                .task { @MainActor in
-                    // Get initial state immediately
-                    let currentState = await LogManager.shared.getCurrentState()
-                    logManagerState = currentState
-
-                    // Then subscribe to updates with proper cancellation checking
-                    for await state in await LogManager.shared.stateUpdates {
-                        guard !Task.isCancelled else { break }
-                        logManagerState = state
                     }
                 }
             }
@@ -153,21 +187,29 @@ struct LogView: View {
             return Color.yellow
         case .info:
             return Color.blue
+        case .debug:
+            return Color.cyan
+        case .trace:
+            return Color.purple
         default:
-            return Color.primary
+            return Color.secondary
         }
     }
 
     private func backgroundColor(_ level: ServerLogLevel) -> Color {
         switch level {
         case .error, .critical:
-            return Color.red.opacity(0.1)
+            return Color.red.opacity(0.08)
         case .warn:
-            return Color.yellow.opacity(0.1)
+            return Color.yellow.opacity(0.08)
         case .info:
-            return Color.blue.opacity(0.1)
+            return Color.blue.opacity(0.05)
+        case .debug:
+            return Color.cyan.opacity(0.05)
+        case .trace:
+            return Color.purple.opacity(0.05)
         default:
-            return Color.gray.opacity(0.1)
+            return Color.clear
         }
     }
 }
@@ -179,23 +221,23 @@ private struct LogRowView: View {
     let backgroundColor: Color
 
     var body: some View {
-        HStack(alignment: .top) {
+        HStack(alignment: .top, spacing: 8) {
             Text("[\(formattedDate)]")
-                .font(.footnote)
-                .foregroundColor(Color.secondary)
-            Text("[\(log.level.description)]")
-                .font(.footnote)
-                .bold()
-                .foregroundColor(levelColor)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+
+            Text(log.level.description.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(levelColor)
+                .frame(width: 50, alignment: .leading)
+
             Text(log.message)
                 .font(.body)
-                .padding(.leading, 4)
-                .foregroundColor(Color.primary)
+                .foregroundStyle(.primary)
         }
-        .padding(.vertical, 4)
         .padding(.horizontal, 8)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(backgroundColor)
-        .padding(.vertical, 2)
     }
 }

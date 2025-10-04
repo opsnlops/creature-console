@@ -2,6 +2,9 @@ import Foundation
 import Logging
 
 /// This is the representation of a `Creature`
+///
+/// **IMPORTANT**: This DTO must stay in sync with `CreatureModel` in the GUI package.
+/// Any changes to fields here must be reflected in CreatureModel.swift and vice versa.
 public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.Creature")
 

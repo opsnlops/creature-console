@@ -1,6 +1,8 @@
 import Foundation
 import Logging
 
+/// **IMPORTANT**: This DTO must stay in sync with `PlaylistModel` in the GUI package.
+/// Any changes to fields here must be reflected in PlaylistModel.swift and vice versa.
 public final class Playlist: Identifiable, Hashable, Equatable, Codable, @unchecked Sendable {
     private let logger = Logger(label: "io.opsnlops.CreatureConsole.Playlist")
     public var id: PlaylistIdentifier
