@@ -27,6 +27,11 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 ### Testing
 - **Xcode**: Run tests via Test Navigator or ⌘U
 - **Swift Package**: `cd Common && swift test`
+  - Run specific test: `swift test --filter DataHelperTests`
+- **xcodebuild**:
+  - macOS: `xcodebuild test -project "Creature Console.xcodeproj" -scheme "Creature Console" -destination "platform=macOS"`
+  - iOS: `xcodebuild test -project "Creature Console.xcodeproj" -scheme "Creature Console" -destination "platform=iOS Simulator,name=iPhone 15 Pro"`
+- **IMPORTANT**: Always run tests before committing changes
 
 ### CLI Tool Usage
 - Build and run: `cd Common && swift run creature-cli`
@@ -48,12 +53,16 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 - **Controller/Server/**: REST and WebSocket client implementations
 - **Controller/Voice Processing/**: Audio processing functionality
 - **DTO/**: Data Transfer Objects for API communication
+- **Tests/CommonTests/**: Test suite using Swift Testing framework
 
 #### GUI Application
-- **CreatureConsole.swift**: Main app entry point with singleton managers
+- **CreatureConsole.swift**: Main app entry point with singleton managers and SwiftData ModelContainer setup
 - **Controller/**: App-specific controllers (caches, joystick handling, events)
 - **View/**: SwiftUI views organized by feature (Animations, Creatures, Playlists, etc.)
-- **Model/**: GUI-specific models (AudioManager, StorageManager, etc.)
+- **Model/**: GUI-specific models using SwiftData for local persistence
+  - **SwiftDataStore**: Shared actor for ModelContainer access across the app
+  - Models: AnimationMetadataModel, CreatureModel, PlaylistModel, SoundModel, ServerLogModel
+  - Each model uses `@Model` macro and stays in sync with Common package DTOs
 
 #### CLI Application
 - **Sources/CreatureCLI/**: Command-line interface using ArgumentParser
@@ -64,12 +73,16 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 - `CreatureServerClient.shared`: Server communication
 - `AudioManager.shared`: Audio playback management
 - `JoystickManager.shared`: Joystick input handling
+- `SwiftDataStore.shared`: Actor providing concurrency-safe access to ModelContainer
 - Various cache managers for server data
 
 ### Communication Patterns
 - Server communication via REST API and WebSocket
 - WebSocket for real-time data (sensor reports, logs, status updates)
-- Caching layer for frequently accessed server data
+- **Local persistence with SwiftData**: File-backed ModelContainer (no CloudKit) for caching server data
+  - Models automatically sync from server DTOs via importers (e.g., AnimationMetadataImporter)
+  - Query with `@Query` in SwiftUI views or `ModelContext` in background actors
+  - **IMPORTANT**: SwiftData models must stay in sync with Common package DTOs
 - **Global State Architecture**: Single source of truth for controlling physical hardware
 
 ### Global State Architecture (Critical Design Pattern)
@@ -126,3 +139,68 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 - **No Legacy Dependencies**: Avoid Objective-C where possible
 - **Shared Architecture**: Common model/controller code between GUI and CLI via Swift Package Manager
 - **Reactive Programming**: SwiftUI's state management with @ObservableObject, @StateObject, etc.
+
+## Testing Best Practices
+
+### Swift Testing Framework (Required)
+**Use Swift Testing framework for ALL new tests** (not XCTest):
+
+```swift
+import Testing
+@testable import Common
+
+@Suite("MyModel tests")
+struct MyModelTests {
+    @Test("initializes with all properties")
+    func initializesWithAllProperties() {
+        let model = MyModel(id: "123", name: "Test")
+        #expect(model.id == "123")
+        #expect(model.name == "Test")
+    }
+
+    @Test("handles error conditions")
+    func handlesErrors() {
+        #expect(throws: DecodingError.self) {
+            try decoder.decode(MyModel.self, from: invalidData)
+        }
+    }
+}
+```
+
+### Test Organization
+- **Common library tests**: Place in `Common/Tests/CommonTests/`
+- **Xcode app tests**: Place in `Creature Console Tests/` (organized by feature)
+- Name test files: `ModelNameTests.swift` (e.g., `DataHelperTests.swift`, `PlaylistTests.swift`)
+- Name test functions descriptively using camelCase
+  - Good: `func encodesToJSONWithSnakeCase()`
+  - Good: `func handlesEmptyTranscript()`
+  - Good: `func failsGracefullyOnMissingFields()`
+
+### Comprehensive Test Coverage
+Every model/utility should test:
+
+1. **Initialization**: Test with all properties, verify values are set correctly
+2. **JSON Encoding/Decoding**:
+   - Test encoding to JSON (especially snake_case CodingKeys like `file_name`, `animation_id`)
+   - Test decoding from JSON
+   - Test round-trip encoding (encode → decode → verify equality)
+3. **Equality & Hashing**:
+   - Test that equal objects have same hash
+   - Test that different values produce inequality
+4. **Edge Cases**:
+   - Empty values (empty strings, zero counts, empty arrays)
+   - Maximum values (UInt32.max, Int.max)
+   - Special characters (Unicode, emojis, quotes, newlines)
+   - Invalid input (malformed JSON, missing required fields)
+5. **Error Handling**: Test that invalid inputs produce expected errors
+
+### Why Testing Matters
+**Tests find real bugs!** During this project, tests discovered:
+- `DataHelper.stringToOidData()` crashed on odd-length hex strings instead of returning `nil`
+- Fixed by adding validation: `guard oid.count % 2 == 0 else { return nil }`
+
+### Continuous Integration
+- GitHub Actions workflow: `.github/workflows/tests.yml`
+- Runs automatically on push to `main` and on all pull requests
+- Tests both Swift Package (`cd Common && swift test`) and Xcode targets
+- All tests must pass before merging
