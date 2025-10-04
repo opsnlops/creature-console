@@ -126,11 +126,7 @@ struct CacheInvalidationProcessor {
             switch result {
             case .success(let sounds):
                 do {
-                    let fm = FileManager.default
-                    let appSupport = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-                    let storeURL = appSupport.appendingPathComponent("SoundStore", isDirectory: true)
-                    let config = ModelConfiguration(url: storeURL)
-                    let container = try ModelContainer(for: SoundModel.self, configurations: config)
+                    let container = await SoundDataStore.shared.container()
                     let importer = SoundImporter(modelContainer: container)
                     try await importer.upsertBatch(sounds)
                     logger.info("(re)built the sound list in SwiftData: imported \(sounds.count) sounds")

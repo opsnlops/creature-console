@@ -134,12 +134,7 @@ actor AppBootstrapper {
 
     private func importSoundsIntoSwiftData() async -> Result<String, Error> {
         do {
-            // Build a temporary ModelContainer pointing to the same store URL used by the app
-            let fm = FileManager.default
-            let appSupport = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            let storeURL = appSupport.appendingPathComponent("SoundStore", isDirectory: true)
-            let config = ModelConfiguration(url: storeURL)
-            let container = try ModelContainer(for: SoundModel.self, configurations: config)
+            let container = await SoundDataStore.shared.container()
             let importer = SoundImporter(modelContainer: container)
             let server = CreatureServerClient.shared
             let result = await server.listSounds()

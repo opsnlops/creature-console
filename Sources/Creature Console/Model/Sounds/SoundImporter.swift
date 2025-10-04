@@ -1,7 +1,7 @@
-import Foundation
-import SwiftData
 import Common
+import Foundation
 import OSLog
+import SwiftData
 
 @ModelActor
 actor SoundImporter {
@@ -10,19 +10,20 @@ actor SoundImporter {
     // Upsert a batch of Sound DTOs. This is safe to call repeatedly with overlapping data.
     func upsertBatch(_ dtos: [Common.Sound]) async throws {
         guard !dtos.isEmpty else { return }
+
+        // Fetch all existing sounds in one query for efficiency
+        let allExistingDescriptor = FetchDescriptor<SoundModel>()
+        let allExisting = try modelContext.fetch(allExistingDescriptor)
+        let existingByID = Dictionary(uniqueKeysWithValues: allExisting.map { ($0.id, $0) })
+
         try modelContext.transaction {
             for dto in dtos {
-                let fileName = dto.fileName
-                // Fetch existing by unique id
-                var descriptor = FetchDescriptor<SoundModel>(
-                    predicate: #Predicate { $0.id == fileName }
-                )
-                descriptor.fetchLimit = 1
-                let existing = try? modelContext.fetch(descriptor).first
-                if let model = existing {
-                    model.size = dto.size
-                    model.transcript = dto.transcript
+                if let existing = existingByID[dto.fileName] {
+                    // Update existing
+                    existing.size = dto.size
+                    existing.transcript = dto.transcript
                 } else {
+                    // Insert new
                     modelContext.insert(SoundModel(dto: dto))
                 }
             }
@@ -43,4 +44,3 @@ actor SoundImporter {
         logger.debug("Deleted sounds not in provided id set; kept \(ids.count)")
     }
 }
-

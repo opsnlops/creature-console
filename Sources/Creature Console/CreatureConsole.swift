@@ -3,8 +3,8 @@ import Common
 import Logging
 import LoggingOSLog
 import OSLog
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct CreatureConsole: App {
@@ -77,52 +77,21 @@ struct CreatureConsole: App {
 
         // Set up SwiftData model container (local file-backed; no CloudKit)
         do {
-            let fm = FileManager.default
-            let appSupport = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            let storeURL = appSupport.appendingPathComponent("SoundStore", isDirectory: true)
-            let config = ModelConfiguration(url: storeURL)
-            self.modelContainer = try ModelContainer(for: SoundModel.self, configurations: config)
+            let container = try SoundDataStore.createModelContainer()
+            self.modelContainer = container
 
-        } catch {
-            // Remove the custom store directory and retry once
-            let fm = FileManager.default
-            if let appSupport = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true) {
-                let storeURL = appSupport.appendingPathComponent("SoundStore", isDirectory: true)
-                if fm.fileExists(atPath: storeURL.path) {
-                    try? fm.removeItem(at: storeURL)
-                }
-                do {
-                    let config = ModelConfiguration(url: storeURL)
-                    self.modelContainer = try ModelContainer(for: SoundModel.self, configurations: config)
-                } catch {
-                    fatalError("Failed to create SwiftData ModelContainer after cleanup: \(error)")
-                }
-            } else {
-                fatalError("Failed to resolve Application Support directory for SwiftData store")
+            // Set the container in the actor
+            Task {
+                await SoundDataStore.shared.setContainer(container)
             }
+        } catch {
+            fatalError("Failed to create SwiftData ModelContainer: \(error)")
         }
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
-                .task {
-                    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "StartupImport")
-                    let importer = SoundImporter(modelContainer: modelContainer)
-                    logger.info("Startup: fetching sound list from server for initial import")
-                    let result = await CreatureServerClient.shared.listSounds()
-                    switch result {
-                    case .success(let list):
-                        do {
-                            try await importer.upsertBatch(list)
-                            logger.info("Startup: imported \(list.count) sounds into SwiftData")
-                        } catch {
-                            logger.error("Startup: failed to import sounds: \(error.localizedDescription)")
-                        }
-                    case .failure(let error):
-                        logger.error("Startup: failed to fetch sounds: \(error.localizedDescription)")
-                    }
-                }
         }
         .modelContainer(modelContainer)
         #if os(macOS)
@@ -195,4 +164,3 @@ struct CreatureConsole: App {
         @NSApplicationDelegateAdaptor(ConsoleAppDelegate.self) var appDelegate
     #endif
 }
-

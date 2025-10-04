@@ -3,6 +3,7 @@ import Common
 import Logging
 import LoggingOSLog
 import OSLog
+import SwiftData
 import SwiftUI
 
 @main
@@ -16,7 +17,8 @@ struct Creature_TVApp: App {
     let statusLights = StatusLightsManager.shared
     let creatureCache = CreatureCache.shared
     let healthCache = CreatureHealthCache.shared
-    let soundListCache = SoundListCache.shared
+
+    let modelContainer: ModelContainer
 
     init() {
         let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureConsole")
@@ -67,11 +69,25 @@ struct Creature_TVApp: App {
             logger.critical("Error opening server connection: \(error)")
         }
 
+        // Set up SwiftData model container (local file-backed; no CloudKit)
+        do {
+            let container = try SoundDataStore.createModelContainer()
+            self.modelContainer = container
+
+            // Set the container in the actor
+            Task {
+                await SoundDataStore.shared.setContainer(container)
+            }
+        } catch {
+            fatalError("Failed to create SwiftData ModelContainer: \(error)")
+        }
+
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
         }
+        .modelContainer(modelContainer)
     }
 }

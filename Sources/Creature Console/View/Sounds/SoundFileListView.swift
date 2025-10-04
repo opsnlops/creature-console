@@ -1,7 +1,7 @@
-import SwiftUI
-import SwiftData
 import Common
 import OSLog
+import SwiftData
+import SwiftUI
 
 struct SoundFileListView: View {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SoundFileListView")
@@ -50,13 +50,17 @@ struct SoundFileListView: View {
                                     Button {
                                         playOnServer(fileName: sound.id)
                                     } label: {
-                                        Label("Play Sound File On Server", systemImage: "music.note.tv")
+                                        Label(
+                                            "Play Sound File On Server",
+                                            systemImage: "music.note.tv")
                                     }
 
                                     Button {
                                         playLocally(fileName: sound.id)
                                     } label: {
-                                        Label("Play Sound File Locally", systemImage: "music.quarternote.3")
+                                        Label(
+                                            "Play Sound File Locally",
+                                            systemImage: "music.quarternote.3")
                                     }
 
                                     Button {
@@ -74,8 +78,10 @@ struct SoundFileListView: View {
                     } description: {
                         Text("Sounds will appear once imported from the server.")
                     } actions: {
-                        Button("Import from Server") { Task { await importFromServerIfNeeded(force: true) } }
-                            .buttonStyle(.borderedProminent)
+                        Button("Import from Server") {
+                            Task { await importFromServerIfNeeded(force: true) }
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
                 }
             }
@@ -88,11 +94,8 @@ struct SoundFileListView: View {
             }
             .navigationTitle("Sound Files")
             #if os(macOS)
-            .navigationSubtitle("Number of Sounds: \(sounds.count)")
+                .navigationSubtitle("Number of Sounds: \(sounds.count)")
             #endif
-            .task {
-                await importFromServerIfNeeded(force: false)
-            }
             .overlay {
                 if let name = preparingFile {
                     ZStack {
@@ -126,7 +129,7 @@ struct SoundFileListView: View {
                 logger.info("Imported \(list.count) sounds into SwiftData")
             case .failure(let error):
                 await MainActor.run {
-                    alertMessage = "Error: \(error.localizedDescription)"
+                    alertMessage = ServerError.detailedMessage(from: error)
                     showErrorAlert = true
                 }
             }
@@ -147,7 +150,7 @@ struct SoundFileListView: View {
                 break
             case .failure(let error):
                 await MainActor.run {
-                    alertMessage = "Error: \(error.localizedDescription)"
+                    alertMessage = ServerError.detailedMessage(from: error)
                     showErrorAlert = true
                 }
             }
@@ -162,7 +165,8 @@ struct SoundFileListView: View {
             switch urlRequest {
             case .success(let url):
                 if fileName.lowercased().hasSuffix(".wav") {
-                    let prepResult = await audioManager.prepareMonoPreview(for: url, cacheKey: fileName)
+                    let prepResult = await audioManager.prepareMonoPreview(
+                        for: url, cacheKey: fileName)
                     switch prepResult {
                     case .success(let monoURL):
                         let armResult = audioManager.armPreviewPlayback(fileURL: monoURL)
@@ -190,7 +194,7 @@ struct SoundFileListView: View {
                 }
             case .failure(let error):
                 await MainActor.run {
-                    alertMessage = "Error: \(error.localizedDescription)"
+                    alertMessage = ServerError.detailedMessage(from: error)
                     showErrorAlert = true
                     preparingFile = nil
                 }

@@ -5,7 +5,7 @@ import Common
 @Model
 final class SoundModel {
     // Use file name as the unique identifier to match server semantics
-    var id: String = ""
+    @Attribute(.unique) var id: String = ""
     var size: UInt32 = 0
     var transcript: String = ""
 
@@ -27,3 +27,4 @@ extension SoundModel {
         Common.Sound(fileName: id, size: size, transcript: transcript)
     }
 }
+
