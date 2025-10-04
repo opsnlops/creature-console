@@ -26,8 +26,10 @@ actor CreatureImporter {
                     existing.realData = dto.realData
                     existing.audioChannel = dto.audioChannel
 
-                    // Update inputs: remove old ones and add new ones
-                    existing.inputs.removeAll()
+                    // Update inputs: explicitly delete old ones before adding new ones
+                    for input in existing.inputs {
+                        modelContext.delete(input)
+                    }
                     existing.inputs = dto.inputs.map { InputModel(dto: $0) }
                 } else {
                     // Insert new

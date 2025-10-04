@@ -45,6 +45,12 @@
 		114B7E662E90D16F00F5D1EC /* PlaylistModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E652E90D16F00F5D1EC /* PlaylistModelTests.swift */; };
 		114B7E692E90D19F00F5D1EC /* SoundModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E682E90D19F00F5D1EC /* SoundModelTests.swift */; };
 		114B7E6B2E90D1B700F5D1EC /* ServerLogModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E6A2E90D1B700F5D1EC /* ServerLogModelTests.swift */; };
+		114B7E6F2E90D57300F5D1EC /* AnimationMetadataImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E6E2E90D57300F5D1EC /* AnimationMetadataImporterTests.swift */; };
+		114B7E712E90D58200F5D1EC /* PlaylistImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E702E90D58200F5D1EC /* PlaylistImporterTests.swift */; };
+		114B7E742E90D5C400F5D1EC /* SoundImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E732E90D5C400F5D1EC /* SoundImporterTests.swift */; };
+		114B7E762E90D5D400F5D1EC /* ServerLogImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E752E90D5D400F5D1EC /* ServerLogImporterTests.swift */; };
+		114B7E782E90D90900F5D1EC /* ActivityTintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */; };
+		114B7E7A2E90DBD900F5D1EC /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E792E90DBD900F5D1EC /* AppStateTests.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		1156EBCB2E76640500CBC202 /* ButtonGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1156EBCA2E76640500CBC202 /* ButtonGate.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
@@ -227,6 +233,12 @@
 		114B7E652E90D16F00F5D1EC /* PlaylistModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistModelTests.swift; sourceTree = "<group>"; };
 		114B7E682E90D19F00F5D1EC /* SoundModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundModelTests.swift; sourceTree = "<group>"; };
 		114B7E6A2E90D1B700F5D1EC /* ServerLogModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogModelTests.swift; sourceTree = "<group>"; };
+		114B7E6E2E90D57300F5D1EC /* AnimationMetadataImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataImporterTests.swift; sourceTree = "<group>"; };
+		114B7E702E90D58200F5D1EC /* PlaylistImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistImporterTests.swift; sourceTree = "<group>"; };
+		114B7E732E90D5C400F5D1EC /* SoundImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundImporterTests.swift; sourceTree = "<group>"; };
+		114B7E752E90D5D400F5D1EC /* ServerLogImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogImporterTests.swift; sourceTree = "<group>"; };
+		114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityTintTests.swift; sourceTree = "<group>"; };
+		114B7E792E90DBD900F5D1EC /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
 		1156EBCA2E76640500CBC202 /* ButtonGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonGate.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
@@ -378,6 +390,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealthTests.swift,
+				CreatureImporterTests.swift,
 				CreatureModelTests.swift,
 			);
 			target = 11703D8729DD197F00EF7E3D /* Creature Console */;
@@ -386,6 +399,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealthTests.swift,
+				CreatureImporterTests.swift,
 				CreatureModelTests.swift,
 			);
 			target = 11754B6C2C0050AF001A6C83 /* Creature Console Tests */;
@@ -534,6 +548,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */,
 				118AE3602C439D1300346C0E /* Playlists */,
 				1199D6CC2BF6F7E9004E0D64 /* Logging */,
 				110CABE52A9599DB007769E4 /* Processing */,
@@ -562,6 +577,7 @@
 		114B7E292E90B88300F5D1EC /* Animation */ = {
 			isa = PBXGroup;
 			children = (
+				114B7E6E2E90D57300F5D1EC /* AnimationMetadataImporterTests.swift */,
 				114B7E632E90D16000F5D1EC /* AnimationMetadataModelTests.swift */,
 				114B7E272E90B88300F5D1EC /* AnimationMetadataImporter.swift */,
 				114B7E282E90B88300F5D1EC /* AnimationMetadataModel.swift */,
@@ -572,6 +588,7 @@
 		114B7E312E90B8B000F5D1EC /* Playlist */ = {
 			isa = PBXGroup;
 			children = (
+				114B7E702E90D58200F5D1EC /* PlaylistImporterTests.swift */,
 				114B7E652E90D16F00F5D1EC /* PlaylistModelTests.swift */,
 				114B7E2E2E90B8B000F5D1EC /* PlaylistImporter.swift */,
 				114B7E2F2E90B8B000F5D1EC /* PlaylistItemModel.swift */,
@@ -735,6 +752,7 @@
 		1199D6C22BF5D222004E0D64 /* Server */ = {
 			isa = PBXGroup;
 			children = (
+				114B7E752E90D5D400F5D1EC /* ServerLogImporterTests.swift */,
 				114B7E6A2E90D1B700F5D1EC /* ServerLogModelTests.swift */,
 				114B7E382E90BE3100F5D1EC /* ServerLogImporter.swift */,
 				114B7E392E90BE3100F5D1EC /* ServerLogModel.swift */,
@@ -817,6 +835,7 @@
 		11D655612E909B7A00AEC888 /* Sounds */ = {
 			isa = PBXGroup;
 			children = (
+				114B7E732E90D5C400F5D1EC /* SoundImporterTests.swift */,
 				114B7E682E90D19F00F5D1EC /* SoundModelTests.swift */,
 				11F0E4982E9089970085918D /* SoundModel.swift */,
 				11F0E49B2E90899C0085918D /* SoundImporter.swift */,
@@ -851,6 +870,7 @@
 		11FDBF4B2BE0A60F008C5B3E /* Controller */ = {
 			isa = PBXGroup;
 			children = (
+				114B7E792E90DBD900F5D1EC /* AppStateTests.swift */,
 				11754B682C002CEB001A6C83 /* Creature Manager */,
 				1199D6B32BF5BA82004E0D64 /* Server */,
 				1182ED102BEDD1C500E1213F /* Joystick */,
@@ -1342,18 +1362,24 @@
 		11754B692C0050AF001A6C83 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				114B7E6F2E90D57300F5D1EC /* AnimationMetadataImporterTests.swift in Sources */,
 				114B7E662E90D16F00F5D1EC /* PlaylistModelTests.swift in Sources */,
 				114B7E6B2E90D1B700F5D1EC /* ServerLogModelTests.swift in Sources */,
+				114B7E762E90D5D400F5D1EC /* ServerLogImporterTests.swift in Sources */,
+				114B7E712E90D58200F5D1EC /* PlaylistImporterTests.swift in Sources */,
 				11754B792C0054F0001A6C83 /* InputTests.swift in Sources */,
 				118331912C0059C30017DC2A /* ServerErrorTests.swift in Sources */,
 				11754B772C005124001A6C83 /* CreatureTests.swift in Sources */,
 				114B7E642E90D16000F5D1EC /* AnimationMetadataModelTests.swift in Sources */,
+				114B7E782E90D90900F5D1EC /* ActivityTintTests.swift in Sources */,
+				114B7E742E90D5C400F5D1EC /* SoundImporterTests.swift in Sources */,
 				119A44CC2E88CD3A0053B250 /* SensorDataTests.swift in Sources */,
 				119A44DC2E88DA330053B250 /* LogItemTests.swift in Sources */,
 				114B7E692E90D19F00F5D1EC /* SoundModelTests.swift in Sources */,
 				1183318D2C00577D0017DC2A /* AnimationMetadataTests.swift in Sources */,
 				1183318F2C0059490017DC2A /* TrackTests.swift in Sources */,
 				119A44D82E88D9240053B250 /* SystemCountersStoreTests.swift in Sources */,
+				114B7E7A2E90DBD900F5D1EC /* AppStateTests.swift in Sources */,
 				11AF09122E8651C500E0BE28 /* TrackViewerTests.swift in Sources */,
 				114B7E622E90D14C00F5D1EC /* SwiftDataStoreTests.swift in Sources */,
 			);

@@ -1,60 +1,71 @@
-import XCTest
+import Testing
+
 @testable import Common
 @testable import Creature_Console
 
-final class ServerErrorTests: XCTestCase {
+@Suite("ServerError localized descriptions")
+struct ServerErrorTests {
 
-    func testCommunicationErrorDescription() {
+    @Test("communicationError has correct description")
+    func communicationErrorDescription() {
         let message = "Failed to communicate with server."
         let error = ServerError.communicationError(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 
-    func testDataFormatErrorDescription() {
+    @Test("dataFormatError has correct description")
+    func dataFormatErrorDescription() {
         let message = "Data format is incorrect."
         let error = ServerError.dataFormatError(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 
-    func testOtherErrorDescription() {
+    @Test("otherError has correct description")
+    func otherErrorDescription() {
         let message = "An unspecified error occurred."
         let error = ServerError.otherError(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 
-    func testDatabaseErrorDescription() {
+    @Test("databaseError has correct description")
+    func databaseErrorDescription() {
         let message = "Database query failed."
         let error = ServerError.databaseError(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 
-    func testNotFoundErrorDescription() {
+    @Test("notFound has correct description")
+    func notFoundErrorDescription() {
         let message = "Requested resource not found."
         let error = ServerError.notFound(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 
-    func testUnknownErrorDescription() {
+    @Test("unknownError has correct description")
+    func unknownErrorDescription() {
         let message = "An unknown error occurred."
         let error = ServerError.unknownError(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 
-    func testServerErrorDescription() {
+    @Test("serverError has correct description")
+    func serverErrorDescription() {
         let message = "Internal server error."
         let error = ServerError.serverError(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 
-    func testWebsocketErrorDescription() {
+    @Test("websocketError has correct description")
+    func websocketErrorDescription() {
         let message = "Websocket connection failed."
         let error = ServerError.websocketError(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 
-    func testNotImplementedErrorDescription() {
+    @Test("notImplemented has correct description")
+    func notImplementedErrorDescription() {
         let message = "Feature not implemented."
         let error = ServerError.notImplemented(message)
-        XCTAssertEqual(error.localizedDescription, message)
+        #expect(error.localizedDescription == message)
     }
 }

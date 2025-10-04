@@ -4,7 +4,7 @@ public struct DataHelper {
 
     /**
      Generates random bytes
-
+    
      Can be used to generate MongoDB style OIDs.
      */
     public static func generateRandomData(byteCount: Int) -> Data {
@@ -24,6 +24,9 @@ public struct DataHelper {
     }
 
     public static func stringToOidData(oid: String) -> Data? {
+        // Hex strings must have even length (2 characters per byte)
+        guard oid.count % 2 == 0 else { return nil }
+
         var data = Data(capacity: oid.count / 2)
         var index = oid.startIndex
         while index < oid.endIndex {
