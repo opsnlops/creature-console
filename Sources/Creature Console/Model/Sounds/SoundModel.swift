@@ -1,15 +1,15 @@
+import Common
 import Foundation
 import SwiftData
-import Common
 
 @Model
-final class SoundModel {
+final class SoundModel: Identifiable {
     // Use file name as the unique identifier to match server semantics
-    @Attribute(.unique) var id: String = ""
+    @Attribute(.unique) var id: SoundIdentifier = ""
     var size: UInt32 = 0
     var transcript: String = ""
 
-    init(id: String, size: UInt32, transcript: String) {
+    init(id: SoundIdentifier, size: UInt32, transcript: String) {
         self.id = id
         self.size = size
         self.transcript = transcript
@@ -27,4 +27,3 @@ extension SoundModel {
         Common.Sound(fileName: id, size: size, transcript: transcript)
     }
 }
-

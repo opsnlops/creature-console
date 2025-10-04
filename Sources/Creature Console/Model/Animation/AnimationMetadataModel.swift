@@ -7,9 +7,9 @@ import SwiftData
 /// **IMPORTANT**: This model must stay in sync with `Common.AnimationMetadata` DTO.
 /// Any changes to fields here must be reflected in the Common package DTO and vice versa.
 @Model
-final class AnimationMetadataModel {
+final class AnimationMetadataModel: Identifiable {
     // Use animation ID as the unique identifier
-    @Attribute(.unique) var id: String = ""
+    @Attribute(.unique) var id: AnimationIdentifier = ""
     var title: String = ""
     var lastUpdated: Date? = nil
     var millisecondsPerFrame: UInt32 = 20
@@ -19,7 +19,7 @@ final class AnimationMetadataModel {
     var multitrackAudio: Bool = false
 
     init(
-        id: String, title: String, lastUpdated: Date?, millisecondsPerFrame: UInt32,
+        id: AnimationIdentifier, title: String, lastUpdated: Date?, millisecondsPerFrame: UInt32,
         note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool
     ) {
         self.id = id

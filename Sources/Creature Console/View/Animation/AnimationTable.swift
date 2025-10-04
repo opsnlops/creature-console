@@ -39,7 +39,7 @@ struct AnimationTable: View {
         NavigationStack {
             VStack {
                 if !animations.isEmpty {
-                    Table(of: AnimationMetadataModel.self, selection: $selection) {
+                    Table(animations, selection: $selection) {
                         TableColumn("Name") { a in
                             Text(a.title)
                                 .onTapGesture(count: 2) {
@@ -62,10 +62,6 @@ struct AnimationTable: View {
                             Text(a.numberOfFrames * a.millisecondsPerFrame, format: .number)
                         }
                         .width(80)
-                    } rows: {
-                        ForEach(animations) { metadata in
-                            TableRow(metadata)
-                        }
                     }
                     .contextMenu(forSelectionType: AnimationIdentifier.self) {
                         (items: Set<AnimationIdentifier>) in

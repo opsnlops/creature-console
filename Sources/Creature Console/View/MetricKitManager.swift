@@ -10,22 +10,22 @@ import os
             subsystem: Bundle.main.bundleIdentifier ?? "MetricKitManager",
             category: "MetricKitManager")
 
-        private let diagnosticsDirectoryURL: URL = {
+        private let diagnosticsDirectoryURL: URL? = {
             let fm = FileManager.default
-            let appSupportDir = try! fm.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: true)
+            guard
+                let appSupportDir = try? fm.url(
+                    for: .applicationSupportDirectory,
+                    in: .userDomainMask,
+                    appropriateFor: nil,
+                    create: true)
+            else {
+                return nil
+            }
             let diagnosticsDir = appSupportDir.appendingPathComponent(
                 "Diagnostics", isDirectory: true)
             if !fm.fileExists(atPath: diagnosticsDir.path) {
-                do {
-                    try fm.createDirectory(
-                        at: diagnosticsDir, withIntermediateDirectories: true, attributes: nil)
-                } catch {
-                    // Will handle error on usage
-                }
+                try? fm.createDirectory(
+                    at: diagnosticsDir, withIntermediateDirectories: true, attributes: nil)
             }
             return diagnosticsDir
         }()
@@ -47,7 +47,7 @@ import os
         func didReceive(_ payloads: [MXMetricPayload]) {
             for payload in payloads {
                 do {
-                    let jsonData = try payload.jsonRepresentation()
+                    let jsonData = payload.jsonRepresentation()
                     try writeData(jsonData, prefix: "metrics")
                     logger.log("Saved metric payload successfully.")
                 } catch {
@@ -59,7 +59,7 @@ import os
         func didReceive(_ payloads: [MXDiagnosticPayload]) {
             for payload in payloads {
                 do {
-                    let jsonData = try payload.jsonRepresentation()
+                    let jsonData = payload.jsonRepresentation()
                     try writeData(jsonData, prefix: "diagnostics")
                     logger.log("Saved diagnostic payload successfully.")
                 } catch {
@@ -69,6 +69,12 @@ import os
         }
 
         private func writeData(_ data: Data, prefix: String) throws {
+            guard let diagnosticsDirectoryURL else {
+                throw NSError(
+                    domain: "MetricKitManager",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Diagnostics directory unavailable"])
+            }
             let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(
                 of: ":", with: "-")
             let filename = "\(prefix)-\(timestamp).json"
@@ -88,6 +94,7 @@ import os
 
         /// Lists URLs of recent diagnostic and metric files sorted newest first.
         func listRecentDiagnostics(limit: Int = 10) -> [URL] {
+            guard let diagnosticsDirectoryURL else { return [] }
             let fm = FileManager.default
             guard
                 let contents = try? fm.contentsOfDirectory(

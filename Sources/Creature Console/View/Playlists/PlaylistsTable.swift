@@ -25,7 +25,7 @@ struct PlaylistsTable: View {
     @State private var alertMessage = ""
     @State private var successMessage = ""
 
-    @State private var selection: Common.Playlist.ID? = nil
+    @State private var selection: PlaylistIdentifier? = nil
     @State private var editingPlaylist: Common.Playlist? = nil
     @State private var showingEditSheet = false
     @State private var showingCreateSheet = false
@@ -35,9 +35,16 @@ struct PlaylistsTable: View {
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
     private var playlistTable: some View {
-        Table(of: Common.Playlist.self, selection: $selection) {
-            TableColumn("Name", value: \.name)
-                .width(min: 300, ideal: 500)
+        Table(playlists, selection: $selection) {
+            TableColumn("Name") { playlistModel in
+                Text(playlistModel.name)
+                    #if os(macOS)
+                        .onTapGesture(count: 2) {
+                            editPlaylist(playlistModel.toDTO())
+                        }
+                    #endif
+            }
+            .width(min: 300, ideal: 500)
 
             TableColumn("Items") { playlist in
                 Text(playlist.items.count, format: .number)
@@ -50,15 +57,25 @@ struct PlaylistsTable: View {
             }
             .width(min: 100)
 
-        } rows: {
-            ForEach(playlists) { playlistModel in
-                let playlist = playlistModel.toDTO()
-                TableRow(playlist)
-                    .contextMenu {
-                        playlistContextMenu(for: playlist)
-                    }
-            }
         }
+        #if os(macOS)
+            .contextMenu(forSelectionType: PlaylistIdentifier.self) {
+                (items: Set<PlaylistIdentifier>) in
+                if let playlistId = items.first ?? selection,
+                    let playlistModel = playlists.first(where: { $0.id == playlistId })
+                {
+                    playlistContextMenu(for: playlistModel.toDTO())
+                }
+            }
+        #else
+            .contextMenu {
+                if let playlistId = selection,
+                    let playlistModel = playlists.first(where: { $0.id == playlistId })
+                {
+                    playlistContextMenu(for: playlistModel.toDTO())
+                }
+            }
+        #endif
     }
 
     private func playlistContextMenu(for playlist: Common.Playlist) -> some View {

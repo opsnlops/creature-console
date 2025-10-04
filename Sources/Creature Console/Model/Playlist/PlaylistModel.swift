@@ -7,15 +7,15 @@ import SwiftData
 /// **IMPORTANT**: This model must stay in sync with `Common.Playlist` DTO.
 /// Any changes to fields here must be reflected in the Common package DTO and vice versa.
 @Model
-final class PlaylistModel {
+final class PlaylistModel: Identifiable {
     // Use playlist ID as the unique identifier
-    @Attribute(.unique) var id: String = ""
+    @Attribute(.unique) var id: PlaylistIdentifier = ""
     var name: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \PlaylistItemModel.playlist)
     var items: [PlaylistItemModel] = []
 
-    init(id: String, name: String, items: [PlaylistItemModel]) {
+    init(id: PlaylistIdentifier, name: String, items: [PlaylistItemModel]) {
         self.id = id
         self.name = name
         self.items = items

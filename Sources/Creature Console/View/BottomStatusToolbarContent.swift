@@ -82,18 +82,14 @@ struct BottomStatusToolbarContent: View {
             }
         }
         .task { @MainActor in
-            do {
-                // Get initial state immediately
-                let initialActivity = await AppState.shared.getCurrentActivity
-                currentActivity = initialActivity
+            // Get initial state immediately
+            let initialActivity = await AppState.shared.getCurrentActivity
+            currentActivity = initialActivity
 
-                // Then subscribe to updates with proper cancellation checking
-                for await state in await AppState.shared.stateUpdates {
-                    guard !Task.isCancelled else { break }
-                    currentActivity = state.currentActivity
-                }
-            } catch {
-                // Handle any errors gracefully
+            // Then subscribe to updates with proper cancellation checking
+            for await state in await AppState.shared.stateUpdates {
+                guard !Task.isCancelled else { break }
+                currentActivity = state.currentActivity
             }
         }
     }

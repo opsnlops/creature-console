@@ -19,7 +19,7 @@ struct SoundFileListView: View {
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
 
-    @State private var selection: SoundModel.ID? = nil
+    @State private var selection: SoundIdentifier? = nil
     @State private var playSoundTask: Task<Void, Never>? = nil
     @State private var preparingFile: String? = nil
 
@@ -27,7 +27,7 @@ struct SoundFileListView: View {
         NavigationStack {
             VStack {
                 if !sounds.isEmpty {
-                    Table(of: SoundModel.self, selection: $selection) {
+                    Table(sounds, selection: $selection) {
                         TableColumn("File Name") { s in
                             Text(s.id)
                         }
@@ -43,33 +43,34 @@ struct SoundFileListView: View {
                         }
                         .width(100)
 
-                    } rows: {
-                        ForEach(sounds) { sound in
-                            TableRow(sound)
-                                .contextMenu {
-                                    Button {
-                                        playOnServer(fileName: sound.id)
-                                    } label: {
-                                        Label(
-                                            "Play Sound File On Server",
-                                            systemImage: "music.note.tv")
-                                    }
+                    }
+                    .contextMenu(forSelectionType: SoundIdentifier.self) {
+                        (items: Set<SoundIdentifier>) in
+                        if let soundId = items.first ?? selection,
+                            let sound = sounds.first(where: { $0.id == soundId })
+                        {
+                            Button {
+                                playOnServer(fileName: sound.id)
+                            } label: {
+                                Label(
+                                    "Play Sound File On Server",
+                                    systemImage: "music.note.tv")
+                            }
 
-                                    Button {
-                                        playLocally(fileName: sound.id)
-                                    } label: {
-                                        Label(
-                                            "Play Sound File Locally",
-                                            systemImage: "music.quarternote.3")
-                                    }
+                            Button {
+                                playLocally(fileName: sound.id)
+                            } label: {
+                                Label(
+                                    "Play Sound File Locally",
+                                    systemImage: "music.quarternote.3")
+                            }
 
-                                    Button {
-                                        // TODO: show transcript UI
-                                    } label: {
-                                        Label("View Transcript", systemImage: "text.bubble.fill")
-                                    }
-                                    .disabled(sound.transcript.isEmpty)
-                                }
+                            Button {
+                                // TODO: show transcript UI
+                            } label: {
+                                Label("View Transcript", systemImage: "text.bubble.fill")
+                            }
+                            .disabled(sound.transcript.isEmpty)
                         }
                     }
                 } else {

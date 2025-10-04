@@ -39,6 +39,7 @@
 		114B7E3B2E90BE3100F5D1EC /* ServerLogModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E392E90BE3100F5D1EC /* ServerLogModel.swift */; };
 		114B7E3C2E90BE3100F5D1EC /* ServerLogImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E382E90BE3100F5D1EC /* ServerLogImporter.swift */; };
 		114B7E3D2E90BE3100F5D1EC /* ServerLogModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E392E90BE3100F5D1EC /* ServerLogModel.swift */; };
+		114B7E5E2E90CF5D00F5D1EC /* SensorDataLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44CD2E88D6E70053B250 /* SensorDataLogic.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		1156EBCB2E76640500CBC202 /* ButtonGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1156EBCA2E76640500CBC202 /* ButtonGate.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
@@ -160,7 +161,6 @@
 		11F0E49A2E9089970085918D /* SoundModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E4982E9089970085918D /* SoundModel.swift */; };
 		11F0E49C2E90899C0085918D /* SoundImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49B2E90899C0085918D /* SoundImporter.swift */; };
 		11F0E49D2E90899C0085918D /* SoundImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49B2E90899C0085918D /* SoundImporter.swift */; };
-		11F0E49F2E9089AD0085918D /* SoundFileListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49E2E9089AD0085918D /* SoundFileListView.swift */; };
 		11F0E4A02E9089AD0085918D /* SoundFileListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49E2E9089AD0085918D /* SoundFileListView.swift */; };
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
@@ -358,6 +358,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealth.swift,
+				CreatureImporter.swift,
+				CreatureModel.swift,
+				InputModel.swift,
 			);
 			target = 117C86FD2CA0CC81007B5682 /* Creature TV */;
 		};
@@ -1361,7 +1364,6 @@
 				117C87322CA0CE9F007B5682 /* CacheInvalidationProcessor.swift in Sources */,
 				117C87402CA0CEC3007B5682 /* JoystickManager.swift in Sources */,
 				117C87452CA0CEF9007B5682 /* Joystick.swift in Sources */,
-				11F0E49F2E9089AD0085918D /* SoundFileListView.swift in Sources */,
 				117C87762CA0D727007B5682 /* ByteChartView.swift in Sources */,
 				117C87772CA0D727007B5682 /* BarChart.swift in Sources */,
 				117C87542CA0CEF9007B5682 /* SystemCountersStore.swift in Sources */,
@@ -1390,6 +1392,7 @@
 				114B7E3C2E90BE3100F5D1EC /* ServerLogImporter.swift in Sources */,
 				114B7E3D2E90BE3100F5D1EC /* ServerLogModel.swift in Sources */,
 				117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */,
+				114B7E5E2E90CF5D00F5D1EC /* SensorDataLogic.swift in Sources */,
 			);
 		};
 		117C870B2CA0CC82007B5682 /* Sources */ = {
@@ -1478,7 +1481,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "The Creature Console needs to talk to the Creature Server.";
-				INFOPLIST_KEY_NSLocationUsageDescription = "";
+				INFOPLIST_KEY_NSLocationUsageDescription = "We don't actually use location.";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
