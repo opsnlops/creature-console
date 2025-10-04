@@ -26,7 +26,9 @@ struct LogItemTests {
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
-            if let date = formatter.date(from: string) {
+            let localFormatter = ISO8601DateFormatter()
+            localFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = localFormatter.date(from: string) {
                 return date
             }
             if let fallback = ISO8601DateFormatter().date(from: string) {

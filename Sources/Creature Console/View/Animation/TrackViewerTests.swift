@@ -7,6 +7,7 @@ import Common
 struct TrackViewerTests {
 
     @Test("Succeeds with consistent frame sizes")
+    @MainActor
     func extractByteStreamsSuccess() {
         let frames: [Data] = [
             Data([10, 20, 30]),
@@ -27,12 +28,13 @@ struct TrackViewerTests {
             #expect(streams[0] == [10, 40, 70])
             #expect(streams[1] == [20, 50, 80])
             #expect(streams[2] == [30, 60, 90])
-        case .failure(let error):
-            #expect(false, "Unexpected failure: \(error)")
+        case .failure:
+            Issue.record("Expected success but got failure")
         }
     }
 
     @Test("Fails on mismatched frame sizes")
+    @MainActor
     func extractByteStreamsFailureOnMismatchedSizes() {
         let frames: [Data] = [
             Data([1, 2, 3]),
@@ -48,18 +50,12 @@ struct TrackViewerTests {
         let result = viewer.extractByteStreams(from: frames)
         switch result {
         case .success:
-            #expect(false, "Expected failure due to mismatched frame sizes")
+            Issue.record("Expected failure due to mismatched frame sizes")
         case .failure(let error):
-            switch error {
-            case let tvError as TrackViewer.TrackViewerError:
-                switch tvError {
-                case .inconsistentFrameSizes(_, _):
-                    #expect(true)
-                default:
-                    #expect(false, "Unexpected TrackViewer error: \(tvError)")
-                }
-            default:
-                #expect(false, "Unexpected error type: \(error)")
+            if case .inconsistentFrameSizes = error {
+                // Success - got the expected error
+            } else {
+                Issue.record("Unexpected error type: \(error)")
             }
         }
     }
