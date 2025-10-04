@@ -6,6 +6,7 @@ struct BottomStatusToolbarContent: View {
     @State private var statusLightsState = StatusLightsState(
         running: false, dmx: false, streaming: false, animationPlaying: false)
     @State private var currentActivity: Activity = .idle
+    @State private var websocketState: WebSocketConnectionState = .disconnected
     @Namespace private var glassNamespace
 
     var body: some View {
@@ -13,10 +14,10 @@ struct BottomStatusToolbarContent: View {
             // State chip (compact = dot)
             if hSize == .regular {
                 HStack(spacing: 6) {
-                    Image(systemName: symbolForActivity(currentActivity))
+                    Image(systemName: currentActivity.symbolName)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.95))
-                    Text("State: \(currentActivity.description)")
+                    Text(currentActivity.description)
                         .font(.footnote)
                 }
                 .padding(.horizontal, 10)
@@ -29,7 +30,7 @@ struct BottomStatusToolbarContent: View {
                 )
                 .animation(.easeInOut(duration: 0.25), value: currentActivity)
             } else {
-                Image(systemName: symbolForActivity(currentActivity))
+                Image(systemName: currentActivity.symbolName)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.95))
                     .padding(8)
@@ -45,6 +46,12 @@ struct BottomStatusToolbarContent: View {
             // Cluster of status lights
             GlassEffectContainer(spacing: 14) {
                 HStack(spacing: 10) {
+                    ToolbarStatusDot(
+                        systemName: websocketState.symbolName,
+                        active: websocketState == .connected,
+                        tint: websocketState.tintColor,
+                        namespace: glassNamespace
+                    )
                     ToolbarStatusDot(
                         systemName: "arrow.circlepath",
                         active: statusLightsState.running,
@@ -92,23 +99,17 @@ struct BottomStatusToolbarContent: View {
                 currentActivity = state.currentActivity
             }
         }
-    }
-}
+        .task { @MainActor in
+            // Get initial websocket state
+            let initialWebSocketState = await WebSocketStateManager.shared.getCurrentState
+            websocketState = initialWebSocketState
 
-private func symbolForActivity(_ activity: Activity) -> String {
-    switch activity {
-    case .idle:
-        return "pause.circle.fill"
-    case .streaming:
-        return "dot.radiowaves.left.and.right"
-    case .recording:
-        return "record.circle.fill"
-    case .preparingToRecord:
-        return "timer"
-    case .playingAnimation:
-        return "figure.socialdance"
-    case .connectingToServer:
-        return "arrow.triangle.2.circlepath.circle"
+            // Subscribe to websocket state updates
+            for await state in await WebSocketStateManager.shared.stateUpdates {
+                guard !Task.isCancelled else { break }
+                websocketState = state
+            }
+        }
     }
 }
 
@@ -121,6 +122,8 @@ private struct ToolbarStatusDot: View {
     var body: some View {
         Image(systemName: systemName)
             .font(.system(size: 18, weight: .semibold))
+            .imageScale(.medium)
+            .frame(width: 20, height: 20, alignment: .center)
             .foregroundStyle(active ? .white : .secondary)
             .padding(8)
             .glassEffect(

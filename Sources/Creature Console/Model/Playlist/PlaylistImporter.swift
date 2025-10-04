@@ -23,10 +23,11 @@ actor PlaylistImporter {
                     // Update existing
                     existing.name = dto.name
 
-                    // Update items: explicitly delete old ones before adding new ones
+                    // Delete old items explicitly (cascade rule will clean up relationships)
                     for item in existing.items {
                         modelContext.delete(item)
                     }
+                    // Add new items
                     existing.items = dto.items.map { PlaylistItemModel(dto: $0) }
                 } else {
                     // Insert new

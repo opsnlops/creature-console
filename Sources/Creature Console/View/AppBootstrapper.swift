@@ -15,12 +15,14 @@ actor AppBootstrapper {
 
         await AppState.shared.setCurrentActivity(.connectingToServer)
 
+        // Connect websocket immediately so health data starts flowing
+        await CreatureServerClient.shared.connectWebsocket(processor: SwiftMessageProcessor.shared)
+
+        // Populate caches in parallel - wait for completion to avoid SwiftData conflicts
         async let creaturesResult = CreatureManager.shared.populateCache()
         async let animationMetadataResult = importAnimationsIntoSwiftData()
         async let playlistsResult = importPlaylistsIntoSwiftData()
         async let soundsResult = importSoundsIntoSwiftData()
-
-        await CreatureServerClient.shared.connectWebsocket(processor: SwiftMessageProcessor.shared)
 
         let results = await (
             creaturesResult,
@@ -29,46 +31,9 @@ actor AppBootstrapper {
             soundsResult
         )
 
-        var errors: [String] = []
+        await handleImportResults(results)
 
-        switch results.0 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning("Failed to populate creature cache: \(error.localizedDescription)")
-            errors.append("Creature cache: \(error.localizedDescription)")
-        }
-
-        switch results.1 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning("Failed to fetch animation metadata list: \(error.localizedDescription)")
-            errors.append("Animation metadata: \(error.localizedDescription)")
-        }
-
-        switch results.2 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning("Failed to fetch playlists: \(error.localizedDescription)")
-            errors.append("Playlists: \(error.localizedDescription)")
-        }
-
-        switch results.3 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning("Failed to import sounds: \(error.localizedDescription)")
-            errors.append("Sounds: \(error.localizedDescription)")
-        }
-
-        if !errors.isEmpty {
-            let message =
-                "Some data failed to load:\n" + errors.map { "• \($0)" }.joined(separator: "\n")
-            await AppState.shared.setSystemAlert(show: true, message: message)
-        }
-
+        // Now that caches are populated, set to idle
         await AppState.shared.setCurrentActivity(.idle)
     }
 
@@ -181,6 +146,57 @@ actor AppBootstrapper {
             }
         } catch {
             return .failure(error)
+        }
+    }
+
+    private func handleImportResults(
+        _ results: (
+            Result<String, ServerError>,
+            Result<String, any Error>,
+            Result<String, any Error>,
+            Result<String, any Error>
+        )
+    ) async {
+        var errors: [String] = []
+
+        switch results.0 {
+        case .success:
+            logger.info("Successfully populated creature cache")
+        case .failure(let error):
+            logger.warning("Failed to populate creature cache: \(error.localizedDescription)")
+            errors.append("Creature cache: \(error.localizedDescription)")
+        }
+
+        switch results.1 {
+        case .success:
+            logger.info("Successfully imported animation metadata")
+        case .failure(let error):
+            logger.warning("Failed to fetch animation metadata list: \(error.localizedDescription)")
+            errors.append("Animation metadata: \(error.localizedDescription)")
+        }
+
+        switch results.2 {
+        case .success:
+            logger.info("Successfully imported playlists")
+        case .failure(let error):
+            logger.warning("Failed to fetch playlists: \(error.localizedDescription)")
+            errors.append("Playlists: \(error.localizedDescription)")
+        }
+
+        switch results.3 {
+        case .success:
+            logger.info("Successfully imported sounds")
+        case .failure(let error):
+            logger.warning("Failed to import sounds: \(error.localizedDescription)")
+            errors.append("Sounds: \(error.localizedDescription)")
+        }
+
+        if !errors.isEmpty {
+            let message =
+                "Some data failed to load from server:\n"
+                + errors.map { "• \($0)" }.joined(separator: "\n")
+                + "\n\nThe app will use cached data if available."
+            await AppState.shared.setSystemAlert(show: true, message: message)
         }
     }
 }

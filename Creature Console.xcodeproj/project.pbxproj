@@ -134,6 +134,8 @@
 		119A44CE2E88D6E70053B250 /* SensorDataLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44CD2E88D6E70053B250 /* SensorDataLogic.swift */; };
 		119A44D82E88D9240053B250 /* SystemCountersStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44D52E88D9120053B250 /* SystemCountersStoreTests.swift */; };
 		119A44DC2E88DA330053B250 /* LogItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44D92E88DA290053B250 /* LogItemTests.swift */; };
+		119D07482E90F67700C6AFEE /* WebSocketConnectionState+UI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */; };
+		119D07492E90F67700C6AFEE /* WebSocketConnectionState+UI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordTrack.swift */; };
 		11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */; };
 		11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61AA22BFC3739000A1B48 /* TrackViewer.swift */; };
@@ -286,6 +288,7 @@
 		119A44CD2E88D6E70053B250 /* SensorDataLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorDataLogic.swift; sourceTree = "<group>"; };
 		119A44D52E88D9120053B250 /* SystemCountersStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersStoreTests.swift; sourceTree = "<group>"; };
 		119A44D92E88DA290053B250 /* LogItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogItemTests.swift; sourceTree = "<group>"; };
+		119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WebSocketConnectionState+UI.swift"; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTrack.swift; sourceTree = "<group>"; };
 		11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTable.swift; sourceTree = "<group>"; };
 		11A61AA22BFC3739000A1B48 /* TrackViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackViewer.swift; sourceTree = "<group>"; };
@@ -548,6 +551,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */,
 				114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */,
 				118AE3602C439D1300346C0E /* Playlists */,
 				1199D6CC2BF6F7E9004E0D64 /* Logging */,
@@ -1341,6 +1345,7 @@
 				1156EBCB2E76640500CBC202 /* ButtonGate.swift in Sources */,
 				118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */,
 				114B7E3A2E90BE3100F5D1EC /* ServerLogImporter.swift in Sources */,
+				119D07482E90F67700C6AFEE /* WebSocketConnectionState+UI.swift in Sources */,
 				114B7E3B2E90BE3100F5D1EC /* ServerLogModel.swift in Sources */,
 				114B7E1E2E90B83900F5D1EC /* SwiftDataStore.swift in Sources */,
 				1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */,
@@ -1395,6 +1400,7 @@
 				117C873C2CA0CEBE007B5682 /* AppState.swift in Sources */,
 				117C87832CA0DA3F007B5682 /* SensorData.swift in Sources */,
 				11F0E4992E9089970085918D /* SoundModel.swift in Sources */,
+				119D07492E90F67700C6AFEE /* WebSocketConnectionState+UI.swift in Sources */,
 				117C873F2CA0CEBE007B5682 /* EventLoop.swift in Sources */,
 				117C87392CA0CEB1007B5682 /* CacheMethods.swift in Sources */,
 				117C873A2CA0CEB1007B5682 /* CreatureManager.swift in Sources */,
@@ -1609,8 +1615,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Creature ConsoleDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2900;
+				CURRENT_PROJECT_VERSION = 2901;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1641,7 +1648,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.9.0;
+				MARKETING_VERSION = 2.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1663,7 +1670,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2900;
+				CURRENT_PROJECT_VERSION = 2901;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1694,7 +1701,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.9.0;
+				MARKETING_VERSION = 2.9.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

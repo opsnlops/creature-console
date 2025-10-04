@@ -9,6 +9,30 @@ import Network
     import AppKit
 #endif
 
+// WebSocket connection states
+public enum WebSocketConnectionState: CustomStringConvertible, Sendable {
+    case disconnected
+    case connecting
+    case connected
+    case reconnecting
+    case closing
+
+    public var description: String {
+        switch self {
+        case .disconnected:
+            return "Disconnected"
+        case .connecting:
+            return "Connecting"
+        case .connected:
+            return "Connected"
+        case .reconnecting:
+            return "Reconnecting"
+        case .closing:
+            return "Closing"
+        }
+    }
+}
+
 struct BasicCommandDTO: Codable {
     let command: String
 }
@@ -23,12 +47,16 @@ extension CreatureServerClient {
     public func connectWebsocket(processor: MessageProcessor) async {
         self.processor = processor
 
+        // Notify state change to connecting
+        await WebSocketStateManager.shared.setState(.connecting)
+
         guard let url = URL(string: makeBaseURL(.websocket) + "/websocket") else {
             logger.error("Invalid URL for WebSocket connection.")
             NotificationCenter.default.post(
                 name: WebSocketClient.didEncounterErrorNotification,
                 object: "Invalid URL for WebSocket connection."
             )
+            await WebSocketStateManager.shared.setState(.disconnected)
             return
         }
 
@@ -310,6 +338,7 @@ actor WebSocketClient {
     private func attemptReconnect() async {
         guard shouldStayConnected, !isConnected else { return }
         self.logger.info("Attempting websocket reconnect (attempt #\(reconnectAttempt + 1))")
+        await WebSocketStateManager.shared.setState(.reconnecting)
         self.connect()
         // If connect succeeds, startReceiving() will loop. We'll mark success here after a small check.
         // Give it a moment to establish; if still not connected, schedule another try.
@@ -339,6 +368,9 @@ actor WebSocketClient {
         suppressErrorNotifications = false
 
         logger.info("websocket is connected")
+        Task {
+            await WebSocketStateManager.shared.setState(.connected)
+        }
         startReceiving()
         startPinging()
         NotificationCenter.default.post(
@@ -348,6 +380,10 @@ actor WebSocketClient {
     func disconnect() {
         shouldStayConnected = false
         reconnectTask?.cancel()
+
+        Task {
+            await WebSocketStateManager.shared.setState(.closing)
+        }
 
         task?.cancel(with: .goingAway, reason: nil)
         pingTask?.cancel()
@@ -359,6 +395,9 @@ actor WebSocketClient {
         teardownLifecycleMonitoring()
 
         logger.info("websocket is disconnected")
+        Task {
+            await WebSocketStateManager.shared.setState(.disconnected)
+        }
     }
 
     nonisolated var isWebSocketConnected: Bool {
@@ -444,6 +483,8 @@ actor WebSocketClient {
         pingTask?.cancel()
         reconnectTask?.cancel()
         await pausePinging()
+
+        await WebSocketStateManager.shared.setState(.disconnected)
 
         if let urlError = error as? URLError {
             logger.warning("websocket encountered URLError: \(urlError.localizedDescription)")

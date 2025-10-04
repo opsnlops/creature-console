@@ -31,6 +31,21 @@ This is a client application for controlling animatronic creatures via a WebSock
   - iOS: `xcodebuild test -project "Creature Console.xcodeproj" -scheme "Creature Console" -destination "platform=iOS Simulator,name=iPhone 15 Pro"`
 - `open Creature\ Console.xcodeproj` — opens the GUI workspace for macOS/iOS/tvOS builds and UI previews.
 
+## Code Quality Philosophy
+
+**IMPORTANT: Always prioritize correctness, quality, and maintainability over speed of implementation.**
+
+- **Correct over Fast**: Take the time to implement solutions properly. A correct solution that takes longer to write is always preferred over a quick but flawed implementation.
+- **DRY (Don't Repeat Yourself)**: Avoid code duplication. Extract common patterns into reusable functions, extensions, or computed properties.
+- **No Bandaids**: Don't use temporary fixes, workarounds, or delays to mask underlying issues. Identify and fix root causes.
+- **Think First, Then Code**: When encountering a problem:
+  1. Understand the root cause completely
+  2. Design the proper solution
+  3. Implement it correctly
+  4. Test thoroughly
+- **Race Conditions**: When dealing with concurrency (especially SwiftData, actors, or async/await), take time to understand the threading model and prevent race conditions properly rather than adding delays or hoping for the best.
+- **User Is Patient**: The developer is willing to wait for well-thought-out solutions. Don't rush.
+
 ## Coding Style & Naming Conventions
 - Follow Swift API Design Guidelines; prefer descriptive camelCase for variables/functions and PascalCase for types.
 - Indent with 4 spaces; align trailing closures and guard returns for readability.

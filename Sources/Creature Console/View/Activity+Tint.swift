@@ -11,6 +11,23 @@ import SwiftUI
 #endif
 
 extension Activity {
+    var symbolName: String {
+        switch self {
+        case .idle:
+            return "pause.circle.fill"
+        case .streaming:
+            return "dot.radiowaves.left.and.right"
+        case .recording:
+            return "record.circle.fill"
+        case .preparingToRecord:
+            return "timer"
+        case .playingAnimation:
+            return "figure.socialdance"
+        case .connectingToServer:
+            return "arrow.triangle.2.circlepath.circle"
+        }
+    }
+
     /// Unified UI tint color using system dynamic colors.
     /// Update this mapping to change app-wide semantics.
     var tintColor: Color {

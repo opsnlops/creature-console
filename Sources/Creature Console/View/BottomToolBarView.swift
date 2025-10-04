@@ -15,6 +15,7 @@ struct BottomToolBarView: View {
         showSystemAlert: false,
         systemAlertMessage: ""
     )
+    @State private var websocketState: WebSocketConnectionState = .disconnected
     @State private var showingSystemAlert = false
     @State private var systemAlertMessage = ""
     @Namespace private var glassNamespace
@@ -29,19 +30,42 @@ struct BottomToolBarView: View {
                     Text("Streamed: \(serverCounters.systemCounters.framesStreamed)")
                     Text("Spare Time: \(String(format: "%.2f", frameSpareTime))%")
                 }
-                HStack {
-                    Text("State: \(appState.currentActivity.description)")
-                        .font(.footnote)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .glassEffect(
-                            .regular
-                                .tint(appState.currentActivity.tintColor.opacity(0.35))
-                                .interactive(),
-                            in: .capsule
-                        )
-                        .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
-                        .animation(.easeInOut(duration: 0.25), value: appState.currentActivity)
+                HStack(spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: appState.currentActivity.symbolName)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.95))
+                        Text(appState.currentActivity.description)
+                            .font(.footnote)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .glassEffect(
+                        .regular
+                            .tint(appState.currentActivity.tintColor.opacity(0.35))
+                            .interactive(),
+                        in: .capsule
+                    )
+                    .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
+                    .animation(.easeInOut(duration: 0.25), value: appState.currentActivity)
+
+                    HStack(spacing: 6) {
+                        Image(systemName: websocketState.symbolName)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.95))
+                        Text(websocketState.description)
+                            .font(.footnote)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .glassEffect(
+                        .regular
+                            .tint(websocketState.tintColor.opacity(0.35))
+                            .interactive(),
+                        in: .capsule
+                    )
+                    .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
+                    .animation(.easeInOut(duration: 0.25), value: websocketState)
                 }
             }
             .padding(.horizontal, 16)
@@ -133,6 +157,17 @@ struct BottomToolBarView: View {
                 appState = state
                 showingSystemAlert = state.showSystemAlert
                 systemAlertMessage = state.systemAlertMessage
+            }
+        }
+        .task { @MainActor in
+            // Get initial websocket state
+            let initialWebSocketState = await WebSocketStateManager.shared.getCurrentState
+            websocketState = initialWebSocketState
+
+            // Subscribe to websocket state updates
+            for await state in await WebSocketStateManager.shared.stateUpdates {
+                guard !Task.isCancelled else { break }
+                websocketState = state
             }
         }
 

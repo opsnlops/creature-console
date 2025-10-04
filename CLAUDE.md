@@ -142,6 +142,21 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 - **Shared Architecture**: Common model/controller code between GUI and CLI via Swift Package Manager
 - **Reactive Programming**: SwiftUI's state management with @ObservableObject, @StateObject, etc.
 
+## Code Quality Philosophy
+
+**IMPORTANT: Always prioritize correctness, quality, and maintainability over speed of implementation.**
+
+- **Correct over Fast**: Take the time to implement solutions properly. A correct solution that takes longer to write is always preferred over a quick but flawed implementation.
+- **DRY (Don't Repeat Yourself)**: Avoid code duplication. Extract common patterns into reusable functions, extensions, or computed properties.
+- **No Bandaids**: Don't use temporary fixes, workarounds, or delays to mask underlying issues. Identify and fix root causes.
+- **Think First, Then Code**: When encountering a problem:
+  1. Understand the root cause completely
+  2. Design the proper solution
+  3. Implement it correctly
+  4. Test thoroughly
+- **Race Conditions**: When dealing with concurrency (especially SwiftData, actors, or async/await), take time to understand the threading model and prevent race conditions properly rather than adding delays or hoping for the best.
+- **User Is Patient**: The developer is willing to wait for well-thought-out solutions. Don't rush.
+
 ## Testing Best Practices
 
 ### Swift Testing Framework (Required)
