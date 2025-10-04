@@ -32,128 +32,263 @@ struct TopContentView: View {
 
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            NavigationSplitView {
-                List {
-                    Section("Creatures") {
-                        if !creatures.isEmpty {
-                            ForEach(creatures) { creature in
-                                NavigationLink(value: creature.id) {
-                                    Label(creature.name, systemImage: "pawprint.circle")
-                                }
-                            }
-                        } else {
-                            Label("Loading...", systemImage: "server.rack")
+        #if os(iOS)
+            if UIDevice.current.systemName == "iPadOS" {
+                // iPad: Use floating toolbar
+                ZStack(alignment: .bottom) {
+                    navigationContent
+                        .safeAreaInset(edge: .bottom) {
+                            Color.clear.frame(height: 100)
                         }
-                    }
-
-
-                    #if os(iOS) || os(macOS)
-                        Section("Animations") {
-                            NavigationLink {
-                                AnimationTable()
-                            } label: {
-                                Label("List All", systemImage: "figure.socialdance")
-                            }
-                            NavigationLink {
-                                AnimationEditor(createNew: true)
-                            } label: {
-                                Label("Record New", systemImage: "hare")
-                            }
-                        }
-                    #endif
-
-                    #if os(iOS) || os(macOS)
-                        Section("Playlists") {
-                            NavigationLink {
-                                PlaylistsTable()
-                            } label: {
-                                Label("List All", systemImage: "list.bullet.rectangle")
-                                    .symbolRenderingMode(.hierarchical)
-                            }
-                        }
-                    #endif
-
-                    #if os(iOS) || os(macOS)
-                        Section("Sound Files") {
-                            NavigationLink {
-                                SoundFileListView()
-                            } label: {
-                                Label("List All", systemImage: "music.note.list")
-                            }
-                            NavigationLink {
-                                CreateNewCreatureSoundView()
-                            } label: {
-                                Label("Create New", systemImage: "waveform.path.badge.plus")
-                                    .symbolRenderingMode(.multicolor)
-                            }
-                        }
-                    #endif
-
-
-                    Section("Controls") {
-                        NavigationLink {
-                            JoystickDebugView()
-                        } label: {
-                            Label("Debug Joystick", systemImage: "gamecontroller")
-                        }
-
-                        #if os(iOS) || os(macOS)
-                            NavigationLink {
-                                LogView()
-                            } label: {
-                                Label("Server Logs", systemImage: "server.rack")
-                            }
-                        #endif
-
-                        NavigationLink {
-                            SettingsView()
-                        } label: {
-                            Label("Settings", systemImage: "gear")
-                        }
-
-                    }
-                }
-                .navigationTitle("Creature Console")
-                .navigationDestination(for: CreatureIdentifier.self) { creature in
-                    creatureDetailView(for: creature)
-                }
-                .task {
-                    await importFromServerIfNeeded()
-                }
-                .alert(isPresented: $showErrorAlert) {
-                    Alert(
-                        title: Text("Oooooh Shit"),
-                        message: Text(errorMessage),
-                        dismissButton: .default(Text("Fuck"))
-                    )
-                }
-            } detail: {
-                NavigationStack(path: $navigationPath) {
-                    Text("Using server: \(server.getHostname())")
-                        .padding()
-                        .navigationDestination(for: CreatureIdentifier.self) { creatureID in
-                            creatureDetailView(for: creatureID)
-                        }
-                }
-
-            }
-            .safeAreaInset(edge: .bottom) {
-                // Reserve space so content doesn't get completely hidden behind the floating bar
-                Color.clear.frame(height: 100)
-            }
-
-            #if os(macOS) || os(tvOS)
-                BottomToolBarView()
-            #endif
-
-            #if os(iOS)
-                if UIDevice.current.systemName == "iPadOS" {
                     BottomToolBarView()
                 }
-            #endif
+            } else {
+                // iPhone: Use native iOS toolbar
+                navigationContent
+                    .toolbar {
+                        ToolbarItemGroup(placement: .bottomBar) {
+                            iOSToolbarContent
+                        }
+                    }
+            }
+        #else
+            // macOS/tvOS: Use floating toolbar
+            ZStack(alignment: .bottom) {
+                navigationContent
+                BottomToolBarView()
+            }
+        #endif
+    }
+
+    @ViewBuilder
+    private var navigationContent: some View {
+        NavigationSplitView {
+            List {
+                Section("Creatures") {
+                    if !creatures.isEmpty {
+                        ForEach(creatures) { creature in
+                            NavigationLink(value: creature.id) {
+                                Label(creature.name, systemImage: "pawprint.circle")
+                            }
+                        }
+                    } else {
+                        Label("Loading...", systemImage: "server.rack")
+                    }
+                }
+
+
+                #if os(iOS) || os(macOS)
+                    Section("Animations") {
+                        NavigationLink {
+                            AnimationTable()
+                        } label: {
+                            Label("List All", systemImage: "figure.socialdance")
+                        }
+                        NavigationLink {
+                            AnimationEditor(createNew: true)
+                        } label: {
+                            Label("Record New", systemImage: "hare")
+                        }
+                    }
+                #endif
+
+                #if os(iOS) || os(macOS)
+                    Section("Playlists") {
+                        NavigationLink {
+                            PlaylistsTable()
+                        } label: {
+                            Label("List All", systemImage: "list.bullet.rectangle")
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                    }
+                #endif
+
+                #if os(iOS) || os(macOS)
+                    Section("Sound Files") {
+                        NavigationLink {
+                            SoundFileListView()
+                        } label: {
+                            Label("List All", systemImage: "music.note.list")
+                        }
+                        NavigationLink {
+                            CreateNewCreatureSoundView()
+                        } label: {
+                            Label("Create New", systemImage: "waveform.path.badge.plus")
+                                .symbolRenderingMode(.multicolor)
+                        }
+                    }
+                #endif
+
+
+                Section("Controls") {
+                    NavigationLink {
+                        JoystickDebugView()
+                    } label: {
+                        Label("Debug Joystick", systemImage: "gamecontroller")
+                    }
+
+                    #if os(iOS) || os(macOS)
+                        NavigationLink {
+                            LogView()
+                        } label: {
+                            Label("Server Logs", systemImage: "server.rack")
+                        }
+                    #endif
+
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Label("Settings", systemImage: "gear")
+                    }
+
+                }
+            }
+            .navigationTitle("Creature Console")
+            .navigationDestination(for: CreatureIdentifier.self) { creature in
+                creatureDetailView(for: creature)
+            }
+            .task {
+                await importFromServerIfNeeded()
+            }
+            .alert(isPresented: $showErrorAlert) {
+                Alert(
+                    title: Text("Oooooh Shit"),
+                    message: Text(errorMessage),
+                    dismissButton: .default(Text("Fuck"))
+                )
+            }
+        } detail: {
+            NavigationStack(path: $navigationPath) {
+                Text("Using server: \(server.getHostname())")
+                    .padding()
+                    .navigationDestination(for: CreatureIdentifier.self) { creatureID in
+                        creatureDetailView(for: creatureID)
+                    }
+            }
+
         }
     }
+
+    #if os(iOS)
+        @ViewBuilder
+        private var iOSToolbarContent: some View {
+            iOSStatusLightsView()
+        }
+    #endif
+}
+
+#if os(iOS)
+    struct iOSStatusLightsView: View {
+        @State private var statusLightsState = StatusLightsState(
+            running: false, dmx: false, streaming: false, animationPlaying: false)
+        @State private var appState = AppStateData(
+            currentActivity: .idle,
+            currentAnimation: nil,
+            selectedTrack: nil,
+            showSystemAlert: false,
+            systemAlertMessage: ""
+        )
+        @State private var websocketState: WebSocketConnectionState = .disconnected
+        @Namespace private var glassNamespace
+
+        var body: some View {
+            HStack(spacing: 8) {
+                // Activity indicator
+                HStack(spacing: 4) {
+                    Image(systemName: appState.currentActivity.symbolName)
+                        .font(.system(size: 10, weight: .semibold))
+                    Text(appState.currentActivity.description)
+                        .font(.caption2)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .glassEffect(
+                    .regular
+                        .tint(appState.currentActivity.tintColor.opacity(0.35))
+                        .interactive(),
+                    in: .capsule
+                )
+                .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
+
+                // WebSocket indicator
+                HStack(spacing: 4) {
+                    Image(systemName: websocketState.symbolName)
+                        .font(.system(size: 10, weight: .semibold))
+                    Text(websocketState.description)
+                        .font(.caption2)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .glassEffect(
+                    .regular
+                        .tint(websocketState.tintColor.opacity(0.35))
+                        .interactive(),
+                    in: .capsule
+                )
+                .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
+
+                Spacer()
+
+                // Status lights
+                HStack(spacing: 6) {
+                    ForEach(StatusLightsState.allLights, id: \.self) { light in
+                        Image(systemName: light.symbolName)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(
+                                light.isActive(in: statusLightsState) ? .white : .secondary
+                            )
+                            .padding(6)
+                            .glassEffect(
+                                .regular
+                                    .tint(
+                                        light.tintColor.opacity(
+                                            light.isActive(in: statusLightsState) ? 0.85 : 0.25)
+                                    )
+                                    .interactive(),
+                                in: .circle
+                            )
+                            .glassEffectUnion(id: "statusLights", namespace: glassNamespace)
+                            .scaleEffect(light.isActive(in: statusLightsState) ? 1.06 : 1.0)
+                            .opacity(light.isActive(in: statusLightsState) ? 1.0 : 0.8)
+                    }
+                }
+            }
+            .task {
+                for await state in await StatusLightsManager.shared.stateUpdates {
+                    await MainActor.run {
+                        statusLightsState = state
+                    }
+                }
+            }
+            .task { @MainActor in
+                let initialActivity = await AppState.shared.getCurrentActivity
+                appState = AppStateData(
+                    currentActivity: initialActivity,
+                    currentAnimation: appState.currentAnimation,
+                    selectedTrack: appState.selectedTrack,
+                    showSystemAlert: appState.showSystemAlert,
+                    systemAlertMessage: appState.systemAlertMessage
+                )
+
+                let updates = await AppState.shared.stateUpdates
+                for await state in updates {
+                    appState = state
+                }
+            }
+            .task { @MainActor in
+                let initialWebSocketState = await WebSocketStateManager.shared.getCurrentState
+                websocketState = initialWebSocketState
+
+                for await state in await WebSocketStateManager.shared.stateUpdates {
+                    guard !Task.isCancelled else { break }
+                    websocketState = state
+                }
+            }
+        }
+    }
+#endif
+
+extension TopContentView {
 
 
     /**

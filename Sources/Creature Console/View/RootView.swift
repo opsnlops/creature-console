@@ -14,32 +14,12 @@ struct RootView: View {
     @State private var systemAlertMessage = ""
     @State private var websocketErrorMessage: String? = nil
 
-    // iOS: Use ZStack to overlay persistent bottom status bar (like Slack/Apple apps)
-    // macOS/tvOS: No ZStack needed - they use BottomToolBarView directly in TopContentView
     @ViewBuilder
     private var contentView: some View {
-        #if os(iOS)
-            ZStack {
-                TopContentView()
-
-                VStack {
-                    Spacer()
-                    if UIDevice.current.userInterfaceIdiom == .phone {
-                        BottomStatusToolbarContent()
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 8)
-                    }
-                }
-            }
+        TopContentView()
             .task {
                 await AppBootstrapper.shared.startIfNeeded()
             }
-        #else
-            TopContentView()
-                .task {
-                    await AppBootstrapper.shared.startIfNeeded()
-                }
-        #endif
     }
 
     var body: some View {
