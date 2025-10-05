@@ -9,7 +9,9 @@ echo "Building creature-cli release version..."
 
 # Navigate to Common directory and build
 pushd Common
-swift build -c release --target creature-cli
+echo "Cleaning previous build artifacts..."
+swift package clean
+swift build -c release --product creature-cli
 popd
 
 echo "Build completed successfully!"
