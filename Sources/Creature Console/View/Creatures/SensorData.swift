@@ -12,6 +12,7 @@ struct SensorData: View {
     @State private var healthCacheState = CreatureHealthCacheState(
         motorSensorCache: [:], boardSensorCache: [:])
     @State private var showingHistoricalData = false
+    @State private var subscriptionTask: Task<Void, Never>?
 
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -91,13 +92,19 @@ struct SensorData: View {
                 emptyStateView()
             }
         }
-        .task {
+        .onAppear {
             // Subscribe to cache updates (current state is sent immediately by the broadcaster)
-            for await state in await CreatureHealthCache.shared.stateUpdates {
-                await MainActor.run {
-                    healthCacheState = state
+            subscriptionTask = Task {
+                for await state in await CreatureHealthCache.shared.stateUpdates {
+                    await MainActor.run {
+                        healthCacheState = state
+                    }
                 }
             }
+        }
+        .onDisappear {
+            subscriptionTask?.cancel()
+            subscriptionTask = nil
         }
     }
 
@@ -411,13 +418,15 @@ struct SensorData: View {
 }
 
 #if DEBUG
-// Test-only helpers to expose private logic for unit tests
-extension SensorData {
-    /// Wrapper that exposes the private motor power extraction logic to tests.
-    func _test_extractMotorPowerData(from reports: [BoardSensorReport]) -> [SensorPowerDataPoint]? {
-        SensorDataLogic.extractMotorPowerData(from: reports)
+    // Test-only helpers to expose private logic for unit tests
+    extension SensorData {
+        /// Wrapper that exposes the private motor power extraction logic to tests.
+        func _test_extractMotorPowerData(from reports: [BoardSensorReport])
+            -> [SensorPowerDataPoint]?
+        {
+            SensorDataLogic.extractMotorPowerData(from: reports)
+        }
     }
-}
 #endif
 
 #Preview {

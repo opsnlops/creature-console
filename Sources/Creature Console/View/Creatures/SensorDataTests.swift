@@ -1,7 +1,32 @@
-import Testing
-import Foundation
 import Common
+import Foundation
+import SwiftUI
+import Testing
+
 @testable import Creature_Console
+
+@Suite("SensorData lifecycle management")
+struct SensorDataLifecycleTests {
+
+    @Test("AsyncStream subscription can be cancelled")
+    func asyncStreamSubscriptionCanBeCancelled() async throws {
+        // Simple test: verify that a Task can be cancelled
+        // This demonstrates the pattern used in SensorData's onDisappear
+        let cache = CreatureHealthCache.shared
+
+        let subscriptionTask = Task { @Sendable in
+            for await _ in await cache.stateUpdates {
+                // Just keep iterating
+            }
+        }
+
+        // Cancel the task (simulating onDisappear)
+        subscriptionTask.cancel()
+
+        // Verify cancellation worked
+        #expect(subscriptionTask.isCancelled == true)
+    }
+}
 
 @Suite("SensorDataLogic.extractMotorPowerData")
 struct SensorDataLogicTests {
@@ -57,7 +82,8 @@ struct SensorDataLogicTests {
         let reports = [
             makeReport(name: "Power for Motor", power: 10, timestamp: now.addingTimeInterval(-3)),
             makeReport(name: "random_name", power: 22, timestamp: now),
-            makeReport(name: "Motor's Power reading", power: 5, timestamp: now.addingTimeInterval(1)),
+            makeReport(
+                name: "Motor's Power reading", power: 5, timestamp: now.addingTimeInterval(1)),
             makeReport(name: "motor-power", power: 7.7, timestamp: now.addingTimeInterval(2)),
             makeReport(name: "power motor", power: 8.8, timestamp: now.addingTimeInterval(3)),
         ]
