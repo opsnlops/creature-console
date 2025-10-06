@@ -124,6 +124,8 @@ actor WebSocketClient {
     private var reconnectTask: Task<Void, Never>?
     private var reconnectAttempt: Int = 0
     private var shouldStayConnected: Bool = false
+    private var isNetworkPathSatisfied: Bool = false
+    private var isConnecting: Bool = false  // Prevent concurrent connection attempts
 
     private var pathMonitor: NWPathMonitor?
     private var pathMonitorQueue = DispatchQueue(label: "WebSocketPathMonitor")
@@ -164,17 +166,57 @@ actor WebSocketClient {
         self.session = URLSession(configuration: config)
     }
 
+    private func isNetworkAvailable() -> Bool {
+        return isNetworkPathSatisfied
+    }
+
     private func handlePathUpdate(_ path: NWPath) async {
         if path.status == .satisfied {
-            logger.debug("Network reachable. Considering reconnect if needed.")
+            logger.info(
+                "Network path now satisfied. Available interfaces: \(path.availableInterfaces.map { $0.type })"
+            )
+            isNetworkPathSatisfied = true
             suppressErrorNotifications = false
+            consecutiveErrorCount = 0
+
+            // Only attempt reconnect if we should stay connected and we're actually disconnected
             if shouldStayConnected, !isConnected {
+                logger.info("Network recovered, initiating immediate reconnect")
                 await scheduleReconnect(immediate: true)
             }
         } else {
-            logger.warning("Network unreachable. Marking connection as down.")
+            // Network is unavailable (could be airplane mode, no WiFi, etc.)
+            let reason: String
+            if path.availableInterfaces.isEmpty {
+                reason = "No network interfaces available (likely airplane mode or all radios off)"
+            } else {
+                reason = "Network path unsatisfied (status: \(path.status))"
+            }
+
+            logger.warning("Network became unreachable: \(reason)")
+            isNetworkPathSatisfied = false
             suppressErrorNotifications = true
-            isConnected = false
+
+            // Cancel ALL reconnect attempts immediately
+            reconnectTask?.cancel()
+            reconnectTask = nil
+
+            // Properly clean up the connection when network becomes unavailable
+            if isConnected || isConnecting || task != nil {
+                logger.info("Cleaning up WebSocket connection due to network loss")
+                isConnected = false
+                isConnecting = false
+
+                // Cancel ongoing tasks to avoid wasted resources
+                pingTask?.cancel()
+                pingTask = nil
+
+                // Close the WebSocket task gracefully
+                task?.cancel(with: .goingAway, reason: "Network unavailable".data(using: .utf8))
+                task = nil
+            }
+
+            // Set appropriate state - but DON'T trigger any reconnects
             if shouldStayConnected {
                 await WebSocketStateManager.shared.setState(.reconnecting)
             } else {
@@ -194,8 +236,17 @@ actor WebSocketClient {
         logger.debug("App will enter foreground. Considering reconnect.")
         suppressErrorNotifications = false
         consecutiveErrorCount = 0
+
+        // Check if network is available before attempting reconnect
         if shouldStayConnected, !isConnected {
-            await scheduleReconnect(immediate: true)
+            if isNetworkAvailable() {
+                logger.info("Network is available, initiating reconnect after foreground")
+                await scheduleReconnect(immediate: true)
+            } else {
+                logger.info(
+                    "Network unavailable after foreground, waiting for path monitor to signal network restoration"
+                )
+            }
         }
     }
 
@@ -216,9 +267,19 @@ actor WebSocketClient {
         logger.debug("Wake/Activate. Considering reconnect and resuming pings.")
         suppressErrorNotifications = false
         consecutiveErrorCount = 0
+
+        // Check if network is available before attempting reconnect
         if shouldStayConnected, !isConnected {
-            await scheduleReconnect(immediate: true)
+            if isNetworkAvailable() {
+                logger.info("Network is available, initiating reconnect after wake/activate")
+                await scheduleReconnect(immediate: true)
+            } else {
+                logger.info(
+                    "Network unavailable after wake/activate, waiting for path monitor to signal network restoration"
+                )
+            }
         }
+
         await resumePingingIfNeeded()
         NotificationCenter.default.post(
             name: WebSocketClient.shouldRefreshCachesNotification, object: nil)
@@ -241,6 +302,8 @@ actor WebSocketClient {
         // Monitor network path changes
         let monitor = NWPathMonitor()
         self.pathMonitor = monitor
+        // Set initial network state
+        self.isNetworkPathSatisfied = monitor.currentPath.status == .satisfied
         monitor.pathUpdateHandler = { [weak self] path in
             Task { [weak self] in
                 guard let self else { return }
@@ -344,23 +407,50 @@ actor WebSocketClient {
     }
 
     private func attemptReconnect() async {
-        guard shouldStayConnected, !isConnected else { return }
-        self.logger.info("Attempting websocket reconnect (attempt #\(reconnectAttempt + 1))")
+        // Prevent concurrent reconnection attempts
+        guard shouldStayConnected, !isConnected, !isConnecting else {
+            if isConnecting {
+                logger.debug("Already connecting, skipping reconnect attempt")
+            }
+            return
+        }
+
+        // CRITICAL: Do not attempt reconnect if network is unavailable
+        guard isNetworkAvailable() else {
+            logger.info(
+                "Skipping reconnect attempt #\(reconnectAttempt + 1) - network unavailable. Waiting for network restoration."
+            )
+            return
+        }
+
+        reconnectAttempt += 1
+        self.logger.info("Attempting websocket reconnect (attempt #\(reconnectAttempt))")
         await WebSocketStateManager.shared.setState(.reconnecting)
         self.connect()
         // If connect succeeds, startReceiving() will loop. We'll mark success here after a small check.
         // Give it a moment to establish; if still not connected, schedule another try.
         try? await Task.sleep(for: .seconds(1))
-        if !isConnected {
-            reconnectAttempt += 1
-            await scheduleReconnect()
-        } else {
+        if !isConnected, !isConnecting {
+            // Only schedule another reconnect if network is still available
+            if isNetworkAvailable() {
+                await scheduleReconnect()
+            } else {
+                logger.info("Network became unavailable, stopping reconnect attempts")
+            }
+        } else if isConnected {
             reconnectAttempt = 0
         }
     }
 
     func connect() {
+        // Prevent concurrent connection attempts
+        guard !isConnecting else {
+            logger.debug("Connection already in progress, ignoring duplicate connect() call")
+            return
+        }
+
         shouldStayConnected = true
+        isConnecting = true
         reconnectTask?.cancel()
         setupLifecycleMonitoring()
 
@@ -369,21 +459,19 @@ actor WebSocketClient {
 
         task = session.webSocketTask(with: request)
         task?.resume()
-        isConnected = true
+        // DO NOT set isConnected = true here - wait for first message to confirm connection
         hasAlertedForDisconnect = false
-        reconnectAttempt = 0
+        // Don't reset reconnectAttempt here - it's managed by attemptReconnect
         consecutiveErrorCount = 0
         suppressErrorNotifications = false
         lastPongReceivedAt = Date()  // Reset pong timer on connect
 
-        logger.info("websocket is connected")
+        logger.info("websocket connection initiated, waiting for first message")
         Task {
-            await WebSocketStateManager.shared.setState(.connected)
+            await WebSocketStateManager.shared.setState(.connecting)
         }
         startReceiving()
         startPinging()
-        NotificationCenter.default.post(
-            name: WebSocketClient.shouldRefreshCachesNotification, object: nil)
     }
 
     func disconnect() {
@@ -400,6 +488,7 @@ actor WebSocketClient {
         task = nil
         pingTask = nil
         isConnected = false
+        isConnecting = false
 
         teardownLifecycleMonitoring()
 
@@ -427,7 +516,9 @@ actor WebSocketClient {
                 }
             } catch {
                 await self?.handleError(error)
-                if await self?.shouldStayConnected == true {
+                // Only schedule reconnect if network is available
+                if await self?.shouldStayConnected == true, await self?.isNetworkAvailable() == true
+                {
                     await self?.scheduleReconnect()
                 }
             }
@@ -490,7 +581,8 @@ actor WebSocketClient {
         pingTask = nil
         await WebSocketStateManager.shared.setState(.disconnected)
 
-        if shouldStayConnected {
+        // Only schedule reconnect if network is available
+        if shouldStayConnected, isNetworkAvailable() {
             await scheduleReconnect()
         }
     }
@@ -502,7 +594,8 @@ actor WebSocketClient {
         pingTask = nil
         await WebSocketStateManager.shared.setState(.disconnected)
 
-        if shouldStayConnected {
+        // Only schedule reconnect if network is available
+        if shouldStayConnected, isNetworkAvailable() {
             await scheduleReconnect()
         }
     }
@@ -520,6 +613,20 @@ actor WebSocketClient {
     }
 
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
+        // Mark as connected when we receive our first message
+        if !isConnected {
+            isConnected = true
+            isConnecting = false  // Connection successful
+            reconnectAttempt = 0  // Reset on successful connection
+            logger.info("WebSocket connection established (first message received)")
+            Task {
+                await WebSocketStateManager.shared.setState(.connected)
+                // Notify caches to refresh now that we're truly connected
+                NotificationCenter.default.post(
+                    name: WebSocketClient.shouldRefreshCachesNotification, object: nil)
+            }
+        }
+
         consecutiveErrorCount = 0
         switch message {
         case .string(let text):
@@ -538,6 +645,7 @@ actor WebSocketClient {
 
     private func handleError(_ error: Error) async {
         isConnected = false
+        isConnecting = false  // Connection failed
         pingTask?.cancel()
         reconnectTask?.cancel()
         await pausePinging()
