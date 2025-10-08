@@ -33,7 +33,7 @@ struct CacheInvalidationProcessor {
     }
 
 
-    static func rebuildCreatureCache() {
+    static func rebuildCreatureCache(deleteStaleEntries: Bool = false) {
 
         logger.info("attempting to rebuild the creature cache (SwiftData import)")
 
@@ -48,6 +48,14 @@ struct CacheInvalidationProcessor {
                 do {
                     let container = await SwiftDataStore.shared.container()
                     let importer = CreatureImporter(modelContainer: container)
+
+                    // Optionally delete entries not in the server response
+                    if deleteStaleEntries {
+                        let ids = Set(creatures.map { $0.id })
+                        try await importer.deleteAllExcept(ids: ids)
+                        logger.debug("deleted stale creature entries not in server response")
+                    }
+
                     try await importer.upsertBatch(creatures)
                     logger.info(
                         "(re)built the creature cache in SwiftData: imported \(creatures.count) creatures"
@@ -74,7 +82,7 @@ struct CacheInvalidationProcessor {
 
     }
 
-    static func rebuildAnimationCache() {
+    static func rebuildAnimationCache(deleteStaleEntries: Bool = false) {
 
         logger.info("attempting to rebuild the animation cache (SwiftData import)")
 
@@ -89,6 +97,14 @@ struct CacheInvalidationProcessor {
                 do {
                     let container = await SwiftDataStore.shared.container()
                     let importer = AnimationMetadataImporter(modelContainer: container)
+
+                    // Optionally delete entries not in the server response
+                    if deleteStaleEntries {
+                        let ids = Set(animations.map { $0.id })
+                        try await importer.deleteAllExcept(ids: ids)
+                        logger.debug("deleted stale animation entries not in server response")
+                    }
+
                     try await importer.upsertBatch(animations)
                     logger.info(
                         "(re)built the animation cache in SwiftData: imported \(animations.count) animations"
@@ -115,7 +131,7 @@ struct CacheInvalidationProcessor {
 
     }
 
-    static func rebuildPlaylistCache() {
+    static func rebuildPlaylistCache(deleteStaleEntries: Bool = false) {
 
         logger.info("attempting to rebuild the playlist cache (SwiftData import)")
 
@@ -130,6 +146,14 @@ struct CacheInvalidationProcessor {
                 do {
                     let container = await SwiftDataStore.shared.container()
                     let importer = PlaylistImporter(modelContainer: container)
+
+                    // Optionally delete entries not in the server response
+                    if deleteStaleEntries {
+                        let ids = Set(playlists.map { $0.id })
+                        try await importer.deleteAllExcept(ids: ids)
+                        logger.debug("deleted stale playlist entries not in server response")
+                    }
+
                     try await importer.upsertBatch(playlists)
                     logger.info(
                         "(re)built the playlist cache in SwiftData: imported \(playlists.count) playlists"
@@ -157,7 +181,7 @@ struct CacheInvalidationProcessor {
     }
 
 
-    static func rebuildSoundListCache() {
+    static func rebuildSoundListCache(deleteStaleEntries: Bool = false) {
 
         logger.info("attempting to rebuild the sound list (SwiftData import)")
 
@@ -172,6 +196,14 @@ struct CacheInvalidationProcessor {
                 do {
                     let container = await SwiftDataStore.shared.container()
                     let importer = SoundImporter(modelContainer: container)
+
+                    // Optionally delete entries not in the server response
+                    if deleteStaleEntries {
+                        let ids = Set(sounds.map { $0.id })
+                        try await importer.deleteAllExcept(ids: ids)
+                        logger.debug("deleted stale sound entries not in server response")
+                    }
+
                     try await importer.upsertBatch(sounds)
                     logger.info(
                         "(re)built the sound list in SwiftData: imported \(sounds.count) sounds")
@@ -194,5 +226,16 @@ struct CacheInvalidationProcessor {
             }
         }
 
+    }
+
+    static func rebuildAllCaches() {
+        logger.info("rebuilding all SwiftData caches (with stale entry deletion)")
+
+        rebuildCreatureCache(deleteStaleEntries: true)
+        rebuildAnimationCache(deleteStaleEntries: true)
+        rebuildPlaylistCache(deleteStaleEntries: true)
+        rebuildSoundListCache(deleteStaleEntries: true)
+
+        logger.info("initiated rebuild of all caches with stale entry deletion")
     }
 }

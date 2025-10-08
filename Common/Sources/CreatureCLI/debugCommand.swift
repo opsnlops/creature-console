@@ -7,7 +7,8 @@ extension CreatureCLI {
             abstract: "Debugging Helper Functions",
             subcommands: [
                 InvalidateAnimationCache.self, InvalidateCreatureCache.self,
-                InvalidatePlaylistCache.self, TestPlaylistUpdates.self,
+                InvalidatePlaylistCache.self, InvalidateSoundListCache.self,
+                TestPlaylistUpdates.self,
             ]
         )
 
@@ -32,7 +33,8 @@ extension CreatureCLI {
                 case .success(let status):
                     print("Success! Server said: \(status.message)")
                 case .failure(let error):
-                    throw failWithMessage("Error invalidating animation cache: \(error.localizedDescription)")
+                    throw failWithMessage(
+                        "Error invalidating animation cache: \(error.localizedDescription)")
                 }
             }
         }
@@ -55,7 +57,8 @@ extension CreatureCLI {
                 case .success(let status):
                     print("Success! Server said: \(status.message)")
                 case .failure(let error):
-                    throw failWithMessage("Error invalidating creature cache: \(error.localizedDescription)")
+                    throw failWithMessage(
+                        "Error invalidating creature cache: \(error.localizedDescription)")
                 }
             }
         }
@@ -78,7 +81,32 @@ extension CreatureCLI {
                 case .success(let status):
                     print("Success! Server said: \(status.message)")
                 case .failure(let error):
-                    throw failWithMessage("Error invalidating playlist cache: \(error.localizedDescription)")
+                    throw failWithMessage(
+                        "Error invalidating playlist cache: \(error.localizedDescription)")
+                }
+            }
+        }
+
+        struct InvalidateSoundListCache: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Test invalidating the sound list cache",
+                discussion:
+                    "This command tells the server to send a message to invalidate the client's sound list cache"
+            )
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let server = getServer(config: globalOptions)
+
+                let result = await server.invalidateSoundListCache()
+                switch result {
+                case .success(let status):
+                    print("Success! Server said: \(status.message)")
+                case .failure(let error):
+                    throw failWithMessage(
+                        "Error invalidating sound list cache: \(error.localizedDescription)")
                 }
             }
         }
@@ -100,7 +128,9 @@ extension CreatureCLI {
                 case .success(let status):
                     print("Success! Server said: \(status.message)")
                 case .failure(let error):
-                    throw failWithMessage("Error sending a fake playlist update request: \(error.localizedDescription)")
+                    throw failWithMessage(
+                        "Error sending a fake playlist update request: \(error.localizedDescription)"
+                    )
                 }
             }
         }

@@ -119,6 +119,9 @@ struct CreatureConsole: App {
                     Button("Invalidate Playlist Cache...") {
                         CacheInvalidationProcessor.rebuildPlaylistCache()
                     }
+                    Button("Invalidate Sound List Cache...") {
+                        CacheInvalidationProcessor.rebuildSoundListCache()
+                    }
                 }
                 CommandMenu("Diagnostics") {
                     Button("Report Issue…") {
@@ -145,6 +148,10 @@ struct CreatureConsole: App {
                         MailComposer.present(subject: subject, body: body)
                     }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
+                    Divider()
+                    Button("Rebuild All Caches...") {
+                        CacheInvalidationProcessor.rebuildAllCaches()
+                    }
                 }
             }
         #endif
