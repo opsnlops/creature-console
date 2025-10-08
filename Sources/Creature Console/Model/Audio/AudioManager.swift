@@ -1,12 +1,13 @@
 import AVFoundation
 import AVKit
+import Accelerate
+import AudioToolbox
 import Common
 import Foundation
 import OSLog
-import Accelerate
-import AudioToolbox
+
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 @MainActor
@@ -30,8 +31,13 @@ class AudioManager: ObservableObject {
     private var previewFile: AVAudioFile?
 
     /// Report an error by logging it and publishing to the UI via `lastError`.
-    private func reportError(_ error: AudioError, file: StaticString = #fileID, function: StaticString = #function, line: UInt = #line) {
-        logger.error("Audio error reported at \(file, privacy: .public):\(line) in \(function, privacy: .public) — \(String(describing: error))")
+    private func reportError(
+        _ error: AudioError, file: StaticString = #fileID, function: StaticString = #function,
+        line: UInt = #line
+    ) {
+        logger.error(
+            "Audio error reported at \(file, privacy: .public):\(line) in \(function, privacy: .public) — \(String(describing: error))"
+        )
         self.lastError = error
     }
 
@@ -83,7 +89,8 @@ class AudioManager: ObservableObject {
 
             return .success("File queued up to play!")
         } catch {
-            let err: AudioError = .systemError("Failed to initialize AVAudioPlayer: \(error.localizedDescription)")
+            let err: AudioError = .systemError(
+                "Failed to initialize AVAudioPlayer: \(error.localizedDescription)")
             logger.error("Failed to initialize AVAudioPlayer: \(error)")
             reportError(err)
             return .failure(err)
@@ -102,7 +109,8 @@ class AudioManager: ObservableObject {
                 for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true
             )
             let baseName = (cacheKey as NSString).deletingPathExtension
-            let monoURL = cachesDir
+            let monoURL =
+                cachesDir
                 .appendingPathComponent("mono-preview-\(baseName)")
                 .appendingPathExtension("wav")
 
@@ -113,8 +121,12 @@ class AudioManager: ObservableObject {
             }
 
             // 3) Move the downloaded file to a stable location we control (URLSession may delete its temp file)
-            let srcExt = (cacheKey as NSString).pathExtension.isEmpty ? (urlRequestExtension(from: remoteURL) ?? "wav") : (cacheKey as NSString).pathExtension
-            let stableSrcURL = cachesDir
+            let srcExt =
+                (cacheKey as NSString).pathExtension.isEmpty
+                ? (urlRequestExtension(from: remoteURL) ?? "wav")
+                : (cacheKey as NSString).pathExtension
+            let stableSrcURL =
+                cachesDir
                 .appendingPathComponent("mono-src-\(UUID().uuidString)")
                 .appendingPathExtension(srcExt)
 
@@ -122,17 +134,22 @@ class AudioManager: ObservableObject {
                 // Move the downloaded temp file to our stable source URL
                 try FileManager.default.moveItem(at: downloadedTempURL, to: stableSrcURL)
             } catch {
-                logger.error("Failed to move downloaded file to stable location: \(error.localizedDescription)")
+                logger.error(
+                    "Failed to move downloaded file to stable location: \(error.localizedDescription)"
+                )
                 throw error
             }
 
             // Prepare destination temp URL for atomic write
-            let tmpURL = cachesDir
+            let tmpURL =
+                cachesDir
                 .appendingPathComponent("mono-preview-\(baseName)-tmp")
                 .appendingPathExtension("wav")
 
             // Log source/dest paths and sizes
-            if let attrs = try? FileManager.default.attributesOfItem(atPath: stableSrcURL.path), let srcSize = attrs[.size] as? NSNumber {
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: stableSrcURL.path),
+                let srcSize = attrs[.size] as? NSNumber
+            {
                 logger.debug("Downmix source: \(stableSrcURL.path) (\(srcSize.int64Value) bytes)")
             } else {
                 logger.debug("Downmix source: \(stableSrcURL.path) (size unknown)")
@@ -141,17 +158,17 @@ class AudioManager: ObservableObject {
             logger.debug("Final mono preview: \(monoURL.path)")
 
             #if os(iOS)
-            var bgTask: UIBackgroundTaskIdentifier = .invalid
-            bgTask = UIApplication.shared.beginBackgroundTask(withName: "DownmixMono") {
-                UIApplication.shared.endBackgroundTask(bgTask)
-                bgTask = .invalid
-            }
-            defer {
-                if bgTask != .invalid {
+                var bgTask: UIBackgroundTaskIdentifier = .invalid
+                bgTask = UIApplication.shared.beginBackgroundTask(withName: "DownmixMono") {
                     UIApplication.shared.endBackgroundTask(bgTask)
                     bgTask = .invalid
                 }
-            }
+                defer {
+                    if bgTask != .invalid {
+                        UIApplication.shared.endBackgroundTask(bgTask)
+                        bgTask = .invalid
+                    }
+                }
             #endif
 
             do {
@@ -179,7 +196,8 @@ class AudioManager: ObservableObject {
 
             return .success(monoURL)
         } catch {
-            let err: AudioError = .systemError("prepareMonoPreview failed: \(error.localizedDescription)")
+            let err: AudioError = .systemError(
+                "prepareMonoPreview failed: \(error.localizedDescription)")
             logger.error("prepareMonoPreview failed: \(error.localizedDescription)")
             reportError(err)
             return .failure(err)
@@ -220,7 +238,8 @@ class AudioManager: ObservableObject {
 
             return .success("Preview armed")
         } catch {
-            let err: AudioError = .systemError("Failed to arm preview: \(error.localizedDescription)")
+            let err: AudioError = .systemError(
+                "Failed to arm preview: \(error.localizedDescription)")
             logger.error("Failed to arm preview: \(error.localizedDescription)")
             reportError(err)
             return .failure(err)
@@ -261,32 +280,49 @@ class AudioManager: ObservableObject {
     /// Helper that performs a block-by-block downmix from any channel count to mono and writes a WAV file.
     /// This function is non-actor-isolated and safe to call from a detached task.
     nonisolated private static func downmixToMono(srcURL: URL, dstURL: URL) throws {
-        let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager.Downmix")
+        let logger = Logger(
+            subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager.Downmix")
         guard FileManager.default.fileExists(atPath: srcURL.path) else {
-            throw NSError(domain: "Audio", code: -12, userInfo: [NSLocalizedDescriptionKey: "Source file does not exist at path: \(srcURL.path)"])
+            throw NSError(
+                domain: "Audio", code: -12,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Source file does not exist at path: \(srcURL.path)"
+                ])
         }
 
         // Open using ExtAudioFile for robust multi-channel WAV reading
         var extRef: ExtAudioFileRef?
         var status = ExtAudioFileOpenURL(srcURL as CFURL, &extRef)
         guard status == noErr, let extFile = extRef else {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: "ExtAudioFileOpenURL failed: \(status)"])
+            throw NSError(
+                domain: NSOSStatusErrorDomain, code: Int(status),
+                userInfo: [NSLocalizedDescriptionKey: "ExtAudioFileOpenURL failed: \(status)"])
         }
         defer { ExtAudioFileDispose(extFile) }
 
         // Get the source file data format
         var fileASBD = AudioStreamBasicDescription()
         var propSize = UInt32(MemoryLayout.size(ofValue: fileASBD))
-        status = ExtAudioFileGetProperty(extFile, kExtAudioFileProperty_FileDataFormat, &propSize, &fileASBD)
+        status = ExtAudioFileGetProperty(
+            extFile, kExtAudioFileProperty_FileDataFormat, &propSize, &fileASBD)
         guard status == noErr else {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: "ExtAudioFileGetProperty(FileDataFormat) failed: \(status)"])
+            throw NSError(
+                domain: NSOSStatusErrorDomain, code: Int(status),
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "ExtAudioFileGetProperty(FileDataFormat) failed: \(status)"
+                ])
         }
 
         let channels = Int(fileASBD.mChannelsPerFrame)
         let sampleRate = fileASBD.mSampleRate
-        logger.debug("ExtAF file format: channels=\(channels), sampleRate=\(sampleRate, format: .fixed(precision: 0))")
+        logger.debug(
+            "ExtAF file format: channels=\(channels), sampleRate=\(sampleRate, format: .fixed(precision: 0))"
+        )
         guard channels > 0 else {
-            throw NSError(domain: "Audio", code: -10, userInfo: [NSLocalizedDescriptionKey: "Source file has zero channels"])
+            throw NSError(
+                domain: "Audio", code: -10,
+                userInfo: [NSLocalizedDescriptionKey: "Source file has zero channels"])
         }
 
         // Set client format to Float32, interleaved, same channel count (single buffer)
@@ -302,9 +338,15 @@ class AudioManager: ObservableObject {
             mReserved: 0
         )
         propSize = UInt32(MemoryLayout.size(ofValue: clientASBD))
-        status = ExtAudioFileSetProperty(extFile, kExtAudioFileProperty_ClientDataFormat, propSize, &clientASBD)
+        status = ExtAudioFileSetProperty(
+            extFile, kExtAudioFileProperty_ClientDataFormat, propSize, &clientASBD)
         guard status == noErr else {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: "ExtAudioFileSetProperty(ClientDataFormat) failed: \(status)"])
+            throw NSError(
+                domain: NSOSStatusErrorDomain, code: Int(status),
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "ExtAudioFileSetProperty(ClientDataFormat) failed: \(status)"
+                ])
         }
 
         // Prepare destination writer (Float32 mono WAV)
@@ -314,7 +356,7 @@ class AudioManager: ObservableObject {
             AVNumberOfChannelsKey: 1,
             AVLinearPCMBitDepthKey: 32,
             AVLinearPCMIsFloatKey: true,
-            AVLinearPCMIsBigEndianKey: false
+            AVLinearPCMIsBigEndianKey: false,
         ]
         logger.debug("Creating destination mono WAV at \(dstURL.path)")
         if FileManager.default.fileExists(atPath: dstURL.path) {
@@ -324,22 +366,34 @@ class AudioManager: ObservableObject {
         do {
             dstFile = try AVAudioFile(forWriting: dstURL, settings: dstSettings)
         } catch {
-            logger.error("Failed to create destination WAV at \(dstURL.path): \(error.localizedDescription)")
-            throw NSError(domain: "Audio", code: -14, userInfo: [NSLocalizedDescriptionKey: "Failed to create destination WAV: \(error.localizedDescription)"])
+            logger.error(
+                "Failed to create destination WAV at \(dstURL.path): \(error.localizedDescription)")
+            throw NSError(
+                domain: "Audio", code: -14,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Failed to create destination WAV: \(error.localizedDescription)"
+                ])
         }
 
-        guard let monoFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32,
-                                             sampleRate: sampleRate,
-                                             channels: 1,
-                                             interleaved: false) else {
-            throw NSError(domain: "Audio", code: -17, userInfo: [NSLocalizedDescriptionKey: "Failed to create mono float format"]) 
+        guard
+            let monoFormat = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: sampleRate,
+                channels: 1,
+                interleaved: false)
+        else {
+            throw NSError(
+                domain: "Audio", code: -17,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to create mono float format"])
         }
 
         // Allocate a single interleaved float buffer for input
         let framesPerBlock: UInt32 = 16384
-        let bytesPerFrame = Int(4 * channels) // float32 * channels (interleaved)
+        let bytesPerFrame = Int(4 * channels)  // float32 * channels (interleaved)
         let byteCapacity = Int(framesPerBlock) * bytesPerFrame
-        let dataPtr = UnsafeMutableRawPointer.allocate(byteCount: byteCapacity, alignment: MemoryLayout<Float>.alignment)
+        let dataPtr = UnsafeMutableRawPointer.allocate(
+            byteCount: byteCapacity, alignment: MemoryLayout<Float>.alignment)
         defer { dataPtr.deallocate() }
 
         var abl = AudioBufferList(
@@ -358,17 +412,25 @@ class AudioManager: ObservableObject {
                 ExtAudioFileRead(extFile, &framesToRead, ptr)
             }
             if status != noErr {
-                throw NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: "ExtAudioFileRead failed: \(status)"])
+                throw NSError(
+                    domain: NSOSStatusErrorDomain, code: Int(status),
+                    userInfo: [NSLocalizedDescriptionKey: "ExtAudioFileRead failed: \(status)"])
             }
             if framesToRead == 0 { break }
 
             let outFrames = Int(framesToRead)
-            let interleavedFloat = dataPtr.bindMemory(to: Float.self, capacity: outFrames * channels)
+            let interleavedFloat = dataPtr.bindMemory(
+                to: Float.self, capacity: outFrames * channels)
 
             // Downmix interleaved float -> mono
-            guard let dstBuffer = AVAudioPCMBuffer(pcmFormat: monoFormat, frameCapacity: AVAudioFrameCount(outFrames)),
-                  let dstData = dstBuffer.floatChannelData else {
-                throw NSError(domain: "Audio", code: -11, userInfo: [NSLocalizedDescriptionKey: "Buffer allocation/layout failed"]) 
+            guard
+                let dstBuffer = AVAudioPCMBuffer(
+                    pcmFormat: monoFormat, frameCapacity: AVAudioFrameCount(outFrames)),
+                let dstData = dstBuffer.floatChannelData
+            else {
+                throw NSError(
+                    domain: "Audio", code: -11,
+                    userInfo: [NSLocalizedDescriptionKey: "Buffer allocation/layout failed"])
             }
             dstBuffer.frameLength = AVAudioFrameCount(outFrames)
             let dst = dstData[0]
@@ -376,7 +438,9 @@ class AudioManager: ObservableObject {
 
             let stride = vDSP_Stride(channels)
             for c in 0..<channels {
-                vDSP_vadd(dst, 1, interleavedFloat.advanced(by: c), stride, dst, 1, vDSP_Length(outFrames))
+                vDSP_vadd(
+                    dst, 1, interleavedFloat.advanced(by: c), stride, dst, 1, vDSP_Length(outFrames)
+                )
             }
             var denom = Float(channels)
             vDSP_vsdiv(dst, 1, &denom, dst, 1, vDSP_Length(outFrames))
@@ -384,7 +448,9 @@ class AudioManager: ObservableObject {
             do {
                 try dstFile.write(from: dstBuffer)
             } catch let nsErr as NSError {
-                logger.error("dstFile.write failed: domain=\(nsErr.domain) code=\(nsErr.code) desc=\(nsErr.localizedDescription)")
+                logger.error(
+                    "dstFile.write failed: domain=\(nsErr.domain) code=\(nsErr.code) desc=\(nsErr.localizedDescription)"
+                )
                 throw nsErr
             }
         }
@@ -392,11 +458,14 @@ class AudioManager: ObservableObject {
 
     /// Remove stale or partial mono preview cache files.
     /// - Parameter maxAge: Files older than this age (in seconds) will be removed. Defaults to 7 days.
-    nonisolated static func cleanupMonoPreviewCacheOnLaunch(maxAge: TimeInterval = 7 * 24 * 60 * 60) {
-        let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager.Cache")
+    nonisolated static func cleanupMonoPreviewCacheOnLaunch(maxAge: TimeInterval = 7 * 24 * 60 * 60)
+    {
+        let logger = Logger(
+            subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager.Cache")
         let fm = FileManager.default
         do {
-            let cachesDir = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let cachesDir = try fm.url(
+                for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             let urls = try fm.contentsOfDirectory(
                 at: cachesDir,
                 includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey],
@@ -418,10 +487,13 @@ class AudioManager: ObservableObject {
 
                 // Remove old cached previews beyond maxAge
                 if name.hasSuffix(".wav") {
-                    let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey])
+                    let values = try? url.resourceValues(forKeys: [
+                        .contentModificationDateKey, .isRegularFileKey,
+                    ])
                     if values?.isRegularFile == true,
-                       let modDate = values?.contentModificationDate,
-                       now.timeIntervalSince(modDate) > maxAge {
+                        let modDate = values?.contentModificationDate,
+                        now.timeIntervalSince(modDate) > maxAge
+                    {
                         try? fm.removeItem(at: url)
                         removedCount += 1
                     }
@@ -432,6 +504,99 @@ class AudioManager: ObservableObject {
             }
         } catch {
             logger.warning("Failed to enumerate Caches for cleanup: \(error.localizedDescription)")
+        }
+    }
+
+    /// Prepare and arm a sound file for synchronized playback during recording.
+    ///
+    /// This method implements a two-phase approach for precise audio synchronization:
+    /// 1. **Prepare Phase**: Download and process the audio file (happens during countdown)
+    /// 2. **Arm Phase**: Load into AVAudioEngine and schedule for precise playback
+    ///
+    /// **WAV File Handling:**
+    /// Creature server uses 17-channel WAV files (one channel per motor). This method
+    /// automatically downmixes them to mono for preview playback using the same logic
+    /// as `SoundFileListView`. The downmix uses Accelerate framework for performance.
+    ///
+    /// **Caching:**
+    /// Both WAV (mono-downmixed) and other formats are cached to avoid re-downloading
+    /// and re-processing on subsequent uses.
+    ///
+    /// **Error Propagation:**
+    /// All errors are reported via `reportError()` which publishes to `AudioManager.lastError`
+    /// for UI observation. Callers should display errors to the user.
+    ///
+    /// - Parameter fileName: The sound file name (e.g., "my-sound.wav" or "song.mp3")
+    /// - Returns: `.success(())` if armed successfully, `.failure(AudioError)` otherwise
+    ///
+    /// - Note: After calling this, use `startArmedPreview(in:)` to begin playback at a
+    ///         precise time using `mach_absolute_time()` for sample-accurate synchronization.
+    func prepareAndArmSoundFile(fileName: String) async -> Result<Void, AudioError> {
+        let urlResult = server.getSoundURL(fileName)
+        switch urlResult {
+        case .success(let remoteURL):
+            if fileName.lowercased().hasSuffix(".wav") {
+                // WAV files require special handling: download → downmix 17ch to mono → arm
+                logger.debug("Preparing WAV file for recording: \(fileName)")
+                let prepResult = await prepareMonoPreview(for: remoteURL, cacheKey: fileName)
+                switch prepResult {
+                case .success(let monoURL):
+                    logger.debug("WAV file prepared, arming for playback")
+                    let armResult = armPreviewPlayback(fileURL: monoURL)
+                    switch armResult {
+                    case .success:
+                        return .success(())
+                    case .failure(let err):
+                        reportError(err)
+                        return .failure(err)
+                    }
+                case .failure(let err):
+                    logger.error("Failed to prepare WAV file: \(String(describing: err))")
+                    reportError(err)
+                    return .failure(err)
+                }
+            } else {
+                // Other formats (MP3, FLAC): download → cache → arm directly
+                logger.debug("Preparing audio file for recording: \(fileName)")
+                do {
+                    let (downloadedURL, _) = try await URLSession.shared.download(from: remoteURL)
+
+                    // Move to cache for reuse across recording sessions
+                    let cachesDir = try FileManager.default.url(
+                        for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil,
+                        create: true
+                    )
+                    let cachedURL = cachesDir.appendingPathComponent("audio-\(fileName)")
+
+                    // Remove existing cached file if present
+                    if FileManager.default.fileExists(atPath: cachedURL.path) {
+                        try? FileManager.default.removeItem(at: cachedURL)
+                    }
+
+                    try FileManager.default.moveItem(at: downloadedURL, to: cachedURL)
+                    logger.debug("Audio file downloaded, arming for playback")
+
+                    let armResult = armPreviewPlayback(fileURL: cachedURL)
+                    switch armResult {
+                    case .success:
+                        return .success(())
+                    case .failure(let err):
+                        reportError(err)
+                        return .failure(err)
+                    }
+                } catch {
+                    let err: AudioError = .systemError(
+                        "Failed to download sound file: \(error.localizedDescription)")
+                    logger.error("Failed to download audio file: \(error.localizedDescription)")
+                    reportError(err)
+                    return .failure(err)
+                }
+            }
+        case .failure:
+            let err: AudioError = .systemError("Failed to get sound URL for \(fileName)")
+            logger.error("Failed to get sound URL for \(fileName)")
+            reportError(err)
+            return .failure(err)
         }
     }
 

@@ -107,8 +107,7 @@ struct SoundFileListView: View {
                                 .font(.callout)
                         }
                         .padding(16)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
                     }
                     .transition(.opacity)
                 }

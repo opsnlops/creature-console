@@ -26,12 +26,14 @@ actor CreatureManager {
     private init() {
     }
 
-    func startStreamingToCreature(creatureId: CreatureIdentifier) async -> Result<String, ServerError> {
+    func startStreamingToCreature(creatureId: CreatureIdentifier) async -> Result<
+        String, ServerError
+    > {
 
         logger.info("startStreamingToCreature called - creatureId: \(creatureId)")
-        
+
         self.streamingCreature = creatureId
-        
+
         logger.info("Streaming started successfully")
 
         return .success("Started streaming to \(creatureId)")
@@ -41,9 +43,9 @@ actor CreatureManager {
     func stopStreaming() async -> Result<String, ServerError> {
 
         logger.info("stopStreaming called")
-        
+
         self.streamingCreature = nil
-        
+
         logger.info("Streaming stopped successfully")
 
         return .success("Stopped streaming")
@@ -78,29 +80,81 @@ actor CreatureManager {
     }
 
 
-    /// Called automatically when our state changes to recording
-    func startRecording(soundFile: String) async {
+    /// Prepare the sound file for recording (download and arm for precise playback).
+    ///
+    /// **Two-Phase Recording Process:**
+    /// This is phase 1 of 2 for synchronized recording. Call this method BEFORE the countdown
+    /// timer begins to allow time for downloading and processing large sound files.
+    ///
+    /// **Workflow:**
+    /// 1. Call `prepareSoundForRecording()` ← Downloads & processes audio (can be slow)
+    /// 2. Play countdown warning tone (3.3-3.6 seconds)
+    /// 3. Call `startRecording()` ← Starts audio at precise time + begins motion capture
+    ///
+    /// This separation ensures the 3.5-second countdown is consistent regardless of
+    /// sound file size, and prevents audio/motion desynchronization.
+    ///
+    /// - Parameter soundFile: The sound file name from animation metadata (e.g., "music.wav")
+    /// - Returns: `.success(())` if prepared, `.failure(AudioError)` with UI-displayable error
+    func prepareSoundForRecording(soundFile: String) async -> Result<Void, AudioError> {
+        guard !soundFile.isEmpty else {
+            logger.info("no audio file, skipping preparation")
+            return .success(())
+        }
+
+        logger.info("Preparing sound file for recording: \(soundFile)")
+        let result = await AudioManager.shared.prepareAndArmSoundFile(fileName: soundFile)
+        switch result {
+        case .success:
+            logger.info("Sound file prepared and armed successfully")
+            return .success(())
+        case .failure(let error):
+            logger.error("Failed to prepare sound file: \(String(describing: error))")
+            return .failure(error)
+        }
+    }
+
+    /// Start recording and play the armed sound file at a precise time.
+    ///
+    /// **Two-Phase Recording Process:**
+    /// This is phase 2 of 2 for synchronized recording. Must call `prepareSoundForRecording()`
+    /// first, then wait for countdown, then call this method.
+    ///
+    /// **Precise Timing:**
+    /// Uses `mach_absolute_time()` via `AudioManager.startArmedPreview()` to schedule
+    /// audio playback at a sample-accurate time in the near future. This ensures:
+    /// - Audio starts exactly when motion recording begins
+    /// - No race conditions between audio and motion data
+    /// - Consistent synchronization across all recording sessions
+    ///
+    /// **Timing Breakdown:**
+    /// - `delaySoundStart: 0.2` = Schedule audio 200ms in future
+    /// - `isRecording = true` = Begin motion capture immediately
+    /// - Audio engine plays at precise host time (200ms later)
+    ///
+    /// - Parameter delaySoundStart: Delay in seconds before starting armed audio (default: 0.0)
+    ///                              Recommended: 0.1-0.2s for best synchronization
+    func startRecording(delaySoundStart: TimeInterval = 0.0) async {
         logger.info("CreatureManager told it's time to start recording!")
 
         // Reset recording state and buffer
         isRecording = false
         motionDataBuffer = []
 
-        // If it has a sound file attached, let's play it
-        if !soundFile.isEmpty {
-            let urlRequest = server.getSoundURL(soundFile)
-            switch urlRequest {
-            case .success(let url):
-                logger.info("audiofile URL is \(url)")
-                await MainActor.run { _ = AudioManager.shared.playURL(url) }
-            case .failure(_):
-                logger.warning("audioFile URL doesn't exist: \(soundFile)")
+        // Start the armed sound (if any) at a precise time using mach_absolute_time()
+        await MainActor.run {
+            let result = AudioManager.shared.startArmedPreview(in: delaySoundStart)
+            switch result {
+            case .success(let hostTime):
+                logger.info("Started armed sound at host time: \(hostTime)")
+            case .failure(let error):
+                logger.debug(
+                    "No armed sound to play (this is OK if no sound file): \(String(describing: error))"
+                )
             }
-        } else {
-            logger.info("no audio file, skipping playback")
         }
 
-        // Begin recording
+        // Begin recording motion data immediately
         isRecording = true
     }
 
@@ -152,4 +206,3 @@ actor CreatureManager {
         return .failure(.notImplemented("This hasn't been implemented yet"))
     }
 }
-

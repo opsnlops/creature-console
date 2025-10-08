@@ -31,6 +31,7 @@ struct RecordTrack: View {
     @State private var isRecordingLocal = false
     @State private var isTransitioning = false
     @State private var previousBPressed = false
+    @State private var preparingSound: String? = nil
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RecordTrack")
 
@@ -156,6 +157,22 @@ struct RecordTrack: View {
                 dismissButton: .default(Text("WTF?"))
             )
         }
+        .overlay {
+            if let name = preparingSound {
+                ZStack {
+                    Color.black.opacity(0.15).ignoresSafeArea()
+                    VStack(spacing: 10) {
+                        ProgressView()
+                        Text("Preparing \(name)…")
+                            .font(.callout)
+                    }
+                    .padding(16)
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                }
+                .transition(.opacity)
+            }
+        }
+        .animation(.default, value: preparingSound != nil)
         .task {
             // Load initial states
             let initialAppState = AppStateData(
@@ -256,7 +273,7 @@ struct RecordTrack: View {
             }
         }
 
-        // Work in the background
+        // Recording workflow with synchronized audio/motion capture
         recordingTask = Task {
             logger.info("recordingTask started (local state)")
 
@@ -268,6 +285,37 @@ struct RecordTrack: View {
             self.currentTrack = Track(
                 id: UUID(), creatureId: creature.id, animationId: animation.id, frames: [])
 
+            // ═══════════════════════════════════════════════════════════════════════
+            // PHASE 1: Prepare Sound File (can take several seconds for large WAVs)
+            // ═══════════════════════════════════════════════════════════════════════
+            // This downloads and processes the sound file BEFORE the countdown timer.
+            // For 17-channel WAV files, this includes downmixing to mono which can be slow.
+            // Shows glass-effect progress overlay during preparation.
+            let soundFile = animation.metadata.soundFile
+            if !soundFile.isEmpty {
+                logger.info("Preparing sound file: \(soundFile)")
+                await MainActor.run { preparingSound = soundFile }
+                let prepResult = await creatureManager.prepareSoundForRecording(
+                    soundFile: soundFile)
+                await MainActor.run { preparingSound = nil }
+                switch prepResult {
+                case .success:
+                    logger.info("Sound file prepared successfully")
+                case .failure(let error):
+                    logger.error("Failed to prepare sound: \(String(describing: error))")
+                    await MainActor.run {
+                        errorMessage = error.localizedDescription
+                        showErrorMessage = true
+                    }
+                    await AppState.shared.setCurrentActivity(.idle)
+                    return
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════
+            // PHASE 2: Countdown Timer (3.5 seconds, synced with haptics at 2.0s, 2.5s, 3.0s, 3.5s)
+            // ═══════════════════════════════════════════════════════════════════════
+            // Gives user time to prepare. Sound file is already downloaded and armed.
             do {
                 logger.info("Playing warning tone...")
                 await JoystickManager.shared.playRecordingCountdownHaptics()
@@ -279,8 +327,13 @@ struct RecordTrack: View {
                 logger.error("couldn't sleep: \(error)")
             }
 
-            logger.info("calling creatureManager.startRecording(soundFile:)")
-            await creatureManager.startRecording(soundFile: animation.metadata.soundFile)
+            // ═══════════════════════════════════════════════════════════════════════
+            // PHASE 3: Start Recording with Precise Audio Sync
+            // ═══════════════════════════════════════════════════════════════════════
+            // Uses mach_absolute_time() to schedule audio at precise time for perfect sync.
+            // Motion capture and audio start simultaneously at the 3.5s mark.
+            logger.info("calling creatureManager.startRecording()")
+            await creatureManager.startRecording(delaySoundStart: 0.0)
             logger.info("creatureManager.startRecording() completed")
             await AppState.shared.setCurrentActivity(.recording)
         }
