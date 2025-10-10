@@ -13,9 +13,15 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         get { _processor.withLock { $0 } }
         set { _processor.withLock { $0 = newValue } }
     }
-    nonisolated(unsafe) var webSocketClient: WebSocketClient?
 
-    nonisolated(unsafe) var logger: Logging.Logger
+    private let _webSocketClient: OSAllocatedUnfairLock<WebSocketClient?>
+
+    var webSocketClient: WebSocketClient? {
+        get { _webSocketClient.withLock { $0 } }
+        set { _webSocketClient.withLock { $0 = newValue } }
+    }
+
+    let logger: Logging.Logger
     private let _serverHostname: OSAllocatedUnfairLock<String>
     private let _serverPort: OSAllocatedUnfairLock<Int>
     private let _useTLS: OSAllocatedUnfairLock<Bool>
@@ -55,9 +61,11 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
 
     public init() {
-        self.logger = Logging.Logger(label: "io.opsnlops.creature-controller.common")
-        self.logger.logLevel = .debug
+        var logger = Logging.Logger(label: "io.opsnlops.creature-controller.common")
+        logger.logLevel = .debug
+        self.logger = logger
         self._processor = OSAllocatedUnfairLock(initialState: nil)
+        self._webSocketClient = OSAllocatedUnfairLock(initialState: nil)
         self._serverHostname = OSAllocatedUnfairLock(
             initialState: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1")
         self._serverPort = OSAllocatedUnfairLock(
