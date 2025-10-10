@@ -101,8 +101,9 @@ class AudioManager: ObservableObject {
     /// The resulting mono WAV is written to the Caches directory using the provided cacheKey and can be reused later.
     func prepareMonoPreview(for remoteURL: URL, cacheKey: String) async -> Result<URL, AudioError> {
         do {
-            // 1) Download to a system-provided temporary file
-            let (downloadedTempURL, _) = try await URLSession.shared.download(from: remoteURL)
+            // 1) Download to a system-provided temporary file with proper proxy headers
+            let request = server.createConfiguredURLRequest(for: remoteURL)
+            let (downloadedTempURL, _) = try await URLSession.shared.download(for: request)
 
             // 2) Destination in Caches (reusable across launches)
             let cachesDir = try FileManager.default.url(
@@ -559,7 +560,8 @@ class AudioManager: ObservableObject {
                 // Other formats (MP3, FLAC): download → cache → arm directly
                 logger.debug("Preparing audio file for recording: \(fileName)")
                 do {
-                    let (downloadedURL, _) = try await URLSession.shared.download(from: remoteURL)
+                    let request = server.createConfiguredURLRequest(for: remoteURL)
+                    let (downloadedURL, _) = try await URLSession.shared.download(for: request)
 
                     // Move to cache for reuse across recording sessions
                     let cachesDir = try FileManager.default.url(

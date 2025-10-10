@@ -98,7 +98,7 @@ extension CreatureServerClient {
             let encoder = JSONEncoder()
             let requestBody = try encoder.encode(body)
 
-            var request = URLRequest(url: url)
+            var request = createConfiguredURLRequest(for: url)
             request.httpMethod = method
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = requestBody

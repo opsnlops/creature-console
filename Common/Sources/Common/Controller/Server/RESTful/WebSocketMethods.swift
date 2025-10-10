@@ -60,8 +60,19 @@ extension CreatureServerClient {
             return
         }
 
+        // Build headers if API key is configured
+        var headers: [String: String] = [:]
+        if let key = apiKey {
+            headers["x-acw-api-key"] = key
+        }
+
+        // Set Host header when using proxy
+        if serverProxyHost != nil, apiKey != nil {
+            headers["Host"] = "\(serverHostname):\(serverPort)"
+        }
+
         // Create the websocket client
-        webSocketClient = WebSocketClient(url: url, messageProcessor: processor)
+        webSocketClient = WebSocketClient(url: url, messageProcessor: processor, headers: headers)
         await webSocketClient?.connect()
     }
 
@@ -142,6 +153,7 @@ actor WebSocketClient {
 
     private let url: URL
     private var messageProcessor: MessageProcessor?
+    private let headers: [String: String]
 
     private let logger = Logger(label: "io.opsnlops.CreatureController.WebSocketClient")
 
@@ -154,9 +166,10 @@ actor WebSocketClient {
     private let errorNotificationSuppressionThreshold: Int = 2
     private var suppressErrorNotifications: Bool = false
 
-    init(url: URL, messageProcessor: MessageProcessor?) {
+    init(url: URL, messageProcessor: MessageProcessor?, headers: [String: String] = [:]) {
         self.url = url
         self.messageProcessor = messageProcessor
+        self.headers = headers
 
         logger.info("attempting to make a new WebSocketClient with url \(url)")
 
@@ -456,6 +469,11 @@ actor WebSocketClient {
 
         var request = URLRequest(url: url)
         request.timeoutInterval = 5
+
+        // Apply headers if any are configured
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
 
         task = session.webSocketTask(with: request)
         task?.resume()

@@ -8,7 +8,7 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
     // WebSocket processing stuff
     private let _processor: OSAllocatedUnfairLock<MessageProcessor?>
-    
+
     var processor: MessageProcessor? {
         get { _processor.withLock { $0 } }
         set { _processor.withLock { $0 = newValue } }
@@ -19,20 +19,32 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
     private let _serverHostname: OSAllocatedUnfairLock<String>
     private let _serverPort: OSAllocatedUnfairLock<Int>
     private let _useTLS: OSAllocatedUnfairLock<Bool>
-    
+    private let _serverProxyHost: OSAllocatedUnfairLock<String?>
+    private let _apiKey: OSAllocatedUnfairLock<String?>
+
     public var serverHostname: String {
         get { _serverHostname.withLock { $0 } }
         set { _serverHostname.withLock { $0 = newValue } }
     }
-    
+
     public var serverPort: Int {
         get { _serverPort.withLock { $0 } }
         set { _serverPort.withLock { $0 = newValue } }
     }
-    
+
     public var useTLS: Bool {
         get { _useTLS.withLock { $0 } }
         set { _useTLS.withLock { $0 = newValue } }
+    }
+
+    public var serverProxyHost: String? {
+        get { _serverProxyHost.withLock { $0 } }
+        set { _serverProxyHost.withLock { $0 = newValue } }
+    }
+
+    public var apiKey: String? {
+        get { _apiKey.withLock { $0 } }
+        set { _apiKey.withLock { $0 = newValue } }
     }
 
 
@@ -46,9 +58,15 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         self.logger = Logging.Logger(label: "io.opsnlops.creature-controller.common")
         self.logger.logLevel = .debug
         self._processor = OSAllocatedUnfairLock(initialState: nil)
-        self._serverHostname = OSAllocatedUnfairLock(initialState: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1")
-        self._serverPort = OSAllocatedUnfairLock(initialState: UserDefaults.standard.integer(forKey: "serverPort"))
-        self._useTLS = OSAllocatedUnfairLock(initialState: UserDefaults.standard.object(forKey: "serverUseTLS") as? Bool ?? true)
+        self._serverHostname = OSAllocatedUnfairLock(
+            initialState: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1")
+        self._serverPort = OSAllocatedUnfairLock(
+            initialState: UserDefaults.standard.integer(forKey: "serverPort"))
+        self._useTLS = OSAllocatedUnfairLock(
+            initialState: UserDefaults.standard.object(forKey: "serverUseTLS") as? Bool ?? true)
+        self._serverProxyHost = OSAllocatedUnfairLock(
+            initialState: UserDefaults.standard.string(forKey: "serverProxyHost"))
+        self._apiKey = OSAllocatedUnfairLock(initialState: nil)
         self.logger.info("Created new CreatureServerRestful")
     }
 
@@ -67,14 +85,35 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
             prefix = useTLS ? "wss://" : "ws://"
         }
 
-        return "\(prefix)\(serverHostname):\(serverPort)/api/v1"
+        // Use proxy host if both proxyHost and apiKey are configured
+        let host: String
+        if let proxy = serverProxyHost, apiKey != nil {
+            host = proxy
+        } else {
+            host = "\(serverHostname):\(serverPort)"
+        }
+
+        return "\(prefix)\(host)/api/v1"
     }
 
-    public func connect(serverHostname: String, serverPort: Int, useTLS: Bool) throws {
+    public func connect(
+        serverHostname: String, serverPort: Int, useTLS: Bool, serverProxyHost: String? = nil,
+        apiKey: String? = nil
+    ) throws {
         self.serverHostname = serverHostname
         self.serverPort = serverPort
         self.useTLS = useTLS
-        logger.info("Set the server hostname to \(serverHostname) and the port to \(serverPort)")
+        self.serverProxyHost = serverProxyHost
+        self.apiKey = apiKey
+
+        if let proxy = serverProxyHost, apiKey != nil {
+            logger.info(
+                "Set the server hostname to \(serverHostname) and the port to \(serverPort) via proxy \(proxy)"
+            )
+        } else {
+            logger.info(
+                "Set the server hostname to \(serverHostname) and the port to \(serverPort)")
+        }
     }
 
     public func close() {
@@ -94,11 +133,37 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         return string.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
     }
 
+    /**
+     Creates a configured URLRequest with proper headers for proxy support
+    
+     This method ensures all HTTP requests to the server include the necessary headers
+     for proxy authentication and routing, regardless of where in the app they originate.
+    
+     - Parameter url: The URL to create the request for
+     - Returns: A URLRequest configured with API key and Host headers as needed
+     */
+    public func createConfiguredURLRequest(for url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+
+        // Add API key header if configured
+        if let key = apiKey {
+            request.setValue(key, forHTTPHeaderField: "x-acw-api-key")
+        }
+
+        // Set Host header when using proxy
+        if serverProxyHost != nil, apiKey != nil {
+            request.setValue("\(serverHostname):\(serverPort)", forHTTPHeaderField: "Host")
+        }
+
+        return request
+    }
+
 
     func fetchData<T: Decodable>(_ url: URL, returnType: T.Type) async -> Result<T, ServerError> {
 
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let request = createConfiguredURLRequest(for: url)
+            let (data, response) = try await URLSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 logger.error("Invalid response for \(url)")
                 return .failure(.serverError("Invalid response for \(url)"))
@@ -174,7 +239,7 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
             let requestBody = try encoder.encode(body)
 
             // Set up a URLRequest with a POST method
-            var request = URLRequest(url: url)
+            var request = createConfiguredURLRequest(for: url)
             request.httpMethod = method
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = requestBody

@@ -6,7 +6,7 @@ extension CreatureServerClient {
 
     /**
      Get the state of the counters from the server
-
+    
      This one is unique because it returns a DTO. It's just informational, there's nothing we need to do with it
      on our side.
      */
@@ -20,7 +20,8 @@ extension CreatureServerClient {
         self.logger.debug("Using URL: \(url)")
 
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let request = createConfiguredURLRequest(for: url)
+            let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 self.logger.error("HTTP Error while trying to get the server's counters")

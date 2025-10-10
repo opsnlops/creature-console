@@ -3,6 +3,7 @@ import Common
 import Logging
 import LoggingOSLog
 import OSLog
+import SimpleKeychain
 import SwiftData
 import SwiftUI
 
@@ -25,6 +26,11 @@ struct CreatureConsole: App {
         // Configure swift-log for the Common package
         LoggingSystem.bootstrap(LoggingOSLog.init)
 
+        // Fire up simple keychain to get the proxy's API key if needed
+        let simpleKeychain = SimpleKeychain(
+            service: "io.opsnlops.CreatureConsole", synchronizable: true)
+        logger.debug("SimpleKeychain initialized")
+
         /**
          Set up default prefs for static things
          */
@@ -32,6 +38,8 @@ struct CreatureConsole: App {
             "serverHostname": "server.dev.chirpchirp.dev",
             "serverRestPort": 443,
             "serverUseTLS": true,
+            "serverProxyHost": "",
+            "useProxy": false,
             "serverLogsScrollBackLines": 150,
             "mouthImportDefaultAxis": 2,
             "eventLoopMillisecondsPerFrame": 20,
@@ -62,11 +70,31 @@ struct CreatureConsole: App {
 
         // Connect to the server
         do {
+            // Check if proxy is enabled and get proxy settings
+            let useProxy = UserDefaults.standard.bool(forKey: "useProxy")
+            var proxyHost: String? = nil
+            var apiKey: String? = nil
+
+            if useProxy {
+                let proxyHostValue = UserDefaults.standard.string(forKey: "serverProxyHost")
+                if let host = proxyHostValue, !host.isEmpty {
+                    proxyHost = host
+                    // Get API key from keychain
+                    apiKey = try? simpleKeychain.string(forKey: "proxyApiKey")
+
+                    if apiKey == nil {
+                        logger.warning("Proxy is enabled but no API key found in keychain")
+                    }
+                }
+            }
+
             try CreatureServerClient.shared.connect(
                 serverHostname: UserDefaults.standard.string(forKey: "serverAddress")
                     ?? "127.0.0.1",
                 serverPort: UserDefaults.standard.integer(forKey: "serverPort"),
-                useTLS: UserDefaults.standard.bool(forKey: "serverUseTLS"))
+                useTLS: UserDefaults.standard.bool(forKey: "serverUseTLS"),
+                serverProxyHost: proxyHost,
+                apiKey: apiKey)
 
             logger.info("server configuration set")
 

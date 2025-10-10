@@ -142,6 +142,7 @@
 		11AF090F2E864F2400E0BE28 /* AnimationEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AF090E2E864F2400E0BE28 /* AnimationEditorViewModel.swift */; };
 		11AF09122E8651C500E0BE28 /* TrackViewerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AF09102E8650A700E0BE28 /* TrackViewerTests.swift */; };
 		11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
+		11BC3BAC2E98B4E5002A568C /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = 11BC3BAB2E98B4E5002A568C /* SimpleKeychain */; };
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11BF13972E42D32E00728799 /* CreatePlaylistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF13952E42D32E00728799 /* CreatePlaylistView.swift */; };
 		11BF13982E42D32E00728799 /* PlaylistDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF13962E42D32E00728799 /* PlaylistDetail.swift */; };
@@ -448,6 +449,7 @@
 				1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */,
 				1110E9652BF035E500FCE26D /* Common in Frameworks */,
 				1199D6BD2BF5C463004E0D64 /* LoggingOSLog in Frameworks */,
+				11BC3BAC2E98B4E5002A568C /* SimpleKeychain in Frameworks */,
 			);
 		};
 		11754B6A2C0050AF001A6C83 /* Frameworks */ = {
@@ -1095,6 +1097,7 @@
 				1110E9642BF035E500FCE26D /* Common */,
 				1199D6B92BF5C3A3004E0D64 /* Logging */,
 				1199D6BC2BF5C463004E0D64 /* LoggingOSLog */,
+				11BC3BAB2E98B4E5002A568C /* SimpleKeychain */,
 			);
 			productName = "Creature Console";
 			productReference = 11703D8829DD197F00EF7E3D /* Creature Console.app */;
@@ -1229,6 +1232,7 @@
 				1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */,
 				1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */,
 				118331982C005BD80017DC2A /* XCRemoteSwiftPackageReference "ViewInspector" */,
+				11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
 			);
 			preferredProjectObjectVersion = 90;
 			productRefGroup = 11703D8929DD197F00EF7E3D /* Products */;
@@ -1623,7 +1627,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4c133b2;
+				CURRENT_PROJECT_VERSION = f1ae49d;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1655,7 +1659,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.9.5;
+				MARKETING_VERSION = 2.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1677,7 +1681,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4c133b2;
+				CURRENT_PROJECT_VERSION = f1ae49d;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1709,7 +1713,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.9.5;
+				MARKETING_VERSION = 2.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1793,7 +1797,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.9.0;
+				MARKETING_VERSION = 2.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -1825,7 +1829,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.9.0;
+				MARKETING_VERSION = 2.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -1997,6 +2001,14 @@
 				minimumVersion = 0.2.2;
 			};
 		};
+		11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/auth0/SimpleKeychain";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
 		11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
@@ -2040,6 +2052,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */;
 			productName = LoggingOSLog;
+		};
+		11BC3BAB2E98B4E5002A568C /* SimpleKeychain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */;
+			productName = SimpleKeychain;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

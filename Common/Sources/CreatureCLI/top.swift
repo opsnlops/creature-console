@@ -17,6 +17,12 @@ struct GlobalOptions: ParsableArguments {
 
     @Flag(help: "Don't use TLS")
     var insecure: Bool = false
+
+    @Option(help: "The proxy host to use (optional)")
+    var proxyHost: String?
+
+    @Option(help: "The API key for proxy authentication (optional)")
+    var proxyApiKey: String?
 }
 
 
@@ -25,7 +31,7 @@ struct CreatureCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "A utility for interacting with the Creature Server",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
-        version: "2.9.4",
+        version: "2.10.0",
         subcommands: [
             Animations.self, Creatures.self, Debug.self, Sounds.self, Metrics.self, Playlists.self,
             Util.self, Voice.self, Websocket.self,
@@ -48,6 +54,8 @@ func getServer(config: GlobalOptions) -> CreatureServerClient {
     server.serverPort = config.port
     server.serverHostname = config.host
     server.useTLS = !config.insecure
+    server.serverProxyHost = config.proxyHost
+    server.apiKey = config.proxyApiKey
 
     return server
 }

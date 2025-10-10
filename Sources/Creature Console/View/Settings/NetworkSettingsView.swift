@@ -1,14 +1,20 @@
 import Common
+import SimpleKeychain
 import SwiftUI
 
 struct NetworkSettingsView: View {
     @AppStorage("serverAddress") private var serverAddress: String = ""
     @AppStorage("serverPort") private var serverPort: Int = 0
     @AppStorage("serverUseTLS") private var serverUseTLS: Bool = true
+    @AppStorage("serverProxyHost") private var serverProxyHost: String = ""
+    @AppStorage("useProxy") private var useProxy: Bool = false
     @AppStorage("activeUniverse") private var activeUniverse: Int = 1
     @State private var activeUniverseString: String = ""
     @State private var showUniverseClampHint: Bool = false
+    @State private var proxyApiKey: String = ""
     private let numericFieldWidth: CGFloat = 200
+    private let keychain = SimpleKeychain(
+        service: "io.opsnlops.CreatureConsole", synchronizable: true)
 
 
     var body: some View {
@@ -111,6 +117,64 @@ struct NetworkSettingsView: View {
                     }
                     .padding(12)
                     .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                }
+
+                // Card 3: Proxy Settings
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Proxy Settings", systemImage: "network.badge.shield.half.filled")
+                        .font(.headline)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Use Proxy", isOn: $useProxy)
+
+                        HStack {
+                            Text("Proxy Host")
+                            Spacer()
+                            TextField("proxy.example.com", text: $serverProxyHost)
+                                #if os(tvOS)
+                                    .textFieldStyle(.plain)
+                                #else
+                                    .textFieldStyle(.roundedBorder)
+                                #endif
+                                .frame(maxWidth: 280)
+                                .autocorrectionDisabled(true)
+                                #if os(iOS) || os(tvOS)
+                                    .textInputAutocapitalization(.never)
+                                    .keyboardType(.URL)
+                                    .textContentType(.URL)
+                                #endif
+                        }
+
+                        HStack {
+                            Text("API Key")
+                            Spacer()
+                            SecureField("API Key", text: $proxyApiKey)
+                                #if os(tvOS)
+                                    .textFieldStyle(.plain)
+                                #else
+                                    .textFieldStyle(.roundedBorder)
+                                #endif
+                                .frame(maxWidth: 280)
+                                .autocorrectionDisabled(true)
+                                #if os(iOS) || os(tvOS)
+                                    .textInputAutocapitalization(.never)
+                                    .keyboardType(.asciiCapable)
+                                #endif
+                                .onChange(of: proxyApiKey) { oldValue, newValue in
+                                    // Save to keychain whenever it changes
+                                    if newValue.isEmpty {
+                                        try? keychain.deleteItem(forKey: "proxyApiKey")
+                                    } else {
+                                        try? keychain.set(newValue, forKey: "proxyApiKey")
+                                    }
+                                }
+                        }
+                    }
+                    .padding(12)
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                }
+                .onAppear {
+                    // Load API key from keychain on appear
+                    proxyApiKey = (try? keychain.string(forKey: "proxyApiKey")) ?? ""
                 }
 
                 Spacer(minLength: 0)
