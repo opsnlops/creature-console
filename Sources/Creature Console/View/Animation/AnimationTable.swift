@@ -29,6 +29,7 @@ struct AnimationTable: View {
 
     @State private var loadAnimationTask: Task<Void, Never>? = nil
     @State private var playAnimationTask: Task<Void, Never>? = nil
+    @State private var interruptAnimationTask: Task<Void, Never>? = nil
 
     @State private var navigateToEditor = false
     @State private var animationToEdit: Common.Animation? = nil
@@ -76,6 +77,13 @@ struct AnimationTable: View {
                         .disabled(!hasSelection)
 
                         Button {
+                            interruptWithAnimation(animationId: items.first ?? selection)
+                        } label: {
+                            Label("Interrupt & Play", systemImage: "bolt.fill")
+                        }
+                        .disabled(!hasSelection)
+
+                        Button {
                             if let id = items.first ?? selection {
                                 loadAnimationForEditing(animationId: id)
                             }
@@ -106,6 +114,7 @@ struct AnimationTable: View {
             .onDisappear {
                 loadAnimationTask?.cancel()
                 playAnimationTask?.cancel()
+                interruptAnimationTask?.cancel()
             }
             .onChange(of: selection) {
                 logger.debug("selection is now \(String(describing: selection))")
@@ -184,6 +193,33 @@ struct AnimationTable: View {
             case .failure(let error):
                 logger.warning("Unable to schedule animation: \(error.localizedDescription)")
                 alertMessage = "Unable to schedule animation: \(error.localizedDescription)"
+                showErrorAlert = true
+            }
+        }
+    }
+
+    func interruptWithAnimation(animationId: AnimationIdentifier?) {
+        guard let animationId = animationId else {
+            logger.debug("interruptWithAnimation was called with a nil selection")
+            return
+        }
+
+        interruptAnimationTask?.cancel()
+
+        let manager = creatureManager
+        let universe = activeUniverse
+
+        interruptAnimationTask = Task {
+            let result = await manager.interruptWithAnimation(
+                animationId: animationId, universe: universe, resumePlaylist: true)
+            switch result {
+            case .success(let message):
+                logger.info("Animation Interrupt Scheduled: \(message)")
+            case .failure(let error):
+                logger.warning(
+                    "Unable to schedule animation interrupt: \(error.localizedDescription)")
+                alertMessage =
+                    "Unable to schedule animation interrupt: \(error.localizedDescription)"
                 showErrorAlert = true
             }
         }

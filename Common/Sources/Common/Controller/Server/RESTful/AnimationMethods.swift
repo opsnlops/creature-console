@@ -23,6 +23,27 @@ extension CreatureServerClient {
             .map { $0.message }
     }
 
+    public func interruptWithAnimation(
+        animationId: AnimationIdentifier, universe: UniverseIdentifier, resumePlaylist: Bool = true
+    ) async -> Result<String, ServerError> {
+
+        logger.debug(
+            "attempting to interrupt with animation \(animationId) on universe \(universe), resumePlaylist: \(resumePlaylist)"
+        )
+
+        // Construct the URL
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/interrupt") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        let requestBody = PlayAnimationRequestDto(
+            animation_id: animationId, universe: universe, resumePlaylist: resumePlaylist)
+
+        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self)
+            .map { $0.message }
+    }
+
 
     public func saveAnimation(animation: Animation) async -> Result<String, ServerError> {
 

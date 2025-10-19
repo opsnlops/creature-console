@@ -8,8 +8,8 @@ extension CreatureCLI {
         static let configuration = CommandConfiguration(
             abstract: "View and work with animations",
             subcommands: [
-                Get.self, List.self, Play.self, TestAnimationEncoding.self, TestTrackEncoding.self,
-                TestAnimationSaving.self,
+                Get.self, List.self, Play.self, Interrupt.self, TestAnimationEncoding.self,
+                TestTrackEncoding.self, TestAnimationSaving.self,
             ]
         )
 
@@ -36,23 +36,27 @@ extension CreatureCLI {
                 case .success(let animations):
 
                     print("\nAnimations for (well. will be real):\n")
-                    printTable(animations, columns: [
-                        TableColumn(title: "Title", valueProvider: { $0.title }),
-                        TableColumn(title: "ID", valueProvider: { $0.id.lowercased() }),
-                        TableColumn(title: "Sound File", valueProvider: { $0.soundFile }),
-                        TableColumn(
-                            title: "Frames",
-                            valueProvider: { formatNumber(UInt64($0.numberOfFrames)) }),
-                        TableColumn(
-                            title: "Multitrack", valueProvider: { $0.multitrackAudio ? "✅" : "🚫" }),
-                    ])
+                    printTable(
+                        animations,
+                        columns: [
+                            TableColumn(title: "Title", valueProvider: { $0.title }),
+                            TableColumn(title: "ID", valueProvider: { $0.id.lowercased() }),
+                            TableColumn(title: "Sound File", valueProvider: { $0.soundFile }),
+                            TableColumn(
+                                title: "Frames",
+                                valueProvider: { formatNumber(UInt64($0.numberOfFrames)) }),
+                            TableColumn(
+                                title: "Multitrack",
+                                valueProvider: { $0.multitrackAudio ? "✅" : "🚫" }),
+                        ])
 
                     print(
                         "\n\(animations.count) animation(s) for creature (yes) on server at \(server.serverHostname)\n"
                     )
 
                 case .failure(let error):
-                    throw failWithMessage("Error fetching animations: \(error.localizedDescription)")
+                    throw failWithMessage(
+                        "Error fetching animations: \(error.localizedDescription)")
                 }
             }
         }
@@ -108,7 +112,8 @@ extension CreatureCLI {
                         print(jsonString)
                     }
                 } catch {
-                    throw failWithMessage("Failed to encode Animation: \(error.localizedDescription)")
+                    throw failWithMessage(
+                        "Failed to encode Animation: \(error.localizedDescription)")
                 }
             }
         }
@@ -204,6 +209,45 @@ extension CreatureCLI {
                 print(messsage)
             case .failure(let error):
                 throw failWithMessage("Unable to play animation: \(error.localizedDescription)")
+            }
+
+        }
+    }
+
+    struct Interrupt: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Interrupts current playback with an animation",
+            discussion:
+                "Asks the server to interrupt any currently playing playlist, play the specified animation, and optionally resume the playlist. Requires the cooperative scheduler on the server."
+        )
+
+        @Argument(help: "Animation ID to play as an interrupt")
+        var animationId: AnimationIdentifier
+
+        @OptionGroup()
+        var globalOptions: GlobalOptions
+
+        @Option(help: "Which universe?")
+        var universe: UniverseIdentifier = 1
+
+        @Flag(help: "Resume the playlist after the animation completes")
+        var resume: Bool = false
+
+        func run() async throws {
+
+            print(
+                "attempting to interrupt with animation \(animationId) on universe \(universe) (resume: \(resume))...\n"
+            )
+
+            let server = getServer(config: globalOptions)
+            let result = await server.interruptWithAnimation(
+                animationId: animationId, universe: universe, resumePlaylist: resume)
+            switch result {
+            case .success(let message):
+                print(message)
+            case .failure(let error):
+                throw failWithMessage(
+                    "Unable to interrupt with animation: \(error.localizedDescription)")
             }
 
         }

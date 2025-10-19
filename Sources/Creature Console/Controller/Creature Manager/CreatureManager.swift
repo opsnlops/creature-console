@@ -196,6 +196,35 @@ actor CreatureManager {
         }
     }
 
+    /// Interrupt current playback with an animation on the server
+    ///
+    /// This tells the server to interrupt any currently playing playlist, play the specified
+    /// animation, and then resume the playlist if resumePlaylist is true.
+    func interruptWithAnimation(
+        animationId: AnimationIdentifier, universe: UniverseIdentifier, resumePlaylist: Bool = true
+    ) async -> Result<String, ServerError> {
+        logger.debug(
+            "asking the server to interrupt with animation \(animationId) on universe \(universe), resumePlaylist: \(resumePlaylist)"
+        )
+
+        guard !animationId.isEmpty else {
+            let errorMessage = "Unable to interrupt with an animation with an empty animationId"
+            logger.warning("Can't interrupt animation: \(errorMessage)")
+            return .failure(.dataFormatError(errorMessage))
+        }
+
+        let result = await server.interruptWithAnimation(
+            animationId: animationId, universe: universe, resumePlaylist: resumePlaylist)
+        switch result {
+        case .success(let message):
+            logger.info("Animation interrupt scheduled: \(message)")
+            return .success(message)
+        case .failure(let error):
+            logger.warning("Unable to schedule animation interrupt: \(error.localizedDescription)")
+            return .failure(error)
+        }
+    }
+
     /// Play an animation locally
     ///
     /// This requires a full [Animation] object, because we might not have saved it to the server. The idea is to be able
