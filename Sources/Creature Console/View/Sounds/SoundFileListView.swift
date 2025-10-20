@@ -16,12 +16,17 @@ struct SoundFileListView: View {
     let server = CreatureServerClient.shared
     let audioManager = AudioManager.shared
 
-    @State private var showErrorAlert = false
+    @State private var showAlert = false
+    @State private var alertTitle = ""
     @State private var alertMessage = ""
 
     @State private var selection: SoundIdentifier? = nil
     @State private var playSoundTask: Task<Void, Never>? = nil
     @State private var preparingFile: String? = nil
+    @State private var generatingLipSyncFor: SoundIdentifier? = nil
+    @State private var lipSyncTask: Task<Void, Never>? = nil
+    @State private var pendingRegenerateSound: SoundIdentifier? = nil
+    @State private var showRegenerateConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -43,12 +48,18 @@ struct SoundFileListView: View {
                         }
                         .width(100)
 
+                        TableColumn("Lip Sync?") { s in
+                            Text(s.lipsync.isEmpty ? "" : "✅")
+                        }
+                        .width(110)
+
                     }
                     .contextMenu(forSelectionType: SoundIdentifier.self) {
                         (items: Set<SoundIdentifier>) in
                         if let soundId = items.first ?? selection,
                             let sound = sounds.first(where: { $0.id == soundId })
                         {
+                            let isWavFile = sound.id.lowercased().hasSuffix(".wav")
                             Button {
                                 playOnServer(fileName: sound.id)
                             } label: {
@@ -71,6 +82,28 @@ struct SoundFileListView: View {
                                 Label("View Transcript", systemImage: "text.bubble.fill")
                             }
                             .disabled(sound.transcript.isEmpty)
+
+                            if isWavFile {
+                                if sound.lipsync.isEmpty {
+                                    Button {
+                                        startLipSyncGeneration(for: sound.id, allowOverwrite: false)
+                                    } label: {
+                                        Label("Generate Lip Sync File", systemImage: "waveform")
+                                    }
+                                    .disabled(generatingLipSyncFor != nil)
+                                } else {
+                                    Button {
+                                        pendingRegenerateSound = sound.id
+                                        showRegenerateConfirmation = true
+                                    } label: {
+                                        Label(
+                                            "Regenerate Lip Sync File…",
+                                            systemImage: "arrow.triangle.2.circlepath"
+                                        )
+                                    }
+                                    .disabled(generatingLipSyncFor != nil)
+                                }
+                            }
                         }
                     }
                 } else {
@@ -86,9 +119,9 @@ struct SoundFileListView: View {
                     }
                 }
             }
-            .alert(isPresented: $showErrorAlert) {
+            .alert(isPresented: $showAlert) {
                 Alert(
-                    title: Text("Error"),
+                    title: Text(alertTitle),
                     message: Text(alertMessage),
                     dismissButton: .default(Text("OK"))
                 )
@@ -98,27 +131,37 @@ struct SoundFileListView: View {
                 .navigationSubtitle("Number of Sounds: \(sounds.count)")
             #endif
             .overlay {
-                if let name = preparingFile {
-                    ZStack {
-                        Color.black.opacity(0.15).ignoresSafeArea()
-                        VStack(spacing: 10) {
-                            ProgressView()
-                            Text("Preparing \(name)…")
-                                .font(.callout)
-                        }
-                        .padding(16)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                    }
-                    .transition(.opacity)
+                if let name = generatingLipSyncFor {
+                    overlayProgress(message: "Generating lip sync for \(name)…")
+                } else if let name = preparingFile {
+                    overlayProgress(message: "Preparing \(name)…")
                 }
             }
-            .animation(.default, value: preparingFile != nil)
+            .animation(.default, value: generatingLipSyncFor != nil || preparingFile != nil)
+            .confirmationDialog(
+                "Regenerate Lip Sync?",
+                isPresented: $showRegenerateConfirmation,
+                presenting: pendingRegenerateSound
+            ) { soundId in
+                Button("Regenerate", role: .destructive) {
+                    startLipSyncGeneration(for: soundId, allowOverwrite: true)
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingRegenerateSound = nil
+                }
+            } message: { soundId in
+                Text(
+                    "Generating lip sync again will overwrite the existing data for \(soundId). This can take up to 30 seconds."
+                )
+            }
         }
     }
 
-    private func importFromServerIfNeeded(force: Bool) async {
+    private func importFromServerIfNeeded(force: Bool) async -> Bool {
         // If we already have sounds and not forcing, skip fetch
-        if !force && !sounds.isEmpty { return }
+        if !force && !sounds.isEmpty { return false }
+
+        var didImport = false
         do {
             let importer = SoundImporter(modelContainer: modelContext.container)
             logger.info("Fetching sound list from server for SwiftData import")
@@ -127,17 +170,89 @@ struct SoundFileListView: View {
             case .success(let list):
                 try await importer.upsertBatch(list)
                 logger.info("Imported \(list.count) sounds into SwiftData")
+                didImport = true
             case .failure(let error):
                 await MainActor.run {
+                    alertTitle = "Error"
                     alertMessage = ServerError.detailedMessage(from: error)
-                    showErrorAlert = true
+                    showAlert = true
                 }
             }
         } catch {
             await MainActor.run {
+                alertTitle = "Error"
                 alertMessage = "Error importing sounds: \(error.localizedDescription)"
-                showErrorAlert = true
+                showAlert = true
             }
+        }
+        return didImport
+    }
+
+    @ViewBuilder
+    private func overlayProgress(message: String) -> some View {
+        ZStack {
+            Color.black.opacity(0.15).ignoresSafeArea()
+            VStack(spacing: 10) {
+                ProgressView()
+                Text(message)
+                    .font(.callout)
+            }
+            .padding(16)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+        }
+        .transition(.opacity)
+    }
+
+    private func startLipSyncGeneration(
+        for soundId: SoundIdentifier,
+        allowOverwrite: Bool
+    ) {
+        guard generatingLipSyncFor == nil else { return }
+
+        pendingRegenerateSound = nil
+        generatingLipSyncFor = soundId
+        lipSyncTask?.cancel()
+        lipSyncTask = Task {
+            await performLipSyncGeneration(for: soundId, allowOverwrite: allowOverwrite)
+        }
+    }
+
+    private func performLipSyncGeneration(
+        for soundId: SoundIdentifier,
+        allowOverwrite: Bool
+    ) async {
+        let result = await server.generateLipSync(for: soundId, allowOverwrite: allowOverwrite)
+
+        if Task.isCancelled {
+            await MainActor.run {
+                generatingLipSyncFor = nil
+                lipSyncTask = nil
+            }
+            return
+        }
+
+        switch result {
+        case .success:
+            let refreshSucceeded = await importFromServerIfNeeded(force: true)
+
+            await MainActor.run {
+                if refreshSucceeded {
+                    alertTitle = "Lip Sync Ready"
+                    alertMessage = "Lip sync data for \(soundId) is available."
+                    showAlert = true
+                }
+            }
+        case .failure(let error):
+            await MainActor.run {
+                alertTitle = "Error"
+                alertMessage = ServerError.detailedMessage(from: error)
+                showAlert = true
+            }
+        }
+
+        await MainActor.run {
+            generatingLipSyncFor = nil
+            lipSyncTask = nil
         }
     }
 
@@ -150,8 +265,9 @@ struct SoundFileListView: View {
                 break
             case .failure(let error):
                 await MainActor.run {
+                    alertTitle = "Error"
                     alertMessage = ServerError.detailedMessage(from: error)
-                    showErrorAlert = true
+                    showAlert = true
                 }
             }
         }
@@ -176,15 +292,17 @@ struct SoundFileListView: View {
                             await MainActor.run { preparingFile = nil }
                         case .failure(let err):
                             await MainActor.run {
+                                alertTitle = "Error"
                                 alertMessage = "Error: \(err)"
-                                showErrorAlert = true
+                                showAlert = true
                                 preparingFile = nil
                             }
                         }
                     case .failure(let err):
                         await MainActor.run {
+                            alertTitle = "Error"
                             alertMessage = "Error: \(err)"
-                            showErrorAlert = true
+                            showAlert = true
                             preparingFile = nil
                         }
                     }
@@ -194,8 +312,9 @@ struct SoundFileListView: View {
                 }
             case .failure(let error):
                 await MainActor.run {
+                    alertTitle = "Error"
                     alertMessage = ServerError.detailedMessage(from: error)
-                    showErrorAlert = true
+                    showAlert = true
                     preparingFile = nil
                 }
             }

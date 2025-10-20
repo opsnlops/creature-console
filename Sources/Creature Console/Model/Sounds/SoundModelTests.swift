@@ -14,31 +14,46 @@ struct SoundModelTests {
         let size: UInt32 = 1024
         let transcript = "Test transcript"
 
-        let model = SoundModel(id: id, size: size, transcript: transcript)
+        let lipsync = "Test lipsync.json"
+
+        let model = SoundModel(id: id, size: size, transcript: transcript, lipsync: lipsync)
 
         #expect(model.id == id)
         #expect(model.size == size)
         #expect(model.transcript == transcript)
+        #expect(model.lipsync == lipsync)
     }
 
     @Test("converts from DTO")
     func convertsFromDTO() throws {
-        let dto = Common.Sound(fileName: "dto_sound.wav", size: 2048, transcript: "DTO transcript")
+        let dto = Common.Sound(
+            fileName: "dto_sound.wav",
+            size: 2048,
+            transcript: "DTO transcript",
+            lipsync: "dto.json"
+        )
         let model = SoundModel(dto: dto)
 
         #expect(model.id == dto.fileName)
         #expect(model.size == dto.size)
         #expect(model.transcript == dto.transcript)
+        #expect(model.lipsync == dto.lipsync)
     }
 
     @Test("converts to DTO")
     func convertsToDTO() throws {
-        let model = SoundModel(id: "model_sound.wav", size: 4096, transcript: "Model transcript")
+        let model = SoundModel(
+            id: "model_sound.wav",
+            size: 4096,
+            transcript: "Model transcript",
+            lipsync: "model.json"
+        )
         let dto = model.toDTO()
 
         #expect(dto.fileName == model.id)
         #expect(dto.size == model.size)
         #expect(dto.transcript == model.transcript)
+        #expect(dto.lipsync == model.lipsync)
     }
 
     @Test("round-trips through DTO conversion")
@@ -46,7 +61,8 @@ struct SoundModelTests {
         let originalDTO = Common.Sound(
             fileName: "round_trip.wav",
             size: 8192,
-            transcript: "Round trip transcript"
+            transcript: "Round trip transcript",
+            lipsync: "round_trip.json"
         )
 
         let model = SoundModel(dto: originalDTO)
@@ -64,7 +80,12 @@ struct SoundModelTests {
         let container = try ModelContainer(for: schema, configurations: [config])
         let context = ModelContext(container)
 
-        let model = SoundModel(id: "persist.wav", size: 512, transcript: "Persist transcript")
+        let model = SoundModel(
+            id: "persist.wav",
+            size: 512,
+            transcript: "Persist transcript",
+            lipsync: "persist.json"
+        )
 
         context.insert(model)
         try context.save()
@@ -85,8 +106,10 @@ struct SoundModelTests {
         let container = try ModelContainer(for: schema, configurations: [config])
         let context = ModelContext(container)
 
-        let model1 = SoundModel(id: "unique.wav", size: 100, transcript: "First")
-        let model2 = SoundModel(id: "unique.wav", size: 200, transcript: "Second")
+        let model1 = SoundModel(
+            id: "unique.wav", size: 100, transcript: "First", lipsync: "lip1.json")
+        let model2 = SoundModel(
+            id: "unique.wav", size: 200, transcript: "Second", lipsync: "lip2.json")
 
         context.insert(model1)
         try context.save()
@@ -104,7 +127,7 @@ struct SoundModelTests {
 
     @Test("handles empty transcript")
     func handlesEmptyTranscript() throws {
-        let model = SoundModel(id: "no_transcript.wav", size: 256, transcript: "")
+        let model = SoundModel(id: "no_transcript.wav", size: 256, transcript: "", lipsync: "")
 
         #expect(model.id == "no_transcript.wav")
         #expect(model.size == 256)
@@ -116,7 +139,7 @@ struct SoundModelTests {
         let ids = ["sound.wav", "sound.mp3", "sound.m4a", "sound.flac"]
 
         for id in ids {
-            let model = SoundModel(id: id, size: 1000, transcript: "Test")
+            let model = SoundModel(id: id, size: 1000, transcript: "Test", lipsync: "lip.json")
             #expect(model.id == id)
 
             let dto = model.toDTO()
@@ -133,9 +156,9 @@ struct SoundModelTests {
 
         // Insert multiple sounds
         let sounds = [
-            SoundModel(id: "sound1.wav", size: 100, transcript: "First"),
-            SoundModel(id: "sound2.wav", size: 200, transcript: "Second"),
-            SoundModel(id: "sound3.wav", size: 300, transcript: "Third"),
+            SoundModel(id: "sound1.wav", size: 100, transcript: "First", lipsync: "lip1.json"),
+            SoundModel(id: "sound2.wav", size: 200, transcript: "Second", lipsync: "lip2.json"),
+            SoundModel(id: "sound3.wav", size: 300, transcript: "Third", lipsync: ""),
         ]
 
         for sound in sounds {
@@ -153,5 +176,6 @@ struct SoundModelTests {
         #expect(results.first?.id == "sound2.wav")
         #expect(results.first?.size == 200)
         #expect(results.first?.transcript == "Second")
+        #expect(results.first?.lipsync == "lip2.json")
     }
 }

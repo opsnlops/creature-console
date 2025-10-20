@@ -281,6 +281,69 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
                 let status = try? decoder.decode(StatusDTO.self, from: data)
                 return .failure(.notFound(status?.message ?? "Resource not found"))
 
+            case 422:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(
+                    .dataFormatError(status?.message ?? "Request could not be processed"))
+
+            case 500:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(.serverError(status?.message ?? "Server error"))
+
+            default:
+                logger.error("Unexpected status code \(httpResponse.statusCode) from \(url)")
+                return .failure(.serverError("Unexpected status code \(httpResponse.statusCode)"))
+            }
+
+        } catch {
+            logger.error("Request error: \(error.localizedDescription)")
+            return .failure(.serverError("Request error: \(error.localizedDescription)"))
+        }
+    }
+
+    // Variant of sendData that returns the raw response body as a UTF-8 string.
+    func sendDataExpectingString<U: Encodable>(
+        _ url: URL, method: String = "POST", body: U
+    ) async -> Result<String, ServerError> {
+        do {
+            let encoder = JSONEncoder()
+            let requestBody = try encoder.encode(body)
+
+            var request = createConfiguredURLRequest(for: url)
+            request.httpMethod = method
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = requestBody
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                logger.error("Invalid response from \(url)")
+                return .failure(.serverError("Invalid response from \(url)"))
+            }
+
+            let decoder = JSONDecoder()
+
+            switch httpResponse.statusCode {
+            case 200:
+                guard let stringResponse = String(data: data, encoding: .utf8) else {
+                    logger.error("Unable to decode response body as UTF-8 string for \(url)")
+                    return .failure(.serverError("Unable to decode response body"))
+                }
+                return .success(stringResponse)
+
+            case 400:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(.dataFormatError(status?.message ?? "Data format error"))
+
+            case 404:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(.notFound(status?.message ?? "Resource not found"))
+
+            case 422:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(
+                    .dataFormatError(status?.message ?? "Request could not be processed"))
+
             case 500:
                 let status = try? decoder.decode(StatusDTO.self, from: data)
                 return .failure(.serverError(status?.message ?? "Server error"))

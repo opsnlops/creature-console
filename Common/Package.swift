@@ -22,7 +22,7 @@ let package = Package(
         .target(
             name: "Common",
             dependencies: [
-                .product(name: "Logging", package: "swift-log"),
+                .product(name: "Logging", package: "swift-log")
             ],
             exclude: ["README.md"]),
 
@@ -39,6 +39,7 @@ let package = Package(
             name: "CommonTests",
             dependencies: [
                 "Common",
+                "creature-cli",
             ]
         ),
     ]

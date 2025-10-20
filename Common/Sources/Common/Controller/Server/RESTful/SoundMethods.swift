@@ -20,6 +20,29 @@ extension CreatureServerClient {
     }
 
     /**
+     Generate a lip sync JSON file for a sound on the server.
+     */
+    public func generateLipSync(
+        for fileName: String,
+        allowOverwrite: Bool
+    ) async -> Result<String, ServerError> {
+
+        logger.debug(
+            "attempting to generate lip sync for \(fileName) (allow overwrite: \(allowOverwrite ? "yes" : "no"))"
+        )
+
+        guard let url = URL(string: makeBaseURL(.http) + "/sound/generate-lipsync") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        let requestBody = GenerateLipSyncRequestDTO(
+            soundFile: fileName, allowOverwrite: allowOverwrite)
+
+        return await sendDataExpectingString(url, body: requestBody)
+    }
+
+    /**
      Play one of the sounds on the server
      */
     public func playSound(_ fileName: String) async -> Result<String, ServerError> {
@@ -47,13 +70,13 @@ extension CreatureServerClient {
     public func getSoundURL(_ fileName: String) -> Result<URL, ServerError> {
 
         logger.debug("attempting to get sound URI for \(fileName)")
-        
+
         guard let url = URL(string: makeBaseURL(.http) + "/sound/" + fileName) else {
             return .failure(.serverError("unable to make base URL"))
         }
 
         logger.debug("Sound file URL: \(url)")
-        return .success(url);
+        return .success(url)
     }
 
 }

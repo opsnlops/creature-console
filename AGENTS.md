@@ -7,13 +7,19 @@ This is a client application for controlling animatronic creatures via a WebSock
 
 **Server Source Code:** The creature server implementation is available at https://github.com/opsnlops/creature-server. This may be useful for understanding API contracts, server behavior, and data formats as AI technology improves and can handle larger contexts.
 
+**Sound / Lip Sync APIs:** The server exposes `/sound`, `/sound/play`, and `/sound/generate-lipsync`. Lip-sync generation:
+- Accepts only `.wav` files and may take 15–30 seconds.
+- Returns pretty-printed JSON; the server pushes cache invalidations after completion, so clients must not set lipsync flags manually.
+- Supports `allow_overwrite`; default should be false to avoid accidental regeneration.
+
 ## Project Structure & Module Organization
 - `Sources/Creature Console/` hosts the SwiftUI app, grouped by feature (`Controller`, `Model`, `View`).
   - `Model/` contains SwiftData models for local persistence (AnimationMetadataModel, CreatureModel, PlaylistModel, SoundModel, ServerLogModel)
   - `SwiftDataStore` actor provides concurrency-safe access to the ModelContainer
 - `Common/` is a local package dependency shared across targets; review it when updating shared models or protocols.
   - DTOs in Common package must stay in sync with SwiftData models in the app
-  - Importer classes (e.g., AnimationMetadataImporter) sync server data to SwiftData models
+- Importer classes (e.g., AnimationMetadataImporter) sync server data to SwiftData models
+- Sound importer writes both transcript and lipsync filename; rely on server cache updates instead of mutating local state optimistically.
 - `Tests/` contains Swift Package tests for the executable target; Xcode-specific suites live under `Creature Console Tests/`.
 - Assets (app icons, sounds, credits) live in `Sources/Creature Console/Assets.xcassets/` and adjacent resource folders.
 
@@ -54,6 +60,7 @@ This is a client application for controlling animatronic creatures via a WebSock
   - Format directory: `swift-format --configuration swift-format.json --in-place Sources/Common/`
   - Settings: 4 spaces indentation, 100 character line length
 - Swift singletons are declared as `static let shared`; mirror existing naming when adding new managers or caches.
+- Prefer actor-based factories when CLI code needs dependency injection for testing (see `SoundCommandServerFactory`). Commands should obtain their `CreatureServerClient` via the factory to support stubbing.
 
 ## SwiftData Guidelines
 - **SwiftData models** live in `Sources/Creature Console/Model/` and use the `@Model` macro.
@@ -93,6 +100,7 @@ This is a client application for controlling animatronic creatures via a WebSock
 - Prefer async tests when touching actors or Task APIs; wrap main-thread expectations with `@MainActor`.
 - Use mock data and mock implementations for server integrations to prevent regressions.
 - **Always run tests before committing**: `cd Common && swift test`
+- For CLI testing, inject stub clients through actor-backed factories so commands can be unit-tested without touching the real server (example: `SoundsCommandTests` + `SoundCommandServerFactory`).
 
 ## Commit & Pull Request Guidelines
 - Write imperative, present-tense commit subjects (`Add joystick cache primer`); keep to ~72 characters.
