@@ -13,6 +13,8 @@ public enum ServerMessageType: String {
     case playlistStatus = "playlist-status"
     case emergencyStop = "emergency-stop"
     case watchdogWarning = "watchdog-warning"
+    case jobProgress = "job-progress"
+    case jobComplete = "job-complete"
     case unknown
 
     public init(from command: String) {

@@ -28,84 +28,85 @@ struct CreatureDetail: View {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "CreatureDetail")
 
     var body: some View {
-    #if os(tvOS)
-        ZStack {
-            // Full-screen liquid glass effect
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 0) {
-                Text(creature.name)
-                    .font(.system(size: 60, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-                    .shadow(radius: 8)
-                    .padding(.top, 36)
-                    .padding(.horizontal, 36)
-                    .padding(.bottom, 36)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
-                SensorData(creature: creature, showTitle: false)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .task {
-            // Seed initial activity and subscribe to updates
-            let initial = await AppState.shared.getCurrentActivity
-            await MainActor.run { currentActivity = initial }
-            for await state in await AppState.shared.stateUpdates {
-                await MainActor.run { currentActivity = state.currentActivity }
-            }
-        }
-    #else
-        VStack {
-            SensorData(creature: creature)
-        }
-        .toolbar(id: "\(creature.name) creatureDetail") {
-            ToolbarItem(id: "control", placement: .primaryAction) {
-                Button(action: {
-                    toggleStreaming()
-                }) {
-                    Image(
-                        systemName: (currentActivity == .streaming)
-                            ? "gamecontroller.fill" : "gamecontroller"
-                    )
-                    .foregroundColor((currentActivity == .streaming) ? .green : .primary)
+        #if os(tvOS)
+            ZStack {
+                // Full-screen liquid glass effect
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .ignoresSafeArea()
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(creature.name)
+                        .font(.system(size: 60, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                        .shadow(radius: 8)
+                        .padding(.top, 36)
+                        .padding(.horizontal, 36)
+                        .padding(.bottom, 36)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
+                    SensorData(creature: creature, showTitle: false)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-        }
-        #if !os(tvOS)
-        .toolbarRole(.editor)
-        #endif
-        .overlay {
-            if isDoingServerStuff {
-                Text(serverMessage)
-                    .font(.title)
-                    .padding()
-                    .background(Color.green.opacity(0.4))
-                    .cornerRadius(10)
+            .task {
+                // Seed initial activity and subscribe to updates
+                let initial = await AppState.shared.getCurrentActivity
+                await MainActor.run { currentActivity = initial }
+                for await state in await AppState.shared.stateUpdates {
+                    await MainActor.run { currentActivity = state.currentActivity }
+                }
             }
-        }
-        .onDisappear {
-            streamingTask?.cancel()
-        }
-        .navigationTitle(creature.name)
-        #if os(macOS)
-            .navigationSubtitle(generateStatusString())
-        #endif
-        .task {
-            // Seed initial activity and subscribe to updates
-            let initial = await AppState.shared.getCurrentActivity
-            await MainActor.run { currentActivity = initial }
-            for await state in await AppState.shared.stateUpdates {
-                await MainActor.run { currentActivity = state.currentActivity }
+        #else
+            VStack {
+                SensorData(creature: creature)
             }
-        }
-    #endif
+            .toolbar(id: "\(creature.name) creatureDetail") {
+                ToolbarItem(id: "control", placement: .primaryAction) {
+                    Button(action: {
+                        toggleStreaming()
+                    }) {
+                        Image(
+                            systemName: (currentActivity == .streaming)
+                                ? "gamecontroller.fill" : "gamecontroller"
+                        )
+                        .foregroundColor((currentActivity == .streaming) ? .green : .primary)
+                    }
+                }
+            }
+            #if !os(tvOS)
+                .toolbarRole(.editor)
+            #endif
+            .overlay {
+                if isDoingServerStuff {
+                    Text(serverMessage)
+                        .font(.title)
+                        .padding()
+                        .background(Color.green.opacity(0.4))
+                        .cornerRadius(10)
+                }
+            }
+            .onDisappear {
+                streamingTask?.cancel()
+            }
+            .navigationTitle(creature.name)
+            #if os(macOS)
+                .navigationSubtitle(generateStatusString())
+            #endif
+            .task {
+                // Seed initial activity and subscribe to updates
+                let initial = await AppState.shared.getCurrentActivity
+                await MainActor.run { currentActivity = initial }
+                for await state in await AppState.shared.stateUpdates {
+                    await MainActor.run { currentActivity = state.currentActivity }
+                }
+            }
+        #endif
     }
 
 
     func generateStatusString() -> String {
-        let status = "ID: \(creature.id), Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)"
+        let status =
+            "ID: \(creature.id), Offset: \(creature.channelOffset), Mouth Slot: \(creature.mouthSlot), Active Universe: \(activeUniverse)"
         return status
     }
 
@@ -134,8 +135,6 @@ struct CreatureDetail: View {
         }
     }
 
-
-    
 
     func toggleStreaming() {
         Task {
@@ -169,7 +168,8 @@ struct CreatureDetail: View {
                 }
             } else {
                 await MainActor.run {
-                    errorMessage = "Unable to start streaming while in the \(appStateActivity.description) state"
+                    errorMessage =
+                        "Unable to start streaming while in the \(appStateActivity.description) state"
                     showErrorAlert = true
                 }
             }
@@ -181,4 +181,3 @@ struct CreatureDetail: View {
 #Preview {
     CreatureDetail(creature: .mock())
 }
-

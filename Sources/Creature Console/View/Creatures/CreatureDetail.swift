@@ -152,7 +152,7 @@ struct CreatureDetail: View {
 
     func generateStatusString() -> String {
         let status =
-            "ID: \(creature.id), Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)"
+            "ID: \(creature.id), Offset: \(creature.channelOffset), Mouth Slot: \(creature.mouthSlot), Active Universe: \(activeUniverse)"
         return status
     }
 

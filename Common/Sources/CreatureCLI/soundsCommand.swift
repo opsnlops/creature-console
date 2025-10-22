@@ -12,7 +12,7 @@ protocol SoundPlaying: Sendable {
 
 protocol LipSyncGenerating: Sendable {
     func generateLipSync(for fileName: String, allowOverwrite: Bool) async -> Result<
-        String, ServerError
+        JobCreatedResponse, ServerError
     >
 }
 
@@ -171,10 +171,13 @@ extension CreatureCLI {
                 let result = await server.generateLipSync(for: fileName, allowOverwrite: overwrite)
 
                 switch result {
-                case .success:
-                    print(
-                        "Lip sync generation requested successfully. The sound cache will refresh automatically."
-                    )
+                case .success(let job):
+                    print("Lip sync generation job queued.")
+                    print("Job ID: \(job.jobId)")
+                    if !job.message.isEmpty {
+                        print(job.message)
+                    }
+                    print("Monitor websocket job-progress/job-complete events to track status.")
                 case .failure(let error):
                     throw failWithMessage(
                         "Unable to generate lip sync: \(error.localizedDescription)")

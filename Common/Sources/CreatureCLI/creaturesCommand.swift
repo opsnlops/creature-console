@@ -31,16 +31,20 @@ extension CreatureCLI {
                 case .success(let creatures):
 
                     print("\nKnown Creatures:\n")
-                    printTable(creatures, columns: [
-                        TableColumn(title: "Name", valueProvider: { $0.name }),
-                        TableColumn(title: "ID", valueProvider: { $0.id }),
-                        TableColumn(
-                            title: "Offset", valueProvider: { String($0.channelOffset) }),
-                        TableColumn(
-                            title: "Audio", valueProvider: { String($0.audioChannel) }),
-                        TableColumn(
-                            title: "Inputs", valueProvider: { String($0.inputs.count) }),
-                    ])
+                    printTable(
+                        creatures,
+                        columns: [
+                            TableColumn(title: "Name", valueProvider: { $0.name }),
+                            TableColumn(title: "ID", valueProvider: { $0.id }),
+                            TableColumn(
+                                title: "Offset", valueProvider: { String($0.channelOffset) }),
+                            TableColumn(
+                                title: "Mouth Slot", valueProvider: { String($0.mouthSlot) }),
+                            TableColumn(
+                                title: "Audio", valueProvider: { String($0.audioChannel) }),
+                            TableColumn(
+                                title: "Inputs", valueProvider: { String($0.inputs.count) }),
+                        ])
 
                     print(
                         "\n\(creatures.count) creature(s) on server at \(server.serverHostname)\n")

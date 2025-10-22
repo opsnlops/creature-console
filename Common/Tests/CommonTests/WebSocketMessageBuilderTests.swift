@@ -78,6 +78,8 @@ struct WebSocketMessageBuilderTests {
             .playlistStatus,
             .emergencyStop,
             .watchdogWarning,
+            .jobProgress,
+            .jobComplete,
         ]
 
         for type in messageTypes {
@@ -229,7 +231,8 @@ struct WebSocketMessageBuilderTests {
         }
 
         let withOptional = OptionalPayload(required: "req", optional: "opt")
-        let jsonWith = try WebSocketMessageBuilder.createMessage(type: .notice, payload: withOptional)
+        let jsonWith = try WebSocketMessageBuilder.createMessage(
+            type: .notice, payload: withOptional)
         #expect(jsonWith.contains("\"optional\":\"opt\""))
 
         let withoutOptional = OptionalPayload(required: "req", optional: nil)

@@ -43,6 +43,10 @@ public struct WebSocketMessageDTO<T: Codable>: Codable {
             payload = try container.decode(StreamFrameData.self, forKey: .payload) as! T
         case .watchdogWarning:
             payload = try container.decode(WatchdogWarning.self, forKey: .payload) as! T
+        case .jobProgress:
+            payload = try container.decode(JobProgress.self, forKey: .payload) as! T
+        case .jobComplete:
+            payload = try container.decode(JobCompletion.self, forKey: .payload) as! T
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .payload, in: container, debugDescription: "Unknown command")

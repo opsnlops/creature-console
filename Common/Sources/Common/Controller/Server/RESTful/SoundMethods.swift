@@ -25,7 +25,7 @@ extension CreatureServerClient {
     public func generateLipSync(
         for fileName: String,
         allowOverwrite: Bool
-    ) async -> Result<String, ServerError> {
+    ) async -> Result<JobCreatedResponse, ServerError> {
 
         logger.debug(
             "attempting to generate lip sync for \(fileName) (allow overwrite: \(allowOverwrite ? "yes" : "no"))"
@@ -39,7 +39,12 @@ extension CreatureServerClient {
         let requestBody = GenerateLipSyncRequestDTO(
             soundFile: fileName, allowOverwrite: allowOverwrite)
 
-        return await sendDataExpectingString(url, body: requestBody)
+        return await sendData(
+            url,
+            method: "POST",
+            body: requestBody,
+            returnType: JobCreatedResponse.self
+        )
     }
 
     /**

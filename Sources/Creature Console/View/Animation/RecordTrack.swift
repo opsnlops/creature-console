@@ -140,7 +140,7 @@ struct RecordTrack: View {
         .navigationTitle("Record Track")
         #if os(macOS)
             .navigationSubtitle(
-                "Name: \(creature.name), Channel Offset: \(creature.channelOffset), Active Universe: \(activeUniverse)"
+                "Name: \(creature.name), Channel Offset: \(creature.channelOffset), Mouth Slot: \(creature.mouthSlot), Active Universe: \(activeUniverse)"
             )
         #endif
         .onDisappear {

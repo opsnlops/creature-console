@@ -16,6 +16,8 @@ final class CLIMessageProcessor: MessageProcessor {
         case statusLights = "status-lights"
         case systemCounters = "system-counters"
         case watchdogWarning = "watchdog-warning"
+        case jobProgress = "job-progress"
+        case jobComplete = "job-complete"
 
         static var helpText: String {
             Self.allCases.map { $0.rawValue }.sorted().joined(separator: ", ")
@@ -38,6 +40,8 @@ final class CLIMessageProcessor: MessageProcessor {
         .statusLights: "96",
         .systemCounters: "95",
         .watchdogWarning: "91",
+        .jobProgress: "93",
+        .jobComplete: "92",
     ]
 
     private static let logLevelColorMap: [ServerLogLevel: String] = [
@@ -142,7 +146,8 @@ final class CLIMessageProcessor: MessageProcessor {
                 print(json)
             }
         } catch {
-            let fallback = "{\"type\":\"error\",\"message\":\"failed to encode JSON output\",\"reason\":\"\(error)\"}"
+            let fallback =
+                "{\"type\":\"error\",\"message\":\"failed to encode JSON output\",\"reason\":\"\(error)\"}"
             print(fallback)
         }
     }
@@ -232,7 +237,9 @@ final class CLIMessageProcessor: MessageProcessor {
             emitJSON(type: .notice, payload: notice)
             return
         }
-        printLine(.notice, "[NOTICE] [\(TimeHelper.formatToLocalTime(notice.timestamp))] \(notice.message)")
+        printLine(
+            .notice,
+            "[NOTICE] [\(TimeHelper.formatToLocalTime(notice.timestamp))] \(notice.message)")
     }
 
     func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
@@ -254,10 +261,11 @@ final class CLIMessageProcessor: MessageProcessor {
             return
         }
         let formatState: (Bool) -> String = { $0 ? "on" : "off" }
-        let message = "[STATUS LIGHTS] running: \(formatState(statusLights.running)), " +
-            "streaming: \(formatState(statusLights.streaming)), " +
-            "DMX: \(formatState(statusLights.dmx)), " +
-            "animation_playing: \(formatState(statusLights.animation_playing))"
+        let message =
+            "[STATUS LIGHTS] running: \(formatState(statusLights.running)), "
+            + "streaming: \(formatState(statusLights.streaming)), "
+            + "DMX: \(formatState(statusLights.dmx)), "
+            + "animation_playing: \(formatState(statusLights.animation_playing))"
         printLine(.statusLights, message)
     }
 
@@ -283,6 +291,66 @@ final class CLIMessageProcessor: MessageProcessor {
             .watchdogWarning,
             "[WATCHDOG WARNING] [\(TimeHelper.formatToLocalTime(watchdogWarning.timestamp))] \(watchdogWarning.warningType): \(watchdogWarning.currentValue)/\(watchdogWarning.threshold)"
         )
+    }
+
+    func processJobProgress(_ jobProgress: JobProgress) {
+        guard shouldPrint(.jobProgress) else { return }
+        if outputFormat == .json {
+            emitJSON(type: .jobProgress, payload: jobProgress)
+            return
+        }
+
+        var parts: [String] = [
+            "[JOB PROGRESS]",
+            "id: \(jobProgress.jobId)",
+            "type: \(jobProgress.jobType.rawValue)",
+            "status: \(jobProgress.status.rawValue)",
+        ]
+
+        if let value = jobProgress.progress {
+            let percentage = value * 100.0
+            parts.append(String(format: "progress: %.1f%%", percentage))
+        }
+
+        if let lipDetails: LipSyncJobDetails = jobProgress.decodeDetails(as: LipSyncJobDetails.self)
+        {
+            parts.append("sound: \(lipDetails.soundFile)")
+            if lipDetails.allowOverwrite {
+                parts.append("(overwrite)")
+            }
+        }
+
+        printLine(.jobProgress, parts.joined(separator: " "))
+    }
+
+    func processJobComplete(_ jobComplete: JobCompletion) {
+        guard shouldPrint(.jobComplete) else { return }
+        if outputFormat == .json {
+            emitJSON(type: .jobComplete, payload: jobComplete)
+            return
+        }
+
+        var parts: [String] = [
+            "[JOB COMPLETE]",
+            "id: \(jobComplete.jobId)",
+            "type: \(jobComplete.jobType.rawValue)",
+            "status: \(jobComplete.status.rawValue)",
+        ]
+
+        if let lipDetails: LipSyncJobDetails = jobComplete.decodeDetails(as: LipSyncJobDetails.self)
+        {
+            parts.append("sound: \(lipDetails.soundFile)")
+        }
+
+        if jobComplete.status == .completed {
+            if let payloadSize = jobComplete.result?.count {
+                parts.append("payload: \(payloadSize) bytes")
+            }
+        } else if let statusMessage = jobComplete.result, !statusMessage.isEmpty {
+            parts.append("result: \(statusMessage)")
+        }
+
+        printLine(.jobComplete, parts.joined(separator: " "))
     }
 }
 

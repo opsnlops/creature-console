@@ -17,6 +17,10 @@
 		111D522A2C014158002CC23B /* AppStateInspectorScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111D52292C014158002CC23B /* AppStateInspectorScene.swift */; };
 		11218E802B67522500AFFF65 /* Joystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11218E7F2B67522500AFFF65 /* Joystick.swift */; };
 		1122A7B72A24440100D60464 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122A7B62A24440100D60464 /* AppState.swift */; };
+		112AABF32EA894B1000F4BC2 /* JobStatusMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112AABF22EA894B1000F4BC2 /* JobStatusMessageProcessor.swift */; };
+		112AABF42EA894B1000F4BC2 /* JobStatusMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112AABF22EA894B1000F4BC2 /* JobStatusMessageProcessor.swift */; };
+		112AABF72EA894D9000F4BC2 /* JobStatusStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112AABF52EA894D9000F4BC2 /* JobStatusStore.swift */; };
+		112AABF82EA894D9000F4BC2 /* JobStatusStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112AABF52EA894D9000F4BC2 /* JobStatusStore.swift */; };
 		1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* CategoryList.swift */; };
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
 		113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
@@ -219,6 +223,8 @@
 		111D52292C014158002CC23B /* AppStateInspectorScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateInspectorScene.swift; sourceTree = "<group>"; };
 		11218E7F2B67522500AFFF65 /* Joystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Joystick.swift; sourceTree = "<group>"; };
 		1122A7B62A24440100D60464 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		112AABF22EA894B1000F4BC2 /* JobStatusMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobStatusMessageProcessor.swift; sourceTree = "<group>"; };
+		112AABF52EA894D9000F4BC2 /* JobStatusStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobStatusStore.swift; sourceTree = "<group>"; };
 		1131763129FF0B66008B35E8 /* CategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryList.swift; sourceTree = "<group>"; };
 		113896B42A0768860055BA70 /* AnimationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditor.swift; sourceTree = "<group>"; };
 		113896B82A0CA3B40055BA70 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
@@ -529,6 +535,14 @@
 			path = "Voice Processing";
 			sourceTree = "<group>";
 		};
+		112AABF62EA894D9000F4BC2 /* Jobs */ = {
+			isa = PBXGroup;
+			children = (
+				112AABF52EA894D9000F4BC2 /* JobStatusStore.swift */,
+			);
+			path = Jobs;
+			sourceTree = "<group>";
+		};
 		113CC9B62BE6EE5F00DF7FF7 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
@@ -540,6 +554,7 @@
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				112AABF62EA894D9000F4BC2 /* Jobs */,
 				114B7E612E90D14C00F5D1EC /* SwiftDataStoreTests.swift */,
 				114B7E312E90B8B000F5D1EC /* Playlist */,
 				114B7E292E90B88300F5D1EC /* Animation */,
@@ -746,6 +761,7 @@
 		1199D6B32BF5BA82004E0D64 /* Server */ = {
 			isa = PBXGroup;
 			children = (
+				112AABF22EA894B1000F4BC2 /* JobStatusMessageProcessor.swift */,
 				110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */,
 				11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */,
 				1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */,
@@ -1306,6 +1322,7 @@
 				1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */,
 				1122A7B72A24440100D60464 /* AppState.swift in Sources */,
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
+				112AABF72EA894D9000F4BC2 /* JobStatusStore.swift in Sources */,
 				11F0E4A02E9089AD0085918D /* SoundFileListView.swift in Sources */,
 				114B7E352E90B8B000F5D1EC /* PlaylistItemModel.swift in Sources */,
 				114B7E362E90B8B000F5D1EC /* PlaylistModel.swift in Sources */,
@@ -1356,6 +1373,7 @@
 				114B7E3A2E90BE3100F5D1EC /* ServerLogImporter.swift in Sources */,
 				119D07482E90F67700C6AFEE /* WebSocketConnectionState+UI.swift in Sources */,
 				114B7E3B2E90BE3100F5D1EC /* ServerLogModel.swift in Sources */,
+				112AABF32EA894B1000F4BC2 /* JobStatusMessageProcessor.swift in Sources */,
 				114B7E1E2E90B83900F5D1EC /* SwiftDataStore.swift in Sources */,
 				1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */,
 				11C5B8492C0D57F40037E70A /* CreateNewCreatureSoundView.swift in Sources */,
@@ -1424,8 +1442,10 @@
 				117C87722CA0D586007B5682 /* SettingsView.swift in Sources */,
 				117C87732CA0D586007B5682 /* JoystickSettingsView.swift in Sources */,
 				117C87742CA0D586007B5682 /* InterfaceSettings.swift in Sources */,
+				112AABF82EA894D9000F4BC2 /* JobStatusStore.swift in Sources */,
 				117C87312CA0CE9F007B5682 /* SystemCountersItemProcessor.swift in Sources */,
 				117C87322CA0CE9F007B5682 /* CacheInvalidationProcessor.swift in Sources */,
+				112AABF42EA894B1000F4BC2 /* JobStatusMessageProcessor.swift in Sources */,
 				117C87402CA0CEC3007B5682 /* JoystickManager.swift in Sources */,
 				117C87452CA0CEF9007B5682 /* Joystick.swift in Sources */,
 				117C87762CA0D727007B5682 /* ByteChartView.swift in Sources */,
@@ -1659,7 +1679,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.11.0;
+				MARKETING_VERSION = 2.12.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1713,7 +1733,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.11.0;
+				MARKETING_VERSION = 2.12.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1797,7 +1817,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.11.0;
+				MARKETING_VERSION = 2.12.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -1829,7 +1849,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.11.0;
+				MARKETING_VERSION = 2.12.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

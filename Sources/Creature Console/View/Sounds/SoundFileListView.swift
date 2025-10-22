@@ -24,9 +24,12 @@ struct SoundFileListView: View {
     @State private var playSoundTask: Task<Void, Never>? = nil
     @State private var preparingFile: String? = nil
     @State private var generatingLipSyncFor: SoundIdentifier? = nil
+    @State private var activeLipSyncJob: (soundId: SoundIdentifier, jobId: String)?
     @State private var lipSyncTask: Task<Void, Never>? = nil
     @State private var pendingRegenerateSound: SoundIdentifier? = nil
     @State private var showRegenerateConfirmation = false
+    @State private var observedJobInfo: JobStatusStore.JobInfo?
+    @State private var jobEventsTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -131,13 +134,56 @@ struct SoundFileListView: View {
                 .navigationSubtitle("Number of Sounds: \(sounds.count)")
             #endif
             .overlay {
-                if let name = generatingLipSyncFor {
-                    overlayProgress(message: "Generating lip sync for \(name)…")
+                if let job = activeLipSyncJob {
+                    overlayProgress(
+                        message: overlayMessage(for: observedJobInfo, soundId: job.soundId),
+                        progress: observedJobInfo?.progressPercentage
+                    )
+                } else if let name = generatingLipSyncFor {
+                    overlayProgress(
+                        message: "Submitting lip sync job for \(name)…",
+                        progress: nil
+                    )
                 } else if let name = preparingFile {
-                    overlayProgress(message: "Preparing \(name)…")
+                    overlayProgress(message: "Preparing \(name)…", progress: nil)
                 }
             }
             .animation(.default, value: generatingLipSyncFor != nil || preparingFile != nil)
+            .task(id: activeLipSyncJob?.jobId) {
+                jobEventsTask?.cancel()
+                observedJobInfo = nil
+
+                guard let job = activeLipSyncJob else { return }
+                jobEventsTask = Task {
+                    let stream = await JobStatusStore.shared.events()
+                    for await event in stream {
+                        switch event {
+                        case .updated(let info) where info.jobId == job.jobId:
+                            await MainActor.run {
+                                observedJobInfo = info
+                                if info.isTerminal {
+                                    handleJobCompletion(info: info, soundId: job.soundId)
+                                }
+                            }
+                            if info.isTerminal {
+                                await JobStatusStore.shared.remove(jobId: job.jobId)
+                                return
+                            }
+                        case .removed(let removedId) where removedId == job.jobId:
+                            await MainActor.run {
+                                finalizeActiveJob()
+                            }
+                            return
+                        default:
+                            continue
+                        }
+                    }
+                }
+            }
+            .onDisappear {
+                jobEventsTask?.cancel()
+                jobEventsTask = nil
+            }
             .confirmationDialog(
                 "Regenerate Lip Sync?",
                 isPresented: $showRegenerateConfirmation,
@@ -189,18 +235,87 @@ struct SoundFileListView: View {
     }
 
     @ViewBuilder
-    private func overlayProgress(message: String) -> some View {
+    private func overlayProgress(message: String, progress: Double?) -> some View {
         ZStack {
             Color.black.opacity(0.15).ignoresSafeArea()
             VStack(spacing: 10) {
-                ProgressView()
+                if let progress {
+                    ProgressView(value: progress, total: 100)
+                } else {
+                    ProgressView()
+                }
                 Text(message)
                     .font(.callout)
+                if let progress {
+                    Text(String(format: "%.0f%%", progress))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             .padding(16)
             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
         }
         .transition(.opacity)
+    }
+
+    private func overlayMessage(
+        for info: JobStatusStore.JobInfo?,
+        soundId: SoundIdentifier
+    ) -> String {
+        guard let info else {
+            return "Submitting lip sync job for \(soundId)…"
+        }
+
+        let displayName = info.lipSyncDetails?.soundFile ?? soundId
+        let isRegeneration = info.lipSyncDetails?.allowOverwrite == true
+
+        switch info.status {
+        case .queued:
+            return isRegeneration
+                ? "Lip sync regeneration queued for \(displayName)…"
+                : "Lip sync job queued for \(displayName)…"
+        case .running:
+            return isRegeneration
+                ? "Regenerating lip sync for \(displayName)…"
+                : "Generating lip sync for \(displayName)…"
+        case .completed:
+            return "Lip sync completed for \(displayName)"
+        case .failed:
+            return "Lip sync failed for \(displayName)"
+        case .unknown:
+            return "Processing lip sync job for \(displayName)…"
+        }
+    }
+
+    @MainActor
+    private func handleJobCompletion(info: JobStatusStore.JobInfo, soundId: SoundIdentifier) {
+        switch info.status {
+        case .completed:
+            let name = info.lipSyncDetails?.soundFile ?? soundId
+            alertTitle = "Lip Sync Ready"
+            alertMessage = "Lip sync data for \(name) is available."
+            showAlert = true
+        case .failed:
+            let message =
+                info.result?.isEmpty == false
+                ? info.result!
+                : "The server was unable to generate lip sync for \(soundId)."
+            alertTitle = "Lip Sync Failed"
+            alertMessage = message
+            showAlert = true
+        default:
+            break
+        }
+
+        finalizeActiveJob()
+    }
+
+    @MainActor
+    private func finalizeActiveJob() {
+        generatingLipSyncFor = nil
+        activeLipSyncJob = nil
+        observedJobInfo = nil
+        jobEventsTask = nil
     }
 
     private func startLipSyncGeneration(
@@ -226,32 +341,44 @@ struct SoundFileListView: View {
         if Task.isCancelled {
             await MainActor.run {
                 generatingLipSyncFor = nil
+                activeLipSyncJob = nil
                 lipSyncTask = nil
             }
             return
         }
 
         switch result {
-        case .success:
-            let refreshSucceeded = await importFromServerIfNeeded(force: true)
+        case .success(let job):
+            logger.info("Lip sync job queued: \(job.jobId) for \(soundId)")
+            if let data = try? JSONEncoder().encode(
+                LipSyncJobDetails(soundFile: soundId, allowOverwrite: allowOverwrite)
+            ), let detailsString = String(data: data, encoding: .utf8) {
+                let seeded = JobProgress(
+                    jobId: job.jobId,
+                    jobType: job.jobType,
+                    status: .queued,
+                    progress: 0.0,
+                    details: detailsString
+                )
+                await JobStatusStore.shared.update(with: seeded)
+            }
 
             await MainActor.run {
-                if refreshSucceeded {
-                    alertTitle = "Lip Sync Ready"
-                    alertMessage = "Lip sync data for \(soundId) is available."
-                    showAlert = true
-                }
+                activeLipSyncJob = (soundId, job.jobId)
+                generatingLipSyncFor = soundId
+                observedJobInfo = nil
             }
         case .failure(let error):
             await MainActor.run {
                 alertTitle = "Error"
                 alertMessage = ServerError.detailedMessage(from: error)
                 showAlert = true
+                generatingLipSyncFor = nil
+                activeLipSyncJob = nil
             }
         }
 
         await MainActor.run {
-            generatingLipSyncFor = nil
             lipSyncTask = nil
         }
     }

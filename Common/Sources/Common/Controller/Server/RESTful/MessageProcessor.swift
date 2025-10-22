@@ -12,4 +12,6 @@ public protocol MessageProcessor: Sendable {
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO)
     func processSystemCounters(_ counters: SystemCountersDTO)
     func processWatchdogWarning(_ watchdogWarning: WatchdogWarning)
+    func processJobProgress(_ jobProgress: JobProgress)
+    func processJobComplete(_ jobComplete: JobCompletion)
 }

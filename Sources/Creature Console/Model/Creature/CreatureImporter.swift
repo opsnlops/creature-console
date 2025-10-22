@@ -23,6 +23,7 @@ actor CreatureImporter {
                     // Update existing
                     existing.name = dto.name
                     existing.channelOffset = dto.channelOffset
+                    existing.mouthSlot = dto.mouthSlot
                     existing.realData = dto.realData
                     existing.audioChannel = dto.audioChannel
 

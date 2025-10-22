@@ -12,6 +12,7 @@ final class CreatureModel {
     @Attribute(.unique) var id: String = ""
     var name: String = ""
     var channelOffset: Int = 0
+    var mouthSlot: Int = 0
     var realData: Bool = false
     var audioChannel: Int = 0
 
@@ -19,12 +20,14 @@ final class CreatureModel {
     var inputs: [InputModel] = []
 
     init(
-        id: String, name: String, channelOffset: Int, realData: Bool, audioChannel: Int,
+        id: String, name: String, channelOffset: Int, mouthSlot: Int, realData: Bool,
+        audioChannel: Int,
         inputs: [InputModel]
     ) {
         self.id = id
         self.name = name
         self.channelOffset = channelOffset
+        self.mouthSlot = mouthSlot
         self.realData = realData
         self.audioChannel = audioChannel
         self.inputs = inputs
@@ -39,6 +42,7 @@ extension CreatureModel {
             id: dto.id,
             name: dto.name,
             channelOffset: dto.channelOffset,
+            mouthSlot: dto.mouthSlot,
             realData: dto.realData,
             audioChannel: dto.audioChannel,
             inputs: inputModels
@@ -52,6 +56,7 @@ extension CreatureModel {
             id: id,
             name: name,
             channelOffset: channelOffset,
+            mouthSlot: mouthSlot,
             audioChannel: audioChannel,
             inputs: inputDTOs,
             realData: realData

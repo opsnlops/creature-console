@@ -33,6 +33,14 @@ struct CreatureConfiguration: View {
                 Spacer()
             }
 
+            HStack {
+                Text("Mouth Slot:")
+                    .fontWeight(.medium)
+                Text(String(creature.mouthSlot))
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+
             if !creature.inputs.isEmpty {
                 HStack {
                     Text("Input Channels:")

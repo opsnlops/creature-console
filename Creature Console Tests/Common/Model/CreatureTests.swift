@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import Common
 @testable import Creature_Console
 
@@ -18,14 +19,22 @@ final class CreatureTests: XCTestCase {
         let name = "Test Creature"
         let channelOffset = 49
         let audioChannel = 24
+        let mouthSlot = 2
 
         // Act
-        let creature = Creature(id: identifier, name: name, channelOffset: channelOffset, audioChannel: audioChannel)
+        let creature = Creature(
+            id: identifier,
+            name: name,
+            channelOffset: channelOffset,
+            mouthSlot: mouthSlot,
+            audioChannel: audioChannel
+        )
 
         // Assert
         XCTAssertEqual(creature.id, identifier)
         XCTAssertEqual(creature.name, name)
         XCTAssertEqual(creature.channelOffset, channelOffset)
+        XCTAssertEqual(creature.mouthSlot, mouthSlot)
         XCTAssertEqual(creature.audioChannel, audioChannel)
-        }
+    }
 }

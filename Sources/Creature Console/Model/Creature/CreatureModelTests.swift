@@ -51,6 +51,7 @@ struct CreatureModelTests {
         let id = "creature_123"
         let name = "Test Creature"
         let channelOffset = 10
+        let mouthSlot = 4
         let realData = true
         let audioChannel = 1
         let inputs = [
@@ -62,6 +63,7 @@ struct CreatureModelTests {
             id: id,
             name: name,
             channelOffset: channelOffset,
+            mouthSlot: mouthSlot,
             realData: realData,
             audioChannel: audioChannel,
             inputs: inputs
@@ -70,6 +72,7 @@ struct CreatureModelTests {
         #expect(creature.id == id)
         #expect(creature.name == name)
         #expect(creature.channelOffset == channelOffset)
+        #expect(creature.mouthSlot == mouthSlot)
         #expect(creature.realData == realData)
         #expect(creature.audioChannel == audioChannel)
         #expect(creature.inputs.count == 2)
@@ -83,6 +86,7 @@ struct CreatureModelTests {
             id: "creature_456",
             name: "DTO Creature",
             channelOffset: 20,
+            mouthSlot: 5,
             audioChannel: 2,
             inputs: [
                 Common.Input(name: "Input A", slot: 1, width: 8, joystickAxis: 0),
@@ -96,6 +100,7 @@ struct CreatureModelTests {
         #expect(creature.id == dto.id)
         #expect(creature.name == dto.name)
         #expect(creature.channelOffset == dto.channelOffset)
+        #expect(creature.mouthSlot == dto.mouthSlot)
         #expect(creature.realData == dto.realData)
         #expect(creature.audioChannel == dto.audioChannel)
         #expect(creature.inputs.count == 2)
@@ -115,6 +120,7 @@ struct CreatureModelTests {
             id: "creature_789",
             name: "Model Creature",
             channelOffset: 30,
+            mouthSlot: 6,
             realData: true,
             audioChannel: 3,
             inputs: inputs
@@ -125,6 +131,7 @@ struct CreatureModelTests {
         #expect(dto.id == creature.id)
         #expect(dto.name == creature.name)
         #expect(dto.channelOffset == creature.channelOffset)
+        #expect(dto.mouthSlot == creature.mouthSlot)
         #expect(dto.realData == creature.realData)
         #expect(dto.audioChannel == creature.audioChannel)
         #expect(dto.inputs.count == 2)
@@ -140,6 +147,7 @@ struct CreatureModelTests {
             id: "creature_round",
             name: "Round Trip Creature",
             channelOffset: 40,
+            mouthSlot: 2,
             audioChannel: 4,
             inputs: [
                 Common.Input(name: "Input 1", slot: 1, width: 8, joystickAxis: 0),
@@ -155,6 +163,7 @@ struct CreatureModelTests {
         #expect(convertedDTO.id == originalDTO.id)
         #expect(convertedDTO.name == originalDTO.name)
         #expect(convertedDTO.channelOffset == originalDTO.channelOffset)
+        #expect(convertedDTO.mouthSlot == originalDTO.mouthSlot)
         #expect(convertedDTO.realData == originalDTO.realData)
         #expect(convertedDTO.audioChannel == originalDTO.audioChannel)
         #expect(convertedDTO.inputs.count == originalDTO.inputs.count)
@@ -181,6 +190,7 @@ struct CreatureModelTests {
             id: "creature_cascade",
             name: "Cascade Test",
             channelOffset: 0,
+            mouthSlot: 1,
             realData: false,
             audioChannel: 0,
             inputs: inputs
@@ -220,6 +230,7 @@ struct CreatureModelTests {
             id: "creature_unique",
             name: "First",
             channelOffset: 0,
+            mouthSlot: 1,
             realData: false,
             audioChannel: 0,
             inputs: []
@@ -228,6 +239,7 @@ struct CreatureModelTests {
             id: "creature_unique",
             name: "Second",
             channelOffset: 10,
+            mouthSlot: 3,
             realData: true,
             audioChannel: 1,
             inputs: []
@@ -261,6 +273,7 @@ struct CreatureModelTests {
             id: "creature_rel",
             name: "Relationship Test",
             channelOffset: 0,
+            mouthSlot: 2,
             realData: false,
             audioChannel: 0,
             inputs: inputs

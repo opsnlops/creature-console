@@ -23,12 +23,14 @@ struct SoundsCommandTests {
 
         var listResult: Result<[Sound], ServerError>
         var playResult: Result<String, ServerError>
-        var generateResult: Result<String, ServerError>
+        var generateResult: Result<JobCreatedResponse, ServerError>
 
         init(
             listResult: Result<[Sound], ServerError> = .success([]),
             playResult: Result<String, ServerError> = .success("Played"),
-            generateResult: Result<String, ServerError> = .success("Generated")
+            generateResult: Result<JobCreatedResponse, ServerError> = .success(
+                JobCreatedResponse(jobId: "job-123", jobType: .lipSync, message: "queued")
+            )
         ) {
             self.listResult = listResult
             self.playResult = playResult
@@ -46,7 +48,7 @@ struct SoundsCommandTests {
         }
 
         func generateLipSync(for fileName: String, allowOverwrite: Bool) async -> Result<
-            String, ServerError
+            JobCreatedResponse, ServerError
         > {
             generateCalls.append(GenerateCall(fileName: fileName, overwrite: allowOverwrite))
             return generateResult
@@ -111,7 +113,11 @@ struct SoundsCommandTests {
 
     @Test("invokes server with overwrite flag")
     func invokesServerWithOverwriteFlag() async throws {
-        let stub = StubSoundServer(generateResult: .success("ok"))
+        let stub = StubSoundServer(
+            generateResult: .success(
+                JobCreatedResponse(jobId: "job-1", jobType: .lipSync, message: "queued")
+            )
+        )
         await CreatureCLI.Sounds.useServerFactory { _ in stub }
 
         let command = makeGenerateCommand(fileName: "voice.wav", overwrite: true)

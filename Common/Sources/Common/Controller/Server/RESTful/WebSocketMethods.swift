@@ -776,6 +776,16 @@ actor WebSocketClient {
                 let messageDTO = try decoder.decode(
                     WebSocketMessageDTO<WatchdogWarning>.self, from: data)
                 messageProcessor?.processWatchdogWarning(messageDTO.payload)
+            case .jobProgress:
+                logger.debug("job-progress")
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<JobProgress>.self, from: data)
+                messageProcessor?.processJobProgress(messageDTO.payload)
+            case .jobComplete:
+                logger.debug("job-complete")
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<JobCompletion>.self, from: data)
+                messageProcessor?.processJobComplete(messageDTO.payload)
             default:
                 logger.warning("Unknown message type: \(commandDTO.command), data: \(data)")
             }

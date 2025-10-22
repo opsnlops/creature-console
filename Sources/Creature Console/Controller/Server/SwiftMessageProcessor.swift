@@ -16,7 +16,9 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     }
 
     func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
-        logger.info("SwiftMessageProcessor: Processing board sensor report for creature \(boardSensorReport.creatureId)")
+        logger.info(
+            "SwiftMessageProcessor: Processing board sensor report for creature \(boardSensorReport.creatureId)"
+        )
         BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
     }
 
@@ -56,5 +58,13 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
         logger.info(
             "Watchdog warning received: \(watchdogWarning.warningType) - \(watchdogWarning.currentValue)/\(watchdogWarning.threshold)"
         )
+    }
+
+    func processJobProgress(_ jobProgress: JobProgress) {
+        JobStatusMessageProcessor.processJobProgress(jobProgress)
+    }
+
+    func processJobComplete(_ jobComplete: JobCompletion) {
+        JobStatusMessageProcessor.processJobCompletion(jobComplete)
     }
 }
