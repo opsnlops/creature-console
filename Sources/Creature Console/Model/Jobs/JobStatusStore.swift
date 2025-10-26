@@ -13,6 +13,7 @@ actor JobStatusStore {
         var result: String?
         var rawDetails: String?
         var lipSyncDetails: LipSyncJobDetails?
+        var adHocResult: AdHocSpeechJobResult?
         var lastUpdated: Date
 
         var id: String { jobId }
@@ -61,6 +62,7 @@ actor JobStatusStore {
                 result: nil,
                 rawDetails: progress.details,
                 lipSyncDetails: progress.decodeDetails(as: LipSyncJobDetails.self),
+                adHocResult: nil,
                 lastUpdated: Date()
             )
 
@@ -90,6 +92,7 @@ actor JobStatusStore {
                 result: completion.result,
                 rawDetails: completion.details,
                 lipSyncDetails: completion.decodeDetails(as: LipSyncJobDetails.self),
+                adHocResult: completion.decodeResult(as: AdHocSpeechJobResult.self),
                 lastUpdated: Date()
             )
 
@@ -99,6 +102,9 @@ actor JobStatusStore {
         info.rawDetails = completion.details ?? info.rawDetails
         if info.lipSyncDetails == nil {
             info.lipSyncDetails = completion.decodeDetails(as: LipSyncJobDetails.self)
+        }
+        if let adHocResult = completion.decodeResult(as: AdHocSpeechJobResult.self) {
+            info.adHocResult = adHocResult
         }
         info.lastUpdated = Date()
 

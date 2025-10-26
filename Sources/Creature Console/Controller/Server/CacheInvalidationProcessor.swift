@@ -26,6 +26,10 @@ struct CacheInvalidationProcessor {
             rebuildPlaylistCache()
         case .soundList:
             rebuildSoundListCache()
+        case .adHocAnimationList:
+            logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
+        case .adHocSoundList:
+            logger.info("ad-hoc sound cache invalidation received - refresh handler pending")
         default:
             return
 

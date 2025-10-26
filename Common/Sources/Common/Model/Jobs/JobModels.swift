@@ -3,6 +3,8 @@ import Foundation
 /// Represents the type of background job reported by the server.
 public enum JobType: String, Codable, Sendable {
     case lipSync = "lip-sync"
+    case adHocSpeech = "ad-hoc-speech"
+    case adHocSpeechPrepare = "ad-hoc-speech-prepare"
     case unknown
 
     public init(from decoder: Decoder) throws {
@@ -13,12 +15,7 @@ public enum JobType: String, Codable, Sendable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        switch self {
-        case .unknown:
-            try container.encode("unknown")
-        default:
-            try container.encode(rawValue)
-        }
+        try container.encode(rawValue)
     }
 }
 
@@ -162,5 +159,50 @@ public struct JobCompletion: Codable, Equatable, Sendable {
     public func decodeDetails<T: Decodable>(as type: T.Type) -> T? {
         guard let details, let data = details.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// Parses the `result` JSON into strongly typed metadata.
+    public func decodeResult<T: Decodable>(as type: T.Type) -> T? {
+        guard let result, let data = result.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+}
+
+/// Result payload returned when an ad-hoc speech job completes.
+public struct AdHocSpeechJobResult: Codable, Equatable, Sendable {
+    public let animationId: String
+    public let soundFile: String
+    public let resumePlaylist: Bool
+    public let tempDirectory: String?
+    public let autoPlay: Bool
+    public let playbackTriggered: Bool
+    public let universe: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case animationId = "animation_id"
+        case soundFile = "sound_file"
+        case resumePlaylist = "resume_playlist"
+        case tempDirectory = "temp_directory"
+        case autoPlay = "auto_play"
+        case playbackTriggered = "playback_triggered"
+        case universe
+    }
+
+    public init(
+        animationId: String,
+        soundFile: String,
+        resumePlaylist: Bool,
+        tempDirectory: String?,
+        autoPlay: Bool,
+        playbackTriggered: Bool,
+        universe: Int?
+    ) {
+        self.animationId = animationId
+        self.soundFile = soundFile
+        self.resumePlaylist = resumePlaylist
+        self.tempDirectory = tempDirectory
+        self.autoPlay = autoPlay
+        self.playbackTriggered = playbackTriggered
+        self.universe = universe
     }
 }

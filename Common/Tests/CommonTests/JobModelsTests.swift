@@ -18,6 +18,14 @@ struct JobModelsTests {
         let known = try decoder.decode(Wrapper.self, from: knownData)
         #expect(known.type == .lipSync)
 
+        let adHocData = #"{"type":"ad-hoc-speech"}"#.data(using: .utf8)!
+        let adHoc = try decoder.decode(Wrapper.self, from: adHocData)
+        #expect(adHoc.type == .adHocSpeech)
+
+        let stagedData = #"{"type":"ad-hoc-speech-prepare"}"#.data(using: .utf8)!
+        let staged = try decoder.decode(Wrapper.self, from: stagedData)
+        #expect(staged.type == .adHocSpeechPrepare)
+
         let unknownData = #"{"type":"image-render"}"#.data(using: .utf8)!
         let unknown = try decoder.decode(Wrapper.self, from: unknownData)
         #expect(unknown.type == .unknown)
@@ -107,5 +115,23 @@ struct JobModelsTests {
         let details: LipSyncJobDetails? = completion.decodeDetails(as: LipSyncJobDetails.self)
         #expect(details?.soundFile == "voice.wav")
         #expect(details?.allowOverwrite == true)
+    }
+
+    @Test("decodes ad-hoc speech job result payload")
+    func decodesAdHocJobResult() throws {
+        let json = """
+            {
+                "job_id": "prep-1",
+                "job_type": "ad-hoc-speech-prepare",
+                "status": "completed",
+                "result": "{\\"animation_id\\":\\"A1\\",\\"sound_file\\":\\"/tmp/foo.wav\\",\\"resume_playlist\\":true,\\"temp_directory\\":\\"/tmp/dir\\",\\"auto_play\\":false,\\"playback_triggered\\":false}"
+            }
+            """
+        let data = Data(json.utf8)
+        let completion = try JSONDecoder().decode(JobCompletion.self, from: data)
+
+        #expect(completion.jobType == .adHocSpeechPrepare)
+        #expect(completion.decodeResult(as: AdHocSpeechJobResult.self)?.animationId == "A1")
+        #expect(completion.decodeResult(as: AdHocSpeechJobResult.self)?.playbackTriggered == false)
     }
 }

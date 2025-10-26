@@ -14,6 +14,10 @@ extension CreatureServerClient {
             cacheTypeString = "playlist"
         case .soundList:
             cacheTypeString = "sound-list"
+        case .adHocAnimationList:
+            cacheTypeString = "ad-hoc-animation-list"
+        case .adHocSoundList:
+            cacheTypeString = "ad-hoc-sound-list"
         case .unknown:
             cacheTypeString = "unknown"
         }

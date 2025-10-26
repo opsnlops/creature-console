@@ -105,5 +105,46 @@ extension CreatureServerClient {
         return await fetchData(url, returnType: Animation.self)
     }
 
+    private func sendAdHocAnimationRequest(
+        path: String, body: CreateAdHocAnimationRequestDTO
+    ) async -> Result<JobCreatedResponse, ServerError> {
 
+        guard let url = URL(string: makeBaseURL(.http) + path) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await sendData(url, method: "POST", body: body, returnType: JobCreatedResponse.self)
+    }
+
+    public func createAdHocSpeechAnimation(
+        creatureId: CreatureIdentifier, text: String, resumePlaylist: Bool = true
+    ) async -> Result<JobCreatedResponse, ServerError> {
+        let request = CreateAdHocAnimationRequestDTO(
+            creatureId: creatureId, text: text, resumePlaylist: resumePlaylist)
+        return await sendAdHocAnimationRequest(path: "/animation/ad-hoc", body: request)
+    }
+
+    public func prepareAdHocSpeechAnimation(
+        creatureId: CreatureIdentifier, text: String, resumePlaylist: Bool = true
+    ) async -> Result<JobCreatedResponse, ServerError> {
+        let request = CreateAdHocAnimationRequestDTO(
+            creatureId: creatureId, text: text, resumePlaylist: resumePlaylist)
+        return await sendAdHocAnimationRequest(path: "/animation/ad-hoc/prepare", body: request)
+    }
+
+    public func triggerPreparedAdHocSpeech(
+        animationId: AnimationIdentifier, resumePlaylist: Bool = true
+    ) async -> Result<String, ServerError> {
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc/play") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        let requestBody = TriggerAdHocAnimationRequestDTO(
+            animationId: animationId, resumePlaylist: resumePlaylist)
+
+        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self)
+            .map { $0.message }
+    }
 }

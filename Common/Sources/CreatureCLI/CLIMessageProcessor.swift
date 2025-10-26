@@ -350,6 +350,19 @@ final class CLIMessageProcessor: MessageProcessor {
             parts.append("result: \(statusMessage)")
         }
 
+        if
+            (jobComplete.jobType == .adHocSpeech || jobComplete.jobType == .adHocSpeechPrepare),
+            let adHocResult: AdHocSpeechJobResult = jobComplete.decodeResult(as: AdHocSpeechJobResult.self)
+        {
+            parts.append("animation: \(adHocResult.animationId)")
+            if let universe = adHocResult.universe {
+                parts.append("universe: \(universe)")
+            }
+            if !adHocResult.playbackTriggered {
+                parts.append("(awaiting playback)")
+            }
+        }
+
         printLine(.jobComplete, parts.joined(separator: " "))
     }
 }
