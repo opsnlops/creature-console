@@ -24,6 +24,14 @@
 		1131763229FF0B66008B35E8 /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131763129FF0B66008B35E8 /* CategoryList.swift */; };
 		113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B42A0768860055BA70 /* AnimationEditor.swift */; };
 		113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113896B82A0CA3B40055BA70 /* StorageManager.swift */; };
+		113D00512EAF0C9B00155515 /* LiveMagicPromptSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004D2EAF0C9B00155515 /* LiveMagicPromptSheet.swift */; };
+		113D00522EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004F2EAF0C9B00155515 /* LiveMagicViewModel.swift */; };
+		113D00532EAF0C9B00155515 /* LiveMagicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004E2EAF0C9B00155515 /* LiveMagicView.swift */; };
+		113D00542EAF0C9B00155515 /* LiveMagicPromptSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004D2EAF0C9B00155515 /* LiveMagicPromptSheet.swift */; };
+		113D00552EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004F2EAF0C9B00155515 /* LiveMagicViewModel.swift */; };
+		113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004E2EAF0C9B00155515 /* LiveMagicView.swift */; };
+		113D00A12EB12D3E00155515 /* AdHocAssetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */; };
+		113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */; };
 		114147922C0145270046601D /* TrackListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147912C0145270046601D /* TrackListingView.swift */; };
 		114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147932C017E640046601D /* ChooseCreatureSheet.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
@@ -228,6 +236,10 @@
 		1131763129FF0B66008B35E8 /* CategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryList.swift; sourceTree = "<group>"; };
 		113896B42A0768860055BA70 /* AnimationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditor.swift; sourceTree = "<group>"; };
 		113896B82A0CA3B40055BA70 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
+		113D004D2EAF0C9B00155515 /* LiveMagicPromptSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMagicPromptSheet.swift; sourceTree = "<group>"; };
+		113D004E2EAF0C9B00155515 /* LiveMagicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMagicView.swift; sourceTree = "<group>"; };
+		113D004F2EAF0C9B00155515 /* LiveMagicViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMagicViewModel.swift; sourceTree = "<group>"; };
+		113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocAssetsView.swift; sourceTree = "<group>"; };
 		114147912C0145270046601D /* TrackListingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackListingView.swift; sourceTree = "<group>"; };
 		114147932C017E640046601D /* ChooseCreatureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseCreatureSheet.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
@@ -551,6 +563,17 @@
 			path = Sources;
 			sourceTree = "<group>";
 		};
+		113D00502EAF0C9B00155515 /* LiveMagic */ = {
+			isa = PBXGroup;
+			children = (
+				113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */,
+				113D004D2EAF0C9B00155515 /* LiveMagicPromptSheet.swift */,
+				113D004E2EAF0C9B00155515 /* LiveMagicView.swift */,
+				113D004F2EAF0C9B00155515 /* LiveMagicViewModel.swift */,
+			);
+			path = LiveMagic;
+			sourceTree = "<group>";
+		};
 		1142E65C29DFB19700B795F0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
@@ -571,6 +594,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				113D00502EAF0C9B00155515 /* LiveMagic */,
 				11C54A492E91A1E0003CD966 /* StatusLightsState+UI.swift */,
 				119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */,
 				114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */,
@@ -1345,6 +1369,10 @@
 				11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */,
 				11C288622BF70E8E00F7ACD8 /* JoystickManager.swift in Sources */,
 				11F0E49A2E9089970085918D /* SoundModel.swift in Sources */,
+				113D00512EAF0C9B00155515 /* LiveMagicPromptSheet.swift in Sources */,
+				113D00522EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */,
+				113D00532EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
+				113D00A12EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
 				11E53CC82E88964100C17F16 /* MetricKitManager.swift in Sources */,
 				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
 				11F0E49C2E90899C0085918D /* SoundImporter.swift in Sources */,
@@ -1451,6 +1479,10 @@
 				117C87762CA0D727007B5682 /* ByteChartView.swift in Sources */,
 				117C87772CA0D727007B5682 /* BarChart.swift in Sources */,
 				117C87542CA0CEF9007B5682 /* SystemCountersStore.swift in Sources */,
+				113D00542EAF0C9B00155515 /* LiveMagicPromptSheet.swift in Sources */,
+				113D00552EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */,
+				113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
+				113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
 				117C87552CA0CEF9007B5682 /* VirtualJoystick.swift in Sources */,
 				117C87572CA0CEF9007B5682 /* SixAxisJoystick.swift in Sources */,
 				117C87592CA0CEF9007B5682 /* AprilsCreatureWorkshopJoystick.swift in Sources */,

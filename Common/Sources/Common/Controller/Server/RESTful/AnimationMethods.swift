@@ -105,6 +105,33 @@ extension CreatureServerClient {
         return await fetchData(url, returnType: Animation.self)
     }
 
+    public func getAdHocAnimation(animationId: AnimationIdentifier) async -> Result<
+        Animation, ServerError
+    > {
+
+        logger.debug("attempting to load ad-hoc animation \(animationId)")
+
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc/\(animationId)")
+        else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await fetchData(url, returnType: Animation.self)
+    }
+
+    public func listAdHocAnimations() async -> Result<[AdHocAnimationSummary], ServerError> {
+
+        logger.debug("attempting to load ad-hoc animations")
+
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await fetchData(url, returnType: AdHocAnimationListDTO.self).map { $0.items }
+    }
+
     private func sendAdHocAnimationRequest(
         path: String, body: CreateAdHocAnimationRequestDTO
     ) async -> Result<JobCreatedResponse, ServerError> {

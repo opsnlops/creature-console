@@ -19,6 +19,18 @@ extension CreatureServerClient {
         return await fetchData(url, returnType: SoundListDTO.self).map { $0.items }
     }
 
+    public func listAdHocSounds() async -> Result<[AdHocSoundEntry], ServerError> {
+
+        logger.debug("attempting to get ad-hoc/generated sounds")
+
+        guard let url = URL(string: makeBaseURL(.http) + "/sound/ad-hoc") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await fetchData(url, returnType: AdHocSoundListDTO.self).map { $0.items }
+    }
+
     /**
      Generate a lip sync JSON file for a sound on the server.
      */
@@ -81,6 +93,18 @@ extension CreatureServerClient {
         }
 
         logger.debug("Sound file URL: \(url)")
+        return .success(url)
+    }
+
+    public func getAdHocSoundURL(_ fileName: String) -> Result<URL, ServerError> {
+
+        logger.debug("attempting to get ad-hoc sound URI for \(fileName)")
+
+        guard let url = URL(string: makeBaseURL(.http) + "/sound/ad-hoc/" + fileName) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+
+        logger.debug("Ad-hoc sound file URL: \(url)")
         return .success(url)
     }
 

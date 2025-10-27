@@ -15,6 +15,7 @@ struct AnimationEditor: View {
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
 
     let server = CreatureServerClient.shared
+    let readOnly: Bool
 
     @Environment(\.modelContext) private var modelContext
 
@@ -43,18 +44,21 @@ struct AnimationEditor: View {
     // Initializers
     init() {
         self.createNew = false
+        self.readOnly = false
         self._model = StateObject(
             wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
     }
 
     init(createNew: Bool) {
         self.createNew = createNew
+        self.readOnly = false
         self._model = StateObject(
             wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
     }
 
-    init(animation: Common.Animation) {
+    init(animation: Common.Animation, readOnly: Bool = false) {
         self.createNew = false
+        self.readOnly = readOnly
         self._model = StateObject(wrappedValue: AnimationEditorViewModel(animation: animation))
     }
 
@@ -78,12 +82,14 @@ struct AnimationEditor: View {
                 .navigationSubtitle("Active Universe: \(activeUniverse)")
             #endif
             .toolbar(id: "animationEditor") {
-                ToolbarItem(id: "save", placement: .secondaryAction) {
-                    Button(action: {
-                        saveAnimationToServer()
-                    }) {
-                        Image(systemName: "square.and.arrow.down")
-                            .symbolRenderingMode(.palette)
+                if !readOnly {
+                    ToolbarItem(id: "save", placement: .secondaryAction) {
+                        Button(action: {
+                            saveAnimationToServer()
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                                .symbolRenderingMode(.palette)
+                        }
                     }
                 }
                 ToolbarItem(id: "play", placement: .secondaryAction) {
@@ -94,29 +100,32 @@ struct AnimationEditor: View {
                     }
                 }
 
-                ToolbarItem(id: "newTrack", placement: .primaryAction) {
-                    Menu {
-                        if availableCreatures.isEmpty {
-                            Label(
-                                "No creatures available",
-                                systemImage: "exclamationmark.triangle"
-                            )
-                            .foregroundStyle(.secondary)
-                            .disabled(true)
-                        } else {
-                            ForEach(availableCreatures) { creature in
-                                Button {
-                                    selectedCreatureForRecording = creature
-                                } label: {
-                                    Label(creature.name, systemImage: "record.circle")
+                if !readOnly {
+                    ToolbarItem(id: "newTrack", placement: .primaryAction) {
+                        Menu {
+                            if availableCreatures.isEmpty {
+                                Label(
+                                    "No creatures available",
+                                    systemImage: "exclamationmark.triangle"
+                                )
+                                .foregroundStyle(.secondary)
+                                .disabled(true)
+                            } else {
+                                ForEach(availableCreatures) { creature in
+                                    Button {
+                                        selectedCreatureForRecording = creature
+                                    } label: {
+                                        Label(creature.name, systemImage: "record.circle")
+                                    }
                                 }
                             }
+                        } label: {
+                            Label("Add Track", systemImage: "waveform.path.badge.plus")
+                                .symbolRenderingMode(.multicolor)
                         }
-                    } label: {
-                        Label("Add Track", systemImage: "waveform.path.badge.plus")
-                            .symbolRenderingMode(.multicolor)
+                        .disabled(
+                            model.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                    .disabled(model.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .onChange(of: creatures) { _, newCreatures in

@@ -76,6 +76,29 @@ struct TopContentView: View {
                     }
                 }
 
+                #if os(iOS) || os(macOS)
+                    Section("Live Magic") {
+                        NavigationLink {
+                            LiveMagicView()
+                        } label: {
+                            Label("Live Magic Console", systemImage: "sparkles.rectangle.stack")
+                                .symbolRenderingMode(.hierarchical)
+                        }
+
+                        NavigationLink {
+                            AdHocAnimationListView()
+                        } label: {
+                            Label("Ad-Hoc Animations", systemImage: "film.stack")
+                        }
+
+                        NavigationLink {
+                            AdHocSoundListView()
+                        } label: {
+                            Label("Ad-Hoc Sounds", systemImage: "waveform.circle")
+                        }
+                    }
+                #endif
+
 
                 #if os(iOS) || os(macOS)
                     Section("Animations") {
