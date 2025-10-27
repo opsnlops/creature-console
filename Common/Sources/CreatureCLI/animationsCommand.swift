@@ -2,6 +2,43 @@ import ArgumentParser
 import Common
 import Foundation
 
+protocol AdHocAnimationListing: Sendable {
+    func listAdHocAnimations() async -> Result<[AdHocAnimationSummary], ServerError>
+}
+
+protocol AdHocAnimationFetching: Sendable {
+    func getAdHocAnimation(animationId: AnimationIdentifier) async -> Result<
+        Animation, ServerError
+    >
+}
+
+typealias AdHocAnimationCommandClient = AdHocAnimationListing & AdHocAnimationFetching
+
+extension CreatureServerClient: AdHocAnimationListing {}
+extension CreatureServerClient: AdHocAnimationFetching {}
+
+actor AdHocAnimationCommandServerFactory {
+    static let shared = AdHocAnimationCommandServerFactory()
+
+    private var makeServer: @Sendable (GlobalOptions) -> any AdHocAnimationCommandClient = {
+        getServer(config: $0)
+    }
+
+    func server(for options: GlobalOptions) -> any AdHocAnimationCommandClient {
+        makeServer(options)
+    }
+
+    func updateFactory(
+        _ factory: @escaping @Sendable (GlobalOptions) -> any AdHocAnimationCommandClient
+    ) {
+        makeServer = factory
+    }
+
+    func resetFactory() {
+        makeServer = { getServer(config: $0) }
+    }
+}
+
 extension CreatureCLI {
 
     struct Animations: AsyncParsableCommand {
@@ -9,7 +46,7 @@ extension CreatureCLI {
             abstract: "View and work with animations",
             subcommands: [
                 Get.self, List.self, Play.self, Interrupt.self, TestAnimationEncoding.self,
-                TestTrackEncoding.self, TestAnimationSaving.self,
+                TestTrackEncoding.self, TestAnimationSaving.self, AdHoc.self,
             ]
         )
 
@@ -146,6 +183,124 @@ extension CreatureCLI {
                     throw failWithMessage("Unable to save animation: \(error.localizedDescription)")
                 }
 
+            }
+        }
+
+        struct AdHoc: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Inspect ad-hoc animations generated on the server",
+                subcommands: [List.self, Show.self]
+            )
+
+            static func useServerFactory(
+                _ factory: @escaping @Sendable (GlobalOptions) -> any AdHocAnimationCommandClient
+            ) async {
+                await AdHocAnimationCommandServerFactory.shared.updateFactory(factory)
+            }
+
+            static func resetServerFactory() async {
+                await AdHocAnimationCommandServerFactory.shared.resetFactory()
+            }
+
+            static func makeServer(for options: GlobalOptions) async
+                -> any AdHocAnimationCommandClient
+            {
+                await AdHocAnimationCommandServerFactory.shared.server(for: options)
+            }
+
+            private static func formattedDate(_ date: Date?) -> String {
+                guard let date else { return "—" }
+                let formatter = DateFormatter()
+                formatter.dateStyle = .short
+                formatter.timeStyle = .short
+                return formatter.string(from: date)
+            }
+
+            struct List: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "List ad-hoc animations waiting on the server"
+                )
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let server = await AdHoc.makeServer(for: globalOptions)
+                    let result = await server.listAdHocAnimations()
+
+                    switch result {
+                    case .success(let animations):
+                        if animations.isEmpty {
+                            print("No ad-hoc animations are currently available.")
+                            return
+                        }
+
+                        print("\nAd-hoc animations currently cached on the server:\n")
+                        printTable(
+                            animations,
+                            columns: [
+                                TableColumn(title: "Title", valueProvider: { $0.metadata.title }),
+                                TableColumn(
+                                    title: "Animation ID",
+                                    valueProvider: { $0.animationId.lowercased() }
+                                ),
+                                TableColumn(
+                                    title: "Frames",
+                                    valueProvider: {
+                                        formatNumber(UInt64($0.metadata.numberOfFrames))
+                                    }
+                                ),
+                                TableColumn(
+                                    title: "Sound File",
+                                    valueProvider: { $0.metadata.soundFile }
+                                ),
+                                TableColumn(
+                                    title: "Created",
+                                    valueProvider: { formattedDate($0.createdAt) }
+                                ),
+                            ])
+                        print(
+                            "\n\(animations.count) ad-hoc animation(s) available on server.\n"
+                        )
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error fetching ad-hoc animations: \(error.localizedDescription)")
+                    }
+                }
+            }
+
+            struct Show: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "Display details for an ad-hoc animation"
+                )
+
+                @Argument(help: "The ad-hoc animation identifier returned by the job result")
+                var animationId: AnimationIdentifier
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let server = await AdHoc.makeServer(for: globalOptions)
+                    let result = await server.getAdHocAnimation(animationId: animationId)
+
+                    switch result {
+                    case .success(let animation):
+                        print("\nAd-hoc Animation \(animation.metadata.id.lowercased())\n")
+                        print("Title: \(animation.metadata.title)")
+                        print("Sound File: \(animation.metadata.soundFile)")
+                        print("Tracks: \(animation.tracks.count)")
+                        print("Number of Frames: \(animation.metadata.numberOfFrames)")
+                        if let created = animation.metadata.lastUpdated {
+                            let stamp = AdHoc.formattedDate(created)
+                            print("Last Updated: \(stamp)")
+                        }
+                        print("")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Unable to fetch ad-hoc animation: \(error.localizedDescription)")
+                    }
+                }
             }
         }
     }

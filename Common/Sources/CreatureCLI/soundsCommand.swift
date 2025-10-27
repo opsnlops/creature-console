@@ -16,11 +16,70 @@ protocol LipSyncGenerating: Sendable {
     >
 }
 
-typealias SoundCommandClient = SoundListing & SoundPlaying & LipSyncGenerating
+protocol AdHocSoundListing: Sendable {
+    func listAdHocSounds() async -> Result<[AdHocSoundEntry], ServerError>
+}
+
+@preconcurrency protocol AdHocSoundURLProviding: Sendable {
+    func adHocSoundURL(for fileName: String) async -> Result<URL, ServerError>
+}
+
+@preconcurrency protocol SoundURLProviding: Sendable {
+    func soundURL(for fileName: String) async -> Result<URL, ServerError>
+}
+
+typealias SoundCommandClient = SoundListing & SoundPlaying & LipSyncGenerating & AdHocSoundListing
+    & AdHocSoundURLProviding & SoundURLProviding
 
 extension CreatureServerClient: SoundListing {}
 extension CreatureServerClient: SoundPlaying {}
 extension CreatureServerClient: LipSyncGenerating {}
+extension CreatureServerClient: AdHocSoundListing {}
+extension CreatureServerClient: AdHocSoundURLProviding {
+    public func adHocSoundURL(for fileName: String) async -> Result<URL, ServerError> {
+        getAdHocSoundURL(fileName)
+    }
+}
+extension CreatureServerClient: SoundURLProviding {
+    public func soundURL(for fileName: String) async -> Result<URL, ServerError> {
+        getSoundURL(fileName)
+    }
+}
+
+actor SoundDownloadHandlerStore {
+    typealias Handler = @Sendable (URLRequest, URL) async throws -> URL
+
+    static let shared = SoundDownloadHandlerStore()
+
+    private var handler: Handler = SoundDownloadHandlerStore.defaultHandler
+
+    private static func defaultHandler(request: URLRequest, destination: URL) async throws -> URL {
+        let (tempURL, _) = try await URLSession.shared.download(for: request)
+        let fm = FileManager.default
+
+        let parentDirectory = destination.deletingLastPathComponent()
+        try fm.createDirectory(at: parentDirectory, withIntermediateDirectories: true)
+
+        if fm.fileExists(atPath: destination.path) {
+            try fm.removeItem(at: destination)
+        }
+
+        try fm.moveItem(at: tempURL, to: destination)
+        return destination
+    }
+
+    func download(request: URLRequest, destination: URL) async throws -> URL {
+        try await handler(request, destination)
+    }
+
+    func updateHandler(_ handler: @escaping Handler) {
+        self.handler = handler
+    }
+
+    func resetHandler() {
+        handler = SoundDownloadHandlerStore.defaultHandler
+    }
+}
 
 actor SoundCommandServerFactory {
     static let shared = SoundCommandServerFactory()
@@ -47,7 +106,7 @@ extension CreatureCLI {
     struct Sounds: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Get information on the sound file subsystem",
-            subcommands: [List.self, Play.self, GenerateLipSync.self]
+            subcommands: [List.self, Play.self, GenerateLipSync.self, Download.self, AdHoc.self]
         )
 
         @OptionGroup()
@@ -183,6 +242,256 @@ extension CreatureCLI {
                         "Unable to generate lip sync: \(error.localizedDescription)")
                 }
             }
+        }
+
+        struct Download: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Download a sound file locally"
+            )
+
+            @Argument(help: "Name of the sound file to download")
+            var fileName: String
+
+            @Option(
+                name: .shortAndLong,
+                help:
+                    "Destination file or directory. Defaults to the current directory with the server file name."
+            )
+            var output: String?
+
+            @Flag(
+                name: .customLong("overwrite"),
+                help: "Replace the destination file if it already exists."
+            )
+            var overwrite = false
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                try await Sounds.performDownload(
+                    requestedName: fileName,
+                    defaultFileName: fileName,
+                    output: output,
+                    overwrite: overwrite,
+                    globalOptions: globalOptions
+                ) { server in
+                    await server.soundURL(for: fileName)
+                }
+            }
+        }
+
+        struct AdHoc: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Inspect and download ad-hoc/generated sounds",
+                subcommands: [List.self, Download.self]
+            )
+
+            private static func formattedDate(_ date: Date?) -> String {
+                guard let date else { return "—" }
+                let formatter = DateFormatter()
+                formatter.dateStyle = .short
+                formatter.timeStyle = .short
+                return formatter.string(from: date)
+            }
+
+            struct List: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "List ad-hoc/generated sounds on the server"
+                )
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let server = await Sounds.makeServer(for: globalOptions)
+                    let result = await server.listAdHocSounds()
+
+                    switch result {
+                    case .success(let entries):
+                        if entries.isEmpty {
+                            print("No ad-hoc sounds are currently available.")
+                            return
+                        }
+
+                        print("\nAd-hoc sounds currently cached on the server:\n")
+                        printTable(
+                            entries,
+                            columns: [
+                                TableColumn(
+                                    title: "Animation ID",
+                                    valueProvider: { $0.animationId.lowercased() }
+                                ),
+                                TableColumn(
+                                    title: "Sound File",
+                                    valueProvider: { $0.sound.fileName }
+                                ),
+                                TableColumn(
+                                    title: "Size",
+                                    valueProvider: {
+                                        "\(formatNumber(UInt64($0.sound.size))) bytes"
+                                    }
+                                ),
+                                TableColumn(
+                                    title: "Transcript",
+                                    valueProvider: { $0.sound.transcript.isEmpty ? "" : "✅" }
+                                ),
+                                TableColumn(
+                                    title: "Created",
+                                    valueProvider: { formattedDate($0.createdAt) }
+                                ),
+                                TableColumn(
+                                    title: "Download Path",
+                                    valueProvider: { $0.soundFilePath }
+                                ),
+                            ])
+
+                        print(
+                            "\nUse 'sounds ad-hoc download <download path>' to grab a WAV locally.\n"
+                        )
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error fetching ad-hoc sounds: \(error.localizedDescription)")
+                    }
+                }
+            }
+
+            struct Download: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "Download an ad-hoc sound file locally"
+                )
+
+                @Argument(
+                    help:
+                        "Sound file path reported by 'sounds ad-hoc list' (e.g., ad-hoc/12345.wav)"
+                )
+                var soundFilePath: String
+
+                @Option(
+                    name: .shortAndLong,
+                    help:
+                        "Destination file or directory. Defaults to the current directory with the server file name."
+                )
+                var output: String?
+
+                @Flag(
+                    name: .customLong("overwrite"),
+                    help: "Replace the destination file if it already exists."
+                )
+                var overwrite = false
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let fileName = (soundFilePath as NSString).lastPathComponent
+                    try await Sounds.performDownload(
+                        requestedName: soundFilePath,
+                        defaultFileName: fileName,
+                        output: output,
+                        overwrite: overwrite,
+                        globalOptions: globalOptions
+                    ) { server in
+                        await server.adHocSoundURL(for: soundFilePath)
+                    }
+                }
+            }
+        }
+    }
+}
+
+extension CreatureCLI.Sounds {
+
+    fileprivate static func performDownload(
+        requestedName: String,
+        defaultFileName: String,
+        output: String?,
+        overwrite: Bool,
+        globalOptions: GlobalOptions,
+        remoteURLProvider: @escaping (any SoundCommandClient) async -> Result<URL, ServerError>
+    ) async throws {
+        let destinationURL = resolveDestinationURL(output: output, fileName: defaultFileName)
+        try ensureDestinationWritable(destinationURL, overwrite: overwrite)
+
+        let server = await makeServer(for: globalOptions)
+        let remoteURL: URL
+        switch await remoteURLProvider(server) {
+        case .success(let url):
+            remoteURL = url
+        case .failure(let error):
+            throw failWithMessage(
+                "Unable to determine download URL: \(error.localizedDescription)")
+        }
+
+        let request = configuredRequest(for: server, url: remoteURL)
+
+        do {
+            let savedURL = try await SoundDownloadHandlerStore.shared.download(
+                request: request, destination: destinationURL)
+            printDownloadSuccess(at: savedURL)
+        } catch {
+            throw failWithMessage(
+                "Failed to download sound: \(error.localizedDescription)")
+        }
+    }
+
+    fileprivate static func resolveDestinationURL(output: String?, fileName: String) -> URL {
+        let fileManager = FileManager.default
+
+        if let output {
+            var outputURL = URL(fileURLWithPath: output)
+
+            var isDirectory: ObjCBool = false
+            if fileManager.fileExists(atPath: outputURL.path, isDirectory: &isDirectory),
+                isDirectory.boolValue
+            {
+                return outputURL.appendingPathComponent(fileName)
+            }
+
+            if output.hasSuffix("/") {
+                outputURL.appendPathComponent(fileName)
+                return outputURL
+            }
+
+            return outputURL
+        } else {
+            let cwd = URL(fileURLWithPath: fileManager.currentDirectoryPath)
+            return cwd.appendingPathComponent(fileName)
+        }
+    }
+
+    fileprivate static func ensureDestinationWritable(_ url: URL, overwrite: Bool) throws {
+        let fileManager = FileManager.default
+        let parent = url.deletingLastPathComponent()
+        try fileManager.createDirectory(at: parent, withIntermediateDirectories: true)
+
+        if fileManager.fileExists(atPath: url.path) {
+            guard overwrite else {
+                throw failWithMessage(
+                    "Destination \(url.path) already exists. Use --overwrite to replace it.")
+            }
+            try fileManager.removeItem(at: url)
+        }
+    }
+
+    fileprivate static func configuredRequest(
+        for server: any SoundCommandClient,
+        url: URL
+    ) -> URLRequest {
+        if let concreteServer = server as? CreatureServerClient {
+            return concreteServer.createConfiguredURLRequest(for: url)
+        } else {
+            return URLRequest(url: url)
+        }
+    }
+
+    fileprivate static func printDownloadSuccess(at url: URL) {
+        let fm = FileManager.default
+        let attributes = try? fm.attributesOfItem(atPath: url.path)
+        if let size = attributes?[.size] as? NSNumber {
+            print("Downloaded sound to \(url.path) (\(formatNumber(size.uint64Value)) bytes).")
+        } else {
+            print("Downloaded sound to \(url.path).")
         }
     }
 }
