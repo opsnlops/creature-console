@@ -195,9 +195,27 @@
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
+		20EC813170B342D1AF9DF3FD /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 90725C52424947F78B297CE4 /* Logging */; };
+		277526DE76814DA6B5E6CDE2 /* LoggingOSLog in Frameworks */ = {isa = PBXBuildFile; productRef = 65F1FACB33FB498EBBE16B78 /* LoggingOSLog */; };
+		3CE33064BC4E488F8D161D94 /* Common in Frameworks */ = {isa = PBXBuildFile; productRef = 1E4091273018443388C8F9E8 /* Common */; };
+		40DE8EDB8A9746E79DBB1D69 /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = 6F1D7D2BF2434311B8CE3768 /* SimpleKeychain */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		1120F1E52EB03A25000342A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1120F1D72EB03A24000342A3;
+			remoteInfo = "Lightweight Console";
+		};
+		1120F1EF2EB03A25000342A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1120F1D72EB03A24000342A3;
+			remoteInfo = "Lightweight Console";
+		};
 		11754B712C0050AF001A6C83 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
@@ -229,6 +247,9 @@
 		11181BA12A04B4F4004FCD1F /* AnimationDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationDetail.swift; sourceTree = "<group>"; };
 		111D52272C013E5F002CC23B /* AppStateInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateInspectorView.swift; sourceTree = "<group>"; };
 		111D52292C014158002CC23B /* AppStateInspectorScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateInspectorScene.swift; sourceTree = "<group>"; };
+		1120F1D82EB03A24000342A3 /* Lightweight Console.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Lightweight Console.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1120F1E42EB03A25000342A3 /* Lightweight ConsoleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Lightweight ConsoleTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1120F1EE2EB03A25000342A3 /* Lightweight ConsoleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Lightweight ConsoleUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11218E7F2B67522500AFFF65 /* Joystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Joystick.swift; sourceTree = "<group>"; };
 		1122A7B62A24440100D60464 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		112AABF22EA894B1000F4BC2 /* JobStatusMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobStatusMessageProcessor.swift; sourceTree = "<group>"; };
@@ -432,6 +453,36 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		1120F1AE2EB039AF000342A3 /* Lightweight-Client */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight-Client";
+			sourceTree = "<group>";
+		};
+		1120F1BC2EB039B0000342A3 /* Lightweight-ClientTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight-ClientTests";
+			sourceTree = "<group>";
+		};
+		1120F1C62EB039B0000342A3 /* Lightweight-ClientUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight-ClientUITests";
+			sourceTree = "<group>";
+		};
+		1120F1D92EB03A24000342A3 /* Lightweight Console */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight Console";
+			sourceTree = "<group>";
+		};
+		1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight ConsoleTests";
+			sourceTree = "<group>";
+		};
+		1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight ConsoleUITests";
+			sourceTree = "<group>";
+		};
 		117C86FF2CA0CC81007B5682 /* Creature TV */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Creature TV";
@@ -460,6 +511,25 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		1120F1D52EB03A24000342A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				3CE33064BC4E488F8D161D94 /* Common in Frameworks */,
+				20EC813170B342D1AF9DF3FD /* Logging in Frameworks */,
+				277526DE76814DA6B5E6CDE2 /* LoggingOSLog in Frameworks */,
+				40DE8EDB8A9746E79DBB1D69 /* SimpleKeychain in Frameworks */,
+			);
+		};
+		1120F1E12EB03A25000342A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		1120F1EB2EB03A25000342A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 		11703D8529DD197F00EF7E3D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
@@ -657,6 +727,12 @@
 				117C86FF2CA0CC81007B5682 /* Creature TV */,
 				117C87122CA0CC82007B5682 /* Creature TVTests */,
 				117C871C2CA0CC82007B5682 /* Creature TVUITests */,
+				1120F1AE2EB039AF000342A3 /* Lightweight-Client */,
+				1120F1BC2EB039B0000342A3 /* Lightweight-ClientTests */,
+				1120F1C62EB039B0000342A3 /* Lightweight-ClientUITests */,
+				1120F1D92EB03A24000342A3 /* Lightweight Console */,
+				1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */,
+				1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */,
 				11703D8929DD197F00EF7E3D /* Products */,
 				11F1757029DD42D800ADD5FB /* Frameworks */,
 			);
@@ -670,6 +746,9 @@
 				117C86FE2CA0CC81007B5682 /* Creature TV.app */,
 				117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */,
 				117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */,
+				1120F1D82EB03A24000342A3 /* Lightweight Console.app */,
+				1120F1E42EB03A25000342A3 /* Lightweight ConsoleTests.xctest */,
+				1120F1EE2EB03A25000342A3 /* Lightweight ConsoleUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1119,6 +1198,72 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		1120F1D72EB03A24000342A3 /* Lightweight Console */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1120F1F62EB03A25000342A3 /* Build configuration list for PBXNativeTarget "Lightweight Console" */;
+			buildPhases = (
+				1120F1D42EB03A24000342A3 /* Sources */,
+				1120F1D52EB03A24000342A3 /* Frameworks */,
+				1120F1D62EB03A24000342A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				1120F1D92EB03A24000342A3 /* Lightweight Console */,
+			);
+			name = "Lightweight Console";
+			packageProductDependencies = (
+				1E4091273018443388C8F9E8 /* Common */,
+				90725C52424947F78B297CE4 /* Logging */,
+				65F1FACB33FB498EBBE16B78 /* LoggingOSLog */,
+				6F1D7D2BF2434311B8CE3768 /* SimpleKeychain */,
+			);
+			productName = "Lightweight Console";
+			productReference = 1120F1D82EB03A24000342A3 /* Lightweight Console.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1120F1E32EB03A25000342A3 /* Lightweight ConsoleTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1120F1F92EB03A25000342A3 /* Build configuration list for PBXNativeTarget "Lightweight ConsoleTests" */;
+			buildPhases = (
+				1120F1E02EB03A25000342A3 /* Sources */,
+				1120F1E12EB03A25000342A3 /* Frameworks */,
+				1120F1E22EB03A25000342A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1120F1E62EB03A25000342A3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */,
+			);
+			name = "Lightweight ConsoleTests";
+			productName = "Lightweight ConsoleTests";
+			productReference = 1120F1E42EB03A25000342A3 /* Lightweight ConsoleTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		1120F1ED2EB03A25000342A3 /* Lightweight ConsoleUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1120F1FC2EB03A25000342A3 /* Build configuration list for PBXNativeTarget "Lightweight ConsoleUITests" */;
+			buildPhases = (
+				1120F1EA2EB03A25000342A3 /* Sources */,
+				1120F1EB2EB03A25000342A3 /* Frameworks */,
+				1120F1EC2EB03A25000342A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1120F1F02EB03A25000342A3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */,
+			);
+			name = "Lightweight ConsoleUITests";
+			productName = "Lightweight ConsoleUITests";
+			productReference = 1120F1EE2EB03A25000342A3 /* Lightweight ConsoleUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		11703D8729DD197F00EF7E3D /* Creature Console */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 11703D9729DD198000EF7E3D /* Build configuration list for PBXNativeTarget "Creature Console" */;
@@ -1236,9 +1381,20 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1600;
+				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					1120F1D72EB03A24000342A3 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+					1120F1E32EB03A25000342A3 = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = 1120F1D72EB03A24000342A3;
+					};
+					1120F1ED2EB03A25000342A3 = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = 1120F1D72EB03A24000342A3;
+					};
 					11703D8729DD197F00EF7E3D = {
 						CreatedOnToolsVersion = 14.2;
 					};
@@ -1284,11 +1440,29 @@
 				117C86FD2CA0CC81007B5682 /* Creature TV */,
 				117C870E2CA0CC82007B5682 /* Creature TVTests */,
 				117C87182CA0CC82007B5682 /* Creature TVUITests */,
+				1120F1D72EB03A24000342A3 /* Lightweight Console */,
+				1120F1E32EB03A25000342A3 /* Lightweight ConsoleTests */,
+				1120F1ED2EB03A25000342A3 /* Lightweight ConsoleUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		1120F1D62EB03A24000342A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		1120F1E22EB03A25000342A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		1120F1EC2EB03A25000342A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 		11703D8629DD197F00EF7E3D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
@@ -1323,6 +1497,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1120F1D42EB03A24000342A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		1120F1E02EB03A25000342A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		1120F1EA2EB03A25000342A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 		11703D8429DD197F00EF7E3D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
@@ -1524,6 +1713,16 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		1120F1E62EB03A25000342A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1120F1D72EB03A24000342A3 /* Lightweight Console */;
+			targetProxy = 1120F1E52EB03A25000342A3 /* PBXContainerItemProxy */;
+		};
+		1120F1F02EB03A25000342A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1120F1D72EB03A24000342A3 /* Lightweight Console */;
+			targetProxy = 1120F1EF2EB03A25000342A3 /* PBXContainerItemProxy */;
+		};
 		11754B722C0050AF001A6C83 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 11703D8729DD197F00EF7E3D /* Creature Console */;
@@ -1542,6 +1741,191 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		1120F1F72EB03A25000342A3 /* Debug configuration for PBXNativeTarget "Lightweight Console" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 2.13.3;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-Console";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1120F1F82EB03A25000342A3 /* Release configuration for PBXNativeTarget "Lightweight Console" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 2.13.3;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-Console";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		1120F1FA2EB03A25000342A3 /* Debug configuration for PBXNativeTarget "Lightweight ConsoleTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-ConsoleTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Lightweight Console.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Lightweight Console";
+			};
+			name = Debug;
+		};
+		1120F1FB2EB03A25000342A3 /* Release configuration for PBXNativeTarget "Lightweight ConsoleTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-ConsoleTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Lightweight Console.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Lightweight Console";
+			};
+			name = Release;
+		};
+		1120F1FD2EB03A25000342A3 /* Debug configuration for PBXNativeTarget "Lightweight ConsoleUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-ConsoleUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Lightweight Console";
+			};
+			name = Debug;
+		};
+		1120F1FE2EB03A25000342A3 /* Release configuration for PBXNativeTarget "Lightweight ConsoleUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YQ8A74NDMJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-ConsoleUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Lightweight Console";
+			};
+			name = Release;
+		};
 		11703D9529DD198000EF7E3D /* Debug configuration for PBXProject "Creature Console" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1679,7 +2063,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0180074;
+				CURRENT_PROJECT_VERSION = d7d5d35;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1711,7 +2095,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.13.2;
+				MARKETING_VERSION = 2.13.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1733,7 +2117,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0180074;
+				CURRENT_PROJECT_VERSION = d7d5d35;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1765,7 +2149,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.13.2;
+				MARKETING_VERSION = 2.13.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1836,7 +2220,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0180074;
+				CURRENT_PROJECT_VERSION = d7d5d35;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1868,7 +2252,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0180074;
+				CURRENT_PROJECT_VERSION = d7d5d35;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1978,6 +2362,30 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1120F1F62EB03A25000342A3 /* Build configuration list for PBXNativeTarget "Lightweight Console" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1120F1F72EB03A25000342A3 /* Debug configuration for PBXNativeTarget "Lightweight Console" */,
+				1120F1F82EB03A25000342A3 /* Release configuration for PBXNativeTarget "Lightweight Console" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		1120F1F92EB03A25000342A3 /* Build configuration list for PBXNativeTarget "Lightweight ConsoleTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1120F1FA2EB03A25000342A3 /* Debug configuration for PBXNativeTarget "Lightweight ConsoleTests" */,
+				1120F1FB2EB03A25000342A3 /* Release configuration for PBXNativeTarget "Lightweight ConsoleTests" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		1120F1FC2EB03A25000342A3 /* Build configuration list for PBXNativeTarget "Lightweight ConsoleUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1120F1FD2EB03A25000342A3 /* Debug configuration for PBXNativeTarget "Lightweight ConsoleUITests" */,
+				1120F1FE2EB03A25000342A3 /* Release configuration for PBXNativeTarget "Lightweight ConsoleUITests" */,
+			);
+			defaultConfigurationName = Debug;
+		};
 		11703D8329DD197F00EF7E3D /* Build configuration list for PBXProject "Creature Console" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -2109,6 +2517,25 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */;
 			productName = SimpleKeychain;
+		};
+		1E4091273018443388C8F9E8 /* Common */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Common;
+		};
+		65F1FACB33FB498EBBE16B78 /* LoggingOSLog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */;
+			productName = LoggingOSLog;
+		};
+		6F1D7D2BF2434311B8CE3768 /* SimpleKeychain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */;
+			productName = SimpleKeychain;
+		};
+		90725C52424947F78B297CE4 /* Logging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = Logging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

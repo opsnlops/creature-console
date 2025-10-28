@@ -158,6 +158,10 @@ Importer classes sync server DTOs to SwiftData models automatically.
 
 ### Continuous Integration
 GitHub Actions automatically runs tests on push to `main` and on all pull requests:
+
+## Documentation
+
+- [Lightweight Console User Guide](docs/lightweight-console.md)
 - Swift Package tests
 - Xcode tests for macOS and iOS
 
