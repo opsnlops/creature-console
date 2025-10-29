@@ -1,20 +1,23 @@
 import Foundation
 import Logging
-import os
+
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
 
 public final class CreatureServerClient: CreatureServerClientProtocol, Sendable {
 
     public static let shared = CreatureServerClient()
 
     // WebSocket processing stuff
-    private let _processor: OSAllocatedUnfairLock<MessageProcessor?>
+    private let _processor: CreatureLock<MessageProcessor?>
 
     var processor: MessageProcessor? {
         get { _processor.withLock { $0 } }
         set { _processor.withLock { $0 = newValue } }
     }
 
-    private let _webSocketClient: OSAllocatedUnfairLock<WebSocketClient?>
+    private let _webSocketClient: CreatureLock<WebSocketClient?>
 
     var webSocketClient: WebSocketClient? {
         get { _webSocketClient.withLock { $0 } }
@@ -22,11 +25,11 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
     }
 
     let logger: Logging.Logger
-    private let _serverHostname: OSAllocatedUnfairLock<String>
-    private let _serverPort: OSAllocatedUnfairLock<Int>
-    private let _useTLS: OSAllocatedUnfairLock<Bool>
-    private let _serverProxyHost: OSAllocatedUnfairLock<String?>
-    private let _apiKey: OSAllocatedUnfairLock<String?>
+    private let _serverHostname: CreatureLock<String>
+    private let _serverPort: CreatureLock<Int>
+    private let _useTLS: CreatureLock<Bool>
+    private let _serverProxyHost: CreatureLock<String?>
+    private let _apiKey: CreatureLock<String?>
 
     public var serverHostname: String {
         get { _serverHostname.withLock { $0 } }
@@ -64,17 +67,17 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         var logger = Logging.Logger(label: "io.opsnlops.creature-controller.common")
         logger.logLevel = .debug
         self.logger = logger
-        self._processor = OSAllocatedUnfairLock(initialState: nil)
-        self._webSocketClient = OSAllocatedUnfairLock(initialState: nil)
-        self._serverHostname = OSAllocatedUnfairLock(
+        self._processor = CreatureLock(initialState: nil)
+        self._webSocketClient = CreatureLock(initialState: nil)
+        self._serverHostname = CreatureLock(
             initialState: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1")
-        self._serverPort = OSAllocatedUnfairLock(
+        self._serverPort = CreatureLock(
             initialState: UserDefaults.standard.integer(forKey: "serverPort"))
-        self._useTLS = OSAllocatedUnfairLock(
+        self._useTLS = CreatureLock(
             initialState: UserDefaults.standard.object(forKey: "serverUseTLS") as? Bool ?? true)
-        self._serverProxyHost = OSAllocatedUnfairLock(
+        self._serverProxyHost = CreatureLock(
             initialState: UserDefaults.standard.string(forKey: "serverProxyHost"))
-        self._apiKey = OSAllocatedUnfairLock(initialState: nil)
+        self._apiKey = CreatureLock(initialState: nil)
         self.logger.info("Created new CreatureServerRestful")
     }
 

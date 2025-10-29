@@ -1,6 +1,10 @@
 import Foundation
 import Logging
 
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
+
 private struct EmptyBody: Encodable {}
 
 extension CreatureServerClient {

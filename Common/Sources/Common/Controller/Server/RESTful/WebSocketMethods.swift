@@ -1,6 +1,12 @@
 import Foundation
 import Logging
-import Network
+
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
+#if canImport(Network)
+    import Network
+#endif
 
 #if canImport(UIKit)
     import UIKit
@@ -135,11 +141,14 @@ actor WebSocketClient {
     private var reconnectTask: Task<Void, Never>?
     private var reconnectAttempt: Int = 0
     private var shouldStayConnected: Bool = false
-    private var isNetworkPathSatisfied: Bool = false
     private var isConnecting: Bool = false  // Prevent concurrent connection attempts
-
-    private var pathMonitor: NWPathMonitor?
-    private var pathMonitorQueue = DispatchQueue(label: "WebSocketPathMonitor")
+    #if canImport(Network)
+        private var isNetworkPathSatisfied: Bool = false
+        private var pathMonitor: NWPathMonitor?
+        private let pathMonitorQueue = DispatchQueue(label: "WebSocketPathMonitor")
+    #else
+        private var isNetworkPathSatisfied: Bool = true
+    #endif
 
     #if canImport(UIKit)
         private var foregroundObserver: NSObjectProtocol?
@@ -183,60 +192,63 @@ actor WebSocketClient {
         return isNetworkPathSatisfied
     }
 
-    private func handlePathUpdate(_ path: NWPath) async {
-        if path.status == .satisfied {
-            logger.info(
-                "Network path now satisfied. Available interfaces: \(path.availableInterfaces.map { $0.type })"
-            )
-            isNetworkPathSatisfied = true
-            suppressErrorNotifications = false
-            consecutiveErrorCount = 0
+    #if canImport(Network)
+        private func handlePathUpdate(_ path: NWPath) async {
+            if path.status == .satisfied {
+                logger.info(
+                    "Network path now satisfied. Available interfaces: \(path.availableInterfaces.map { $0.type })"
+                )
+                isNetworkPathSatisfied = true
+                suppressErrorNotifications = false
+                consecutiveErrorCount = 0
 
-            // Only attempt reconnect if we should stay connected and we're actually disconnected
-            if shouldStayConnected, !isConnected {
-                logger.info("Network recovered, initiating immediate reconnect")
-                await scheduleReconnect(immediate: true)
-            }
-        } else {
-            // Network is unavailable (could be airplane mode, no WiFi, etc.)
-            let reason: String
-            if path.availableInterfaces.isEmpty {
-                reason = "No network interfaces available (likely airplane mode or all radios off)"
+                // Only attempt reconnect if we should stay connected and we're actually disconnected
+                if shouldStayConnected, !isConnected {
+                    logger.info("Network recovered, initiating immediate reconnect")
+                    await scheduleReconnect(immediate: true)
+                }
             } else {
-                reason = "Network path unsatisfied (status: \(path.status))"
-            }
+                // Network is unavailable (could be airplane mode, no WiFi, etc.)
+                let reason: String
+                if path.availableInterfaces.isEmpty {
+                    reason =
+                        "No network interfaces available (likely airplane mode or all radios off)"
+                } else {
+                    reason = "Network path unsatisfied (status: \(path.status))"
+                }
 
-            logger.warning("Network became unreachable: \(reason)")
-            isNetworkPathSatisfied = false
-            suppressErrorNotifications = true
+                logger.warning("Network became unreachable: \(reason)")
+                isNetworkPathSatisfied = false
+                suppressErrorNotifications = true
 
-            // Cancel ALL reconnect attempts immediately
-            reconnectTask?.cancel()
-            reconnectTask = nil
+                // Cancel ALL reconnect attempts immediately
+                reconnectTask?.cancel()
+                reconnectTask = nil
 
-            // Properly clean up the connection when network becomes unavailable
-            if isConnected || isConnecting || task != nil {
-                logger.info("Cleaning up WebSocket connection due to network loss")
-                isConnected = false
-                isConnecting = false
+                // Properly clean up the connection when network becomes unavailable
+                if isConnected || isConnecting || task != nil {
+                    logger.info("Cleaning up WebSocket connection due to network loss")
+                    isConnected = false
+                    isConnecting = false
 
-                // Cancel ongoing tasks to avoid wasted resources
-                pingTask?.cancel()
-                pingTask = nil
+                    // Cancel ongoing tasks to avoid wasted resources
+                    pingTask?.cancel()
+                    pingTask = nil
 
-                // Close the WebSocket task gracefully
-                task?.cancel(with: .goingAway, reason: "Network unavailable".data(using: .utf8))
-                task = nil
-            }
+                    // Close the WebSocket task gracefully
+                    task?.cancel(with: .goingAway, reason: "Network unavailable".data(using: .utf8))
+                    task = nil
+                }
 
-            // Set appropriate state - but DON'T trigger any reconnects
-            if shouldStayConnected {
-                await WebSocketStateManager.shared.setState(.reconnecting)
-            } else {
-                await WebSocketStateManager.shared.setState(.disconnected)
+                // Set appropriate state - but DON'T trigger any reconnects
+                if shouldStayConnected {
+                    await WebSocketStateManager.shared.setState(.reconnecting)
+                } else {
+                    await WebSocketStateManager.shared.setState(.disconnected)
+                }
             }
         }
-    }
+    #endif
 
     #if canImport(UIKit)
         @MainActor
@@ -312,18 +324,22 @@ actor WebSocketClient {
     }
 
     private func setupLifecycleMonitoring() {
-        // Monitor network path changes
-        let monitor = NWPathMonitor()
-        self.pathMonitor = monitor
-        // Set initial network state
-        self.isNetworkPathSatisfied = monitor.currentPath.status == .satisfied
-        monitor.pathUpdateHandler = { [weak self] path in
-            Task { [weak self] in
-                guard let self else { return }
-                await self.handlePathUpdate(path)
+        #if canImport(Network)
+            // Monitor network path changes
+            let monitor = NWPathMonitor()
+            self.pathMonitor = monitor
+            // Set initial network state
+            self.isNetworkPathSatisfied = monitor.currentPath.status == .satisfied
+            monitor.pathUpdateHandler = { [weak self] path in
+                Task { [weak self] in
+                    guard let self else { return }
+                    await self.handlePathUpdate(path)
+                }
             }
-        }
-        monitor.start(queue: pathMonitorQueue)
+            monitor.start(queue: pathMonitorQueue)
+        #else
+            self.isNetworkPathSatisfied = true
+        #endif
 
         #if canImport(UIKit)
             // Observe app lifecycle to reconnect when returning to foreground
@@ -382,8 +398,10 @@ actor WebSocketClient {
     }
 
     private func teardownLifecycleMonitoring() {
-        pathMonitor?.cancel()
-        pathMonitor = nil
+        #if canImport(Network)
+            pathMonitor?.cancel()
+            pathMonitor = nil
+        #endif
         #if canImport(UIKit)
             if let fg = foregroundObserver { NotificationCenter.default.removeObserver(fg) }
             if let bg = backgroundObserver { NotificationCenter.default.removeObserver(bg) }

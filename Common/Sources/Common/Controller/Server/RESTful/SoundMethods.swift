@@ -1,6 +1,10 @@
 import Foundation
 import Logging
 
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
+
 extension CreatureServerClient {
 
 

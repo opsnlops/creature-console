@@ -1,6 +1,5 @@
 import Foundation
 import Logging
-import os
 
 public actor WebSocketStateManager {
     public static let shared = WebSocketStateManager()

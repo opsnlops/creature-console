@@ -101,6 +101,8 @@ func urlEncode(_ string: String) -> String? {
 
 @discardableResult
 func failWithMessage(_ message: String) -> ExitCode {
-    fputs("Error: \(message)\n", stderr)
+    if let data = "Error: \(message)\n".data(using: .utf8) {
+        FileHandle.standardError.write(data)
+    }
     return .failure
 }

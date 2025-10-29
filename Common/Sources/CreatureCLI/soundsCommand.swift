@@ -2,6 +2,10 @@ import ArgumentParser
 import Common
 import Foundation
 
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
+
 protocol SoundListing: Sendable {
     func listSounds() async -> Result<[Sound], ServerError>
 }
