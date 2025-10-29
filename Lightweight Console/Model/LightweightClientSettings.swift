@@ -8,6 +8,7 @@ private enum LightweightSettingsKeys {
     static let defaultCreatureId = "lightweight.defaultCreatureId"
     static let backendHostname = "lightweight.backendHostname"
     static let activeUniverse = "lightweight.activeUniverse"
+    static let sharedUniverse = "activeUniverse"
     static let apiKey = "lightweight.proxyApiKey"
 }
 
@@ -81,11 +82,18 @@ actor LightweightSettingsStore {
     }
 
     func activeUniverse() -> UniverseIdentifier {
-        let value = defaults.integer(forKey: LightweightSettingsKeys.activeUniverse)
-        return value == 0 ? 1 : value
+        let scopedValue = defaults.integer(forKey: LightweightSettingsKeys.activeUniverse)
+        if scopedValue > 0 {
+            return scopedValue
+        }
+
+        let sharedValue = defaults.integer(forKey: LightweightSettingsKeys.sharedUniverse)
+        return sharedValue > 0 ? sharedValue : 1
     }
 
     func setActiveUniverse(_ universe: UniverseIdentifier) {
-        defaults.set(universe, forKey: LightweightSettingsKeys.activeUniverse)
+        let clamped = min(max(universe, 1), 63_999)
+        defaults.set(clamped, forKey: LightweightSettingsKeys.activeUniverse)
+        defaults.set(clamped, forKey: LightweightSettingsKeys.sharedUniverse)
     }
 }

@@ -44,11 +44,48 @@ struct LightweightSettingsStoreTests {
         #expect(token == "abc123")
         let universe = await store.activeUniverse()
         #expect(universe == 42)
+        let scopedUniverse = defaults.integer(forKey: "lightweight.activeUniverse")
+        let sharedUniverse = defaults.integer(forKey: "activeUniverse")
+        #expect(scopedUniverse == 42)
+        #expect(sharedUniverse == 42)
 
         await store.setAuthToken("")
         let cleared = await store.authToken()
         #expect(cleared.isEmpty)
         let clearedSnapshot = await store.currentSettings()
         #expect(clearedSnapshot.apiKey.isEmpty)
+    }
+
+    @Test("active universe falls back to shared key")
+    func activeUniverseFallsBack() async throws {
+        let suiteName = "LightweightSettings-\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            throw NSError(domain: "DefaultsInit", code: 0)
+        }
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        defaults.set(27, forKey: "activeUniverse")
+        let store = LightweightSettingsStore(defaults: defaults)
+        let universe = await store.activeUniverse()
+        #expect(universe == 27)
+    }
+
+    @Test("scoped universe overrides shared value")
+    func scopedUniverseOverridesShared() async throws {
+        let suiteName = "LightweightSettings-\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            throw NSError(domain: "DefaultsInit", code: 0)
+        }
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        defaults.set(27, forKey: "activeUniverse")
+        defaults.set(12, forKey: "lightweight.activeUniverse")
+        let store = LightweightSettingsStore(defaults: defaults)
+        let universe = await store.activeUniverse()
+        #expect(universe == 12)
     }
 }
