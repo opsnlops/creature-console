@@ -17,6 +17,7 @@ public protocol CreatureServerClientProtocol: AnyObject {
     func saveAnimation(animation: Animation) async -> Result<String, ServerError>
     func listAnimations() async -> Result<[AnimationMetadata], ServerError>
     func getAnimation(animationId: PlaylistIdentifier) async -> Result<Animation, ServerError>
+    func deleteAnimation(animationId: AnimationIdentifier) async -> Result<String, ServerError>
     func stopPlayingPlaylist(universe: UniverseIdentifier) async throws -> Result<
         String, ServerError
     >

@@ -1,6 +1,8 @@
 import Foundation
 import Logging
 
+private struct EmptyBody: Encodable {}
+
 extension CreatureServerClient {
 
 
@@ -103,6 +105,20 @@ extension CreatureServerClient {
         self.logger.debug("Using URL: \(url)")
 
         return await fetchData(url, returnType: Animation.self)
+    }
+
+    public func deleteAnimation(animationId: AnimationIdentifier) async -> Result<
+        String, ServerError
+    > {
+        logger.debug("attempting to delete animation \(animationId)")
+
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/\(animationId)") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await sendData(url, method: "DELETE", body: EmptyBody(), returnType: StatusDTO.self)
+            .map { $0.message }
     }
 
     public func generateLipSyncForAnimation(animationId: AnimationIdentifier)

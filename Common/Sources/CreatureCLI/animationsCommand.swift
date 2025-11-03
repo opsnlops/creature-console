@@ -44,8 +44,14 @@ extension CreatureCLI {
     struct Animations: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "View and work with animations",
+            discussion:
+                """
+                Use these commands to list, inspect, play, update, or remove animations stored on the server.
+                `generate-lip-sync` queues lip sync generation for an existing animation using the server's multitrack audio.
+                For generating lip sync JSON from a local WAV, use `sounds generate-lipsync-from-file`.
+                """,
             subcommands: [
-                Get.self, List.self, Play.self, Interrupt.self, GenerateLipSync.self,
+                Get.self, List.self, Play.self, Interrupt.self, GenerateLipSync.self, Rename.self, Delete.self,
                 TestAnimationEncoding.self, TestTrackEncoding.self, TestAnimationSaving.self, AdHoc.self,
             ]
         )
@@ -438,6 +444,85 @@ extension CreatureCLI {
             case .failure(let error):
                 throw failWithMessage(
                     "Unable to queue lip sync generation: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    struct Rename: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Rename an animation by updating its title"
+        )
+
+        @OptionGroup()
+        var globalOptions: GlobalOptions
+
+        @Argument(help: "Animation ID to rename")
+        var animationId: AnimationIdentifier
+
+        @Argument(help: "New title for the animation")
+        var newTitle: String
+
+        func run() async throws {
+
+            print("Renaming animation \(animationId) to '\(newTitle)'...\n")
+
+            let server = getServer(config: globalOptions)
+
+            let fetchResult = await server.getAnimation(animationId: animationId)
+            var animation: Animation
+            switch fetchResult {
+            case .success(let existing):
+                animation = existing
+            case .failure(let error):
+                throw failWithMessage("Unable to load animation: \(error.localizedDescription)")
+            }
+
+            animation.metadata.title = newTitle
+
+            let saveResult = await server.saveAnimation(animation: animation)
+            switch saveResult {
+            case .success(let message):
+                print(message)
+            case .failure(let error):
+                throw failWithMessage("Unable to save renamed animation: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    struct Delete: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Delete an animation from the server",
+            discussion:
+                "Removes the animation document and all tracks from the database. Requires --confirm to proceed."
+        )
+
+        @OptionGroup()
+        var globalOptions: GlobalOptions
+
+        @Argument(help: "Animation ID to delete")
+        var animationId: AnimationIdentifier
+
+        @Flag(name: .customLong("confirm"), help: "Required flag to actually delete the animation.")
+        var confirm: Bool = false
+
+        func run() async throws {
+
+            guard confirm else {
+                throw failWithMessage(
+                    "Refusing to delete animation without --confirm. Command aborted.")
+            }
+
+            print("Deleting animation \(animationId)...\n")
+
+            let server = getServer(config: globalOptions)
+            let result = await server.deleteAnimation(animationId: animationId)
+
+            switch result {
+            case .success(let message):
+                print(message)
+            case .failure(let error):
+                throw failWithMessage(
+                    "Unable to delete animation: \(error.localizedDescription)")
             }
         }
     }
