@@ -181,6 +181,11 @@ struct CreatureConsole: App {
                         CacheInvalidationProcessor.rebuildAllCaches()
                     }
                 }
+                CommandMenu("Utilities") {
+                    Button("Generate Lip Sync from WAV…") {
+                        LipSyncUtilities.generateLipSyncFromWAV()
+                    }
+                }
             }
         #endif
 

@@ -443,8 +443,14 @@ class AudioManager: ObservableObject {
                     dst, 1, interleavedFloat.advanced(by: c), stride, dst, 1, vDSP_Length(outFrames)
                 )
             }
-            var denom = Float(channels)
-            vDSP_vsdiv(dst, 1, &denom, dst, 1, vDSP_Length(outFrames))
+
+            // Preserve perceived loudness by normalizing only when necessary.
+            var maxMagnitude: Float = 0.0
+            vDSP_maxmgv(dst, 1, &maxMagnitude, vDSP_Length(outFrames))
+            if maxMagnitude > 1.0 {
+                var scale = 1.0 / maxMagnitude
+                vDSP_vsmul(dst, 1, &scale, dst, 1, vDSP_Length(outFrames))
+            }
 
             do {
                 try dstFile.write(from: dstBuffer)

@@ -1,4 +1,5 @@
 import Common
+import Foundation
 import OSLog
 import SwiftData
 import SwiftUI
@@ -24,15 +25,22 @@ struct AnimationTable: View {
     private var animations: [AnimationMetadataModel]
 
     @State private var showErrorAlert = false
+    @State private var alertTitle = "Unable to load Animations"
     @State private var alertMessage = ""
     @State private var selection: AnimationIdentifier? = nil
 
     @State private var loadAnimationTask: Task<Void, Never>? = nil
     @State private var playAnimationTask: Task<Void, Never>? = nil
     @State private var interruptAnimationTask: Task<Void, Never>? = nil
+    @State private var generateLipSyncTask: Task<Void, Never>? = nil
 
     @State private var navigateToEditor = false
     @State private var animationToEdit: Common.Animation? = nil
+    @State private var generatingLipSyncForAnimation: AnimationIdentifier? = nil
+    @State private var activeAnimationLipSyncJob:
+        (animationId: AnimationIdentifier, jobId: String)? = nil
+    @State private var observedJobInfo: JobStatusStore.JobInfo? = nil
+    @State private var jobEventsTask: Task<Void, Never>? = nil
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
 
@@ -66,25 +74,26 @@ struct AnimationTable: View {
                     }
                     .contextMenu(forSelectionType: AnimationIdentifier.self) {
                         (items: Set<AnimationIdentifier>) in
+                        let targetId = items.first ?? selection
                         // Determine if we have a selected ID (right-click updates selection automatically)
-                        let hasSelection = (items.first ?? selection) != nil
+                        let hasSelection = targetId != nil
 
                         Button {
-                            playStoredAnimation(animationId: items.first ?? selection)
+                            playStoredAnimation(animationId: targetId)
                         } label: {
                             Label("Play on Server", systemImage: "play")
                         }
                         .disabled(!hasSelection)
 
                         Button {
-                            interruptWithAnimation(animationId: items.first ?? selection)
+                            interruptWithAnimation(animationId: targetId)
                         } label: {
                             Label("Interrupt & Play", systemImage: "bolt.fill")
                         }
                         .disabled(!hasSelection)
 
                         Button {
-                            if let id = items.first ?? selection {
+                            if let id = targetId {
                                 loadAnimationForEditing(animationId: id)
                             }
                         } label: {
@@ -94,7 +103,7 @@ struct AnimationTable: View {
 
                         // Sound file action (kept as a stub; disabled when no sound file)
                         let hasSound: Bool = {
-                            guard let id = items.first ?? selection,
+                            guard let id = targetId,
                                 let md = animations.first(where: { $0.id == id })
                             else { return false }
                             return !md.soundFile.isEmpty
@@ -105,6 +114,26 @@ struct AnimationTable: View {
                             Label("Play Sound File", systemImage: "music.quarternote.3")
                         }
                         .disabled(!hasSound)
+
+                        let canGenerateLipSync: Bool = {
+                            guard let id = targetId,
+                                let md = animations.first(where: { $0.id == id })
+                            else { return false }
+                            return md.multitrackAudio
+                        }()
+
+                        Button {
+                            if let id = targetId {
+                                startAnimationLipSyncGeneration(animationId: id)
+                            }
+                        } label: {
+                            Label("Create Lip Sync Data", systemImage: "waveform.badge.plus")
+                        }
+                        .disabled(
+                            !canGenerateLipSync
+                                || generatingLipSyncForAnimation != nil
+                                || activeAnimationLipSyncJob != nil
+                        )
                     }
                 } else {
                     ProgressView("Loading animations...")
@@ -115,6 +144,12 @@ struct AnimationTable: View {
                 loadAnimationTask?.cancel()
                 playAnimationTask?.cancel()
                 interruptAnimationTask?.cancel()
+                generateLipSyncTask?.cancel()
+                jobEventsTask?.cancel()
+                generateLipSyncTask = nil
+                jobEventsTask = nil
+                activeAnimationLipSyncJob = nil
+                generatingLipSyncForAnimation = nil
             }
             .onChange(of: selection) {
                 logger.debug("selection is now \(String(describing: selection))")
@@ -124,9 +159,11 @@ struct AnimationTable: View {
             }
             .alert(isPresented: $showErrorAlert) {
                 Alert(
-                    title: Text("Unable to load Animations"),
+                    title: Text(alertTitle),
                     message: Text(alertMessage),
-                    dismissButton: .default(Text("Fiiiiiine"))
+                    dismissButton: .default(Text("Fiiiiiine")) {
+                        alertTitle = "Unable to load Animations"
+                    }
                 )
             }
             .navigationTitle("Animations")
@@ -151,8 +188,204 @@ struct AnimationTable: View {
                     )
                 }
             }
+            .overlay {
+                if let job = activeAnimationLipSyncJob {
+                    ProcessingOverlayView(
+                        message: animationOverlayMessage(
+                            for: observedJobInfo,
+                            animationId: job.animationId
+                        ),
+                        progress: observedJobInfo?.progressPercentage
+                    )
+                } else if let animationId = generatingLipSyncForAnimation {
+                    ProcessingOverlayView(
+                        message: "Submitting lip sync job for \(animationTitle(for: animationId))…",
+                        progress: nil
+                    )
+                }
+            }
+            .animation(
+                .default,
+                value: activeAnimationLipSyncJob != nil || generatingLipSyncForAnimation != nil
+            )
+            .task(id: activeAnimationLipSyncJob?.jobId) {
+                jobEventsTask?.cancel()
+                observedJobInfo = nil
+
+                guard let job = activeAnimationLipSyncJob else { return }
+                jobEventsTask = Task {
+                    let stream = await JobStatusStore.shared.events()
+                    for await event in stream {
+                        switch event {
+                        case .updated(let info) where info.jobId == job.jobId:
+                            await MainActor.run {
+                                observedJobInfo = info
+                                if info.isTerminal {
+                                    handleAnimationJobCompletion(
+                                        info: info, animationId: job.animationId)
+                                }
+                            }
+                            if info.isTerminal {
+                                await JobStatusStore.shared.remove(jobId: job.jobId)
+                                return
+                            }
+                        case .removed(let removedId) where removedId == job.jobId:
+                            await MainActor.run {
+                                finalizeAnimationJob()
+                            }
+                            return
+                        default:
+                            continue
+                        }
+                    }
+                }
+            }
         }  // NavigationStack
     }  // body
+
+    private func startAnimationLipSyncGeneration(animationId: AnimationIdentifier) {
+        guard generatingLipSyncForAnimation == nil && activeAnimationLipSyncJob == nil else {
+            logger.debug("Lip sync generation already in progress; ignoring request")
+            return
+        }
+
+        logger.info("Starting lip sync generation for animation \(animationId)")
+        generatingLipSyncForAnimation = animationId
+        activeAnimationLipSyncJob = nil
+
+        generateLipSyncTask?.cancel()
+        generateLipSyncTask = Task {
+            await performAnimationLipSyncGeneration(animationId: animationId)
+        }
+    }
+
+    private func performAnimationLipSyncGeneration(animationId: AnimationIdentifier) async {
+        let result = await server.generateLipSyncForAnimation(animationId: animationId)
+
+        if Task.isCancelled {
+            await MainActor.run {
+                generatingLipSyncForAnimation = nil
+                activeAnimationLipSyncJob = nil
+                generateLipSyncTask = nil
+            }
+            logger.debug("Lip sync generation task for \(animationId) was cancelled")
+            return
+        }
+
+        switch result {
+        case .success(let job):
+            logger.info(
+                "Animation lip sync job queued: \(job.jobId) for animation \(animationId) (\(job.jobType.rawValue))"
+            )
+            if let data = try? JSONEncoder().encode(
+                AnimationLipSyncJobDetails(animationId: animationId)),
+                let detailsString = String(data: data, encoding: .utf8)
+            {
+                let seeded = JobProgress(
+                    jobId: job.jobId,
+                    jobType: job.jobType,
+                    status: .queued,
+                    progress: 0.0,
+                    details: detailsString
+                )
+                await JobStatusStore.shared.update(with: seeded)
+            }
+
+            await MainActor.run {
+                activeAnimationLipSyncJob = (animationId, job.jobId)
+                generatingLipSyncForAnimation = animationId
+                observedJobInfo = nil
+            }
+
+        case .failure(let error):
+            logger.error("Failed to queue lip sync generation: \(error.localizedDescription)")
+            await MainActor.run {
+                alertTitle = "Lip Sync Generation Failed"
+                alertMessage = ServerError.detailedMessage(from: error)
+                showErrorAlert = true
+                generatingLipSyncForAnimation = nil
+                activeAnimationLipSyncJob = nil
+            }
+        }
+
+        await MainActor.run {
+            generateLipSyncTask = nil
+        }
+    }
+
+    private func animationOverlayMessage(
+        for info: JobStatusStore.JobInfo?,
+        animationId: AnimationIdentifier
+    ) -> String {
+        guard let info else {
+            return "Submitting lip sync job for \(animationTitle(for: animationId))…"
+        }
+
+        let targetId = info.animationLipSyncDetails?.animationId ?? animationId
+        let displayName = animationTitle(for: targetId)
+
+        switch info.status {
+        case .queued:
+            return "Lip sync job queued for \(displayName)…"
+        case .running:
+            return "Generating lip sync for \(displayName)…"
+        case .completed:
+            return "Lip sync completed for \(displayName)"
+        case .failed:
+            return "Lip sync failed for \(displayName)"
+        case .unknown:
+            return "Processing lip sync job for \(displayName)…"
+        }
+    }
+
+    private func animationTitle(for animationId: AnimationIdentifier) -> String {
+        animations.first(where: { $0.id == animationId })?.title ?? animationId
+    }
+
+    @MainActor
+    private func handleAnimationJobCompletion(
+        info: JobStatusStore.JobInfo,
+        animationId: AnimationIdentifier
+    ) {
+        let targetId = info.animationLipSyncDetails?.animationId ?? animationId
+        let displayName = animationTitle(for: targetId)
+
+        switch info.status {
+        case .completed:
+            alertTitle = "Lip Sync Ready"
+            if let result = info.animationLipSyncResult {
+                let trackDescription =
+                    result.updatedTracks == 1
+                    ? "1 track"
+                    : "\(result.updatedTracks) tracks"
+                alertMessage =
+                    "Lip sync data for \(displayName) finished processing. \(trackDescription) updated."
+            } else {
+                alertMessage = "Lip sync data for \(displayName) finished processing."
+            }
+            showErrorAlert = true
+        case .failed:
+            let message =
+                info.result?.isEmpty == false
+                ? info.result!
+                : "The server could not generate lip sync for \(displayName)."
+            alertTitle = "Lip Sync Failed"
+            alertMessage = message
+            showErrorAlert = true
+        default:
+            break
+        }
+
+        finalizeAnimationJob()
+    }
+
+    @MainActor
+    private func finalizeAnimationJob() {
+        generatingLipSyncForAnimation = nil
+        activeAnimationLipSyncJob = nil
+        observedJobInfo = nil
+        jobEventsTask = nil
+    }
 
     func loadAnimationForEditing(animationId: AnimationIdentifier) {
         loadAnimationTask?.cancel()
@@ -166,9 +399,13 @@ struct AnimationTable: View {
                     navigateToEditor = true
                 }
             case .failure(let error):
-                alertMessage = "Error: \(error.localizedDescription)"
-                logger.warning("Unable to load animation for editing: \(alertMessage)")
-                await MainActor.run { showErrorAlert = true }
+                let message = "Error: \(error.localizedDescription)"
+                logger.warning("Unable to load animation for editing: \(message)")
+                await MainActor.run {
+                    alertTitle = "Unable to Load Animation"
+                    alertMessage = message
+                    showErrorAlert = true
+                }
             }
         }
     }
@@ -191,9 +428,13 @@ struct AnimationTable: View {
             case .success(let message):
                 logger.info("Animation Scheduled: \(message)")
             case .failure(let error):
-                logger.warning("Unable to schedule animation: \(error.localizedDescription)")
-                alertMessage = "Unable to schedule animation: \(error.localizedDescription)"
-                showErrorAlert = true
+                let message = ServerError.detailedMessage(from: error)
+                logger.warning("Unable to schedule animation: \(message)")
+                await MainActor.run {
+                    alertTitle = "Unable to Schedule Animation"
+                    alertMessage = message
+                    showErrorAlert = true
+                }
             }
         }
     }
@@ -216,11 +457,13 @@ struct AnimationTable: View {
             case .success(let message):
                 logger.info("Animation Interrupt Scheduled: \(message)")
             case .failure(let error):
-                logger.warning(
-                    "Unable to schedule animation interrupt: \(error.localizedDescription)")
-                alertMessage =
-                    "Unable to schedule animation interrupt: \(error.localizedDescription)"
-                showErrorAlert = true
+                let message = ServerError.detailedMessage(from: error)
+                logger.warning("Unable to schedule animation interrupt: \(message)")
+                await MainActor.run {
+                    alertTitle = "Unable to Interrupt Animation"
+                    alertMessage = message
+                    showErrorAlert = true
+                }
             }
         }
     }

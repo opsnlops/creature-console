@@ -13,6 +13,8 @@ actor JobStatusStore {
         var result: String?
         var rawDetails: String?
         var lipSyncDetails: LipSyncJobDetails?
+        var animationLipSyncDetails: AnimationLipSyncJobDetails?
+        var animationLipSyncResult: AnimationLipSyncJobResult?
         var adHocResult: AdHocSpeechJobResult?
         var lastUpdated: Date
 
@@ -43,7 +45,7 @@ actor JobStatusStore {
 
     func events() -> AsyncStream<Event> {
         AsyncStream { continuation in
-            Task { await self.register(continuation: continuation) }
+            Task { self.register(continuation: continuation) }
         }
     }
 
@@ -62,6 +64,9 @@ actor JobStatusStore {
                 result: nil,
                 rawDetails: progress.details,
                 lipSyncDetails: progress.decodeDetails(as: LipSyncJobDetails.self),
+                animationLipSyncDetails: progress.decodeDetails(
+                    as: AnimationLipSyncJobDetails.self),
+                animationLipSyncResult: nil,
                 adHocResult: nil,
                 lastUpdated: Date()
             )
@@ -72,6 +77,11 @@ actor JobStatusStore {
         if info.lipSyncDetails == nil {
             info.lipSyncDetails = progress.decodeDetails(as: LipSyncJobDetails.self)
         }
+        if info.animationLipSyncDetails == nil {
+            info.animationLipSyncDetails = progress.decodeDetails(
+                as: AnimationLipSyncJobDetails.self)
+        }
+        info.animationLipSyncResult = nil
         info.lastUpdated = Date()
 
         jobs[progress.jobId] = info
@@ -92,6 +102,9 @@ actor JobStatusStore {
                 result: completion.result,
                 rawDetails: completion.details,
                 lipSyncDetails: completion.decodeDetails(as: LipSyncJobDetails.self),
+                animationLipSyncDetails: completion.decodeDetails(
+                    as: AnimationLipSyncJobDetails.self),
+                animationLipSyncResult: completion.decodeResult(as: AnimationLipSyncJobResult.self),
                 adHocResult: completion.decodeResult(as: AdHocSpeechJobResult.self),
                 lastUpdated: Date()
             )
@@ -102,6 +115,14 @@ actor JobStatusStore {
         info.rawDetails = completion.details ?? info.rawDetails
         if info.lipSyncDetails == nil {
             info.lipSyncDetails = completion.decodeDetails(as: LipSyncJobDetails.self)
+        }
+        if info.animationLipSyncDetails == nil {
+            info.animationLipSyncDetails = completion.decodeDetails(
+                as: AnimationLipSyncJobDetails.self)
+        }
+        if info.animationLipSyncResult == nil {
+            info.animationLipSyncResult = completion.decodeResult(
+                as: AnimationLipSyncJobResult.self)
         }
         if let adHocResult = completion.decodeResult(as: AdHocSpeechJobResult.self) {
             info.adHocResult = adHocResult

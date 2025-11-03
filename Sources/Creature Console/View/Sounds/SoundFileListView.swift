@@ -135,17 +135,17 @@ struct SoundFileListView: View {
             #endif
             .overlay {
                 if let job = activeLipSyncJob {
-                    overlayProgress(
+                    ProcessingOverlayView(
                         message: overlayMessage(for: observedJobInfo, soundId: job.soundId),
                         progress: observedJobInfo?.progressPercentage
                     )
                 } else if let name = generatingLipSyncFor {
-                    overlayProgress(
+                    ProcessingOverlayView(
                         message: "Submitting lip sync job for \(name)…",
                         progress: nil
                     )
                 } else if let name = preparingFile {
-                    overlayProgress(message: "Preparing \(name)…", progress: nil)
+                    ProcessingOverlayView(message: "Preparing \(name)…", progress: nil)
                 }
             }
             .animation(.default, value: generatingLipSyncFor != nil || preparingFile != nil)
@@ -232,30 +232,6 @@ struct SoundFileListView: View {
             }
         }
         return didImport
-    }
-
-    @ViewBuilder
-    private func overlayProgress(message: String, progress: Double?) -> some View {
-        ZStack {
-            Color.black.opacity(0.15).ignoresSafeArea()
-            VStack(spacing: 10) {
-                if let progress {
-                    ProgressView(value: progress, total: 100)
-                } else {
-                    ProgressView()
-                }
-                Text(message)
-                    .font(.callout)
-                if let progress {
-                    Text(String(format: "%.0f%%", progress))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(16)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-        }
-        .transition(.opacity)
     }
 
     private func overlayMessage(

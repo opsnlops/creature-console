@@ -14,6 +14,11 @@ struct SoundsCommandTests {
             let overwrite: Bool
         }
 
+        struct UploadCall: Equatable, Sendable {
+            let fileName: String
+            let size: Int
+        }
+
         struct PlayCall: Equatable, Sendable {
             let fileName: String
         }
@@ -24,10 +29,12 @@ struct SoundsCommandTests {
         private(set) var adHocListCallCount = 0
         private(set) var adHocURLRequests: [String] = []
         private(set) var soundURLRequests: [String] = []
+        private(set) var uploadCalls: [UploadCall] = []
 
         var listResult: Result<[Sound], ServerError>
         var playResult: Result<String, ServerError>
         var generateResult: Result<JobCreatedResponse, ServerError>
+        var uploadResult: Result<LipSyncUploadResponse, ServerError>
         var adHocListResult: Result<[AdHocSoundEntry], ServerError>
         var adHocURLResult: Result<URL, ServerError>
         var soundURLResult: Result<URL, ServerError>
@@ -38,6 +45,9 @@ struct SoundsCommandTests {
             generateResult: Result<JobCreatedResponse, ServerError> = .success(
                 JobCreatedResponse(jobId: "job-123", jobType: .lipSync, message: "queued")
             ),
+            uploadResult: Result<LipSyncUploadResponse, ServerError> = .success(
+                LipSyncUploadResponse(data: Data(), suggestedFilename: nil)
+            ),
             adHocListResult: Result<[AdHocSoundEntry], ServerError> = .success([]),
             adHocURLResult: Result<URL, ServerError> = .success(
                 URL(string: "https://example.com/sound.wav")!),
@@ -47,6 +57,7 @@ struct SoundsCommandTests {
             self.listResult = listResult
             self.playResult = playResult
             self.generateResult = generateResult
+            self.uploadResult = uploadResult
             self.adHocListResult = adHocListResult
             self.adHocURLResult = adHocURLResult
             self.soundURLResult = soundURLResult
@@ -67,6 +78,14 @@ struct SoundsCommandTests {
         > {
             generateCalls.append(GenerateCall(fileName: fileName, overwrite: allowOverwrite))
             return generateResult
+        }
+
+        func generateLipSyncUpload(
+            for fileName: String,
+            wavData: Data
+        ) async -> Result<LipSyncUploadResponse, ServerError> {
+            uploadCalls.append(UploadCall(fileName: fileName, size: wavData.count))
+            return uploadResult
         }
 
         func listAdHocSounds() async -> Result<[AdHocSoundEntry], ServerError> {
@@ -106,6 +125,10 @@ struct SoundsCommandTests {
 
         func recordedSoundURLRequests() async -> [String] {
             soundURLRequests
+        }
+
+        func recordedUploadCalls() async -> [UploadCall] {
+            uploadCalls
         }
     }
 
