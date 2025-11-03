@@ -5,6 +5,7 @@ public enum JobType: String, Codable, Sendable {
     case lipSync = "lip-sync"
     case adHocSpeech = "ad-hoc-speech"
     case adHocSpeechPrepare = "ad-hoc-speech-prepare"
+    case animationLipSync = "animation-lip-sync"
     case unknown
 
     public init(from decoder: Decoder) throws {
@@ -66,6 +67,19 @@ public struct LipSyncJobDetails: Codable, Equatable, Sendable {
     public init(soundFile: String, allowOverwrite: Bool) {
         self.soundFile = soundFile
         self.allowOverwrite = allowOverwrite
+    }
+}
+
+/// Additional metadata for animation lip sync jobs.
+public struct AnimationLipSyncJobDetails: Codable, Equatable, Sendable {
+    public let animationId: String
+
+    enum CodingKeys: String, CodingKey {
+        case animationId = "animation_id"
+    }
+
+    public init(animationId: String) {
+        self.animationId = animationId
     }
 }
 
@@ -204,5 +218,21 @@ public struct AdHocSpeechJobResult: Codable, Equatable, Sendable {
         self.autoPlay = autoPlay
         self.playbackTriggered = playbackTriggered
         self.universe = universe
+    }
+}
+
+/// Result payload returned when an animation lip sync job completes.
+public struct AnimationLipSyncJobResult: Codable, Equatable, Sendable {
+    public let animationId: String
+    public let updatedTracks: Int
+
+    enum CodingKeys: String, CodingKey {
+        case animationId = "animation_id"
+        case updatedTracks = "updated_tracks"
+    }
+
+    public init(animationId: String, updatedTracks: Int) {
+        self.animationId = animationId
+        self.updatedTracks = updatedTracks
     }
 }

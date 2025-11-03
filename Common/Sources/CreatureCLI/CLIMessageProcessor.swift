@@ -320,6 +320,13 @@ final class CLIMessageProcessor: MessageProcessor {
             }
         }
 
+        if jobProgress.jobType == .animationLipSync,
+            let animationDetails: AnimationLipSyncJobDetails = jobProgress.decodeDetails(
+                as: AnimationLipSyncJobDetails.self)
+        {
+            parts.append("animation: \(animationDetails.animationId)")
+        }
+
         printLine(.jobProgress, parts.joined(separator: " "))
     }
 
@@ -342,6 +349,13 @@ final class CLIMessageProcessor: MessageProcessor {
             parts.append("sound: \(lipDetails.soundFile)")
         }
 
+        if jobComplete.jobType == .animationLipSync,
+            let animationDetails: AnimationLipSyncJobDetails = jobComplete.decodeDetails(
+                as: AnimationLipSyncJobDetails.self)
+        {
+            parts.append("animation: \(animationDetails.animationId)")
+        }
+
         if jobComplete.status == .completed {
             if let payloadSize = jobComplete.result?.count {
                 parts.append("payload: \(payloadSize) bytes")
@@ -361,6 +375,12 @@ final class CLIMessageProcessor: MessageProcessor {
             if !adHocResult.playbackTriggered {
                 parts.append("(awaiting playback)")
             }
+        }
+
+        if jobComplete.jobType == .animationLipSync,
+            let result: AnimationLipSyncJobResult = jobComplete.decodeResult(as: AnimationLipSyncJobResult.self)
+        {
+            parts.append("tracks: \(result.updatedTracks)")
         }
 
         printLine(.jobComplete, parts.joined(separator: " "))

@@ -105,6 +105,22 @@ extension CreatureServerClient {
         return await fetchData(url, returnType: Animation.self)
     }
 
+    public func generateLipSyncForAnimation(animationId: AnimationIdentifier)
+        async -> Result<JobCreatedResponse, ServerError>
+    {
+
+        logger.debug("queue lip sync generation for animation \(animationId)")
+
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/generate-lipsync") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        let requestBody = RegenerateLipSyncRequestDTO(animationId: animationId)
+
+        return await sendData(url, method: "POST", body: requestBody, returnType: JobCreatedResponse.self)
+    }
+
     public func getAdHocAnimation(animationId: AnimationIdentifier) async -> Result<
         Animation, ServerError
     > {

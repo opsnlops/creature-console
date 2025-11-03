@@ -20,6 +20,13 @@ protocol LipSyncGenerating: Sendable {
     >
 }
 
+protocol LipSyncUploadGenerating: Sendable {
+    func generateLipSyncUpload(
+        for fileName: String,
+        wavData: Data
+    ) async -> Result<LipSyncUploadResponse, ServerError>
+}
+
 protocol AdHocSoundListing: Sendable {
     func listAdHocSounds() async -> Result<[AdHocSoundEntry], ServerError>
 }
@@ -32,12 +39,20 @@ protocol AdHocSoundListing: Sendable {
     func soundURL(for fileName: String) async -> Result<URL, ServerError>
 }
 
-typealias SoundCommandClient = SoundListing & SoundPlaying & LipSyncGenerating & AdHocSoundListing
-    & AdHocSoundURLProviding & SoundURLProviding
+typealias SoundCommandClient = SoundListing & SoundPlaying & LipSyncGenerating & LipSyncUploadGenerating
+    & AdHocSoundListing & AdHocSoundURLProviding & SoundURLProviding
 
 extension CreatureServerClient: SoundListing {}
 extension CreatureServerClient: SoundPlaying {}
 extension CreatureServerClient: LipSyncGenerating {}
+extension CreatureServerClient: LipSyncUploadGenerating {
+    public func generateLipSyncUpload(
+        for fileName: String,
+        wavData: Data
+    ) async -> Result<LipSyncUploadResponse, ServerError> {
+        await generateLipSyncUpload(fileName: fileName, wavData: wavData)
+    }
+}
 extension CreatureServerClient: AdHocSoundListing {}
 extension CreatureServerClient: AdHocSoundURLProviding {
     public func adHocSoundURL(for fileName: String) async -> Result<URL, ServerError> {
@@ -110,7 +125,14 @@ extension CreatureCLI {
     struct Sounds: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Get information on the sound file subsystem",
-            subcommands: [List.self, Play.self, GenerateLipSync.self, Download.self, AdHoc.self]
+            subcommands: [
+                List.self,
+                Play.self,
+                GenerateLipSync.self,
+                GenerateLipSyncFromFile.self,
+                Download.self,
+                AdHoc.self,
+            ]
         )
 
         @OptionGroup()
@@ -244,6 +266,130 @@ extension CreatureCLI {
                 case .failure(let error):
                     throw failWithMessage(
                         "Unable to generate lip sync: \(error.localizedDescription)")
+                }
+            }
+        }
+
+        struct GenerateLipSyncFromFile: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                commandName: "generate-lipsync-from-file",
+                abstract: "Upload a local WAV file and output the generated lip sync JSON",
+                discussion:
+                    "This command uploads a WAV file to the server, runs Rhubarb lip sync, and either prints the "
+                    + "resulting JSON to stdout or writes it to a file when --output/-o is provided."
+            )
+
+            @Argument(help: "Path to the local WAV file to process")
+            var inputPath: String
+
+            @Option(
+                name: .shortAndLong,
+                help: "Write the JSON response to this file instead of stdout."
+            )
+            var output: String?
+
+            @Flag(
+                name: .customLong("overwrite"),
+                help: "Replace the destination file if it already exists."
+            )
+            var overwrite = false
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let inputURL = URL(fileURLWithPath: inputPath).standardizedFileURL
+                let fileManager = FileManager.default
+
+                var isDirectory: ObjCBool = false
+                guard fileManager.fileExists(atPath: inputURL.path, isDirectory: &isDirectory) else {
+                    throw failWithMessage("Input file \(inputURL.path) does not exist.")
+                }
+                guard !isDirectory.boolValue else {
+                    throw failWithMessage("Input path \(inputURL.path) is a directory. Provide a WAV file.")
+                }
+                guard inputURL.pathExtension.lowercased() == "wav" else {
+                    throw failWithMessage(
+                        "Lip sync generation only supports WAV files. Received: \(inputURL.lastPathComponent)")
+                }
+
+                let wavData: Data
+                do {
+                    wavData = try Data(contentsOf: inputURL)
+                } catch {
+                    throw failWithMessage("Unable to read WAV file: \(error.localizedDescription)")
+                }
+
+                guard !wavData.isEmpty else {
+                    throw failWithMessage("The provided WAV file is empty.")
+                }
+
+                let server = await Sounds.makeServer(for: globalOptions)
+                let responseResult = await server.generateLipSyncUpload(
+                    for: inputURL.lastPathComponent,
+                    wavData: wavData
+                )
+
+                let response: LipSyncUploadResponse
+                switch responseResult {
+                case .success(let value):
+                    response = value
+                case .failure(let error):
+                    throw failWithMessage("Unable to generate lip sync: \(error.localizedDescription)")
+                }
+
+                if let output {
+                    let destinationURL = resolveDestination(
+                        output: output,
+                        suggestedFileName: response.suggestedFilename
+                            ?? inputURL.deletingPathExtension().lastPathComponent + ".json"
+                    )
+
+                    try ensureWritable(destinationURL, overwrite: overwrite)
+
+                    do {
+                        try response.data.write(to: destinationURL, options: .atomic)
+                    } catch {
+                        throw failWithMessage("Failed to write lip sync JSON: \(error.localizedDescription)")
+                    }
+
+                    print("Saved lip sync JSON to \(destinationURL.path) (\(response.data.count) bytes)")
+                } else {
+                    guard let jsonString = String(data: response.data, encoding: .utf8) else {
+                        throw failWithMessage("Server returned non-UTF8 JSON payload.")
+                    }
+                    print(jsonString)
+                }
+            }
+
+            private func resolveDestination(output: String, suggestedFileName: String) -> URL {
+                let fileManager = FileManager.default
+                let url = URL(fileURLWithPath: output).standardizedFileURL
+
+                var isDirectory: ObjCBool = false
+                if fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory),
+                    isDirectory.boolValue
+                {
+                    return url.appendingPathComponent(suggestedFileName)
+                }
+
+                if output.hasSuffix("/") {
+                    return url.appendingPathComponent(suggestedFileName)
+                }
+
+                return url
+            }
+
+            private func ensureWritable(_ url: URL, overwrite: Bool) throws {
+                let fileManager = FileManager.default
+                try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+                if fileManager.fileExists(atPath: url.path) {
+                    guard overwrite else {
+                        throw failWithMessage(
+                            "Destination \(url.path) already exists. Use --overwrite to replace it.")
+                    }
+                    try fileManager.removeItem(at: url)
                 }
             }
         }

@@ -45,8 +45,8 @@ extension CreatureCLI {
         static let configuration = CommandConfiguration(
             abstract: "View and work with animations",
             subcommands: [
-                Get.self, List.self, Play.self, Interrupt.self, TestAnimationEncoding.self,
-                TestTrackEncoding.self, TestAnimationSaving.self, AdHoc.self,
+                Get.self, List.self, Play.self, Interrupt.self, GenerateLipSync.self,
+                TestAnimationEncoding.self, TestTrackEncoding.self, TestAnimationSaving.self, AdHoc.self,
             ]
         )
 
@@ -405,6 +405,40 @@ extension CreatureCLI {
                     "Unable to interrupt with animation: \(error.localizedDescription)")
             }
 
+        }
+    }
+
+    struct GenerateLipSync: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Generate lip sync for a multitrack animation",
+            discussion:
+                "Queues a background job that extracts each creature's audio channel, runs Rhubarb lip sync, " +
+                "and updates the animation's tracks in the database."
+        )
+
+        @Argument(help: "Animation ID to process")
+        var animationId: AnimationIdentifier
+
+        @OptionGroup()
+        var globalOptions: GlobalOptions
+
+        func run() async throws {
+
+            print("queuing lip sync generation for animation \(animationId) on the server...\n")
+
+            let server = getServer(config: globalOptions)
+            let result = await server.generateLipSyncForAnimation(animationId: animationId)
+
+            switch result {
+            case .success(let job):
+                print("Job queued: \(job.jobId)")
+                if !job.message.isEmpty {
+                    print(job.message)
+                }
+            case .failure(let error):
+                throw failWithMessage(
+                    "Unable to queue lip sync generation: \(error.localizedDescription)")
+            }
         }
     }
 }
