@@ -41,6 +41,16 @@ struct AnimationTable: View {
         (animationId: AnimationIdentifier, jobId: String)? = nil
     @State private var observedJobInfo: JobStatusStore.JobInfo? = nil
     @State private var jobEventsTask: Task<Void, Never>? = nil
+    @State private var pendingDeleteAnimation: AnimationIdentifier? = nil
+    @State private var showDeleteConfirmation = false
+    @State private var deleteAnimationTask: Task<Void, Never>? = nil
+    @State private var isDeletingAnimation = false
+    @State private var showRenameSheet = false
+    @State private var renameAnimationId: AnimationIdentifier? = nil
+    @State private var renameAnimationTitle: String = ""
+    @State private var renameOriginalTitle: String = ""
+    @State private var renameAnimationTask: Task<Void, Never>? = nil
+    @State private var isRenamingAnimation = false
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
 
@@ -133,7 +143,30 @@ struct AnimationTable: View {
                             !canGenerateLipSync
                                 || generatingLipSyncForAnimation != nil
                                 || activeAnimationLipSyncJob != nil
+                                || isDeletingAnimation
+                                || isRenamingAnimation
                         )
+                        Button {
+                            if let id = targetId {
+                                startAnimationRename(animationId: id)
+                            }
+                        } label: {
+                            Label("Rename", systemImage: "pencil.and.outline")
+                        }
+                        .disabled(
+                            targetId == nil
+                                || isDeletingAnimation
+                                || isRenamingAnimation
+                        )
+                        Divider()
+                        Button(role: .destructive) {
+                            if let id = targetId {
+                                startAnimationDeletion(animationId: id)
+                            }
+                        } label: {
+                            Label("Delete Animation", systemImage: "trash")
+                        }
+                        .disabled(targetId == nil || isDeletingAnimation || isRenamingAnimation)
                     }
                 } else {
                     ProgressView("Loading animations...")
@@ -146,10 +179,16 @@ struct AnimationTable: View {
                 interruptAnimationTask?.cancel()
                 generateLipSyncTask?.cancel()
                 jobEventsTask?.cancel()
+                deleteAnimationTask?.cancel()
+                renameAnimationTask?.cancel()
                 generateLipSyncTask = nil
                 jobEventsTask = nil
+                deleteAnimationTask = nil
+                renameAnimationTask = nil
                 activeAnimationLipSyncJob = nil
                 generatingLipSyncForAnimation = nil
+                isDeletingAnimation = false
+                isRenamingAnimation = false
             }
             .onChange(of: selection) {
                 logger.debug("selection is now \(String(describing: selection))")
@@ -165,6 +204,33 @@ struct AnimationTable: View {
                         alertTitle = "Unable to load Animations"
                     }
                 )
+            }
+            .confirmationDialog(
+                "Delete Animation?",
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    confirmAnimationDeletion()
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingDeleteAnimation = nil
+                }
+            } message: {
+                if let id = pendingDeleteAnimation {
+                    Text(
+                        "This will permanently delete “\(animationTitle(for: id))” from the server."
+                    )
+                }
+            }
+            .sheet(isPresented: $showRenameSheet) {
+                RenameAnimationSheet(
+                    title: $renameAnimationTitle,
+                    originalTitle: renameOriginalTitle,
+                    onCancel: cancelAnimationRename,
+                    onSave: confirmAnimationRename
+                )
+                .frame(minWidth: 360)
             }
             .navigationTitle("Animations")
             #if os(macOS)
@@ -189,7 +255,17 @@ struct AnimationTable: View {
                 }
             }
             .overlay {
-                if let job = activeAnimationLipSyncJob {
+                if isRenamingAnimation, let id = renameAnimationId {
+                    ProcessingOverlayView(
+                        message: "Renaming \(animationTitle(for: id))…",
+                        progress: nil
+                    )
+                } else if isDeletingAnimation, let id = pendingDeleteAnimation {
+                    ProcessingOverlayView(
+                        message: "Deleting \(animationTitle(for: id))…",
+                        progress: nil
+                    )
+                } else if let job = activeAnimationLipSyncJob {
                     ProcessingOverlayView(
                         message: animationOverlayMessage(
                             for: observedJobInfo,
@@ -207,6 +283,7 @@ struct AnimationTable: View {
             .animation(
                 .default,
                 value: activeAnimationLipSyncJob != nil || generatingLipSyncForAnimation != nil
+                    || isDeletingAnimation || isRenamingAnimation
             )
             .task(id: activeAnimationLipSyncJob?.jobId) {
                 jobEventsTask?.cancel()
@@ -310,6 +387,159 @@ struct AnimationTable: View {
 
         await MainActor.run {
             generateLipSyncTask = nil
+        }
+    }
+
+    private func startAnimationRename(animationId: AnimationIdentifier) {
+        guard !isRenamingAnimation else { return }
+        renameAnimationId = animationId
+        let currentTitle = animationTitle(for: animationId)
+        renameOriginalTitle = currentTitle
+        renameAnimationTitle = currentTitle
+        showRenameSheet = true
+    }
+
+    private func cancelAnimationRename() {
+        renameAnimationTask?.cancel()
+        renameAnimationTask = nil
+        showRenameSheet = false
+        renameAnimationTitle = ""
+        renameOriginalTitle = ""
+        renameAnimationId = nil
+    }
+
+    private func confirmAnimationRename() {
+        guard let animationId = renameAnimationId else { return }
+        let trimmed = renameAnimationTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            alertTitle = "Invalid Name"
+            alertMessage = "Animation name cannot be empty."
+            showErrorAlert = true
+            return
+        }
+
+        if trimmed == renameOriginalTitle {
+            cancelAnimationRename()
+            return
+        }
+
+        renameAnimationTask?.cancel()
+        isRenamingAnimation = true
+        showRenameSheet = false
+
+        renameAnimationTask = Task {
+            await performAnimationRename(animationId: animationId, newTitle: trimmed)
+        }
+    }
+
+    private func performAnimationRename(animationId: AnimationIdentifier, newTitle: String) async {
+        let fetchResult = await server.getAnimation(animationId: animationId)
+
+        switch fetchResult {
+        case .success(var animation):
+            animation.metadata.title = newTitle
+            let saveResult = await server.saveAnimation(animation: animation)
+            switch saveResult {
+            case .success:
+                await MainActor.run {
+                    if let model = animations.first(where: { $0.id == animationId }) {
+                        model.title = newTitle
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            logger.warning(
+                                "Unable to persist renamed animation locally: \(error.localizedDescription)"
+                            )
+                        }
+                    }
+                    alertTitle = "Animation Renamed"
+                    alertMessage = "Renamed animation to \(newTitle)."
+                    showErrorAlert = true
+                }
+            case .failure(let error):
+                let message = ServerError.detailedMessage(from: error)
+                logger.warning("Unable to save renamed animation: \(message)")
+                await MainActor.run {
+                    alertTitle = "Unable to Rename Animation"
+                    alertMessage = message
+                    showErrorAlert = true
+                }
+            }
+
+        case .failure(let error):
+            let message = ServerError.detailedMessage(from: error)
+            logger.warning("Unable to load animation before rename: \(message)")
+            await MainActor.run {
+                alertTitle = "Unable to Rename Animation"
+                alertMessage = message
+                showErrorAlert = true
+            }
+        }
+
+        await MainActor.run {
+            isRenamingAnimation = false
+            renameAnimationTask = nil
+            renameAnimationId = nil
+            renameAnimationTitle = ""
+            renameOriginalTitle = ""
+        }
+    }
+
+    private func startAnimationDeletion(animationId: AnimationIdentifier) {
+        pendingDeleteAnimation = animationId
+        showDeleteConfirmation = true
+    }
+
+    private func confirmAnimationDeletion() {
+        guard let animationId = pendingDeleteAnimation, !isDeletingAnimation else { return }
+
+        deleteAnimationTask?.cancel()
+        isDeletingAnimation = true
+
+        deleteAnimationTask = Task {
+            await performAnimationDeletion(animationId: animationId)
+        }
+    }
+
+    private func performAnimationDeletion(animationId: AnimationIdentifier) async {
+        let result = await server.deleteAnimation(animationId: animationId)
+
+        await MainActor.run {
+            isDeletingAnimation = false
+            showDeleteConfirmation = false
+        }
+
+        switch result {
+        case .success:
+            await MainActor.run {
+                if let model = animations.first(where: { $0.id == animationId }) {
+                    modelContext.delete(model)
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        logger.warning(
+                            "Unable to persist deletion locally: \(error.localizedDescription)")
+                    }
+                }
+                pendingDeleteAnimation = nil
+                alertTitle = "Animation Deleted"
+                alertMessage = "Deleted \(animationTitle(for: animationId))."
+                showErrorAlert = true
+            }
+        case .failure(let error):
+            let message = ServerError.detailedMessage(from: error)
+            logger.warning("Unable to delete animation \(animationId): \(message)")
+            await MainActor.run {
+                pendingDeleteAnimation = nil
+                alertTitle = "Unable to Delete Animation"
+                alertMessage = message
+                showErrorAlert = true
+            }
+        }
+
+        await MainActor.run {
+            deleteAnimationTask = nil
         }
     }
 
@@ -472,5 +702,52 @@ struct AnimationTable: View {
 struct AnimationTable_Previews: PreviewProvider {
     static var previews: some View {
         AnimationTable(creature: .mock())
+    }
+}
+
+private struct RenameAnimationSheet: View {
+    @Binding var title: String
+    let originalTitle: String
+    let onCancel: () -> Void
+    let onSave: () -> Void
+
+    private var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Rename Animation")
+                .font(.title2.bold())
+
+            Text("Update the animation name. This change is saved to the server immediately.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            TextField("Animation Name", text: $title)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit {
+                    guard canSave else { return }
+                    onSave()
+                }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel, action: onCancel)
+                Button("Save") {
+                    onSave()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!canSave)
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 360)
+    }
+
+    private var canSave: Bool {
+        !trimmedTitle.isEmpty && trimmedTitle != originalTitle
     }
 }

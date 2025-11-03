@@ -19,13 +19,13 @@ struct CacheInvalidationProcessor {
     static func processCacheInvalidation(_ request: CacheInvalidation) {
         switch request.cacheType {
         case .creature:
-            rebuildCreatureCache()
+            rebuildCreatureCache(deleteStaleEntries: true)
         case .animation:
-            rebuildAnimationCache()
+            rebuildAnimationCache(deleteStaleEntries: true)
         case .playlist:
-            rebuildPlaylistCache()
+            rebuildPlaylistCache(deleteStaleEntries: true)
         case .soundList:
-            rebuildSoundListCache()
+            rebuildSoundListCache(deleteStaleEntries: true)
         case .adHocAnimationList:
             logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
         case .adHocSoundList:
