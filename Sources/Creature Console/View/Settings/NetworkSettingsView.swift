@@ -1,6 +1,32 @@
 import Common
-import SimpleKeychain
+import Foundation
 import SwiftUI
+
+#if canImport(SimpleKeychain)
+    import SimpleKeychain
+    private typealias NetworkSettingsKeychain = SimpleKeychain
+#else
+    private struct NetworkSettingsKeychain {
+        let service: String
+        let synchronizable: Bool
+
+        func set(_ value: String, forKey key: String) throws {
+            UserDefaults.standard.set(value, forKey: namespacedKey(key))
+        }
+
+        func deleteItem(forKey key: String) throws {
+            UserDefaults.standard.removeObject(forKey: namespacedKey(key))
+        }
+
+        func string(forKey key: String) throws -> String? {
+            UserDefaults.standard.string(forKey: namespacedKey(key))
+        }
+
+        private func namespacedKey(_ key: String) -> String {
+            "\(service).\(key)"
+        }
+    }
+#endif
 
 struct NetworkSettingsView: View {
     @AppStorage("serverAddress") private var serverAddress: String = ""
@@ -13,7 +39,7 @@ struct NetworkSettingsView: View {
     @State private var showUniverseClampHint: Bool = false
     @State private var proxyApiKey: String = ""
     private let numericFieldWidth: CGFloat = 200
-    private let keychain = SimpleKeychain(
+    private let keychain = NetworkSettingsKeychain(
         service: "io.opsnlops.CreatureConsole", synchronizable: true)
 
 

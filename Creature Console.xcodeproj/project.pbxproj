@@ -198,6 +198,12 @@
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
+		11F9A0112F0C123400123456 /* TVSoundboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0012F0C123400123456 /* TVSoundboardView.swift */; };
+		11F9A0122F0C123400123456 /* TVSoundboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0012F0C123400123456 /* TVSoundboardView.swift */; };
+		11F9A0132F0C123400123456 /* TVAnimationTriggerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0022F0C123400123456 /* TVAnimationTriggerView.swift */; };
+		11F9A0142F0C123400123456 /* TVAnimationTriggerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0022F0C123400123456 /* TVAnimationTriggerView.swift */; };
+		11F9A0152F0C123400123456 /* TVUserFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0032F0C123400123456 /* TVUserFeedback.swift */; };
+		11F9A0162F0C123400123456 /* TVUserFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0032F0C123400123456 /* TVUserFeedback.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
 		20EC813170B342D1AF9DF3FD /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 90725C52424947F78B297CE4 /* Logging */; };
@@ -376,6 +382,9 @@
 		11F4BA5629EA7DF300078790 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickSettingsView.swift; sourceTree = "<group>"; };
+		11F9A0012F0C123400123456 /* TVSoundboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVSoundboardView.swift; sourceTree = "<group>"; };
+		11F9A0022F0C123400123456 /* TVAnimationTriggerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVAnimationTriggerView.swift; sourceTree = "<group>"; };
+		11F9A0032F0C123400123456 /* TVUserFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVUserFeedback.swift; sourceTree = "<group>"; };
 		11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SixAxisJoystick.swift; sourceTree = "<group>"; };
 		11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugJoystickScene.swift; sourceTree = "<group>"; };
 		11FF7C132BF0334E00BF5A09 /* Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animations.swift; sourceTree = "<group>"; };
@@ -674,6 +683,7 @@
 			children = (
 				11B0488C2EB8430E001B73C5 /* Shared */,
 				113D00502EAF0C9B00155515 /* LiveMagic */,
+				11F9A0002F0C123400123456 /* tvOS */,
 				11C54A492E91A1E0003CD966 /* StatusLightsState+UI.swift */,
 				119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */,
 				114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */,
@@ -1020,6 +1030,16 @@
 				1168DC982B4F99E000A9895A /* IOKit.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		11F9A0002F0C123400123456 /* tvOS */ = {
+			isa = PBXGroup;
+			children = (
+				11F9A0022F0C123400123456 /* TVAnimationTriggerView.swift */,
+				11F9A0012F0C123400123456 /* TVSoundboardView.swift */,
+				11F9A0032F0C123400123456 /* TVUserFeedback.swift */,
+			);
+			path = tvOS;
 			sourceTree = "<group>";
 		};
 		11FDBF4B2BE0A60F008C5B3E /* Controller */ = {
@@ -1591,6 +1611,9 @@
 				113D00522EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */,
 				113D00532EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
 				113D00A12EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
+				11F9A0112F0C123400123456 /* TVSoundboardView.swift in Sources */,
+				11F9A0132F0C123400123456 /* TVAnimationTriggerView.swift in Sources */,
+				11F9A0152F0C123400123456 /* TVUserFeedback.swift in Sources */,
 				11E53CC82E88964100C17F16 /* MetricKitManager.swift in Sources */,
 				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
 				11F0E49C2E90899C0085918D /* SoundImporter.swift in Sources */,
@@ -1704,6 +1727,9 @@
 				113D00552EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */,
 				113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
 				113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
+				11F9A0122F0C123400123456 /* TVSoundboardView.swift in Sources */,
+				11F9A0142F0C123400123456 /* TVAnimationTriggerView.swift in Sources */,
+				11F9A0162F0C123400123456 /* TVUserFeedback.swift in Sources */,
 				117C87552CA0CEF9007B5682 /* VirtualJoystick.swift in Sources */,
 				117C87572CA0CEF9007B5682 /* SixAxisJoystick.swift in Sources */,
 				117C87592CA0CEF9007B5682 /* AprilsCreatureWorkshopJoystick.swift in Sources */,
@@ -1807,7 +1833,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 2.13.6;
+				MARKETING_VERSION = 2.13.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1856,7 +1882,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 2.13.6;
+				MARKETING_VERSION = 2.13.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -2131,7 +2157,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.13.6;
+				MARKETING_VERSION = 2.13.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2185,7 +2211,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.13.6;
+				MARKETING_VERSION = 2.13.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2269,7 +2295,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.13.6;
+				MARKETING_VERSION = 2.13.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2301,7 +2327,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.13.6;
+				MARKETING_VERSION = 2.13.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

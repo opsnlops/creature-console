@@ -226,7 +226,7 @@ struct SensorData: View {
                         .frame(width: 80, alignment: .trailing)
                     Text("Unit")
                         .fontWeight(.medium)
-                        .frame(width: 40, alignment: .leading)
+                        .frame(width: 60, alignment: .leading)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -240,15 +240,16 @@ struct SensorData: View {
                         .foregroundColor(temperatureColor(report.boardTemperature))
                         .frame(width: 80, alignment: .trailing)
                     Text("°F")
-                        .frame(width: 40, alignment: .leading)
+                        .frame(width: 60, alignment: .leading)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(Color.secondary.opacity(0.1))
 
                 // Power sensors
-                ForEach(report.powerReports.indices, id: \.self) { index in
-                    let sensor = report.powerReports[index]
+                let sensors = filteredPowerSensors(report.powerReports)
+                ForEach(sensors.indices, id: \.self) { index in
+                    let sensor = sensors[index]
 
                     Group {
                         HStack {
@@ -264,16 +265,16 @@ struct SensorData: View {
                                 )
                                 .frame(width: 80, alignment: .trailing)
                             Text("V")
-                                .frame(width: 40, alignment: .leading)
+                                .frame(width: 60, alignment: .leading)
                         }
 
                         HStack {
                             Text("\(sensor.name) - Current")
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(String(format: "%.3f", sensor.current))
+                            Text(String(format: "%.2f", sensor.current))
                                 .frame(width: 80, alignment: .trailing)
                             Text("A")
-                                .frame(width: 40, alignment: .leading)
+                                .frame(width: 60, alignment: .leading)
                         }
 
                         HStack {
@@ -282,7 +283,7 @@ struct SensorData: View {
                             Text(String(format: "%.2f", sensor.power))
                                 .frame(width: 80, alignment: .trailing)
                             Text("W")
-                                .frame(width: 40, alignment: .leading)
+                                .frame(width: 60, alignment: .leading)
                         }
                     }
                     .padding(.horizontal, 12)
@@ -332,8 +333,9 @@ struct SensorData: View {
                                 .foregroundColor(temperatureColor(report.boardTemperature))
                                 .frame(width: 80, alignment: .trailing)
                             VStack(alignment: .leading, spacing: 2) {
-                                ForEach(report.powerReports.indices, id: \.self) { index in
-                                    let sensor = report.powerReports[index]
+                                let sensors = filteredPowerSensors(report.powerReports)
+                                ForEach(sensors.indices, id: \.self) { index in
+                                    let sensor = sensors[index]
                                     Text(
                                         "\(sensor.name): \(String(format: "%.2f", sensor.voltage))V"
                                     )
@@ -414,6 +416,17 @@ struct SensorData: View {
         case 3.0...3.6: return .green  // Acceptable range (3.0V - 3.6V, target 3.3V)
         default: return .orange  // Too high
         }
+    }
+
+    private func filteredPowerSensors(_ sensors: [BoardPowerSensors]) -> [BoardPowerSensors] {
+        #if os(tvOS)
+            return sensors.filter { sensor in
+                let name = sensor.name.lowercased()
+                return !name.contains("vbus") && !name.contains("3v3")
+            }
+        #else
+            return sensors
+        #endif
     }
 }
 

@@ -42,7 +42,9 @@ struct LiveMagicView: View {
                 } label: {
                     Label("Instant Speech", systemImage: "bolt.fill")
                 }
-                .keyboardShortcut("n", modifiers: [.command])
+                #if !os(tvOS)
+                    .keyboardShortcut("n", modifiers: [.command])
+                #endif
             }
         }
         .sheet(isPresented: $viewModel.isPresentingPrompt) {

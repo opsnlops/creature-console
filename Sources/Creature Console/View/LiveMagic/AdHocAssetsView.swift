@@ -3,7 +3,7 @@ import SwiftUI
 
 private typealias CreatureAnimation = Common.Animation
 
-#if canImport(UIKit)
+#if os(iOS) || os(visionOS)
     import UIKit
 #elseif canImport(AppKit)
     import AppKit
@@ -22,7 +22,7 @@ private func adHocByteString(_ bytes: Int64) -> String {
 }
 
 private func copyToClipboard(_ text: String) {
-    #if canImport(UIKit)
+    #if os(iOS) || os(visionOS)
         UIPasteboard.general.string = text
     #elseif canImport(AppKit)
         let pasteboard = NSPasteboard.general
@@ -69,6 +69,8 @@ struct AdHocAnimationListView: View {
         }
         #if os(macOS)
             .listStyle(.inset)
+        #elseif os(tvOS)
+            .listStyle(.plain)
         #else
             .listStyle(.insetGrouped)
         #endif
@@ -174,7 +176,22 @@ private struct AdHocAnimationDetailView: View {
                     description: Text(errorMessage)
                 )
             } else if let animation {
-                AnimationEditor(animation: animation, readOnly: true)
+                #if os(iOS) || os(macOS)
+                    AnimationEditor(animation: animation, readOnly: true)
+                #else
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Preview Unavailable")
+                                .font(.title2.weight(.semibold))
+                            Text(
+                                "Ad-hoc animation playback requires the full editor, which is currently unavailable on this platform."
+                            )
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                        }
+                        .padding()
+                    }
+                #endif
             }
         }
         .navigationTitle("Ad-Hoc Animation")
@@ -239,6 +256,8 @@ struct AdHocSoundListView: View {
         }
         #if os(macOS)
             .listStyle(.inset)
+        #elseif os(tvOS)
+            .listStyle(.plain)
         #else
             .listStyle(.insetGrouped)
         #endif

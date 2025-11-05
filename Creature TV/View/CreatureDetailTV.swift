@@ -34,19 +34,11 @@ struct CreatureDetail: View {
                 Rectangle()
                     .fill(.ultraThinMaterial)
                     .ignoresSafeArea()
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(creature.name)
-                        .font(.system(size: 60, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
-                        .shadow(radius: 8)
-                        .padding(.top, 36)
-                        .padding(.horizontal, 36)
-                        .padding(.bottom, 36)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .multilineTextAlignment(.center)
-                    SensorData(creature: creature, showTitle: false)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+                SensorData(creature: creature, showTitle: false)
+                    .padding(.top, 24)
+                    .padding(.horizontal, 36)
+                    .padding(.bottom, 36)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .task {
                 // Seed initial activity and subscribe to updates

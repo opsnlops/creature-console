@@ -1,6 +1,52 @@
 import Common
 import SwiftUI
 
+#if os(tvOS)
+    import UIKit
+
+    /// Minimal UIKit bridge to mimic `TextEditor` on tvOS.
+    private struct TVMultilineTextEditor: UIViewRepresentable {
+
+        @Binding var text: String
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(text: $text)
+        }
+
+        func makeUIView(context: Context) -> UITextView {
+            let textView = UITextView()
+            textView.backgroundColor = .clear
+            textView.textContainerInset = UIEdgeInsets(top: 16, left: 12, bottom: 16, right: 12)
+            textView.delegate = context.coordinator
+            textView.font = UIFont.preferredFont(forTextStyle: .body)
+            textView.adjustsFontForContentSizeCategory = true
+            textView.keyboardDismissMode = .interactive
+            textView.smartInsertDeleteType = .yes
+            textView.smartDashesType = .yes
+            textView.smartQuotesType = .yes
+            return textView
+        }
+
+        func updateUIView(_ uiView: UITextView, context: Context) {
+            if uiView.text != text {
+                uiView.text = text
+            }
+        }
+
+        final class Coordinator: NSObject, UITextViewDelegate {
+            @Binding var text: String
+
+            init(text: Binding<String>) {
+                _text = text
+            }
+
+            func textViewDidChange(_ textView: UITextView) {
+                text = textView.text ?? ""
+            }
+        }
+    }
+#endif
+
 struct LiveMagicPromptSheet: View {
 
     let mode: LiveMagicViewModel.PromptMode
@@ -39,9 +85,11 @@ struct LiveMagicPromptSheet: View {
             if selectedCreature == nil {
                 selectedCreature = creatures.first
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                textIsFocused = true
-            }
+            #if !os(tvOS)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    textIsFocused = true
+                }
+            #endif
         }
     }
 
@@ -70,14 +118,24 @@ struct LiveMagicPromptSheet: View {
             }
 
             ZStack(alignment: .topLeading) {
-                TextEditor(text: $scriptText)
-                    .focused($textIsFocused)
-                    .frame(minHeight: 160)
-                    .padding(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.15))
-                    )
+                #if os(tvOS)
+                    TVMultilineTextEditor(text: $scriptText)
+                        .frame(minHeight: 200)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.secondary.opacity(0.15))
+                        )
+                        .focusable(true)
+                #else
+                    TextEditor(text: $scriptText)
+                        .focused($textIsFocused)
+                        .frame(minHeight: 160)
+                        .padding(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.secondary.opacity(0.15))
+                        )
+                #endif
 
                 if scriptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(
