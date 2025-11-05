@@ -19,6 +19,7 @@ struct ActivityTintTests {
             .preparingToRecord,
             .playingAnimation,
             .connectingToServer,
+            .countingDownForFilming,
         ]
 
         for activity in activities {
@@ -53,6 +54,11 @@ struct ActivityTintTests {
         #expect(Activity.playingAnimation.tintColor == .purple)
     }
 
+    @Test("countdown for filming is orange")
+    func countdownForFilmingIsOrange() {
+        #expect(Activity.countingDownForFilming.tintColor == .orange)
+    }
+
     @Test("connecting to server is pink")
     func connectingToServerIsPink() {
         #expect(Activity.connectingToServer.tintColor == .pink)
@@ -68,6 +74,7 @@ struct ActivityTintTests {
                 .preparingToRecord,
                 .playingAnimation,
                 .connectingToServer,
+                .countingDownForFilming,
             ]
 
             for activity in activities {
@@ -103,6 +110,14 @@ struct ActivityTintTests {
             #expect(color.red > color.blue)
         }
 
+        @Test("filming countdown controller light is warm")
+        func filmingCountdownControllerLightIsWarm() {
+            let color = Activity.countingDownForFilming.controllerLightColor
+            // Orange should be warmer than blue
+            #expect(color.red > color.blue)
+            #expect(color.green >= color.blue)
+        }
+
         @Test("controller light colors are not black")
         func controllerLightColorsAreNotBlack() {
             let activities: [Activity] = [
@@ -112,6 +127,7 @@ struct ActivityTintTests {
                 .preparingToRecord,
                 .playingAnimation,
                 .connectingToServer,
+                .countingDownForFilming,
             ]
 
             for activity in activities {

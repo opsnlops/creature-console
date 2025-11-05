@@ -91,7 +91,7 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 **This is an animatronics control application - it controls physical robots that can only be in one state at a time.**
 
 - **`AppState.shared`**: Single source of truth for what the robot is currently doing
-  - Only one activity can be active: `.idle`, `.streaming`, `.recording`, `.preparingToRecord`, `.playingAnimation`, `.connectingToServer`
+  - Only one activity can be active: `.idle`, `.streaming`, `.recording`, `.preparingToRecord`, `.playingAnimation`, `.connectingToServer`, `.countingDownForFilming`
   - All components subscribe to `AppState.stateUpdates: AsyncStream<AppStateData>` for reactive updates
   - When AppState changes, ALL subscribers automatically react (UI, joystick lights, hardware controllers, etc.)
 

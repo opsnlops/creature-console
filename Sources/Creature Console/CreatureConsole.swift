@@ -47,6 +47,7 @@ struct CreatureConsole: App {
             "logSpareTimeFrameInterval": 1000,
             "useOurJoystick": true,
             "activeUniverse": 1,
+            "animationFilmingCountdownSeconds": 3,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
 

@@ -84,6 +84,7 @@ struct AppStateTests {
         #expect(Activity.preparingToRecord.description == "Preparing to Record")
         #expect(Activity.playingAnimation.description == "Playing Animation")
         #expect(Activity.connectingToServer.description == "Connecting to Server")
+        #expect(Activity.countingDownForFilming.description == "Countdown for Filming")
     }
 
     @Test("AppStateData is Sendable")

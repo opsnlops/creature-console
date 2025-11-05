@@ -1,3 +1,4 @@
+import AVFoundation
 import Common
 import Foundation
 import OSLog
@@ -12,6 +13,7 @@ struct AnimationTable: View {
     let eventLoop = EventLoop.shared
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
+    @AppStorage("animationFilmingCountdownSeconds") private var filmingCountdownSeconds: Int = 3
 
     let server = CreatureServerClient.shared
     let creatureManager = CreatureManager.shared
@@ -51,6 +53,9 @@ struct AnimationTable: View {
     @State private var renameOriginalTitle: String = ""
     @State private var renameAnimationTask: Task<Void, Never>? = nil
     @State private var isRenamingAnimation = false
+    @State private var filmingPhase: FilmingPhase? = nil
+    @State private var filmingFlowTask: Task<Void, Never>? = nil
+    @State private var alignmentSoundDurationCache: TimeInterval? = nil
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
 
@@ -94,6 +99,13 @@ struct AnimationTable: View {
                             Label("Play on Server", systemImage: "play")
                         }
                         .disabled(!hasSelection)
+
+                        Button {
+                            playAnimationForFilming(animationId: targetId)
+                        } label: {
+                            Label("Play Animation for Filming", systemImage: "video")
+                        }
+                        .disabled(!hasSelection || filmingPhase != nil || filmingFlowTask != nil)
 
                         Button {
                             interruptWithAnimation(animationId: targetId)
@@ -185,6 +197,7 @@ struct AnimationTable: View {
                 jobEventsTask = nil
                 deleteAnimationTask = nil
                 renameAnimationTask = nil
+                filmingFlowTask?.cancel()
                 activeAnimationLipSyncJob = nil
                 generatingLipSyncForAnimation = nil
                 isDeletingAnimation = false
@@ -204,6 +217,12 @@ struct AnimationTable: View {
                         alertTitle = "Unable to load Animations"
                     }
                 )
+            }
+            .overlay {
+                if let phase = filmingPhase {
+                    FilmingCountdownOverlay(phase: phase, onCancel: cancelFilmingFlow)
+                        .transition(.opacity)
+                }
             }
             .confirmationDialog(
                 "Delete Animation?",
@@ -437,9 +456,9 @@ struct AnimationTable: View {
         let fetchResult = await server.getAnimation(animationId: animationId)
 
         switch fetchResult {
-        case .success(var animation):
-            animation.metadata.title = newTitle
-            let saveResult = await server.saveAnimation(animation: animation)
+        case .success(let fetchedAnimation):
+            fetchedAnimation.metadata.title = newTitle
+            let saveResult = await server.saveAnimation(animation: fetchedAnimation)
             switch saveResult {
             case .success:
                 await MainActor.run {
@@ -646,12 +665,20 @@ struct AnimationTable: View {
             return
         }
 
-        playAnimationTask?.cancel()
+        scheduleAnimationPlayback(animationId: animationId)
+    }
 
+    @MainActor
+    private func scheduleAnimationPlayback(animationId: AnimationIdentifier) {
+        playAnimationTask?.cancel()
+        playAnimationTask = makePlayAnimationTask(animationId: animationId)
+    }
+
+    private func makePlayAnimationTask(animationId: AnimationIdentifier) -> Task<Void, Never> {
         let manager = creatureManager
         let universe = activeUniverse
 
-        playAnimationTask = Task {
+        return Task {
             let result = await manager.playStoredAnimationOnServer(
                 animationId: animationId, universe: universe)
             switch result {
@@ -668,6 +695,153 @@ struct AnimationTable: View {
             }
         }
     }
+
+    @MainActor
+    func playAnimationForFilming(animationId: AnimationIdentifier?) {
+        guard let animationId = animationId else {
+            logger.debug("playAnimationForFilming was called with a nil selection")
+            return
+        }
+
+        logger.info("Starting filming countdown flow for animation \(animationId)")
+        filmingFlowTask?.cancel()
+
+        let countdownSeconds = max(0, filmingCountdownSeconds)
+        filmingFlowTask = Task {
+            await performFilmingCountdownFlow(
+                animationId: animationId, countdownSeconds: countdownSeconds)
+        }
+    }
+
+    @MainActor
+    private func presentAudioPlaybackError(_ error: AudioError) {
+        alertTitle = "Unable to Play Alignment Sound"
+        alertMessage = audioErrorMessage(for: error)
+        showErrorAlert = true
+    }
+
+    private func audioErrorMessage(for error: AudioError) -> String {
+        switch error {
+        case .fileNotFound(let message),
+            .noAccess(let message),
+            .systemError(let message),
+            .failedToLoad(let message):
+            return message
+        }
+    }
+
+    @MainActor
+    private func loadAlignmentSoundDuration() async -> TimeInterval? {
+        if let cached = alignmentSoundDurationCache {
+            return cached
+        }
+
+        guard
+            let url = Bundle.main.url(
+                forResource: "animationAlignmentSound", withExtension: "flac")
+        else {
+            logger.warning("Alignment sound asset not found in bundle")
+            return nil
+        }
+
+        let asset = AVURLAsset(url: url)
+        do {
+            let duration = try await asset.load(.duration)
+            let seconds = CMTimeGetSeconds(duration)
+            guard seconds.isFinite, seconds > 0 else {
+                logger.warning("Alignment sound duration is not usable: \(seconds)")
+                return nil
+            }
+
+            alignmentSoundDurationCache = seconds
+            return seconds
+        } catch {
+            logger.warning("Failed to load alignment sound duration: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    @MainActor
+    private func cancelFilmingFlow() {
+        guard filmingPhase != nil || filmingFlowTask != nil else { return }
+        logger.info("Cancelling filming countdown flow")
+        filmingFlowTask?.cancel()
+        filmingFlowTask = nil
+        withAnimation(.easeInOut(duration: 0.2)) {
+            filmingPhase = nil
+        }
+        Task {
+            await AppState.shared.setCurrentActivity(.idle)
+        }
+    }
+
+    @MainActor
+    private func performFilmingCountdownFlow(
+        animationId: AnimationIdentifier, countdownSeconds: Int
+    ) async {
+        await AppState.shared.setCurrentActivity(.countingDownForFilming)
+        defer {
+            Task { await AppState.shared.setCurrentActivity(.idle) }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                filmingPhase = nil
+            }
+            filmingFlowTask = nil
+        }
+
+        do {
+            if countdownSeconds > 0 {
+                for remaining in stride(from: countdownSeconds, through: 1, by: -1) {
+                    try Task.checkCancellation()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        filmingPhase = .countdown(secondsRemaining: remaining)
+                    }
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                }
+            } else {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    filmingPhase = .countdown(secondsRemaining: 0)
+                }
+                try await Task.sleep(nanoseconds: 300_000_000)
+            }
+
+            try Task.checkCancellation()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                filmingPhase = .playingCue
+            }
+
+            let cueDuration = await loadAlignmentSoundDuration() ?? 2.0
+            let audioResult = AudioManager.shared.playBundledSound(
+                name: "animationAlignmentSound", extension: "flac")
+
+            switch audioResult {
+            case .success:
+                break
+            case .failure(let audioError):
+                logger.warning(
+                    "Alignment sound playback failed: \(audioErrorMessage(for: audioError))")
+                presentAudioPlaybackError(audioError)
+                return
+            }
+
+            let waitNanoseconds = UInt64(max(cueDuration, 0.0) * 1_000_000_000)
+            if waitNanoseconds > 0 {
+                try await Task.sleep(nanoseconds: waitNanoseconds)
+            }
+
+            try Task.checkCancellation()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                filmingPhase = nil
+            }
+            scheduleAnimationPlayback(animationId: animationId)
+        } catch is CancellationError {
+            logger.info("Filming countdown cancelled")
+        } catch {
+            logger.error("Filming countdown flow failed: \(error.localizedDescription)")
+            presentAudioPlaybackError(
+                .systemError("Filming countdown failed: \(error.localizedDescription)"))
+        }
+    }
+
 
     func interruptWithAnimation(animationId: AnimationIdentifier?) {
         guard let animationId = animationId else {
@@ -702,6 +876,59 @@ struct AnimationTable: View {
 struct AnimationTable_Previews: PreviewProvider {
     static var previews: some View {
         AnimationTable(creature: .mock())
+    }
+}
+
+private enum FilmingPhase: Equatable {
+    case countdown(secondsRemaining: Int)
+    case playingCue
+}
+
+private struct FilmingCountdownOverlay: View {
+    let phase: FilmingPhase
+    let onCancel: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.45)
+                .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                switch phase {
+                case .countdown(let secondsRemaining):
+                    Text("\(secondsRemaining)")
+                        .font(.system(size: 160, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .shadow(radius: 8)
+                    Text(
+                        secondsRemaining == 0
+                            ? "Alignment starting" : "Starting in \(secondsRemaining)"
+                    )
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                case .playingCue:
+                    Image(systemName: "speaker.wave.3.fill")
+                        .font(.system(size: 120, weight: .bold))
+                        .foregroundStyle(.white)
+                        .shadow(radius: 8)
+                    Text("Playing Alignment Sound")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+
+                Button(role: .cancel) {
+                    onCancel()
+                } label: {
+                    Label("Cancel", systemImage: "xmark.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.red)
+            }
+            .padding(40)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
+            .shadow(radius: 24)
+        }
     }
 }
 

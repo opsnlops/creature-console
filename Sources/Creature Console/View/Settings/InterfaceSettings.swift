@@ -10,10 +10,16 @@ struct InterfaceSettings: View {
 
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 0
     @AppStorage("mouthImportDefaultAxis") private var defaultMouthAxis: Int = 2
+    @AppStorage("animationFilmingCountdownSeconds") private var filmingCountdownSeconds: Int = 3
+    private let filmingCountdownRange = 0...10
+    private var filmingCountdownRangeDouble: ClosedRange<Double> {
+        Double(filmingCountdownRange.lowerBound)...Double(filmingCountdownRange.upperBound)
+    }
 
     #if os(tvOS)
         @State private var tvDefaultMouthAxisText: String = ""
         @State private var tvServerLogsScrollbackText: String = ""
+        @State private var tvFilmingCountdownText: String = ""
     #endif
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "InterfaceSettings")
@@ -131,6 +137,55 @@ struct InterfaceSettings: View {
                         #endif
                     }
                 }
+                GlassEffectContainer(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Filming Mode", systemImage: "clapperboard")
+                            .font(.headline)
+                        #if os(tvOS)
+                            HStack {
+                                Text("Countdown Seconds")
+                                Spacer()
+                                TextField(
+                                    "\(filmingCountdownRange.lowerBound)–\(filmingCountdownRange.upperBound)",
+                                    text: $tvFilmingCountdownText
+                                )
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: 120)
+                                .submitLabel(.done)
+                                .onSubmit {
+                                    let value =
+                                        Int(tvFilmingCountdownText)
+                                        ?? filmingCountdownSeconds
+                                    let clamped = max(
+                                        filmingCountdownRange.lowerBound,
+                                        min(filmingCountdownRange.upperBound, value))
+                                    filmingCountdownSeconds = clamped
+                                    tvFilmingCountdownText = String(clamped)
+                                }
+                            }
+                            .padding(12)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #else
+                            HStack {
+                                Text("Countdown Seconds")
+                                Spacer()
+                                Stepper(
+                                    value: Binding<Double>(
+                                        get: { Double(filmingCountdownSeconds) },
+                                        set: { filmingCountdownSeconds = Int($0) }
+                                    ),
+                                    in: filmingCountdownRangeDouble,
+                                    step: 1
+                                ) {
+                                    Text("\(filmingCountdownSeconds)s")
+                                }
+                                .frame(maxWidth: 180)
+                            }
+                            .padding(12)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #endif
+                    }
+                }
 
                 Spacer(minLength: 0)
             }
@@ -139,6 +194,7 @@ struct InterfaceSettings: View {
                 .onAppear {
                     tvDefaultMouthAxisText = String(defaultMouthAxis)
                     tvServerLogsScrollbackText = String(serverLogsScrollBackLines)
+                    tvFilmingCountdownText = String(filmingCountdownSeconds)
                 }
             #endif
         }

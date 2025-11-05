@@ -149,6 +149,7 @@
 		119D07482E90F67700C6AFEE /* WebSocketConnectionState+UI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */; };
 		119D07492E90F67700C6AFEE /* WebSocketConnectionState+UI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */; };
 		11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A10A5D29F242B7000EB835 /* RecordTrack.swift */; };
+		11A4F2112EBAEEEF001A7670 /* animationAlignmentSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 11A4F2102EBAEEEF001A7670 /* animationAlignmentSound.flac */; };
 		11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */; };
 		11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61AA22BFC3739000A1B48 /* TrackViewer.swift */; };
 		11AF090F2E864F2400E0BE28 /* AnimationEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AF090E2E864F2400E0BE28 /* AnimationEditorViewModel.swift */; };
@@ -336,6 +337,7 @@
 		119A44D92E88DA290053B250 /* LogItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogItemTests.swift; sourceTree = "<group>"; };
 		119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WebSocketConnectionState+UI.swift"; sourceTree = "<group>"; };
 		11A10A5D29F242B7000EB835 /* RecordTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTrack.swift; sourceTree = "<group>"; };
+		11A4F2102EBAEEEF001A7670 /* animationAlignmentSound.flac */ = {isa = PBXFileReference; lastKnownFileType = file; path = animationAlignmentSound.flac; sourceTree = "<group>"; };
 		11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTable.swift; sourceTree = "<group>"; };
 		11A61AA22BFC3739000A1B48 /* TrackViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackViewer.swift; sourceTree = "<group>"; };
 		11AF090E2E864F2400E0BE28 /* AnimationEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationEditorViewModel.swift; sourceTree = "<group>"; };
@@ -864,6 +866,7 @@
 			isa = PBXGroup;
 			children = (
 				118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */,
+				11A4F2102EBAEEEF001A7670 /* animationAlignmentSound.flac */,
 			);
 			path = Assets;
 			sourceTree = "<group>";
@@ -1492,6 +1495,7 @@
 			files = (
 				11703D9429DD198000EF7E3D /* Preview Assets.xcassets in Resources */,
 				116F19212E8F7C04005AD8DD /* Creature-Console-Info.plist in Resources */,
+				11A4F2112EBAEEEF001A7670 /* animationAlignmentSound.flac in Resources */,
 				11C326D029DD3FED00B169CD /* Credits.rtfd in Resources */,
 				11703D9029DD198000EF7E3D /* Assets.xcassets in Resources */,
 				118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */,
@@ -1803,7 +1807,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 2.13.5;
+				MARKETING_VERSION = 2.13.6;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1852,7 +1856,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 2.13.5;
+				MARKETING_VERSION = 2.13.6;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Lightweight-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -2127,7 +2131,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.13.5;
+				MARKETING_VERSION = 2.13.6;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2181,7 +2185,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.13.5;
+				MARKETING_VERSION = 2.13.6;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2265,7 +2269,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.13.5;
+				MARKETING_VERSION = 2.13.6;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2297,7 +2301,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.13.5;
+				MARKETING_VERSION = 2.13.6;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

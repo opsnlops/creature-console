@@ -25,6 +25,8 @@ extension Activity {
             return "figure.socialdance"
         case .connectingToServer:
             return "arrow.triangle.2.circlepath.circle"
+        case .countingDownForFilming:
+            return "timer.circle.fill"
         }
     }
 
@@ -44,6 +46,8 @@ extension Activity {
             return .purple
         case .connectingToServer:
             return .pink
+        case .countingDownForFilming:
+            return .orange
         }
     }
 
@@ -62,6 +66,7 @@ extension Activity {
                     case .preparingToRecord: return .systemYellow
                     case .playingAnimation: return .systemPurple
                     case .connectingToServer: return .systemPink
+                    case .countingDownForFilming: return .systemOrange
                     }
                 }()
                 var r: CGFloat = 0
@@ -81,12 +86,14 @@ extension Activity {
                     case .preparingToRecord: return .systemYellow
                     case .playingAnimation: return .systemPurple
                     case .connectingToServer: return .systemPink
+                    case .countingDownForFilming: return .systemOrange
                     }
                 }()
-                let rgb = nsColor.usingColorSpace(.deviceRGB) ?? nsColor
-                return GCColor(
-                    red: Float(rgb.redComponent), green: Float(rgb.greenComponent),
-                    blue: Float(rgb.blueComponent))
+                if let rgb = nsColor.usingColorSpace(.deviceRGB) {
+                    return GCColor(
+                        red: Float(rgb.redComponent), green: Float(rgb.greenComponent),
+                        blue: Float(rgb.blueComponent))
+                }
             #endif
 
             // Fallback: curated sRGB approximations of system colors
@@ -103,6 +110,8 @@ extension Activity {
                 return GCColor(red: 0.686, green: 0.321, blue: 0.870)  // systemPurple approx
             case .connectingToServer:
                 return GCColor(red: 1.0, green: 0.176, blue: 0.333)  // systemPink approx
+            case .countingDownForFilming:
+                return GCColor(red: 1.0, green: 0.584, blue: 0.0)  // systemOrange approx
             }
         }
     #endif

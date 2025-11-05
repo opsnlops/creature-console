@@ -9,6 +9,7 @@ enum Activity: CustomStringConvertible, Sendable {
     case preparingToRecord
     case playingAnimation
     case connectingToServer
+    case countingDownForFilming
 
     var description: String {
         switch self {
@@ -24,6 +25,8 @@ enum Activity: CustomStringConvertible, Sendable {
             return "Playing Animation"
         case .connectingToServer:
             return "Connecting to Server"
+        case .countingDownForFilming:
+            return "Countdown for Filming"
         }
     }
 }
@@ -104,7 +107,9 @@ actor AppState {
     }
 
     func setCurrentActivity(_ activity: Activity) {
-        self.logger.info("AppState: Setting activity to \(activity.description) (from: \(Thread.callStackSymbols.first ?? "unknown"))")
+        self.logger.info(
+            "AppState: Setting activity to \(activity.description) (from: \(Thread.callStackSymbols.first ?? "unknown"))"
+        )
         self.currentActivity = activity
         self.publishState()
         self.logger.info("AppState: Published state with activity \(activity.description)")
