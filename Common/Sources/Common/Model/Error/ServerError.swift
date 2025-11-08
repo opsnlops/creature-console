@@ -10,6 +10,7 @@ public enum ServerError: Error, LocalizedError {
     case serverError(String)
     case websocketError(String)
     case notImplemented(String)
+    case conflict(String)
 
 
     public var errorDescription: String? {
@@ -22,7 +23,8 @@ public enum ServerError: Error, LocalizedError {
             .unknownError(let message),
             .serverError(let message),
             .websocketError(let message),
-            .notImplemented(let message):
+            .notImplemented(let message),
+            .conflict(let message):
             return message
         }
     }

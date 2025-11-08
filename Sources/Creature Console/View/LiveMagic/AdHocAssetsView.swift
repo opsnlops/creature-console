@@ -1,4 +1,5 @@
 import Common
+import PlaylistRuntime
 import SwiftUI
 
 private typealias CreatureAnimation = Common.Animation
@@ -40,6 +41,9 @@ struct AdHocAnimationListView: View {
     @State private var animations: [AdHocAnimationSummary] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @PlaylistResumePreference private var resumePlaylistAfterPlayback: Bool
+    @State private var playingAnimationId: AnimationIdentifier?
+    @State private var playTask: Task<Void, Never>?
 
     var body: some View {
         List {
@@ -59,11 +63,13 @@ struct AdHocAnimationListView: View {
                         ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
                     }
                 ) { animation in
-                    NavigationLink {
-                        AdHocAnimationDetailView(animationId: animation.animationId)
-                    } label: {
-                        AdHocAnimationRow(animation: animation)
-                    }
+                    AdHocAnimationRow(
+                        animation: animation,
+                        playAction: {
+                            triggerPlayback(for: animation.animationId)
+                        },
+                        isPlaying: playingAnimationId == animation.animationId
+                    )
                 }
             }
         }
@@ -76,18 +82,36 @@ struct AdHocAnimationListView: View {
         #endif
         .navigationTitle("Ad-Hoc Animations")
         .toolbar {
-            Button {
-                Task { await load(force: true) }
-            } label: {
-                Image(systemName: "arrow.clockwise")
+            ToolbarItemGroup(placement: .automatic) {
+                Button {
+                    Task { await load(force: true) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .disabled(isLoading)
+
+                #if os(macOS)
+                    Menu {
+                        Toggle(
+                            "Resume playlist after playback",
+                            isOn: $resumePlaylistAfterPlayback
+                        )
+                    } label: {
+                        Label("Playback Options", systemImage: "slider.horizontal.3")
+                    }
+                    .help("Configure how ad-hoc playback interacts with playlists")
+                #endif
             }
-            .disabled(isLoading)
         }
         .refreshable {
             await load(force: true)
         }
         .task {
             await load()
+        }
+        .onDisappear {
+            playTask?.cancel()
+            playTask = nil
         }
         .alert(
             "Unable to Load",
@@ -99,6 +123,34 @@ struct AdHocAnimationListView: View {
             Button("OK", role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
+        }
+    }
+
+    private func triggerPlayback(for animationId: AnimationIdentifier) {
+        playTask?.cancel()
+        playTask = Task {
+            await play(animationId: animationId)
+        }
+    }
+
+    private func play(animationId: AnimationIdentifier) async {
+        await MainActor.run {
+            playingAnimationId = animationId
+        }
+
+        let result = await PlaylistRuntimeActions.playPreparedAdHoc(animationId: animationId)
+
+        await MainActor.run {
+            if playingAnimationId == animationId {
+                playingAnimationId = nil
+            }
+            playTask = nil
+            switch result {
+            case .success:
+                errorMessage = nil
+            case .failure(let error):
+                errorMessage = ServerError.detailedMessage(from: error)
+            }
         }
     }
 
@@ -121,17 +173,101 @@ struct AdHocAnimationListView: View {
 
 private struct AdHocAnimationRow: View {
     let animation: AdHocAnimationSummary
+    let playAction: (() -> Void)?
+    let isPlaying: Bool
+
+    init(
+        animation: AdHocAnimationSummary,
+        playAction: (() -> Void)? = nil,
+        isPlaying: Bool = false
+    ) {
+        self.animation = animation
+        self.playAction = playAction
+        self.isPlaying = isPlaying
+    }
 
     var body: some View {
+        #if os(macOS)
+            HStack(alignment: .center, spacing: 12) {
+                navigationLink
+                if let playAction {
+                    Button(action: playAction) {
+                        if isPlaying {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("Play", systemImage: "play.fill")
+                                .labelStyle(.titleAndIcon)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(isPlaying)
+                    .help("Play this ad-hoc animation on the connected creature")
+                }
+            }
+            .contextMenu {
+                if let playAction {
+                    Button {
+                        playAction()
+                    } label: {
+                        Label("Play on Server", systemImage: "play.fill")
+                    }
+                    .disabled(isPlaying)
+                }
+                copyIdButton
+            }
+        #else
+            navigationLink
+                .contextMenu {
+                    if let playAction {
+                        Button {
+                            playAction()
+                        } label: {
+                            Label("Play on Server", systemImage: "play.fill")
+                        }
+                        .disabled(isPlaying)
+                    }
+                    copyIdButton
+                }
+        #endif
+    }
+
+    private var navigationLink: some View {
+        NavigationLink {
+            AdHocAnimationDetailView(animationId: animation.animationId)
+        } label: {
+            rowContent
+        }
+        #if os(macOS)
+            .buttonStyle(.plain)
+        #endif
+    }
+
+    private var rowContent: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(animation.metadata.title)
-                    .font(.headline)
-                Spacer()
-                if let createdAt = animation.createdAt {
-                    Text(adHocRelativeString(createdAt))
-                        .font(.caption)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(animation.metadata.title)
+                        .font(.headline)
+                    if let createdAt = animation.createdAt {
+                        Text(adHocRelativeString(createdAt))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 12)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(animation.animationId)
+                        .font(.caption2.monospaced())
                         .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                    if !animation.metadata.soundFile.isEmpty {
+                        Label(animation.metadata.soundFile, systemImage: "waveform")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .labelStyle(.titleAndIcon)
+                    }
                 }
             }
             Text(animation.metadata.note)
@@ -148,12 +284,13 @@ private struct AdHocAnimationRow: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 6)
-        .contextMenu {
-            Button {
-                copyToClipboard(animation.animationId)
-            } label: {
-                Label("Copy Animation ID", systemImage: "doc.on.doc")
-            }
+    }
+
+    private var copyIdButton: some View {
+        Button {
+            copyToClipboard(animation.animationId)
+        } label: {
+            Label("Copy Animation ID", systemImage: "doc.on.doc")
         }
     }
 }

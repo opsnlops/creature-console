@@ -100,7 +100,7 @@ private struct ToolbarStatusDot: View {
                     .interactive(),
                 in: .circle
             )
-            .glassEffectUnion(id: unionID, namespace: namespace)
+            .glassEffectUnion(id: "\(unionID)-\(systemName)", namespace: namespace)
             .scaleEffect(active ? 1.06 : 1.0)
             .opacity(active ? 1.0 : 0.85)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: active)

@@ -177,6 +177,9 @@
 		11C622F52C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */; };
 		11D713122E84B85E00F7FC9A /* Activity+Tint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D713112E84B85E00F7FC9A /* Activity+Tint.swift */; };
 		11D713142E84BCC900F7FC9A /* BottomStatusToolbarContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D713132E84BCC900F7FC9A /* BottomStatusToolbarContent.swift */; };
+		11DAB2492EBF198400BF200A /* PlaylistRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 11DAB2482EBF198400BF200A /* PlaylistRuntime */; };
+		11DAB24B2EBF198D00BF200A /* PlaylistRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 11DAB24A2EBF198D00BF200A /* PlaylistRuntime */; };
+		11DAB24D2EBF199800BF200A /* PlaylistRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 11DAB24C2EBF199800BF200A /* PlaylistRuntime */; };
 		11E53CC42E888F3900C17F16 /* AppBootstrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC32E888F3900C17F16 /* AppBootstrapper.swift */; };
 		11E53CC62E888F3C00C17F16 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC52E888F3C00C17F16 /* RootView.swift */; };
 		11E53CC82E88964100C17F16 /* MetricKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC72E88964100C17F16 /* MetricKitManager.swift */; };
@@ -532,6 +535,7 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				3CE33064BC4E488F8D161D94 /* Common in Frameworks */,
+				11DAB2492EBF198400BF200A /* PlaylistRuntime in Frameworks */,
 				20EC813170B342D1AF9DF3FD /* Logging in Frameworks */,
 				277526DE76814DA6B5E6CDE2 /* LoggingOSLog in Frameworks */,
 				40DE8EDB8A9746E79DBB1D69 /* SimpleKeychain in Frameworks */,
@@ -553,6 +557,7 @@
 				1199D6BA2BF5C3A3004E0D64 /* Logging in Frameworks */,
 				1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */,
 				1110E9652BF035E500FCE26D /* Common in Frameworks */,
+				11DAB24D2EBF199800BF200A /* PlaylistRuntime in Frameworks */,
 				1199D6BD2BF5C463004E0D64 /* LoggingOSLog in Frameworks */,
 				11BC3BAC2E98B4E5002A568C /* SimpleKeychain in Frameworks */,
 			);
@@ -567,6 +572,7 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				117C872F2CA0CCCD007B5682 /* LoggingOSLog in Frameworks */,
+				11DAB24B2EBF198D00BF200A /* PlaylistRuntime in Frameworks */,
 				117C872D2CA0CCCD007B5682 /* Logging in Frameworks */,
 				117C872B2CA0CCB6007B5682 /* Common in Frameworks */,
 			);
@@ -1264,6 +1270,7 @@
 				90725C52424947F78B297CE4 /* Logging */,
 				65F1FACB33FB498EBBE16B78 /* LoggingOSLog */,
 				6F1D7D2BF2434311B8CE3768 /* SimpleKeychain */,
+				11DAB2482EBF198400BF200A /* PlaylistRuntime */,
 			);
 			productName = "Lightweight Console";
 			productReference = 1120F1D82EB03A24000342A3 /* Lightweight Console.app */;
@@ -1330,6 +1337,7 @@
 				1199D6B92BF5C3A3004E0D64 /* Logging */,
 				1199D6BC2BF5C463004E0D64 /* LoggingOSLog */,
 				11BC3BAB2E98B4E5002A568C /* SimpleKeychain */,
+				11DAB24C2EBF199800BF200A /* PlaylistRuntime */,
 			);
 			productName = "Creature Console";
 			productReference = 11703D8829DD197F00EF7E3D /* Creature Console.app */;
@@ -1374,6 +1382,7 @@
 				117C872A2CA0CCB6007B5682 /* Common */,
 				117C872C2CA0CCCD007B5682 /* Logging */,
 				117C872E2CA0CCCD007B5682 /* LoggingOSLog */,
+				11DAB24A2EBF198D00BF200A /* PlaylistRuntime */,
 			);
 			productName = "Creature TV";
 			productReference = 117C86FE2CA0CC81007B5682 /* Creature TV.app */;
@@ -2579,6 +2588,18 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */;
 			productName = SimpleKeychain;
+		};
+		11DAB2482EBF198400BF200A /* PlaylistRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PlaylistRuntime;
+		};
+		11DAB24A2EBF198D00BF200A /* PlaylistRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PlaylistRuntime;
+		};
+		11DAB24C2EBF199800BF200A /* PlaylistRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PlaylistRuntime;
 		};
 		1E4091273018443388C8F9E8 /* Common */ = {
 			isa = XCSwiftPackageProductDependency;

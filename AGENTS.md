@@ -43,6 +43,7 @@ This is a client application for controlling animatronic creatures via a WebSock
 
 - **Correct over Fast**: Take the time to implement solutions properly. A correct solution that takes longer to write is always preferred over a quick but flawed implementation.
 - **DRY (Don't Repeat Yourself)**: Avoid code duplication. Extract common patterns into reusable functions, extensions, or computed properties.
+- **Prefer shared libraries over copy/paste**: If functionality belongs in `Common` or one of its submodules (e.g., `PlaylistRuntime`, CLI helpers), move it there and have every target import the shared implementation. Do not implement the same feature twice across apps—shared modules exist to keep behavior consistent and maintainable.
 - **No Bandaids**: Don't use temporary fixes, workarounds, or delays to mask underlying issues. Identify and fix root causes.
 - **Think First, Then Code**: When encountering a problem:
   1. Understand the root cause completely

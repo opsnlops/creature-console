@@ -29,7 +29,7 @@ The popover is organized top-down:
 - **Ad-hoc Animation**
   - Text box placeholder personalizes with the creature name.
   - `Play Now` sends instant speech; `Cue` prepares a job for later.
-  - “Resume playlist after playback” determines whether the current playlist restarts afterwards.
+  - “Resume playlist after playback” now uses the shared `PlaylistRuntime` preference (also honored by the main app).
 - **Prepared Animations**
   - Shows the five most recent entries; use **Show All** to expand/hide the rest.
   - `Trigger` starts the selected prepared animation.
@@ -48,6 +48,10 @@ The popover is organized top-down:
 - Prepared animations refresh automatically when an ad-hoc prepare job completes, but you can force a reload with the ↻ button in the Ad-hoc section.
 - Playlists fetched from the server may take a second on first connect; use the ↻ button in the Playlists header if you add new ones elsewhere.
 - The app stores all preferences locally. Clearing the auth token simply empties the field—no keychain is involved.
+
+## Recent Changes
+
+- 2025-11-08 06:54:39 UTC — Added PlaylistRuntime shared store/bindings. Ad-hoc Animation list now offers Play context menu on all platforms, and playback uses the runtime helpers.
 
 ## Troubleshooting
 

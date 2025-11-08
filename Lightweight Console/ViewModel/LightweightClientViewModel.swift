@@ -2,6 +2,7 @@ import Combine
 import Common
 import Foundation
 import OSLog
+import PlaylistRuntime
 
 @MainActor
 final class LightweightClientViewModel: ObservableObject {
@@ -20,11 +21,17 @@ final class LightweightClientViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let controller: LightweightClientController
+    private let playlistRuntime: PlaylistRuntimeStore
     private var observers: [Task<Void, Never>] = []
+    private var cancellables: Set<AnyCancellable> = []
     private let logger = Logger(subsystem: "io.opsnlops.LightweightClient", category: "ViewModel")
 
-    init(controller: LightweightClientController) {
+    init(
+        controller: LightweightClientController,
+        playlistRuntime: PlaylistRuntimeStore = .shared
+    ) {
         self.controller = controller
+        self.playlistRuntime = playlistRuntime
         startObservers()
         Task {
             await controller.bootstrap()
@@ -34,6 +41,7 @@ final class LightweightClientViewModel: ObservableObject {
             await refreshPreparedAnimations()
             await refreshPlaylists()
         }
+        bindPlaylistRuntime()
     }
 
     deinit {
@@ -139,7 +147,7 @@ final class LightweightClientViewModel: ObservableObject {
     }
 
     func updateResumePlaylist(_ value: Bool) {
-        resumePlaylistAfterPlayback = value
+        playlistRuntime.resumePlaylistAfterPlayback = value
     }
 
     private func startObservers() {
@@ -228,6 +236,16 @@ final class LightweightClientViewModel: ObservableObject {
                 await refreshPreparedAnimations()
             }
         }
+    }
+
+    private func bindPlaylistRuntime() {
+        resumePlaylistAfterPlayback = playlistRuntime.resumePlaylistAfterPlayback
+        playlistRuntime.$resumePlaylistAfterPlayback
+            .receive(on: RunLoop.main)
+            .sink { [weak self] value in
+                self?.resumePlaylistAfterPlayback = value
+            }
+            .store(in: &cancellables)
     }
 
     private func handle<Value>(

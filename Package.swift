@@ -23,6 +23,7 @@ let package = Package(
             name: "CreatureConsole",
             dependencies: [
                 .product(name: "Common", package: "Common"),
+                .product(name: "PlaylistRuntime", package: "Common"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "LoggingOSLog", package: "swift-log-oslog"),
             ],

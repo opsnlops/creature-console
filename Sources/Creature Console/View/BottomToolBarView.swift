@@ -173,7 +173,7 @@ private struct StatusIndicator: View {
                     .interactive(),
                 in: .circle
             )
-            .glassEffectUnion(id: unionGroup, namespace: namespace)
+            .glassEffectUnion(id: "\(unionGroup)-\(systemName)", namespace: namespace)
             .scaleEffect(isActive ? 1.06 : 1.0)
             .opacity(isActive ? 1.0 : 0.8)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isActive)

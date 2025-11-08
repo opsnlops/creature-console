@@ -1,6 +1,7 @@
 import Common
 import Foundation
 import OSLog
+import PlaylistRuntime
 
 /// The Swift version of our `MessageProcessor`
 final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
@@ -43,7 +44,7 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     }
 
     func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
-        // nop
+        PlaylistRuntimeChannel.handle(status: playlistStatus)
     }
 
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {

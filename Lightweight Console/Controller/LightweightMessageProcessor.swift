@@ -1,5 +1,6 @@
 import Common
 import Foundation
+import PlaylistRuntime
 
 final class LightweightMessageProcessor: MessageProcessor {
     static let shared = LightweightMessageProcessor()
@@ -42,7 +43,7 @@ final class LightweightMessageProcessor: MessageProcessor {
     }
 
     func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
-        // Not needed
+        PlaylistRuntimeChannel.handle(status: playlistStatus)
     }
 
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {

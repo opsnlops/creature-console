@@ -289,6 +289,11 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
                 return .failure(
                     .dataFormatError(status?.message ?? "Request could not be processed"))
 
+            case 409:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(
+                    .conflict(status?.message ?? "Request conflicts with current server state"))
+
             case 500:
                 let status = try? decoder.decode(StatusDTO.self, from: data)
                 return .failure(.serverError(status?.message ?? "Server error"))

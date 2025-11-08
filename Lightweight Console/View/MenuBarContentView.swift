@@ -107,7 +107,13 @@ extension MenuBarContentView {
                 .lineLimit(3, reservesSpace: true)
                 .textFieldStyle(.roundedBorder)
 
-            Toggle("Resume playlist after playback", isOn: $viewModel.resumePlaylistAfterPlayback)
+            Toggle(
+                "Resume playlist after playback",
+                isOn: Binding(
+                    get: { viewModel.resumePlaylistAfterPlayback },
+                    set: { viewModel.updateResumePlaylist($0) }
+                )
+            )
 
             HStack {
                 Button("Play Now") {

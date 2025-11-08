@@ -10,7 +10,10 @@ let package = Package(
     products: [
         .library(
             name: "Common",
-            targets: ["Common"])
+            targets: ["Common"]),
+        .library(
+            name: "PlaylistRuntime",
+            targets: ["PlaylistRuntime"])
 
     ],
     dependencies: [
@@ -25,6 +28,13 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log")
             ],
             exclude: ["README.md"]),
+
+        .target(
+            name: "PlaylistRuntime",
+            dependencies: [
+                "Common",
+                .product(name: "Logging", package: "swift-log")
+            ]),
 
         .executableTarget(
             name: "creature-cli",
