@@ -71,11 +71,19 @@ struct Creature_TVApp: App {
         // Set up SwiftData model container (local file-backed; no CloudKit)
         do {
             let fm = FileManager.default
-            let appSupport = try fm.url(
-                for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil,
-                create: true)
-            let storeURL = appSupport.appendingPathComponent(
-                "CreatureConsoleTVStore", isDirectory: true)
+            #if os(tvOS)
+                let baseDirectory: FileManager.SearchPathDirectory = .cachesDirectory
+                let dataDirectory = try fm.url(
+                    for: baseDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                let storeURL = dataDirectory.appendingPathComponent("CreatureConsoleTVStore.sqlite")
+            #else
+                let baseDirectory: FileManager.SearchPathDirectory = .applicationSupportDirectory
+                let dataDirectory = try fm.url(
+                    for: baseDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                let storeURL = dataDirectory.appendingPathComponent(
+                    "CreatureConsoleTVStore", isDirectory: true)
+                try fm.createDirectory(at: storeURL, withIntermediateDirectories: true)
+            #endif
 
             let config = ModelConfiguration(url: storeURL)
             let container = try ModelContainer(
