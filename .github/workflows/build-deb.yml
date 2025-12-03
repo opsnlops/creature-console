@@ -60,8 +60,13 @@ jobs:
           SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib --swift-sdk static-linux" \
             dpkg-buildpackage -us -uc -b
 
+      - name: Collect deb artifact
+        run: |
+          mkdir -p artifacts
+          mv ../creature-cli_*_${{ matrix.arch }}.deb artifacts/
+
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
           name: creature-cli-${{ matrix.arch }}
-          path: creature-cli_*_${{ matrix.arch }}.deb
+          path: artifacts/creature-cli_*_${{ matrix.arch }}.deb
