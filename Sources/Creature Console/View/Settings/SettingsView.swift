@@ -36,7 +36,7 @@ struct SettingsView: View {
             }
         }
         #if os(macOS)
-            .frame(width: 600, height: 400)
+            .frame(width: 760, height: 520)
         #endif
     }
 }

@@ -241,7 +241,7 @@
                 switch prepareResult {
                 case .success:
                     logger.info("Prepared \(soundId) for local playback on tvOS")
-                    let startResult = await audioManager.startArmedPreview(in: 0.1)
+                    let startResult = audioManager.startArmedPreview(in: 0.1)
                     switch startResult {
                     case .success:
                         await MainActor.run {

@@ -47,6 +47,7 @@ struct CreatureConsole: App {
             "logSpareTimeFrameInterval": 1000,
             "useOurJoystick": true,
             "activeUniverse": 1,
+            "menubarSelectedCreatureId": "",
             "animationFilmingCountdownSeconds": 3,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
@@ -199,15 +200,11 @@ struct CreatureConsole: App {
                 SettingsView()
             }
 
-            MenuBarExtra("Creatures", systemImage: "pawprint.fill") {
-                Button("Option 1") {
-                    print("Option 1")
-                }
-                Divider()
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
-                }
+            MenuBarExtra("Creature Control", systemImage: "bird.fill") {
+                MenuBarConsoleView()
             }
+            .menuBarExtraStyle(.window)
+            .modelContainer(modelContainer)
         #endif
 
     }

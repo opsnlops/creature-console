@@ -261,7 +261,9 @@ private struct AdHocAnimationRow: View {
                     Text(animation.animationId)
                         .font(.caption2.monospaced())
                         .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
+                        #if !os(tvOS)
+                            .textSelection(.enabled)
+                        #endif
                     if !animation.metadata.soundFile.isEmpty {
                         Label(animation.metadata.soundFile, systemImage: "waveform")
                             .font(.caption2)

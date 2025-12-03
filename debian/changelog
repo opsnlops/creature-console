@@ -1,3 +1,10 @@
+creature-cli (2.14.0) unstable; urgency=medium
+
+  * Sync CLI version with GUI 2.14.0; add menu bar quick console and
+    remove legacy lightweight target (code now lives in main app).
+
+ -- April White <april@creature.engineering>  Wed, 03 Dec 2025 06:03:07 +0000
+
 creature-cli (2.13.6) unstable; urgency=medium
 
   * Initial Debian package providing a statically linked creature-cli binary built with SwiftPM.
