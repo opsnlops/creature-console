@@ -1,6 +1,8 @@
 #!/usr/bin/make -f
 
-export SWIFT_BUILD_FLAGS=-c release --product creature-cli --static-swift-stdlib
+# Allow SWIFT_BUILD_FLAGS to be overridden (e.g., CI adds --swift-sdk static-linux).
+SWIFT_BUILD_FLAGS ?= -c release --product creature-cli --static-swift-stdlib
+export SWIFT_BUILD_FLAGS
 
 %:
 	dh $@
