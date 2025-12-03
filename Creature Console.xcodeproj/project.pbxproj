@@ -66,6 +66,8 @@
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		1156EBCB2E76640500CBC202 /* ButtonGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1156EBCA2E76640500CBC202 /* ButtonGate.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
+		1167F9D82EE00B590088E1F1 /* MenuBarConsoleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1167F9D62EE00B590088E1F1 /* MenuBarConsoleViewModel.swift */; };
+		1167F9D92EE00B590088E1F1 /* MenuBarConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1167F9D52EE00B590088E1F1 /* MenuBarConsoleView.swift */; };
 		1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */; };
 		1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1168DC982B4F99E000A9895A /* IOKit.framework */; };
 		1168DC9B2B4FB2BE00A9895A /* JoystickDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1168DC9A2B4FB2BE00A9895A /* JoystickDebugView.swift */; };
@@ -280,6 +282,8 @@
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
 		115DADA029DF95890021C4E0 /* JoystickHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickHandler.swift; sourceTree = "<group>"; };
 		11631B7C2A919FDB008F4375 /* Creature ConsoleDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Creature ConsoleDebug.entitlements"; sourceTree = "<group>"; };
+		1167F9D52EE00B590088E1F1 /* MenuBarConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarConsoleView.swift; sourceTree = "<group>"; };
+		1167F9D62EE00B590088E1F1 /* MenuBarConsoleViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarConsoleViewModel.swift; sourceTree = "<group>"; };
 		1168DC962B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AprilsCreatureWorkshopJoystick.swift; sourceTree = "<group>"; };
 		1168DC982B4F99E000A9895A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.2.sdk/System/Library/Frameworks/IOKit.framework; sourceTree = DEVELOPER_DIR; };
 		1168DC9A2B4FB2BE00A9895A /* JoystickDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickDebugView.swift; sourceTree = "<group>"; };
@@ -630,6 +634,7 @@
 		1142E66029DFB21000B795F0 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				1167F9D72EE00B590088E1F1 /* MenuBar */,
 				11B0488C2EB8430E001B73C5 /* Shared */,
 				113D00502EAF0C9B00155515 /* LiveMagic */,
 				11F9A0002F0C123400123456 /* tvOS */,
@@ -682,6 +687,15 @@
 				114B7E302E90B8B000F5D1EC /* PlaylistModel.swift */,
 			);
 			path = Playlist;
+			sourceTree = "<group>";
+		};
+		1167F9D72EE00B590088E1F1 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				1167F9D52EE00B590088E1F1 /* MenuBarConsoleView.swift */,
+				1167F9D62EE00B590088E1F1 /* MenuBarConsoleViewModel.swift */,
+			);
+			path = MenuBar;
 			sourceTree = "<group>";
 		};
 		11703D7F29DD197F00EF7E3D = {
@@ -1485,6 +1499,8 @@
 				1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
+				1167F9D82EE00B590088E1F1 /* MenuBarConsoleViewModel.swift in Sources */,
+				1167F9D92EE00B590088E1F1 /* MenuBarConsoleView.swift in Sources */,
 				11E53CC42E888F3900C17F16 /* AppBootstrapper.swift in Sources */,
 				111D52282C013E5F002CC23B /* AppStateInspectorView.swift in Sources */,
 				1199D6C12BF5CD80004E0D64 /* BottomToolBarView.swift in Sources */,
@@ -1761,7 +1777,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24db06f;
+				CURRENT_PROJECT_VERSION = 1541dab;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1815,7 +1831,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24db06f;
+				CURRENT_PROJECT_VERSION = 1541dab;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1918,7 +1934,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24db06f;
+				CURRENT_PROJECT_VERSION = 1541dab;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1950,7 +1966,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24db06f;
+				CURRENT_PROJECT_VERSION = 1541dab;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
