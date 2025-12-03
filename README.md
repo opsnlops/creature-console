@@ -77,13 +77,13 @@ swift run creature-cli --help
   ./swiftly init --quiet-shell-followup
   . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
   swiftly install 6.2.1
-  swift sdk install https://download.swift.org/swift-6.2.1-release/static-sdk/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE_static-linux-0.0.1.artifactbundle.tar.gz --checksum 08e1939a504e499ec871b36826569173103e4562769e12b9b8c2a50f098374ad
-  swift sdk list  # ensure static-linux-0.0.1 is available
+  swift sdk install https://download.swift.org/swift-6.2.1-release/static-sdk/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE_static-linux-0.0.1.artifactbundle.tar.gz --checksum 08e1939a504e499ec871b36826569173103e4562769e12b9b8c2a50f098374ad --id static-linux
+  swift sdk list  # ensure static-linux is available
   ```
 - Build the .deb (uses existing `debian/` metadata):
   ```bash
   . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
-  SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib --swift-sdk static-linux-0.0.1" dpkg-buildpackage -us -uc -b
+  SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib --swift-sdk static-linux" dpkg-buildpackage -us -uc -b
   ```
 - Helper scripts:
   - `build_deb.sh` — wrapper for `dpkg-buildpackage -us -uc -b`.
