@@ -33,7 +33,7 @@ jobs:
             curl ca-certificates pkg-config clang \
             libicu-dev libxml2-dev libbsd-dev libcurl4-openssl-dev \
             libssl-dev libsqlite3-dev libzstd-dev libedit-dev zlib1g-dev \
-            git cmake ninja-build python3 tar xz-utils \
+            git cmake ninja-build python3 tar xz-utils build-essential \
             debhelper devscripts fakeroot
 
       - name: Install Swift via Swiftly
