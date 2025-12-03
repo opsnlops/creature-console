@@ -86,6 +86,7 @@ swift run creature-cli --help
 - Helper scripts:
   - `build_deb.sh` — wrapper for `dpkg-buildpackage -us -uc -b`.
   - `clean_deb.sh` — runs `dh_clean` to clear `debian/` build outputs (parent artifacts left intact).
+- Package contents: installs `creature-cli` to `/usr/bin` and ships shell completions (bash, zsh, fish) under `/usr/share/bash-completion/completions/creature-cli`, `/usr/share/zsh/vendor-completions/_creature-cli`, and `/usr/share/fish/vendor_completions.d/creature-cli.fish`.
 - When a new Swift release ships:
   1) Update the CLI version in `Common/Sources/CreatureCLI/top.swift`.
   2) Update `debian/changelog` with the new version and entry.

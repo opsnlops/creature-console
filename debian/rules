@@ -18,6 +18,13 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-cli/usr/bin
 	BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS) --show-bin-path)/creature-cli; \
 		install -m755 $$BIN_PATH $(CURDIR)/debian/creature-cli/usr/bin/creature-cli
+	BIN=$(CURDIR)/debian/creature-cli/usr/bin/creature-cli; \
+	install -d $(CURDIR)/debian/creature-cli/usr/share/bash-completion/completions; \
+	$$BIN --generate-completion-script bash > $(CURDIR)/debian/creature-cli/usr/share/bash-completion/completions/creature-cli; \
+	install -d $(CURDIR)/debian/creature-cli/usr/share/zsh/vendor-completions; \
+	$$BIN --generate-completion-script zsh > $(CURDIR)/debian/creature-cli/usr/share/zsh/vendor-completions/_creature-cli; \
+	install -d $(CURDIR)/debian/creature-cli/usr/share/fish/vendor_completions.d; \
+	$$BIN --generate-completion-script fish > $(CURDIR)/debian/creature-cli/usr/share/fish/vendor_completions.d/creature-cli.fish
 
 override_dh_dwz:
 	# Skip dwz; binary may lack supported debug sections (static Swift).
