@@ -1,0 +1,5 @@
+creature-cli (2.13.6) unstable; urgency=medium
+
+  * Initial Debian package providing a statically linked creature-cli binary built with SwiftPM.
+
+ -- April White <april@creature.engineering>  Tue, 02 Dec 2025 18:11:02 -0800

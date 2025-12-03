@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+
+export SWIFT_BUILD_FLAGS=-c release --product creature-cli --static-swift-stdlib
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	# Ensure Swift toolchain is available; not declared as a Debian dependency.
+	command -v swift >/dev/null || (echo "Swift toolchain not found in PATH" >&2; exit 1)
+
+override_dh_auto_build:
+	cd Common && swift build $(SWIFT_BUILD_FLAGS)
+
+override_dh_auto_install:
+	install -d $(CURDIR)/debian/creature-cli/usr/bin
+	BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS) --show-bin-path)/creature-cli; \
+		install -m755 $$BIN_PATH $(CURDIR)/debian/creature-cli/usr/bin/creature-cli
+
+override_dh_dwz:
+	# Skip dwz; binary may lack supported debug sections (static Swift).
+	:

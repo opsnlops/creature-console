@@ -1,0 +1,14 @@
+Source: creature-cli
+Section: utils
+Priority: optional
+Maintainer: April White <april@creature.engineering>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/opsnlops/creature-console
+
+Package: creature-cli
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Command-line client for Creature Server
+ A CLI for interacting with the Creature API server to control animatronic creatures.
