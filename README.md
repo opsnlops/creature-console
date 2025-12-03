@@ -70,20 +70,18 @@ swift run creature-cli --help
 
 ### Debian package (creature-cli)
 - Host OS: Debian Trixie (CI uses `debian:trixie-slim` containers).
-- Swift toolchain: install via Swiftly, then install the Swift 6.2.1 static Linux SDK:
+- Swift toolchain: install via Swiftly:
   ```bash
   curl -O https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz
   tar zxf swiftly-$(uname -m).tar.gz
   ./swiftly init --quiet-shell-followup
   . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
   swiftly install 6.2.1
-  swift sdk install https://download.swift.org/swift-6.2.1-release/static-sdk/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE_static-linux-0.0.1.artifactbundle.tar.gz --checksum 08e1939a504e499ec871b36826569173103e4562769e12b9b8c2a50f098374ad --id static-linux
-  swift sdk list  # ensure static-linux is available
   ```
 - Build the .deb (uses existing `debian/` metadata):
   ```bash
   . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
-  SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib --swift-sdk static-linux" dpkg-buildpackage -us -uc -b
+  SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib" dpkg-buildpackage -us -uc -b
   ```
 - Helper scripts:
   - `build_deb.sh` — wrapper for `dpkg-buildpackage -us -uc -b`.
@@ -91,8 +89,8 @@ swift run creature-cli --help
 - When a new Swift release ships:
   1) Update the CLI version in `Common/Sources/CreatureCLI/top.swift`.
   2) Update `debian/changelog` with the new version and entry.
-  3) Update the workflow `.github/workflows/build-deb.yml` `SWIFT_VERSION`, static SDK URL, and checksum (from swift.org “Static Linux” section).
-  4) Update the README Swift install snippet above with the new version/URL/checksum.
+  3) Update the workflow `.github/workflows/build-deb.yml` `SWIFT_VERSION`.
+  4) Update the README Swift install snippet above with the new version.
   5) Rebuild the .deb (locally or via CI) and verify `ldd /usr/bin/creature-cli` after install.
 
 ### Running Tests
