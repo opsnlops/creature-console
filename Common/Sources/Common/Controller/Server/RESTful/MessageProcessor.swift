@@ -14,4 +14,6 @@ public protocol MessageProcessor: Sendable {
     func processWatchdogWarning(_ watchdogWarning: WatchdogWarning)
     func processJobProgress(_ jobProgress: JobProgress)
     func processJobComplete(_ jobComplete: JobCompletion)
+    func processIdleStateChanged(_ idleState: IdleStateChanged)
+    func processCreatureActivity(_ activity: CreatureActivity)
 }

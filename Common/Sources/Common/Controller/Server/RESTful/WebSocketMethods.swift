@@ -804,6 +804,16 @@ actor WebSocketClient {
                 let messageDTO = try decoder.decode(
                     WebSocketMessageDTO<JobCompletion>.self, from: data)
                 messageProcessor?.processJobComplete(messageDTO.payload)
+            case .idleStateChanged:
+                logger.debug("idle-state-changed")
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<IdleStateChanged>.self, from: data)
+                messageProcessor?.processIdleStateChanged(messageDTO.payload)
+            case .creatureActivity:
+                logger.debug("creature-activity")
+                let messageDTO = try decoder.decode(
+                    WebSocketMessageDTO<CreatureActivity>.self, from: data)
+                messageProcessor?.processCreatureActivity(messageDTO.payload)
             default:
                 logger.warning("Unknown message type: \(commandDTO.command), data: \(data)")
             }

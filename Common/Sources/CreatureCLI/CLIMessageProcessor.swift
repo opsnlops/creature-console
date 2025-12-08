@@ -9,12 +9,14 @@ final class CLIMessageProcessor: MessageProcessor {
         case boardSensors = "board-sensors"
         case cacheInvalidation = "cache-invalidation"
         case emergencyStop = "emergency-stop"
+        case idleStateChanged = "idle-state-changed"
         case log = "log"
         case motorSensors = "motor-sensors"
         case notice = "notice"
         case playlistStatus = "playlist-status"
         case statusLights = "status-lights"
         case systemCounters = "system-counters"
+        case creatureActivity = "creature-activity"
         case watchdogWarning = "watchdog-warning"
         case jobProgress = "job-progress"
         case jobComplete = "job-complete"
@@ -33,12 +35,14 @@ final class CLIMessageProcessor: MessageProcessor {
         .boardSensors: "33",
         .cacheInvalidation: "35",
         .emergencyStop: "31",
+        .idleStateChanged: "94",
         .log: "37",
         .motorSensors: "36",
         .notice: "32",
         .playlistStatus: "34",
         .statusLights: "96",
         .systemCounters: "95",
+        .creatureActivity: "92",
         .watchdogWarning: "91",
         .jobProgress: "93",
         .jobComplete: "92",
@@ -364,9 +368,9 @@ final class CLIMessageProcessor: MessageProcessor {
             parts.append("result: \(statusMessage)")
         }
 
-        if
-            (jobComplete.jobType == .adHocSpeech || jobComplete.jobType == .adHocSpeechPrepare),
-            let adHocResult: AdHocSpeechJobResult = jobComplete.decodeResult(as: AdHocSpeechJobResult.self)
+        if jobComplete.jobType == .adHocSpeech || jobComplete.jobType == .adHocSpeechPrepare,
+            let adHocResult: AdHocSpeechJobResult = jobComplete.decodeResult(
+                as: AdHocSpeechJobResult.self)
         {
             parts.append("animation: \(adHocResult.animationId)")
             if let universe = adHocResult.universe {
@@ -378,12 +382,41 @@ final class CLIMessageProcessor: MessageProcessor {
         }
 
         if jobComplete.jobType == .animationLipSync,
-            let result: AnimationLipSyncJobResult = jobComplete.decodeResult(as: AnimationLipSyncJobResult.self)
+            let result: AnimationLipSyncJobResult = jobComplete.decodeResult(
+                as: AnimationLipSyncJobResult.self)
         {
             parts.append("tracks: \(result.updatedTracks)")
         }
 
         printLine(.jobComplete, parts.joined(separator: " "))
+    }
+
+    func processIdleStateChanged(_ idleState: IdleStateChanged) {
+        guard shouldPrint(.idleStateChanged) else { return }
+        if outputFormat == .json {
+            emitJSON(type: .idleStateChanged, payload: idleState)
+            return
+        }
+        let ts = TimeHelper.formatToLocalTime(idleState.timestamp)
+        let stateText = idleState.idleEnabled ? "ENABLED" : "DISABLED"
+        printLine(
+            .idleStateChanged, "[IDLE STATE] [\(ts)] \(idleState.creatureId) idle \(stateText)")
+    }
+
+    func processCreatureActivity(_ activity: CreatureActivity) {
+        guard shouldPrint(.creatureActivity) else { return }
+        if outputFormat == .json {
+            emitJSON(type: .creatureActivity, payload: activity)
+            return
+        }
+        let ts = TimeHelper.formatToLocalTime(activity.timestamp)
+        let anim = activity.animationId ?? "none"
+        let session = activity.sessionId ?? "n/a"
+        let reason = activity.reason?.rawValue ?? "unknown"
+        printLine(
+            .creatureActivity,
+            "[ACTIVITY] [\(ts)] \(activity.creatureId) state=\(activity.state.rawValue) anim=\(anim) session=\(session) reason=\(reason)"
+        )
     }
 }
 

@@ -8,7 +8,7 @@ struct StatusDTOTests {
 
     @Test("encodes to JSON correctly")
     func encodesToJSON() throws {
-        let dto = StatusDTO(status: "OK", code: 200, message: "Success")
+        let dto = StatusDTO(status: "OK", code: 200, message: "Success", sessionId: nil)
 
         let encoder = JSONEncoder()
         let data = try encoder.encode(dto)
@@ -55,7 +55,7 @@ struct StatusDTOTests {
 
     @Test("handles empty message")
     func handlesEmptyMessage() throws {
-        let dto = StatusDTO(status: "OK", code: 204, message: "")
+        let dto = StatusDTO(status: "OK", code: 204, message: "", sessionId: nil)
 
         let encoder = JSONEncoder()
         let data = try encoder.encode(dto)
@@ -71,7 +71,8 @@ struct StatusDTOTests {
         let dto = StatusDTO(
             status: "ERROR",
             code: 400,
-            message: "Invalid input: \"name\" must not contain <>&"
+            message: "Invalid input: \"name\" must not contain <>&",
+            sessionId: nil
         )
 
         let encoder = JSONEncoder()
@@ -85,17 +86,17 @@ struct StatusDTOTests {
 
     @Test("handles various HTTP status codes")
     func handlesVariousStatusCodes() throws {
-        let testCases: [(String, UInt16, String)] = [
-            ("OK", 200, "Success"),
-            ("CREATED", 201, "Resource created"),
-            ("BAD_REQUEST", 400, "Bad request"),
-            ("UNAUTHORIZED", 401, "Unauthorized"),
-            ("NOT_FOUND", 404, "Not found"),
-            ("SERVER_ERROR", 500, "Internal error"),
+        let testCases: [(String, UInt16, String, String?)] = [
+            ("OK", 200, "Success", nil),
+            ("CREATED", 201, "Resource created", "session-1"),
+            ("BAD_REQUEST", 400, "Bad request", nil),
+            ("UNAUTHORIZED", 401, "Unauthorized", "session-2"),
+            ("NOT_FOUND", 404, "Not found", nil),
+            ("SERVER_ERROR", 500, "Internal error", nil),
         ]
 
-        for (status, code, message) in testCases {
-            let dto = StatusDTO(status: status, code: code, message: message)
+        for (status, code, message, sessionId) in testCases {
+            let dto = StatusDTO(status: status, code: code, message: message, sessionId: sessionId)
 
             let encoder = JSONEncoder()
             let data = try encoder.encode(dto)
@@ -106,7 +107,26 @@ struct StatusDTOTests {
             #expect(decoded.status == status)
             #expect(decoded.code == code)
             #expect(decoded.message == message)
+            #expect(decoded.sessionId == sessionId)
         }
+    }
+
+    @Test("decodes session id when present")
+    func decodesSessionId() throws {
+        let jsonString = """
+            {
+                "status": "OK",
+                "code": 200,
+                "message": "Scheduled",
+                "session_id": "uuid-123"
+            }
+            """
+
+        let data = jsonString.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        let dto = try decoder.decode(StatusDTO.self, from: data)
+
+        #expect(dto.sessionId == "uuid-123")
     }
 
     @Test("fails gracefully on missing required fields")

@@ -15,6 +15,8 @@ public enum ServerMessageType: String {
     case watchdogWarning = "watchdog-warning"
     case jobProgress = "job-progress"
     case jobComplete = "job-complete"
+    case idleStateChanged = "idle-state-changed"
+    case creatureActivity = "creature-activity"
     case unknown
 
     public init(from command: String) {

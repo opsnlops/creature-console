@@ -1,3 +1,10 @@
+creature-cli (2.15.0) unstable; urgency=medium
+
+  * Add websocket support for idle-state and per-creature activity events, including session IDs and enums.
+  * Extend StatusDTO with optional session_id; align CLI/GUI processors with new activity DTOs.
+
+ -- April White <april@creature.engineering>  Thu, 27 Feb 2025 00:00:00 +0000
+
 creature-cli (2.14.0) unstable; urgency=medium
 
   * Sync CLI version with GUI 2.14.0; add menu bar quick console and

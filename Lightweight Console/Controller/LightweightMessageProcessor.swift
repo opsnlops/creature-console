@@ -69,4 +69,12 @@ final class LightweightMessageProcessor: MessageProcessor {
             await jobStore.update(with: jobComplete)
         }
     }
+
+    func processIdleStateChanged(_ idleState: IdleStateChanged) {
+        // Not needed for lightweight client today
+    }
+
+    func processCreatureActivity(_ activity: CreatureActivity) {
+        // Not needed for lightweight client today
+    }
 }

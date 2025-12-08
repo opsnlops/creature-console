@@ -68,4 +68,24 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     func processJobComplete(_ jobComplete: JobCompletion) {
         JobStatusMessageProcessor.processJobCompletion(jobComplete)
     }
+
+    func processIdleStateChanged(_ idleState: IdleStateChanged) {
+        logger.info(
+            "Idle state changed for \(idleState.creatureId): \(idleState.idleEnabled ? "enabled" : "disabled")"
+        )
+        NotificationCenter.default.post(
+            name: Notification.Name("IdleStateChanged"),
+            object: idleState
+        )
+    }
+
+    func processCreatureActivity(_ activity: CreatureActivity) {
+        logger.info(
+            "Activity update for \(activity.creatureId): state=\(activity.state.rawValue) anim=\(activity.animationId ?? "none") session=\(activity.sessionId ?? "n/a") reason=\(activity.reason?.rawValue ?? "unknown")"
+        )
+        NotificationCenter.default.post(
+            name: Notification.Name("CreatureActivityUpdated"),
+            object: activity
+        )
+    }
 }
