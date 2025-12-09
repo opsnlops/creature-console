@@ -26,7 +26,12 @@ extension CreatureServerClient {
     public func getCreature(creatureId: CreatureIdentifier) async throws -> Result<
         Creature, ServerError
     > {
-        return .failure(.notImplemented("This function is not yet implemented"))
+        guard let url = URL(string: makeBaseURL(.http) + "/creature/\(creatureId)") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await fetchData(url, returnType: Creature.self)
     }
 
 

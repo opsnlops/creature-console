@@ -7,6 +7,7 @@ public enum ActivityReason: String, Codable, Sendable {
     case idle = "idle"
     case disabled = "disabled"
     case cancelled = "cancelled"
+    case streaming = "streaming"
     case unknown
 
     public init(from decoder: Decoder) throws {

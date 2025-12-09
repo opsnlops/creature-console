@@ -1,11 +1,12 @@
 import ArgumentParser
+import Common
 
 extension CreatureCLI {
 
     struct Creatures: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Mess with the Creatures",
-            subcommands: [List.self, Search.self]
+            subcommands: [List.self, Search.self, Detail.self]
         )
 
         @OptionGroup()
@@ -68,6 +69,28 @@ extension CreatureCLI {
                 print(
                     "Searching for creature \(name) on \(globalOptions.host):\(globalOptions.port) using TLS: \(!globalOptions.insecure)"
                 )
+            }
+        }
+
+        struct Detail: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Show details for a single creature by ID")
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            @Argument(help: "Creature ID to show")
+            var creatureId: CreatureIdentifier
+
+            func run() async throws {
+                let server = getServer(config: globalOptions)
+                let result = try await server.getCreature(creatureId: creatureId)
+                switch result {
+                case .success(let creature):
+                    print(creatureDetails(creature))
+                case .failure(let error):
+                    throw failWithMessage("Error fetching creature: \(error.localizedDescription)")
+                }
             }
         }
     }

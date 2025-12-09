@@ -26,6 +26,8 @@ actor CreatureImporter {
                     existing.mouthSlot = dto.mouthSlot
                     existing.realData = dto.realData
                     existing.audioChannel = dto.audioChannel
+                    existing.speechLoopAnimationIds = dto.speechLoopAnimationIds
+                    existing.idleAnimationIds = dto.idleAnimationIds
 
                     // Update inputs: explicitly delete old ones before adding new ones
                     for input in existing.inputs {

@@ -15,6 +15,9 @@ public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendabl
     public let realData: Bool
     public let audioChannel: Int
     public let inputs: [Input]
+    public let speechLoopAnimationIds: [String]
+    public let idleAnimationIds: [String]
+    public let runtime: CreatureRuntime?
 
     enum CodingKeys: String, CodingKey {
         case id, name
@@ -23,11 +26,15 @@ public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendabl
         case realData
         case audioChannel = "audio_channel"
         case inputs
+        case speechLoopAnimationIds = "speech_loop_animation_ids"
+        case idleAnimationIds = "idle_animation_ids"
+        case runtime
     }
 
     public init(
         id: CreatureIdentifier, name: String, channelOffset: Int, mouthSlot: Int, audioChannel: Int,
-        inputs: [Input] = [], realData: Bool = false
+        inputs: [Input] = [], realData: Bool = false, speechLoopAnimationIds: [String] = [],
+        idleAnimationIds: [String] = [], runtime: CreatureRuntime? = nil
     ) {
         self.id = id
         self.name = name
@@ -36,6 +43,9 @@ public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendabl
         self.audioChannel = audioChannel
         self.realData = realData
         self.inputs = inputs
+        self.speechLoopAnimationIds = speechLoopAnimationIds
+        self.idleAnimationIds = idleAnimationIds
+        self.runtime = runtime
     }
 
     required public init(from decoder: Decoder) throws {
@@ -47,6 +57,11 @@ public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendabl
         audioChannel = try container.decode(Int.self, forKey: .audioChannel)
         realData = try container.decodeIfPresent(Bool.self, forKey: .realData) ?? false
         inputs = try container.decode([Input].self, forKey: .inputs)
+        speechLoopAnimationIds =
+            try container.decodeIfPresent([String].self, forKey: .speechLoopAnimationIds) ?? []
+        idleAnimationIds =
+            try container.decodeIfPresent([String].self, forKey: .idleAnimationIds) ?? []
+        runtime = try container.decodeIfPresent(CreatureRuntime.self, forKey: .runtime)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -58,6 +73,13 @@ public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendabl
         try container.encode(audioChannel, forKey: .audioChannel)
         try container.encode(realData, forKey: .realData)
         try container.encode(inputs, forKey: .inputs)
+        if !speechLoopAnimationIds.isEmpty {
+            try container.encode(speechLoopAnimationIds, forKey: .speechLoopAnimationIds)
+        }
+        if !idleAnimationIds.isEmpty {
+            try container.encode(idleAnimationIds, forKey: .idleAnimationIds)
+        }
+        try container.encodeIfPresent(runtime, forKey: .runtime)
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -68,6 +90,9 @@ public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendabl
         hasher.combine(audioChannel)
         hasher.combine(realData)
         hasher.combine(inputs)
+        hasher.combine(speechLoopAnimationIds)
+        hasher.combine(idleAnimationIds)
+        hasher.combine(runtime)
     }
 
     public static func == (lhs: Creature, rhs: Creature) -> Bool {
@@ -76,6 +101,9 @@ public final class Creature: Identifiable, Hashable, Equatable, Codable, Sendabl
             && lhs.audioChannel == rhs.audioChannel
             && lhs.realData == rhs.realData
             && lhs.inputs == rhs.inputs
+            && lhs.speechLoopAnimationIds == rhs.speechLoopAnimationIds
+            && lhs.idleAnimationIds == rhs.idleAnimationIds
+            && lhs.runtime == rhs.runtime
     }
 }
 
@@ -91,7 +119,9 @@ extension Creature {
             inputs: [
                 Input(name: "MockInput", slot: 1, width: 1, joystickAxis: 1),
                 Input(name: "Input 2", slot: 2, width: 2, joystickAxis: 2),
-            ]
+            ],
+            speechLoopAnimationIds: ["speech-loop-1"],
+            idleAnimationIds: ["idle-loop-1"]
         )
 
         return creature

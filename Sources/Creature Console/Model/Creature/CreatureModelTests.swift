@@ -54,6 +54,8 @@ struct CreatureModelTests {
         let mouthSlot = 4
         let realData = true
         let audioChannel = 1
+        let speechLoopIds = ["speech1", "speech2"]
+        let idleIds = ["idle1", "idle2"]
         let inputs = [
             InputModel(name: "Input1", slot: 1, width: 8, joystickAxis: 0),
             InputModel(name: "Input2", slot: 2, width: 16, joystickAxis: 1),
@@ -66,7 +68,9 @@ struct CreatureModelTests {
             mouthSlot: mouthSlot,
             realData: realData,
             audioChannel: audioChannel,
-            inputs: inputs
+            inputs: inputs,
+            speechLoopAnimationIds: speechLoopIds,
+            idleAnimationIds: idleIds
         )
 
         #expect(creature.id == id)
@@ -78,6 +82,8 @@ struct CreatureModelTests {
         #expect(creature.inputs.count == 2)
         #expect(creature.inputs[0].name == "Input1")
         #expect(creature.inputs[1].name == "Input2")
+        #expect(creature.speechLoopAnimationIds == speechLoopIds)
+        #expect(creature.idleAnimationIds == idleIds)
     }
 
     @Test("CreatureModel converts from DTO")
@@ -92,7 +98,9 @@ struct CreatureModelTests {
                 Common.Input(name: "Input A", slot: 1, width: 8, joystickAxis: 0),
                 Common.Input(name: "Input B", slot: 2, width: 16, joystickAxis: 1),
             ],
-            realData: false
+            realData: false,
+            speechLoopAnimationIds: ["speech-loop-1"],
+            idleAnimationIds: ["idle-loop-1", "idle-loop-2"]
         )
 
         let creature = CreatureModel(dto: dto)
@@ -108,6 +116,8 @@ struct CreatureModelTests {
         #expect(creature.inputs[0].slot == 1)
         #expect(creature.inputs[1].name == "Input B")
         #expect(creature.inputs[1].slot == 2)
+        #expect(creature.speechLoopAnimationIds == dto.speechLoopAnimationIds)
+        #expect(creature.idleAnimationIds == dto.idleAnimationIds)
     }
 
     @Test("CreatureModel converts to DTO")
@@ -123,7 +133,9 @@ struct CreatureModelTests {
             mouthSlot: 6,
             realData: true,
             audioChannel: 3,
-            inputs: inputs
+            inputs: inputs,
+            speechLoopAnimationIds: ["speech-loop-A"],
+            idleAnimationIds: ["idle-loop-A"]
         )
 
         let dto = creature.toDTO()
@@ -139,6 +151,8 @@ struct CreatureModelTests {
         #expect(dto.inputs[0].slot == 5)
         #expect(dto.inputs[1].name == "Input Y")
         #expect(dto.inputs[1].slot == 6)
+        #expect(dto.speechLoopAnimationIds == creature.speechLoopAnimationIds)
+        #expect(dto.idleAnimationIds == creature.idleAnimationIds)
     }
 
     @Test("CreatureModel round-trips through DTO conversion")
@@ -154,7 +168,9 @@ struct CreatureModelTests {
                 Common.Input(name: "Input 2", slot: 2, width: 16, joystickAxis: 1),
                 Common.Input(name: "Input 3", slot: 3, width: 8, joystickAxis: 2),
             ],
-            realData: true
+            realData: true,
+            speechLoopAnimationIds: ["speech-loop-round"],
+            idleAnimationIds: ["idle-loop-round"]
         )
 
         let creature = CreatureModel(dto: originalDTO)
@@ -173,6 +189,8 @@ struct CreatureModelTests {
             #expect(input.width == originalDTO.inputs[index].width)
             #expect(input.joystickAxis == originalDTO.inputs[index].joystickAxis)
         }
+        #expect(convertedDTO.speechLoopAnimationIds == originalDTO.speechLoopAnimationIds)
+        #expect(convertedDTO.idleAnimationIds == originalDTO.idleAnimationIds)
     }
 
     @Test("CreatureModel persists with cascade delete relationship")
@@ -193,7 +211,9 @@ struct CreatureModelTests {
             mouthSlot: 1,
             realData: false,
             audioChannel: 0,
-            inputs: inputs
+            inputs: inputs,
+            speechLoopAnimationIds: [],
+            idleAnimationIds: []
         )
 
         context.insert(creature)
@@ -233,7 +253,9 @@ struct CreatureModelTests {
             mouthSlot: 1,
             realData: false,
             audioChannel: 0,
-            inputs: []
+            inputs: [],
+            speechLoopAnimationIds: [],
+            idleAnimationIds: []
         )
         let creature2 = CreatureModel(
             id: "creature_unique",
@@ -242,7 +264,9 @@ struct CreatureModelTests {
             mouthSlot: 3,
             realData: true,
             audioChannel: 1,
-            inputs: []
+            inputs: [],
+            speechLoopAnimationIds: [],
+            idleAnimationIds: []
         )
 
         context.insert(creature1)

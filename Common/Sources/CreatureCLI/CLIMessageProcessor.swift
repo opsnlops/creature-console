@@ -411,11 +411,13 @@ final class CLIMessageProcessor: MessageProcessor {
         }
         let ts = TimeHelper.formatToLocalTime(activity.timestamp)
         let anim = activity.animationId ?? "none"
-        let session = activity.sessionId ?? "n/a"
+        let session = activity.sessionId.map { String($0.prefix(8)) } ?? "n/a"
         let reason = activity.reason?.rawValue ?? "unknown"
+        let name = activity.creatureName ?? activity.creatureId
+        let idSuffix = activity.creatureName != nil ? " [\(activity.creatureId)]" : ""
         printLine(
             .creatureActivity,
-            "[ACTIVITY] [\(ts)] \(activity.creatureId) state=\(activity.state.rawValue) anim=\(anim) session=\(session) reason=\(reason)"
+            "[ACTIVITY] [\(ts)] \(name)\(idSuffix) state=\(activity.state.rawValue) anim=\(anim) session=\(session) reason=\(reason)"
         )
     }
 }

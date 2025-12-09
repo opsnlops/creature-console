@@ -181,6 +181,7 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
             }
 
             let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
 
             switch httpResponse.statusCode {
 

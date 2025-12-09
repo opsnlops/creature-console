@@ -15,6 +15,8 @@ final class CreatureModel {
     var mouthSlot: Int = 0
     var realData: Bool = false
     var audioChannel: Int = 0
+    var speechLoopAnimationIds: [String] = []
+    var idleAnimationIds: [String] = []
 
     @Relationship(deleteRule: .cascade, inverse: \InputModel.creature)
     var inputs: [InputModel] = []
@@ -22,7 +24,9 @@ final class CreatureModel {
     init(
         id: String, name: String, channelOffset: Int, mouthSlot: Int, realData: Bool,
         audioChannel: Int,
-        inputs: [InputModel]
+        inputs: [InputModel],
+        speechLoopAnimationIds: [String],
+        idleAnimationIds: [String]
     ) {
         self.id = id
         self.name = name
@@ -31,6 +35,8 @@ final class CreatureModel {
         self.realData = realData
         self.audioChannel = audioChannel
         self.inputs = inputs
+        self.speechLoopAnimationIds = speechLoopAnimationIds
+        self.idleAnimationIds = idleAnimationIds
     }
 }
 
@@ -45,7 +51,9 @@ extension CreatureModel {
             mouthSlot: dto.mouthSlot,
             realData: dto.realData,
             audioChannel: dto.audioChannel,
-            inputs: inputModels
+            inputs: inputModels,
+            speechLoopAnimationIds: dto.speechLoopAnimationIds,
+            idleAnimationIds: dto.idleAnimationIds
         )
     }
 
@@ -59,7 +67,9 @@ extension CreatureModel {
             mouthSlot: mouthSlot,
             audioChannel: audioChannel,
             inputs: inputDTOs,
-            realData: realData
+            realData: realData,
+            speechLoopAnimationIds: speechLoopAnimationIds,
+            idleAnimationIds: idleAnimationIds
         )
     }
 }
