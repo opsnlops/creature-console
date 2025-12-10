@@ -760,7 +760,7 @@ actor WebSocketClient {
                 messageProcessor?.processLog(messageDTO.payload)
             case .serverCounters:
                 let messageDTO = try decoder.decode(
-                    WebSocketMessageDTO<SystemCountersDTO>.self, from: data)
+                    WebSocketMessageDTO<ServerCountersPayload>.self, from: data)
                 messageProcessor?.processSystemCounters(messageDTO.payload)
             case .statusLights:
                 let messageDTO = try decoder.decode(

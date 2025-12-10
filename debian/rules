@@ -2,7 +2,9 @@
 
 # Allow SWIFT_BUILD_FLAGS to be overridden (e.g., CI adds --swift-sdk static-linux).
 SWIFT_BUILD_FLAGS ?= -c release --product creature-cli --static-swift-stdlib
+SWIFT_BUILD_FLAGS_MQTT ?= -c release --product creature-mqtt --static-swift-stdlib
 export SWIFT_BUILD_FLAGS
+export SWIFT_BUILD_FLAGS_MQTT
 
 %:
 	dh $@
@@ -13,6 +15,7 @@ override_dh_auto_configure:
 
 override_dh_auto_build:
 	cd Common && swift build $(SWIFT_BUILD_FLAGS)
+	cd Common && swift build $(SWIFT_BUILD_FLAGS_MQTT)
 
 override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-cli/usr/bin
@@ -25,6 +28,17 @@ override_dh_auto_install:
 	$$BIN --generate-completion-script zsh > $(CURDIR)/debian/creature-cli/usr/share/zsh/vendor-completions/_creature-cli; \
 	install -d $(CURDIR)/debian/creature-cli/usr/share/fish/vendor_completions.d; \
 	$$BIN --generate-completion-script fish > $(CURDIR)/debian/creature-cli/usr/share/fish/vendor_completions.d/creature-cli.fish
+
+	install -d $(CURDIR)/debian/creature-mqtt/usr/bin
+	MQTT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_MQTT) --show-bin-path)/creature-mqtt; \
+		install -m755 $$MQTT_BIN_PATH $(CURDIR)/debian/creature-mqtt/usr/bin/creature-mqtt
+	MQTT_BIN=$(CURDIR)/debian/creature-mqtt/usr/bin/creature-mqtt; \
+	install -d $(CURDIR)/debian/creature-mqtt/usr/share/bash-completion/completions; \
+	$$MQTT_BIN --generate-completion-script bash > $(CURDIR)/debian/creature-mqtt/usr/share/bash-completion/completions/creature-mqtt; \
+	install -d $(CURDIR)/debian/creature-mqtt/usr/share/zsh/vendor-completions; \
+	$$MQTT_BIN --generate-completion-script zsh > $(CURDIR)/debian/creature-mqtt/usr/share/zsh/vendor-completions/_creature-mqtt; \
+	install -d $(CURDIR)/debian/creature-mqtt/usr/share/fish/vendor_completions.d; \
+	$$MQTT_BIN --generate-completion-script fish > $(CURDIR)/debian/creature-mqtt/usr/share/fish/vendor_completions.d/creature-mqtt.fish
 
 override_dh_dwz:
 	# Skip dwz; binary may lack supported debug sections (static Swift).

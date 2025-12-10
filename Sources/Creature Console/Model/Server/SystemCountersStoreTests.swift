@@ -15,9 +15,11 @@ struct SystemCountersStoreTests {
     func defaultZeroedCounters() async throws {
         let store = await makeIsolatedStore()
         let counters = await MainActor.run { store.systemCounters }
+        let runtimeStates = await MainActor.run { store.runtimeStates }
         #expect(counters.totalFrames == 0)
         #expect(counters.eventsProcessed == 0)
         #expect(counters.framesStreamed == 0)
+        #expect(runtimeStates.isEmpty)
     }
 
     @Test("update replaces the entire counters value")
@@ -42,25 +44,39 @@ struct SystemCountersStoreTests {
             websocketPongsReceived: 14
         )
 
-        await MainActor.run { store.update(with: newCounters) }
+        let payload = ServerCountersPayload(
+            counters: newCounters,
+            runtimeStates: [ServerCountersRuntimeState(creatureId: "creature-1", runtime: nil)]
+        )
+
+        await MainActor.run { store.update(with: payload) }
 
         let current = await MainActor.run { store.systemCounters }
+        let runtimeStates = await MainActor.run { store.runtimeStates }
         #expect(current.totalFrames == 123)
         #expect(current.websocketPongsReceived == 14)
         #expect(current.framesStreamed == 9)
+        #expect(runtimeStates.count == 1)
+        #expect(runtimeStates.first?.creatureId == "creature-1")
     }
 
     @Test("update can be called from a background context and applies on main")
     func updateFromBackground() async throws {
         let store = await makeIsolatedStore()
         let newCounters = SystemCountersDTO(totalFrames: 777)
+        let payload = ServerCountersPayload(
+            counters: newCounters,
+            runtimeStates: [ServerCountersRuntimeState(creatureId: "rt-1", runtime: nil)]
+        )
 
         // Invoke update from a non-main context; actor hop will occur as needed
         await Task.detached {
-            await store.update(with: newCounters)
+            await store.update(with: payload)
         }.value
 
         let current = await MainActor.run { store.systemCounters }
+        let runtimeStates = await MainActor.run { store.runtimeStates }
         #expect(current.totalFrames == 777)
+        #expect(runtimeStates.map(\.creatureId) == ["rt-1"])
     }
 }

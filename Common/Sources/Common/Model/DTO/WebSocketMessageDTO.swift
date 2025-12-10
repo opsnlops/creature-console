@@ -36,7 +36,7 @@ public struct WebSocketMessageDTO<T: Codable>: Codable {
         case .playlistStatus:
             payload = try container.decode(PlaylistStatus.self, forKey: .payload) as! T
         case .serverCounters:
-            payload = try container.decode(SystemCountersDTO.self, forKey: .payload) as! T
+            payload = try container.decode(ServerCountersPayload.self, forKey: .payload) as! T
         case .statusLights:
             payload = try container.decode(VirtualStatusLightsDTO.self, forKey: .payload) as! T
         case .streamFrame:

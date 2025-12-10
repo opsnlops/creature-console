@@ -13,12 +13,13 @@ let package = Package(
             targets: ["Common"]),
         .library(
             name: "PlaylistRuntime",
-            targets: ["PlaylistRuntime"])
+            targets: ["PlaylistRuntime"]),
 
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.1"),
+        .package(url: "https://github.com/swift-server-community/mqtt-nio", from: "2.12.1"),
     ],
 
     targets: [
@@ -33,7 +34,7 @@ let package = Package(
             name: "PlaylistRuntime",
             dependencies: [
                 "Common",
-                .product(name: "Logging", package: "swift-log")
+                .product(name: "Logging", package: "swift-log"),
             ]),
 
         .executableTarget(
@@ -43,6 +44,16 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
             path: "Sources/CreatureCLI/",
+            exclude: ["README.md"]),
+
+        .executableTarget(
+            name: "creature-mqtt",
+            dependencies: [
+                "Common",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "MQTTNIO", package: "mqtt-nio"),
+            ],
+            path: "Sources/CreatureMQTT/",
             exclude: ["README.md"]),
 
         .testTarget(

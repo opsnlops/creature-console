@@ -10,7 +10,7 @@ public protocol MessageProcessor: Sendable {
     func processNotice(_ notice: Notice)
     func processPlaylistStatus(_ playlistStatus: PlaylistStatus)
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO)
-    func processSystemCounters(_ counters: SystemCountersDTO)
+    func processSystemCounters(_ counters: ServerCountersPayload)
     func processWatchdogWarning(_ watchdogWarning: WatchdogWarning)
     func processJobProgress(_ jobProgress: JobProgress)
     func processJobComplete(_ jobComplete: JobCompletion)

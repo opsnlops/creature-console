@@ -12,3 +12,9 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Command-line client for Creature Server
  A CLI for interacting with the Creature API server to control animatronic creatures.
+
+Package: creature-mqtt
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: MQTT bridge for Creature Server events
+ Bridges Creature websocket events into MQTT topics for Home Assistant and automation stacks.

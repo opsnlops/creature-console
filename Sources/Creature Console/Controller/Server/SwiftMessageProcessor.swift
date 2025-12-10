@@ -51,7 +51,7 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
         VirtualStatusLightsProcessor.processVirtualStatusLights(statusLights)
     }
 
-    func processSystemCounters(_ counters: SystemCountersDTO) {
+    func processSystemCounters(_ counters: ServerCountersPayload) {
         SystemCountersItemProcessor.processSystemCounters(counters)
     }
 

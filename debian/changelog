@@ -1,3 +1,10 @@
+creature-cli (2.15.1) unstable; urgency=medium
+
+  * Add creature-mqtt Debian binary package with completions; default retain flag is configurable.
+  * Build system and CI adjusted to produce CLI + MQTT .deb artifacts for both architectures.
+
+ -- April White <april@creature.engineering>  Tue, 10 Dec 2025 05:30:00 +0000
+
 creature-cli (2.15.0) unstable; urgency=medium
 
   * Add websocket support for idle-state and per-creature activity events, including session IDs and enums.

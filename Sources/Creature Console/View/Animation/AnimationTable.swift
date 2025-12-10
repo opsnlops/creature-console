@@ -7,6 +7,8 @@ import SwiftUI
 
 #if os(iOS)
     import UIKit
+#elseif canImport(AppKit)
+    import AppKit
 #endif
 
 struct AnimationTable: View {
@@ -120,6 +122,13 @@ struct AnimationTable: View {
                             }
                         } label: {
                             Label("Edit", systemImage: "pencil")
+                        }
+                        .disabled(!hasSelection)
+
+                        Button {
+                            copyAnimationId(targetId)
+                        } label: {
+                            Label("Copy Animation ID", systemImage: "doc.on.doc")
                         }
                         .disabled(!hasSelection)
 
@@ -589,6 +598,18 @@ struct AnimationTable: View {
 
     private func animationTitle(for animationId: AnimationIdentifier) -> String {
         animations.first(where: { $0.id == animationId })?.title ?? animationId
+    }
+
+    private func copyAnimationId(_ animationId: AnimationIdentifier?) {
+        guard let animationId else { return }
+
+        #if os(iOS) || os(visionOS)
+            UIPasteboard.general.string = animationId
+        #elseif canImport(AppKit)
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(animationId, forType: .string)
+        #endif
     }
 
     @MainActor

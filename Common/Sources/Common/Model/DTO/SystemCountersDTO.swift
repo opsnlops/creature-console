@@ -1,6 +1,6 @@
 import Foundation
 
-public struct SystemCountersDTO: Codable, Sendable {
+public struct SystemCountersDTO: Codable, Sendable, Equatable {
     public var totalFrames: UInt64
     public var eventsProcessed: UInt64
     public var framesStreamed: UInt64
@@ -52,5 +52,38 @@ public struct SystemCountersDTO: Codable, Sendable {
         self.websocketMessagesSent = websocketMessagesSent
         self.websocketPingsSent = websocketPingsSent
         self.websocketPongsReceived = websocketPongsReceived
+    }
+}
+
+public struct ServerCountersRuntimeState: Codable, Sendable, Equatable {
+    public let creatureId: String
+    public let runtime: CreatureRuntime?
+
+    enum CodingKeys: String, CodingKey {
+        case creatureId = "creature_id"
+        case runtime
+    }
+
+    public init(creatureId: String, runtime: CreatureRuntime?) {
+        self.creatureId = creatureId
+        self.runtime = runtime
+    }
+}
+
+public struct ServerCountersPayload: Codable, Sendable, Equatable {
+    public let counters: SystemCountersDTO
+    public let runtimeStates: [ServerCountersRuntimeState]
+
+    enum CodingKeys: String, CodingKey {
+        case counters
+        case runtimeStates = "runtime_states"
+    }
+
+    public init(
+        counters: SystemCountersDTO = SystemCountersDTO(),
+        runtimeStates: [ServerCountersRuntimeState] = []
+    ) {
+        self.counters = counters
+        self.runtimeStates = runtimeStates
     }
 }

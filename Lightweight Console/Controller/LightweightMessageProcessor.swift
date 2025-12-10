@@ -50,7 +50,7 @@ final class LightweightMessageProcessor: MessageProcessor {
         // Not needed
     }
 
-    func processSystemCounters(_ counters: SystemCountersDTO) {
+    func processSystemCounters(_ counters: ServerCountersPayload) {
         // Not needed
     }
 

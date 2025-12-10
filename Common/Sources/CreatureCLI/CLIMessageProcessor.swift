@@ -273,16 +273,70 @@ final class CLIMessageProcessor: MessageProcessor {
         printLine(.statusLights, message)
     }
 
-    func processSystemCounters(_ counters: SystemCountersDTO) {
+    func processSystemCounters(_ counters: ServerCountersPayload) {
         guard shouldPrint(.systemCounters) else { return }
         if outputFormat == .json {
             emitJSON(type: .systemCounters, payload: counters)
             return
         }
-        printLine(
-            .systemCounters,
-            "[COUNTERS] Server is on frame \(counters.totalFrames)! \(counters.framesStreamed) frames have been streamed."
+        let summary =
+            "[COUNTERS] frame \(counters.counters.totalFrames) • streamed \(counters.counters.framesStreamed) • events \(counters.counters.eventsProcessed)"
+        printLine(.systemCounters, summary)
+
+        let c = counters.counters
+        let rows: [(String, String)] = [
+            ("Events Processed", formatNumber(c.eventsProcessed)),
+            ("Frames Streamed", formatNumber(c.framesStreamed)),
+            ("DMX Events", formatNumber(c.dmxEventsProcessed)),
+            ("Animations Played", formatNumber(c.animationsPlayed)),
+            ("Sounds Played", formatNumber(c.soundsPlayed)),
+            ("Playlists Started", formatNumber(c.playlistsStarted)),
+            ("Playlists Stopped", formatNumber(c.playlistsStopped)),
+            ("REST Requests", formatNumber(c.restRequestsProcessed)),
+            (
+                "WS Sent/Recv",
+                "\(formatNumber(c.websocketMessagesSent))/\(formatNumber(c.websocketMessagesReceived))"
+            ),
+        ]
+
+        printTable(
+            rows,
+            columns: [
+                TableColumn(title: "Metric", valueProvider: { $0.0 }),
+                TableColumn(title: "Value", valueProvider: { $0.1 }),
+            ],
+            colorCode: colorCode(for: .systemCounters)
         )
+
+        if !counters.runtimeStates.isEmpty {
+            for state in counters.runtimeStates {
+                let idle = state.runtime?.idleEnabled ?? false
+                let activity = state.runtime?.activity
+                let stateStr = activity?.state.rawValue ?? "unknown"
+                let reason = activity?.reason?.rawValue ?? "n/a"
+                let animation = activity?.animationId ?? "none"
+                let session = activity?.sessionId ?? "n/a"
+                printLine(
+                    .systemCounters,
+                    "  - \(state.creatureId): state=\(stateStr) reason=\(reason) idle=\(idle ? "on" : "off") anim=\(animation) session=\(session)"
+                )
+                if let counters = state.runtime?.counters {
+                    let fmt: (UInt64?) -> String = { formatNumber($0 ?? 0) }
+                    let details: [(String, String)] = [
+                        ("sessions", fmt(counters.sessionsStartedTotal)),
+                        ("cancelled", fmt(counters.sessionsCancelledTotal)),
+                        ("idle start", fmt(counters.idleStartedTotal)),
+                        ("idle stop", fmt(counters.idleStoppedTotal)),
+                        ("idle toggles", fmt(counters.idleTogglesTotal)),
+                        ("skipped", fmt(counters.skipsMissingCreatureTotal)),
+                        ("bgm takeovers", fmt(counters.bgmTakeoversTotal)),
+                        ("audio resets", fmt(counters.audioResetsTotal)),
+                    ]
+                    let counterLine = details.map { "\($0.0)=\($0.1)" }.joined(separator: ", ")
+                    printLine(.systemCounters, "      counters: \(counterLine)")
+                }
+            }
+        }
     }
 
     func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) {

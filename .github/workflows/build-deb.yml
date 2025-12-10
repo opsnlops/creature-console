@@ -50,15 +50,17 @@ jobs:
           source "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
           export DEB_BUILD_OPTIONS=nocheck
           SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib" \
+          SWIFT_BUILD_FLAGS_MQTT="-c release --product creature-mqtt --static-swift-stdlib" \
             dpkg-buildpackage -us -uc -b
 
       - name: Collect deb artifact
         run: |
           mkdir -p artifacts
           mv ../creature-cli_*_${{ matrix.arch }}.deb artifacts/
+          mv ../creature-mqtt_*_${{ matrix.arch }}.deb artifacts/
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
-          name: creature-cli-${{ matrix.arch }}
-          path: artifacts/creature-cli_*_${{ matrix.arch }}.deb
+          name: creature-packages-${{ matrix.arch }}
+          path: artifacts/*.deb
