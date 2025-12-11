@@ -34,6 +34,9 @@ final class MQTTMessageProcessor: MessageProcessor {
     private let logger: Logger
     private let nameResolver: CreatureNameResolver
     private let fetchCreatureName: @Sendable (CreatureIdentifier) async -> String?
+    private let animationNameResolver: AnimationNameResolver
+    private let fetchAnimationName: @Sendable (AnimationIdentifier) async -> String?
+    private let reloadAnimationNames: @Sendable () async -> [AnimationIdentifier: String]
     private let lastPublished: NIOLockedValueBox<[String: String]>
     private let retainMessages: Bool
 
@@ -44,6 +47,9 @@ final class MQTTMessageProcessor: MessageProcessor {
         logLevel: Logger.Level,
         nameResolver: CreatureNameResolver,
         fetchCreatureName: @escaping @Sendable (CreatureIdentifier) async -> String?,
+        animationNameResolver: AnimationNameResolver,
+        fetchAnimationName: @escaping @Sendable (AnimationIdentifier) async -> String?,
+        reloadAnimationNames: @escaping @Sendable () async -> [AnimationIdentifier: String],
         retainMessages: Bool
     ) {
         self.mqttClient = mqttClient
@@ -51,6 +57,9 @@ final class MQTTMessageProcessor: MessageProcessor {
         self.allowedTypes = allowedTypes
         self.nameResolver = nameResolver
         self.fetchCreatureName = fetchCreatureName
+        self.animationNameResolver = animationNameResolver
+        self.fetchAnimationName = fetchAnimationName
+        self.reloadAnimationNames = reloadAnimationNames
         self.lastPublished = NIOLockedValueBox([:])
         self.retainMessages = retainMessages
 
@@ -77,18 +86,13 @@ final class MQTTMessageProcessor: MessageProcessor {
         let retainFlag = retain ?? retainMessages
         Task { @Sendable [value, components, mqttClient, logger, cache, retainFlag] in
             let topic = await mqttClient.topicString(for: components)
-            let shouldPublish = cache.withLockedValue { store in
-                if store[topic] == value {
-                    return false
-                }
-                store[topic] = value
-                return true
-            }
-            guard shouldPublish else { return }
+            let alreadyPublished = cache.withLockedValue { store in store[topic] == value }
+            guard !alreadyPublished else { return }
 
             do {
                 try await mqttClient.publishString(
                     value, components: components, retain: retainFlag)
+                cache.withLockedValue { store in store[topic] = value }
             } catch {
                 logger.error("Failed to publish \(topic) to MQTT: \(error.localizedDescription)")
             }
@@ -145,10 +149,21 @@ final class MQTTMessageProcessor: MessageProcessor {
     }
 
     func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) {
-        guard shouldPublish(.cacheInvalidation) else { return }
-        let base = ["cache_invalidation"]
-        publishValue(cacheInvalidation.cacheType.description, components: base + ["cache_type"])
-        publishDate(.now, components: base + ["timestamp"])
+        if shouldPublish(.cacheInvalidation) {
+            let base = ["cache_invalidation"]
+            publishValue(cacheInvalidation.cacheType.description, components: base + ["cache_type"])
+            publishDate(.now, components: base + ["timestamp"])
+        }
+
+        switch cacheInvalidation.cacheType {
+        case .animation, .adHocAnimationList:
+            Task { [animationNameResolver, reloadAnimationNames] in
+                let names = await reloadAnimationNames()
+                animationNameResolver.replaceAll(names)
+            }
+        default:
+            break
+        }
     }
 
     func processEmergencyStop(_ emergencyStop: EmergencyStop) {
@@ -257,19 +272,23 @@ final class MQTTMessageProcessor: MessageProcessor {
 
         for runtimeState in counters.runtimeStates {
             let resolved = resolveCreature(id: runtimeState.creatureId)
-            let creatureBase = [resolved.topicComponent, "runtime"]
             publishIdentity(
                 topicComponent: resolved.topicComponent, id: runtimeState.creatureId,
                 name: resolved.resolvedName)
             if let runtime = runtimeState.runtime {
                 if let idleEnabled = runtime.idleEnabled {
-                    publishBool(idleEnabled, components: creatureBase + ["idle_enabled"])
+                    publishBool(
+                        idleEnabled, components: [resolved.topicComponent, "idle", "enabled"])
                 }
                 if let activity = runtime.activity {
-                    let activityBase = creatureBase + ["activity"]
+                    let activityBase = [resolved.topicComponent, "activity"]
                     publishValue(activity.state.rawValue, components: activityBase + ["state"])
                     if let animationId = activity.animationId {
                         publishValue(animationId, components: activityBase + ["animation_id"])
+                        let animationName = animationNameResolver.resolve(
+                            id: animationId, fetchIfMissing: fetchAnimationName)
+                        publishValue(
+                            animationName, components: activityBase + ["animation_name"])
                     }
                     if let sessionId = activity.sessionId {
                         publishValue(sessionId, components: activityBase + ["session_id"])
@@ -285,7 +304,7 @@ final class MQTTMessageProcessor: MessageProcessor {
                     }
                 }
                 if let counters = runtime.counters {
-                    let runtimeCountersBase = creatureBase + ["counters"]
+                    let runtimeCountersBase = [resolved.topicComponent, "counters"]
                     if let sessionsStarted = counters.sessionsStartedTotal {
                         publishNumber(
                             sessionsStarted, components: runtimeCountersBase + ["sessions_started"])
@@ -322,10 +341,10 @@ final class MQTTMessageProcessor: MessageProcessor {
                     }
                 }
                 if let bgmOwner = runtime.bgmOwner {
-                    publishValue(bgmOwner, components: creatureBase + ["bgm_owner"])
+                    publishValue(bgmOwner, components: [resolved.topicComponent, "bgm_owner"])
                 }
                 if let lastError = runtime.lastError {
-                    let errorBase = creatureBase + ["last_error"]
+                    let errorBase = [resolved.topicComponent, "last_error"]
                     publishValue(lastError.message, components: errorBase + ["message"])
                     publishDate(lastError.timestamp, components: errorBase + ["timestamp"])
                 }
@@ -389,6 +408,9 @@ final class MQTTMessageProcessor: MessageProcessor {
         publishValue(activity.state.rawValue, components: base + ["state"])
         if let animationId = activity.animationId {
             publishValue(animationId, components: base + ["animation_id"])
+            let animationName = animationNameResolver.resolve(
+                id: animationId, fetchIfMissing: fetchAnimationName)
+            publishValue(animationName, components: base + ["animation_name"])
         }
         if let sessionId = activity.sessionId {
             publishValue(sessionId, components: base + ["session_id"])

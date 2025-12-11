@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import Common
 
 @Suite("Animation core behavior")
@@ -46,7 +47,7 @@ struct AnimationTests {
 
     @Test("tracks didSet updates numberOfFrames")
     func didSetUpdatesNumberOfFrames() throws {
-        var animation = Animation.mock()
+        let animation = Animation.mock()
         let expected = animation.tracks.map { UInt32($0.frames.count) }.max() ?? 0
         animation.metadata.numberOfFrames = 0
         // Trigger didSet with a new array instance (even if same contents)
@@ -56,13 +57,16 @@ struct AnimationTests {
 
     @Test("edge cases: empty tracks yield 0 frames; mixed sizes pick max")
     func edgeCaseFrameCounts() throws {
-        var a = Animation()
+        let a = Animation()
         #expect(a.metadata.numberOfFrames == 0)
 
         // Build tracks with varying frame counts
-        var t1 = Track.mock(); t1.frames.removeAll()
-        var t2 = Track.mock(); t2.frames = Array(t2.frames.prefix(1))
-        var t3 = Track.mock(); t3.frames = Array(t3.frames.prefix(7))
+        var t1 = Track.mock()
+        t1.frames.removeAll()
+        var t2 = Track.mock()
+        t2.frames = Array(t2.frames.prefix(1))
+        var t3 = Track.mock()
+        t3.frames = Array(t3.frames.prefix(7))
         a.tracks = [t1, t2, t3]
         #expect(a.metadata.numberOfFrames == 7)
     }
@@ -81,7 +85,7 @@ struct AnimationTests {
 
     @Test("mutating metadata or tracks affects equality")
     func mutationsAffectEquality() throws {
-        var a = Animation.mock()
+        let a = Animation.mock()
         var b = Animation.from(snapshot: a.snapshot())
         #expect(a == b)
 
@@ -107,11 +111,11 @@ struct AnimationTests {
         let metadata = AnimationMetadata.mock()
         let animation = Animation(id: uppercaseID, metadata: metadata, tracks: [])
 
-        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(animation)
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let encodedID = try #require(object["id"] as? String)
         #expect(encodedID == uppercaseID.lowercased())
     }
 }
-

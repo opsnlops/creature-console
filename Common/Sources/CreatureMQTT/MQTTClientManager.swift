@@ -66,8 +66,6 @@ actor MQTTClientManager {
         components: [String],
         retain: Bool = false
     ) async throws {
-        try await connectIfNeeded()
-
         var buffer = allocator.buffer(capacity: data.count)
         buffer.writeBytes(data)
 
@@ -99,12 +97,16 @@ actor MQTTClientManager {
 
     private func publish(buffer: ByteBuffer, to topic: String, retain: Bool) async throws {
         do {
+            try await connectIfNeeded()
             try await client.publish(to: topic, payload: buffer, qos: .atLeastOnce, retain: retain)
                 .get()
             logger.debug("Published message to topic \(topic)")
         } catch {
             isConnected = false
-            throw error
+            logger.warning(
+                "MQTT publish failed for topic \(topic). Attempting reconnect once. Error: \(error.localizedDescription)"
+            )
+            try await reconnectAndPublish(buffer: buffer, topic: topic, retain: retain)
         }
     }
 
@@ -116,6 +118,14 @@ actor MQTTClientManager {
         if !isConnected {
             try await connect()
         }
+    }
+
+    private func reconnectAndPublish(buffer: ByteBuffer, topic: String, retain: Bool) async throws {
+        try await connectIfNeeded()
+        try await client.publish(to: topic, payload: buffer, qos: .atLeastOnce, retain: retain)
+            .get()
+        isConnected = true
+        logger.debug("Republished message to topic \(topic) after reconnect")
     }
 
     private func topic(_ components: [String]) -> String {

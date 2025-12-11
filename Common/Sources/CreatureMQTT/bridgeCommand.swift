@@ -56,6 +56,8 @@ extension CreatureMQTT {
             let server = getServer(config: globalOptions)
             let resolver = CreatureNameResolver(
                 initialNames: await preloadCreatureNames(from: server))
+            let animationResolver = AnimationNameResolver(
+                initialNames: await preloadAnimationNames(from: server))
             let fetcher: @Sendable (CreatureIdentifier) async -> String? = { id in
                 let result = try? await server.getCreature(creatureId: id)
                 switch result {
@@ -64,6 +66,18 @@ extension CreatureMQTT {
                 case .failure, .none:
                     return nil
                 }
+            }
+            let fetchAnimationName: @Sendable (AnimationIdentifier) async -> String? = { id in
+                let result = await server.getAnimation(animationId: id)
+                switch result {
+                case .success(let animation):
+                    return animation.metadata.title
+                case .failure:
+                    return nil
+                }
+            }
+            let reloadAnimationNames: @Sendable () async -> [AnimationIdentifier: String] = {
+                await preloadAnimationNames(from: server)
             }
 
             let hiddenTypes = Set(hide)
@@ -76,6 +90,9 @@ extension CreatureMQTT {
                 logLevel: loggerLevel,
                 nameResolver: resolver,
                 fetchCreatureName: fetcher,
+                animationNameResolver: animationResolver,
+                fetchAnimationName: fetchAnimationName,
+                reloadAnimationNames: reloadAnimationNames,
                 retainMessages: mqttOptions.retain
             )
 
@@ -112,6 +129,28 @@ private func preloadCreatureNames(from server: CreatureServerClient) async -> [C
     case .failure:
         return [:]
     }
+}
+
+private func preloadAnimationNames(from server: CreatureServerClient) async -> [AnimationIdentifier:
+    String]
+{
+    let storedAnimations: [AnimationIdentifier: String]
+    switch await server.listAnimations() {
+    case .success(let animations):
+        storedAnimations = Dictionary(uniqueKeysWithValues: animations.map { ($0.id, $0.title) })
+    case .failure:
+        storedAnimations = [:]
+    }
+
+    let adHocAnimations: [AnimationIdentifier: String]
+    switch await server.listAdHocAnimations() {
+    case .success(let adHoc):
+        adHocAnimations = Dictionary(uniqueKeysWithValues: adHoc.map { ($0.id, $0.metadata.title) })
+    case .failure:
+        adHocAnimations = [:]
+    }
+
+    return storedAnimations.merging(adHocAnimations) { current, _ in current }
 }
 
 enum LogLevelOption: String, ExpressibleByArgument {
