@@ -1,3 +1,11 @@
+creature-cli (2.15.4) unstable; urgency=medium
+
+  * creature-mqtt: replace URLSession websocket on Linux with NIO-based client to stop epoll spin / 100% CPU.
+  * creature-mqtt: log offending websocket payload when JSON decoding fails for easier server debugging.
+  * creature-cli + creature-mqtt: bump version to 2.15.4.
+
+ -- April White <april@creature.engineering>  Thu, 11 Dec 2025 19:20:00 -0800
+
 creature-cli (2.15.3) unstable; urgency=medium
 
   * creature-cli: bump version to 2.15.3.
