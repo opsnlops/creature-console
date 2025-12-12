@@ -44,8 +44,7 @@
             reconnectAttempt = 0
             Task { [weak self] in
                 guard let self else { return }
-                try? await self.channel?.close()
-                self.channel = nil
+                await self.closeChannel()
                 await WebSocketStateManager.shared.setState(.disconnected)
             }
         }
@@ -71,7 +70,8 @@
             let sslContext: NIOSSLContext?
             if useTLS {
                 do {
-                    sslContext = try NIOSSLContext(configuration: .forClient())
+                    let tlsConfiguration = TLSConfiguration.makeClientConfiguration()
+                    sslContext = try NIOSSLContext(configuration: tlsConfiguration)
                 } catch {
                     logger.error("Failed to create TLS context: \(error.localizedDescription)")
                     await handleConnectionFailure()
@@ -114,7 +114,7 @@
                         host: host, port: port, path: path, headers: self.headers)
                     handlers.append(channel.pipeline.addHandler(requestHandler))
 
-                    return channel.eventLoop.flatten(handlers)
+                    return EventLoopFuture.andAllSucceed(handlers, on: channel.eventLoop)
                 }
 
             let connectFuture: EventLoopFuture<Channel> = {
@@ -293,6 +293,11 @@
             channel?.writeAndFlush(frame, promise: nil)
         }
 
+        private func closeChannel() async {
+            try? await channel?.close()
+            channel = nil
+        }
+
         private func scheduleReconnect() async {
             guard !isConnecting else { return }
             reconnectAttempt += 1
@@ -339,7 +344,7 @@
         }
     }
 
-    private final class WebSocketFrameHandler: ChannelDuplexHandler {
+    private final class WebSocketFrameHandler: ChannelDuplexHandler, Sendable {
         typealias InboundIn = WebSocketFrame
         typealias OutboundIn = Never
         typealias OutboundOut = WebSocketFrame
