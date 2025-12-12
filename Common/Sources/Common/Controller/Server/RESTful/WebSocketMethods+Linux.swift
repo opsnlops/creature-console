@@ -87,7 +87,12 @@
                 automaticErrorHandling: true
             ) { [weak self] channel, _ in
                 guard let self else { return channel.eventLoop.makeSucceededFuture(()) }
-                return channel.pipeline.addHandler(WebSocketFrameHandler(owner: self))
+                return channel.pipeline.addHandler(WebSocketFrameHandler(owner: self)).flatMap {
+                    channel.eventLoop.submit { [weak self] in
+                        guard let self else { return }
+                        Task { await self.handleUpgradeSucceeded() }
+                    }
+                }
             }
 
             let upgradeConfig: NIOHTTPClientUpgradeConfiguration = (
@@ -115,7 +120,8 @@
                         channel.pipeline.addHTTPClientHandlers(withClientUpgrade: upgradeConfig))
 
                     let requestHandler = HTTPInitialRequestHandler(
-                        host: host, port: port, path: path, headers: self.headers)
+                        host: host, port: port, path: path, headers: self.headers,
+                        logger: self.logger)
                     handlers.append(channel.pipeline.addHandler(requestHandler))
 
                     return EventLoopFuture.andAllSucceed(handlers, on: channel.eventLoop)
@@ -133,10 +139,8 @@
                 let chan = try await connectFuture.get()
                 channel = chan
                 reconnectAttempt = 0
-                isConnected = true
                 isConnecting = false
-                await WebSocketStateManager.shared.setState(.connected)
-                logger.info("Websocket connection established to \(host):\(port)")
+                logger.info("TCP connection established to \(host):\(port), awaiting upgrade")
             } catch {
                 logger.warning("Websocket connect failed: \(error.localizedDescription)")
                 await handleConnectionFailure()
@@ -185,6 +189,13 @@
         private func handleMessageString(_ text: String) async {
             guard let data = text.data(using: .utf8) else { return }
             decodeIncomingMessage(data)
+        }
+
+        fileprivate func handleUpgradeSucceeded() async {
+            isConnected = true
+            reconnectAttempt = 0
+            await WebSocketStateManager.shared.setState(.connected)
+            logger.info("WebSocket upgrade completed")
         }
 
         func sendMessage(_ message: String) async -> Result<String, ServerError> {
@@ -322,12 +333,14 @@
         private let port: Int
         private let path: String
         private let headers: [String: String]
+        private let logger: Logger
 
-        init(host: String, port: Int, path: String, headers: [String: String]) {
+        init(host: String, port: Int, path: String, headers: [String: String], logger: Logger) {
             self.host = host
             self.port = port
             self.path = path
             self.headers = headers
+            self.logger = logger
         }
 
         func channelActive(context: ChannelHandlerContext) {
@@ -345,6 +358,19 @@
 
             context.write(self.wrapOutboundOut(.head(head)), promise: nil)
             context.writeAndFlush(self.wrapOutboundOut(.end(nil)), promise: nil)
+        }
+
+        func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+            let part = self.unwrapInboundIn(data)
+            if case .head(let response) = part, response.status != .switchingProtocols {
+                logger.warning(
+                    "WebSocket upgrade failed with HTTP status \(response.status.code). Closing channel."
+                )
+                context.fireErrorCaught(
+                    NIOHTTPClientError.upgradeFailed(
+                        response: response, extraHeaders: nil, underlyingError: nil))
+            }
+            context.fireChannelRead(data)
         }
     }
 
@@ -368,6 +394,7 @@
 
         func channelInactive(context: ChannelHandlerContext) {
             Task { [weak owner] in
+                owner?.logger.info("WebSocket channel inactive; closing and scheduling reconnect")
                 await owner?.handleClose()
             }
         }

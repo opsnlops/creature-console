@@ -42,6 +42,11 @@ extension CreatureMQTT {
             help: "Log level (trace, debug, info, notice, warning, error, critical)")
         var logLevel: LogLevelOption = .info
 
+        @Flag(
+            name: [.customShort("d"), .long],
+            help: "Enable debug logging (overrides --log-level)")
+        var debug: Bool = false
+
         @OptionGroup()
         var globalOptions: GlobalOptions
 
@@ -49,7 +54,7 @@ extension CreatureMQTT {
         var mqttOptions: MQTTOptions
 
         func run() async throws {
-            let loggerLevel = logLevel.level
+            let loggerLevel = debug ? Logger.Level.debug : logLevel.level
 
             let mqttManager = MQTTClientManager(options: mqttOptions, logLevel: loggerLevel)
 
