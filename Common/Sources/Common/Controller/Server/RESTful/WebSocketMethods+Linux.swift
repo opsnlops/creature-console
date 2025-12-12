@@ -334,6 +334,8 @@
         private let path: String
         private let headers: [String: String]
         private let logger: Logger
+        private var responseBuffer: ByteBuffer?
+        private var sawUpgradeFailure: Bool = false
 
         init(host: String, port: Int, path: String, headers: [String: String], logger: Logger) {
             self.host = host
@@ -352,6 +354,8 @@
             head.headers.add(name: "Sec-WebSocket-Version", value: "13")
             head.headers.add(
                 name: "Sec-WebSocket-Key", value: NIOWebSocketClientUpgrader.randomRequestKey())
+            let originScheme = port == 443 ? "https" : "http"
+            head.headers.add(name: "Origin", value: "\(originScheme)://\(hostHeader)")
             for (key, value) in headers {
                 head.headers.add(name: key, value: value)
             }
@@ -366,6 +370,24 @@
                 logger.warning(
                     "WebSocket upgrade failed with HTTP status \(response.status.code). Closing channel."
                 )
+                sawUpgradeFailure = true
+            }
+            if case .body(var bytes) = part, sawUpgradeFailure {
+                if responseBuffer == nil {
+                    responseBuffer = context.channel.allocator.buffer(capacity: bytes.readableBytes)
+                }
+                responseBuffer?.writeBuffer(&bytes)
+            }
+            if case .end = part, sawUpgradeFailure {
+                if let body = responseBuffer, body.readableBytes > 0 {
+                    let preview =
+                        body.getString(
+                            at: body.readerIndex, length: min(body.readableBytes, 2048))
+                        ?? "<non-utf8 response body>"
+                    logger.warning("Upgrade failure body preview: \(preview)")
+                }
+                responseBuffer = nil
+                sawUpgradeFailure = false
                 context.close(promise: nil)
                 return
             }

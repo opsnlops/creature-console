@@ -1,3 +1,11 @@
+creature-cli (2.15.6) unstable; urgency=medium
+
+  * creature-mqtt: add Origin header and richer upgrade-failure logging for Linux NIO websocket handshake diagnostics.
+  * creature-mqtt: expose --debug flag for verbose runs; bump version to trigger package update.
+  * creature-cli + creature-mqtt: bump version to 2.15.6.
+
+ -- April White <april@creature.engineering>  Thu, 11 Dec 2025 20:28:30 -0800
+
 creature-cli (2.15.5) unstable; urgency=medium
 
   * creature-mqtt: swap Linux websocket client to NIO, add upgrade/error logging, and a --debug flag for verbose runs.
