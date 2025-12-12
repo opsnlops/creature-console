@@ -1,0 +1,43 @@
+FROM debian:trixie-slim
+
+SHELL ["/bin/bash", "-lc"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    SWIFT_VERSION=6.2.2 \
+    SWIFT_PREFIX=/opt/swift
+
+# Dependencies mirror the CI deb build job.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        curl ca-certificates pkg-config clang \
+        libicu-dev libxml2-dev libbsd-dev libcurl4-openssl-dev \
+        libssl-dev libsqlite3-dev libzstd-dev libedit-dev zlib1g-dev \
+        git cmake ninja-build python3 tar xz-utils build-essential \
+        debhelper devscripts fakeroot; \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Swift toolchain directly from swift.org release tarball.
+# Swift download URLs use platform segments like "ubuntu2204-aarch64" and
+# tarballs like "swift-6.2.2-RELEASE-ubuntu22.04-aarch64.tar.gz".
+RUN set -eux; \
+    ARCH="$(uname -m)"; \
+    case "$ARCH" in \
+      x86_64) ARCH_TAG="x86_64" ;; \
+      aarch64|arm64) ARCH_TAG="aarch64" ;; \
+      *) echo "Unsupported arch: $ARCH" >&2; exit 1 ;; \
+    esac; \
+    OS_TAG="ubuntu22.04"; \
+    PATH_SEG="ubuntu2204-${ARCH_TAG}"; \
+    TARBALL="swift-${SWIFT_VERSION}-RELEASE-${OS_TAG}-${ARCH_TAG}.tar.gz"; \
+    URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/${PATH_SEG}/swift-${SWIFT_VERSION}-RELEASE/${TARBALL}"; \
+    curl -fL "$URL" -o "$TARBALL"; \
+    mkdir -p "${SWIFT_PREFIX}"; \
+    tar xzf "$TARBALL" --strip-components=1 -C "${SWIFT_PREFIX}"; \
+    rm "$TARBALL"
+
+ENV PATH="${SWIFT_PREFIX}/usr/bin:${PATH}"
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]

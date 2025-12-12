@@ -5,13 +5,17 @@
     import NIOHTTP1
     import NIOPosix
     import NIOWebSocket
-    import NIOSSL
+    @preconcurrency import NIOSSL
 
     actor WebSocketClient {
         private let url: URL
         private var messageProcessor: MessageProcessor?
         private let headers: [String: String]
-        let logger = Logger(label: "io.opsnlops.CreatureController.WebSocketClient.Linux")
+        static let logger: Logger = {
+            var l = Logger(label: "io.opsnlops.CreatureController.WebSocketClient.Linux")
+            l.logLevel = .info
+            return l
+        }()
 
         private var channel: Channel?
         private var isConnected: Bool = false
@@ -63,7 +67,7 @@
             }
 
             await WebSocketStateManager.shared.setState(.connecting)
-            logger.info("Initiating NIO websocket connection to \(host):\(port)\(path)")
+            Self.logger.info("Initiating NIO websocket connection to \(host):\(port)\(path)")
 
             let group = MultiThreadedEventLoopGroup.singleton
 
@@ -73,13 +77,15 @@
                     let tlsConfiguration = TLSConfiguration.makeClientConfiguration()
                     sslContext = try NIOSSLContext(configuration: tlsConfiguration)
                 } catch {
-                    logger.error("Failed to create TLS context: \(error.localizedDescription)")
+                    Self.logger.error("Failed to create TLS context: \(error.localizedDescription)")
                     await handleConnectionFailure()
                     return
                 }
             } else {
                 sslContext = nil
             }
+
+            let initialHandlerName = "initial-request-handler"
 
             let websocketUpgrader = NIOWebSocketClientUpgrader(
                 requestKey: NIOWebSocketClientUpgrader.randomRequestKey(),
@@ -90,19 +96,36 @@
                 return channel.pipeline.addHandler(WebSocketFrameHandler(owner: self)).flatMap {
                     channel.eventLoop.submit { [weak self] in
                         guard let self else { return }
+                        let local = channel.localAddress?.description ?? "<unknown>"
+                        let remote = channel.remoteAddress?.description ?? "<unknown>"
+                        Self.logger.info(
+                            "WebSocket pipeline ready; local \(local) ⇄ remote \(remote)")
                         Task { await self.handleUpgradeSucceeded() }
                     }
                 }
             }
 
-            let upgradeConfig: NIOHTTPClientUpgradeConfiguration = (
-                upgraders: [websocketUpgrader],
-                completionHandler: { _ in }
-            )
-
             let bootstrap = ClientBootstrap(group: group)
                 .channelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
-                .channelInitializer { channel in
+                .channelInitializer { [headers = self.headers, initialHandlerName] channel in
+                    let upgradeConfig: NIOHTTPClientUpgradeConfiguration = (
+                        upgraders: [websocketUpgrader],
+                        completionHandler: { context in
+                            context.pipeline.removeHandler(name: initialHandlerName).whenFailure {
+                                error in
+                                context.eventLoop.execute {
+                                    Logger(
+                                        label:
+                                            "io.opsnlops.CreatureController.WebSocketClient.Linux"
+                                    )
+                                    .debug(
+                                        "Failed to remove initial request handler after upgrade: \(error)"
+                                    )
+                                }
+                            }
+                        }
+                    )
+
                     var handlers: [EventLoopFuture<Void>] = []
                     if let sslContext {
                         do {
@@ -120,9 +143,10 @@
                         channel.pipeline.addHTTPClientHandlers(withClientUpgrade: upgradeConfig))
 
                     let requestHandler = HTTPInitialRequestHandler(
-                        host: host, port: port, path: path, headers: self.headers,
-                        logger: self.logger)
-                    handlers.append(channel.pipeline.addHandler(requestHandler))
+                        host: host, port: port, path: path, headers: headers,
+                        logger: WebSocketClient.logger)
+                    handlers.append(
+                        channel.pipeline.addHandler(requestHandler, name: initialHandlerName))
 
                     return EventLoopFuture.andAllSucceed(handlers, on: channel.eventLoop)
                 }
@@ -140,9 +164,9 @@
                 channel = chan
                 reconnectAttempt = 0
                 isConnecting = false
-                logger.info("TCP connection established to \(host):\(port), awaiting upgrade")
+                Self.logger.info("TCP connection established to \(host):\(port), awaiting upgrade")
             } catch {
-                logger.warning("Websocket connect failed: \(error.localizedDescription)")
+                Self.logger.warning("Websocket connect failed: \(error.localizedDescription)")
                 await handleConnectionFailure()
             }
         }
@@ -169,6 +193,7 @@
             case .text:
                 var data = frame.unmaskedData
                 if let string = data.readString(length: data.readableBytes) {
+                    Self.logger.debug("Decoding text frame: \(string)")
                     Task { [weak self] in
                         await self?.handleMessageString(string)
                     }
@@ -195,7 +220,7 @@
             isConnected = true
             reconnectAttempt = 0
             await WebSocketStateManager.shared.setState(.connected)
-            logger.info("WebSocket upgrade completed")
+            Self.logger.info("WebSocket upgrade completed")
         }
 
         func sendMessage(_ message: String) async -> Result<String, ServerError> {
@@ -209,10 +234,11 @@
             buffer.writeString(message)
             let frame = WebSocketFrame(fin: true, opcode: .text, data: buffer)
             do {
+                Self.logger.debug("Sending websocket text frame length=\(message.utf8.count)")
                 try await channel.writeAndFlush(frame)
                 return .success("Message sent successfully")
             } catch {
-                logger.warning("Failed to send message: \(error.localizedDescription)")
+                Self.logger.warning("Failed to send message: \(error.localizedDescription)")
                 await handleClose()
                 return .failure(
                     .websocketError("Failed to send message: \(error.localizedDescription)"))
@@ -220,13 +246,13 @@
         }
 
         private func decodeIncomingMessage(_ data: Data) {
-            logger.debug("Attempting to decode an incoming message from the websocket")
+            Self.logger.debug("Attempting to decode an incoming message from the websocket")
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
 
             do {
                 let commandDTO = try decoder.decode(BasicCommandDTO.self, from: data)
-                logger.debug("Incoming command: \(commandDTO.command)")
+                Self.logger.debug("Incoming command: \(commandDTO.command)")
                 let messageType = ServerMessageType(from: commandDTO.command)
 
                 switch messageType {
@@ -287,11 +313,12 @@
                         WebSocketMessageDTO<CreatureActivity>.self, from: data)
                     messageProcessor?.processCreatureActivity(messageDTO.payload)
                 default:
-                    logger.warning("Unknown message type: \(commandDTO.command), data: \(data)")
+                    Self.logger.warning(
+                        "Unknown message type: \(commandDTO.command), data: \(data)")
                 }
 
             } catch {
-                logger.error(
+                Self.logger.error(
                     "Error decoding message: \(error.localizedDescription), details: \(error)")
                 let payloadString: String
                 if let utf8 = String(data: data, encoding: .utf8) {
@@ -300,7 +327,7 @@
                     payloadString = data.base64EncodedString()
                 }
                 let preview = payloadString.prefix(2048)
-                logger.error("Offending payload (utf8 if possible, else base64): \(preview)")
+                Self.logger.error("Offending payload (utf8 if possible, else base64): \(preview)")
             }
         }
 
@@ -317,7 +344,7 @@
             guard !isConnecting else { return }
             reconnectAttempt += 1
             let delay = min(pow(2.0, Double(reconnectAttempt)), 30)
-            logger.info("Scheduling websocket reconnect in \(String(format: "%.1f", delay))s")
+            Self.logger.info("Scheduling websocket reconnect in \(String(format: "%.1f", delay))s")
             try? await Task.sleep(for: .seconds(Int(delay)))
             guard shouldStayConnected else { return }
             isConnecting = false
@@ -325,8 +352,11 @@
         }
     }
 
-    private final class HTTPInitialRequestHandler: ChannelInboundHandler, @unchecked Sendable {
-        typealias InboundIn = HTTPClientResponsePart
+    private final class HTTPInitialRequestHandler: ChannelInboundHandler, RemovableChannelHandler,
+        @unchecked Sendable
+    {
+        // Use a wide inbound type so post-upgrade websocket frames don't crash this handler.
+        typealias InboundIn = Any
         typealias OutboundOut = HTTPClientRequestPart
 
         private let host: String
@@ -336,61 +366,94 @@
         private let logger: Logger
         private var responseBuffer: ByteBuffer?
         private var sawUpgradeFailure: Bool = false
+        private var upgradeSucceeded: Bool = false
 
         init(host: String, port: Int, path: String, headers: [String: String], logger: Logger) {
             self.host = host
             self.port = port
             self.path = path
             self.headers = headers
-            self.logger = logger
+            var updated = logger
+            updated.logLevel = .debug
+            self.logger = updated
         }
 
         func channelActive(context: ChannelHandlerContext) {
             var head = HTTPRequestHead(version: .http1_1, method: .GET, uri: path)
             let hostHeader = port == 80 || port == 443 ? host : "\(host):\(port)"
             head.headers.add(name: "Host", value: hostHeader)
-            head.headers.add(name: "Connection", value: "Upgrade")
-            head.headers.add(name: "Upgrade", value: "websocket")
-            head.headers.add(name: "Sec-WebSocket-Version", value: "13")
-            head.headers.add(
-                name: "Sec-WebSocket-Key", value: NIOWebSocketClientUpgrader.randomRequestKey())
-            let originScheme = port == 443 ? "https" : "http"
-            head.headers.add(name: "Origin", value: "\(originScheme)://\(hostHeader)")
+            head.headers.add(name: "Sec-WebSocket-Protocol", value: "websocket")
+            head.headers.add(name: "User-Agent", value: "creature-mqtt (Linux NIO)")
             for (key, value) in headers {
                 head.headers.add(name: key, value: value)
             }
+            logger.info(
+                "Sending websocket upgrade request to \(hostHeader)\(path) with headers: \(head.headers)"
+            )
+            print("[ws-debug] upgrade request headers -> \(head.headers)")
 
             context.write(self.wrapOutboundOut(.head(head)), promise: nil)
             context.writeAndFlush(self.wrapOutboundOut(.end(nil)), promise: nil)
         }
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-            let part = self.unwrapInboundIn(data)
-            if case .head(let response) = part, response.status != .switchingProtocols {
-                logger.warning(
-                    "WebSocket upgrade failed with HTTP status \(response.status.code). Closing channel."
-                )
-                sawUpgradeFailure = true
-            }
-            if case .body(var bytes) = part, sawUpgradeFailure {
-                if responseBuffer == nil {
-                    responseBuffer = context.channel.allocator.buffer(capacity: bytes.readableBytes)
-                }
-                responseBuffer?.writeBuffer(&bytes)
-            }
-            if case .end = part, sawUpgradeFailure {
-                if let body = responseBuffer, body.readableBytes > 0 {
-                    let preview =
-                        body.getString(
-                            at: body.readerIndex, length: min(body.readableBytes, 2048))
-                        ?? "<non-utf8 response body>"
-                    logger.warning("Upgrade failure body preview: \(preview)")
-                }
-                responseBuffer = nil
-                sawUpgradeFailure = false
-                context.close(promise: nil)
+            if upgradeSucceeded {
+                // After a successful upgrade the handler is pending removal; pass through without decoding.
+                context.fireChannelRead(data)
                 return
             }
+            let inbound = self.unwrapInboundIn(data)
+            guard let part = inbound as? HTTPClientResponsePart else {
+                // We received something other than an HTTP response part; forward it.
+                logger.debug("Non-HTTP inbound before upgrade completion: \(inbound)")
+                print("[ws-debug] non-HTTP inbound before upgrade completion: \(inbound)")
+                context.fireChannelRead(data)
+                return
+            }
+            switch part {
+            case .head(let response):
+                logger.info(
+                    "Received upgrade response status \(response.status.code) headers: \(response.headers)"
+                )
+                print(
+                    "[ws-debug] response head status \(response.status.code) headers \(response.headers)"
+                )
+                if response.status == HTTPResponseStatus.switchingProtocols {
+                    upgradeSucceeded = true
+                    logger.debug("Upgrade confirmed; removing initial HTTP handler")
+                    print("[ws-debug] upgrade confirmed; removing HTTP handler")
+                    _ = context.pipeline.removeHandler(self)
+                    return
+                } else {
+                    logger.warning(
+                        "WebSocket upgrade failed with HTTP status \(response.status.code). Closing channel."
+                    )
+                    sawUpgradeFailure = true
+                }
+            case .body(var bytes):
+                if sawUpgradeFailure {
+                    if responseBuffer == nil {
+                        responseBuffer =
+                            context.channel.allocator.buffer(capacity: bytes.readableBytes)
+                    }
+                    responseBuffer?.writeBuffer(&bytes)
+                }
+            case .end:
+                if sawUpgradeFailure {
+                    if let body = responseBuffer, body.readableBytes > 0 {
+                        let preview =
+                            body.getString(
+                                at: body.readerIndex, length: min(body.readableBytes, 2048))
+                            ?? "<non-utf8 response body>"
+                        logger.warning("Upgrade failure body preview: \(preview)")
+                    }
+                    responseBuffer = nil
+                    sawUpgradeFailure = false
+                    context.close(promise: nil)
+                    return
+                }
+            }
+
             context.fireChannelRead(data)
         }
     }
@@ -409,21 +472,29 @@
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
             let frame = self.unwrapInboundIn(data)
             Task { [weak owner] in
-                await owner?.handleFrame(frame)
+                guard let owner else { return }
+                WebSocketClient.logger.debug(
+                    "Received websocket frame opcode=\(frame.opcode) length=\(frame.unmaskedData.readableBytes)"
+                )
+                await owner.handleFrame(frame)
             }
         }
 
         func channelInactive(context: ChannelHandlerContext) {
             Task { [weak owner] in
-                owner?.logger.info("WebSocket channel inactive; closing and scheduling reconnect")
-                await owner?.handleClose()
+                guard let owner else { return }
+                WebSocketClient.logger
+                    .info("WebSocket channel inactive; closing and scheduling reconnect")
+                await owner.handleClose()
             }
         }
 
         func errorCaught(context: ChannelHandlerContext, error: Error) {
             Task { [weak owner] in
-                owner?.logger.warning("Websocket channel error: \(error.localizedDescription)")
-                await owner?.handleClose()
+                guard let owner else { return }
+                WebSocketClient.logger
+                    .warning("Websocket channel error: \(error.localizedDescription)")
+                await owner.handleClose()
             }
             context.close(promise: nil)
         }

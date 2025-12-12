@@ -53,7 +53,8 @@ extension CreatureMQTT {
         @OptionGroup()
         var mqttOptions: MQTTOptions
 
-        func run() async throws {
+        mutating func run() async throws {
+            mqttOptions.retain = true
             let loggerLevel = debug ? Logger.Level.debug : logLevel.level
 
             let mqttManager = MQTTClientManager(options: mqttOptions, logLevel: loggerLevel)

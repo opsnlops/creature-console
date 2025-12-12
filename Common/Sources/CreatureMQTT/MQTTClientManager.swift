@@ -11,10 +11,33 @@ actor MQTTClientManager {
     private let client: MQTTClient
     private let allocator = ByteBufferAllocator()
     private var isConnected = false
+    private var isConnecting = false
+    private var connectTask: Task<Bool, Error>?
     private let logger: Logger
     private var consecutiveFailures = 0
     private var nextReconnectAllowedAt: Date?
     private var lastBackoffLogAt: Date?
+
+    nonisolated private func describeMQTTError(_ error: Error) -> String {
+        if let mqttError = error as? MQTTError {
+            switch mqttError {
+            case .connectionError(let value):
+                return "MQTT connectionError: \(value)"
+            case .reasonError(let code):
+                return "MQTT reasonError: \(code)"
+            case .serverDisconnection(let ack):
+                return "MQTT serverDisconnection: \(ack)"
+            case .serverClosedConnection:
+                return "MQTT serverClosedConnection"
+            default:
+                return "MQTT error: \(mqttError)"
+            }
+        }
+        if let channelError = error as? ChannelError {
+            return "ChannelError: \(channelError)"
+        }
+        return error.localizedDescription
+    }
 
     init(options: MQTTOptions, logLevel: Logger.Level) {
         self.options = options
@@ -44,12 +67,39 @@ actor MQTTClientManager {
             logger: logger,
             configuration: configuration
         )
+        self.client.addCloseListener(named: "creature-mqtt-close") { [weak self] result in
+            guard let self else { return }
+            Task { await self.handleClose(result: result) }
+        }
+    }
 
+    private func handleClose(result: Result<Void, Error>) {
+        switch result {
+        case .success:
+            isConnected = false
+            logger.debug("MQTT connection closed by peer")
+        case .failure(let error):
+            isConnected = false
+            logger.warning(
+                "MQTT connection closed with error: \(describeMQTTError(error))")
+        }
     }
 
     func connect() async throws {
         guard !isConnected else { return }
-        let resumedSession = try await client.connect().get()
+        if let connectTask {
+            _ = try await connectTask.value
+            return
+        }
+        let task = Task<Bool, Error> { [client, options, logger] in
+            logger.debug(
+                "Connecting to MQTT \(options.mqttHost):\(options.mqttPort) tls=\(options.mqttTLS) version=\(client.configuration.version)"
+            )
+            return try await client.connect().get()
+        }
+        connectTask = task
+        defer { connectTask = nil }
+        let resumedSession = try await task.value
         isConnected = true
         logger.info(
             "Connected to MQTT broker \(options.mqttHost):\(options.mqttPort) (resumedSession: \(resumedSession))"
@@ -117,7 +167,7 @@ actor MQTTClientManager {
         } catch {
             isConnected = false
             logger.warning(
-                "MQTT publish failed for topic \(topic). Backing off reconnects for \(String(format: "%.1f", recordFailure()))s. Error: \(error.localizedDescription)"
+                "MQTT publish failed for topic \(topic). Backing off reconnects for \(String(format: "%.1f", recordFailure()))s. Error: \(describeMQTTError(error))"
             )
         }
     }
@@ -127,9 +177,8 @@ actor MQTTClientManager {
     }
 
     private func connectIfNeeded() async throws {
-        if !isConnected {
-            try await connect()
-        }
+        if isConnected { return }
+        try await connect()
     }
 
     private func backoffRemaining() -> TimeInterval? {

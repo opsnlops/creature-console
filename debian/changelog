@@ -1,3 +1,19 @@
+creature-cli (2.15.8) unstable; urgency=medium
+
+  * creature-mqtt: move Linux websocket client to NIO, fixing CPU spin and handshake issues.
+  * creature-mqtt: retain MQTT publishes by default; add richer MQTT debug/error logging.
+  * creature-cli + creature-mqtt: bump version to 2.15.8.
+
+ -- April White <april@creature.engineering>  Thu, 12 Dec 2025 05:45:00 +0000
+
+creature-cli (2.15.7) unstable; urgency=medium
+
+  * creature-mqtt: fix Linux NIO websocket handshake to avoid duplicate upgrade headers that the server rejects.
+  * creature-mqtt: improve debug visibility for websocket upgrade failures.
+  * creature-cli + creature-mqtt: bump version to 2.15.7.
+
+ -- April White <april@creature.engineering>  Thu, 12 Dec 2025 04:55:00 +0000
+
 creature-cli (2.15.6) unstable; urgency=medium
 
   * creature-mqtt: add Origin header and richer upgrade-failure logging for Linux NIO websocket handshake diagnostics.
