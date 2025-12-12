@@ -12,6 +12,9 @@ actor MQTTClientManager {
     private let allocator = ByteBufferAllocator()
     private var isConnected = false
     private let logger: Logger
+    private var consecutiveFailures = 0
+    private var nextReconnectAllowedAt: Date?
+    private var lastBackoffLogAt: Date?
 
     init(options: MQTTOptions, logLevel: Logger.Level) {
         self.options = options
@@ -96,17 +99,26 @@ actor MQTTClientManager {
     }
 
     private func publish(buffer: ByteBuffer, to topic: String, retain: Bool) async throws {
+        if let remaining = backoffRemaining() {
+            if shouldLogBackoff(remaining: remaining) {
+                logger.warning(
+                    "Skipping MQTT publish while backing off reconnect (\(String(format: "%.1f", remaining))s remaining)"
+                )
+            }
+            return
+        }
+
         do {
             try await connectIfNeeded()
             try await client.publish(to: topic, payload: buffer, qos: .atLeastOnce, retain: retain)
                 .get()
+            resetBackoff()
             logger.debug("Published message to topic \(topic)")
         } catch {
             isConnected = false
             logger.warning(
-                "MQTT publish failed for topic \(topic). Attempting reconnect once. Error: \(error.localizedDescription)"
+                "MQTT publish failed for topic \(topic). Backing off reconnects for \(String(format: "%.1f", recordFailure()))s. Error: \(error.localizedDescription)"
             )
-            try await reconnectAndPublish(buffer: buffer, topic: topic, retain: retain)
         }
     }
 
@@ -120,12 +132,40 @@ actor MQTTClientManager {
         }
     }
 
-    private func reconnectAndPublish(buffer: ByteBuffer, topic: String, retain: Bool) async throws {
-        try await connectIfNeeded()
-        try await client.publish(to: topic, payload: buffer, qos: .atLeastOnce, retain: retain)
-            .get()
-        isConnected = true
-        logger.debug("Republished message to topic \(topic) after reconnect")
+    private func backoffRemaining() -> TimeInterval? {
+        guard let deadline = nextReconnectAllowedAt else { return nil }
+        let remaining = deadline.timeIntervalSinceNow
+        if remaining <= 0 {
+            nextReconnectAllowedAt = nil
+            return nil
+        }
+        return remaining
+    }
+
+    @discardableResult
+    private func recordFailure() -> TimeInterval {
+        consecutiveFailures = min(consecutiveFailures + 1, 6)
+        let delay = min(pow(2.0, Double(consecutiveFailures)), 30)
+        nextReconnectAllowedAt = Date().addingTimeInterval(delay)
+        return delay
+    }
+
+    private func resetBackoff() {
+        consecutiveFailures = 0
+        nextReconnectAllowedAt = nil
+        lastBackoffLogAt = nil
+    }
+
+    private func shouldLogBackoff(remaining: TimeInterval) -> Bool {
+        guard let lastBackoffLogAt else {
+            self.lastBackoffLogAt = Date()
+            return true
+        }
+        if Date().timeIntervalSince(lastBackoffLogAt) >= 5 {
+            self.lastBackoffLogAt = Date()
+            return true
+        }
+        return false
     }
 
     private func topic(_ components: [String]) -> String {

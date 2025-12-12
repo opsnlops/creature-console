@@ -821,6 +821,14 @@ actor WebSocketClient {
         } catch {
             logger.error(
                 "Error decoding message: \(error.localizedDescription), details: \(error)")
+            let payloadString: String
+            if let utf8 = String(data: data, encoding: .utf8) {
+                payloadString = utf8
+            } else {
+                payloadString = data.base64EncodedString()
+            }
+            let preview = payloadString.prefix(2048)
+            logger.error("Offending payload (utf8 if possible, else base64): \(preview)")
         }
     }
 }

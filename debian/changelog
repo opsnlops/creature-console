@@ -1,3 +1,10 @@
+creature-cli (2.15.3) unstable; urgency=medium
+
+  * creature-cli: bump version to 2.15.3.
+  * creature-mqtt: add exponential reconnect backoff and log raw websocket payloads when JSON decoding fails.
+
+ -- April White <april@creature.engineering>  Thu, 11 Dec 2025 18:35:00 +0000
+
 creature-cli (2.15.2) unstable; urgency=medium
 
   * creature-cli: bump version to 2.15.2.
