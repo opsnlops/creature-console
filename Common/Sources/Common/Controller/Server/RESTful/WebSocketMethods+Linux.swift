@@ -11,13 +11,17 @@
         private let url: URL
         private var messageProcessor: MessageProcessor?
         private let headers: [String: String]
-        private let logger = Logger(label: "io.opsnlops.CreatureController.WebSocketClient.Linux")
+        let logger = Logger(label: "io.opsnlops.CreatureController.WebSocketClient.Linux")
 
         private var channel: Channel?
         private var isConnected: Bool = false
         private var isConnecting: Bool = false
         private var shouldStayConnected: Bool = false
         private var reconnectAttempt: Int = 0
+
+        static let shouldRefreshCachesNotification = Notification.Name(
+            "WebSocketShouldRefreshCaches")
+        static let didEncounterErrorNotification = Notification.Name("WebSocketDidEncounterError")
 
         init(url: URL, messageProcessor: MessageProcessor?, headers: [String: String] = [:]) {
             self.url = url
@@ -303,6 +307,7 @@
 
     private final class HTTPInitialRequestHandler: ChannelInboundHandler {
         typealias InboundIn = HTTPClientResponsePart
+        typealias OutboundOut = HTTPClientRequestPart
 
         private let host: String
         private let port: Int
@@ -336,6 +341,7 @@
 
     private final class WebSocketFrameHandler: ChannelDuplexHandler {
         typealias InboundIn = WebSocketFrame
+        typealias OutboundIn = Never
         typealias OutboundOut = WebSocketFrame
 
         private weak var owner: WebSocketClient?
@@ -346,7 +352,9 @@
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
             let frame = self.unwrapInboundIn(data)
-            owner?.handleFrame(frame)
+            Task { [weak owner] in
+                await owner?.handleFrame(frame)
+            }
         }
 
         func channelInactive(context: ChannelHandlerContext) {
