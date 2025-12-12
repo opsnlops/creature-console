@@ -100,11 +100,15 @@
                 .channelInitializer { channel in
                     var handlers: [EventLoopFuture<Void>] = []
                     if let sslContext {
-                        let tlsHandler = NIOSSLClientHandler(
-                            context: sslContext,
-                            serverHostname: host
-                        )
-                        handlers.append(channel.pipeline.addHandler(tlsHandler))
+                        do {
+                            let tlsHandler = try NIOSSLClientHandler(
+                                context: sslContext,
+                                serverHostname: host
+                            )
+                            handlers.append(channel.pipeline.addHandler(tlsHandler))
+                        } catch {
+                            return channel.eventLoop.makeFailedFuture(error)
+                        }
                     }
 
                     handlers.append(
@@ -310,7 +314,7 @@
         }
     }
 
-    private final class HTTPInitialRequestHandler: ChannelInboundHandler {
+    private final class HTTPInitialRequestHandler: ChannelInboundHandler, @unchecked Sendable {
         typealias InboundIn = HTTPClientResponsePart
         typealias OutboundOut = HTTPClientRequestPart
 
@@ -344,7 +348,7 @@
         }
     }
 
-    private final class WebSocketFrameHandler: ChannelDuplexHandler, Sendable {
+    private final class WebSocketFrameHandler: ChannelDuplexHandler, @unchecked Sendable {
         typealias InboundIn = WebSocketFrame
         typealias OutboundIn = Never
         typealias OutboundOut = WebSocketFrame
