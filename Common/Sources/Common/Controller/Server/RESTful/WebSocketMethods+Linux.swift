@@ -366,9 +366,8 @@
                 logger.warning(
                     "WebSocket upgrade failed with HTTP status \(response.status.code). Closing channel."
                 )
-                context.fireErrorCaught(
-                    NIOHTTPClientError.upgradeFailed(
-                        response: response, extraHeaders: nil, underlyingError: nil))
+                context.close(promise: nil)
+                return
             }
             context.fireChannelRead(data)
         }
