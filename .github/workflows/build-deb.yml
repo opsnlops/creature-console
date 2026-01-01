@@ -20,7 +20,7 @@ jobs:
             runner: ubuntu-24.04-arm
             container: debian:trixie-slim
     env:
-      SWIFT_VERSION: "6.2.2"
+      SWIFT_VERSION: "6.2.3"
 
     steps:
       - name: Checkout
