@@ -150,7 +150,27 @@ extension CreatureCLI {
 
           if !payload.mismatchedAnimationIds.isEmpty {
             print("Animations with mismatched creatures:")
-            payload.mismatchedAnimationIds.forEach { print("  - \($0)") }
+            for animationId in payload.mismatchedAnimationIds {
+              let animationResult = await server.getAnimation(animationId: animationId)
+              switch animationResult {
+              case .success(let animation):
+                let title = animation.metadata.title.isEmpty ? "Untitled" : animation.metadata.title
+                let creatureIds = Set(animation.tracks.map { $0.creatureId })
+                if creatureIds.count == 1, let creatureId = creatureIds.first {
+                  let name = await fetchCreatureName(
+                    server: server, creatureId: creatureId)
+                  print("  - \(animationId) (\(title)) for creature \(name)")
+                } else if creatureIds.isEmpty {
+                  print("  - \(animationId) (\(title)) for creature unknown")
+                } else {
+                  let names = await fetchCreatureNames(
+                    server: server, creatureIds: creatureIds)
+                  print("  - \(animationId) (\(title)) for creatures \(names)")
+                }
+              case .failure:
+                print("  - \(animationId) (unable to fetch animation details)")
+              }
+            }
           }
 
           if !payload.errorMessages.isEmpty {
@@ -161,6 +181,35 @@ extension CreatureCLI {
         case .failure(let error):
           throw failWithMessage("Validation failed: \(error.localizedDescription)")
         }
+      }
+
+      private static func fetchCreatureName(
+        server: CreatureServerClientProtocol, creatureId: CreatureIdentifier
+      ) async -> String {
+        do {
+          let result = try await server.getCreature(creatureId: creatureId)
+          switch result {
+          case .success(let creature):
+            return creature.name.isEmpty ? creatureId : creature.name
+          case .failure:
+            return creatureId
+          }
+        } catch {
+          return creatureId
+        }
+      }
+
+      private static func fetchCreatureNames(
+        server: CreatureServerClientProtocol, creatureIds: Set<CreatureIdentifier>
+      ) async -> String {
+        let sorted = creatureIds.sorted()
+        var names: [String] = []
+        names.reserveCapacity(sorted.count)
+        for creatureId in sorted {
+          let name = await fetchCreatureName(server: server, creatureId: creatureId)
+          names.append(name)
+        }
+        return names.joined(separator: ", ")
       }
     }
   }
