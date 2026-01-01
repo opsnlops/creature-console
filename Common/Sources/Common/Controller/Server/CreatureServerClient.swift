@@ -311,4 +311,71 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
     }
 
 
+    func sendRawJson<T: Decodable>(
+        _ url: URL, method: String = "POST", rawJson: String, returnType: T.Type
+    ) async -> Result<T, ServerError> {
+        guard let requestBody = rawJson.data(using: .utf8) else {
+            return .failure(.dataFormatError("Unable to encode raw JSON body"))
+        }
+
+        do {
+            var request = createConfiguredURLRequest(for: url)
+            request.httpMethod = method
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = requestBody
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                logger.error("Invalid response from \(url)")
+                return .failure(.serverError("Invalid response from \(url)"))
+            }
+
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            switch httpResponse.statusCode {
+
+            case 200, 201, 202:
+                do {
+                    let result = try decoder.decode(T.self, from: data)
+                    return .success(result)
+                } catch {
+                    logger.error("Decoding error: \(error.localizedDescription)")
+                    return .failure(.serverError("Decoding error: \(error.localizedDescription)"))
+                }
+
+            case 400:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(.dataFormatError(status?.message ?? "Data format error"))
+
+            case 404:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(.notFound(status?.message ?? "Resource not found"))
+
+            case 422:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(
+                    .dataFormatError(status?.message ?? "Request could not be processed"))
+
+            case 409:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(
+                    .conflict(status?.message ?? "Request conflicts with current server state"))
+
+            case 500:
+                let status = try? decoder.decode(StatusDTO.self, from: data)
+                return .failure(.serverError(status?.message ?? "Server error"))
+
+            default:
+                logger.error("Unexpected status code \(httpResponse.statusCode) from \(url)")
+                return .failure(.serverError("Unexpected status code \(httpResponse.statusCode)"))
+            }
+
+        } catch {
+            logger.error("Request error: \(error.localizedDescription)")
+            return .failure(.serverError("Request error: \(error.localizedDescription)"))
+        }
+    }
+
+
 }

@@ -1,3 +1,11 @@
+creature-cli (2.15.9) unstable; urgency=medium
+
+  * creature-cli: add `creatures validate` command for server-side config validation.
+  * Common: add creature config validation DTO + REST helper; send raw JSON payloads for validation.
+  * creature-cli + creature-mqtt: bump version to 2.15.9.
+
+ -- April White <april@creature.engineering>  Wed, 31 Dec 2025 22:30:00 +0000
+
 creature-cli (2.15.8) unstable; urgency=medium
 
   * creature-mqtt: move Linux websocket client to NIO, fixing CPU spin and handshake issues.

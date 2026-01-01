@@ -34,5 +34,17 @@ extension CreatureServerClient {
         return await fetchData(url, returnType: Creature.self)
     }
 
+    public func validateCreatureConfig(rawConfig: String) async -> Result<
+        CreatureConfigValidationDTO, ServerError
+    > {
+        guard let url = URL(string: makeBaseURL(.http) + "/creature/validate") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        logger.debug("Using URL: \(url)")
+
+        return await sendRawJson(
+            url, method: "POST", rawJson: rawConfig, returnType: CreatureConfigValidationDTO.self)
+    }
+
 
 }
