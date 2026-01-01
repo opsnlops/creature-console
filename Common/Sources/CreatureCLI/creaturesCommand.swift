@@ -157,13 +157,13 @@ extension CreatureCLI {
                 let title = animation.metadata.title.isEmpty ? "Untitled" : animation.metadata.title
                 let creatureIds = Set(animation.tracks.map { $0.creatureId })
                 if creatureIds.count == 1, let creatureId = creatureIds.first {
-                  let name = await fetchCreatureName(
+                  let name = await Self.fetchCreatureName(
                     server: server, creatureId: creatureId)
                   print("  - \(animationId) (\(title)) for creature \(name)")
                 } else if creatureIds.isEmpty {
                   print("  - \(animationId) (\(title)) for creature unknown")
                 } else {
-                  let names = await fetchCreatureNames(
+                  let names = await Self.fetchCreatureNames(
                     server: server, creatureIds: creatureIds)
                   print("  - \(animationId) (\(title)) for creatures \(names)")
                 }
