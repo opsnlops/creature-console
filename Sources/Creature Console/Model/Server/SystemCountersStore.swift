@@ -33,4 +33,40 @@ public class SystemCountersStore: ObservableObject {
         self.runtimeStates = payload.runtimeStates
     }
 
+    public func updateRuntimeState(creatureId: String, idleEnabled: Bool) {
+        guard let index = runtimeStates.firstIndex(where: { $0.creatureId == creatureId }) else {
+            return
+        }
+        guard let existing = runtimeStates[index].runtime else { return }
+        let updatedRuntime = CreatureRuntime(
+            idleEnabled: idleEnabled,
+            activity: existing.activity,
+            counters: existing.counters,
+            bgmOwner: existing.bgmOwner,
+            lastError: existing.lastError
+        )
+        runtimeStates[index] = ServerCountersRuntimeState(
+            creatureId: creatureId,
+            runtime: updatedRuntime
+        )
+    }
+
+    public func updateRuntimeActivity(creatureId: String, activity: CreatureRuntimeActivity) {
+        guard let index = runtimeStates.firstIndex(where: { $0.creatureId == creatureId }) else {
+            return
+        }
+        guard let existing = runtimeStates[index].runtime else { return }
+        let updatedRuntime = CreatureRuntime(
+            idleEnabled: existing.idleEnabled,
+            activity: activity,
+            counters: existing.counters,
+            bgmOwner: existing.bgmOwner,
+            lastError: existing.lastError
+        )
+        runtimeStates[index] = ServerCountersRuntimeState(
+            creatureId: creatureId,
+            runtime: updatedRuntime
+        )
+    }
+
 }

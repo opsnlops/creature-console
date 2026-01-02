@@ -261,6 +261,7 @@ struct AnimationTable: View {
                 .frame(minWidth: 360)
             }
             .navigationTitle("Animations")
+            .bottomToolbarInset()
             #if os(macOS)
                 .navigationSubtitle("Number of Animations: \(animations.count)")
             #endif

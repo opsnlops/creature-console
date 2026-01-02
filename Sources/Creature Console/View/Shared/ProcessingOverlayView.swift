@@ -27,3 +27,20 @@ struct ProcessingOverlayView: View {
         .transition(.opacity)
     }
 }
+
+enum LayoutConstants {
+    static let bottomToolbarInset: CGFloat = 80
+}
+
+extension View {
+    @ViewBuilder
+    func bottomToolbarInset() -> some View {
+        #if os(macOS)
+            self.safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: LayoutConstants.bottomToolbarInset)
+            }
+        #else
+            self
+        #endif
+    }
+}

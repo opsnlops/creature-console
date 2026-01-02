@@ -130,6 +130,7 @@ struct SoundFileListView: View {
                 )
             }
             .navigationTitle("Sound Files")
+            .bottomToolbarInset()
             #if os(macOS)
                 .navigationSubtitle("Number of Sounds: \(sounds.count)")
             #endif

@@ -1,3 +1,10 @@
+creature-cli (2.16.0) unstable; urgency=medium
+
+  * creature-cli: add idle loop enable/disable support.
+  * creature-cli + creature-mqtt: bump version to 2.16.0.
+
+ -- April White <april@creature.engineering>  Fri, 02 Jan 2026 05:34:30 +0000
+
 creature-cli (2.15.10) unstable; urgency=medium
 
   * creature-cli: enrich config validation output with animation titles and creature names.

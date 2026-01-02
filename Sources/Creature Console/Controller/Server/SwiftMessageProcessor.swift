@@ -73,19 +73,38 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
         logger.info(
             "Idle state changed for \(idleState.creatureId): \(idleState.idleEnabled ? "enabled" : "disabled")"
         )
-        NotificationCenter.default.post(
-            name: Notification.Name("IdleStateChanged"),
-            object: idleState
-        )
+        Task { @MainActor in
+            SystemCountersStore.shared.updateRuntimeState(
+                creatureId: idleState.creatureId,
+                idleEnabled: idleState.idleEnabled
+            )
+            NotificationCenter.default.post(
+                name: Notification.Name("IdleStateChanged"),
+                object: idleState
+            )
+        }
     }
 
     func processCreatureActivity(_ activity: CreatureActivity) {
         logger.info(
             "Activity update for \(activity.creatureId): state=\(activity.state.rawValue) anim=\(activity.animationId ?? "none") session=\(activity.sessionId ?? "n/a") reason=\(activity.reason?.rawValue ?? "unknown")"
         )
-        NotificationCenter.default.post(
-            name: Notification.Name("CreatureActivityUpdated"),
-            object: activity
-        )
+        Task { @MainActor in
+            SystemCountersStore.shared.updateRuntimeActivity(
+                creatureId: activity.creatureId,
+                activity: CreatureRuntimeActivity(
+                    state: activity.state,
+                    animationId: activity.animationId,
+                    sessionId: activity.sessionId,
+                    reason: activity.reason,
+                    startedAt: nil,
+                    updatedAt: nil
+                )
+            )
+            NotificationCenter.default.post(
+                name: Notification.Name("CreatureActivityUpdated"),
+                object: activity
+            )
+        }
     }
 }

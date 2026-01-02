@@ -195,6 +195,7 @@ struct PlaylistsTable: View {
                 #endif
             }
             .navigationTitle("Playlists")
+            .bottomToolbarInset()
             #if os(macOS)
                 .navigationSubtitle("Number of Playlists: \(playlists.count)")
             #endif

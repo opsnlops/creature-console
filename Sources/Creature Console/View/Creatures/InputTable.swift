@@ -1,7 +1,14 @@
 import Common
 import Foundation
 import OSLog
+import SwiftData
 import SwiftUI
+
+#if os(macOS)
+    import AppKit
+#elseif os(iOS)
+    import UIKit
+#endif
 
 // Legacy InputTable for backwards compatibility
 struct InputTable: View {
@@ -54,16 +61,18 @@ struct InputTable: View {
     }
 }
 
-// New dedicated view for Input Configuration
-struct InputTableView: View {
+struct CreatureConfigDisplay: View {
     var creature: Creature
+
+    @Query(sort: \AnimationMetadataModel.title, order: .forward)
+    private var animations: [AnimationMetadataModel]
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Header section
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Input Configuration")
+                    Text("Creature Configuration")
                         .font(.title2)
                         .fontWeight(.semibold)
 
@@ -74,6 +83,50 @@ struct InputTableView: View {
                     .foregroundColor(.secondary)
                     .padding(.bottom, 8)
                 }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Overview")
+                        .font(.headline)
+
+                    creatureIdRow()
+                    configRow(label: "Name", value: creature.name)
+                    configRow(label: "Channel Offset", value: String(creature.channelOffset))
+                    configRow(label: "Mouth Slot", value: String(creature.mouthSlot))
+                    configRow(label: "Audio Channel", value: String(creature.audioChannel))
+                }
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(12)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Loops")
+                        .font(.headline)
+
+                    configRow(
+                        label: "Speech Loops",
+                        value: "\(creature.speechLoopAnimationIds.count)"
+                    )
+                    if !creature.speechLoopAnimationIds.isEmpty {
+                        loopList(
+                            title: "Speech Loop IDs",
+                            values: creature.speechLoopAnimationIds
+                        )
+                    }
+
+                    configRow(
+                        label: "Idle Loops",
+                        value: "\(creature.idleAnimationIds.count)"
+                    )
+                    if !creature.idleAnimationIds.isEmpty {
+                        loopList(
+                            title: "Idle Loop IDs",
+                            values: creature.idleAnimationIds
+                        )
+                    }
+                }
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(12)
 
                 if creature.inputs.isEmpty {
                     // Empty state
@@ -159,13 +212,124 @@ struct InputTableView: View {
                         }
                     #endif
                 }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Raw Creature JSON")
+                            .font(.headline)
+                        Spacer()
+                        #if !os(tvOS)
+                            Button(action: {
+                                if let creatureJSON {
+                                    copyToClipboard(creatureJSON)
+                                }
+                            }) {
+                                Image(systemName: "doc.on.doc")
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(creatureJSON == nil)
+                            .help("Copy Creature JSON")
+                        #endif
+                    }
+                    ScrollView(.vertical) {
+                        Text(creatureJSON ?? "Unable to encode creature JSON.")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                    }
+                    .frame(minHeight: 220)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(12)
+                }
             }
             .padding()
         }
-        .navigationTitle("\(creature.name) Inputs")
+        .bottomToolbarInset()
+        .navigationTitle("\(creature.name) Config")
         #if os(macOS)
             .navigationSubtitle("\(creature.inputs.count) input channels configured")
         #endif
+    }
+
+    @ViewBuilder
+    private func configRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .fontWeight(.medium)
+            Spacer()
+            Text(value)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func creatureIdRow() -> some View {
+        HStack {
+            Text("Creature ID")
+                .fontWeight(.medium)
+            Spacer()
+            Text(creature.id)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            #if !os(tvOS)
+                Button(action: {
+                    copyToClipboard(creature.id)
+                }) {
+                    Image(systemName: "doc.on.doc")
+                }
+                .buttonStyle(.plain)
+                .help("Copy Creature ID")
+            #endif
+        }
+    }
+
+    @ViewBuilder
+    private func loopList(title: String, values: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            ForEach(values, id: \.self) { value in
+                Text(resolvedAnimationLabel(for: value))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private var creatureJSON: String? {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(creature) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private func resolvedAnimationLabel(for id: AnimationIdentifier) -> String {
+        if let animation = animations.first(where: { $0.id == id }) {
+            return "\(animation.title) (\(id))"
+        }
+        return "Unknown Animation (\(id))"
+    }
+
+    private func copyToClipboard(_ value: String) {
+        #if os(macOS)
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(value, forType: .string)
+        #elseif os(iOS)
+            UIPasteboard.general.string = value
+        #endif
+    }
+}
+
+// Wrapper for older call sites
+struct InputTableView: View {
+    var creature: Creature
+
+    var body: some View {
+        CreatureConfigDisplay(creature: creature)
     }
 }
 
@@ -175,6 +339,6 @@ struct InputTableView: View {
 
 #Preview("Input Table View") {
     NavigationView {
-        InputTableView(creature: Creature.mock())
+        CreatureConfigDisplay(creature: Creature.mock())
     }
 }

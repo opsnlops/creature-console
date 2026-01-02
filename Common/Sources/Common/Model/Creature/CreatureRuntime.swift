@@ -16,6 +16,22 @@ public struct CreatureRuntimeActivity: Codable, Sendable, Equatable, Hashable {
         case startedAt = "started_at"
         case updatedAt = "updated_at"
     }
+
+    public init(
+        state: ActivityState,
+        animationId: String?,
+        sessionId: String?,
+        reason: ActivityReason?,
+        startedAt: Date?,
+        updatedAt: Date?
+    ) {
+        self.state = state
+        self.animationId = animationId
+        self.sessionId = sessionId
+        self.reason = reason
+        self.startedAt = startedAt
+        self.updatedAt = updatedAt
+    }
 }
 
 public struct CreatureRuntimeCounters: Codable, Sendable, Equatable, Hashable {
@@ -58,5 +74,19 @@ public struct CreatureRuntime: Codable, Sendable, Equatable, Hashable {
         case counters
         case bgmOwner = "bgm_owner"
         case lastError = "last_error"
+    }
+
+    public init(
+        idleEnabled: Bool?,
+        activity: CreatureRuntimeActivity?,
+        counters: CreatureRuntimeCounters?,
+        bgmOwner: String?,
+        lastError: CreatureRuntimeError?
+    ) {
+        self.idleEnabled = idleEnabled
+        self.activity = activity
+        self.counters = counters
+        self.bgmOwner = bgmOwner
+        self.lastError = lastError
     }
 }

@@ -114,6 +114,7 @@ struct PlaylistDetail: View {
             Spacer()
         }
         .padding()
+        .bottomToolbarInset()
         .onAppear {
             editingName = playlist.name
         }

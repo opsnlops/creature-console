@@ -7,7 +7,7 @@ extension CreatureCLI {
   struct Creatures: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
       abstract: "Mess with the Creatures",
-      subcommands: [List.self, Search.self, Detail.self, Validate.self]
+      subcommands: [List.self, Search.self, Detail.self, Validate.self, Idle.self]
     )
 
     @OptionGroup()
@@ -210,6 +210,40 @@ extension CreatureCLI {
           names.append(name)
         }
         return names.joined(separator: ", ")
+      }
+    }
+
+    struct Idle: AsyncParsableCommand {
+      static let configuration = CommandConfiguration(
+        abstract: "Enable or disable the idle loop for a creature"
+      )
+
+      @Argument(help: "Creature ID to update")
+      var creatureId: CreatureIdentifier
+
+      @Flag(help: "Enable idle loop")
+      var enable: Bool = false
+
+      @Flag(help: "Disable idle loop")
+      var disable: Bool = false
+
+      @OptionGroup()
+      var globalOptions: GlobalOptions
+
+      func run() async throws {
+        if enable == disable {
+          throw failWithMessage("Choose exactly one of --enable or --disable.")
+        }
+
+        let server = getServer(config: globalOptions)
+        let result = await server.setIdleEnabled(creatureId: creatureId, enabled: enable)
+        switch result {
+        case .success(let creature):
+          let status = enable ? "enabled" : "disabled"
+          print("Idle loop \(status) for \(creature.name) (\(creature.id))")
+        case .failure(let error):
+          throw failWithMessage("Unable to update idle state: \(error.localizedDescription)")
+        }
       }
     }
   }
