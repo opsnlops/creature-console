@@ -137,57 +137,30 @@ struct CreatureConsole: App {
             RootView()
         }
         .modelContainer(modelContainer)
-        #if os(macOS)
+        #if os(macOS) || os(iOS)
             .commands {
-                CommandMenu("Caches") {
-                    Button("Invalidate Animation Cache...") {
-                        CacheInvalidationProcessor.rebuildAnimationCache()
+                DiagnosticsCommands()
+                #if os(macOS)
+                    CommandMenu("Caches") {
+                        Button("Invalidate Animation Cache...") {
+                            CacheInvalidationProcessor.rebuildAnimationCache()
+                        }
+                        Button("Invalidate Creature Cache...") {
+                            CacheInvalidationProcessor.rebuildCreatureCache()
+                        }
+                        Button("Invalidate Playlist Cache...") {
+                            CacheInvalidationProcessor.rebuildPlaylistCache()
+                        }
+                        Button("Invalidate Sound List Cache...") {
+                            CacheInvalidationProcessor.rebuildSoundListCache()
+                        }
                     }
-                    Button("Invalidate Creature Cache...") {
-                        CacheInvalidationProcessor.rebuildCreatureCache()
+                    CommandMenu("Utilities") {
+                        Button("Generate Lip Sync from WAV…") {
+                            LipSyncUtilities.generateLipSyncFromWAV()
+                        }
                     }
-                    Button("Invalidate Playlist Cache...") {
-                        CacheInvalidationProcessor.rebuildPlaylistCache()
-                    }
-                    Button("Invalidate Sound List Cache...") {
-                        CacheInvalidationProcessor.rebuildSoundListCache()
-                    }
-                }
-                CommandMenu("Diagnostics") {
-                    Button("Report Issue…") {
-                        let subject = "Creature Console Issue Report"
-                        let os = ProcessInfo.processInfo.operatingSystemVersionString
-                        let appVersion =
-                            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-                            ?? "unknown"
-                        let build =
-                            Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
-                        let timestamp = ISO8601DateFormatter().string(from: Date())
-                        let diagSummary = MetricKitManager.shared.latestSummary(limit: 5)
-                        let body = """
-                            Please describe what you were doing:
-
-                            App Version: \(appVersion) (\(build))
-                            OS: \(os)
-                            Timestamp: \(timestamp)
-
-
-                            Diagnostics Summary:
-                            \(diagSummary)
-                            """
-                        MailComposer.present(subject: subject, body: body)
-                    }
-                    .keyboardShortcut("d", modifiers: [.command, .shift])
-                    Divider()
-                    Button("Rebuild All Caches...") {
-                        CacheInvalidationProcessor.rebuildAllCaches()
-                    }
-                }
-                CommandMenu("Utilities") {
-                    Button("Generate Lip Sync from WAV…") {
-                        LipSyncUtilities.generateLipSyncFromWAV()
-                    }
-                }
+                #endif
             }
         #endif
 
@@ -195,6 +168,8 @@ struct CreatureConsole: App {
             DebugJoystickScene()
             LogViewScene()
             AppStateInspectorScene()
+            SACNUniverseMonitorScene()
+                .modelContainer(modelContainer)
 
             Settings {
                 SettingsView()
@@ -205,6 +180,11 @@ struct CreatureConsole: App {
             }
             .menuBarExtraStyle(.window)
             .modelContainer(modelContainer)
+        #endif
+
+        #if os(iOS)
+            SACNUniverseMonitorScene()
+                .modelContainer(modelContainer)
         #endif
 
     }
