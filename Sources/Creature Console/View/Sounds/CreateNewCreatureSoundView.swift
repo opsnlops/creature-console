@@ -232,7 +232,7 @@ struct CreateNewCreatureSoundView: View {
             }
         #endif
 
-        logger.info("Copied filename to clipboard")
+        logger.debug("Copied filename to clipboard")
     }
 }
 

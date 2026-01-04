@@ -1,5 +1,5 @@
-import Foundation
 import Common
+import Foundation
 
 // A top-level data model for motor power points, decoupled from the View layer.
 struct SensorPowerDataPoint: Identifiable, Sendable {
@@ -11,7 +11,8 @@ struct SensorPowerDataPoint: Identifiable, Sendable {
 enum SensorDataLogic {
     /// Extracts points for "Motor Power In" from a series of board sensor reports.
     /// Matching is intentionally flexible to accommodate various incoming names.
-    static func extractMotorPowerData(from reports: [BoardSensorReport]) -> [SensorPowerDataPoint]? {
+    static func extractMotorPowerData(from reports: [BoardSensorReport]) -> [SensorPowerDataPoint]?
+    {
         var motorPowerData: [SensorPowerDataPoint] = []
 
         for report in reports {
@@ -46,4 +47,3 @@ enum SensorDataLogic {
         return motorPowerData.isEmpty ? nil : motorPowerData
     }
 }
-

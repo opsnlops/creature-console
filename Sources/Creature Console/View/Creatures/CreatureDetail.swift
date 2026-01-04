@@ -177,7 +177,7 @@ struct CreatureDetail: View {
             streamingTask?.cancel()
         }
         .onAppear {
-            logger.info("CreatureDetail appeared for \(creature.id)")
+            logger.debug("CreatureDetail appeared for \(creature.id)")
             Task {
                 let appStateActivity = await AppState.shared.getCurrentActivity
                 await MainActor.run {
@@ -236,7 +236,7 @@ struct CreatureDetail: View {
 
     func stopPlaylistPlayback() {
 
-        logger.info("stopping playlist playback on server")
+        logger.debug("stopping playlist playback on server")
         serverMessage = "Sending stop playing signal..."
         isDoingServerStuff = true
 
@@ -250,7 +250,7 @@ struct CreatureDetail: View {
                     showErrorAlert = true
                 }
             case .success(let value):
-                logger.info("stopped! \(value)")
+                logger.debug("stopped! \(value)")
                 serverMessage = value
             }
 
@@ -265,7 +265,7 @@ struct CreatureDetail: View {
         Task {
             // Check AppState directly to avoid race conditions
             let appStateActivity = await AppState.shared.getCurrentActivity
-            logger.info("toggleStreaming called - AppState: \(appStateActivity.description)")
+            logger.debug("toggleStreaming called - AppState: \(appStateActivity.description)")
 
             // Simple toggle: if streaming, stop. If not streaming, start.
             if appStateActivity == .streaming {
@@ -290,7 +290,7 @@ struct CreatureDetail: View {
                     creatureId: creature.id)
                 switch result {
                 case .success(let message):
-                    logger.info("Successfully started streaming: \(message)")
+                    logger.debug("Successfully started streaming: \(message)")
                     await MainActor.run {
                         currentActivity = .streaming
                     }
@@ -309,13 +309,13 @@ struct CreatureDetail: View {
     }
 
     func refreshIdleState() async {
-        logger.info("Idle refresh starting for \(creature.id)")
+        logger.debug("Idle refresh starting for \(creature.id)")
         do {
             let result = try await server.getCreature(creatureId: creature.id)
             switch result {
             case .success(let remoteCreature):
                 let serverIdleEnabled = remoteCreature.runtime?.idleEnabled
-                logger.info(
+                logger.debug(
                     "Idle refresh for \(creature.id): runtime=\(remoteCreature.runtime != nil ? "yes" : "no") idle=\(serverIdleEnabled.map { "\($0)" } ?? "nil")"
                 )
                 await MainActor.run {

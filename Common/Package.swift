@@ -64,6 +64,14 @@ let package = Package(
             dependencies: [
                 "Common",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(
+                    name: "NIOCore",
+                    package: "swift-nio",
+                    condition: .when(platforms: [.linux])),
+                .product(
+                    name: "NIOPosix",
+                    package: "swift-nio",
+                    condition: .when(platforms: [.linux])),
             ],
             path: "Sources/CreatureCLI/",
             exclude: ["README.md"]),

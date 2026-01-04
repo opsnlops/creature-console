@@ -102,7 +102,7 @@ actor CreatureHealthCache {
     func addBoardSensorData(
         _ sensorData: BoardSensorReport, forCreature creatureId: CreatureIdentifier
     ) {
-        logger.info("CreatureHealthCache: Adding board sensor data for creature \(creatureId)")
+        logger.debug("CreatureHealthCache: Adding board sensor data for creature \(creatureId)")
         var updatedCache = boardSensorCache[creatureId, default: []]
         updatedCache.append(sensorData)
 

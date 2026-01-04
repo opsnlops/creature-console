@@ -1,7 +1,8 @@
-import Testing
-import Foundation
-@testable import Creature_Console
 import Common
+import Foundation
+import Testing
+
+@testable import Creature_Console
 
 @Suite("TrackViewer extractByteStreams")
 struct TrackViewerTests {
@@ -12,7 +13,7 @@ struct TrackViewerTests {
         let frames: [Data] = [
             Data([10, 20, 30]),
             Data([40, 50, 60]),
-            Data([70, 80, 90])
+            Data([70, 80, 90]),
         ]
 
         let viewer = TrackViewer(
@@ -38,7 +39,7 @@ struct TrackViewerTests {
     func extractByteStreamsFailureOnMismatchedSizes() {
         let frames: [Data] = [
             Data([1, 2, 3]),
-            Data([4, 5])
+            Data([4, 5]),
         ]
 
         let viewer = TrackViewer(

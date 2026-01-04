@@ -211,12 +211,12 @@ struct SoundFileListView: View {
         var didImport = false
         do {
             let importer = SoundImporter(modelContainer: modelContext.container)
-            logger.info("Fetching sound list from server for SwiftData import")
+            logger.debug("Fetching sound list from server for SwiftData import")
             let result = await server.listSounds()
             switch result {
             case .success(let list):
                 try await importer.upsertBatch(list)
-                logger.info("Imported \(list.count) sounds into SwiftData")
+                logger.debug("Imported \(list.count) sounds into SwiftData")
                 didImport = true
             case .failure(let error):
                 await MainActor.run {
@@ -326,7 +326,7 @@ struct SoundFileListView: View {
 
         switch result {
         case .success(let job):
-            logger.info("Lip sync job queued: \(job.jobId) for \(soundId)")
+            logger.debug("Lip sync job queued: \(job.jobId) for \(soundId)")
             if let data = try? JSONEncoder().encode(
                 LipSyncJobDetails(soundFile: soundId, allowOverwrite: allowOverwrite)
             ), let detailsString = String(data: data, encoding: .utf8) {

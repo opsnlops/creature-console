@@ -34,7 +34,7 @@ struct CreatureCLI: AsyncParsableCommand {
         version: "2.16.0",
         subcommands: [
             Animations.self, Creatures.self, Debug.self, Sounds.self, Metrics.self, Playlists.self,
-            Util.self, Voice.self, Websocket.self,
+            Util.self, Voice.self, Websocket.self, Network.self,
         ],
         helpNames: .shortAndLong
     )

@@ -2,13 +2,13 @@ import SwiftUI
 
 struct VoltageMeterView: View {
 
-    var title: String   // New: Title for the chart
+    var title: String  // New: Title for the chart
     var minValue: Double
     var maxValue: Double
     var currentValue: Double
 
     private var angleRange: Double {
-        return 180.0 // The range of the meter's arc (180 degrees for half-circle)
+        return 180.0  // The range of the meter's arc (180 degrees for half-circle)
     }
 
     private var currentAngle: Double {
@@ -28,14 +28,14 @@ struct VoltageMeterView: View {
                 // The arc of the voltage meter
                 ArcShape()
                     .stroke(Color.black, lineWidth: 10)
-                    .frame(width: 200, height: 100) // Adjust the frame size
+                    .frame(width: 200, height: 100)  // Adjust the frame size
 
                 // The needle
                 NeedleShape()
                     .stroke(Color.red, lineWidth: 3)
-                    .frame(width: 4, height: 100) // Needle dimensions
+                    .frame(width: 4, height: 100)  // Needle dimensions
                     .rotationEffect(Angle(degrees: currentAngle))
-                    .offset(y: 50) // Adjust the needle center to the bottom of the arc
+                    .offset(y: 50)  // Adjust the needle center to the bottom of the arc
 
                 // Voltage labels
                 HStack {
@@ -45,7 +45,7 @@ struct VoltageMeterView: View {
                 }
                 .font(.system(size: 18))
                 .frame(width: 200)
-                .offset(y: 70) // Adjust label position
+                .offset(y: 70)  // Adjust label position
             }
 
             // Current voltage display at the bottom
@@ -60,11 +60,12 @@ struct VoltageMeterView: View {
 struct ArcShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        path.addArc(center: CGPoint(x: rect.midX, y: rect.maxY),
-                    radius: rect.width / 2,
-                    startAngle: Angle(degrees: 180),  // Left side of arc
-                    endAngle: Angle(degrees: 0),      // Right side of arc
-                    clockwise: false)
+        path.addArc(
+            center: CGPoint(x: rect.midX, y: rect.maxY),
+            radius: rect.width / 2,
+            startAngle: Angle(degrees: 180),  // Left side of arc
+            endAngle: Angle(degrees: 0),  // Right side of arc
+            clockwise: false)
         return path
     }
 }
@@ -81,4 +82,3 @@ struct NeedleShape: Shape {
 #Preview {
     VoltageMeterView(title: "Sensor 1", minValue: 0, maxValue: 150, currentValue: 75)
 }
-

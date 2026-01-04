@@ -174,7 +174,7 @@ struct AnimationEditor: View {
 
     func playAnimation() -> Result<String, AnimationError> {
 
-        logger.info("play button pressed!")
+        logger.debug("play button pressed!")
 
         return .success("Queued up animation to play")
     }

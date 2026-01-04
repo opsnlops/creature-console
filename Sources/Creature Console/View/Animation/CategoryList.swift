@@ -31,14 +31,14 @@ struct CategoryList: View {
 
         }
         .onAppear {
-            logger.info("onAppear()")
+            logger.debug("onAppear()")
             loadData()
         }
         .onDisappear {
             loadDataTask?.cancel()
         }
         .onChange(of: creature) {
-            logger.info("onChange() in AnimationCategory")
+            logger.debug("onChange() in AnimationCategory")
             loadData()
         }
         .alert(isPresented: $showErrorAlert) {

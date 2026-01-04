@@ -5,7 +5,8 @@ import SwiftUI
 
 @MainActor
 final class AnimationEditorViewModel: ObservableObject {
-    private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationEditorViewModel")
+    private let logger = Logger(
+        subsystem: "io.opsnlops.CreatureConsole", category: "AnimationEditorViewModel")
 
     @Published var animation: Common.Animation
 

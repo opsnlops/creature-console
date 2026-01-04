@@ -32,7 +32,6 @@
 		113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004E2EAF0C9B00155515 /* LiveMagicView.swift */; };
 		113D00A12EB12D3E00155515 /* AdHocAssetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */; };
 		113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */; };
-		113F327A2F07981C00783156 /* SACNReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F32792F07981C00783156 /* SACNReceiver.swift */; };
 		113F327E2F07983500783156 /* SACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */; };
 		113F327F2F07983500783156 /* DiagnosticsCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327B2F07983500783156 /* DiagnosticsCommands.swift */; };
 		113F32802F07983500783156 /* SACNUniverseMonitorScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327C2F07983500783156 /* SACNUniverseMonitorScene.swift */; };
@@ -259,7 +258,6 @@
 		113D004E2EAF0C9B00155515 /* LiveMagicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMagicView.swift; sourceTree = "<group>"; };
 		113D004F2EAF0C9B00155515 /* LiveMagicViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMagicViewModel.swift; sourceTree = "<group>"; };
 		113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocAssetsView.swift; sourceTree = "<group>"; };
-		113F32792F07981C00783156 /* SACNReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNReceiver.swift; sourceTree = "<group>"; };
 		113F327B2F07983500783156 /* DiagnosticsCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsCommands.swift; sourceTree = "<group>"; };
 		113F327C2F07983500783156 /* SACNUniverseMonitorScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNUniverseMonitorScene.swift; sourceTree = "<group>"; };
 		113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNUniverseMonitorView.swift; sourceTree = "<group>"; };
@@ -1013,7 +1011,6 @@
 		11FDBF4B2BE0A60F008C5B3E /* Controller */ = {
 			isa = PBXGroup;
 			children = (
-				113F32792F07981C00783156 /* SACNReceiver.swift */,
 				114B7E792E90DBD900F5D1EC /* AppStateTests.swift */,
 				11754B682C002CEB001A6C83 /* Creature Manager */,
 				1199D6B32BF5BA82004E0D64 /* Server */,
@@ -1442,7 +1439,6 @@
 				11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */,
 				11E53CCA2E8896B700C17F16 /* MailComposer.swift in Sources */,
 				113896B92A0CA3B40055BA70 /* StorageManager.swift in Sources */,
-				113F327A2F07981C00783156 /* SACNReceiver.swift in Sources */,
 				11C622F52C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift in Sources */,
 				1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */,
 				1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */,

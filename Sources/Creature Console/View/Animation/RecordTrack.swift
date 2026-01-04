@@ -191,11 +191,11 @@ struct RecordTrack: View {
                 bButtonSymbol = initialButtonSymbol
             }
 
-            logger.info(
+            logger.debug(
                 "RecordTrack: Initial state loaded - activity: \(initialAppState.currentActivity.description)"
             )
             if let animation = localAnimation {
-                logger.info("RecordTrack: Current animation: \(animation.metadata.title)")
+                logger.debug("RecordTrack: Current animation: \(animation.metadata.title)")
             }
 
             for await state in await AppState.shared.stateUpdates {
@@ -238,14 +238,14 @@ struct RecordTrack: View {
 
     func playWarningTone() {
 
-        logger.info("attempting to play the warning tone")
+        logger.debug("attempting to play the warning tone")
 
         let result = audioManager.playBundledSound(
             name: "recordingCountdownSound", extension: "flac")
 
         switch result {
         case .success(let data):
-            logger.info("Warning tone playback result: \(data.description)")
+            logger.debug("Warning tone playback result: \(data.description)")
         case .failure(let data):
             logger.warning("Warning tone playback failed: \(data.localizedDescription)")
         }
@@ -254,9 +254,9 @@ struct RecordTrack: View {
 
     func startRecording() {
 
-        logger.info("startRecording() called")
+        logger.debug("startRecording() called")
         // Stream to the creature for recording
-        logger.info("Starting recording for creature: \(creature.name)")
+        logger.debug("Starting recording for creature: \(creature.name)")
         Task { await AppState.shared.setCurrentActivity(.preparingToRecord) }
         // Start streaming to the creature
         streamingTask = Task {
@@ -275,7 +275,7 @@ struct RecordTrack: View {
 
         // Recording workflow with synchronized audio/motion capture
         recordingTask = Task {
-            logger.info("recordingTask started (local state)")
+            logger.debug("recordingTask started (local state)")
 
             guard let animation = currentAnimation else {
                 logger.warning("No current animation found - cannot record")
@@ -293,14 +293,14 @@ struct RecordTrack: View {
             // Shows glass-effect progress overlay during preparation.
             let soundFile = animation.metadata.soundFile
             if !soundFile.isEmpty {
-                logger.info("Preparing sound file: \(soundFile)")
+                logger.debug("Preparing sound file: \(soundFile)")
                 await MainActor.run { preparingSound = soundFile }
                 let prepResult = await creatureManager.prepareSoundForRecording(
                     soundFile: soundFile)
                 await MainActor.run { preparingSound = nil }
                 switch prepResult {
                 case .success:
-                    logger.info("Sound file prepared successfully")
+                    logger.debug("Sound file prepared successfully")
                 case .failure(let error):
                     logger.error("Failed to prepare sound: \(String(describing: error))")
                     await MainActor.run {
@@ -317,12 +317,12 @@ struct RecordTrack: View {
             // ═══════════════════════════════════════════════════════════════════════
             // Gives user time to prepare. Sound file is already downloaded and armed.
             do {
-                logger.info("Playing warning tone...")
+                logger.debug("Playing warning tone...")
                 await JoystickManager.shared.playRecordingCountdownHaptics()
                 await MainActor.run { playWarningTone() }
-                logger.info("Sleeping for 3.5 seconds...")
+                logger.debug("Sleeping for 3.5 seconds...")
                 try await Task.sleep(nanoseconds: UInt64(3.5 * 1_000_000_000))
-                logger.info("Sleep completed")
+                logger.debug("Sleep completed")
             } catch {
                 logger.error("couldn't sleep: \(error)")
             }
@@ -332,9 +332,9 @@ struct RecordTrack: View {
             // ═══════════════════════════════════════════════════════════════════════
             // Uses mach_absolute_time() to schedule audio at precise time for perfect sync.
             // Motion capture and audio start simultaneously at the 3.5s mark.
-            logger.info("calling creatureManager.startRecording()")
+            logger.debug("calling creatureManager.startRecording()")
             await creatureManager.startRecording(delaySoundStart: 0.0)
-            logger.info("creatureManager.startRecording() completed")
+            logger.debug("creatureManager.startRecording() completed")
             await AppState.shared.setCurrentActivity(.recording)
         }
 
@@ -345,7 +345,7 @@ struct RecordTrack: View {
             await JoystickManager.shared.cancelRecordingCountdownHaptics()
             await creatureManager.stopRecording()
             recordingTask?.cancel()
-            logger.info("asked recording to stop")
+            logger.debug("asked recording to stop")
 
             // Stop streaming
             let streamResult = await creatureManager.stopStreaming()
@@ -381,7 +381,7 @@ struct RecordTrack: View {
 
     func saveAndGoHome() async {
 
-        logger.info("saving and going home")
+        logger.debug("saving and going home")
 
         // Produce the track and hand it back to the caller
         if let track = currentTrack {
@@ -397,7 +397,7 @@ struct RecordTrack: View {
     }
 
     func closeWithoutSaving() {
-        logger.info("closing the RecordTrack view without saving")
+        logger.debug("closing the RecordTrack view without saving")
         presentationMode.wrappedValue.dismiss()
     }
 

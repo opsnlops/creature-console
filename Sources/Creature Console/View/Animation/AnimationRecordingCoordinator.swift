@@ -134,7 +134,7 @@ struct AnimationRecordingCoordinator: View {
     }
 
     private func createNewRecordingSession() {
-        logger.info("Creating new recording session")
+        logger.debug("Creating new recording session")
 
         // Create new animation
         let newAnimation = Common.Animation()
@@ -151,7 +151,7 @@ struct AnimationRecordingCoordinator: View {
             availableCreatures: creatures.map { $0.toDTO() }
         )
 
-        logger.info("Created new recording session for animation: \(newAnimation.id)")
+        logger.debug("Created new recording session for animation: \(newAnimation.id)")
     }
 
     private func handleAppStateChange(_ state: AppStateData) {
@@ -173,7 +173,7 @@ struct AnimationRecordingCoordinator: View {
         isSaving = true
 
         Task {
-            logger.info("Saving animation '\(animation.metadata.title)' to server")
+            logger.debug("Saving animation '\(animation.metadata.title)' to server")
 
             let result = await server.saveAnimation(animation: animation)
 
@@ -181,7 +181,7 @@ struct AnimationRecordingCoordinator: View {
                 switch result {
                 case .success(let message):
                     savingMessage = "Saved successfully!"
-                    logger.info("Animation saved: \(message)")
+                    logger.debug("Animation saved: \(message)")
 
                 case .failure(let error):
                     isSaving = false

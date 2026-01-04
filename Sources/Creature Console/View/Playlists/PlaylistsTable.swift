@@ -238,7 +238,7 @@ struct PlaylistsTable: View {
             await MainActor.run {
                 switch result {
                 case .success(let message):
-                    logger.info("Playlist updated successfully: \(message)")
+                    logger.debug("Playlist updated successfully: \(message)")
                     // Refresh from server
                     Task {
                         let container = await SwiftDataStore.shared.container()
@@ -281,7 +281,7 @@ struct PlaylistsTable: View {
             await MainActor.run {
                 switch result {
                 case .success:
-                    logger.info("Playlist created successfully")
+                    logger.debug("Playlist created successfully")
                     // Refresh from server
                     Task {
                         let container = await SwiftDataStore.shared.container()
@@ -338,7 +338,7 @@ struct PlaylistsTable: View {
                 await MainActor.run {
                     successMessage = message
                     showSuccessAlert = true
-                    logger.info("Successfully started playlist: \(message)")
+                    logger.debug("Successfully started playlist: \(message)")
                 }
             case .failure(let error):
                 await MainActor.run {
@@ -364,7 +364,7 @@ struct PlaylistsTable: View {
                 await MainActor.run {
                     successMessage = message
                     showSuccessAlert = true
-                    logger.info("Successfully stopped playlist playback: \(message)")
+                    logger.debug("Successfully stopped playlist playback: \(message)")
                 }
             case .failure(let error):
                 await MainActor.run {

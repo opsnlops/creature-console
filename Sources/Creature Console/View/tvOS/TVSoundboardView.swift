@@ -240,7 +240,7 @@
                 let prepareResult = await audioManager.prepareAndArmSoundFile(fileName: soundId)
                 switch prepareResult {
                 case .success:
-                    logger.info("Prepared \(soundId) for local playback on tvOS")
+                    logger.debug("Prepared \(soundId) for local playback on tvOS")
                     let startResult = audioManager.startArmedPreview(in: 0.1)
                     switch startResult {
                     case .success:

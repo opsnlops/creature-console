@@ -3,13 +3,55 @@ import Network
 import SwiftData
 import SwiftUI
 
+#if os(iOS) || os(tvOS)
+    import UIKit
+#endif
+
+enum MonitorSource: String, CaseIterable, Identifiable {
+    case local
+    case remote
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .local:
+            return "Local"
+        case .remote:
+            return "Remote"
+        }
+    }
+}
+
 @MainActor
 final class SACNUniverseMonitorViewModel: ObservableObject {
     @Published var interfaces: [SACNInterface] = []
     @Published var selectedInterfaceID: String?
     @Published var universe: Int = 1
+    @Published var isRunning: Bool = false
+    @Published var source: MonitorSource = .local {
+        didSet {
+            if oldValue != source, isRunning {
+                restartReceiver()
+            }
+        }
+    }
+    @Published var remoteHost: String = "" {
+        didSet {
+            if oldValue != remoteHost, source == .remote, isRunning {
+                restartReceiver()
+            }
+        }
+    }
+    @Published var remotePort: Int = 1963 {
+        didSet {
+            if oldValue != remotePort, source == .remote, isRunning {
+                restartReceiver()
+            }
+        }
+    }
     @Published var slots: [UInt8] = Array(repeating: 0, count: 512)
-    @Published var status: MonitorStatus = .waitingForInterface
+    @Published var status: MonitorStatus = .idle
     @Published var lastPacketDate: Date?
     @Published var lastSequence: UInt8?
     @Published var packetCount: Int = 0
@@ -17,14 +59,23 @@ final class SACNUniverseMonitorViewModel: ObservableObject {
     enum MonitorStatus: Equatable {
         case idle
         case waitingForInterface
+        case waitingForRemoteHost
+        case connecting
         case waitingForPackets
         case listening
         case failed(String)
     }
 
     private let receiver = SACNReceiver()
+    private let remoteReceiver = SACNRemoteReceiver()
     private let pathMonitor = NWPathMonitor()
     private let pathQueue = DispatchQueue(label: "io.opsnlops.CreatureConsole.SACNPathMonitor")
+    private let framePublishInterval: UInt64 = 20_000_000
+    private var pendingSlots: [UInt8] = Array(repeating: 0, count: 512)
+    private var pendingSequence: UInt8?
+    private var pendingPacketCount: Int = 0
+    private var pendingLastPacketDate: Date?
+    private var isFlushScheduled = false
 
     init() {
         pathMonitor.pathUpdateHandler = { [weak self] path in
@@ -39,6 +90,7 @@ final class SACNUniverseMonitorViewModel: ObservableObject {
     deinit {
         pathMonitor.cancel()
         receiver.stop()
+        remoteReceiver.stop()
     }
 
     func updateInterfaces(_ newInterfaces: [SACNInterface]) {
@@ -49,7 +101,9 @@ final class SACNUniverseMonitorViewModel: ObservableObject {
             return
         }
         selectedInterfaceID = newInterfaces.first?.id
-        restartReceiver()
+        if isRunning {
+            restartReceiver()
+        }
     }
 
     func setUniverse(_ newUniverse: Int) {
@@ -58,7 +112,9 @@ final class SACNUniverseMonitorViewModel: ObservableObject {
             return
         }
         universe = clamped
-        restartReceiver()
+        if isRunning {
+            restartReceiver()
+        }
     }
 
     func setSelectedInterface(id: String?) {
@@ -66,49 +122,114 @@ final class SACNUniverseMonitorViewModel: ObservableObject {
             return
         }
         selectedInterfaceID = id
+        if isRunning {
+            restartReceiver()
+        }
+    }
+
+    func connect() {
+        guard !isRunning else {
+            return
+        }
+        isRunning = true
         restartReceiver()
     }
 
-    func restartReceiver() {
+    func disconnect() {
+        guard isRunning else {
+            return
+        }
+        isRunning = false
         receiver.stop()
+        remoteReceiver.stop()
+        status = .idle
+    }
+
+    func restartReceiver() {
+        guard isRunning else {
+            status = .idle
+            return
+        }
+        receiver.stop()
+        remoteReceiver.stop()
         slots = Array(repeating: 0, count: 512)
         lastPacketDate = nil
         lastSequence = nil
         packetCount = 0
+        pendingSlots = Array(repeating: 0, count: 512)
+        pendingSequence = nil
+        pendingPacketCount = 0
+        pendingLastPacketDate = nil
+        isFlushScheduled = false
 
-        guard let interface = selectedInterface else {
-            status = .waitingForInterface
+        if source == .local {
+            guard let interface = selectedInterface else {
+                status = .waitingForInterface
+                return
+            }
+
+            status = .waitingForPackets
+            let universeValue = UInt16(min(max(universe, 1), 63999))
+
+            do {
+                try receiver.start(
+                    universe: universeValue,
+                    interface: interface.nwInterface,
+                    onPacket: { [weak self] packet in
+                        guard packet.frame.universe == universeValue else {
+                            return
+                        }
+                        Task { @MainActor in
+                            self?.enqueueFrame(packet.frame)
+                        }
+                    },
+                    onState: { [weak self] state in
+                        Task { @MainActor in
+                            self?.handleStateUpdate(state)
+                        }
+                    }
+                )
+            } catch {
+                status = .failed(error.localizedDescription)
+            }
             return
         }
 
-        status = .waitingForPackets
-        let universeValue = UInt16(min(max(universe, 1), 63999))
-
-        do {
-            try receiver.start(
-                universe: universeValue,
-                interface: interface.nwInterface,
-                onFrame: { [weak self] frame in
-                    guard frame.universe == universeValue else {
-                        return
-                    }
-                    Task { @MainActor in
-                        self?.slots = frame.slots
-                        self?.lastPacketDate = Date()
-                        self?.lastSequence = frame.sequence
-                        self?.packetCount += 1
-                        self?.status = .listening
-                    }
-                },
-                onState: { [weak self] state in
-                    Task { @MainActor in
-                        self?.handleStateUpdate(state)
-                    }
-                }
-            )
-        } catch {
-            status = .failed(error.localizedDescription)
+        guard !remoteHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            status = .waitingForRemoteHost
+            return
         }
+
+        guard remotePort > 0, remotePort <= 65535 else {
+            status = .failed("Invalid port")
+            return
+        }
+
+        status = .connecting
+        let universeValue = UInt16(min(max(universe, 1), 63999))
+        let hello = SACNRemoteHello(
+            viewerName: viewerName,
+            viewerVersion: appVersion,
+            universe: universeValue
+        )
+        remoteReceiver.start(
+            host: remoteHost,
+            port: UInt16(remotePort),
+            hello: hello,
+            onFrame: { [weak self] frame in
+                guard frame.universe == universeValue else {
+                    return
+                }
+                Task { @MainActor in
+                    self?.enqueueFrame(frame)
+                }
+            },
+            onState: { [weak self] state in
+                Task { @MainActor in
+                    self?.handleRemoteStateUpdate(state)
+                }
+            }
+        )
     }
 
     private func handleStateUpdate(_ state: NWConnectionGroup.State) {
@@ -124,18 +245,95 @@ final class SACNUniverseMonitorViewModel: ObservableObject {
         }
     }
 
+    private func handleRemoteStateUpdate(_ state: NWConnection.State) {
+        switch state {
+        case .ready:
+            if status == .connecting {
+                status = .waitingForPackets
+            }
+        case .failed(let error):
+            status = .failed(error.localizedDescription)
+        case .cancelled:
+            status = .idle
+        default:
+            break
+        }
+    }
+
     private var selectedInterface: SACNInterface? {
         interfaces.first { $0.id == selectedInterfaceID }
+    }
+
+    private func enqueueFrame(_ frame: SACNFrame) {
+        pendingSlots = frame.slots
+        pendingSequence = frame.sequence
+        pendingLastPacketDate = Date()
+        pendingPacketCount += 1
+        if !isFlushScheduled {
+            isFlushScheduled = true
+            Task { [weak self] in
+                guard let self else { return }
+                try? await Task.sleep(nanoseconds: self.framePublishInterval)
+                await MainActor.run {
+                    self.flushPendingFrames()
+                }
+            }
+        }
+    }
+
+    private func flushPendingFrames() {
+        slots = pendingSlots
+        lastSequence = pendingSequence
+        if let pendingLastPacketDate {
+            lastPacketDate = pendingLastPacketDate
+        }
+        if pendingPacketCount > 0 {
+            packetCount += pendingPacketCount
+        }
+        pendingPacketCount = 0
+        pendingLastPacketDate = nil
+        isFlushScheduled = false
+        if isRunning, status != .listening {
+            status = .listening
+        }
+    }
+
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+        switch (version, build) {
+        case (let version?, let build?):
+            return "\(version) (\(build))"
+        case (let version?, nil):
+            return version
+        case (nil, let build?):
+            return build
+        default:
+            return "Unknown"
+        }
+    }
+
+    private var viewerName: String {
+        #if os(iOS) || os(tvOS)
+            return UIDevice.current.name
+        #else
+            return Host.current().localizedName ?? "Creature Console"
+        #endif
     }
 }
 
 struct SACNUniverseMonitorView: View {
     @AppStorage("activeUniverse") private var activeUniverse: Int = 1
+    @AppStorage("sacnMonitorSource") private var storedSource: String = defaultSourceRawValue
+    @AppStorage("sacnRemoteHost") private var storedRemoteHost: String = ""
+    @AppStorage("sacnRemotePort") private var storedRemotePort: Int = 1963
     @Query(sort: \CreatureModel.name) private var creatures: [CreatureModel]
     @StateObject private var viewModel = SACNUniverseMonitorViewModel()
     @State private var universeString: String = ""
+    @State private var remotePortString: String = ""
     @State private var slotOwners: [Int: [SlotOwner]] = [:]
     @State private var creatureLegend: [CreatureLegendEntry] = []
+    @State private var creatureSnapshots: [CreatureOverlaySnapshot] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -145,28 +343,63 @@ struct SACNUniverseMonitorView: View {
         }
         .padding(16)
         .onAppear {
-            universeString = String(activeUniverse)
-            viewModel.setUniverse(activeUniverse)
-            rebuildCreatureOverlay()
+            Task { @MainActor in
+                universeString = String(activeUniverse)
+                remotePortString = String(storedRemotePort)
+                viewModel.setUniverse(activeUniverse)
+                viewModel.remoteHost = storedRemoteHost
+                viewModel.remotePort = storedRemotePort
+                viewModel.source = MonitorSource(rawValue: storedSource) ?? .local
+                reloadCreatureSnapshots()
+            }
         }
         .onChange(of: activeUniverse) { _, newValue in
-            universeString = String(newValue)
-            viewModel.setUniverse(newValue)
+            Task { @MainActor in
+                universeString = String(newValue)
+                viewModel.setUniverse(newValue)
+            }
         }
-        .onChange(of: creatureSignature) { _, _ in
-            rebuildCreatureOverlay()
+        .onChange(of: viewModel.source) { _, newValue in
+            Task { @MainActor in
+                storedSource = newValue.rawValue
+            }
         }
+        .onChange(of: viewModel.remoteHost) { _, newValue in
+            Task { @MainActor in
+                storedRemoteHost = newValue
+            }
+        }
+        .onChange(of: viewModel.remotePort) { _, newValue in
+            Task { @MainActor in
+                storedRemotePort = newValue
+            }
+        }
+        .onChange(of: creatures) { _, _ in
+            Task { @MainActor in
+                reloadCreatureSnapshots()
+            }
+        }
+    }
+
+    private static var defaultSourceRawValue: String {
+        #if os(macOS)
+            return MonitorSource.local.rawValue
+        #else
+            return MonitorSource.remote.rawValue
+        #endif
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                interfacePicker
-                universeSelector
-                Button("Use Active Universe") {
-                    universeString = String(activeUniverse)
-                    viewModel.setUniverse(activeUniverse)
+                sourcePicker
+                if viewModel.source == .local {
+                    interfacePicker
+                } else {
+                    remoteSelector
                 }
+                universeSelector
+                headerActions
             }
             statusLine
         }
@@ -196,13 +429,55 @@ struct SACNUniverseMonitorView: View {
         }
     }
 
+    private var sourcePicker: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Source")
+                .font(.headline)
+            Picker("Source", selection: $viewModel.source) {
+                ForEach(MonitorSource.allCases) { source in
+                    Text(source.label).tag(source)
+                }
+            }
+            .frame(width: 180)
+            .pickerStyle(.segmented)
+        }
+    }
+
+    private var remoteSelector: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Remote Listener")
+                .font(.headline)
+            HStack(spacing: 8) {
+                TextField("Host", text: $viewModel.remoteHost)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 180)
+                TextField("Port", text: $remotePortString)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 70)
+                    .onChange(of: remotePortString) { _, newValue in
+                        let filtered = newValue.filter { $0.isNumber }
+                        if filtered != newValue {
+                            remotePortString = filtered
+                        }
+                        if let value = Int(filtered) {
+                            let clamped = min(max(value, 1), 65_535)
+                            if clamped != value {
+                                remotePortString = String(clamped)
+                            }
+                            viewModel.remotePort = clamped
+                        }
+                    }
+            }
+        }
+    }
+
     private var universeSelector: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Universe")
                 .font(.headline)
             TextField("1–63999", text: $universeString)
                 .textFieldStyle(.roundedBorder)
-                .frame(width: 120)
+                .frame(width: 96)
                 .onChange(of: universeString) { _, newValue in
                     let filtered = newValue.filter { $0.isNumber }
                     if filtered != newValue {
@@ -216,6 +491,38 @@ struct SACNUniverseMonitorView: View {
                         viewModel.setUniverse(clamped)
                     }
                 }
+        }
+    }
+
+    private var headerActions: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(" ")
+                .font(.headline)
+                .hidden()
+            HStack(spacing: 12) {
+                Button(viewModel.isRunning ? "Disconnect" : "Connect") {
+                    if viewModel.isRunning {
+                        viewModel.disconnect()
+                    } else {
+                        viewModel.connect()
+                    }
+                }
+                .disabled(!canConnect)
+                Button("Use Active Universe") {
+                    universeString = String(activeUniverse)
+                    viewModel.setUniverse(activeUniverse)
+                }
+            }
+        }
+    }
+
+    private var canConnect: Bool {
+        switch viewModel.source {
+        case .local:
+            return viewModel.selectedInterfaceID != nil
+        case .remote:
+            let host = viewModel.remoteHost.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !host.isEmpty && (1...65_535).contains(viewModel.remotePort)
         }
     }
 
@@ -286,6 +593,10 @@ struct SACNUniverseMonitorView: View {
             return "Idle"
         case .waitingForInterface:
             return "Select a network interface"
+        case .waitingForRemoteHost:
+            return "Enter a remote host"
+        case .connecting:
+            return "Connecting…"
         case .waitingForPackets:
             return "Listening (waiting for packets)"
         case .listening:
@@ -301,6 +612,10 @@ struct SACNUniverseMonitorView: View {
             return "exclamationmark.triangle.fill"
         case .waitingForInterface:
             return "network.slash"
+        case .waitingForRemoteHost:
+            return "link.badge.plus"
+        case .connecting:
+            return "link"
         case .waitingForPackets:
             return "dot.radiowaves.left.and.right"
         case .listening:
@@ -316,6 +631,10 @@ struct SACNUniverseMonitorView: View {
             return .red
         case .waitingForInterface:
             return .orange
+        case .waitingForRemoteHost:
+            return .orange
+        case .connecting:
+            return .blue
         case .waitingForPackets:
             return .blue
         case .listening:
@@ -325,23 +644,12 @@ struct SACNUniverseMonitorView: View {
         }
     }
 
-    private var creatureSignature: String {
-        creatures.map { creature in
-            let inputs = creature.inputs
-                .sorted { $0.slot < $1.slot }
-                .map { "\($0.slot)-\($0.width)" }
-                .joined(separator: ",")
-            return "\(creature.id)|\(creature.channelOffset)|\(creature.mouthSlot)|\(inputs)"
-        }
-        .joined(separator: ";")
-    }
-
     private func rebuildCreatureOverlay() {
         var slotOwners: [Int: [SlotOwner]] = [:]
         var legend: [CreatureLegendEntry] = []
-        let creatureColors = creatureColorMap(for: creatures)
+        let creatureColors = creatureColorMap(for: creatureSnapshots)
 
-        for creature in creatures {
+        for creature in creatureSnapshots {
             let color = creatureColors[creature.id] ?? .gray
             var slotIndices: [Int] = []
 
@@ -394,7 +702,7 @@ struct SACNUniverseMonitorView: View {
         creatureLegend = legend.sorted { $0.name < $1.name }
     }
 
-    private func creatureColorMap(for creatures: [CreatureModel]) -> [String: Color] {
+    private func creatureColorMap(for creatures: [CreatureOverlaySnapshot]) -> [String: Color] {
         let goldenRatio = 0.618033988749895
         let saturation = 0.7
         let brightness = 0.9
@@ -413,6 +721,60 @@ struct SACNUniverseMonitorView: View {
 
         return map
     }
+
+    private func reloadCreatureSnapshots() {
+        Task {
+            let container = await SwiftDataStore.shared.container()
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<CreatureModel>(
+                sortBy: [SortDescriptor(\.name, order: .forward)]
+            )
+            do {
+                let models = try context.fetch(descriptor)
+                let snapshots = models.map { creature in
+                    CreatureOverlaySnapshot(
+                        id: creature.id,
+                        name: creature.name,
+                        channelOffset: creature.channelOffset,
+                        mouthSlot: creature.mouthSlot,
+                        inputs: creature.inputs
+                            .sorted { $0.slot < $1.slot }
+                            .map { input in
+                                CreatureInputSnapshot(
+                                    name: input.name,
+                                    slot: Int(input.slot),
+                                    width: Int(input.width)
+                                )
+                            }
+                    )
+                }
+                await MainActor.run {
+                    creatureSnapshots = snapshots
+                    rebuildCreatureOverlay()
+                }
+            } catch {
+                await MainActor.run {
+                    creatureSnapshots = []
+                    slotOwners = [:]
+                    creatureLegend = []
+                }
+            }
+        }
+    }
+}
+
+private struct CreatureOverlaySnapshot: Identifiable {
+    let id: String
+    let name: String
+    let channelOffset: Int
+    let mouthSlot: Int
+    let inputs: [CreatureInputSnapshot]
+}
+
+private struct CreatureInputSnapshot {
+    let name: String
+    let slot: Int
+    let width: Int
 }
 
 private struct SlotOwner: Identifiable {
@@ -438,6 +800,85 @@ private struct CreatureLegendEntry: Identifiable {
     }
 }
 
+final class SACNRemoteReceiver: @unchecked Sendable {
+    private let queue = DispatchQueue(label: "io.opsnlops.CreatureConsole.SACNRemoteReceiver")
+    private var connection: NWConnection?
+    private var buffer = Data()
+
+    func start(
+        host: String,
+        port: UInt16,
+        hello: SACNRemoteHello,
+        onFrame: @escaping @Sendable (SACNFrame) -> Void,
+        onState: @escaping @Sendable (NWConnection.State) -> Void
+    ) {
+        stop()
+
+        let endpointHost = NWEndpoint.Host(host)
+        let endpointPort = NWEndpoint.Port(rawValue: port) ?? .init(integerLiteral: 9011)
+        let connection = NWConnection(host: endpointHost, port: endpointPort, using: .tcp)
+        connection.stateUpdateHandler = { [weak self] state in
+            onState(state)
+            if case .ready = state {
+                self?.sendHello(hello, over: connection)
+                self?.receiveLoop(on: connection, onFrame: onFrame)
+            }
+        }
+        connection.start(queue: queue)
+        self.connection = connection
+    }
+
+    func stop() {
+        connection?.cancel()
+        connection = nil
+        buffer.removeAll(keepingCapacity: true)
+    }
+
+    private func sendHello(_ hello: SACNRemoteHello, over connection: NWConnection) {
+        do {
+            let data = try JSONEncoder().encode(hello)
+            var message = Data()
+            message.append(data)
+            message.append(0x0A)
+            connection.send(content: message, completion: .contentProcessed { _ in })
+        } catch {
+            return
+        }
+    }
+
+    private func receiveLoop(
+        on connection: NWConnection, onFrame: @escaping @Sendable (SACNFrame) -> Void
+    ) {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 4096) {
+            [weak self] data, _, isComplete, error in
+            if let data {
+                self?.buffer.append(data)
+                self?.processBuffer(onFrame: onFrame)
+            }
+
+            if error == nil, !isComplete {
+                self?.receiveLoop(on: connection, onFrame: onFrame)
+            }
+        }
+    }
+
+    private func processBuffer(onFrame: @escaping @Sendable (SACNFrame) -> Void) {
+        while buffer.count >= SACNRemoteStream.lengthPrefixSize {
+            let length = Int(buffer[0]) << 8 | Int(buffer[1])
+            let packetLength = SACNRemoteStream.lengthPrefixSize + length
+            guard buffer.count >= packetLength else {
+                break
+            }
+
+            let payload = buffer.subdata(in: 2..<packetLength)
+            buffer.removeSubrange(0..<packetLength)
+            if let frame = SACNParser.parse(data: payload) {
+                onFrame(frame)
+            }
+        }
+    }
+}
+
 private struct SACNUniverseGridView: View {
     let slots: [UInt8]
     let slotOwners: [Int: [SlotOwner]]
@@ -445,43 +886,52 @@ private struct SACNUniverseGridView: View {
     private let rowsCount = 16
 
     var body: some View {
-        GeometryReader { geometry in
-            let spacing: CGFloat = 2
-            let availableWidth = geometry.size.width - spacing * CGFloat(columnsCount - 1)
-            let availableHeight = geometry.size.height - spacing * CGFloat(rowsCount - 1)
-            let cellWidth = max(8, min(40, availableWidth / CGFloat(columnsCount)))
-            let cellHeight = max(6, min(28, availableHeight / CGFloat(rowsCount)))
-            let cellSize = CGSize(width: cellWidth, height: cellHeight)
-            let backgroundColor = gridBackgroundColor
+        #if os(iOS) || os(tvOS)
+            SACNUniverseCanvasGridView(
+                slots: slots,
+                slotOwners: slotOwners,
+                columnsCount: columnsCount,
+                rowsCount: rowsCount
+            )
+        #else
+            GeometryReader { geometry in
+                let spacing: CGFloat = 2
+                let availableWidth = geometry.size.width - spacing * CGFloat(columnsCount - 1)
+                let availableHeight = geometry.size.height - spacing * CGFloat(rowsCount - 1)
+                let cellWidth = max(8, min(40, availableWidth / CGFloat(columnsCount)))
+                let cellHeight = max(6, min(28, availableHeight / CGFloat(rowsCount)))
+                let cellSize = CGSize(width: cellWidth, height: cellHeight)
+                let backgroundColor = gridBackgroundColor
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(backgroundColor)
-                LazyVGrid(
-                    columns: Array(
-                        repeating: GridItem(.fixed(cellSize.width), spacing: spacing),
-                        count: columnsCount
-                    ),
-                    spacing: spacing
-                ) {
-                    ForEach(0..<512, id: \.self) { index in
-                        let slotIndex = index + 1
-                        let rowIndex = index / columnsCount
-                        let columnIndex = index % columnsCount
-                        SACNSlotCellView(
-                            slotIndex: slotIndex,
-                            rowIndex: rowIndex,
-                            columnIndex: columnIndex,
-                            rowsCount: rowsCount,
-                            columnsCount: columnsCount,
-                            value: slots[safe: index] ?? 0,
-                            owners: slotOwners[slotIndex, default: []],
-                            size: cellSize
-                        )
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(backgroundColor)
+                    LazyVGrid(
+                        columns: Array(
+                            repeating: GridItem(.fixed(cellSize.width), spacing: spacing),
+                            count: columnsCount
+                        ),
+                        spacing: spacing
+                    ) {
+                        ForEach(0..<512, id: \.self) { index in
+                            let slotIndex = index + 1
+                            let rowIndex = index / columnsCount
+                            let columnIndex = index % columnsCount
+                            SACNSlotCellView(
+                                slotIndex: slotIndex,
+                                rowIndex: rowIndex,
+                                columnIndex: columnIndex,
+                                rowsCount: rowsCount,
+                                columnsCount: columnsCount,
+                                value: slots[safe: index] ?? 0,
+                                owners: slotOwners[slotIndex, default: []],
+                                size: cellSize
+                            )
+                        }
                     }
                 }
             }
-        }
+        #endif
     }
 
     private var gridBackgroundColor: Color {
@@ -492,6 +942,238 @@ private struct SACNUniverseGridView: View {
         #endif
     }
 }
+
+#if os(iOS) || os(tvOS)
+    private struct SACNUniverseCanvasGridView: View {
+        let slots: [UInt8]
+        let slotOwners: [Int: [SlotOwner]]
+        let columnsCount: Int
+        let rowsCount: Int
+        @Environment(\.colorScheme) private var colorScheme
+        @State private var gridImage: Image?
+        @State private var cachedSize: CGSize = .zero
+
+        var body: some View {
+            GeometryReader { geometry in
+                let layout = GridLayout(
+                    size: geometry.size,
+                    columnsCount: columnsCount,
+                    rowsCount: rowsCount
+                )
+                let gridBackground = gridBackgroundColor
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(gridBackground)
+                    if let gridImage {
+                        gridImage
+                            .resizable()
+                            .frame(width: layout.totalSize.width, height: layout.totalSize.height)
+                            .position(
+                                x: layout.origin.x + layout.totalSize.width / 2,
+                                y: layout.origin.y + layout.totalSize.height / 2
+                            )
+                    }
+                    Canvas { context, _ in
+                        for index in 0..<512 {
+                            let slotIndex = index + 1
+                            let rowIndex = index / columnsCount
+                            let columnIndex = index % columnsCount
+                            let x =
+                                layout.origin.x
+                                + CGFloat(columnIndex) * (layout.cellSize.width + layout.spacing)
+                            let y =
+                                layout.origin.y
+                                + CGFloat(rowIndex) * (layout.cellSize.height + layout.spacing)
+                            let rect = CGRect(
+                                x: x,
+                                y: y,
+                                width: layout.cellSize.width,
+                                height: layout.cellSize.height
+                            )
+
+                            context.fill(
+                                Path(rect),
+                                with: .color(slotFill(for: slots[safe: index] ?? 0))
+                            )
+
+                            if let owner = slotOwners[slotIndex]?.first {
+                                context.fill(Path(rect), with: .color(owner.color.opacity(0.28)))
+                                let outlineWidth =
+                                    max(1, min(layout.cellSize.width, layout.cellSize.height) / 12)
+                                context.stroke(
+                                    Path(rect),
+                                    with: .color(owner.color.opacity(0.65)),
+                                    lineWidth: outlineWidth
+                                )
+                            }
+
+                            if let owners = slotOwners[slotIndex] {
+                                let dotOwners = owners.prefix(3)
+                                if !dotOwners.isEmpty {
+                                    let dotSize = layout.minDimension / 3.5
+                                    let dotSpacing: CGFloat = 1
+                                    let totalDotsWidth =
+                                        CGFloat(dotOwners.count) * dotSize
+                                        + CGFloat(max(0, dotOwners.count - 1)) * dotSpacing
+                                    var dotX = rect.maxX - 1 - totalDotsWidth
+                                    let dotY = rect.maxY - 1 - dotSize
+                                    for owner in dotOwners {
+                                        let dotRect = CGRect(
+                                            x: dotX,
+                                            y: dotY,
+                                            width: dotSize,
+                                            height: dotSize
+                                        )
+                                        context.fill(
+                                            Path(ellipseIn: dotRect), with: .color(owner.color))
+                                        dotX += dotSize + dotSpacing
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .onAppear {
+                    updateGridImage(for: geometry.size)
+                }
+                .onChange(of: geometry.size) { _, newValue in
+                    updateGridImage(for: newValue)
+                }
+                .onChange(of: colorScheme) { _, _ in
+                    updateGridImage(for: geometry.size)
+                }
+            }
+        }
+
+        private func slotFill(for value: UInt8) -> Color {
+            let normalized = Double(value) / 255.0
+            if colorScheme == .dark {
+                return Color(white: 0.005 + (normalized * 0.88))
+            }
+            return Color(white: 1.0 - normalized)
+        }
+
+        private var gridBackgroundColor: Color {
+            #if os(macOS)
+                return Color(nsColor: .controlBackgroundColor)
+            #else
+                return Color(.secondarySystemBackground)
+            #endif
+        }
+
+        private func updateGridImage(for size: CGSize) {
+            guard size != .zero else {
+                return
+            }
+            if size == cachedSize, gridImage != nil {
+                return
+            }
+            cachedSize = size
+            let layout = GridLayout(size: size, columnsCount: columnsCount, rowsCount: rowsCount)
+            let image = renderGridImage(layout: layout)
+            gridImage = Image(uiImage: image)
+        }
+
+        private func renderGridImage(layout: GridLayout) -> UIImage {
+            let renderer = UIGraphicsImageRenderer(size: layout.totalSize)
+            return renderer.image { context in
+                let cgContext = context.cgContext
+                let lineColor =
+                    (colorScheme == .dark)
+                    ? UIColor(white: 1.0, alpha: 0.18)
+                    : UIColor(white: 0.0, alpha: 0.2)
+                cgContext.setStrokeColor(lineColor.cgColor)
+                cgContext.setLineWidth(0.8)
+
+                for index in 0..<512 {
+                    let slotIndex = index + 1
+                    let rowIndex = index / columnsCount
+                    let columnIndex = index % columnsCount
+                    let x = CGFloat(columnIndex) * (layout.cellSize.width + layout.spacing)
+                    let y = CGFloat(rowIndex) * (layout.cellSize.height + layout.spacing)
+                    let rect = CGRect(
+                        x: x,
+                        y: y,
+                        width: layout.cellSize.width,
+                        height: layout.cellSize.height
+                    )
+                    let path = gridLinePath(
+                        rect: rect,
+                        rowIndex: rowIndex,
+                        columnIndex: columnIndex,
+                        rowsCount: rowsCount,
+                        columnsCount: columnsCount
+                    )
+                    cgContext.addPath(path.cgPath)
+
+                    if (slotIndex - 1) % 16 == 0 {
+                        let fontSize = max(6, min(10, layout.minDimension * 0.35))
+                        let attributes: [NSAttributedString.Key: Any] = [
+                            .font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .semibold),
+                            .foregroundColor: UIColor.label.withAlphaComponent(0.7),
+                        ]
+                        let label = "\(slotIndex)" as NSString
+                        label.draw(
+                            at: CGPoint(x: rect.minX + 1, y: rect.minY + 1),
+                            withAttributes: attributes
+                        )
+                    }
+                }
+                cgContext.strokePath()
+            }
+        }
+
+        private func gridLinePath(
+            rect: CGRect,
+            rowIndex: Int,
+            columnIndex: Int,
+            rowsCount: Int,
+            columnsCount: Int
+        ) -> Path {
+            Path { path in
+                path.move(to: rect.origin)
+                path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+                path.move(to: rect.origin)
+                path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+
+                if columnIndex == columnsCount - 1 {
+                    path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+                    path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+                }
+                if rowIndex == rowsCount - 1 {
+                    path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+                    path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+                }
+            }
+        }
+    }
+
+    private struct GridLayout {
+        let spacing: CGFloat = 2
+        let cellSize: CGSize
+        let origin: CGPoint
+        let totalSize: CGSize
+        let minDimension: CGFloat
+
+        init(size: CGSize, columnsCount: Int, rowsCount: Int) {
+            let availableWidth = size.width - spacing * CGFloat(columnsCount - 1)
+            let availableHeight = size.height - spacing * CGFloat(rowsCount - 1)
+            let cellWidth = max(8, min(40, availableWidth / CGFloat(columnsCount)))
+            let cellHeight = max(6, min(28, availableHeight / CGFloat(rowsCount)))
+            cellSize = CGSize(width: cellWidth, height: cellHeight)
+            totalSize = CGSize(
+                width: cellWidth * CGFloat(columnsCount) + spacing * CGFloat(columnsCount - 1),
+                height: cellHeight * CGFloat(rowsCount) + spacing * CGFloat(rowsCount - 1)
+            )
+            origin = CGPoint(
+                x: max(0, (size.width - totalSize.width) / 2),
+                y: max(0, (size.height - totalSize.height) / 2)
+            )
+            minDimension = min(cellWidth, cellHeight)
+        }
+    }
+#endif
 
 private struct SACNSlotCellView: View {
     let slotIndex: Int

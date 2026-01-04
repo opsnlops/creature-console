@@ -26,7 +26,8 @@ struct TrackViewer: View {
         var errorDescription: String? {
             switch self {
             case .inconsistentFrameSizes(let expected, let found):
-                return "Inconsistent frame sizes detected. Expected size: \(expected), but found size: \(found)"
+                return
+                    "Inconsistent frame sizes detected. Expected size: \(expected), but found size: \(found)"
             }
         }
     }
@@ -95,7 +96,8 @@ struct TrackViewer: View {
         // Ensure all frames have the same size
         for frame in frames {
             if frame.count != frameSize {
-                let error: TrackViewerError = .inconsistentFrameSizes(expected: frameSize, found: frame.count)
+                let error: TrackViewerError = .inconsistentFrameSizes(
+                    expected: frameSize, found: frame.count)
                 logger.warning("\(error.localizedDescription, privacy: .public)")
                 return .failure(error)
             }

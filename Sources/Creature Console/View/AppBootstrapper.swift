@@ -161,7 +161,7 @@ actor AppBootstrapper {
 
         switch results.0 {
         case .success:
-            logger.info("Successfully populated creature cache")
+            logger.debug("Successfully populated creature cache")
         case .failure(let error):
             logger.warning("Failed to populate creature cache: \(error.localizedDescription)")
             errors.append("Creature cache: \(error.localizedDescription)")
@@ -169,7 +169,7 @@ actor AppBootstrapper {
 
         switch results.1 {
         case .success:
-            logger.info("Successfully imported animation metadata")
+            logger.debug("Successfully imported animation metadata")
         case .failure(let error):
             logger.warning("Failed to fetch animation metadata list: \(error.localizedDescription)")
             errors.append("Animation metadata: \(error.localizedDescription)")
@@ -177,7 +177,7 @@ actor AppBootstrapper {
 
         switch results.2 {
         case .success:
-            logger.info("Successfully imported playlists")
+            logger.debug("Successfully imported playlists")
         case .failure(let error):
             logger.warning("Failed to fetch playlists: \(error.localizedDescription)")
             errors.append("Playlists: \(error.localizedDescription)")
@@ -185,7 +185,7 @@ actor AppBootstrapper {
 
         switch results.3 {
         case .success:
-            logger.info("Successfully imported sounds")
+            logger.debug("Successfully imported sounds")
         case .failure(let error):
             logger.warning("Failed to import sounds: \(error.localizedDescription)")
             errors.append("Sounds: \(error.localizedDescription)")

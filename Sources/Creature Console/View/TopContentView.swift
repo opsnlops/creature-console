@@ -357,12 +357,12 @@ extension TopContentView {
         if !creatures.isEmpty { return }
         do {
             let importer = CreatureImporter(modelContainer: modelContext.container)
-            logger.info("Fetching creature list from server for SwiftData import")
+            logger.debug("Fetching creature list from server for SwiftData import")
             let result = await server.getAllCreatures()
             switch result {
             case .success(let list):
                 try await importer.upsertBatch(list)
-                logger.info("Imported \(list.count) creatures into SwiftData")
+                logger.debug("Imported \(list.count) creatures into SwiftData")
             case .failure(let error):
                 await MainActor.run {
                     errorMessage = ServerError.detailedMessage(from: error)

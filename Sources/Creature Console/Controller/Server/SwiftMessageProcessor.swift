@@ -13,11 +13,11 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
 
     // Bad things would happen if more than one of these exists
     private init() {
-        logger.info("Swift-based MessageProcessor created")
+        logger.debug("Swift-based MessageProcessor created")
     }
 
     func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
-        logger.info(
+        logger.debug(
             "SwiftMessageProcessor: Processing board sensor report for creature \(boardSensorReport.creatureId)"
         )
         BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
@@ -86,7 +86,7 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     }
 
     func processCreatureActivity(_ activity: CreatureActivity) {
-        logger.info(
+        logger.debug(
             "Activity update for \(activity.creatureId): state=\(activity.state.rawValue) anim=\(activity.animationId ?? "none") session=\(activity.sessionId ?? "n/a") reason=\(activity.reason?.rawValue ?? "unknown")"
         )
         Task { @MainActor in

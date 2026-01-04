@@ -216,7 +216,7 @@ struct AnimationTable: View {
                 logger.debug("selection is now \(String(describing: selection))")
             }
             .onChange(of: creature) {
-                logger.info("onChange() in AnimationTable")
+                logger.debug("onChange() in AnimationTable")
             }
             .alert(isPresented: $showErrorAlert) {
                 Alert(
@@ -355,7 +355,7 @@ struct AnimationTable: View {
             return
         }
 
-        logger.info("Starting lip sync generation for animation \(animationId)")
+        logger.debug("Starting lip sync generation for animation \(animationId)")
         generatingLipSyncForAnimation = animationId
         activeAnimationLipSyncJob = nil
 
@@ -380,7 +380,7 @@ struct AnimationTable: View {
 
         switch result {
         case .success(let job):
-            logger.info(
+            logger.debug(
                 "Animation lip sync job queued: \(job.jobId) for animation \(animationId) (\(job.jobType.rawValue))"
             )
             if let data = try? JSONEncoder().encode(
@@ -705,7 +705,7 @@ struct AnimationTable: View {
                 animationId: animationId, universe: universe)
             switch result {
             case .success(let message):
-                logger.info("Animation Scheduled: \(message)")
+                logger.debug("Animation Scheduled: \(message)")
             case .failure(let error):
                 let message = ServerError.detailedMessage(from: error)
                 logger.warning("Unable to schedule animation: \(message)")
@@ -725,7 +725,7 @@ struct AnimationTable: View {
             return
         }
 
-        logger.info("Starting filming countdown flow for animation \(animationId)")
+        logger.debug("Starting filming countdown flow for animation \(animationId)")
         filmingFlowTask?.cancel()
 
         let countdownSeconds = max(0, filmingCountdownSeconds)
@@ -786,7 +786,7 @@ struct AnimationTable: View {
     @MainActor
     private func cancelFilmingFlow() {
         guard filmingPhase != nil || filmingFlowTask != nil else { return }
-        logger.info("Cancelling filming countdown flow")
+        logger.debug("Cancelling filming countdown flow")
         filmingFlowTask?.cancel()
         filmingFlowTask = nil
         withAnimation(.easeInOut(duration: 0.2)) {
@@ -856,7 +856,7 @@ struct AnimationTable: View {
             }
             scheduleAnimationPlayback(animationId: animationId)
         } catch is CancellationError {
-            logger.info("Filming countdown cancelled")
+            logger.debug("Filming countdown cancelled")
         } catch {
             logger.error("Filming countdown flow failed: \(error.localizedDescription)")
             presentAudioPlaybackError(
@@ -881,7 +881,7 @@ struct AnimationTable: View {
                 animationId: animationId, universe: universe, resumePlaylist: true)
             switch result {
             case .success(let message):
-                logger.info("Animation Interrupt Scheduled: \(message)")
+                logger.debug("Animation Interrupt Scheduled: \(message)")
             case .failure(let error):
                 let message = ServerError.detailedMessage(from: error)
                 logger.warning("Unable to schedule animation interrupt: \(message)")

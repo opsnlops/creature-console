@@ -67,7 +67,7 @@
             }
 
             await WebSocketStateManager.shared.setState(.connecting)
-            Self.logger.info("Initiating NIO websocket connection to \(host):\(port)\(path)")
+            Self.logger.debug("Initiating NIO websocket connection to \(host):\(port)\(path)")
 
             let group = MultiThreadedEventLoopGroup.singleton
 
@@ -98,7 +98,7 @@
                         guard let self else { return }
                         let local = channel.localAddress?.description ?? "<unknown>"
                         let remote = channel.remoteAddress?.description ?? "<unknown>"
-                        Self.logger.info(
+                        Self.logger.debug(
                             "WebSocket pipeline ready; local \(local) ⇄ remote \(remote)")
                         Task { await self.handleUpgradeSucceeded() }
                     }
@@ -164,7 +164,7 @@
                 channel = chan
                 reconnectAttempt = 0
                 isConnecting = false
-                Self.logger.info("TCP connection established to \(host):\(port), awaiting upgrade")
+                Self.logger.debug("TCP connection established to \(host):\(port), awaiting upgrade")
             } catch {
                 Self.logger.warning("Websocket connect failed: \(error.localizedDescription)")
                 await handleConnectionFailure()
@@ -220,7 +220,7 @@
             isConnected = true
             reconnectAttempt = 0
             await WebSocketStateManager.shared.setState(.connected)
-            Self.logger.info("WebSocket upgrade completed")
+            Self.logger.debug("WebSocket upgrade completed")
         }
 
         func sendMessage(_ message: String) async -> Result<String, ServerError> {
@@ -234,7 +234,7 @@
             buffer.writeString(message)
             let frame = WebSocketFrame(fin: true, opcode: .text, data: buffer)
             do {
-                Self.logger.debug("Sending websocket text frame length=\(message.utf8.count)")
+                Self.logger.trace("Sending websocket text frame length=\(message.utf8.count)")
                 try await channel.writeAndFlush(frame)
                 return .success("Message sent successfully")
             } catch {
@@ -344,7 +344,7 @@
             guard !isConnecting else { return }
             reconnectAttempt += 1
             let delay = min(pow(2.0, Double(reconnectAttempt)), 30)
-            Self.logger.info("Scheduling websocket reconnect in \(String(format: "%.1f", delay))s")
+            Self.logger.debug("Scheduling websocket reconnect in \(String(format: "%.1f", delay))s")
             try? await Task.sleep(for: .seconds(Int(delay)))
             guard shouldStayConnected else { return }
             isConnecting = false
@@ -387,7 +387,7 @@
             for (key, value) in headers {
                 head.headers.add(name: key, value: value)
             }
-            logger.info(
+            logger.debug(
                 "Sending websocket upgrade request to \(hostHeader)\(path) with headers: \(head.headers)"
             )
             print("[ws-debug] upgrade request headers -> \(head.headers)")
@@ -412,7 +412,7 @@
             }
             switch part {
             case .head(let response):
-                logger.info(
+                logger.debug(
                     "Received upgrade response status \(response.status.code) headers: \(response.headers)"
                 )
                 print(

@@ -94,7 +94,7 @@ extension CreatureServerClient {
         }
 
         await ws.disconnect()
-        logger.info("disconnected from the websocket")
+        logger.debug("disconnected from the websocket")
         return .success("Disconnected from the websocket")
 
     }
@@ -179,7 +179,7 @@ extension CreatureServerClient {
             self.messageProcessor = messageProcessor
             self.headers = headers
 
-            logger.info("attempting to make a new WebSocketClient with url \(url)")
+            logger.debug("attempting to make a new WebSocketClient with url \(url)")
 
             // Create URLSession configuration
             let config = URLSessionConfiguration.default
@@ -194,7 +194,7 @@ extension CreatureServerClient {
         #if canImport(Network)
             private func handlePathUpdate(_ path: NWPath) async {
                 if path.status == .satisfied {
-                    logger.info(
+                    logger.debug(
                         "Network path now satisfied. Available interfaces: \(path.availableInterfaces.map { $0.type })"
                     )
                     isNetworkPathSatisfied = true
@@ -203,7 +203,7 @@ extension CreatureServerClient {
 
                     // Only attempt reconnect if we should stay connected and we're actually disconnected
                     if shouldStayConnected, !isConnected {
-                        logger.info("Network recovered, initiating immediate reconnect")
+                        logger.debug("Network recovered, initiating immediate reconnect")
                         await scheduleReconnect(immediate: true)
                     }
                 } else {
@@ -226,7 +226,7 @@ extension CreatureServerClient {
 
                     // Properly clean up the connection when network becomes unavailable
                     if isConnected || isConnecting || task != nil {
-                        logger.info("Cleaning up WebSocket connection due to network loss")
+                        logger.debug("Cleaning up WebSocket connection due to network loss")
                         isConnected = false
                         isConnecting = false
 
@@ -265,10 +265,10 @@ extension CreatureServerClient {
             // Check if network is available before attempting reconnect
             if shouldStayConnected, !isConnected {
                 if isNetworkAvailable() {
-                    logger.info("Network is available, initiating reconnect after foreground")
+                    logger.debug("Network is available, initiating reconnect after foreground")
                     await scheduleReconnect(immediate: true)
                 } else {
-                    logger.info(
+                    logger.debug(
                         "Network unavailable after foreground, waiting for path monitor to signal network restoration"
                     )
                 }
@@ -296,10 +296,10 @@ extension CreatureServerClient {
             // Check if network is available before attempting reconnect
             if shouldStayConnected, !isConnected {
                 if isNetworkAvailable() {
-                    logger.info("Network is available, initiating reconnect after wake/activate")
+                    logger.debug("Network is available, initiating reconnect after wake/activate")
                     await scheduleReconnect(immediate: true)
                 } else {
-                    logger.info(
+                    logger.debug(
                         "Network unavailable after wake/activate, waiting for path monitor to signal network restoration"
                     )
                 }
@@ -450,14 +450,14 @@ extension CreatureServerClient {
 
             // CRITICAL: Do not attempt reconnect if network is unavailable
             guard isNetworkAvailable() else {
-                logger.info(
+                logger.debug(
                     "Skipping reconnect attempt #\(reconnectAttempt + 1) - network unavailable. Waiting for network restoration."
                 )
                 return
             }
 
             reconnectAttempt += 1
-            self.logger.info("Attempting websocket reconnect (attempt #\(reconnectAttempt))")
+            self.logger.debug("Attempting websocket reconnect (attempt #\(reconnectAttempt))")
             await WebSocketStateManager.shared.setState(.reconnecting)
             self.connect()
             // If connect succeeds, startReceiving() will loop. We'll mark success here after a small check.
@@ -468,7 +468,7 @@ extension CreatureServerClient {
                 if isNetworkAvailable() {
                     await scheduleReconnect()
                 } else {
-                    logger.info("Network became unavailable, stopping reconnect attempts")
+                    logger.debug("Network became unavailable, stopping reconnect attempts")
                 }
             } else if isConnected {
                 reconnectAttempt = 0
@@ -504,7 +504,7 @@ extension CreatureServerClient {
             suppressErrorNotifications = false
             lastPongReceivedAt = Date()  // Reset pong timer on connect
 
-            logger.info("websocket connection initiated, waiting for first message")
+            logger.debug("websocket connection initiated, waiting for first message")
             Task {
                 await WebSocketStateManager.shared.setState(.connecting)
             }
@@ -530,7 +530,7 @@ extension CreatureServerClient {
 
             teardownLifecycleMonitoring()
 
-            logger.info("websocket is disconnected")
+            logger.debug("websocket is disconnected")
             Task {
                 await WebSocketStateManager.shared.setState(.disconnected)
             }
@@ -658,7 +658,7 @@ extension CreatureServerClient {
                 isConnected = true
                 isConnecting = false  // Connection successful
                 reconnectAttempt = 0  // Reset on successful connection
-                logger.info("WebSocket connection established (first message received)")
+                logger.debug("WebSocket connection established (first message received)")
                 Task {
                     await WebSocketStateManager.shared.setState(.connected)
                     // Notify caches to refresh now that we're truly connected
@@ -699,13 +699,13 @@ extension CreatureServerClient {
             }
 
             if suppressErrorNotifications {
-                logger.info(
+                logger.debug(
                     "Suppressing websocket error while in background/sleep or offline: \(error.localizedDescription)"
                 )
             } else {
                 consecutiveErrorCount += 1
                 if consecutiveErrorCount <= errorNotificationSuppressionThreshold {
-                    logger.info(
+                    logger.debug(
                         "Suppressing transient websocket error (\(consecutiveErrorCount)/\(errorNotificationSuppressionThreshold)): \(error.localizedDescription)"
                     )
                 } else if !hasAlertedForDisconnect {
@@ -730,7 +730,7 @@ extension CreatureServerClient {
             }
 
             do {
-                logger.debug("sending message on websocket: \(message)")
+                logger.trace("sending message on websocket: \(message)")
                 try await task.send(.string(message))
                 return .success("Message sent successfully")
             } catch {

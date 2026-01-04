@@ -275,7 +275,7 @@
 
                     switch result {
                     case .success(let message):
-                        logger.info("Triggered animation \(animationId): \(message)")
+                        logger.debug("Triggered animation \(animationId): \(message)")
                         presentToast("Playing \(displayTitle)", kind: .success)
                     case .failure(let error):
                         logger.warning(
@@ -309,7 +309,7 @@
 
                     switch result {
                     case .success(let message):
-                        logger.info("Interrupted with animation \(animationId): \(message)")
+                        logger.debug("Interrupted with animation \(animationId): \(message)")
                         presentToast("Interrupting with \(displayTitle)", kind: .info)
                     case .failure(let error):
                         logger.warning(
