@@ -1,3 +1,18 @@
+creature-cli (2.16.2) unstable; urgency=medium
+
+  * creature-cli: add `network sacn-listen` remote listener for the sACN viewer.
+  * creature-cli: stream raw sACN packets with length-prefix framing and hello handshake.
+  * creature-cli: support local interface selection, optional universe lock, and port overrides.
+  * creature-cli: list all local IPv4 addresses on startup for remote viewer connections.
+  * creature-cli: allow multiple remote viewers with --max-clients (default 8).
+  * creature-cli: disconnect slow viewers to keep streaming responsive on LAN.
+  * creature-cli: Linux implementation uses SwiftNIO multicast sockets (sACN 5568).
+  * creature-cli: macOS/iOS implementation uses Network.framework and per-universe receivers.
+  * creature-cli: split sACN remote proxy logic into platform-specific source files.
+  * creature-cli + creature-mqtt: bump version to 2.16.2.
+
+ -- April White <april@creature.engineering>  Sat, 03 Jan 2026 06:30:00 +0000
+
 creature-cli (2.16.0) unstable; urgency=medium
 
   * creature-cli: add idle loop enable/disable support.
