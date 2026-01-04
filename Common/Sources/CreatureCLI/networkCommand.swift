@@ -530,7 +530,7 @@
     }
 
     private final class LinuxSACNRemoteProxy: @unchecked Sendable {
-        private final class ClientState {
+        fileprivate final class ClientState {
             let channel: Channel
             let universe: UInt16
             var udpChannel: Channel?
@@ -644,7 +644,7 @@
                 return
             }
             client.channel.eventLoop.execute {
-                if !client.channel.isWritable || client.pendingWrites >= maxPendingWrites {
+                if !client.channel.isWritable || client.pendingWrites >= self.maxPendingWrites {
                     print("Viewer disconnected: slow client (not writable).")
                     _ = client.channel.close()
                     self.handleDisconnect(channel: client.channel)
