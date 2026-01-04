@@ -1,10 +1,10 @@
 #if os(Linux)
     import Foundation
     import Logging
-    import NIOCore
-    import NIOHTTP1
-    import NIOPosix
-    import NIOWebSocket
+    @preconcurrency import NIOCore
+    @preconcurrency import NIOHTTP1
+    @preconcurrency import NIOPosix
+    @preconcurrency import NIOWebSocket
     @preconcurrency import NIOSSL
 
     actor WebSocketClient {
@@ -105,23 +105,22 @@
                 }
             }
 
+            let requestPath = path
+            let upgradeLogger = Logger(
+                label: "io.opsnlops.CreatureController.WebSocketClient.Linux")
             let bootstrap = ClientBootstrap(group: group)
                 .channelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
-                .channelInitializer { [headers = self.headers, initialHandlerName] channel in
+                .channelInitializer {
+                    [headers = self.headers, initialHandlerName, requestPath, upgradeLogger] channel
+                    in
                     let upgradeConfig: NIOHTTPClientUpgradeConfiguration = (
                         upgraders: [websocketUpgrader],
                         completionHandler: { context in
                             context.pipeline.removeHandler(name: initialHandlerName).whenFailure {
                                 error in
-                                context.eventLoop.execute {
-                                    Logger(
-                                        label:
-                                            "io.opsnlops.CreatureController.WebSocketClient.Linux"
-                                    )
-                                    .debug(
-                                        "Failed to remove initial request handler after upgrade: \(error)"
-                                    )
-                                }
+                                upgradeLogger.debug(
+                                    "Failed to remove initial request handler after upgrade: \(error)"
+                                )
                             }
                         }
                     )
@@ -143,7 +142,7 @@
                         channel.pipeline.addHTTPClientHandlers(withClientUpgrade: upgradeConfig))
 
                     let requestHandler = HTTPInitialRequestHandler(
-                        host: host, port: port, path: path, headers: headers,
+                        host: host, port: port, path: requestPath, headers: headers,
                         logger: WebSocketClient.logger)
                     handlers.append(
                         channel.pipeline.addHandler(requestHandler, name: initialHandlerName))

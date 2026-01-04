@@ -306,7 +306,11 @@
 
                     let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
                     defer {
-                        try? group.syncShutdownGracefully()
+                        group.shutdownGracefully { error in
+                            if let error {
+                                print("EventLoopGroup shutdown error: \(error)")
+                            }
+                        }
                     }
 
                     let proxy = LinuxSACNRemoteProxy(
@@ -323,7 +327,7 @@
                             proxy.attach(channel: channel)
                         }
 
-                    let channel = try bootstrap.bind(host: "0.0.0.0", port: port).wait()
+                    let channel = try await bootstrap.bind(host: "0.0.0.0", port: port).get()
                     print("Listening on \(selectedInterface.name)")
                     print("Clients may connect on the following IP addresses:")
                     let allAddresses = interfaces.flatMap { $0.addresses }.sorted()
@@ -453,12 +457,12 @@
             let multicastAddress = SACNMulticast.address(for: universe)
             let bootstrap = DatagramBootstrap(group: group)
                 .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-                .channelOption(ChannelOptions.socketOption(.so_reuseport), value: 1)
                 .channelInitializer { channel in
                     channel.pipeline.addHandler(SACNUDPHandler(proxy: self))
                 }
 
-            bootstrap.bind(host: "0.0.0.0", port: 5568).whenComplete { [weak self] result in
+            bootstrap.bind(host: "0.0.0.0", port: 5568).whenComplete {
+                [weak self] (result: Result<Channel, Error>) in
                 switch result {
                 case .success(let channel):
                     self?.udpChannel = channel
@@ -511,7 +515,7 @@
         }
     }
 
-    private final class HelloHandler: ChannelInboundHandler {
+    private final class HelloHandler: ChannelInboundHandler, RemovableChannelHandler {
         typealias InboundIn = ByteBuffer
         private var buffer = Data()
         private let decoder = JSONDecoder()
