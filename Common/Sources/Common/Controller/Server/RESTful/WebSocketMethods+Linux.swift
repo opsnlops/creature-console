@@ -87,67 +87,33 @@
 
             let initialHandlerName = "initial-request-handler"
 
-            let websocketUpgrader = NIOWebSocketClientUpgrader(
-                requestKey: NIOWebSocketClientUpgrader.randomRequestKey(),
-                maxFrameSize: 1 << 14,
-                automaticErrorHandling: true
-            ) { [weak self] channel, _ in
-                guard let self else { return channel.eventLoop.makeSucceededFuture(()) }
-                return channel.pipeline.addHandler(WebSocketFrameHandler(owner: self)).flatMap {
-                    channel.eventLoop.submit { [weak self] in
-                        guard let self else { return }
-                        let local = channel.localAddress?.description ?? "<unknown>"
-                        let remote = channel.remoteAddress?.description ?? "<unknown>"
-                        Self.logger.debug(
-                            "WebSocket pipeline ready; local \(local) ⇄ remote \(remote)")
-                        Task { await self.handleUpgradeSucceeded() }
-                    }
-                }
-            }
-
             let requestPath = path
             let upgradeLogger = Logger(
                 label: "io.opsnlops.CreatureController.WebSocketClient.Linux")
             let bootstrap = ClientBootstrap(group: group)
                 .channelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
                 .channelInitializer {
-                    [headers = self.headers, initialHandlerName, requestPath, upgradeLogger] channel
-                    in
-                    let upgradeConfig: NIOHTTPClientUpgradeConfiguration = (
-                        upgraders: [websocketUpgrader],
-                        completionHandler: { context in
-                            context.pipeline.removeHandler(name: initialHandlerName).whenFailure {
-                                error in
-                                upgradeLogger.debug(
-                                    "Failed to remove initial request handler after upgrade: \(error)"
-                                )
-                            }
-                        }
+                    [
+                        headers = self.headers,
+                        host,
+                        initialHandlerName,
+                        owner = self,
+                        port,
+                        requestPath,
+                        sslContext,
+                        upgradeLogger,
+                    ] channel in
+                    Self.configurePipeline(
+                        channel: channel,
+                        sslContext: sslContext,
+                        host: host,
+                        port: port,
+                        requestPath: requestPath,
+                        headers: headers,
+                        initialHandlerName: initialHandlerName,
+                        upgradeLogger: upgradeLogger,
+                        owner: owner
                     )
-
-                    var handlers: [EventLoopFuture<Void>] = []
-                    if let sslContext {
-                        do {
-                            let tlsHandler = try NIOSSLClientHandler(
-                                context: sslContext,
-                                serverHostname: host
-                            )
-                            handlers.append(channel.pipeline.addHandler(tlsHandler))
-                        } catch {
-                            return channel.eventLoop.makeFailedFuture(error)
-                        }
-                    }
-
-                    handlers.append(
-                        channel.pipeline.addHTTPClientHandlers(withClientUpgrade: upgradeConfig))
-
-                    let requestHandler = HTTPInitialRequestHandler(
-                        host: host, port: port, path: requestPath, headers: headers,
-                        logger: WebSocketClient.logger)
-                    handlers.append(
-                        channel.pipeline.addHandler(requestHandler, name: initialHandlerName))
-
-                    return EventLoopFuture.andAllSucceed(handlers, on: channel.eventLoop)
                 }
 
             let connectFuture: EventLoopFuture<Channel> = {
@@ -185,6 +151,72 @@
             await WebSocketStateManager.shared.setState(.disconnected)
             guard shouldStayConnected else { return }
             await scheduleReconnect()
+        }
+
+        @preconcurrency
+        private static func configurePipeline(
+            channel: Channel,
+            sslContext: NIOSSLContext?,
+            host: String,
+            port: Int,
+            requestPath: String,
+            headers: [String: String],
+            initialHandlerName: String,
+            upgradeLogger: Logger,
+            owner: WebSocketClient
+        ) -> EventLoopFuture<Void> {
+            let websocketUpgrader = NIOWebSocketClientUpgrader(
+                requestKey: NIOWebSocketClientUpgrader.randomRequestKey(),
+                maxFrameSize: 1 << 14,
+                automaticErrorHandling: true
+            ) { [weak owner] channel, _ in
+                guard let owner else { return channel.eventLoop.makeSucceededFuture(()) }
+                return channel.pipeline.addHandler(WebSocketFrameHandler(owner: owner)).flatMap {
+                    channel.eventLoop.submit { [weak owner] in
+                        guard let owner else { return }
+                        let local = channel.localAddress?.description ?? "<unknown>"
+                        let remote = channel.remoteAddress?.description ?? "<unknown>"
+                        Self.logger.debug(
+                            "WebSocket pipeline ready; local \(local) ⇄ remote \(remote)")
+                        Task { await owner.handleUpgradeSucceeded() }
+                    }
+                }
+            }
+
+            let upgradeConfig: NIOHTTPClientUpgradeConfiguration = (
+                upgraders: [websocketUpgrader],
+                completionHandler: { context in
+                    context.pipeline.removeHandler(name: initialHandlerName).whenFailure {
+                        error in
+                        upgradeLogger.debug(
+                            "Failed to remove initial request handler after upgrade: \(error)"
+                        )
+                    }
+                }
+            )
+
+            var handlers: [EventLoopFuture<Void>] = []
+            if let sslContext {
+                do {
+                    let tlsHandler = try NIOSSLClientHandler(
+                        context: sslContext,
+                        serverHostname: host
+                    )
+                    handlers.append(channel.pipeline.addHandler(tlsHandler))
+                } catch {
+                    return channel.eventLoop.makeFailedFuture(error)
+                }
+            }
+
+            handlers.append(
+                channel.pipeline.addHTTPClientHandlers(withClientUpgrade: upgradeConfig))
+
+            let requestHandler = HTTPInitialRequestHandler(
+                host: host, port: port, path: requestPath, headers: headers,
+                logger: WebSocketClient.logger)
+            handlers.append(channel.pipeline.addHandler(requestHandler, name: initialHandlerName))
+
+            return EventLoopFuture.andAllSucceed(handlers, on: channel.eventLoop)
         }
 
         fileprivate func handleFrame(_ frame: WebSocketFrame) {
