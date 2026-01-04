@@ -530,7 +530,7 @@
     }
 
     private final class LinuxSACNRemoteProxy: @unchecked Sendable {
-        fileprivate final class ClientState {
+        fileprivate final class ClientState: @unchecked Sendable {
             let channel: Channel
             let universe: UInt16
             var udpChannel: Channel?
@@ -666,7 +666,9 @@
         }
     }
 
-    private final class HelloHandler: ChannelInboundHandler, RemovableChannelHandler {
+    private final class HelloHandler: ChannelInboundHandler, RemovableChannelHandler,
+        @unchecked Sendable
+    {
         typealias InboundIn = ByteBuffer
         private var buffer = Data()
         private let decoder = JSONDecoder()
