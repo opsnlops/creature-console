@@ -322,7 +322,24 @@ final class SACNUniverseMonitorViewModel: ObservableObject {
     }
 }
 
+enum SACNMonitorLayoutStyle {
+    case standard
+    case fullScreen
+}
+
 struct SACNUniverseMonitorView: View {
+    let layoutStyle: SACNMonitorLayoutStyle
+
+    init(layoutStyle: SACNMonitorLayoutStyle = .standard) {
+        self.layoutStyle = layoutStyle
+    }
+
+    private enum FocusField: Hashable {
+        case remoteHost
+        case remotePort
+        case universe
+    }
+
     @AppStorage("activeUniverse") private var activeUniverse: Int = 1
     @AppStorage("sacnMonitorSource") private var storedSource: String = defaultSourceRawValue
     @AppStorage("sacnRemoteHost") private var storedRemoteHost: String = ""
@@ -334,51 +351,123 @@ struct SACNUniverseMonitorView: View {
     @State private var slotOwners: [Int: [SlotOwner]] = [:]
     @State private var creatureLegend: [CreatureLegendEntry] = []
     @State private var creatureSnapshots: [CreatureOverlaySnapshot] = []
+    @FocusState private var focusedField: FocusField?
+    @Namespace private var headerFocusScope
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        content
+            .onAppear {
+                Task { @MainActor in
+                    universeString = String(activeUniverse)
+                    remotePortString = String(storedRemotePort)
+                    viewModel.setUniverse(activeUniverse)
+                    viewModel.remoteHost = storedRemoteHost
+                    viewModel.remotePort = storedRemotePort
+                    viewModel.source = MonitorSource(rawValue: storedSource) ?? .local
+                    reloadCreatureSnapshots()
+
+                    #if os(tvOS)
+                        if viewModel.source == .remote {
+                            focusedField = .remoteHost
+                        } else {
+                            focusedField = .universe
+                        }
+                        if !viewModel.isRunning, canConnect {
+                            viewModel.connect()
+                        }
+                    #endif
+                }
+            }
+            .onChange(of: activeUniverse) { _, newValue in
+                Task { @MainActor in
+                    universeString = String(newValue)
+                    viewModel.setUniverse(newValue)
+                }
+            }
+            .onChange(of: viewModel.source) { _, newValue in
+                Task { @MainActor in
+                    storedSource = newValue.rawValue
+                }
+            }
+            .onChange(of: viewModel.remoteHost) { _, newValue in
+                Task { @MainActor in
+                    storedRemoteHost = newValue
+                }
+            }
+            .onChange(of: viewModel.remotePort) { _, newValue in
+                Task { @MainActor in
+                    storedRemotePort = newValue
+                }
+            }
+            .onChange(of: creatures) { _, _ in
+                Task { @MainActor in
+                    reloadCreatureSnapshots()
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch layoutStyle {
+        case .standard:
+            standardContent
+        case .fullScreen:
+            fullScreenContent
+        }
+    }
+
+    private var standardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
             grid
             legend
+                .padding(.horizontal, legendHorizontalPadding)
         }
         .padding(16)
-        .onAppear {
-            Task { @MainActor in
-                universeString = String(activeUniverse)
-                remotePortString = String(storedRemotePort)
-                viewModel.setUniverse(activeUniverse)
-                viewModel.remoteHost = storedRemoteHost
-                viewModel.remotePort = storedRemotePort
-                viewModel.source = MonitorSource(rawValue: storedSource) ?? .local
-                reloadCreatureSnapshots()
-            }
+    }
+
+    private var fullScreenContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            #if os(tvOS)
+                VStack(spacing: 6) {
+                    Text("Universe \(viewModel.universe)")
+                        .font(.title3.weight(.semibold))
+                    statusLine
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+                .padding(.horizontal, 20)
+            #else
+                header
+                    .padding(12)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            #endif
+
+            grid
+                .layoutPriority(1)
+
+            legend
         }
-        .onChange(of: activeUniverse) { _, newValue in
-            Task { @MainActor in
-                universeString = String(newValue)
-                viewModel.setUniverse(newValue)
-            }
-        }
-        .onChange(of: viewModel.source) { _, newValue in
-            Task { @MainActor in
-                storedSource = newValue.rawValue
-            }
-        }
-        .onChange(of: viewModel.remoteHost) { _, newValue in
-            Task { @MainActor in
-                storedRemoteHost = newValue
-            }
-        }
-        .onChange(of: viewModel.remotePort) { _, newValue in
-            Task { @MainActor in
-                storedRemotePort = newValue
-            }
-        }
-        .onChange(of: creatures) { _, _ in
-            Task { @MainActor in
-                reloadCreatureSnapshots()
-            }
-        }
+        .padding(16)
+    }
+
+    private var legendBottomPadding: CGFloat {
+        #if os(tvOS)
+            return 56
+        #else
+            return 4
+        #endif
+    }
+
+    private var legendHorizontalPadding: CGFloat {
+        #if os(tvOS)
+            return 16
+        #else
+            return 0
+        #endif
     }
 
     private static var defaultSourceRawValue: String {
@@ -392,17 +481,29 @@ struct SACNUniverseMonitorView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                sourcePicker
+                #if !os(tvOS)
+                    sourcePicker
+                #endif
                 if viewModel.source == .local {
                     interfacePicker
                 } else {
-                    remoteSelector
+                    #if os(tvOS)
+                        remoteStatus
+                    #else
+                        remoteSelector
+                    #endif
                 }
                 universeSelector
                 headerActions
             }
-            statusLine
+            #if !os(tvOS)
+                statusLine
+            #endif
         }
+        #if os(tvOS)
+            .focusSection()
+            .focusScope(headerFocusScope)
+        #endif
     }
 
     private var interfacePicker: some View {
@@ -449,11 +550,16 @@ struct SACNUniverseMonitorView: View {
                 .font(.headline)
             HStack(spacing: 8) {
                 TextField("Host", text: $viewModel.remoteHost)
-                    .textFieldStyle(.roundedBorder)
+                    .modifier(SACNTextFieldStyle())
                     .frame(width: 180)
+                    .focused($focusedField, equals: .remoteHost)
+                    #if os(tvOS)
+                        .prefersDefaultFocus(viewModel.source == .remote, in: headerFocusScope)
+                    #endif
                 TextField("Port", text: $remotePortString)
-                    .textFieldStyle(.roundedBorder)
+                    .modifier(SACNTextFieldStyle())
                     .frame(width: 70)
+                    .focused($focusedField, equals: .remotePort)
                     .onChange(of: remotePortString) { _, newValue in
                         let filtered = newValue.filter { $0.isNumber }
                         if filtered != newValue {
@@ -471,13 +577,27 @@ struct SACNUniverseMonitorView: View {
         }
     }
 
+    private var remoteStatus: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Remote Listener")
+                .font(.headline)
+            Text(viewModel.remoteHost.isEmpty ? "Not set" : viewModel.remoteHost)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private var universeSelector: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Universe")
                 .font(.headline)
             TextField("1–63999", text: $universeString)
-                .textFieldStyle(.roundedBorder)
+                .modifier(SACNTextFieldStyle())
                 .frame(width: 96)
+                .focused($focusedField, equals: .universe)
+                #if os(tvOS)
+                    .prefersDefaultFocus(viewModel.source == .local, in: headerFocusScope)
+                #endif
                 .onChange(of: universeString) { _, newValue in
                     let filtered = newValue.filter { $0.isNumber }
                     if filtered != newValue {
@@ -800,6 +920,25 @@ private struct CreatureLegendEntry: Identifiable {
     }
 }
 
+private struct SACNTextFieldStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        #if os(tvOS)
+            content
+                .textFieldStyle(.plain)
+                .focusable(true)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(white: 0.2))
+                )
+        #else
+            content
+                .textFieldStyle(.roundedBorder)
+        #endif
+    }
+}
+
 final class SACNRemoteReceiver: @unchecked Sendable {
     private let queue = DispatchQueue(label: "io.opsnlops.CreatureConsole.SACNRemoteReceiver")
     private var connection: NWConnection?
@@ -884,6 +1023,7 @@ private struct SACNUniverseGridView: View {
     let slotOwners: [Int: [SlotOwner]]
     private let columnsCount = 32
     private let rowsCount = 16
+    private let gridPadding: CGFloat = 32
 
     var body: some View {
         #if os(iOS) || os(tvOS)
@@ -891,7 +1031,8 @@ private struct SACNUniverseGridView: View {
                 slots: slots,
                 slotOwners: slotOwners,
                 columnsCount: columnsCount,
-                rowsCount: rowsCount
+                rowsCount: rowsCount,
+                gridPadding: gridPadding
             )
         #else
             GeometryReader { geometry in
@@ -937,6 +1078,8 @@ private struct SACNUniverseGridView: View {
     private var gridBackgroundColor: Color {
         #if os(macOS)
             return Color(nsColor: .controlBackgroundColor)
+        #elseif os(tvOS)
+            return Color(white: 0.16)
         #else
             return Color(.secondarySystemBackground)
         #endif
@@ -949,6 +1092,7 @@ private struct SACNUniverseGridView: View {
         let slotOwners: [Int: [SlotOwner]]
         let columnsCount: Int
         let rowsCount: Int
+        let gridPadding: CGFloat
         @Environment(\.colorScheme) private var colorScheme
         @State private var gridImage: Image?
         @State private var cachedSize: CGSize = .zero
@@ -956,7 +1100,10 @@ private struct SACNUniverseGridView: View {
         var body: some View {
             GeometryReader { geometry in
                 let layout = GridLayout(
-                    size: geometry.size,
+                    size: CGSize(
+                        width: max(0, geometry.size.width - gridPadding * 2),
+                        height: max(0, geometry.size.height - gridPadding * 2)
+                    ),
                     columnsCount: columnsCount,
                     rowsCount: rowsCount
                 )
@@ -970,8 +1117,8 @@ private struct SACNUniverseGridView: View {
                             .resizable()
                             .frame(width: layout.totalSize.width, height: layout.totalSize.height)
                             .position(
-                                x: layout.origin.x + layout.totalSize.width / 2,
-                                y: layout.origin.y + layout.totalSize.height / 2
+                                x: gridPadding + layout.origin.x + layout.totalSize.width / 2,
+                                y: gridPadding + layout.origin.y + layout.totalSize.height / 2
                             )
                     }
                     Canvas { context, _ in
@@ -980,10 +1127,10 @@ private struct SACNUniverseGridView: View {
                             let rowIndex = index / columnsCount
                             let columnIndex = index % columnsCount
                             let x =
-                                layout.origin.x
+                                gridPadding + layout.origin.x
                                 + CGFloat(columnIndex) * (layout.cellSize.width + layout.spacing)
                             let y =
-                                layout.origin.y
+                                gridPadding + layout.origin.y
                                 + CGFloat(rowIndex) * (layout.cellSize.height + layout.spacing)
                             let rect = CGRect(
                                 x: x,
@@ -1031,6 +1178,21 @@ private struct SACNUniverseGridView: View {
                                     }
                                 }
                             }
+
+                            if (slotIndex - 1) % 16 == 0 {
+                                let fontSize = max(8, min(12, layout.minDimension * 0.35))
+                                let label = Text("\(slotIndex)")
+                                    .font(
+                                        .system(
+                                            size: fontSize, weight: .semibold, design: .monospaced)
+                                    )
+                                    .foregroundStyle(.white.opacity(0.85))
+                                let textPoint = CGPoint(
+                                    x: rect.minX + 2,
+                                    y: rect.minY + 1
+                                )
+                                context.draw(label, at: textPoint, anchor: .topLeading)
+                            }
                         }
                     }
                 }
@@ -1057,6 +1219,8 @@ private struct SACNUniverseGridView: View {
         private var gridBackgroundColor: Color {
             #if os(macOS)
                 return Color(nsColor: .controlBackgroundColor)
+            #elseif os(tvOS)
+                return Color(white: 0.16)
             #else
                 return Color(.secondarySystemBackground)
             #endif
@@ -1070,7 +1234,14 @@ private struct SACNUniverseGridView: View {
                 return
             }
             cachedSize = size
-            let layout = GridLayout(size: size, columnsCount: columnsCount, rowsCount: rowsCount)
+            let layout = GridLayout(
+                size: CGSize(
+                    width: max(0, size.width - gridPadding * 2),
+                    height: max(0, size.height - gridPadding * 2)
+                ),
+                columnsCount: columnsCount,
+                rowsCount: rowsCount
+            )
             let image = renderGridImage(layout: layout)
             gridImage = Image(uiImage: image)
         }
@@ -1159,8 +1330,8 @@ private struct SACNUniverseGridView: View {
         init(size: CGSize, columnsCount: Int, rowsCount: Int) {
             let availableWidth = size.width - spacing * CGFloat(columnsCount - 1)
             let availableHeight = size.height - spacing * CGFloat(rowsCount - 1)
-            let cellWidth = max(8, min(40, availableWidth / CGFloat(columnsCount)))
-            let cellHeight = max(6, min(28, availableHeight / CGFloat(rowsCount)))
+            let cellWidth = max(8, availableWidth / CGFloat(columnsCount))
+            let cellHeight = max(6, availableHeight / CGFloat(rowsCount))
             cellSize = CGSize(width: cellWidth, height: cellHeight)
             totalSize = CGSize(
                 width: cellWidth * CGFloat(columnsCount) + spacing * CGFloat(columnsCount - 1),

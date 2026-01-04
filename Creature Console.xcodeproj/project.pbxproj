@@ -33,6 +33,7 @@
 		113D00A12EB12D3E00155515 /* AdHocAssetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */; };
 		113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */; };
 		113F327E2F07983500783156 /* SACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */; };
+		11C7F0A42F2A6D2C009A1B2C /* SACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */; };
 		113F327F2F07983500783156 /* DiagnosticsCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327B2F07983500783156 /* DiagnosticsCommands.swift */; };
 		113F32802F07983500783156 /* SACNUniverseMonitorScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327C2F07983500783156 /* SACNUniverseMonitorScene.swift */; };
 		114147922C0145270046601D /* TrackListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147912C0145270046601D /* TrackListingView.swift */; };
@@ -115,6 +116,7 @@
 		117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */; };
 		117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		117C87712CA0D586007B5682 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
+		11C7F0A92F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C7F0A82F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift */; };
 		117C87722CA0D586007B5682 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		117C87732CA0D586007B5682 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
 		117C87742CA0D586007B5682 /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
@@ -205,12 +207,15 @@
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
+		11C7F0AA2F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C7F0A82F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift */; };
 		11F9A0112F0C123400123456 /* TVSoundboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0012F0C123400123456 /* TVSoundboardView.swift */; };
 		11F9A0122F0C123400123456 /* TVSoundboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0012F0C123400123456 /* TVSoundboardView.swift */; };
 		11F9A0132F0C123400123456 /* TVAnimationTriggerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0022F0C123400123456 /* TVAnimationTriggerView.swift */; };
 		11F9A0142F0C123400123456 /* TVAnimationTriggerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0022F0C123400123456 /* TVAnimationTriggerView.swift */; };
 		11F9A0152F0C123400123456 /* TVUserFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0032F0C123400123456 /* TVUserFeedback.swift */; };
 		11F9A0162F0C123400123456 /* TVUserFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0032F0C123400123456 /* TVUserFeedback.swift */; };
+		11C7F0A22F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C7F0A12F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift */; };
+		11C7F0A32F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C7F0A12F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
 /* End PBXBuildFile section */
@@ -351,6 +356,7 @@
 		11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickManager.swift; sourceTree = "<group>"; };
 		11C2E0DC29ECA4F100B8A4F5 /* ByteChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ByteChartView.swift; sourceTree = "<group>"; };
 		11C2E0DF29ECF6D500B8A4F5 /* EventLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLoop.swift; sourceTree = "<group>"; };
+		11C7F0A82F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HideBottomToolbarPreferenceKey.swift; sourceTree = "<group>"; };
 		11C326CF29DD3FED00B169CD /* Credits.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Credits.rtfd; sourceTree = "<group>"; };
 		11C522362BF84E0C0009A53E /* StatusLightsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusLightsManager.swift; sourceTree = "<group>"; };
 		11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualStatusLightsProcessor.swift; sourceTree = "<group>"; };
@@ -376,6 +382,7 @@
 		11F9A0012F0C123400123456 /* TVSoundboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVSoundboardView.swift; sourceTree = "<group>"; };
 		11F9A0022F0C123400123456 /* TVAnimationTriggerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVAnimationTriggerView.swift; sourceTree = "<group>"; };
 		11F9A0032F0C123400123456 /* TVUserFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVUserFeedback.swift; sourceTree = "<group>"; };
+		11C7F0A12F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVSACNUniverseMonitorView.swift; sourceTree = "<group>"; };
 		11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SixAxisJoystick.swift; sourceTree = "<group>"; };
 		11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugJoystickScene.swift; sourceTree = "<group>"; };
 		11FF7C132BF0334E00BF5A09 /* Animations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Animations.swift; sourceTree = "<group>"; };
@@ -641,6 +648,7 @@
 			isa = PBXGroup;
 			children = (
 				113F327B2F07983500783156 /* DiagnosticsCommands.swift */,
+				11C7F0A82F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift */,
 				113F327C2F07983500783156 /* SACNUniverseMonitorScene.swift */,
 				113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */,
 				1167F9D72EE00B590088E1F1 /* MenuBar */,
@@ -1004,6 +1012,7 @@
 				11F9A0022F0C123400123456 /* TVAnimationTriggerView.swift */,
 				11F9A0012F0C123400123456 /* TVSoundboardView.swift */,
 				11F9A0032F0C123400123456 /* TVUserFeedback.swift */,
+				11C7F0A12F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift */,
 			);
 			path = tvOS;
 			sourceTree = "<group>";
@@ -1423,6 +1432,7 @@
 			files = (
 				11218E802B67522500AFFF65 /* Joystick.swift in Sources */,
 				11E53CCE2E889BB700C17F16 /* DiagnosticReporter.swift in Sources */,
+				11C7F0A92F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift in Sources */,
 				11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */,
 				11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */,
 				11703D8E29DD197F00EF7E3D /* TopContentView.swift in Sources */,
@@ -1475,6 +1485,7 @@
 				11F9A0112F0C123400123456 /* TVSoundboardView.swift in Sources */,
 				11F9A0132F0C123400123456 /* TVAnimationTriggerView.swift in Sources */,
 				11F9A0152F0C123400123456 /* TVUserFeedback.swift in Sources */,
+				11C7F0A22F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift in Sources */,
 				11E53CC82E88964100C17F16 /* MetricKitManager.swift in Sources */,
 				1199D6C42BF5D230004E0D64 /* SystemCountersStore.swift in Sources */,
 				11F0E49C2E90899C0085918D /* SoundImporter.swift in Sources */,
@@ -1569,6 +1580,7 @@
 				11B0488E2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */,
 				117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */,
 				117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */,
+				11C7F0AA2F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift in Sources */,
 				117C87712CA0D586007B5682 /* AdvancedSettings.swift in Sources */,
 				116C63A52CA280F400549CC4 /* VoltageMeterView.swift in Sources */,
 				114B7E2A2E90B88300F5D1EC /* AnimationMetadataImporter.swift in Sources */,
@@ -1590,9 +1602,11 @@
 				113D00552EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */,
 				113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
 				113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
+				11C7F0A42F2A6D2C009A1B2C /* SACNUniverseMonitorView.swift in Sources */,
 				11F9A0122F0C123400123456 /* TVSoundboardView.swift in Sources */,
 				11F9A0142F0C123400123456 /* TVAnimationTriggerView.swift in Sources */,
 				11F9A0162F0C123400123456 /* TVUserFeedback.swift in Sources */,
+				11C7F0A32F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift in Sources */,
 				117C87552CA0CEF9007B5682 /* VirtualJoystick.swift in Sources */,
 				117C87572CA0CEF9007B5682 /* SixAxisJoystick.swift in Sources */,
 				117C87592CA0CEF9007B5682 /* AprilsCreatureWorkshopJoystick.swift in Sources */,
@@ -1821,7 +1835,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.16.0;
+				MARKETING_VERSION = 2.16.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1875,7 +1889,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.16.0;
+				MARKETING_VERSION = 2.16.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1959,7 +1973,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.16.0;
+				MARKETING_VERSION = 2.16.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -1991,7 +2005,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.16.0;
+				MARKETING_VERSION = 2.16.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

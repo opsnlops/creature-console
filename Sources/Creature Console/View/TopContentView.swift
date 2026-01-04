@@ -26,6 +26,7 @@ struct TopContentView: View {
     @State var navigationPath = NavigationPath()
 
     @State private var selectedCreature: Creature?
+    @State private var hideBottomToolbar = false
 
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "TopContentView")
@@ -55,7 +56,9 @@ struct TopContentView: View {
             // macOS/tvOS: Use floating toolbar
             ZStack(alignment: .bottom) {
                 navigationContent
-                BottomToolBarView()
+                if !hideBottomToolbar {
+                    BottomToolBarView()
+                }
             }
         #endif
     }
@@ -101,6 +104,18 @@ struct TopContentView: View {
                         } label: {
                             Label("Soundboard", systemImage: "speaker.wave.2")
                                 .symbolRenderingMode(.hierarchical)
+                        }
+                    }
+
+                    Section("Diagnostics") {
+                        NavigationLink {
+                            TVSACNUniverseMonitorView()
+                        } label: {
+                            Label(
+                                "sACN Universe Monitor",
+                                systemImage: "dot.radiowaves.left.and.right"
+                            )
+                            .symbolRenderingMode(.hierarchical)
                         }
                     }
                 #elseif os(iOS) || os(macOS)
@@ -216,6 +231,9 @@ struct TopContentView: View {
                     }
             }
 
+        }
+        .onPreferenceChange(HideBottomToolbarPreferenceKey.self) { hide in
+            hideBottomToolbar = hide
         }
     }
 

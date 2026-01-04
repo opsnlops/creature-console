@@ -12,28 +12,32 @@ struct SettingsView: View {
             LiquidGlass()
                 .ignoresSafeArea()
 
-            TabView {
+            #if os(tvOS)
                 NetworkSettingsView()
-                    .tabItem {
-                        Label("Network", systemImage: "network")
-                    }
-                    .tag(Tabs.network)
-                JoystickSettingsView()
-                    .tabItem {
-                        Label("Joystick", systemImage: "gamecontroller")
-                    }
-                    .tag(Tabs.joystick)
-                InterfaceSettings()
-                    .tabItem {
-                        Label("Interface", systemImage: "paintpalette")
-                    }
-                    .tag(Tabs.interface)
-                AdvancedSettingsView()
-                    .tabItem {
-                        Label("Advanced", systemImage: "wand.and.stars")
-                    }
-                    .tag(Tabs.advanced)
-            }
+            #else
+                TabView {
+                    NetworkSettingsView()
+                        .tabItem {
+                            Label("Network", systemImage: "network")
+                        }
+                        .tag(Tabs.network)
+                    JoystickSettingsView()
+                        .tabItem {
+                            Label("Joystick", systemImage: "gamecontroller")
+                        }
+                        .tag(Tabs.joystick)
+                    InterfaceSettings()
+                        .tabItem {
+                            Label("Interface", systemImage: "paintpalette")
+                        }
+                        .tag(Tabs.interface)
+                    AdvancedSettingsView()
+                        .tabItem {
+                            Label("Advanced", systemImage: "wand.and.stars")
+                        }
+                        .tag(Tabs.advanced)
+                }
+            #endif
         }
         #if os(macOS)
             .frame(width: 760, height: 520)

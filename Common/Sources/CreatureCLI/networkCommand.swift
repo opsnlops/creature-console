@@ -30,10 +30,16 @@
                 @Option(help: "Lock to a universe number (optional)")
                 var universe: Int?
 
+                @Option(help: "Maximum number of concurrent viewers")
+                var maxClients: Int = 8
+
                 @Flag(help: "List available interfaces and exit")
                 var listInterfaces: Bool = false
 
                 func run() async throws {
+                    guard maxClients > 0 else {
+                        throw failWithMessage("Max clients must be at least 1.")
+                    }
                     let interfaces = fetchInterfaces()
 
                     if listInterfaces {
@@ -51,7 +57,8 @@
 
                     let proxy = SACNRemoteProxy(
                         interface: selectedInterface,
-                        lockedUniverse: universe.flatMap { UInt16($0) }
+                        lockedUniverse: universe.flatMap { UInt16($0) },
+                        maxClients: maxClients
                     )
 
                     let endpointPort =
@@ -143,64 +150,94 @@
     }
 
     private final class SACNRemoteProxy: @unchecked Sendable {
+        private struct ClientState {
+            let connection: NWConnection
+            var universe: UInt16?
+            var buffer = Data()
+            var pendingSends: Int = 0
+        }
+
+        private struct ReceiverState {
+            let receiver: SACNReceiver
+            var clients: Set<ObjectIdentifier>
+        }
+
         let interface: SACNInterface
         let lockedUniverse: UInt16?
-        private let receiver = SACNReceiver()
+        private let maxClients: Int
         private let queue = DispatchQueue(label: "io.opsnlops.CreatureCLI.SACNRemoteProxy")
-        private var connection: NWConnection?
-        private var buffer = Data()
+        private var clients: [ObjectIdentifier: ClientState] = [:]
+        private var receivers: [UInt16: ReceiverState] = [:]
+        private let maxPendingSends = 8
 
-        init(interface: SACNInterface, lockedUniverse: UInt16?) {
+        init(interface: SACNInterface, lockedUniverse: UInt16?, maxClients: Int) {
             self.interface = interface
             self.lockedUniverse = lockedUniverse
+            self.maxClients = maxClients
         }
 
         func attach(connection: NWConnection) {
             queue.async {
-                self.stop()
-                self.connection = connection
+                if self.clients.count >= self.maxClients {
+                    print("Viewer rejected: max clients reached (\(self.maxClients)).")
+                    connection.cancel()
+                    return
+                }
+
+                let clientID = ObjectIdentifier(connection)
+                let state = ClientState(connection: connection, universe: nil)
+                self.clients[clientID] = state
                 connection.stateUpdateHandler = { [weak self] state in
-                    self?.handleState(state)
+                    self?.handleState(state, clientID: clientID)
                 }
                 connection.start(queue: self.queue)
-                self.receiveHello(on: connection)
+                self.receiveHello(on: connection, clientID: clientID)
             }
         }
 
-        private func handleState(_ state: NWConnection.State) {
+        private func handleState(_ state: NWConnection.State, clientID: ObjectIdentifier) {
             switch state {
             case .failed(let error):
                 print("Viewer connection failed: \(error.localizedDescription)")
-                stop()
+                stop(clientID: clientID)
             case .cancelled:
-                stop()
+                stop(clientID: clientID)
             default:
                 break
             }
         }
 
-        private func receiveHello(on connection: NWConnection) {
+        private func receiveHello(on connection: NWConnection, clientID: ObjectIdentifier) {
             connection.receive(minimumIncompleteLength: 1, maximumLength: 2048) {
                 [weak self] data, _, isComplete, error in
                 guard let self else { return }
 
-                if let data {
-                    buffer.append(data)
-                    if let lineRange = buffer.firstRange(of: Data([0x0A])) {
-                        let lineData = buffer.subdata(in: 0..<lineRange.lowerBound)
-                        buffer.removeSubrange(0..<lineRange.upperBound)
-                        handleHello(lineData, on: connection)
+                if var client = self.clients[clientID], let data {
+                    client.buffer.append(data)
+                    if let lineRange = client.buffer.firstRange(of: Data([0x0A])) {
+                        let lineData = client.buffer.subdata(in: 0..<lineRange.lowerBound)
+                        client.buffer.removeSubrange(0..<lineRange.upperBound)
+                        self.clients[clientID] = client
+                        self.handleHello(lineData, on: connection, clientID: clientID)
                         return
                     }
+                    self.clients[clientID] = client
+                } else if error != nil || isComplete {
+                    self.stop(clientID: clientID)
+                    return
                 }
 
                 if error == nil, !isComplete {
-                    receiveHello(on: connection)
+                    receiveHello(on: connection, clientID: clientID)
                 }
             }
         }
 
-        private func handleHello(_ data: Data, on connection: NWConnection) {
+        private func handleHello(
+            _ data: Data,
+            on connection: NWConnection,
+            clientID: ObjectIdentifier
+        ) {
             let decoder = JSONDecoder()
             guard let hello = try? decoder.decode(SACNRemoteHello.self, from: data),
                 hello.type == "hello"
@@ -215,41 +252,119 @@
                 "Viewer connected: \(hello.viewerName) (\(hello.viewerVersion)) universe \(universe)"
             )
 
-            do {
-                try receiver.start(
-                    universe: universe,
-                    interface: interface.nwInterface,
-                    onPacket: { [weak self] packet in
-                        self?.send(packet.rawData, on: connection)
-                    },
-                    onState: { [weak self] state in
-                        if case .failed(let error) = state {
-                            print("sACN receiver failed: \(error.localizedDescription)")
-                            self?.stop()
-                        }
-                    }
-                )
-            } catch {
-                print("Failed to start sACN receiver: \(error.localizedDescription)")
+            guard var client = clients[clientID] else {
                 connection.cancel()
+                return
             }
+
+            client.universe = universe
+            clients[clientID] = client
+            attachClient(clientID: clientID, to: universe)
         }
 
-        private func send(_ payload: Data, on connection: NWConnection) {
+        private func send(_ payload: Data, to clientID: ObjectIdentifier) {
+            guard var client = clients[clientID] else {
+                return
+            }
             guard payload.count <= UInt16.max else {
+                return
+            }
+            if client.pendingSends >= maxPendingSends {
+                print("Viewer disconnected: slow client (queue full).")
+                client.connection.cancel()
+                stop(clientID: clientID)
                 return
             }
             var length = UInt16(payload.count).bigEndian
             var data = Data(bytes: &length, count: 2)
             data.append(payload)
-            connection.send(content: data, completion: .contentProcessed { _ in })
+            client.pendingSends += 1
+            clients[clientID] = client
+            client.connection.send(
+                content: data,
+                completion: .contentProcessed { [weak self] error in
+                    self?.queue.async {
+                        guard var client = self?.clients[clientID] else {
+                            return
+                        }
+                        client.pendingSends = max(0, client.pendingSends - 1)
+                        self?.clients[clientID] = client
+                        if let error {
+                            print("Viewer send failed: \(error.localizedDescription)")
+                            client.connection.cancel()
+                            self?.stop(clientID: clientID)
+                        }
+                    }
+                })
         }
 
-        private func stop() {
-            receiver.stop()
-            connection?.cancel()
-            connection = nil
-            buffer.removeAll(keepingCapacity: true)
+        private func stop(clientID: ObjectIdentifier) {
+            guard var client = clients[clientID] else {
+                return
+            }
+            if let universe = client.universe {
+                detachClient(clientID: clientID, from: universe)
+            }
+            client.connection.cancel()
+            clients[clientID] = nil
+        }
+
+        private func attachClient(clientID: ObjectIdentifier, to universe: UInt16) {
+            if var receiverState = receivers[universe] {
+                receiverState.clients.insert(clientID)
+                receivers[universe] = receiverState
+                return
+            }
+
+            let receiver = SACNReceiver()
+            do {
+                try receiver.start(
+                    universe: universe,
+                    interface: interface.nwInterface,
+                    onPacket: { [weak self] packet in
+                        self?.broadcast(packet.rawData, for: universe)
+                    },
+                    onState: { [weak self] state in
+                        if case .failed(let error) = state {
+                            print("sACN receiver failed: \(error.localizedDescription)")
+                            self?.stopReceiver(for: universe)
+                        }
+                    }
+                )
+                receivers[universe] = ReceiverState(receiver: receiver, clients: [clientID])
+            } catch {
+                print("Failed to start sACN receiver: \(error.localizedDescription)")
+                stop(clientID: clientID)
+            }
+        }
+
+        private func detachClient(clientID: ObjectIdentifier, from universe: UInt16) {
+            guard var receiverState = receivers[universe] else {
+                return
+            }
+            receiverState.clients.remove(clientID)
+            if receiverState.clients.isEmpty {
+                receiverState.receiver.stop()
+                receivers[universe] = nil
+            } else {
+                receivers[universe] = receiverState
+            }
+        }
+
+        private func stopReceiver(for universe: UInt16) {
+            if let receiverState = receivers[universe] {
+                receiverState.receiver.stop()
+            }
+            receivers[universe] = nil
+        }
+
+        private func broadcast(_ payload: Data, for universe: UInt16) {
+            guard let receiverState = receivers[universe] else {
+                return
+            }
+            for clientID in receiverState.clients {
+                send(payload, to: clientID)
+            }
         }
     }
 #elseif os(Linux)
@@ -285,10 +400,16 @@
                 @Option(help: "Lock to a universe number (optional)")
                 var universe: Int?
 
+                @Option(help: "Maximum number of concurrent viewers")
+                var maxClients: Int = 8
+
                 @Flag(help: "List available interfaces and exit")
                 var listInterfaces: Bool = false
 
                 func run() async throws {
+                    guard maxClients > 0 else {
+                        throw failWithMessage("Max clients must be at least 1.")
+                    }
                     let interfaces = try fetchInterfaces()
 
                     if listInterfaces {
@@ -316,7 +437,8 @@
                     let proxy = LinuxSACNRemoteProxy(
                         group: group,
                         interface: selectedInterface,
-                        lockedUniverse: universe.flatMap { UInt16($0) }
+                        lockedUniverse: universe.flatMap { UInt16($0) },
+                        maxClients: maxClients
                     )
 
                     let bootstrap = ServerBootstrap(group: group)
@@ -408,42 +530,60 @@
     }
 
     private final class LinuxSACNRemoteProxy: @unchecked Sendable {
+        private final class ClientState {
+            let channel: Channel
+            let universe: UInt16
+            var udpChannel: Channel?
+            var pendingWrites: Int = 0
+
+            init(channel: Channel, universe: UInt16) {
+                self.channel = channel
+                self.universe = universe
+            }
+        }
+
         let lockedUniverse: UInt16?
         private let group: EventLoopGroup
         private let interface: LinuxInterface
-        private var connection: Channel?
-        private var udpChannel: Channel?
-        private var currentUniverse: UInt16?
+        private let maxClients: Int
+        private var clients: [ObjectIdentifier: ClientState] = [:]
+        private let maxPendingWrites = 8
 
-        init(group: EventLoopGroup, interface: LinuxInterface, lockedUniverse: UInt16?) {
+        init(
+            group: EventLoopGroup, interface: LinuxInterface, lockedUniverse: UInt16?,
+            maxClients: Int
+        ) {
             self.group = group
             self.interface = interface
             self.lockedUniverse = lockedUniverse
+            self.maxClients = maxClients
         }
 
         func attach(channel: Channel) -> EventLoopFuture<Void> {
-            if let existing = connection {
-                _ = existing.close()
+            if clients.count >= maxClients {
+                print("Viewer rejected: max clients reached (\(maxClients)).")
+                return channel.close()
             }
-            connection = channel
             channel.closeFuture.whenComplete { [weak self] _ in
-                self?.handleDisconnect()
+                self?.handleDisconnect(channel: channel)
             }
             return channel.pipeline.addHandler(HelloHandler(proxy: self))
         }
 
-        private func handleDisconnect() {
-            connection = nil
-            stopUDPReceiver()
+        private func handleDisconnect(channel: Channel) {
+            let clientID = ObjectIdentifier(channel)
+            if let client = clients[clientID] {
+                stopUDPReceiver(client: client)
+                clients[clientID] = nil
+            }
         }
 
         fileprivate func handleHello(_ hello: SACNRemoteHello, on channel: Channel) {
             let universe = lockedUniverse ?? hello.universe
-            currentUniverse = universe
             print(
                 "Viewer connected: \(hello.viewerName) (\(hello.viewerVersion)) universe \(universe)"
             )
-            startUDPReceiver(universe: universe, on: channel)
+            registerClient(universe: universe, on: channel)
         }
 
         fileprivate func handleInvalidHello(on channel: Channel) {
@@ -451,21 +591,26 @@
             _ = channel.close()
         }
 
-        private func startUDPReceiver(universe: UInt16, on channel: Channel) {
-            stopUDPReceiver()
+        private func registerClient(universe: UInt16, on channel: Channel) {
+            let clientID = ObjectIdentifier(channel)
+            let client = ClientState(channel: channel, universe: universe)
+            clients[clientID] = client
+            startUDPReceiver(for: client)
+        }
 
-            let multicastAddress = SACNMulticast.address(for: universe)
+        private func startUDPReceiver(for client: ClientState) {
+            let multicastAddress = SACNMulticast.address(for: client.universe)
             let bootstrap = DatagramBootstrap(group: group)
                 .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
                 .channelInitializer { channel in
-                    channel.pipeline.addHandler(SACNUDPHandler(proxy: self))
+                    channel.pipeline.addHandler(SACNUDPHandler(proxy: self, client: client))
                 }
 
             bootstrap.bind(host: "0.0.0.0", port: 5568).whenComplete {
                 [weak self] (result: Result<Channel, Error>) in
                 switch result {
                 case .success(let channel):
-                    self?.udpChannel = channel
+                    client.udpChannel = channel
                     do {
                         let groupAddress = try SocketAddress(
                             ipAddress: multicastAddress,
@@ -488,30 +633,36 @@
             }
         }
 
-        private func stopUDPReceiver() {
-            if let udpChannel {
+        private func stopUDPReceiver(client: ClientState) {
+            if let udpChannel = client.udpChannel {
                 _ = udpChannel.close()
             }
-            udpChannel = nil
         }
 
-        fileprivate func send(rawData: Data) {
-            guard rawData.count <= UInt16.max, let connection else {
+        fileprivate func send(rawData: Data, to client: ClientState) {
+            guard rawData.count <= UInt16.max else {
                 return
             }
-            connection.eventLoop.execute {
-                var buffer = connection.allocator.buffer(capacity: 2 + rawData.count)
+            client.channel.eventLoop.execute {
+                if !client.channel.isWritable || client.pendingWrites >= maxPendingWrites {
+                    print("Viewer disconnected: slow client (not writable).")
+                    _ = client.channel.close()
+                    self.handleDisconnect(channel: client.channel)
+                    return
+                }
+                client.pendingWrites += 1
+                var buffer = client.channel.allocator.buffer(capacity: 2 + rawData.count)
                 buffer.writeInteger(UInt16(rawData.count), endianness: .big)
                 buffer.writeBytes(rawData)
-                _ = connection.writeAndFlush(buffer)
+                client.channel.writeAndFlush(buffer).whenComplete { [weak self] result in
+                    client.pendingWrites = max(0, client.pendingWrites - 1)
+                    if case .failure(let error) = result {
+                        print("Viewer send failed: \(error)")
+                        _ = client.channel.close()
+                        self?.handleDisconnect(channel: client.channel)
+                    }
+                }
             }
-        }
-
-        fileprivate func shouldSend(frame: SACNFrame) -> Bool {
-            guard let currentUniverse else {
-                return false
-            }
-            return frame.universe == currentUniverse
         }
     }
 
@@ -553,9 +704,11 @@
     private final class SACNUDPHandler: ChannelInboundHandler {
         typealias InboundIn = AddressedEnvelope<ByteBuffer>
         private let proxy: LinuxSACNRemoteProxy
+        private let client: LinuxSACNRemoteProxy.ClientState
 
-        init(proxy: LinuxSACNRemoteProxy) {
+        init(proxy: LinuxSACNRemoteProxy, client: LinuxSACNRemoteProxy.ClientState) {
             self.proxy = proxy
+            self.client = client
         }
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
@@ -565,8 +718,8 @@
                 return
             }
             let payload = Data(bytes)
-            if let frame = SACNParser.parse(data: payload), proxy.shouldSend(frame: frame) {
-                proxy.send(rawData: payload)
+            if let frame = SACNParser.parse(data: payload), frame.universe == client.universe {
+                proxy.send(rawData: payload, to: client)
             }
         }
     }
