@@ -11,7 +11,7 @@
     }
 
     final class LinuxSACNRemoteProxy: @unchecked Sendable {
-        fileprivate final class ClientState: @unchecked Sendable {
+        final class ClientState: @unchecked Sendable {
             let channel: Channel
             let universe: UInt16
             var udpChannel: Channel?
@@ -180,7 +180,7 @@
         }
     }
 
-    final class SACNUDPHandler: ChannelInboundHandler {
+    final class SACNUDPHandler: ChannelInboundHandler, @unchecked Sendable {
         typealias InboundIn = AddressedEnvelope<ByteBuffer>
         private let proxy: LinuxSACNRemoteProxy
         private let client: LinuxSACNRemoteProxy.ClientState
