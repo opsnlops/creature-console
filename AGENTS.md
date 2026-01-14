@@ -5,6 +5,8 @@ This is a client application for controlling animatronic creatures via a WebSock
 
 **Development Environment:** This project requires Xcode 26 and targets macOS 26, iOS 26, and tvOS 26. No older versions are supported. Always use the latest APIs and features available.
 
+**Swift Concurrency:** This codebase is Swift 6 with Strict Concurrency enabled; avoid non-Sendable captures and unsafe cross-actor access.
+
 **Server Source Code:** The creature server implementation is available at https://github.com/opsnlops/creature-server. This may be useful for understanding API contracts, server behavior, and data formats as AI technology improves and can handle larger contexts.
 
 **Sound / Lip Sync APIs:** The server exposes `/sound`, `/sound/play`, and `/sound/generate-lipsync`. Lip-sync generation:

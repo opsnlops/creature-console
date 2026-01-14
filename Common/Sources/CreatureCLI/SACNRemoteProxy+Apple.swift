@@ -141,23 +141,27 @@
             client.connection.send(
                 content: data,
                 completion: .contentProcessed { [weak self] error in
-                    self?.queue.async {
-                        guard var client = self?.clients[clientID] else {
-                            return
-                        }
-                        client.pendingSends = max(0, client.pendingSends - 1)
-                        self?.clients[clientID] = client
-                        if let error {
-                            print("Viewer send failed: \(error.localizedDescription)")
-                            client.connection.cancel()
-                            self?.stop(clientID: clientID)
-                        }
+                    self?.queue.async { [weak self] in
+                        self?.handleSendCompletion(clientID: clientID, error: error)
                     }
                 })
         }
 
-        private func stop(clientID: ObjectIdentifier) {
+        private func handleSendCompletion(clientID: ObjectIdentifier, error: NWError?) {
             guard var client = clients[clientID] else {
+                return
+            }
+            client.pendingSends = max(0, client.pendingSends - 1)
+            clients[clientID] = client
+            if let error {
+                print("Viewer send failed: \(error.localizedDescription)")
+                client.connection.cancel()
+                stop(clientID: clientID)
+            }
+        }
+
+        private func stop(clientID: ObjectIdentifier) {
+            guard let client = clients[clientID] else {
                 return
             }
             if let universe = client.universe {

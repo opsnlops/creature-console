@@ -1004,6 +1004,11 @@ final class SACNRemoteReceiver: @unchecked Sendable {
     private func processBuffer(onFrame: @escaping @Sendable (SACNFrame) -> Void) {
         while buffer.count >= SACNRemoteStream.lengthPrefixSize {
             let length = Int(buffer[0]) << 8 | Int(buffer[1])
+            guard length > 0, length <= SACNRemoteStream.maxPacketSize else {
+                buffer.removeAll(keepingCapacity: true)
+                connection?.cancel()
+                return
+            }
             let packetLength = SACNRemoteStream.lengthPrefixSize + length
             guard buffer.count >= packetLength else {
                 break
