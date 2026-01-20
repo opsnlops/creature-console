@@ -9,7 +9,7 @@ export SWIFT_BUILD_FLAGS_MQTT
 export SWIFT_BUILD_FLAGS_AGENT
 
 %:
-	dh $@ --with systemd
+	dh $@
 
 override_dh_auto_configure:
 	# Ensure Swift toolchain is available; not declared as a Debian dependency.
