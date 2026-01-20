@@ -31,7 +31,7 @@ struct CreatureCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "A utility for interacting with the Creature Server",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
-        version: "2.17.1",
+        version: "2.17.2",
         subcommands: [
             Animations.self, Creatures.self, Debug.self, Metrics.self, Network.self, Playlists.self,
             Sounds.self, Util.self, Voice.self, Websocket.self,
