@@ -265,6 +265,13 @@ private func reportCreatureLookupFailure(
         message =
             "Failed to find creature \(creatureId) on \(host):\(port): \(error.localizedDescription)"
     }
-    fputs("\(message)\n", stderr)
+    await reportError(message)
     throw ExitCode.failure
+}
+
+@MainActor
+private func reportError(_ message: String) {
+    if let data = "\(message)\n".data(using: .utf8) {
+        FileHandle.standardError.write(data)
+    }
 }
