@@ -1,3 +1,11 @@
+creature-cli (2.17.1) unstable; urgency=medium
+
+  * debian: install systemd units under /usr/lib/systemd/system.
+  * debian: add dirs metadata for agent and mqtt packages.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.17.1.
+
+ -- April White <april@creature.engineering>  Mon, 19 Jan 2026 20:20:00 +0000
+
 creature-cli (2.17.0) unstable; urgency=medium
 
   * creature-agent: add OpenAI MQTT agent with area cooldowns and speech scheduling.

@@ -1,1 +1,1 @@
-debian/creature-mqtt.service lib/systemd/system/
+debian/creature-mqtt.service usr/lib/systemd/system/

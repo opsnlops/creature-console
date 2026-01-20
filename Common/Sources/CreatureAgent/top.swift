@@ -32,7 +32,7 @@ struct CreatureAgent: AsyncParsableCommand {
         abstract: "Listen to MQTT, call OpenAI, schedule ad-hoc speech",
         discussion:
             "Consumes MQTT topics and uses OpenAI responses to schedule ad-hoc speech animations on the Creature server.",
-        version: "2.17.0",
+        version: "2.17.1",
         subcommands: [Run.self],
         defaultSubcommand: Run.self,
         helpNames: .shortAndLong
