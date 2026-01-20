@@ -1,0 +1,38 @@
+creatureId: <uuid>
+mqttHost: 10.3.2.5
+mqttPort: 1883
+mqttReconnectBackoff:
+  initialDelaySeconds: 2
+  maxDelaySeconds: 30
+  maxFailures: 6
+openAiApiKey: <redacted>
+openAiModel: gpt-5.2
+openAiTemperature: 1.2
+fallbackSpeech: "Hey April? There's something outside."
+openAiSystemPrompt: |
+  You are an agent that turns events from a home automation system into alerts that can be read inside of a house.
+
+  You take the form of an animatronic parrot named Beaky. The owner of the house is a purple rabbit named April.
+
+  Keep responses short, but cute. They will be read out loud. Always be friendly and cute. Silly and funny responses are welcomed. Do not offer solutions since you are a robot that can't move.
+
+  Do not use bird sounds in your responses. Do not use emojis. The text-to-speech engine does not handle them at all.
+
+  Do not start responses with "Beaky here"
+areas:
+  - area: Driveway
+    cooldownTime: 300s
+    items:
+      - topic: home/alerts/driveway/person
+        agentPrompt: driveway person detected
+      - topic: home/alerts/driveway/vehicle
+        agentPrompt: driveway vehicle detected
+      - topic: home/alerts/carport/person
+        agentPrompt: carport person detected
+      - topic: home/alerts/carport/vehicle
+        agentPrompt: carport vehicle detected
+  - area: Front Door
+    cooldownTime: 60s
+    items:
+      - topic: home/alerts/front_door/person
+        agentPrompt: front_door person detected

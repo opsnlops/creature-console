@@ -18,3 +18,10 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: MQTT bridge for Creature Server events
  Bridges Creature websocket events into MQTT topics for Home Assistant and automation stacks.
+
+Package: creature-agent
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: OpenAI MQTT agent for Creature Server
+ Consumes MQTT alerts, generates responses with OpenAI, and schedules ad-hoc speech animations.
+

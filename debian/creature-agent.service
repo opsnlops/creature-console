@@ -1,0 +1,12 @@
+[Unit]
+Description=Creature Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/creature-agent run --config-path /etc/creature-agent.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

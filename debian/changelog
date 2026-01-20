@@ -1,3 +1,11 @@
+creature-cli (2.17.0) unstable; urgency=medium
+
+  * creature-agent: add OpenAI MQTT agent with area cooldowns and speech scheduling.
+  * creature-agent: validate creatureId on startup and sanitize OpenAI output.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.17.0.
+
+ -- April White <april@creature.engineering>  Mon, 19 Jan 2026 20:15:00 +0000
+
 creature-cli (2.16.2) unstable; urgency=medium
 
   * creature-cli: add `network sacn-listen` remote listener for the sACN viewer.

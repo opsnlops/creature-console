@@ -3,11 +3,13 @@
 # Allow SWIFT_BUILD_FLAGS to be overridden (e.g., CI adds --swift-sdk static-linux).
 SWIFT_BUILD_FLAGS ?= -c release --product creature-cli --static-swift-stdlib
 SWIFT_BUILD_FLAGS_MQTT ?= -c release --product creature-mqtt --static-swift-stdlib
+SWIFT_BUILD_FLAGS_AGENT ?= -c release --product creature-agent --static-swift-stdlib
 export SWIFT_BUILD_FLAGS
 export SWIFT_BUILD_FLAGS_MQTT
+export SWIFT_BUILD_FLAGS_AGENT
 
 %:
-	dh $@
+	dh $@ --with systemd
 
 override_dh_auto_configure:
 	# Ensure Swift toolchain is available; not declared as a Debian dependency.
@@ -16,6 +18,7 @@ override_dh_auto_configure:
 override_dh_auto_build:
 	cd Common && swift build $(SWIFT_BUILD_FLAGS)
 	cd Common && swift build $(SWIFT_BUILD_FLAGS_MQTT)
+	cd Common && swift build $(SWIFT_BUILD_FLAGS_AGENT)
 
 override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-cli/usr/bin
@@ -39,6 +42,17 @@ override_dh_auto_install:
 	$$MQTT_BIN --generate-completion-script zsh > $(CURDIR)/debian/creature-mqtt/usr/share/zsh/vendor-completions/_creature-mqtt; \
 	install -d $(CURDIR)/debian/creature-mqtt/usr/share/fish/vendor_completions.d; \
 	$$MQTT_BIN --generate-completion-script fish > $(CURDIR)/debian/creature-mqtt/usr/share/fish/vendor_completions.d/creature-mqtt.fish
+
+	install -d $(CURDIR)/debian/creature-agent/usr/bin
+	AGENT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_AGENT) --show-bin-path)/creature-agent; \
+		install -m755 $$AGENT_BIN_PATH $(CURDIR)/debian/creature-agent/usr/bin/creature-agent
+	AGENT_BIN=$(CURDIR)/debian/creature-agent/usr/bin/creature-agent; \
+	install -d $(CURDIR)/debian/creature-agent/usr/share/bash-completion/completions; \
+	$$AGENT_BIN --generate-completion-script bash > $(CURDIR)/debian/creature-agent/usr/share/bash-completion/completions/creature-agent; \
+	install -d $(CURDIR)/debian/creature-agent/usr/share/zsh/vendor-completions; \
+	$$AGENT_BIN --generate-completion-script zsh > $(CURDIR)/debian/creature-agent/usr/share/zsh/vendor-completions/_creature-agent; \
+	install -d $(CURDIR)/debian/creature-agent/usr/share/fish/vendor_completions.d; \
+	$$AGENT_BIN --generate-completion-script fish > $(CURDIR)/debian/creature-agent/usr/share/fish/vendor_completions.d/creature-agent.fish
 
 override_dh_dwz:
 	# Skip dwz; binary may lack supported debug sections (static Swift).

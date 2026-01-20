@@ -53,6 +53,15 @@ struct MQTTOptions: ParsableArguments {
     @Option(name: .long, help: "MQTT keep-alive value in seconds")
     var mqttKeepAlive: Int = 60
 
+    @Option(name: .long, help: "MQTT reconnect backoff initial delay in seconds")
+    var mqttBackoffInitialDelay: Double = 2
+
+    @Option(name: .long, help: "MQTT reconnect backoff max delay in seconds")
+    var mqttBackoffMaxDelay: Double = 30
+
+    @Option(name: .long, help: "MQTT reconnect backoff max consecutive failures")
+    var mqttBackoffMaxFailures: Int = 6
+
     @Flag(
         name: .long,
         inversion: .prefixedNo,
@@ -67,7 +76,7 @@ struct CreatureMQTT: AsyncParsableCommand {
         abstract: "Bridge Creature websocket events into MQTT",
         discussion:
             "Subscribes to the Creature websocket API and republishes incoming messages to an MQTT broker for Home Assistant.",
-        version: "2.16.2",
+        version: "2.17.0",
         subcommands: [Bridge.self],
         defaultSubcommand: Bridge.self,
         helpNames: .shortAndLong

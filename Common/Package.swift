@@ -22,6 +22,7 @@ let package = Package(
         .package(url: "https://github.com/swift-server-community/mqtt-nio", from: "2.12.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.74.0"),
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.27.0"),
+        .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.6"),
     ],
 
     targets: [
@@ -53,6 +54,15 @@ let package = Package(
             exclude: ["README.md"]),
 
         .target(
+            name: "MQTTSupport",
+            dependencies: [
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "MQTTNIO", package: "mqtt-nio"),
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOPosix", package: "swift-nio"),
+            ]),
+
+        .target(
             name: "PlaylistRuntime",
             dependencies: [
                 "Common",
@@ -80,17 +90,32 @@ let package = Package(
             name: "creature-mqtt",
             dependencies: [
                 "Common",
+                "MQTTSupport",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "MQTTNIO", package: "mqtt-nio"),
             ],
             path: "Sources/CreatureMQTT/",
             exclude: ["README.md", "CHANGELOG.md"]),
 
+        .executableTarget(
+            name: "creature-agent",
+            dependencies: [
+                "Common",
+                "MQTTSupport",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Yams", package: "Yams"),
+            ],
+            path: "Sources/CreatureAgent/"),
         .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common",
                 "creature-cli",
+            ]
+        ),
+        .testTarget(
+            name: "CreatureAgentTests",
+            dependencies: [
+                "creature-agent"
             ]
         ),
     ]

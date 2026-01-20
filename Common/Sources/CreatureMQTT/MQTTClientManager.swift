@@ -1,43 +1,14 @@
 import Common
 import Foundation
 import Logging
-import MQTTNIO
+import MQTTSupport
 import NIOCore
-import NIOPosix
 
 actor MQTTClientManager {
     private let options: MQTTOptions
     private let topicPrefix: String
-    private let client: MQTTClient
+    private let connector: MQTTClientConnector
     private let allocator = ByteBufferAllocator()
-    private var isConnected = false
-    private var isConnecting = false
-    private var connectTask: Task<Bool, Error>?
-    private let logger: Logger
-    private var consecutiveFailures = 0
-    private var nextReconnectAllowedAt: Date?
-    private var lastBackoffLogAt: Date?
-
-    nonisolated private func describeMQTTError(_ error: Error) -> String {
-        if let mqttError = error as? MQTTError {
-            switch mqttError {
-            case .connectionError(let value):
-                return "MQTT connectionError: \(value)"
-            case .reasonError(let code):
-                return "MQTT reasonError: \(code)"
-            case .serverDisconnection(let ack):
-                return "MQTT serverDisconnection: \(ack)"
-            case .serverClosedConnection:
-                return "MQTT serverClosedConnection"
-            default:
-                return "MQTT error: \(mqttError)"
-            }
-        }
-        if let channelError = error as? ChannelError {
-            return "ChannelError: \(channelError)"
-        }
-        return error.localizedDescription
-    }
 
     init(options: MQTTOptions, logLevel: Logger.Level) {
         self.options = options
@@ -45,65 +16,30 @@ actor MQTTClientManager {
             in: CharacterSet(charactersIn: "/"))
         self.topicPrefix = trimmedPrefix.isEmpty ? "creatures" : trimmedPrefix
 
-        var logger = Logger(label: "io.opsnlops.creature-mqtt")
-        logger.logLevel = logLevel
-        self.logger = logger
-
-        let keepAlive = TimeAmount.seconds(Int64(max(options.mqttKeepAlive, 1)))
-        let configuration = MQTTClient.Configuration(
-            version: .v5_0,
-            keepAliveInterval: keepAlive,
-            userName: options.mqttUsername,
-            password: options.mqttPassword,
-            useSSL: options.mqttTLS
-        )
-
         let identifier = options.clientId ?? "creature-mqtt-\(UUID().uuidString.prefix(8))"
-        self.client = MQTTClient(
+        let configuration = MQTTClientConfiguration(
             host: options.mqttHost,
             port: options.mqttPort,
-            identifier: identifier,
-            eventLoopGroupProvider: .shared(MultiThreadedEventLoopGroup.singleton),
-            logger: logger,
-            configuration: configuration
+            useTLS: options.mqttTLS,
+            username: options.mqttUsername,
+            password: options.mqttPassword,
+            clientId: identifier,
+            keepAliveSeconds: options.mqttKeepAlive,
+            reconnectBackoff: MQTTReconnectBackoff(
+                initialDelaySeconds: options.mqttBackoffInitialDelay,
+                maxDelaySeconds: options.mqttBackoffMaxDelay,
+                maxFailures: options.mqttBackoffMaxFailures
+            )
         )
-        self.client.addCloseListener(named: "creature-mqtt-close") { [weak self] result in
-            guard let self else { return }
-            Task { await self.handleClose(result: result) }
-        }
-    }
-
-    private func handleClose(result: Result<Void, Error>) {
-        switch result {
-        case .success:
-            isConnected = false
-            logger.debug("MQTT connection closed by peer")
-        case .failure(let error):
-            isConnected = false
-            logger.warning(
-                "MQTT connection closed with error: \(describeMQTTError(error))")
-        }
+        self.connector = MQTTClientConnector(
+            configuration: configuration,
+            logLevel: logLevel,
+            label: "io.opsnlops.creature-mqtt"
+        )
     }
 
     func connect() async throws {
-        guard !isConnected else { return }
-        if let connectTask {
-            _ = try await connectTask.value
-            return
-        }
-        let task = Task<Bool, Error> { [client, options, logger] in
-            logger.debug(
-                "Connecting to MQTT \(options.mqttHost):\(options.mqttPort) tls=\(options.mqttTLS) version=\(client.configuration.version)"
-            )
-            return try await client.connect().get()
-        }
-        connectTask = task
-        defer { connectTask = nil }
-        let resumedSession = try await task.value
-        isConnected = true
-        logger.info(
-            "Connected to MQTT broker \(options.mqttHost):\(options.mqttPort) (resumedSession: \(resumedSession))"
-        )
+        try await connector.connect()
     }
 
     func publishString(
@@ -122,110 +58,20 @@ actor MQTTClientManager {
         var buffer = allocator.buffer(capacity: data.count)
         buffer.writeBytes(data)
 
-        try await publish(buffer: buffer, to: topic(components), retain: retain)
+        let targetTopic = await connector.topicString(components, prefix: topicPrefix)
+        try await connector.publish(
+            to: targetTopic, payload: buffer, qos: .atLeastOnce, retain: retain)
     }
 
     func disconnect() async {
-        guard isConnected else { return }
-        do {
-            try await client.disconnect().get()
-        } catch {
-            logger.warning("Failed to cleanly disconnect from MQTT: \(error.localizedDescription)")
-        }
-        isConnected = false
+        await connector.disconnect()
     }
 
     func shutdown() async {
-        await disconnect()
-        await withCheckedContinuation { continuation in
-            client.shutdown { error in
-                if let error {
-                    self.logger.warning(
-                        "MQTT client shutdown finished with error: \(error.localizedDescription)")
-                }
-                continuation.resume()
-            }
-        }
+        await connector.shutdown()
     }
 
-    private func publish(buffer: ByteBuffer, to topic: String, retain: Bool) async throws {
-        if let remaining = backoffRemaining() {
-            if shouldLogBackoff(remaining: remaining) {
-                logger.warning(
-                    "Skipping MQTT publish while backing off reconnect (\(String(format: "%.1f", remaining))s remaining)"
-                )
-            }
-            return
-        }
-
-        do {
-            try await connectIfNeeded()
-            try await client.publish(to: topic, payload: buffer, qos: .atLeastOnce, retain: retain)
-                .get()
-            resetBackoff()
-            logger.debug("Published message to topic \(topic)")
-        } catch {
-            isConnected = false
-            logger.warning(
-                "MQTT publish failed for topic \(topic). Backing off reconnects for \(String(format: "%.1f", recordFailure()))s. Error: \(describeMQTTError(error))"
-            )
-        }
-    }
-
-    func topicString(for components: [String]) -> String {
-        topic(components)
-    }
-
-    private func connectIfNeeded() async throws {
-        if isConnected { return }
-        try await connect()
-    }
-
-    private func backoffRemaining() -> TimeInterval? {
-        guard let deadline = nextReconnectAllowedAt else { return nil }
-        let remaining = deadline.timeIntervalSinceNow
-        if remaining <= 0 {
-            nextReconnectAllowedAt = nil
-            return nil
-        }
-        return remaining
-    }
-
-    @discardableResult
-    private func recordFailure() -> TimeInterval {
-        consecutiveFailures = min(consecutiveFailures + 1, 6)
-        let delay = min(pow(2.0, Double(consecutiveFailures)), 30)
-        nextReconnectAllowedAt = Date().addingTimeInterval(delay)
-        return delay
-    }
-
-    private func resetBackoff() {
-        consecutiveFailures = 0
-        nextReconnectAllowedAt = nil
-        lastBackoffLogAt = nil
-    }
-
-    private func shouldLogBackoff(remaining: TimeInterval) -> Bool {
-        guard let lastBackoffLogAt else {
-            self.lastBackoffLogAt = Date()
-            return true
-        }
-        if Date().timeIntervalSince(lastBackoffLogAt) >= 5 {
-            self.lastBackoffLogAt = Date()
-            return true
-        }
-        return false
-    }
-
-    private func topic(_ components: [String]) -> String {
-        let sanitized = components.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        guard !topicPrefix.isEmpty else {
-            return sanitized.joined(separator: "/")
-        }
-        if sanitized.isEmpty {
-            return topicPrefix
-        }
-        return "\(topicPrefix)/\(sanitized.joined(separator: "/"))"
+    func topicString(for components: [String]) async -> String {
+        await connector.topicString(components, prefix: topicPrefix)
     }
 }

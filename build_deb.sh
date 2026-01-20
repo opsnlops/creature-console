@@ -17,6 +17,6 @@ fi
 dpkg-buildpackage -us -uc -b
 
 echo "Built Debian package(s) in parent directory:"
-ls -1 ../creature-cli_* || true
+ls -1 ../creature-cli_* ../creature-mqtt_* ../creature-agent_* || true
 
 popd >/dev/null

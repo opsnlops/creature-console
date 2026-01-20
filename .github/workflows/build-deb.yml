@@ -58,6 +58,7 @@ jobs:
           mkdir -p artifacts
           mv ../creature-cli_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-mqtt_*_${{ matrix.arch }}.deb artifacts/
+          mv ../creature-agent_*_${{ matrix.arch }}.deb artifacts/
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4

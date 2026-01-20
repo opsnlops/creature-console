@@ -1,0 +1,12 @@
+[Unit]
+Description=Creature MQTT Bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/creature-mqtt bridge
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
