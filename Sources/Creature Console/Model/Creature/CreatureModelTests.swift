@@ -300,7 +300,9 @@ struct CreatureModelTests {
             mouthSlot: 2,
             realData: false,
             audioChannel: 0,
-            inputs: inputs
+            inputs: inputs,
+            speechLoopAnimationIds: [],
+            idleAnimationIds: []
         )
 
         context.insert(creature)
