@@ -1,3 +1,14 @@
+creature-cli (2.17.3) unstable; urgency=medium
+
+  * creature-agent: auto-reconnect to MQTT broker with exponential backoff on disconnect.
+  * creature-agent: resubscribe to all tracked topics after successful reconnect.
+  * creature-agent: bound concurrent MQTT message processing (default 3, configurable).
+  * creature-agent: drop excess messages with warning when at capacity.
+  * creature-agent: fix error logging to use ServerError.detailedMessage and describeMQTTError.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.17.3.
+
+ -- April White <april@creature.engineering>  Sun, 01 Mar 2026 15:50:00 +0000
+
 creature-cli (2.17.2) unstable; urgency=medium
 
   * debian: install creature-agent.yaml into /etc.

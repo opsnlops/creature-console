@@ -119,7 +119,8 @@ extension CreatureAgent {
                 port: mqttPortValue,
                 topics: Array(topicMap.keys),
                 reconnectBackoff: config.mqttReconnectBackoff,
-                logLevel: loggerLevel
+                logLevel: loggerLevel,
+                maxConcurrentTasks: config.maxConcurrentTasks
             )
 
             try await listener.connect { topic, payload, isRetained in
@@ -204,13 +205,14 @@ extension CreatureAgent {
                         logger.info("Queued ad-hoc speech job \(job.jobId) for topic \(topic)")
                     case .failure(let error):
                         logger.error(
-                            "Failed to queue ad-hoc speech for topic \(topic): \(error.localizedDescription)"
+                            "Failed to queue ad-hoc speech for topic \(topic): \(ServerError.detailedMessage(from: error))"
                         )
                     }
 
                 } catch {
                     logger.error(
-                        "Failed to process MQTT topic \(topic): \(error.localizedDescription)")
+                        "Failed to process MQTT topic \(topic): \(ServerError.detailedMessage(from: error))"
+                    )
                 }
             }
 

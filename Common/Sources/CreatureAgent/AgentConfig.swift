@@ -13,6 +13,7 @@ struct AgentConfig: Decodable {
     let mqttPort: Int
     let mqttReconnectBackoff: MQTTReconnectBackoff
     let fallbackSpeech: String
+    let maxConcurrentTasks: Int
     let areas: [AreaConfig]
 
     struct AreaConfig: Decodable {
@@ -60,6 +61,7 @@ struct AgentConfig: Decodable {
         case mqttPort
         case mqttReconnectBackoff
         case fallbackSpeech
+        case maxConcurrentTasks
         case areas
     }
 
@@ -88,6 +90,8 @@ struct AgentConfig: Decodable {
         fallbackSpeech =
             try container.decodeIfPresent(String.self, forKey: .fallbackSpeech)
             ?? "Hey April? There's something outside."
+        maxConcurrentTasks =
+            try container.decodeIfPresent(Int.self, forKey: .maxConcurrentTasks) ?? 3
         areas = try container.decode([AreaConfig].self, forKey: .areas)
     }
 

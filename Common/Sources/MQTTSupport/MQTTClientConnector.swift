@@ -63,6 +63,8 @@ public actor MQTTClientConnector {
     private var consecutiveFailures = 0
     private var nextReconnectAllowedAt: Date?
     private var lastBackoffLogAt: Date?
+    private var subscribedTopics: [MQTTSubscribeInfo] = []
+    private var reconnectTask: Task<Void, Never>?
 
     public init(configuration: MQTTClientConfiguration, logLevel: Logger.Level, label: String) {
         self.configuration = configuration
@@ -129,11 +131,12 @@ public actor MQTTClientConnector {
         do {
             try await connectIfNeeded()
             _ = try await client.subscribe(to: topics).get()
+            mergeSubscribedTopics(topics)
             resetBackoff()
         } catch {
             isConnected = false
             logger.warning(
-                "MQTT subscribe failed. Backing off reconnects for \(String(format: "%.1f", recordFailure()))s. Error: \(describeMQTTError(error))"
+                "MQTT subscribe failed. Backing off reconnects for \(String(format: "%.1f", recordFailure()))s. Error: \(Self.describeMQTTError(error))"
             )
             throw error
         }
@@ -169,28 +172,34 @@ public actor MQTTClientConnector {
         } catch {
             isConnected = false
             logger.warning(
-                "MQTT publish failed for topic \(topic). Backing off reconnects for \(String(format: "%.1f", recordFailure()))s. Error: \(describeMQTTError(error))"
+                "MQTT publish failed for topic \(topic). Backing off reconnects for \(String(format: "%.1f", recordFailure()))s. Error: \(Self.describeMQTTError(error))"
             )
         }
     }
 
     public func disconnect() async {
+        reconnectTask?.cancel()
+        reconnectTask = nil
         guard isConnected else { return }
         do {
             try await client.disconnect().get()
         } catch {
-            logger.warning("Failed to cleanly disconnect from MQTT: \(error.localizedDescription)")
+            logger.warning(
+                "Failed to cleanly disconnect from MQTT: \(Self.describeMQTTError(error))")
         }
         isConnected = false
     }
 
     public func shutdown() async {
+        reconnectTask?.cancel()
+        reconnectTask = nil
         await disconnect()
         await withCheckedContinuation { continuation in
             client.shutdown { error in
                 if let error {
                     self.logger.warning(
-                        "MQTT client shutdown finished with error: \(error.localizedDescription)")
+                        "MQTT client shutdown finished with error: \(MQTTClientConnector.describeMQTTError(error))"
+                    )
                 }
                 continuation.resume()
             }
@@ -223,7 +232,64 @@ public actor MQTTClientConnector {
         case .failure(let error):
             isConnected = false
             logger.warning(
-                "MQTT connection closed with error: \(describeMQTTError(error))")
+                "MQTT connection closed with error: \(Self.describeMQTTError(error))")
+        }
+        startReconnectLoop()
+    }
+
+    private func startReconnectLoop() {
+        guard reconnectTask == nil else { return }
+        reconnectTask = Task { [weak self] in
+            guard let self else { return }
+            await self.reconnectLoop()
+        }
+    }
+
+    private func reconnectLoop() async {
+        let policy = configuration.reconnectBackoff
+        var attempt = 0
+        while !Task.isCancelled {
+            attempt += 1
+            let delay = min(
+                policy.initialDelaySeconds * pow(2.0, Double(min(attempt - 1, policy.maxFailures))),
+                policy.maxDelaySeconds
+            )
+            logger.info(
+                "MQTT reconnect attempt \(attempt) in \(String(format: "%.1f", delay))s")
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                break
+            }
+            do {
+                try await connect()
+                await resubscribe()
+                logger.info("MQTT reconnected and resubscribed successfully")
+                break
+            } catch {
+                logger.warning(
+                    "MQTT reconnect attempt \(attempt) failed: \(Self.describeMQTTError(error))")
+            }
+        }
+        reconnectTask = nil
+    }
+
+    private func resubscribe() async {
+        guard !subscribedTopics.isEmpty else { return }
+        do {
+            _ = try await client.subscribe(to: subscribedTopics).get()
+            logger.info(
+                "Resubscribed to \(subscribedTopics.count) MQTT topic(s)")
+        } catch {
+            logger.warning(
+                "MQTT resubscribe failed: \(Self.describeMQTTError(error))")
+        }
+    }
+
+    private func mergeSubscribedTopics(_ topics: [MQTTSubscribeInfo]) {
+        let existingFilters = Set(subscribedTopics.map(\.topicFilter))
+        for topic in topics where !existingFilters.contains(topic.topicFilter) {
+            subscribedTopics.append(topic)
         }
     }
 
@@ -267,7 +333,7 @@ public actor MQTTClientConnector {
         return false
     }
 
-    private func describeMQTTError(_ error: Error) -> String {
+    public static func describeMQTTError(_ error: Error) -> String {
         if let mqttError = error as? MQTTError {
             switch mqttError {
             case .connectionError(let value):
