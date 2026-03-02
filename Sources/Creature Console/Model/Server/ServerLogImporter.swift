@@ -11,13 +11,23 @@ actor ServerLogImporter {
     // Keep more logs in the database than we display to allow for search/filtering
     private let maxLogEntries = 500
 
+    // Track insert count to avoid trimming on every single log
+    private var insertsSinceLastTrim = 0
+    private let trimInterval = 50
+
     // Add a single log entry (logs come in one at a time from the server)
     func addLog(_ dto: ServerLogItem) async throws {
         let logModel = ServerLogModel(dto: dto)
         modelContext.insert(logModel)
 
-        // Trim immediately so callers can rely on maxLogEntries semantics.
-        try trimOldLogs()
+        insertsSinceLastTrim += 1
+
+        // Only trim periodically — trimming on every insert causes a full fetch+sort
+        // of all logs which blocks this actor and stalls the UI during log bursts.
+        if insertsSinceLastTrim >= trimInterval {
+            try trimOldLogs()
+            insertsSinceLastTrim = 0
+        }
 
         try modelContext.save()
     }
