@@ -2,6 +2,11 @@
 
 # Creature MQTT Changelog
 
+## 2.18.2 - 2026-03-02
+- Wire systemd env files to CLI flags so services use configured hosts instead of compiled-in defaults.
+- Require env file for creature-mqtt and creature-agent systemd units (no more silent empty-string fallback).
+- Install env file examples to `/etc/default/` via deb packages.
+
 ## 2.18.1 - 2026-03-02
 - Extract `MQTTPublishing` protocol and `AgentEventProcessor` struct for testability.
 - Add metrics test coverage for MQTTMessageProcessor counters (filtered, published, errors).

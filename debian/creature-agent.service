@@ -4,8 +4,11 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-EnvironmentFile=-/etc/default/creature-agent
-ExecStart=/usr/bin/creature-agent run --config-path /etc/creature-agent.yaml
+EnvironmentFile=/etc/default/creature-agent
+ExecStart=/usr/bin/creature-agent run \
+    --config-path /etc/creature-agent.yaml \
+    --host ${CREATURE_SERVER_HOST} \
+    --port ${CREATURE_SERVER_PORT}
 Restart=on-failure
 RestartSec=5
 

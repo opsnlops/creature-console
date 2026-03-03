@@ -1,2 +1,3 @@
 debian/creature-agent.service usr/lib/systemd/system/
 debian/creature-agent.yaml etc/
+debian/creature-agent.env.example etc/default/

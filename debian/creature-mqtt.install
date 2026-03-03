@@ -1,1 +1,2 @@
 debian/creature-mqtt.service usr/lib/systemd/system/
+debian/creature-mqtt.env.example etc/default/
