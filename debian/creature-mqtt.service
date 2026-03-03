@@ -4,6 +4,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+EnvironmentFile=-/etc/default/creature-mqtt
 ExecStart=/usr/bin/creature-mqtt bridge
 Restart=on-failure
 RestartSec=5

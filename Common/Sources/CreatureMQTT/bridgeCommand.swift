@@ -2,6 +2,8 @@ import ArgumentParser
 import Common
 import Foundation
 import Logging
+import Observability
+import ServiceLifecycle
 
 extension CreatureMQTT {
 
@@ -54,6 +56,8 @@ extension CreatureMQTT {
         var mqttOptions: MQTTOptions
 
         mutating func run() async throws {
+            let otelServices = try bootstrapObservability(serviceName: "creature-mqtt")
+
             mqttOptions.retain = true
             let loggerLevel = debug ? Logger.Level.debug : logLevel.level
 
@@ -102,26 +106,54 @@ extension CreatureMQTT {
                 retainMessages: mqttOptions.retain
             )
 
-            await server.connectWebsocket(processor: processor)
-            print(
-                "Connected to websocket at \(server.serverHostname), publishing to MQTT \(mqttOptions.mqttHost):\(mqttOptions.mqttPort)"
+            let bridgeService = BridgeService(
+                server: server,
+                processor: processor,
+                mqttManager: mqttManager,
+                mqttHost: mqttOptions.mqttHost,
+                mqttPort: mqttOptions.mqttPort,
+                seconds: seconds
             )
 
-            do {
-                if seconds == 0 {
-                    while !Task.isCancelled {
-                        try await Task.sleep(for: .seconds(1))
-                    }
-                } else {
-                    try await Task.sleep(for: .seconds(Int(seconds)))
-                }
-            } catch {
-                // Allow cancellation to break the loop
-            }
-
-            _ = await server.disconnectWebsocket()
-            await mqttManager.shutdown()
+            let serviceGroup = ServiceGroup(
+                services: otelServices + [bridgeService],
+                gracefulShutdownSignals: [.sigterm],
+                cancellationSignals: [.sigint],
+                logger: Logger(label: "creature-mqtt")
+            )
+            try await serviceGroup.run()
         }
+    }
+}
+
+struct BridgeService: Service {
+    let server: CreatureServerClient
+    let processor: MQTTMessageProcessor
+    let mqttManager: MQTTClientManager
+    let mqttHost: String
+    let mqttPort: Int
+    let seconds: UInt32
+
+    func run() async throws {
+        await server.connectWebsocket(processor: processor)
+        print(
+            "Connected to websocket at \(server.serverHostname), publishing to MQTT \(mqttHost):\(mqttPort)"
+        )
+
+        do {
+            if seconds == 0 {
+                while !Task.isCancelled {
+                    try await Task.sleep(for: .seconds(1))
+                }
+            } else {
+                try await Task.sleep(for: .seconds(Int(seconds)))
+            }
+        } catch {
+            // Allow cancellation to break the loop
+        }
+
+        _ = await server.disconnectWebsocket()
+        await mqttManager.shutdown()
     }
 }
 

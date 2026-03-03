@@ -2,6 +2,17 @@
 
 # Creature MQTT Changelog
 
+## 2.18.1 - 2026-03-02
+- Extract `MQTTPublishing` protocol and `AgentEventProcessor` struct for testability.
+- Add metrics test coverage for MQTTMessageProcessor counters (filtered, published, errors).
+- Add metrics test coverage for AgentEventProcessor counters (received, skipped, cooldown, processed, speech, OpenAI errors).
+
+## 2.18.0 - 2026-03-02
+- Add OpenTelemetry observability (logs, traces, metrics) via swift-otel with OTLP/HTTP export to Honeycomb.
+- Add metrics counters for messages published, publish errors, and filtered messages.
+- Use ServiceGroup from swift-service-lifecycle for clean SIGTERM/SIGINT shutdown.
+- Add EnvironmentFile support in systemd service for OTEL_* configuration.
+
 ## 2.15.8 - 2025-12-12
 - Move Linux websocket client to SwiftNIO to resolve 100% CPU spin and handshake issues.
 - Add verbose websocket and MQTT debug logging (payload previews, connection/close reasons).

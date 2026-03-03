@@ -23,6 +23,14 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.74.0"),
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.27.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.6"),
+        .package(
+            url: "https://github.com/swift-otel/swift-otel.git",
+            from: "1.0.0",
+            traits: ["OTLPHTTP"]),
+        .package(
+            url: "https://github.com/swift-server/swift-service-lifecycle.git",
+            from: "2.0.0"),
+        .package(url: "https://github.com/apple/swift-metrics.git", from: "2.5.0"),
     ],
 
     targets: [
@@ -69,6 +77,14 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ]),
 
+        .target(
+            name: "Observability",
+            dependencies: [
+                .product(name: "OTel", package: "swift-otel"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+            ]),
+
         .executableTarget(
             name: "creature-cli",
             dependencies: [
@@ -91,7 +107,9 @@ let package = Package(
             dependencies: [
                 "Common",
                 "MQTTSupport",
+                "Observability",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ],
             path: "Sources/CreatureMQTT/",
             exclude: ["README.md", "CHANGELOG.md"]),
@@ -101,8 +119,10 @@ let package = Package(
             dependencies: [
                 "Common",
                 "MQTTSupport",
+                "Observability",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Yams", package: "Yams"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ],
             path: "Sources/CreatureAgent/"),
         .testTarget(
@@ -115,7 +135,9 @@ let package = Package(
         .testTarget(
             name: "CreatureAgentTests",
             dependencies: [
-                "creature-agent"
+                "creature-agent",
+                "creature-mqtt",
+                .product(name: "MetricsTestKit", package: "swift-metrics"),
             ]
         ),
     ]

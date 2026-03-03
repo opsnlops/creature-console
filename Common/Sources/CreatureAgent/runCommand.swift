@@ -2,6 +2,8 @@ import ArgumentParser
 import Common
 import Foundation
 import Logging
+import Observability
+import ServiceLifecycle
 
 extension CreatureAgent {
     struct Run: AsyncParsableCommand {
@@ -44,6 +46,8 @@ extension CreatureAgent {
         var globalOptions: GlobalOptions
 
         mutating func run() async throws {
+            let otelServices = try bootstrapObservability(serviceName: "creature-agent")
+
             let loggerLevel =
                 (debug || traceOpenAI || traceOpenAICompat)
                 ? Logger.Level.debug
@@ -114,6 +118,25 @@ extension CreatureAgent {
 
             let eventTracker = MQTTEventTracker(logger: logger)
 
+            let processor = AgentEventProcessor(
+                topicMap: topicMap,
+                eventTracker: eventTracker,
+                creatureId: config.creatureId,
+                fallbackSpeech: config.fallbackSpeech,
+                openAiModel: config.openAiModel,
+                respondToPrompt: { prompt in
+                    try await openAI.respond(to: prompt)
+                },
+                createSpeech: { creatureId, text in
+                    await server.createAdHocSpeechAnimation(
+                        creatureId: creatureId,
+                        text: text,
+                        resumePlaylist: true
+                    )
+                },
+                logger: logger
+            )
+
             let listener = MQTTAgentListener(
                 host: mqttHostValue,
                 port: mqttPortValue,
@@ -124,109 +147,38 @@ extension CreatureAgent {
             )
 
             try await listener.connect { topic, payload, isRetained in
-                guard let topicConfig = topicMap[topic] else {
-                    logger.warning("Received MQTT message for unknown topic \(topic)")
-                    return
-                }
-
-                let areaName = topicConfig.area
-                let cooldownSeconds = topicConfig.cooldownSeconds
-                let prompt = topicConfig.prompt
-
-                let eventTimestamp = MQTTEventTracker.timestamp(from: payload)
-                let timestampDescription = eventTimestamp.map { "\($0)" } ?? "nil"
-                logger.debug("MQTT timestamp parsed for \(topic): \(timestampDescription)")
-
-                if isRetained {
-                    let existingTimestamp = await eventTracker.initialTimestamp(for: topic)
-                    if existingTimestamp == nil {
-                        await eventTracker.updateInitialTimestamp(
-                            for: topic, timestamp: eventTimestamp)
-                        logger.debug("Recorded retained MQTT timestamp for \(topic)")
-                        return
-                    }
-                    logger.debug("Processing retained MQTT update for \(topic)")
-                }
-
-                let shouldProcess = await eventTracker.shouldProcess(
-                    topic: topic,
-                    timestamp: eventTimestamp
-                )
-
-                guard shouldProcess else {
-                    logger.debug("Skipping duplicate/stale MQTT event for \(topic)")
-                    return
-                }
-
-                logger.info("MQTT event received for topic \(topic)")
-                logger.debug("Prompt for topic \(topic): \(prompt)")
-
-                let cooldownWindow = await eventTracker.cooldownWindow(
-                    for: areaName,
-                    cooldownSeconds: cooldownSeconds
-                )
-                guard cooldownWindow == nil else {
-                    let remaining = String(format: "%.1f", cooldownWindow ?? 0)
-                    logger.info(
-                        "Skipping MQTT event for area \(areaName) due to cooldown (\(remaining)s remaining)"
-                    )
-                    return
-                }
-
-                do {
-                    let response = try await openAI.respond(to: prompt)
-                    let sanitized = TextSanitizer.sanitize(response)
-
-                    if sanitized.removedCharacters > 0 {
-                        logger.info(
-                            "Sanitized OpenAI response for topic \(topic) (removed \(sanitized.removedCharacters) chars)"
-                        )
-                    }
-
-                    let finalSpeech: String
-                    if sanitized.text.isEmpty {
-                        finalSpeech = config.fallbackSpeech
-                        logger.warning("Using fallback speech for topic \(topic)")
-                    } else {
-                        finalSpeech = sanitized.text
-                    }
-
-                    logger.info("OpenAI response ready for topic \(topic)")
-
-                    let result = await server.createAdHocSpeechAnimation(
-                        creatureId: config.creatureId,
-                        text: finalSpeech,
-                        resumePlaylist: true
-                    )
-
-                    switch result {
-                    case .success(let job):
-                        await eventTracker.markAreaProcessed(areaName)
-                        logger.info("Queued ad-hoc speech job \(job.jobId) for topic \(topic)")
-                    case .failure(let error):
-                        logger.error(
-                            "Failed to queue ad-hoc speech for topic \(topic): \(ServerError.detailedMessage(from: error))"
-                        )
-                    }
-
-                } catch {
-                    logger.error(
-                        "Failed to process MQTT topic \(topic): \(ServerError.detailedMessage(from: error))"
-                    )
-                }
+                await processor.processEvent(
+                    topic: topic, payload: payload, isRetained: isRetained)
             }
 
-            do {
-                while !Task.isCancelled {
-                    try await Task.sleep(for: .seconds(1))
-                }
-            } catch {
-                // Allow cancellation to break the loop
-            }
+            let agentService = AgentService(listener: listener, logger: logger)
 
-            logger.info("Shutting down creature-agent")
-            await listener.shutdown()
+            let serviceGroup = ServiceGroup(
+                services: otelServices + [agentService],
+                gracefulShutdownSignals: [.sigterm],
+                cancellationSignals: [.sigint],
+                logger: Logger(label: "creature-agent")
+            )
+            try await serviceGroup.run()
         }
+    }
+}
+
+struct AgentService: Service {
+    let listener: MQTTAgentListener
+    let logger: Logger
+
+    func run() async throws {
+        do {
+            while !Task.isCancelled {
+                try await Task.sleep(for: .seconds(1))
+            }
+        } catch {
+            // Allow cancellation to break the loop
+        }
+
+        logger.info("Shutting down creature-agent")
+        await listener.shutdown()
     }
 }
 

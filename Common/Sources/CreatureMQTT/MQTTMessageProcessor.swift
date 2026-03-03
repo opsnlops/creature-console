@@ -2,6 +2,7 @@ import ArgumentParser
 import Common
 import Foundation
 import Logging
+import Metrics
 import NIOConcurrencyHelpers
 
 /// A `MessageProcessor` that republishes websocket events to MQTT using scalar attributes.
@@ -28,7 +29,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         }
     }
 
-    private let mqttClient: MQTTClientManager
+    private let mqttClient: any MQTTPublishing
     private let hiddenTypes: Set<MessageType>
     private let allowedTypes: Set<MessageType>?
     private let logger: Logger
@@ -39,9 +40,12 @@ final class MQTTMessageProcessor: MessageProcessor {
     private let reloadAnimationNames: @Sendable () async -> [AnimationIdentifier: String]
     private let lastPublished: NIOLockedValueBox<[String: String]>
     private let retainMessages: Bool
+    private let messagesPublishedCounter = Counter(label: "creature_mqtt.messages.published")
+    private let publishErrorsCounter = Counter(label: "creature_mqtt.publish.errors")
+    private let messagesFilteredCounter = Counter(label: "creature_mqtt.messages.filtered")
 
     init(
-        mqttClient: MQTTClientManager,
+        mqttClient: any MQTTPublishing,
         hiddenTypes: Set<MessageType> = [],
         allowedTypes: Set<MessageType>? = nil,
         logLevel: Logger.Level,
@@ -70,9 +74,14 @@ final class MQTTMessageProcessor: MessageProcessor {
 
     private func shouldPublish(_ type: MessageType) -> Bool {
         if let allowedTypes, !allowedTypes.contains(type) {
+            messagesFilteredCounter.increment()
             return false
         }
-        return !hiddenTypes.contains(type)
+        if hiddenTypes.contains(type) {
+            messagesFilteredCounter.increment()
+            return false
+        }
+        return true
     }
 
     private func publishValue(
@@ -84,7 +93,13 @@ final class MQTTMessageProcessor: MessageProcessor {
         let logger = logger
         let cache = lastPublished
         let retainFlag = retain ?? retainMessages
-        Task { @Sendable [value, components, mqttClient, logger, cache, retainFlag] in
+        let publishedCounter = messagesPublishedCounter
+        let errorsCounter = publishErrorsCounter
+        Task {
+            @Sendable [
+                value, components, mqttClient, logger, cache, retainFlag, publishedCounter,
+                errorsCounter
+            ] in
             let topic = await mqttClient.topicString(for: components)
             let alreadyPublished = cache.withLockedValue { store in store[topic] == value }
             guard !alreadyPublished else { return }
@@ -93,7 +108,9 @@ final class MQTTMessageProcessor: MessageProcessor {
                 try await mqttClient.publishString(
                     value, components: components, retain: retainFlag)
                 cache.withLockedValue { store in store[topic] = value }
+                publishedCounter.increment()
             } catch {
+                errorsCounter.increment()
                 logger.error("Failed to publish \(topic) to MQTT: \(error.localizedDescription)")
             }
         }

@@ -4,7 +4,12 @@ import Logging
 import MQTTSupport
 import NIOCore
 
-actor MQTTClientManager {
+protocol MQTTPublishing: Sendable {
+    func topicString(for components: [String]) async -> String
+    func publishString(_ value: String, components: [String], retain: Bool) async throws
+}
+
+actor MQTTClientManager: MQTTPublishing {
     private let options: MQTTOptions
     private let topicPrefix: String
     private let connector: MQTTClientConnector
