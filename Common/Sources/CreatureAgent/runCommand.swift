@@ -150,6 +150,7 @@ extension CreatureAgent {
                 eventTracker: eventTracker,
                 creatureId: config.creatureId,
                 fallbackSpeech: config.fallbackSpeech,
+                llmBackend: config.llmBackend,
                 llmModel: config.llmModel,
                 respondToPrompt: respondToPrompt,
                 createSpeech: { creatureId, text in

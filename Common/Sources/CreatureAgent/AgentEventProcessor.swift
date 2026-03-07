@@ -9,6 +9,7 @@ struct AgentEventProcessor: Sendable {
     let eventTracker: MQTTEventTracker
     let creatureId: CreatureIdentifier
     let fallbackSpeech: String
+    let llmBackend: LLMBackend
     let llmModel: String
     let respondToPrompt: @Sendable (String) async throws -> String
     let createSpeech:
@@ -29,6 +30,7 @@ struct AgentEventProcessor: Sendable {
         eventTracker: MQTTEventTracker,
         creatureId: CreatureIdentifier,
         fallbackSpeech: String,
+        llmBackend: LLMBackend,
         llmModel: String,
         respondToPrompt: @escaping @Sendable (String) async throws -> String,
         createSpeech:
@@ -41,6 +43,7 @@ struct AgentEventProcessor: Sendable {
         self.eventTracker = eventTracker
         self.creatureId = creatureId
         self.fallbackSpeech = fallbackSpeech
+        self.llmBackend = llmBackend
         self.llmModel = llmModel
         self.respondToPrompt = respondToPrompt
         self.createSpeech = createSpeech
@@ -54,8 +57,8 @@ struct AgentEventProcessor: Sendable {
         self.eventsSkippedDuplicateCounter = Counter(
             label: "creature_agent.events.skipped",
             dimensions: [("reason", "duplicate")])
-        self.openAIRequestsCounter = Counter(label: "creature_agent.openai.requests")
-        self.openAIErrorsCounter = Counter(label: "creature_agent.openai.errors")
+        self.openAIRequestsCounter = Counter(label: "creature_agent.llm.requests")
+        self.openAIErrorsCounter = Counter(label: "creature_agent.llm.errors")
         self.speechQueuedCounter = Counter(label: "creature_agent.speech.queued")
         self.speechErrorsCounter = Counter(label: "creature_agent.speech.errors")
     }
@@ -118,17 +121,19 @@ struct AgentEventProcessor: Sendable {
             try await withSpan("agent.process_event") { span in
                 span.attributes["mqtt.topic"] = topic
                 span.attributes["agent.area"] = areaName
+                span.attributes["llm.backend"] = llmBackend.rawValue
 
                 openAIRequestsCounter.increment()
-                let response = try await withSpan("openai.respond") { openAISpan in
-                    openAISpan.attributes["openai.model"] = llmModel
+                let response = try await withSpan("llm.respond") { llmSpan in
+                    llmSpan.attributes["llm.backend"] = llmBackend.rawValue
+                    llmSpan.attributes["llm.model"] = llmModel
                     return try await respondToPrompt(prompt)
                 }
                 let sanitized = TextSanitizer.sanitize(response)
 
                 if sanitized.removedCharacters > 0 {
                     logger.info(
-                        "Sanitized OpenAI response for topic \(topic) (removed \(sanitized.removedCharacters) chars)"
+                        "Sanitized LLM response for topic \(topic) (removed \(sanitized.removedCharacters) chars)"
                     )
                 }
 
@@ -140,7 +145,7 @@ struct AgentEventProcessor: Sendable {
                     finalSpeech = sanitized.text
                 }
 
-                logger.info("OpenAI response ready for topic \(topic)")
+                logger.info("LLM response ready for topic \(topic)")
 
                 let result = await withSpan("server.create_ad_hoc_speech") { serverSpan in
                     serverSpan.attributes["creature.id"] = creatureId

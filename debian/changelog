@@ -1,3 +1,12 @@
+creature-cli (2.19.1) unstable; urgency=medium
+
+  * creature-agent: add llm.backend attribute to OTel tracing spans.
+  * creature-agent: rename openai-specific span names and counter labels to backend-agnostic llm prefix.
+  * creature-agent: update command description to reflect multi-backend support.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.19.1.
+
+ -- April White <april@creature.engineering>  Sat, 07 Mar 2026 12:30:00 +0000
+
 creature-cli (2.19.0) unstable; urgency=medium
 
   * creature-agent: add LM Studio as alternative LLM backend (selectable via config).

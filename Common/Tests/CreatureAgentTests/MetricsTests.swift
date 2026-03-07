@@ -82,6 +82,7 @@ private func makeAgentProcessor(
         eventTracker: eventTracker ?? MQTTEventTracker(logger: Logger(label: "test")),
         creatureId: "creature-abc",
         fallbackSpeech: "Fallback speech",
+        llmBackend: .openai,
         llmModel: "test-model",
         respondToPrompt: respondToPrompt,
         createSpeech: createSpeech,
@@ -304,7 +305,7 @@ struct ObservabilityMetricsTests {
                 topic: "test/topic", payload: timestamp, isRetained: false)
 
             let openAIErrors = try testMetrics.expectCounter(
-                "creature_agent.openai.errors")
+                "creature_agent.llm.errors")
             #expect(openAIErrors.totalValue == 1)
         }
 
