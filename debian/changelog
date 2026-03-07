@@ -1,3 +1,10 @@
+creature-cli (2.19.2) unstable; urgency=medium
+
+  * creature-agent: rename LM Studio references to generic local LLM naming.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.19.2.
+
+ -- April White <april@creature.engineering>  Sat, 07 Mar 2026 14:00:00 +0000
+
 creature-cli (2.19.1) unstable; urgency=medium
 
   * creature-agent: add llm.backend attribute to OTel tracing spans.

@@ -104,19 +104,19 @@ extension CreatureAgent {
                 )
                 respondToPrompt = { try await openAI.respond(to: $0) }
 
-            case .lmstudio:
-                let lmStudio = LMStudioClient(
-                    host: config.lmStudioHost,
-                    port: config.lmStudioPort,
+            case .local:
+                let localLLM = LocalLLMClient(
+                    host: config.localLlmHost,
+                    port: config.localLlmPort,
                     model: config.llmModel,
                     systemPrompt: config.llmSystemPrompt,
                     temperature: config.llmTemperature,
-                    maxTokens: config.lmStudioMaxTokens,
+                    maxTokens: config.localLlmMaxTokens,
                     conversationHistorySize: config.conversationHistorySize,
                     logger: logger,
                     traceResponses: traceResponses
                 )
-                respondToPrompt = { try await lmStudio.respond(to: $0) }
+                respondToPrompt = { try await localLLM.respond(to: $0) }
             }
 
             let server = getServer(config: globalOptions)

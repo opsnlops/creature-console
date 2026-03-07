@@ -31,8 +31,8 @@ struct CreatureAgent: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Listen to MQTT, generate LLM responses, schedule ad-hoc speech",
         discussion:
-            "Consumes MQTT topics and uses an LLM backend (OpenAI or LM Studio) to generate ad-hoc speech animations on the Creature server.",
-        version: "2.19.1",
+            "Consumes MQTT topics and uses an LLM backend (OpenAI or local) to generate ad-hoc speech animations on the Creature server.",
+        version: "2.19.2",
         subcommands: [Run.self],
         defaultSubcommand: Run.self,
         helpNames: .shortAndLong

@@ -3,8 +3,8 @@ import Testing
 
 @testable import creature_agent
 
-@Suite("LMStudioResponseParser")
-struct LMStudioResponseParserTests {
+@Suite("LocalLLMResponseParser")
+struct LocalLLMResponseParserTests {
     @Test("Parses valid chat completion response")
     func validResponse() throws {
         let json = """
@@ -12,15 +12,15 @@ struct LMStudioResponseParserTests {
                 "choices": [
                     {
                         "message": {
-                            "content": "Hello from LM Studio!"
+                            "content": "Hello from the local LLM!"
                         }
                     }
                 ]
             }
             """
         let data = Data(json.utf8)
-        let result = try LMStudioResponseParser.outputText(from: data)
-        #expect(result == "Hello from LM Studio!")
+        let result = try LocalLLMResponseParser.outputText(from: data)
+        #expect(result == "Hello from the local LLM!")
     }
 
     @Test("Throws on empty choices array")
@@ -29,8 +29,8 @@ struct LMStudioResponseParserTests {
             { "choices": [] }
             """
         let data = Data(json.utf8)
-        #expect(throws: LMStudioClientError.self) {
-            try LMStudioResponseParser.outputText(from: data)
+        #expect(throws: LocalLLMClientError.self) {
+            try LocalLLMResponseParser.outputText(from: data)
         }
     }
 
@@ -48,8 +48,8 @@ struct LMStudioResponseParserTests {
             }
             """
         let data = Data(json.utf8)
-        #expect(throws: LMStudioClientError.self) {
-            try LMStudioResponseParser.outputText(from: data)
+        #expect(throws: LocalLLMClientError.self) {
+            try LocalLLMResponseParser.outputText(from: data)
         }
     }
 
@@ -67,7 +67,7 @@ struct LMStudioResponseParserTests {
             }
             """
         let data = Data(json.utf8)
-        let result = try LMStudioResponseParser.outputText(from: data)
+        let result = try LocalLLMResponseParser.outputText(from: data)
         #expect(result == "trimmed")
     }
 }

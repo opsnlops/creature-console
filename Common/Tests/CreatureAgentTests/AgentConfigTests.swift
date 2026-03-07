@@ -40,31 +40,31 @@ struct AgentConfigTests {
         #expect(config.llmBackend == .openai)
     }
 
-    @Test("Parses lmstudio backend")
-    func parsesLmstudioBackend() throws {
+    @Test("Parses local backend")
+    func parsesLocalBackend() throws {
         let yaml = """
             creatureId: 00000000-0000-0000-0000-000000000000
-            llmBackend: lmstudio
+            llmBackend: local
             llmSystemPrompt: system
             llmModel: google/gemma-3-27b
-            lmStudioHost: 192.168.1.100
-            lmStudioPort: 5555
-            lmStudioMaxTokens: 300
+            localLlmHost: 192.168.1.100
+            localLlmPort: 5555
+            localLlmMaxTokens: 300
             conversationHistorySize: 20
             areas: []
             """
 
         let config = try AgentConfig.load(from: writeTemporaryFile(contents: yaml))
-        #expect(config.llmBackend == .lmstudio)
+        #expect(config.llmBackend == .local)
         #expect(config.llmApiKey == nil)
         #expect(config.llmModel == "google/gemma-3-27b")
-        #expect(config.lmStudioHost == "192.168.1.100")
-        #expect(config.lmStudioPort == 5555)
-        #expect(config.lmStudioMaxTokens == 300)
+        #expect(config.localLlmHost == "192.168.1.100")
+        #expect(config.localLlmPort == 5555)
+        #expect(config.localLlmMaxTokens == 300)
         #expect(config.conversationHistorySize == 20)
     }
 
-    @Test("Uses default values for optional LM Studio fields")
+    @Test("Uses default values for optional local LLM fields")
     func usesDefaultsForOptionalFields() throws {
         let yaml = """
             creatureId: 00000000-0000-0000-0000-000000000000
@@ -77,9 +77,9 @@ struct AgentConfigTests {
         #expect(config.llmApiKey == nil)
         #expect(config.llmModel == "gpt-5.2")
         #expect(config.llmTemperature == 1.0)
-        #expect(config.lmStudioHost == "10.69.66.4")
-        #expect(config.lmStudioPort == 1234)
-        #expect(config.lmStudioMaxTokens == 200)
+        #expect(config.localLlmHost == "10.69.66.4")
+        #expect(config.localLlmPort == 1234)
+        #expect(config.localLlmMaxTokens == 200)
         #expect(config.conversationHistorySize == 10)
     }
 

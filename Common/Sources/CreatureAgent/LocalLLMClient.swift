@@ -5,7 +5,7 @@ import Logging
     import FoundationNetworking
 #endif
 
-struct LMStudioClient {
+struct LocalLLMClient {
 
     private let host: String
     private let port: Int
@@ -41,10 +41,10 @@ struct LMStudioClient {
 
     func respond(to prompt: String) async throws -> String {
         guard let url = URL(string: "http://\(host):\(port)/v1/chat/completions") else {
-            throw LMStudioClientError.invalidURL
+            throw LocalLLMClientError.invalidURL
         }
 
-        logger.debug("Sending LM Studio request (model: \(model))")
+        logger.debug("Sending local LLM request (model: \(model))")
 
         var messages: [[String: String]] = [
             ["role": "system", "content": systemPrompt]
@@ -71,22 +71,22 @@ struct LMStudioClient {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw LMStudioClientError.invalidResponse
+            throw LocalLLMClientError.invalidResponse
         }
         guard 200..<300 ~= httpResponse.statusCode else {
             let message = String(data: data, encoding: .utf8) ?? ""
-            logger.error("LM Studio request failed with status \(httpResponse.statusCode)")
-            throw LMStudioClientError.httpError(code: httpResponse.statusCode, body: message)
+            logger.error("Local LLM request failed with status \(httpResponse.statusCode)")
+            throw LocalLLMClientError.httpError(code: httpResponse.statusCode, body: message)
         }
 
         if traceResponses, let bodyString = String(data: data, encoding: .utf8) {
-            logger.info("LM Studio raw response: \(bodyString)")
+            logger.info("Local LLM raw response: \(bodyString)")
         }
 
-        let rawOutput = try LMStudioResponseParser.outputText(from: data)
-        let output = LMStudioClient.stripThinkTags(rawOutput)
+        let rawOutput = try LocalLLMResponseParser.outputText(from: data)
+        let output = LocalLLMClient.stripThinkTags(rawOutput)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        logger.debug("LM Studio response received (chars: \(output.count))")
+        logger.debug("Local LLM response received (chars: \(output.count))")
 
         await history.append(userMessage: prompt, assistantMessage: output)
 
@@ -103,7 +103,7 @@ struct LMStudioClient {
     }
 }
 
-enum LMStudioClientError: Error, LocalizedError {
+enum LocalLLMClientError: Error, LocalizedError {
     case invalidURL
     case invalidResponse
     case httpError(code: Int, body: String)
@@ -112,16 +112,16 @@ enum LMStudioClientError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid LM Studio URL"
+            return "Invalid local LLM URL"
         case .invalidResponse:
-            return "Invalid LM Studio response"
+            return "Invalid local LLM response"
         case .httpError(let code, let body):
             if body.isEmpty {
-                return "LM Studio API returned status \(code)"
+                return "Local LLM API returned status \(code)"
             }
-            return "LM Studio API returned status \(code): \(body)"
+            return "Local LLM API returned status \(code): \(body)"
         case .missingOutputText:
-            return "LM Studio response did not include output text"
+            return "Local LLM response did not include output text"
         }
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct LMStudioResponseParser {
+struct LocalLLMResponseParser {
     static func outputText(from data: Data) throws -> String {
         let decoder = JSONDecoder()
         let response = try decoder.decode(ChatCompletionResponse.self, from: data)
@@ -8,7 +8,7 @@ struct LMStudioResponseParser {
             let content = choice.message.content,
             !content.isEmpty
         else {
-            throw LMStudioClientError.missingOutputText
+            throw LocalLLMClientError.missingOutputText
         }
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }

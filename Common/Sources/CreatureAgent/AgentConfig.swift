@@ -5,7 +5,7 @@ import Yams
 
 enum LLMBackend: String, Decodable {
     case openai
-    case lmstudio
+    case local
 }
 
 struct AgentConfig: Decodable {
@@ -15,9 +15,9 @@ struct AgentConfig: Decodable {
     let llmModel: String
     let llmSystemPrompt: String
     let llmTemperature: Double
-    let lmStudioHost: String
-    let lmStudioPort: Int
-    let lmStudioMaxTokens: Int
+    let localLlmHost: String
+    let localLlmPort: Int
+    let localLlmMaxTokens: Int
     let conversationHistorySize: Int
     let mqttHost: String
     let mqttPort: Int
@@ -68,9 +68,9 @@ struct AgentConfig: Decodable {
         case llmModel
         case llmSystemPrompt
         case llmTemperature
-        case lmStudioHost
-        case lmStudioPort
-        case lmStudioMaxTokens
+        case localLlmHost
+        case localLlmPort
+        case localLlmMaxTokens
         case conversationHistorySize
         case mqttHost
         case mqttPort
@@ -96,12 +96,12 @@ struct AgentConfig: Decodable {
         llmSystemPrompt = try container.decode(String.self, forKey: .llmSystemPrompt)
         llmTemperature =
             try container.decodeIfPresent(Double.self, forKey: .llmTemperature) ?? 1.0
-        lmStudioHost =
-            try container.decodeIfPresent(String.self, forKey: .lmStudioHost) ?? "10.69.66.4"
-        lmStudioPort =
-            try container.decodeIfPresent(Int.self, forKey: .lmStudioPort) ?? 1234
-        lmStudioMaxTokens =
-            try container.decodeIfPresent(Int.self, forKey: .lmStudioMaxTokens) ?? 200
+        localLlmHost =
+            try container.decodeIfPresent(String.self, forKey: .localLlmHost) ?? "10.69.66.4"
+        localLlmPort =
+            try container.decodeIfPresent(Int.self, forKey: .localLlmPort) ?? 1234
+        localLlmMaxTokens =
+            try container.decodeIfPresent(Int.self, forKey: .localLlmMaxTokens) ?? 200
         conversationHistorySize =
             try container.decodeIfPresent(Int.self, forKey: .conversationHistorySize) ?? 10
         mqttHost = try container.decodeIfPresent(String.self, forKey: .mqttHost) ?? "10.3.2.5"

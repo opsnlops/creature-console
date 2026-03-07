@@ -6,7 +6,7 @@ mqttReconnectBackoff:
   maxDelaySeconds: 30
   maxFailures: 6
 
-# LLM Backend: "openai" or "lmstudio"
+# LLM Backend: "openai" or "local"
 # llmBackend: openai
 
 # OpenAI settings (llmApiKey required for openai backend)
@@ -14,10 +14,10 @@ llmApiKey: <redacted>
 llmModel: gpt-5.2
 llmTemperature: 1.2
 
-# LM Studio settings (used when llmBackend: lmstudio)
-# lmStudioHost: 10.69.66.4
-# lmStudioPort: 1234
-# lmStudioMaxTokens: 200
+# Local LLM settings (used when llmBackend: local)
+# localLlmHost: 10.69.66.4
+# localLlmPort: 1234
+# localLlmMaxTokens: 200
 # conversationHistorySize: 10
 
 fallbackSpeech: "Hey April? There's something outside."
