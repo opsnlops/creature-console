@@ -80,17 +80,44 @@ extension CreatureAgent {
             logger.info("Loaded config for creature \(config.creatureId)")
             logger.info(
                 "MQTT target \(mqttHostValue):\(mqttPortValue) (topics: \(topicMap.count))")
-            logger.debug("OpenAI model \(config.openAiModel)")
-            logger.debug("OpenAI temperature \(config.openAiTemperature)")
+            logger.debug("LLM backend: \(config.llmBackend)")
+            logger.debug("LLM model \(config.llmModel)")
+            logger.debug("LLM temperature \(config.llmTemperature)")
 
-            let openAI = OpenAIClient(
-                apiKey: config.openAiApiKey,
-                model: config.openAiModel,
-                systemPrompt: config.openAiSystemPrompt,
-                temperature: config.openAiTemperature,
-                logger: logger,
-                traceResponses: traceOpenAI || traceOpenAICompat
-            )
+            let traceResponses = traceOpenAI || traceOpenAICompat
+
+            let respondToPrompt: @Sendable (String) async throws -> String
+
+            switch config.llmBackend {
+            case .openai:
+                guard let apiKey = config.llmApiKey else {
+                    reportError("llmApiKey is required when using the openai backend")
+                    throw ExitCode.failure
+                }
+                let openAI = OpenAIClient(
+                    apiKey: apiKey,
+                    model: config.llmModel,
+                    systemPrompt: config.llmSystemPrompt,
+                    temperature: config.llmTemperature,
+                    logger: logger,
+                    traceResponses: traceResponses
+                )
+                respondToPrompt = { try await openAI.respond(to: $0) }
+
+            case .lmstudio:
+                let lmStudio = LMStudioClient(
+                    host: config.lmStudioHost,
+                    port: config.lmStudioPort,
+                    model: config.llmModel,
+                    systemPrompt: config.llmSystemPrompt,
+                    temperature: config.llmTemperature,
+                    maxTokens: config.lmStudioMaxTokens,
+                    conversationHistorySize: config.conversationHistorySize,
+                    logger: logger,
+                    traceResponses: traceResponses
+                )
+                respondToPrompt = { try await lmStudio.respond(to: $0) }
+            }
 
             let server = getServer(config: globalOptions)
 
@@ -123,10 +150,8 @@ extension CreatureAgent {
                 eventTracker: eventTracker,
                 creatureId: config.creatureId,
                 fallbackSpeech: config.fallbackSpeech,
-                openAiModel: config.openAiModel,
-                respondToPrompt: { prompt in
-                    try await openAI.respond(to: prompt)
-                },
+                llmModel: config.llmModel,
+                respondToPrompt: respondToPrompt,
                 createSpeech: { creatureId, text in
                     await server.createAdHocSpeechAnimation(
                         creatureId: creatureId,

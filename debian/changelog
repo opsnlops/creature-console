@@ -1,3 +1,13 @@
+creature-cli (2.19.0) unstable; urgency=medium
+
+  * creature-agent: add LM Studio as alternative LLM backend (selectable via config).
+  * creature-agent: rename openAi config fields to backend-agnostic llm prefix.
+  * creature-agent: add conversation history for LM Studio to avoid repetitive responses.
+  * creature-agent: add think-tag stripping for Qwen/thinking models.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.19.0.
+
+ -- April White <april@creature.engineering>  Sat, 07 Mar 2026 11:30:00 +0000
+
 creature-cli (2.18.2) unstable; urgency=medium
 
   * Wire systemd env files to CLI flags for creature-mqtt and creature-agent.

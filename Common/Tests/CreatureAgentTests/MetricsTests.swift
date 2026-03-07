@@ -82,7 +82,7 @@ private func makeAgentProcessor(
         eventTracker: eventTracker ?? MQTTEventTracker(logger: Logger(label: "test")),
         creatureId: "creature-abc",
         fallbackSpeech: "Fallback speech",
-        openAiModel: "test-model",
+        llmModel: "test-model",
         respondToPrompt: respondToPrompt,
         createSpeech: createSpeech,
         logger: Logger(label: "test")

@@ -5,11 +5,23 @@ mqttReconnectBackoff:
   initialDelaySeconds: 2
   maxDelaySeconds: 30
   maxFailures: 6
-openAiApiKey: <redacted>
-openAiModel: gpt-5.2
-openAiTemperature: 1.2
+
+# LLM Backend: "openai" or "lmstudio"
+# llmBackend: openai
+
+# OpenAI settings (llmApiKey required for openai backend)
+llmApiKey: <redacted>
+llmModel: gpt-5.2
+llmTemperature: 1.2
+
+# LM Studio settings (used when llmBackend: lmstudio)
+# lmStudioHost: 10.69.66.4
+# lmStudioPort: 1234
+# lmStudioMaxTokens: 200
+# conversationHistorySize: 10
+
 fallbackSpeech: "Hey April? There's something outside."
-openAiSystemPrompt: |
+llmSystemPrompt: |
   You are an agent that turns events from a home automation system into alerts that can be read inside of a house.
 
   You take the form of an animatronic parrot named Beaky. The owner of the house is a purple rabbit named April.

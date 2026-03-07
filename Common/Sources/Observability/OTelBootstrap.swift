@@ -1,3 +1,4 @@
+import Foundation
 import Logging
 import OTel
 import ServiceLifecycle
@@ -7,9 +8,21 @@ import ServiceLifecycle
 /// Call this **before** creating any `Logger` instances. Returns services that must be
 /// run in a `ServiceGroup` for telemetry data to be exported.
 ///
-/// When `OTEL_EXPORTER_OTLP_ENDPOINT` is not set, OTel tries localhost:4318 and
-/// silently fails. Console output works normally via the `MultiplexLogHandler`.
+/// When `OTEL_EXPORTER_OTLP_ENDPOINT` is not set, OTel OTLP export is skipped entirely
+/// to avoid slow startup from connection timeouts to localhost:4318. Console logging
+/// still works normally via `StreamLogHandler`.
 package func bootstrapObservability(serviceName: String) throws -> [any Service] {
+    let hasEndpoint =
+        ProcessInfo.processInfo.environment["OTEL_EXPORTER_OTLP_ENDPOINT"] != nil
+
+    guard hasEndpoint else {
+        // No endpoint configured — just set up console logging and return no services.
+        LoggingSystem.bootstrap { label in
+            StreamLogHandler.standardError(label: label)
+        }
+        return []
+    }
+
     var config = OTel.Configuration.default
     config.serviceName = serviceName
 

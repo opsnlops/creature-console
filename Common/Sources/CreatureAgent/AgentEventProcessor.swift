@@ -9,7 +9,7 @@ struct AgentEventProcessor: Sendable {
     let eventTracker: MQTTEventTracker
     let creatureId: CreatureIdentifier
     let fallbackSpeech: String
-    let openAiModel: String
+    let llmModel: String
     let respondToPrompt: @Sendable (String) async throws -> String
     let createSpeech:
         @Sendable (CreatureIdentifier, String) async -> Result<JobCreatedResponse, ServerError>
@@ -29,7 +29,7 @@ struct AgentEventProcessor: Sendable {
         eventTracker: MQTTEventTracker,
         creatureId: CreatureIdentifier,
         fallbackSpeech: String,
-        openAiModel: String,
+        llmModel: String,
         respondToPrompt: @escaping @Sendable (String) async throws -> String,
         createSpeech:
             @escaping @Sendable (CreatureIdentifier, String) async -> Result<
@@ -41,7 +41,7 @@ struct AgentEventProcessor: Sendable {
         self.eventTracker = eventTracker
         self.creatureId = creatureId
         self.fallbackSpeech = fallbackSpeech
-        self.openAiModel = openAiModel
+        self.llmModel = llmModel
         self.respondToPrompt = respondToPrompt
         self.createSpeech = createSpeech
         self.logger = logger
@@ -121,7 +121,7 @@ struct AgentEventProcessor: Sendable {
 
                 openAIRequestsCounter.increment()
                 let response = try await withSpan("openai.respond") { openAISpan in
-                    openAISpan.attributes["openai.model"] = openAiModel
+                    openAISpan.attributes["openai.model"] = llmModel
                     return try await respondToPrompt(prompt)
                 }
                 let sanitized = TextSanitizer.sanitize(response)

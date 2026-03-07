@@ -3,12 +3,22 @@ import Foundation
 import MQTTSupport
 import Yams
 
+enum LLMBackend: String, Decodable {
+    case openai
+    case lmstudio
+}
+
 struct AgentConfig: Decodable {
     let creatureId: CreatureIdentifier
-    let openAiApiKey: String
-    let openAiModel: String
-    let openAiSystemPrompt: String
-    let openAiTemperature: Double
+    let llmBackend: LLMBackend
+    let llmApiKey: String?
+    let llmModel: String
+    let llmSystemPrompt: String
+    let llmTemperature: Double
+    let lmStudioHost: String
+    let lmStudioPort: Int
+    let lmStudioMaxTokens: Int
+    let conversationHistorySize: Int
     let mqttHost: String
     let mqttPort: Int
     let mqttReconnectBackoff: MQTTReconnectBackoff
@@ -53,10 +63,15 @@ struct AgentConfig: Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case creatureId
-        case openAiApiKey
-        case openAiModel
-        case openAiSystemPrompt
-        case openAiTemperature
+        case llmBackend
+        case llmApiKey
+        case llmModel
+        case llmSystemPrompt
+        case llmTemperature
+        case lmStudioHost
+        case lmStudioPort
+        case lmStudioMaxTokens
+        case conversationHistorySize
         case mqttHost
         case mqttPort
         case mqttReconnectBackoff
@@ -74,12 +89,21 @@ struct AgentConfig: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         creatureId = try container.decode(CreatureIdentifier.self, forKey: .creatureId)
-        openAiApiKey = try container.decode(String.self, forKey: .openAiApiKey)
-        openAiModel = try container.decodeIfPresent(String.self, forKey: .openAiModel) ?? "gpt-5.2"
-        openAiSystemPrompt = try container.decode(String.self, forKey: .openAiSystemPrompt)
-        openAiTemperature =
-            try container.decodeIfPresent(Double.self, forKey: .openAiTemperature)
-            ?? 1.0
+        llmBackend =
+            try container.decodeIfPresent(LLMBackend.self, forKey: .llmBackend) ?? .openai
+        llmApiKey = try container.decodeIfPresent(String.self, forKey: .llmApiKey)
+        llmModel = try container.decodeIfPresent(String.self, forKey: .llmModel) ?? "gpt-5.2"
+        llmSystemPrompt = try container.decode(String.self, forKey: .llmSystemPrompt)
+        llmTemperature =
+            try container.decodeIfPresent(Double.self, forKey: .llmTemperature) ?? 1.0
+        lmStudioHost =
+            try container.decodeIfPresent(String.self, forKey: .lmStudioHost) ?? "10.69.66.4"
+        lmStudioPort =
+            try container.decodeIfPresent(Int.self, forKey: .lmStudioPort) ?? 1234
+        lmStudioMaxTokens =
+            try container.decodeIfPresent(Int.self, forKey: .lmStudioMaxTokens) ?? 200
+        conversationHistorySize =
+            try container.decodeIfPresent(Int.self, forKey: .conversationHistorySize) ?? 10
         mqttHost = try container.decodeIfPresent(String.self, forKey: .mqttHost) ?? "10.3.2.5"
         mqttPort = try container.decodeIfPresent(Int.self, forKey: .mqttPort) ?? 1883
         mqttReconnectBackoff =
