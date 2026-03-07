@@ -74,7 +74,7 @@ actor JoystickManager {
     private init() {
         self.sixAxisJoystick = SixAxisJoystick()
         #if os(macOS)
-            self.acwJoystick = AprilsCreatureWorkshopJoystick(vendorID: 0x0666, productID: 0x0001)
+            self.acwJoystick = AprilsCreatureWorkshopJoystick(vendorID: 0x2e8a, productID: 0x1003)
         #endif
 
         // Subscribe to AppState changes to update joystick light automatically
