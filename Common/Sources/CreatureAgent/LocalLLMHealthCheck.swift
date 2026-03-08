@@ -28,14 +28,13 @@ struct LocalLLMHealthCheck: Service {
         logger.info(
             "Local LLM health check started (url: \(healthURL), interval: \(intervalSeconds)s)")
 
-        try await withGracefulShutdownHandler {
+        try await cancelWhenGracefulShutdown {
             while !Task.isCancelled {
                 try await Task.sleep(for: .seconds(intervalSeconds))
                 await performCheck()
             }
-        } onGracefulShutdown: {
-            logger.info("Local LLM health check shutting down")
         }
+        logger.info("Local LLM health check shutting down")
     }
 
     private func performCheck() async {

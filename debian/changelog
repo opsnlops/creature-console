@@ -1,3 +1,10 @@
+creature-cli (2.19.7) unstable; urgency=medium
+
+  * creature-agent: use cancelWhenGracefulShutdown for health check to actually cancel the sleep.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.19.7.
+
+ -- April White <april@creature.engineering>  Sat, 07 Mar 2026 21:10:00 +0000
+
 creature-cli (2.19.6) unstable; urgency=medium
 
   * creature-agent: fix health check blocking graceful shutdown.
