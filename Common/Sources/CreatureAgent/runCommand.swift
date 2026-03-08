@@ -179,8 +179,19 @@ extension CreatureAgent {
 
             let agentService = AgentService(listener: listener, logger: logger)
 
+            var services: [any Service] = otelServices + [agentService]
+            if config.llmBackend == .local {
+                let healthCheck = LocalLLMHealthCheck(
+                    host: config.localLlmHost,
+                    port: config.localLlmPort,
+                    intervalSeconds: 120,
+                    logger: logger
+                )
+                services.append(healthCheck)
+            }
+
             let serviceGroup = ServiceGroup(
-                services: otelServices + [agentService],
+                services: services,
                 gracefulShutdownSignals: [.sigterm],
                 cancellationSignals: [.sigint],
                 logger: Logger(label: "creature-agent")
