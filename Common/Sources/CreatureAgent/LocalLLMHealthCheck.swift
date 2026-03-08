@@ -44,7 +44,9 @@ struct LocalLLMHealthCheck: Service {
             try await withSpan("llm.health_check") { span in
                 span.attributes["llm.health_url"] = healthURL.absoluteString
 
-                let (data, response) = try await URLSession.shared.data(from: healthURL)
+                var request = URLRequest(url: healthURL)
+                request.timeoutInterval = 10
+                let (data, response) = try await URLSession.shared.data(for: request)
                 guard let httpResponse = response as? HTTPURLResponse else {
                     throw HealthCheckError.invalidResponse
                 }
