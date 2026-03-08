@@ -17,7 +17,7 @@ llmTemperature: 1.2
 # Local LLM settings (used when llmBackend: local)
 # localLlmHost: 10.69.66.4
 # localLlmPort: 1234
-# localLlmMaxTokens: 200
+# localLlmMaxTokens: 100
 # conversationHistorySize: 10
 
 fallbackSpeech: "Hey April? There's something outside."

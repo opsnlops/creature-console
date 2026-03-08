@@ -1,3 +1,11 @@
+creature-cli (2.19.3) unstable; urgency=medium
+
+  * creature-agent: add stop sequences to local LLM requests to prevent runaway generation.
+  * creature-agent: reduce default localLlmMaxTokens from 200 to 100.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.19.3.
+
+ -- April White <april@creature.engineering>  Sat, 07 Mar 2026 15:00:00 +0000
+
 creature-cli (2.19.2) unstable; urgency=medium
 
   * creature-agent: rename LM Studio references to generic local LLM naming.

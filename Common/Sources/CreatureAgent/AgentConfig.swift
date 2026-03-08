@@ -101,7 +101,7 @@ struct AgentConfig: Decodable {
         localLlmPort =
             try container.decodeIfPresent(Int.self, forKey: .localLlmPort) ?? 1234
         localLlmMaxTokens =
-            try container.decodeIfPresent(Int.self, forKey: .localLlmMaxTokens) ?? 200
+            try container.decodeIfPresent(Int.self, forKey: .localLlmMaxTokens) ?? 100
         conversationHistorySize =
             try container.decodeIfPresent(Int.self, forKey: .conversationHistorySize) ?? 10
         mqttHost = try container.decodeIfPresent(String.self, forKey: .mqttHost) ?? "10.3.2.5"

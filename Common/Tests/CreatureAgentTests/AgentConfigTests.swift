@@ -79,7 +79,7 @@ struct AgentConfigTests {
         #expect(config.llmTemperature == 1.0)
         #expect(config.localLlmHost == "10.69.66.4")
         #expect(config.localLlmPort == 1234)
-        #expect(config.localLlmMaxTokens == 200)
+        #expect(config.localLlmMaxTokens == 100)
         #expect(config.conversationHistorySize == 10)
     }
 

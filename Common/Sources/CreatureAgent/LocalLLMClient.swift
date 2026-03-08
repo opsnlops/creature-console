@@ -62,6 +62,7 @@ struct LocalLLMClient {
             "messages": messages,
             "temperature": temperature,
             "max_tokens": maxTokens,
+            "stop": ["\n\n\n", "\n\n"],
         ]
 
         var request = URLRequest(url: url)
