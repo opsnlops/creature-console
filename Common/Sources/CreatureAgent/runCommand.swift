@@ -195,14 +195,7 @@ struct AgentService: Service {
     let logger: Logger
 
     func run() async throws {
-        do {
-            while !Task.isCancelled {
-                try await Task.sleep(for: .seconds(1))
-            }
-        } catch {
-            // Allow cancellation to break the loop
-        }
-
+        try await gracefulShutdown()
         logger.info("Shutting down creature-agent")
         await listener.shutdown()
     }

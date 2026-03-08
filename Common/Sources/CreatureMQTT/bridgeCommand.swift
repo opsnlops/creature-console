@@ -140,16 +140,10 @@ struct BridgeService: Service {
             "Connected to websocket at \(server.serverHostname), publishing to MQTT \(mqttHost):\(mqttPort)"
         )
 
-        do {
-            if seconds == 0 {
-                while !Task.isCancelled {
-                    try await Task.sleep(for: .seconds(1))
-                }
-            } else {
-                try await Task.sleep(for: .seconds(Int(seconds)))
-            }
-        } catch {
-            // Allow cancellation to break the loop
+        if seconds == 0 {
+            try await gracefulShutdown()
+        } else {
+            try await Task.sleep(for: .seconds(Int(seconds)))
         }
 
         _ = await server.disconnectWebsocket()

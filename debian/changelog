@@ -1,3 +1,10 @@
+creature-cli (2.19.4) unstable; urgency=medium
+
+  * creature-agent + creature-mqtt: fix slow shutdown by using gracefulShutdown() instead of polling Task.isCancelled.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.19.4.
+
+ -- April White <april@creature.engineering>  Sat, 07 Mar 2026 15:30:00 +0000
+
 creature-cli (2.19.3) unstable; urgency=medium
 
   * creature-agent: add stop sequences to local LLM requests to prevent runaway generation.
