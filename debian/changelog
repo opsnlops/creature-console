@@ -1,3 +1,10 @@
+creature-cli (2.19.9) unstable; urgency=medium
+
+  * creature-agent: fix cooldown race condition by marking area processed before LLM pipeline.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.19.9.
+
+ -- April White <april@creature.engineering>  Sat, 14 Mar 2026 21:30:00 +0000
+
 creature-cli (2.19.8) unstable; urgency=medium
 
   * creature-agent: set 10s timeout on local LLM health check requests.

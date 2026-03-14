@@ -117,6 +117,10 @@ struct AgentEventProcessor: Sendable {
             return
         }
 
+        // Mark cooldown immediately so concurrent events for this area are rejected
+        // while the LLM + speech pipeline is in flight.
+        await eventTracker.markAreaProcessed(areaName)
+
         do {
             try await withSpan("agent.process_event") { span in
                 span.attributes["mqtt.topic"] = topic
@@ -156,7 +160,6 @@ struct AgentEventProcessor: Sendable {
                 case .success(let job):
                     eventsProcessedCounter.increment()
                     speechQueuedCounter.increment()
-                    await eventTracker.markAreaProcessed(areaName)
                     logger.info(
                         "Queued ad-hoc speech job \(job.jobId) for topic \(topic)")
                 case .failure(let error):

@@ -76,7 +76,7 @@ struct CreatureMQTT: AsyncParsableCommand {
         abstract: "Bridge Creature websocket events into MQTT",
         discussion:
             "Subscribes to the Creature websocket API and republishes incoming messages to an MQTT broker for Home Assistant.",
-        version: "2.19.8",
+        version: "2.19.9",
         subcommands: [Bridge.self],
         defaultSubcommand: Bridge.self,
         helpNames: .shortAndLong
