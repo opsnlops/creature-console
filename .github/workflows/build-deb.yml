@@ -54,15 +54,20 @@ jobs:
           SWIFT_BUILD_FLAGS_MQTT="-c release --product creature-mqtt --static-swift-stdlib" \
             dpkg-buildpackage -us -uc -b
 
-      - name: Collect deb artifact
+      - name: Collect deb artifacts
         run: |
           mkdir -p artifacts
           mv ../creature-cli_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-mqtt_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-agent_*_${{ matrix.arch }}.deb artifacts/
+          mv ../creature-cli-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
+          mv ../creature-mqtt-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
+          mv ../creature-agent-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v7
         with:
           name: creature-packages-${{ matrix.arch }}
-          path: artifacts/*.deb
+          path: |
+            artifacts/*.deb
+            artifacts/*.ddeb
