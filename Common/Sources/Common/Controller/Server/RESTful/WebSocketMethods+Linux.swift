@@ -198,7 +198,7 @@
             var handlers: [EventLoopFuture<Void>] = []
             if let sslContext {
                 do {
-                    let tlsHandler = try NIOSSLClientHandler(
+                    nonisolated(unsafe) let tlsHandler = try NIOSSLClientHandler(
                         context: sslContext,
                         serverHostname: host
                     )
@@ -208,8 +208,9 @@
                 }
             }
 
+            nonisolated(unsafe) let safeUpgradeConfig = upgradeConfig
             handlers.append(
-                channel.pipeline.addHTTPClientHandlers(withClientUpgrade: upgradeConfig))
+                channel.pipeline.addHTTPClientHandlers(withClientUpgrade: safeUpgradeConfig))
 
             let requestHandler = HTTPInitialRequestHandler(
                 host: host, port: port, path: requestPath, headers: headers,
