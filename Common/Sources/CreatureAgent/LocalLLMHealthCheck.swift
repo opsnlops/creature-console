@@ -70,7 +70,6 @@ struct LocalLLMHealthCheck: Service {
 enum HealthCheckError: Error, LocalizedError {
     case invalidResponse
     case unhealthy(code: Int, body: String)
-    case connectionFailed(underlying: Error)
 
     var errorDescription: String? {
         switch self {
@@ -81,8 +80,6 @@ enum HealthCheckError: Error, LocalizedError {
                 return "Local LLM health check returned status \(code)"
             }
             return "Local LLM health check returned status \(code): \(body)"
-        case .connectionFailed(let error):
-            return "Local LLM health check connection failed: \(error.localizedDescription)"
         }
     }
 }

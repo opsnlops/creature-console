@@ -1,8 +1,9 @@
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 import Logging
+
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
 
 struct OpenAIClient {
 
@@ -38,6 +39,7 @@ struct OpenAIClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 30
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 

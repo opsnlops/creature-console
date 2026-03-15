@@ -243,12 +243,8 @@ private func reportCreatureLookupFailure(
     port: Int
 ) throws -> Never {
     let message: String
-    if let serverError = error as? ServerError {
-        message = "Failed to find creature \(creatureId) on \(host):\(port): \(serverError)"
-    } else {
-        message =
-            "Failed to find creature \(creatureId) on \(host):\(port): \(error.localizedDescription)"
-    }
+    message =
+        "Failed to find creature \(creatureId) on \(host):\(port): \(ServerError.detailedMessage(from: error))"
     reportError(message)
     throw ExitCode.failure
 }

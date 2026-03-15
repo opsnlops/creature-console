@@ -1,3 +1,12 @@
+creature-cli (2.19.10) unstable; urgency=medium
+
+  * creature-agent: add 30s timeout on OpenAI requests and 60s timeout on local LLM requests.
+  * creature-agent: use ServerError.detailedMessage for creature lookup failures.
+  * creature-agent: remove unused HealthCheckError.connectionFailed case.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.19.10.
+
+ -- April White <april@creature.engineering>  Sat, 14 Mar 2026 21:45:00 +0000
+
 creature-cli (2.19.9) unstable; urgency=medium
 
   * creature-agent: fix cooldown race condition by marking area processed before LLM pipeline.
