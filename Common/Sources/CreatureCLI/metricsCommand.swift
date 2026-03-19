@@ -1,4 +1,5 @@
 import ArgumentParser
+import Common
 import Foundation
 
 extension CreatureCLI {
@@ -24,38 +25,47 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
+                try await tracedRun("metrics.server-counters", config: globalOptions) { server in
+                    let result = await server.getServerMetrics()
+                    switch result {
+                    case .success(let counters):
+                        print("\nCurrent counters on \(server.serverHostname):\n")
 
-                let server = getServer(config: globalOptions)
+                        let rows: [(String, String)] = [
+                            ("Total Frames", formatNumber(counters.totalFrames)),
+                            ("Events Processed", formatNumber(counters.eventsProcessed)),
+                            ("Frames Streamed", formatNumber(counters.framesStreamed)),
+                            ("DMX Events Processed", formatNumber(counters.dmxEventsProcessed)),
+                            ("Animations Played", formatNumber(counters.animationsPlayed)),
+                            ("Sounds Played", formatNumber(counters.soundsPlayed)),
+                            ("Playlists Started", formatNumber(counters.playlistsStarted)),
+                            ("Playlists Stopped", formatNumber(counters.playlistsStopped)),
+                            (
+                                "Playlist Events Processed",
+                                formatNumber(counters.playlistsEventsProcessed)
+                            ),
+                            (
+                                "Playlist Status Requests",
+                                formatNumber(counters.playlistStatusRequests)
+                            ),
+                            ("REST API Requests", formatNumber(counters.restRequestsProcessed)),
+                        ]
 
-                let result = await server.getServerMetrics()
-                switch result {
-                case .success(let counters):
-                    print("\nCurrent counters on \(server.serverHostname):\n")
+                        printTable(
+                            rows,
+                            columns: [
+                                TableColumn(title: "Metric", valueProvider: { $0.0 }),
+                                TableColumn(title: "Count", valueProvider: { $0.1 }),
+                            ])
 
-                    let rows: [(String, String)] = [
-                        ("Total Frames", formatNumber(counters.totalFrames)),
-                        ("Events Processed", formatNumber(counters.eventsProcessed)),
-                        ("Frames Streamed", formatNumber(counters.framesStreamed)),
-                        ("DMX Events Processed", formatNumber(counters.dmxEventsProcessed)),
-                        ("Animations Played", formatNumber(counters.animationsPlayed)),
-                        ("Sounds Played", formatNumber(counters.soundsPlayed)),
-                        ("Playlists Started", formatNumber(counters.playlistsStarted)),
-                        ("Playlists Stopped", formatNumber(counters.playlistsStopped)),
-                        ("Playlist Events Processed", formatNumber(counters.playlistsEventsProcessed)),
-                        ("Playlist Status Requests", formatNumber(counters.playlistStatusRequests)),
-                        ("REST API Requests", formatNumber(counters.restRequestsProcessed)),
-                    ]
-
-                    printTable(rows, columns: [
-                        TableColumn(title: "Metric", valueProvider: { $0.0 }),
-                        TableColumn(title: "Count", valueProvider: { $0.1 }),
-                    ])
-
-                    print("")
+                        print("")
 
 
-                case .failure(let error):
-                    throw failWithMessage("Error fetching the available sounds: \(error.localizedDescription)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error fetching server metrics: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }

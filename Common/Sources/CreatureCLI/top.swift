@@ -1,6 +1,10 @@
 import ArgumentParser
 import Common
 import Foundation
+import Logging
+import Observability
+import ServiceLifecycle
+import Tracing
 
 struct GlobalOptions: ParsableArguments {
     @Option(help: "The port to connect to")
@@ -31,7 +35,7 @@ struct CreatureCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "A utility for interacting with the Creature Server",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
-        version: "2.19.10",
+        version: "2.20.0",
         subcommands: [
             Animations.self, Creatures.self, Debug.self, Metrics.self, Network.self, Playlists.self,
             Sounds.self, Util.self, Voice.self, Websocket.self,
@@ -58,6 +62,54 @@ func getServer(config: GlobalOptions) -> CreatureServerClient {
     server.apiKey = config.proxyApiKey
 
     return server
+}
+
+/// Run a CLI operation with OTel tracing enabled.
+///
+/// When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, this bootstraps OTel, creates a root
+/// span for the command, runs the body, and ensures traces are flushed before returning.
+/// When unset, the body runs directly with no overhead.
+func tracedRun(
+    _ spanName: String,
+    config: GlobalOptions,
+    body: @Sendable () async throws -> Void
+) async throws {
+    let otelServices = try bootstrapObservability(serviceName: "creature-cli")
+
+    if otelServices.isEmpty {
+        try await body()
+        return
+    }
+
+    // Start OTel export pipeline in background
+    let exportTask = Task {
+        let serviceGroup = ServiceGroup(
+            services: otelServices,
+            logger: Logger(label: "creature-cli.otel")
+        )
+        try await serviceGroup.run()
+    }
+    defer { exportTask.cancel() }
+
+    try await withSpan("cli.\(spanName)") { span in
+        span.attributes["cli.command"] = spanName
+        try await body()
+    }
+
+    // Let the batch exporter flush before the process exits
+    try? await Task.sleep(for: .seconds(2))
+}
+
+/// Convenience overload that creates a `CreatureServerClient` and passes it to the body.
+func tracedRun(
+    _ spanName: String,
+    config: GlobalOptions,
+    body: @Sendable (CreatureServerClient) async throws -> Void
+) async throws {
+    try await tracedRun(spanName, config: config) {
+        let server = getServer(config: config)
+        try await body(server)
+    }
 }
 
 

@@ -51,8 +51,10 @@ extension CreatureCLI {
                 For generating lip sync JSON from a local WAV, use `sounds generate-lipsync-from-file`.
                 """,
             subcommands: [
-                Get.self, List.self, Play.self, Interrupt.self, GenerateLipSync.self, Rename.self, Delete.self,
-                TestAnimationEncoding.self, TestTrackEncoding.self, TestAnimationSaving.self, AdHoc.self,
+                Get.self, List.self, Play.self, Interrupt.self, GenerateLipSync.self, Rename.self,
+                Delete.self,
+                TestAnimationEncoding.self, TestTrackEncoding.self, TestAnimationSaving.self,
+                AdHoc.self,
             ]
         )
 
@@ -71,35 +73,38 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let server = getServer(config: globalOptions)
+                try await tracedRun("animations.list", config: globalOptions) { server in
+                    let result = await server.listAnimations()
 
-                let result = await server.listAnimations()
+                    switch result {
+                    case .success(let animations):
 
-                switch result {
-                case .success(let animations):
+                        print("\nAnimations for (well. will be real):\n")
+                        printTable(
+                            animations,
+                            columns: [
+                                TableColumn(title: "Title", valueProvider: { $0.title }),
+                                TableColumn(
+                                    title: "ID", valueProvider: { $0.id.lowercased() }),
+                                TableColumn(
+                                    title: "Sound File", valueProvider: { $0.soundFile }),
+                                TableColumn(
+                                    title: "Frames",
+                                    valueProvider: { formatNumber(UInt64($0.numberOfFrames)) }),
+                                TableColumn(
+                                    title: "Multitrack",
+                                    valueProvider: { $0.multitrackAudio ? "✅" : "🚫" }),
+                            ])
 
-                    print("\nAnimations for (well. will be real):\n")
-                    printTable(
-                        animations,
-                        columns: [
-                            TableColumn(title: "Title", valueProvider: { $0.title }),
-                            TableColumn(title: "ID", valueProvider: { $0.id.lowercased() }),
-                            TableColumn(title: "Sound File", valueProvider: { $0.soundFile }),
-                            TableColumn(
-                                title: "Frames",
-                                valueProvider: { formatNumber(UInt64($0.numberOfFrames)) }),
-                            TableColumn(
-                                title: "Multitrack",
-                                valueProvider: { $0.multitrackAudio ? "✅" : "🚫" }),
-                        ])
+                        print(
+                            "\n\(animations.count) animation(s) for creature (yes) on server at \(server.serverHostname)\n"
+                        )
 
-                    print(
-                        "\n\(animations.count) animation(s) for creature (yes) on server at \(server.serverHostname)\n"
-                    )
-
-                case .failure(let error):
-                    throw failWithMessage(
-                        "Error fetching animations: \(error.localizedDescription)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error fetching animations: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }
@@ -177,18 +182,21 @@ extension CreatureCLI {
 
                 // Make it obvious this is a fake one in the system
                 mockAnimation.id = UUID().uuidString
-                mockAnimation.metadata.title = "Fake animation created by CreatureCLI at \(Date())"
+                mockAnimation.metadata.title =
+                    "Fake animation created by CreatureCLI at \(Date())"
 
-                let server = getServer(config: globalOptions)
-                let result = await server.saveAnimation(animation: mockAnimation)
-                switch result {
+                try await tracedRun("animations.test-saving", config: globalOptions) { server in
+                    let result = await server.saveAnimation(animation: mockAnimation)
+                    switch result {
 
-                case .success(let message):
-                    print("Animation saved. Server said: \(message)")
-                case .failure(let error):
-                    throw failWithMessage("Unable to save animation: \(error.localizedDescription)")
+                    case .success(let message):
+                        print("Animation saved. Server said: \(message)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Unable to save animation: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
-
             }
         }
 
@@ -231,46 +239,51 @@ extension CreatureCLI {
                 var globalOptions: GlobalOptions
 
                 func run() async throws {
-                    let server = await AdHoc.makeServer(for: globalOptions)
-                    let result = await server.listAdHocAnimations()
+                    try await tracedRun("animations.ad-hoc.list", config: globalOptions) {
+                        let server = await AdHoc.makeServer(for: globalOptions)
+                        let result = await server.listAdHocAnimations()
 
-                    switch result {
-                    case .success(let animations):
-                        if animations.isEmpty {
-                            print("No ad-hoc animations are currently available.")
-                            return
+                        switch result {
+                        case .success(let animations):
+                            if animations.isEmpty {
+                                print("No ad-hoc animations are currently available.")
+                                return
+                            }
+
+                            print("\nAd-hoc animations currently cached on the server:\n")
+                            printTable(
+                                animations,
+                                columns: [
+                                    TableColumn(
+                                        title: "Title",
+                                        valueProvider: { $0.metadata.title }),
+                                    TableColumn(
+                                        title: "Animation ID",
+                                        valueProvider: { $0.animationId.lowercased() }
+                                    ),
+                                    TableColumn(
+                                        title: "Frames",
+                                        valueProvider: {
+                                            formatNumber(UInt64($0.metadata.numberOfFrames))
+                                        }
+                                    ),
+                                    TableColumn(
+                                        title: "Sound File",
+                                        valueProvider: { $0.metadata.soundFile }
+                                    ),
+                                    TableColumn(
+                                        title: "Created",
+                                        valueProvider: { formattedDate($0.createdAt) }
+                                    ),
+                                ])
+                            print(
+                                "\n\(animations.count) ad-hoc animation(s) available on server.\n"
+                            )
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Error fetching ad-hoc animations: \(ServerError.detailedMessage(from: error))"
+                            )
                         }
-
-                        print("\nAd-hoc animations currently cached on the server:\n")
-                        printTable(
-                            animations,
-                            columns: [
-                                TableColumn(title: "Title", valueProvider: { $0.metadata.title }),
-                                TableColumn(
-                                    title: "Animation ID",
-                                    valueProvider: { $0.animationId.lowercased() }
-                                ),
-                                TableColumn(
-                                    title: "Frames",
-                                    valueProvider: {
-                                        formatNumber(UInt64($0.metadata.numberOfFrames))
-                                    }
-                                ),
-                                TableColumn(
-                                    title: "Sound File",
-                                    valueProvider: { $0.metadata.soundFile }
-                                ),
-                                TableColumn(
-                                    title: "Created",
-                                    valueProvider: { formattedDate($0.createdAt) }
-                                ),
-                            ])
-                        print(
-                            "\n\(animations.count) ad-hoc animation(s) available on server.\n"
-                        )
-                    case .failure(let error):
-                        throw failWithMessage(
-                            "Error fetching ad-hoc animations: \(error.localizedDescription)")
                     }
                 }
             }
@@ -287,24 +300,28 @@ extension CreatureCLI {
                 var globalOptions: GlobalOptions
 
                 func run() async throws {
-                    let server = await AdHoc.makeServer(for: globalOptions)
-                    let result = await server.getAdHocAnimation(animationId: animationId)
+                    try await tracedRun("animations.ad-hoc.show", config: globalOptions) {
+                        let server = await AdHoc.makeServer(for: globalOptions)
+                        let result = await server.getAdHocAnimation(animationId: animationId)
 
-                    switch result {
-                    case .success(let animation):
-                        print("\nAd-hoc Animation \(animation.metadata.id.lowercased())\n")
-                        print("Title: \(animation.metadata.title)")
-                        print("Sound File: \(animation.metadata.soundFile)")
-                        print("Tracks: \(animation.tracks.count)")
-                        print("Number of Frames: \(animation.metadata.numberOfFrames)")
-                        if let created = animation.metadata.lastUpdated {
-                            let stamp = AdHoc.formattedDate(created)
-                            print("Last Updated: \(stamp)")
+                        switch result {
+                        case .success(let animation):
+                            print(
+                                "\nAd-hoc Animation \(animation.metadata.id.lowercased())\n")
+                            print("Title: \(animation.metadata.title)")
+                            print("Sound File: \(animation.metadata.soundFile)")
+                            print("Tracks: \(animation.tracks.count)")
+                            print("Number of Frames: \(animation.metadata.numberOfFrames)")
+                            if let created = animation.metadata.lastUpdated {
+                                let stamp = AdHoc.formattedDate(created)
+                                print("Last Updated: \(stamp)")
+                            }
+                            print("")
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Unable to fetch ad-hoc animation: \(ServerError.detailedMessage(from: error))"
+                            )
                         }
-                        print("")
-                    case .failure(let error):
-                        throw failWithMessage(
-                            "Unable to fetch ad-hoc animation: \(error.localizedDescription)")
                     }
                 }
             }
@@ -325,19 +342,20 @@ extension CreatureCLI {
         var globalOptions: GlobalOptions
 
         func run() async throws {
-
             print("attempting to fetch animation \(animationId) from the server...\n")
 
-            let server = getServer(config: globalOptions)
-            let result = await server.getAnimation(animationId: animationId)
+            try await tracedRun("animations.get", config: globalOptions) { server in
+                let result = await server.getAnimation(animationId: animationId)
 
-            switch result {
-            case .success(let animation):
-                print("\nTitle: \(animation.metadata.title)")
-                print("Tracks: \(animation.tracks.count)")
-                print("Number of Frames: \(animation.metadata.numberOfFrames)")
-            case .failure(let error):
-                throw failWithMessage("Unable to get animation: \(error.localizedDescription)")
+                switch result {
+                case .success(let animation):
+                    print("\nTitle: \(animation.metadata.title)")
+                    print("Tracks: \(animation.tracks.count)")
+                    print("Number of Frames: \(animation.metadata.numberOfFrames)")
+                case .failure(let error):
+                    throw failWithMessage(
+                        "Unable to get animation: \(ServerError.detailedMessage(from: error))")
+                }
             }
         }
     }
@@ -359,19 +377,19 @@ extension CreatureCLI {
         var universe: UniverseIdentifier = 1
 
         func run() async throws {
-
             print("attempting to fetch animation \(animationId) from the server...\n")
 
-            let server = getServer(config: globalOptions)
-            let result = await server.playStoredAnimation(
-                animationId: animationId, universe: universe)
-            switch result {
-            case .success(let messsage):
-                print(messsage)
-            case .failure(let error):
-                throw failWithMessage("Unable to play animation: \(error.localizedDescription)")
+            try await tracedRun("animations.play", config: globalOptions) { server in
+                let result = await server.playStoredAnimation(
+                    animationId: animationId, universe: universe)
+                switch result {
+                case .success(let messsage):
+                    print(messsage)
+                case .failure(let error):
+                    throw failWithMessage(
+                        "Unable to play animation: \(ServerError.detailedMessage(from: error))")
+                }
             }
-
         }
     }
 
@@ -395,22 +413,22 @@ extension CreatureCLI {
         var resume: Bool = false
 
         func run() async throws {
-
             print(
                 "attempting to interrupt with animation \(animationId) on universe \(universe) (resume: \(resume))...\n"
             )
 
-            let server = getServer(config: globalOptions)
-            let result = await server.interruptWithAnimation(
-                animationId: animationId, universe: universe, resumePlaylist: resume)
-            switch result {
-            case .success(let message):
-                print(message)
-            case .failure(let error):
-                throw failWithMessage(
-                    "Unable to interrupt with animation: \(error.localizedDescription)")
+            try await tracedRun("animations.interrupt", config: globalOptions) { server in
+                let result = await server.interruptWithAnimation(
+                    animationId: animationId, universe: universe, resumePlaylist: resume)
+                switch result {
+                case .success(let message):
+                    print(message)
+                case .failure(let error):
+                    throw failWithMessage(
+                        "Unable to interrupt with animation: \(ServerError.detailedMessage(from: error))"
+                    )
+                }
             }
-
         }
     }
 
@@ -418,8 +436,8 @@ extension CreatureCLI {
         static let configuration = CommandConfiguration(
             abstract: "Generate lip sync for a multitrack animation",
             discussion:
-                "Queues a background job that extracts each creature's audio channel, runs Rhubarb lip sync, " +
-                "and updates the animation's tracks in the database."
+                "Queues a background job that extracts each creature's audio channel, runs Rhubarb lip sync, "
+                + "and updates the animation's tracks in the database."
         )
 
         @Argument(help: "Animation ID to process")
@@ -429,21 +447,22 @@ extension CreatureCLI {
         var globalOptions: GlobalOptions
 
         func run() async throws {
-
             print("queuing lip sync generation for animation \(animationId) on the server...\n")
 
-            let server = getServer(config: globalOptions)
-            let result = await server.generateLipSyncForAnimation(animationId: animationId)
+            try await tracedRun("animations.generate-lip-sync", config: globalOptions) { server in
+                let result = await server.generateLipSyncForAnimation(animationId: animationId)
 
-            switch result {
-            case .success(let job):
-                print("Job queued: \(job.jobId)")
-                if !job.message.isEmpty {
-                    print(job.message)
+                switch result {
+                case .success(let job):
+                    print("Job queued: \(job.jobId)")
+                    if !job.message.isEmpty {
+                        print(job.message)
+                    }
+                case .failure(let error):
+                    throw failWithMessage(
+                        "Unable to queue lip sync generation: \(ServerError.detailedMessage(from: error))"
+                    )
                 }
-            case .failure(let error):
-                throw failWithMessage(
-                    "Unable to queue lip sync generation: \(error.localizedDescription)")
             }
         }
     }
@@ -463,28 +482,30 @@ extension CreatureCLI {
         var newTitle: String
 
         func run() async throws {
-
             print("Renaming animation \(animationId) to '\(newTitle)'...\n")
 
-            let server = getServer(config: globalOptions)
+            try await tracedRun("animations.rename", config: globalOptions) { server in
+                let fetchResult = await server.getAnimation(animationId: animationId)
+                var animation: Animation
+                switch fetchResult {
+                case .success(let existing):
+                    animation = existing
+                case .failure(let error):
+                    throw failWithMessage(
+                        "Unable to load animation: \(ServerError.detailedMessage(from: error))")
+                }
 
-            let fetchResult = await server.getAnimation(animationId: animationId)
-            var animation: Animation
-            switch fetchResult {
-            case .success(let existing):
-                animation = existing
-            case .failure(let error):
-                throw failWithMessage("Unable to load animation: \(error.localizedDescription)")
-            }
+                animation.metadata.title = newTitle
 
-            animation.metadata.title = newTitle
-
-            let saveResult = await server.saveAnimation(animation: animation)
-            switch saveResult {
-            case .success(let message):
-                print(message)
-            case .failure(let error):
-                throw failWithMessage("Unable to save renamed animation: \(error.localizedDescription)")
+                let saveResult = await server.saveAnimation(animation: animation)
+                switch saveResult {
+                case .success(let message):
+                    print(message)
+                case .failure(let error):
+                    throw failWithMessage(
+                        "Unable to save renamed animation: \(ServerError.detailedMessage(from: error))"
+                    )
+                }
             }
         }
     }
@@ -514,15 +535,16 @@ extension CreatureCLI {
 
             print("Deleting animation \(animationId)...\n")
 
-            let server = getServer(config: globalOptions)
-            let result = await server.deleteAnimation(animationId: animationId)
+            try await tracedRun("animations.delete", config: globalOptions) { server in
+                let result = await server.deleteAnimation(animationId: animationId)
 
-            switch result {
-            case .success(let message):
-                print(message)
-            case .failure(let error):
-                throw failWithMessage(
-                    "Unable to delete animation: \(error.localizedDescription)")
+                switch result {
+                case .success(let message):
+                    print(message)
+                case .failure(let error):
+                    throw failWithMessage(
+                        "Unable to delete animation: \(ServerError.detailedMessage(from: error))")
+                }
             }
         }
     }

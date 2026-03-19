@@ -31,6 +31,7 @@ let package = Package(
             url: "https://github.com/swift-server/swift-service-lifecycle.git",
             from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-metrics.git", from: "2.5.0"),
+        .package(url: "https://github.com/apple/swift-distributed-tracing.git", from: "1.4.0"),
     ],
 
     targets: [
@@ -38,6 +39,7 @@ let package = Package(
             name: "Common",
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "Tracing", package: "swift-distributed-tracing"),
                 .product(
                     name: "NIOCore",
                     package: "swift-nio",
@@ -89,7 +91,9 @@ let package = Package(
             name: "creature-cli",
             dependencies: [
                 "Common",
+                "Observability",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
                 .product(
                     name: "NIOCore",
                     package: "swift-nio",

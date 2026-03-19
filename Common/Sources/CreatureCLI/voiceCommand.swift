@@ -1,6 +1,7 @@
 import ArgumentParser
 import Common
 import Foundation
+import Tracing
 
 extension CreatureCLI {
 
@@ -25,22 +26,25 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
+                try await tracedRun("voice.list", config: globalOptions) { server in
+                    let result = await server.listAvailableVoices()
+                    switch result {
+                    case .success(let voices):
+                        print("Voices we have access to:\n")
 
-                let server = getServer(config: globalOptions)
+                        printTable(
+                            voices,
+                            columns: [
+                                TableColumn(title: "Name", valueProvider: { $0.name }),
+                                TableColumn(title: "ID", valueProvider: { $0.voiceId }),
+                            ])
 
-                let result = await server.listAvailableVoices()
-                switch result {
-                case .success(let voices):
-                    print("Voices we have access to:\n")
-
-                    printTable(voices, columns: [
-                        TableColumn(title: "Name", valueProvider: { $0.name }),
-                        TableColumn(title: "ID", valueProvider: { $0.voiceId }),
-                    ])
-
-                    print("\nWe have access to \(voices.count) voice(s)")
-                case .failure(let error):
-                    throw failWithMessage("Error fetching the available voices: \(error.localizedDescription)")
+                        print("\nWe have access to \(voices.count) voice(s)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error fetching the available voices: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }
@@ -57,28 +61,27 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
+                try await tracedRun("voice.subscription-status", config: globalOptions) { server in
+                    let result = await server.getVoiceSubscriptionStatus()
+                    switch result {
+                    case .success(let subscription):
 
-                let server = getServer(config: globalOptions)
+                        print("Status of our subscription for elevenlabs.io:\n")
 
-                let result = await server.getVoiceSubscriptionStatus()
-                switch result {
-                case .success(let subscription):
+                        print("                  Tier: \(subscription.tier)")
+                        print("                Status: \(subscription.status)")
+                        print(
+                            "       Character Limit: \(formatNumber(UInt64(subscription.characterLimit)))"
+                        )
+                        print(
+                            "  Characters Remaining: \(formatNumber(UInt64(subscription.characterLimit - subscription.characterCount)))\n"
+                        )
 
-                    print("Status of our subscription for elevenlabs.io:\n")
-
-                    print("                  Tier: \(subscription.tier)")
-                    print("                Status: \(subscription.status)")
-                    print(
-                        "       Character Limit: \(formatNumber(UInt64(subscription.characterLimit)))"
-                    )
-                    print(
-                        "  Characters Remaining: \(formatNumber(UInt64(subscription.characterLimit - subscription.characterCount)))\n"
-                    )
-
-
-                case .failure(let error):
-                    throw failWithMessage(
-                        "Error fetching the status of our 11labs subscription: \(error.localizedDescription)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error fetching the status of our 11labs subscription: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }
@@ -105,26 +108,27 @@ extension CreatureCLI {
             var text: String
 
             func run() async throws {
+                try await tracedRun("voice.create-sound-file", config: globalOptions) { server in
+                    print("\nMaking request to server! (This might take a few seconds)...\n")
 
-                let server = getServer(config: globalOptions)
+                    let result = await server.createCreatureSpeechSoundFile(
+                        creatureId: creatureId, title: title, text: text)
+                    switch result {
+                    case .success(let speechFile):
 
-                print("\nMaking request to server! (This might take a few seconds)...\n")
+                        print("\n...done!\n")
 
-                let result = await server.createCreatureSpeechSoundFile(
-                    creatureId: creatureId, title: title, text: text)
-                switch result {
-                case .success(let speechFile):
+                        print("      Sound File: \(speechFile.soundFileName)")
+                        print(" Transcript File: \(speechFile.transcriptFileName)")
+                        print(
+                            " Sound File Size: \(formatNumber(UInt64(speechFile.soundFileSize))) bytes\n"
+                        )
 
-                    print("\n...done!\n")
-
-                    print("      Sound File: \(speechFile.soundFileName)")
-                    print(" Transcript File: \(speechFile.transcriptFileName)")
-                    print(
-                        " Sound File Size: \(formatNumber(UInt64(speechFile.soundFileSize))) bytes\n"
-                    )
-
-                case .failure(let error):
-                    throw failWithMessage("Error creating a new sound file: \(error.localizedDescription)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error creating a new sound file: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }
@@ -160,27 +164,31 @@ extension CreatureCLI {
 
                 func run() async throws {
                     let dialog = try validatedText()
-                    let server = getServer(config: globalOptions)
 
-                    print(
-                        "\nRequesting ad-hoc speech for \(creatureId). This may take several seconds...\n"
-                    )
-
-                    let result = await server.createAdHocSpeechAnimation(
-                        creatureId: creatureId, text: dialog, resumePlaylist: resumePlaylist)
-
-                    switch result {
-                    case .success(let job):
-                        print("Ad-hoc speech job queued.")
-                        print("Job ID: \(job.jobId)")
-                        if !job.message.isEmpty {
-                            print(job.message)
-                        }
+                    try await tracedRun("voice.ad-hoc.play", config: globalOptions) { server in
                         print(
-                            "Monitor websocket job-progress/job-complete events to track status.")
-                    case .failure(let error):
-                        throw failWithMessage(
-                            "Unable to create ad-hoc speech job: \(error.localizedDescription)")
+                            "\nRequesting ad-hoc speech for \(creatureId). This may take several seconds...\n"
+                        )
+
+                        let result = await server.createAdHocSpeechAnimation(
+                            creatureId: creatureId, text: dialog,
+                            resumePlaylist: resumePlaylist)
+
+                        switch result {
+                        case .success(let job):
+                            print("Ad-hoc speech job queued.")
+                            print("Job ID: \(job.jobId)")
+                            if !job.message.isEmpty {
+                                print(job.message)
+                            }
+                            print(
+                                "Monitor websocket job-progress/job-complete events to track status."
+                            )
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Unable to create ad-hoc speech job: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
                     }
                 }
 
@@ -216,28 +224,31 @@ extension CreatureCLI {
 
                 func run() async throws {
                     let dialog = try validatedText()
-                    let server = getServer(config: globalOptions)
 
-                    print(
-                        "\nPreparing ad-hoc speech for \(creatureId). This may take several seconds...\n"
-                    )
-
-                    let result = await server.prepareAdHocSpeechAnimation(
-                        creatureId: creatureId, text: dialog, resumePlaylist: resumePlaylist)
-
-                    switch result {
-                    case .success(let job):
-                        print("Prepared ad-hoc speech job queued.")
-                        print("Job ID: \(job.jobId)")
-                        if !job.message.isEmpty {
-                            print(job.message)
-                        }
+                    try await tracedRun("voice.ad-hoc.prepare", config: globalOptions) { server in
                         print(
-                            "Use 'voice ad-hoc trigger' after the job completes to play the animation."
+                            "\nPreparing ad-hoc speech for \(creatureId). This may take several seconds...\n"
                         )
-                    case .failure(let error):
-                        throw failWithMessage(
-                            "Unable to prepare ad-hoc speech job: \(error.localizedDescription)")
+
+                        let result = await server.prepareAdHocSpeechAnimation(
+                            creatureId: creatureId, text: dialog,
+                            resumePlaylist: resumePlaylist)
+
+                        switch result {
+                        case .success(let job):
+                            print("Prepared ad-hoc speech job queued.")
+                            print("Job ID: \(job.jobId)")
+                            if !job.message.isEmpty {
+                                print(job.message)
+                            }
+                            print(
+                                "Use 'voice ad-hoc trigger' after the job completes to play the animation."
+                            )
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Unable to prepare ad-hoc speech job: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
                     }
                 }
 
@@ -269,16 +280,18 @@ extension CreatureCLI {
                 var globalOptions: GlobalOptions
 
                 func run() async throws {
-                    let server = getServer(config: globalOptions)
-                    let result = await server.triggerPreparedAdHocSpeech(
-                        animationId: animationId, resumePlaylist: resumePlaylist)
+                    try await tracedRun("voice.ad-hoc.trigger", config: globalOptions) { server in
+                        let result = await server.triggerPreparedAdHocSpeech(
+                            animationId: animationId, resumePlaylist: resumePlaylist)
 
-                    switch result {
-                    case .success(let message):
-                        print(message)
-                    case .failure(let error):
-                        throw failWithMessage(
-                            "Unable to trigger prepared animation: \(error.localizedDescription)")
+                        switch result {
+                        case .success(let message):
+                            print(message)
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Unable to trigger prepared animation: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
                     }
                 }
             }

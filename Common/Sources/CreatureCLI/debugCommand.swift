@@ -1,4 +1,5 @@
 import ArgumentParser
+import Common
 
 extension CreatureCLI {
 
@@ -26,15 +27,17 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let server = getServer(config: globalOptions)
-
-                let result = await server.invalidateAnimationCache()
-                switch result {
-                case .success(let status):
-                    print("Success! Server said: \(status.message)")
-                case .failure(let error):
-                    throw failWithMessage(
-                        "Error invalidating animation cache: \(error.localizedDescription)")
+                try await tracedRun("debug.invalidate-animation-cache", config: globalOptions) {
+                    server in
+                    let result = await server.invalidateAnimationCache()
+                    switch result {
+                    case .success(let status):
+                        print("Success! Server said: \(status.message)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error invalidating animation cache: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }
@@ -50,15 +53,17 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let server = getServer(config: globalOptions)
-
-                let result = await server.invalidateCreatureCache()
-                switch result {
-                case .success(let status):
-                    print("Success! Server said: \(status.message)")
-                case .failure(let error):
-                    throw failWithMessage(
-                        "Error invalidating creature cache: \(error.localizedDescription)")
+                try await tracedRun("debug.invalidate-creature-cache", config: globalOptions) {
+                    server in
+                    let result = await server.invalidateCreatureCache()
+                    switch result {
+                    case .success(let status):
+                        print("Success! Server said: \(status.message)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error invalidating creature cache: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }
@@ -74,15 +79,17 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let server = getServer(config: globalOptions)
-
-                let result = await server.invalidatePlaylistCache()
-                switch result {
-                case .success(let status):
-                    print("Success! Server said: \(status.message)")
-                case .failure(let error):
-                    throw failWithMessage(
-                        "Error invalidating playlist cache: \(error.localizedDescription)")
+                try await tracedRun("debug.invalidate-playlist-cache", config: globalOptions) {
+                    server in
+                    let result = await server.invalidatePlaylistCache()
+                    switch result {
+                    case .success(let status):
+                        print("Success! Server said: \(status.message)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error invalidating playlist cache: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }
@@ -98,15 +105,17 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let server = getServer(config: globalOptions)
-
-                let result = await server.invalidateSoundListCache()
-                switch result {
-                case .success(let status):
-                    print("Success! Server said: \(status.message)")
-                case .failure(let error):
-                    throw failWithMessage(
-                        "Error invalidating sound list cache: \(error.localizedDescription)")
+                try await tracedRun("debug.invalidate-sound-list-cache", config: globalOptions) {
+                    server in
+                    let result = await server.invalidateSoundListCache()
+                    switch result {
+                    case .success(let status):
+                        print("Success! Server said: \(status.message)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error invalidating sound list cache: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }
@@ -121,16 +130,17 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let server = getServer(config: globalOptions)
-
-                let result = await server.testPlaylistUpdates()
-                switch result {
-                case .success(let status):
-                    print("Success! Server said: \(status.message)")
-                case .failure(let error):
-                    throw failWithMessage(
-                        "Error sending a fake playlist update request: \(error.localizedDescription)"
-                    )
+                try await tracedRun("debug.test-playlist-updates", config: globalOptions) {
+                    server in
+                    let result = await server.testPlaylistUpdates()
+                    switch result {
+                    case .success(let status):
+                        print("Success! Server said: \(status.message)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error sending a fake playlist update request: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
             }
         }

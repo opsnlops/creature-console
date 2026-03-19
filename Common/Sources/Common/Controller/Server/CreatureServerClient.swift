@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import Tracing
 
 #if canImport(FoundationNetworking)
     import FoundationNetworking
@@ -164,6 +165,17 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         // Set Host header when using proxy
         if serverProxyHost != nil, apiKey != nil {
             request.setValue("\(serverHostname):\(serverPort)", forHTTPHeaderField: "Host")
+        }
+
+        // Inject W3C Trace Context headers (traceparent, tracestate) for distributed
+        // tracing. When OTel is not bootstrapped, the no-op instrument skips injection.
+        if let context = ServiceContext.current {
+            var headers: [String: String] = [:]
+            InstrumentationSystem.instrument.inject(
+                context, into: &headers, using: HTTPHeadersInjector())
+            for (key, value) in headers {
+                request.setValue(value, forHTTPHeaderField: key)
+            }
         }
 
         return request
@@ -377,5 +389,13 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         }
     }
 
+}
 
+/// Injector for W3C Trace Context propagation into HTTP header dictionaries.
+private struct HTTPHeadersInjector: Instrumentation.Injector {
+    typealias Carrier = [String: String]
+
+    func inject(_ value: String, forKey key: String, into carrier: inout [String: String]) {
+        carrier[key] = value
+    }
 }

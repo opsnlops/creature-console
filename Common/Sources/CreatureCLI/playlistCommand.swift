@@ -24,26 +24,30 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
+                try await tracedRun("playlists.list", config: globalOptions) { server in
+                    let result = await server.getAllPlaylists()
+                    switch result {
+                    case .success(let playlists):
 
-                let server = getServer(config: globalOptions)
+                        print("\nOur playlists:\n")
+                        printTable(
+                            playlists,
+                            columns: [
+                                TableColumn(title: "Name", valueProvider: { $0.name }),
+                                TableColumn(title: "ID", valueProvider: { $0.id }),
+                                TableColumn(
+                                    title: "Number Of Items",
+                                    valueProvider: { String($0.items.count) }),
+                            ])
 
-                let result = await server.getAllPlaylists()
-                switch result {
-                case .success(let playlists):
+                        print(
+                            "\n\(playlists.count) playlists(s) on server at \(server.serverHostname)\n"
+                        )
 
-                    print("\nOur playlists:\n")
-                    printTable(playlists, columns: [
-                        TableColumn(title: "Name", valueProvider: { $0.name }),
-                        TableColumn(title: "ID", valueProvider: { $0.id }),
-                        TableColumn(
-                            title: "Number Of Items", valueProvider: { String($0.items.count) }),
-                    ])
-
-                    print(
-                        "\n\(playlists.count) playlists(s) on server at \(server.serverHostname)\n")
-
-                case .failure(let error):
-                    throw failWithMessage("Error fetching playlists: \(error.localizedDescription)")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Error fetching playlists: \(ServerError.detailedMessage(from: error))")
+                    }
                 }
             }
 
@@ -66,19 +70,19 @@ extension CreatureCLI {
             var universe: UniverseIdentifier
 
             func run() async throws {
-
                 print("attempting to start \(playlistId) on universe \(universe)...\n")
 
-                let server = getServer(config: globalOptions)
+                try await tracedRun("playlists.start", config: globalOptions) { server in
+                    let result = await server.startPlayingPlaylist(
+                        universe: universe, playlistId: playlistId)
 
-                let result = await server.startPlayingPlaylist(
-                    universe: universe, playlistId: playlistId)
-
-                switch result {
-                case .success(let message):
-                    print(message)
-                case .failure(let error):
-                    throw failWithMessage("Unable to start playlist: \(error.localizedDescription)")
+                    switch result {
+                    case .success(let message):
+                        print(message)
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Unable to start playlist: \(ServerError.detailedMessage(from: error))")
+                    }
                 }
             }
 
@@ -98,21 +102,20 @@ extension CreatureCLI {
             var universe: UniverseIdentifier
 
             func run() async throws {
-
                 print("attempting to stop playing playlists universe \(universe)...\n")
 
-                let server = getServer(config: globalOptions)
+                try await tracedRun("playlists.stop", config: globalOptions) { server in
+                    let result = await server.stopPlayingPlaylist(universe: universe)
 
-                let result = await server.stopPlayingPlaylist(universe: universe)
-
-                switch result {
-                case .success(let message):
-                    print(message)
-                case .failure(let error):
-                    throw failWithMessage("Unable to stop playing a playlist: \(error.localizedDescription)")
+                    switch result {
+                    case .success(let message):
+                        print(message)
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Unable to stop playing a playlist: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
                 }
-
-
             }
 
         }

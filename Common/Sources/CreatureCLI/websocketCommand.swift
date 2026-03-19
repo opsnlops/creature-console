@@ -57,7 +57,8 @@ extension CreatureCLI {
 
             @Option(
                 name: .long,
-                help: ArgumentHelp("Output format (\(OutputFormat.helpDescription))", valueName: "format")
+                help: ArgumentHelp(
+                    "Output format (\(OutputFormat.helpDescription))", valueName: "format")
             )
             var format: OutputFormat = .text
 
@@ -65,33 +66,34 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
+                try await tracedRun("websocket.monitor", config: globalOptions) { server in
+                    // Create our processor
+                    let hiddenTypes = Set(hide)
+                    let allowedTypes = only.isEmpty ? nil : Set(only)
+                    let outputFormat: CLIMessageProcessor.OutputFormat =
+                        (format == .json) ? .json : .text
+                    let enableColor = (outputFormat == .text) && !noColor
 
-                // Create our processor
-                let hiddenTypes = Set(hide)
-                let allowedTypes = only.isEmpty ? nil : Set(only)
-                let outputFormat: CLIMessageProcessor.OutputFormat = (format == .json) ? .json : .text
-                let enableColor = (outputFormat == .text) && !noColor
+                    let processor = CLIMessageProcessor(
+                        hiddenTypes: hiddenTypes,
+                        allowedTypes: allowedTypes,
+                        outputFormat: outputFormat,
+                        useColor: enableColor
+                    )
 
-                let processor = CLIMessageProcessor(
-                    hiddenTypes: hiddenTypes,
-                    allowedTypes: allowedTypes,
-                    outputFormat: outputFormat,
-                    useColor: enableColor
-                )
+                    await server.connectWebsocket(processor: processor)
+                    if format == .text {
+                        print(
+                            "Connected to \(server.serverHostname)! Waiting for messages...\n")
+                    }
 
-                let server = getServer(config: globalOptions)
-                await server.connectWebsocket(processor: processor)
-                if format == .text {
-                    print("Connected to \(server.serverHostname)! Waiting for messages...\n")
+                    try await Task.sleep(for: .seconds(Int(seconds)))
+
+                    _ = await server.disconnectWebsocket()
+                    if format == .text {
+                        print("\nTimeout reached! Disconnecting from the websocket.")
+                    }
                 }
-
-                try await Task.sleep(for: .seconds(Int(seconds)))
-
-                _ = await server.disconnectWebsocket()
-                if format == .text {
-                    print("\nTimeout reached! Disconnecting from the websocket.")
-                }
-
             }
         }
 
@@ -122,40 +124,41 @@ extension CreatureCLI {
             var creatureId: CreatureIdentifier
 
             func run() async throws {
+                try await tracedRun("websocket.stream-test", config: globalOptions) { server in
+                    // Create our processor
+                    let processor = CLIMessageProcessor()
 
-                // Create our processor
-                let processor = CLIMessageProcessor()
+                    await server.connectWebsocket(processor: processor)
+                    print("connected to websocket")
 
-                let server = getServer(config: globalOptions)
-                await server.connectWebsocket(processor: processor)
-                print("connected to websocket")
+                    let fakeData = generateBase64TestData(count: number, length: joints)
 
-                let fakeData = generateBase64TestData(count: number, length: joints)
+                    var counter = 0
+                    for data in fakeData {
 
-                var counter = 0
-                for data in fakeData {
+                        // Make a fake frame
+                        let frame = StreamFrameData(
+                            ceatureId: creatureId, universe: universe, data: data)
 
-                    // Make a fake frame
-                    let frame = StreamFrameData(
-                        ceatureId: creatureId, universe: universe, data: data)
+                        counter += 1
+                        print("Sending frame \(counter)...")
 
-                    counter += 1
-                    print("Sending frame \(counter)...")
+                        let result = await server.streamFrame(streamFrameData: frame)
+                        switch result {
+                        case .failure(let error):
+                            _ = await server.disconnectWebsocket()
+                            throw failWithMessage(
+                                "Error sending frame: \(error.localizedDescription)")
+                        default:
+                            break
+                        }
 
-                    let result = await server.streamFrame(streamFrameData: frame)
-                    switch result {
-                    case .failure(let error):
-                        _ = await server.disconnectWebsocket()
-                        throw failWithMessage("Error sending frame: \(error.localizedDescription)")
-                    default:
-                        break
+                        try await Task.sleep(for: .milliseconds(Int(frameTimeMs)))
+
                     }
 
-                    try await Task.sleep(for: .milliseconds(Int(frameTimeMs)))
-
+                    _ = await server.disconnectWebsocket()
                 }
-
-                _ = await server.disconnectWebsocket()
             }
 
             /// A function to make the fake data for testing
@@ -208,48 +211,48 @@ extension CreatureCLI {
 
 
             func run() async throws {
+                try await tracedRun("websocket.inject", config: globalOptions) { server in
+                    // Create our processor
+                    let processor = CLIMessageProcessor()
 
-                // Create our processor
-                let processor = CLIMessageProcessor()
+                    await server.connectWebsocket(processor: processor)
+                    print("connected to websocket")
 
-                let server = getServer(config: globalOptions)
-                await server.connectWebsocket(processor: processor)
-                print("connected to websocket")
+                    for i in 1...count {
 
-                for i in 1...count {
+                        do {
 
-                    do {
+                            let clientMessage = String(
+                                "Hello! This is an injected message! \(i) of \(count)")
 
-                        let clientMessage = String(
-                            "Hello! This is an injected message! \(i) of \(count)")
+                            // Create a notice to send to the server
+                            var notice = Common.Notice()
+                            notice.message = clientMessage
+                            notice.timestamp = Date()
 
-                        // Create a notice to send to the server
-                        var notice = Common.Notice()
-                        notice.message = clientMessage
-                        notice.timestamp = Date()
+                            // Use WebSocketMessageBuilder to create the JSON message
+                            let noticeJSON = try WebSocketMessageBuilder.createMessage(
+                                type: .notice, payload: notice)
 
-                        // Use WebSocketMessageBuilder to create the JSON message
-                        let noticeJSON = try WebSocketMessageBuilder.createMessage(
-                            type: .notice, payload: notice)
+                            // Send the encoded JSON message
+                            let result = await server.sendMessage(noticeJSON)
 
-                        // Send the encoded JSON message
-                        let result = await server.sendMessage(noticeJSON)
-
-                        switch result {
-                        case .failure(let error):
-                            _ = await server.disconnectWebsocket()
-                            throw failWithMessage("Error sending message: \(error.localizedDescription)")
-                        default:
-                            break
+                            switch result {
+                            case .failure(let error):
+                                _ = await server.disconnectWebsocket()
+                                throw failWithMessage(
+                                    "Error sending message: \(error.localizedDescription)")
+                            default:
+                                break
+                            }
                         }
+
+                        try await Task.sleep(for: .milliseconds(Int(pause)))
                     }
 
-                    try await Task.sleep(for: .milliseconds(Int(pause)))
+                    _ = await server.disconnectWebsocket()
+                    print("disconnected from websocket")
                 }
-
-                _ = await server.disconnectWebsocket()
-                print("disconnected from websocket")
-
             }
         }
     }
