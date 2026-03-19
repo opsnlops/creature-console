@@ -1,3 +1,13 @@
+creature-cli (2.20.1) unstable; urgency=medium
+
+  * Fix OTel span export: run CLI command inside ServiceGroup so graceful
+    shutdown properly flushes the batch span processor before exit.
+  * Add HTTP child spans (http.method, http.url, http.status_code) to
+    fetchData, sendData, and sendRawJson for trace waterfall visibility.
+  * creature-cli + creature-mqtt + creature-agent: bump version to 2.20.1.
+
+ -- April White <april@creature.engineering>  Tue, 18 Mar 2026 21:35:00 +0000
+
 creature-cli (2.20.0) unstable; urgency=medium
 
   * Add distributed tracing: inject W3C traceparent header into all outgoing
