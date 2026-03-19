@@ -69,10 +69,13 @@ func getServer(config: GlobalOptions) -> CreatureServerClient {
 /// When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, this bootstraps OTel, creates a root
 /// span for the command, runs the body, and ensures traces are flushed before returning.
 /// When unset, the body runs directly with no overhead.
+///
+/// The command runs as a service inside the OTel `ServiceGroup`. When the command
+/// finishes, the group begins graceful shutdown, which flushes the batch span processor.
 func tracedRun(
     _ spanName: String,
     config: GlobalOptions,
-    body: @Sendable () async throws -> Void
+    body: @escaping @Sendable () async throws -> Void
 ) async throws {
     let otelServices = try bootstrapObservability(serviceName: "creature-cli")
 
@@ -81,30 +84,44 @@ func tracedRun(
         return
     }
 
-    // Start OTel export pipeline in background
-    let exportTask = Task {
-        let serviceGroup = ServiceGroup(
-            services: otelServices,
-            logger: Logger(label: "creature-cli.otel")
+    // Wrap the CLI command as a Service so that when it completes, the
+    // ServiceGroup triggers graceful shutdown and the OTel exporters flush.
+    let errorBox = ErrorBox()
+    let commandService = CLICommandService(
+        spanName: spanName,
+        body: {
+            do {
+                try await body()
+            } catch {
+                await errorBox.store(error)
+            }
+        })
+
+    var serviceConfigs = otelServices.map {
+        ServiceGroupConfiguration.ServiceConfiguration(service: $0)
+    }
+    serviceConfigs.append(
+        ServiceGroupConfiguration.ServiceConfiguration(
+            service: commandService,
+            successTerminationBehavior: .gracefullyShutdownGroup
         )
-        try await serviceGroup.run()
-    }
-    defer { exportTask.cancel() }
+    )
 
-    try await withSpan("cli.\(spanName)") { span in
-        span.attributes["cli.command"] = spanName
-        try await body()
-    }
+    let serviceGroup = ServiceGroup(
+        configuration: .init(services: serviceConfigs, logger: Logger(label: "creature-cli.otel"))
+    )
+    try await serviceGroup.run()
 
-    // Let the batch exporter flush before the process exits
-    try? await Task.sleep(for: .seconds(2))
+    if let stored = await errorBox.error {
+        throw stored
+    }
 }
 
 /// Convenience overload that creates a `CreatureServerClient` and passes it to the body.
 func tracedRun(
     _ spanName: String,
     config: GlobalOptions,
-    body: @Sendable (CreatureServerClient) async throws -> Void
+    body: @escaping @Sendable (CreatureServerClient) async throws -> Void
 ) async throws {
     try await tracedRun(spanName, config: config) {
         let server = getServer(config: config)
@@ -157,4 +174,27 @@ func failWithMessage(_ message: String) -> ExitCode {
         FileHandle.standardError.write(data)
     }
     return .failure
+}
+
+/// Sendable container for propagating errors out of a `@Sendable` closure.
+private actor ErrorBox {
+    var error: (any Error)?
+
+    func store(_ error: any Error) {
+        self.error = error
+    }
+}
+
+/// A one-shot Service that runs a CLI command inside a traced span, then returns
+/// so the ServiceGroup can begin graceful shutdown (flushing OTel exporters).
+struct CLICommandService: Service, Sendable {
+    let spanName: String
+    let body: @Sendable () async -> Void
+
+    func run() async throws {
+        await withSpan("cli.\(spanName)") { span in
+            span.attributes["cli.command"] = spanName
+            await body()
+        }
+    }
 }
