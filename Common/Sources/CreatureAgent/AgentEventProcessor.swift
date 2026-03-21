@@ -12,6 +12,7 @@ struct AgentEventProcessor: Sendable {
     let llmBackend: LLMBackend
     let llmModel: String
     let respondToPrompt: @Sendable (String) async throws -> String
+    let respondToPromptStreaming: (@Sendable (String) -> AsyncStream<String>)?
     let createSpeech:
         @Sendable (CreatureIdentifier, String) async -> Result<JobCreatedResponse, ServerError>
     let logger: Logger
@@ -33,6 +34,7 @@ struct AgentEventProcessor: Sendable {
         llmBackend: LLMBackend,
         llmModel: String,
         respondToPrompt: @escaping @Sendable (String) async throws -> String,
+        respondToPromptStreaming: (@Sendable (String) -> AsyncStream<String>)? = nil,
         createSpeech:
             @escaping @Sendable (CreatureIdentifier, String) async -> Result<
                 JobCreatedResponse, ServerError
@@ -46,6 +48,7 @@ struct AgentEventProcessor: Sendable {
         self.llmBackend = llmBackend
         self.llmModel = llmModel
         self.respondToPrompt = respondToPrompt
+        self.respondToPromptStreaming = respondToPromptStreaming
         self.createSpeech = createSpeech
         self.logger = logger
 
@@ -128,52 +131,134 @@ struct AgentEventProcessor: Sendable {
                 span.attributes["llm.backend"] = llmBackend.rawValue
 
                 openAIRequestsCounter.increment()
-                let response = try await withSpan("llm.respond") { llmSpan in
-                    llmSpan.attributes["llm.backend"] = llmBackend.rawValue
-                    llmSpan.attributes["llm.model"] = llmModel
-                    return try await respondToPrompt(prompt)
-                }
-                let sanitized = TextSanitizer.sanitize(response)
 
-                if sanitized.removedCharacters > 0 {
-                    logger.info(
-                        "Sanitized LLM response for topic \(topic) (removed \(sanitized.removedCharacters) chars)"
+                // Use streaming if available — send each sentence to the
+                // server as soon as it arrives from the LLM, so the creature
+                // starts talking while the LLM is still generating.
+                if let streamingRespond = respondToPromptStreaming {
+                    span.attributes["llm.streaming"] = true
+                    await processEventStreaming(
+                        prompt: prompt,
+                        topic: topic,
+                        span: span,
+                        streamingRespond: streamingRespond
                     )
-                }
-
-                let finalSpeech: String
-                if sanitized.text.isEmpty {
-                    finalSpeech = fallbackSpeech
-                    logger.warning("Using fallback speech for topic \(topic)")
                 } else {
-                    finalSpeech = sanitized.text
-                }
+                    span.attributes["llm.streaming"] = false
+                    let response = try await withSpan("llm.respond") { llmSpan in
+                        llmSpan.attributes["llm.backend"] = llmBackend.rawValue
+                        llmSpan.attributes["llm.model"] = llmModel
+                        return try await respondToPrompt(prompt)
+                    }
 
-                logger.info("LLM response ready for topic \(topic)")
-
-                let result = await withSpan("server.create_ad_hoc_speech") { serverSpan in
-                    serverSpan.attributes["creature.id"] = creatureId
-                    return await createSpeech(creatureId, finalSpeech)
-                }
-
-                switch result {
-                case .success(let job):
-                    eventsProcessedCounter.increment()
-                    speechQueuedCounter.increment()
-                    logger.info(
-                        "Queued ad-hoc speech job \(job.jobId) for topic \(topic)")
-                case .failure(let error):
-                    speechErrorsCounter.increment()
-                    span.recordError(error)
-                    logger.error(
-                        "Failed to queue ad-hoc speech for topic \(topic): \(ServerError.detailedMessage(from: error))"
-                    )
+                    await sendSpeechToServer(
+                        text: response, topic: topic, span: span)
                 }
             }
         } catch {
             openAIErrorsCounter.increment()
             logger.error(
                 "Failed to process MQTT topic \(topic): \(ServerError.detailedMessage(from: error))"
+            )
+        }
+    }
+
+    // MARK: - Streaming LLM pipeline
+
+    /// Process an event using the streaming LLM — sends each sentence to the
+    /// server as it arrives, so the creature starts talking while the LLM is
+    /// still generating.
+    private func processEventStreaming(
+        prompt: String,
+        topic: String,
+        span: any Span,
+        streamingRespond: @Sendable (String) -> AsyncStream<String>
+    ) async {
+        var sentenceCount = 0
+
+        for await sentence in streamingRespond(prompt) {
+            let sanitized = TextSanitizer.sanitize(sentence)
+            guard !sanitized.text.isEmpty else { continue }
+
+            sentenceCount += 1
+
+            // Send each sentence to the server immediately
+            logger.info(
+                "Streaming sentence \(sentenceCount) to server for \(topic): \"\(sanitized.text)\""
+            )
+
+            let result = await createSpeech(creatureId, sanitized.text)
+
+            switch result {
+            case .success(let job):
+                speechQueuedCounter.increment()
+                logger.info(
+                    "Queued streaming speech job \(job.jobId) (sentence \(sentenceCount)) for \(topic)"
+                )
+            case .failure(let error):
+                speechErrorsCounter.increment()
+                span.recordError(error)
+                logger.error(
+                    "Failed to queue streaming speech sentence \(sentenceCount) for \(topic): \(ServerError.detailedMessage(from: error))"
+                )
+            }
+        }
+
+        if sentenceCount == 0 {
+            // LLM returned nothing useful — use fallback
+            logger.warning("Streaming LLM returned no sentences for \(topic), using fallback")
+            await sendSpeechToServer(text: fallbackSpeech, topic: topic, span: span)
+        } else {
+            eventsProcessedCounter.increment()
+            span.attributes["speech.sentences"] = sentenceCount
+            logger.info(
+                "Streaming pipeline complete for \(topic): \(sentenceCount) sentences sent"
+            )
+        }
+    }
+
+    // MARK: - Helpers
+
+    /// Sanitize text and send a single speech request to the server.
+    private func sendSpeechToServer(
+        text: String,
+        topic: String,
+        span: any Span
+    ) async {
+        let sanitized = TextSanitizer.sanitize(text)
+
+        if sanitized.removedCharacters > 0 {
+            logger.info(
+                "Sanitized LLM response for topic \(topic) (removed \(sanitized.removedCharacters) chars)"
+            )
+        }
+
+        let finalSpeech: String
+        if sanitized.text.isEmpty {
+            finalSpeech = fallbackSpeech
+            logger.warning("Using fallback speech for topic \(topic)")
+        } else {
+            finalSpeech = sanitized.text
+        }
+
+        logger.info("LLM response ready for topic \(topic)")
+
+        let result = await withSpan("server.create_ad_hoc_speech") { serverSpan in
+            serverSpan.attributes["creature.id"] = creatureId
+            return await createSpeech(creatureId, finalSpeech)
+        }
+
+        switch result {
+        case .success(let job):
+            eventsProcessedCounter.increment()
+            speechQueuedCounter.increment()
+            logger.info(
+                "Queued ad-hoc speech job \(job.jobId) for topic \(topic)")
+        case .failure(let error):
+            speechErrorsCounter.increment()
+            span.recordError(error)
+            logger.error(
+                "Failed to queue ad-hoc speech for topic \(topic): \(ServerError.detailedMessage(from: error))"
             )
         }
     }

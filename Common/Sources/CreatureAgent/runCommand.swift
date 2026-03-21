@@ -87,6 +87,7 @@ extension CreatureAgent {
             let traceResponses = traceOpenAI || traceOpenAICompat
 
             let respondToPrompt: @Sendable (String) async throws -> String
+            var respondToPromptStreaming: (@Sendable (String) -> AsyncStream<String>)?
 
             switch config.llmBackend {
             case .openai:
@@ -103,6 +104,7 @@ extension CreatureAgent {
                     traceResponses: traceResponses
                 )
                 respondToPrompt = { try await openAI.respond(to: $0) }
+                respondToPromptStreaming = nil  // OpenAI streaming not implemented yet
 
             case .local:
                 let localLLM = LocalLLMClient(
@@ -117,6 +119,7 @@ extension CreatureAgent {
                     traceResponses: traceResponses
                 )
                 respondToPrompt = { try await localLLM.respond(to: $0) }
+                respondToPromptStreaming = { localLLM.respondStreaming(to: $0) }
             }
 
             let server = getServer(config: globalOptions)
@@ -153,6 +156,7 @@ extension CreatureAgent {
                 llmBackend: config.llmBackend,
                 llmModel: config.llmModel,
                 respondToPrompt: respondToPrompt,
+                respondToPromptStreaming: respondToPromptStreaming,
                 createSpeech: { creatureId, text in
                     await server.createAdHocSpeechAnimation(
                         creatureId: creatureId,

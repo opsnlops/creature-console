@@ -1,3 +1,15 @@
+creature-cli (2.21.0) unstable; urgency=medium
+
+  * Stream LLM responses sentence-by-sentence to creature server.
+  * LocalLLMClient now uses SSE streaming (stream: true) from llama-server,
+    accumulates tokens into sentences, and yields each via AsyncStream.
+  * AgentEventProcessor sends each sentence as a separate ad-hoc speech job
+    so the creature starts talking after the first sentence (~2s) instead
+    of waiting for the full LLM response (~7.5s).
+  * creature-agent: bump version to 2.21.0.
+
+ -- April White <april@creature.engineering>  Fri, 21 Mar 2026 05:00:00 +0000
+
 creature-cli (2.20.1) unstable; urgency=medium
 
   * Fix OTel span export: run CLI command inside ServiceGroup so graceful

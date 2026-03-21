@@ -39,60 +39,233 @@ struct LocalLLMClient {
         self.history = ConversationHistory(maxExchanges: conversationHistorySize)
     }
 
+    /// Non-streaming response — waits for the full LLM output.
+    /// Used when streaming isn't needed or as a fallback.
     func respond(to prompt: String) async throws -> String {
-        guard let url = URL(string: "http://\(host):\(port)/v1/chat/completions") else {
-            throw LocalLLMClientError.invalidURL
+        var fullText = ""
+        for await sentence in respondStreaming(to: prompt) {
+            fullText += sentence
         }
 
-        logger.debug("Sending local LLM request (model: \(model))")
-
-        var messages: [[String: String]] = [
-            ["role": "system", "content": systemPrompt]
-        ]
-
-        let historyMessages = await history.allMessages()
-        for msg in historyMessages {
-            messages.append(["role": msg.role, "content": msg.content])
-        }
-
-        messages.append(["role": "user", "content": prompt])
-
-        let body: [String: Any] = [
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": maxTokens,
-            "stop": ["\n\n\n", "\n\n"],
-        ]
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 60
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw LocalLLMClientError.invalidResponse
-        }
-        guard 200..<300 ~= httpResponse.statusCode else {
-            let message = String(data: data, encoding: .utf8) ?? ""
-            logger.error("Local LLM request failed with status \(httpResponse.statusCode)")
-            throw LocalLLMClientError.httpError(code: httpResponse.statusCode, body: message)
-        }
-
-        if traceResponses, let bodyString = String(data: data, encoding: .utf8) {
-            logger.info("Local LLM raw response: \(bodyString)")
-        }
-
-        let rawOutput = try LocalLLMResponseParser.outputText(from: data)
-        let output = LocalLLMClient.stripThinkTags(rawOutput)
+        let output = LocalLLMClient.stripThinkTags(fullText)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        logger.debug("Local LLM response received (chars: \(output.count))")
 
-        await history.append(userMessage: prompt, assistantMessage: output)
+        if output.isEmpty {
+            throw LocalLLMClientError.missingOutputText
+        }
 
         return output
+    }
+
+    /// Stream LLM response sentence-by-sentence.
+    ///
+    /// Connects to llama-server with `stream: true`, parses SSE events,
+    /// accumulates tokens, and yields each complete sentence as soon as
+    /// a sentence-ending punctuation mark (. ! ?) is followed by a space
+    /// or end-of-stream.
+    ///
+    /// The full response is also appended to conversation history when
+    /// the stream completes.
+    func respondStreaming(to prompt: String) -> AsyncStream<String> {
+        let host = self.host
+        let port = self.port
+        let model = self.model
+        let systemPrompt = self.systemPrompt
+        let temperature = self.temperature
+        let maxTokens = self.maxTokens
+        let logger = self.logger
+        let traceResponses = self.traceResponses
+        let history = self.history
+
+        return AsyncStream { continuation in
+            Task {
+                do {
+                    guard let url = URL(string: "http://\(host):\(port)/v1/chat/completions")
+                    else {
+                        logger.error("Invalid local LLM URL")
+                        continuation.finish()
+                        return
+                    }
+
+                    var messages: [[String: String]] = [
+                        ["role": "system", "content": systemPrompt]
+                    ]
+
+                    let historyMessages = await history.allMessages()
+                    for msg in historyMessages {
+                        messages.append(["role": msg.role, "content": msg.content])
+                    }
+
+                    messages.append(["role": "user", "content": prompt])
+
+                    let body: [String: Any] = [
+                        "model": model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": maxTokens,
+                        "stop": ["\n\n\n", "\n\n"],
+                        "stream": true,
+                    ]
+
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.timeoutInterval = 60
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+                    logger.debug("Starting streaming LLM request (model: \(model))")
+
+                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        logger.error("Invalid response from local LLM")
+                        continuation.finish()
+                        return
+                    }
+                    guard 200..<300 ~= httpResponse.statusCode else {
+                        logger.error(
+                            "Local LLM streaming request failed with status \(httpResponse.statusCode)"
+                        )
+                        continuation.finish()
+                        return
+                    }
+
+                    // Parse SSE stream: each line is "data: {json}" or "data: [DONE]"
+                    // Accumulate tokens into sentences, yield on sentence boundaries
+                    var sentenceBuffer = ""
+                    var fullResponse = ""
+                    var insideThinkTag = false
+                    var sentenceCount = 0
+
+                    for try await line in bytes.lines {
+                        // SSE format: lines starting with "data: "
+                        guard line.hasPrefix("data: ") else {
+                            continue
+                        }
+
+                        let jsonStr = String(line.dropFirst(6))
+
+                        // End of stream
+                        if jsonStr == "[DONE]" {
+                            break
+                        }
+
+                        // Parse the delta content from the SSE chunk
+                        guard let jsonData = jsonStr.data(using: .utf8),
+                            let json = try? JSONSerialization.jsonObject(with: jsonData)
+                                as? [String: Any],
+                            let choices = json["choices"] as? [[String: Any]],
+                            let firstChoice = choices.first,
+                            let delta = firstChoice["delta"] as? [String: Any],
+                            let content = delta["content"] as? String
+                        else {
+                            continue
+                        }
+
+                        // Handle <think> tags — skip content inside them
+                        for char in content {
+                            if insideThinkTag {
+                                // Look for closing </think>
+                                sentenceBuffer.append(char)
+                                if sentenceBuffer.hasSuffix("</think>") {
+                                    // Remove the entire think block from the buffer
+                                    if let range = sentenceBuffer.range(of: "<think>") {
+                                        sentenceBuffer = String(sentenceBuffer[..<range.lowerBound])
+                                    } else {
+                                        sentenceBuffer = ""
+                                    }
+                                    insideThinkTag = false
+                                }
+                                continue
+                            }
+
+                            sentenceBuffer.append(char)
+
+                            // Detect <think> tag start
+                            if sentenceBuffer.hasSuffix("<think>") {
+                                insideThinkTag = true
+                                continue
+                            }
+
+                            // Check for sentence boundary: punctuation followed by space or end
+                            if isSentenceEnd(sentenceBuffer) {
+                                let sentence = sentenceBuffer.trimmingCharacters(
+                                    in: .whitespaces)
+                                if !sentence.isEmpty {
+                                    sentenceCount += 1
+                                    fullResponse += sentence
+                                    logger.info(
+                                        "LLM sentence \(sentenceCount): \"\(sentence)\" (\(sentence.count) chars)"
+                                    )
+                                    continuation.yield(sentence)
+                                    sentenceBuffer = ""
+                                }
+                            }
+                        }
+                    }
+
+                    // Yield any remaining text that didn't end with sentence punctuation
+                    let remaining = sentenceBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !remaining.isEmpty {
+                        sentenceCount += 1
+                        fullResponse += remaining
+                        logger.info(
+                            "LLM sentence \(sentenceCount) (final): \"\(remaining)\" (\(remaining.count) chars)"
+                        )
+                        continuation.yield(remaining)
+                    }
+
+                    if traceResponses {
+                        logger.info("LLM full streaming response: \(fullResponse)")
+                    }
+
+                    logger.debug(
+                        "LLM streaming complete: \(sentenceCount) sentences, \(fullResponse.count) chars"
+                    )
+
+                    // Save to conversation history
+                    let cleanOutput = LocalLLMClient.stripThinkTags(fullResponse)
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !cleanOutput.isEmpty {
+                        await history.append(
+                            userMessage: prompt, assistantMessage: cleanOutput)
+                    }
+
+                    continuation.finish()
+
+                } catch {
+                    logger.error("LLM streaming error: \(error)")
+                    continuation.finish()
+                }
+            }
+        }
+    }
+
+    /// Detect sentence boundaries.
+    /// Returns true when the buffer ends with sentence-ending punctuation
+    /// followed by a space (indicating the next sentence is starting).
+    private func isSentenceEnd(_ buffer: String) -> Bool {
+        let trimmed = buffer.trimmingCharacters(in: .whitespaces)
+        guard trimmed.count >= 2 else { return false }
+
+        // Check if buffer ends with "X " where X is sentence-ending punctuation
+        // This catches ". ", "! ", "? " — meaning the LLM has started the next word
+        if buffer.hasSuffix(" ") {
+            let idx = trimmed.index(trimmed.endIndex, offsetBy: -1)
+            let charBefore = trimmed[idx]
+            if charBefore == "." || charBefore == "!" || charBefore == "?" {
+                return true
+            }
+
+            // Also check for ." or !" (closing quote after punctuation)
+            if trimmed.count >= 2 && (charBefore == "\"" || charBefore == "'") {
+                let twoBack = trimmed[trimmed.index(idx, offsetBy: -1)]
+                if twoBack == "." || twoBack == "!" || twoBack == "?" {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 
     internal static func stripThinkTags(_ text: String) -> String {
