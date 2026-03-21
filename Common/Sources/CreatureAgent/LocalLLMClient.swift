@@ -115,28 +115,22 @@ struct LocalLLMClient {
 
                     logger.debug("Starting streaming LLM request (model: \(model))")
 
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
-                    guard let httpResponse = response as? HTTPURLResponse else {
-                        logger.error("Invalid response from local LLM")
-                        continuation.finish()
-                        return
-                    }
-                    guard 200..<300 ~= httpResponse.statusCode else {
-                        logger.error(
-                            "Local LLM streaming request failed with status \(httpResponse.statusCode)"
-                        )
-                        continuation.finish()
-                        return
-                    }
+                    // Use a delegate-based approach for SSE streaming that works
+                    // on both macOS and Linux (URLSession.bytes is not available
+                    // in FoundationNetworking on Linux)
+                    let sseDelegate = SSEDataDelegate()
+                    let session = URLSession(
+                        configuration: .default, delegate: sseDelegate, delegateQueue: nil)
+                    let task = session.dataTask(with: request)
+                    task.resume()
 
-                    // Parse SSE stream: each line is "data: {json}" or "data: [DONE]"
-                    // Accumulate tokens into sentences, yield on sentence boundaries
+                    // Parse SSE stream from the delegate's async line sequence
                     var sentenceBuffer = ""
                     var fullResponse = ""
                     var insideThinkTag = false
                     var sentenceCount = 0
 
-                    for try await line in bytes.lines {
+                    for await line in sseDelegate.lines {
                         // SSE format: lines starting with "data: "
                         guard line.hasPrefix("data: ") else {
                             continue
@@ -275,6 +269,47 @@ struct LocalLLMClient {
         }
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.stringByReplacingMatches(in: text, range: range, withTemplate: "")
+    }
+}
+
+/// URLSession delegate that collects SSE data and exposes it as an AsyncStream of lines.
+/// Works on both macOS and Linux (FoundationNetworking).
+private final class SSEDataDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    private var lineContinuation: AsyncStream<String>.Continuation?
+    private var buffer = ""
+
+    let lines: AsyncStream<String>
+
+    override init() {
+        var cont: AsyncStream<String>.Continuation?
+        self.lines = AsyncStream { cont = $0 }
+        super.init()
+        self.lineContinuation = cont
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        guard let text = String(data: data, encoding: .utf8) else { return }
+        buffer += text
+
+        // Split on newlines and yield complete lines
+        while let newlineRange = buffer.range(of: "\n") {
+            let line = String(buffer[buffer.startIndex..<newlineRange.lowerBound])
+            buffer = String(buffer[newlineRange.upperBound...])
+            if !line.isEmpty {
+                lineContinuation?.yield(line)
+            }
+        }
+    }
+
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?
+    ) {
+        // Flush any remaining data in the buffer
+        let remaining = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !remaining.isEmpty {
+            lineContinuation?.yield(remaining)
+        }
+        lineContinuation?.finish()
     }
 }
 
