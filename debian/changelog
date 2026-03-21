@@ -1,3 +1,14 @@
+creature-cli (2.22.0) unstable; urgency=medium
+
+  * Use streaming ad-hoc session endpoints instead of per-sentence jobs.
+  * Agent opens a session, sends sentences as they arrive from LLM, then
+    finishes the session for single uninterrupted playback (no idle snap).
+  * Added StreamingAdHocDTO types and CreatureServerClient methods for
+    the /ad-hoc-stream/start, /text, and /finish endpoints.
+  * creature-agent: bump version to 2.22.0.
+
+ -- April White <april@creature.engineering>  Fri, 21 Mar 2026 06:30:00 +0000
+
 creature-cli (2.21.1) unstable; urgency=medium
 
   * Fix Linux build: URLSession.bytes is not available in FoundationNetworking.

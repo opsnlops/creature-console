@@ -164,6 +164,7 @@ extension CreatureAgent {
                         resumePlaylist: true
                     )
                 },
+                server: server,
                 logger: logger
             )
 

@@ -134,7 +134,8 @@ extension CreatureServerClient {
 
         let requestBody = RegenerateLipSyncRequestDTO(animationId: animationId)
 
-        return await sendData(url, method: "POST", body: requestBody, returnType: JobCreatedResponse.self)
+        return await sendData(
+            url, method: "POST", body: requestBody, returnType: JobCreatedResponse.self)
     }
 
     public func getAdHocAnimation(animationId: AnimationIdentifier) async -> Result<
@@ -190,6 +191,48 @@ extension CreatureServerClient {
         let request = CreateAdHocAnimationRequestDTO(
             creatureId: creatureId, text: text, resumePlaylist: resumePlaylist)
         return await sendAdHocAnimationRequest(path: "/animation/ad-hoc/prepare", body: request)
+    }
+
+    // MARK: - Streaming Ad-Hoc Speech Session
+
+    /// Start a streaming ad-hoc speech session. Returns a session ID.
+    public func startStreamingAdHocSpeech(
+        creatureId: CreatureIdentifier, resumePlaylist: Bool = true
+    ) async -> Result<StreamingAdHocStartResponse, ServerError> {
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc-stream/start")
+        else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        let body = StreamingAdHocStartRequest(
+            creatureId: creatureId, resumePlaylist: resumePlaylist)
+        return await sendData(
+            url, method: "POST", body: body, returnType: StreamingAdHocStartResponse.self)
+    }
+
+    /// Add a text chunk (sentence) to an active streaming session.
+    public func addStreamingAdHocText(
+        sessionId: String, text: String
+    ) async -> Result<StreamingAdHocTextResponse, ServerError> {
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc-stream/text")
+        else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        let body = StreamingAdHocTextRequest(sessionId: sessionId, text: text)
+        return await sendData(
+            url, method: "POST", body: body, returnType: StreamingAdHocTextResponse.self)
+    }
+
+    /// Finish a streaming session — synthesizes speech, builds animation, plays it.
+    public func finishStreamingAdHocSpeech(
+        sessionId: String
+    ) async -> Result<StreamingAdHocFinishResponse, ServerError> {
+        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc-stream/finish")
+        else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        let body = StreamingAdHocFinishRequest(sessionId: sessionId)
+        return await sendData(
+            url, method: "POST", body: body, returnType: StreamingAdHocFinishResponse.self)
     }
 
     public func triggerPreparedAdHocSpeech(

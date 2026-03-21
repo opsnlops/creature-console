@@ -15,6 +15,7 @@ struct AgentEventProcessor: Sendable {
     let respondToPromptStreaming: (@Sendable (String) -> AsyncStream<String>)?
     let createSpeech:
         @Sendable (CreatureIdentifier, String) async -> Result<JobCreatedResponse, ServerError>
+    let server: CreatureServerClient?
     let logger: Logger
 
     private let eventsReceivedCounter: Counter
@@ -39,6 +40,7 @@ struct AgentEventProcessor: Sendable {
             @escaping @Sendable (CreatureIdentifier, String) async -> Result<
                 JobCreatedResponse, ServerError
             >,
+        server: CreatureServerClient? = nil,
         logger: Logger
     ) {
         self.topicMap = topicMap
@@ -50,6 +52,7 @@ struct AgentEventProcessor: Sendable {
         self.respondToPrompt = respondToPrompt
         self.respondToPromptStreaming = respondToPromptStreaming
         self.createSpeech = createSpeech
+        self.server = server
         self.logger = logger
 
         self.eventsReceivedCounter = Counter(label: "creature_agent.events.received")
@@ -165,54 +168,104 @@ struct AgentEventProcessor: Sendable {
 
     // MARK: - Streaming LLM pipeline
 
-    /// Process an event using the streaming LLM — sends each sentence to the
-    /// server as it arrives, so the creature starts talking while the LLM is
-    /// still generating.
+    /// Process an event using the streaming LLM — opens a streaming session
+    /// on the server, sends each sentence as it arrives from the LLM, then
+    /// finishes the session to trigger a single uninterrupted playback.
     private func processEventStreaming(
         prompt: String,
         topic: String,
         span: any Span,
         streamingRespond: @Sendable (String) -> AsyncStream<String>
     ) async {
-        var sentenceCount = 0
+        guard let server = server else {
+            logger.warning(
+                "No server client for streaming session, falling back to non-streaming")
+            do {
+                let response = try await respondToPrompt(prompt)
+                await sendSpeechToServer(text: response, topic: topic, span: span)
+            } catch {
+                openAIErrorsCounter.increment()
+                logger.error("LLM fallback failed: \(error)")
+            }
+            return
+        }
 
+        // Start a streaming session on the server
+        let startResult = await server.startStreamingAdHocSpeech(
+            creatureId: creatureId, resumePlaylist: true)
+
+        let sessionId: String
+        switch startResult {
+        case .success(let response):
+            sessionId = response.sessionId
+            logger.info(
+                "Streaming session started: \(sessionId) for \(topic)")
+            span.attributes["streaming.session_id"] = sessionId
+        case .failure(let error):
+            logger.error(
+                "Failed to start streaming session for \(topic): \(ServerError.detailedMessage(from: error)). Falling back to non-streaming."
+            )
+            // Fall back to collecting all text and sending as one job
+            do {
+                let response = try await respondToPrompt(prompt)
+                await sendSpeechToServer(text: response, topic: topic, span: span)
+            } catch {
+                openAIErrorsCounter.increment()
+                logger.error("LLM fallback failed: \(error)")
+            }
+            return
+        }
+
+        // Stream sentences from LLM to the session
+        var sentenceCount = 0
         for await sentence in streamingRespond(prompt) {
             let sanitized = TextSanitizer.sanitize(sentence)
             guard !sanitized.text.isEmpty else { continue }
 
             sentenceCount += 1
-
-            // Send each sentence to the server immediately
             logger.info(
-                "Streaming sentence \(sentenceCount) to server for \(topic): \"\(sanitized.text)\""
+                "Streaming sentence \(sentenceCount) to session \(sessionId): \"\(sanitized.text)\""
             )
 
-            let result = await createSpeech(creatureId, sanitized.text)
-
-            switch result {
-            case .success(let job):
-                speechQueuedCounter.increment()
-                logger.info(
-                    "Queued streaming speech job \(job.jobId) (sentence \(sentenceCount)) for \(topic)"
-                )
-            case .failure(let error):
-                speechErrorsCounter.increment()
-                span.recordError(error)
+            let textResult = await server.addStreamingAdHocText(
+                sessionId: sessionId, text: sanitized.text)
+            if case .failure(let error) = textResult {
                 logger.error(
-                    "Failed to queue streaming speech sentence \(sentenceCount) for \(topic): \(ServerError.detailedMessage(from: error))"
+                    "Failed to add text to session \(sessionId): \(ServerError.detailedMessage(from: error))"
                 )
             }
         }
 
         if sentenceCount == 0 {
-            // LLM returned nothing useful — use fallback
-            logger.warning("Streaming LLM returned no sentences for \(topic), using fallback")
-            await sendSpeechToServer(text: fallbackSpeech, topic: topic, span: span)
-        } else {
+            // LLM returned nothing — add fallback text
+            logger.warning(
+                "Streaming LLM returned no sentences for \(topic), using fallback")
+            _ = await server.addStreamingAdHocText(
+                sessionId: sessionId, text: fallbackSpeech)
+            sentenceCount = 1
+        }
+
+        // Finish the session — this triggers TTS + animation + playback
+        logger.info(
+            "Finishing streaming session \(sessionId) with \(sentenceCount) sentences")
+
+        let finishResult = await server.finishStreamingAdHocSpeech(
+            sessionId: sessionId)
+
+        switch finishResult {
+        case .success(let response):
             eventsProcessedCounter.increment()
+            speechQueuedCounter.increment()
             span.attributes["speech.sentences"] = sentenceCount
+            span.attributes["speech.animation_id"] = response.animationId ?? "unknown"
             logger.info(
-                "Streaming pipeline complete for \(topic): \(sentenceCount) sentences sent"
+                "Streaming session \(sessionId) complete: animation \(response.animationId ?? "unknown")"
+            )
+        case .failure(let error):
+            speechErrorsCounter.increment()
+            span.recordError(error)
+            logger.error(
+                "Streaming session \(sessionId) finish failed: \(ServerError.detailedMessage(from: error))"
             )
         }
     }
