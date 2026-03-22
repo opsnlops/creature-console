@@ -180,19 +180,21 @@ struct LocalLLMClient {
                                 continue
                             }
 
-                            // Check for sentence boundary: punctuation followed by space or end
-                            if isSentenceEnd(sentenceBuffer) {
-                                let sentence = sentenceBuffer.trimmingCharacters(
-                                    in: .whitespaces)
+                            // Check for sentence boundary
+                            if let splitIdx = sentenceBoundaryIndex(sentenceBuffer) {
+                                let sentence = String(sentenceBuffer[...splitIdx])
+                                    .trimmingCharacters(in: .whitespaces)
+                                let remainder = String(
+                                    sentenceBuffer[sentenceBuffer.index(after: splitIdx)...])
                                 if !sentence.isEmpty {
                                     sentenceCount += 1
-                                    fullResponse += sentence
+                                    fullResponse += sentence + " "
                                     logger.info(
                                         "LLM sentence \(sentenceCount): \"\(sentence)\" (\(sentence.count) chars)"
                                     )
                                     continuation.yield(sentence)
-                                    sentenceBuffer = ""
                                 }
+                                sentenceBuffer = remainder
                             }
                         }
                     }
@@ -234,32 +236,48 @@ struct LocalLLMClient {
         }
     }
 
-    /// Detect sentence boundaries.
-    /// Returns true when the buffer ends with sentence-ending punctuation
-    /// followed by a space (indicating the next sentence is starting).
-    private func isSentenceEnd(_ buffer: String) -> Bool {
-        let trimmed = buffer.trimmingCharacters(in: .whitespaces)
-        guard trimmed.count >= 2 else { return false }
+    /// Find a sentence boundary in the buffer.
+    /// Returns the index of the sentence-ending punctuation mark (. ! ?) if
+    /// the next character indicates a new sentence is starting (space, uppercase
+    /// letter, or opening quote). Returns nil if no boundary is found.
+    ///
+    /// Handles both standard ("Hello. World") and no-space ("Hello!World")
+    /// patterns common in LLM output.
+    private func sentenceBoundaryIndex(_ buffer: String) -> String.Index? {
+        guard buffer.count >= 2 else { return nil }
 
-        // Check if buffer ends with "X " where X is sentence-ending punctuation
-        // This catches ". ", "! ", "? " — meaning the LLM has started the next word
-        if buffer.hasSuffix(" ") {
-            let idx = trimmed.index(trimmed.endIndex, offsetBy: -1)
-            let charBefore = trimmed[idx]
-            if charBefore == "." || charBefore == "!" || charBefore == "?" {
-                return true
-            }
+        let lastIdx = buffer.index(before: buffer.endIndex)
+        let lastChar = buffer[lastIdx]
+        let penultIdx = buffer.index(before: lastIdx)
+        let penultChar = buffer[penultIdx]
 
-            // Also check for ." or !" (closing quote after punctuation)
-            if trimmed.count >= 2 && (charBefore == "\"" || charBefore == "'") {
-                let twoBack = trimmed[trimmed.index(idx, offsetBy: -1)]
-                if twoBack == "." || twoBack == "!" || twoBack == "?" {
-                    return true
-                }
+        let isPunct = { (c: Character) -> Bool in
+            c == "." || c == "!" || c == "?"
+        }
+
+        let isNewSentenceStart = { (c: Character) -> Bool in
+            c == " " || c.isUppercase || c == "\"" || c == "\u{201C}"
+        }
+
+        // "X " or "XA" where X is punctuation
+        if isPunct(penultChar) && isNewSentenceStart(lastChar) {
+            return penultIdx
+        }
+
+        // Check for closing quote: X"A or X" A
+        if buffer.count >= 3 {
+            let threeBackIdx = buffer.index(penultIdx, offsetBy: -1)
+            let threeBack = buffer[threeBackIdx]
+
+            if isPunct(threeBack) && (penultChar == "\"" || penultChar == "'")
+                && isNewSentenceStart(lastChar)
+            {
+                // Split after the closing quote
+                return penultIdx
             }
         }
 
-        return false
+        return nil
     }
 
     internal static func stripThinkTags(_ text: String) -> String {

@@ -1,3 +1,13 @@
+creature-cli (2.22.1) unstable; urgency=medium
+
+  * Fix sentence boundary detection for LLMs that skip spaces between
+    sentences (e.g., "phew!Feels" now splits correctly into two sentences).
+  * Properly split buffer at the punctuation mark so the next sentence's
+    first character isn't included in the previous sentence.
+  * creature-agent: bump version to 2.22.1.
+
+ -- April White <april@creature.engineering>  Fri, 21 Mar 2026 21:00:00 +0000
+
 creature-cli (2.22.0) unstable; urgency=medium
 
   * Use streaming ad-hoc session endpoints instead of per-sentence jobs.
