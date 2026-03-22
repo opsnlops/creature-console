@@ -186,13 +186,21 @@ struct LocalLLMClient {
                                     .trimmingCharacters(in: .whitespaces)
                                 let remainder = String(
                                     sentenceBuffer[sentenceBuffer.index(after: splitIdx)...])
-                                if !sentence.isEmpty {
-                                    sentenceCount += 1
-                                    fullResponse += sentence + " "
-                                    logger.info(
-                                        "LLM sentence \(sentenceCount): \"\(sentence)\" (\(sentence.count) chars)"
+                                // Strip wrapping quotes that LLMs sometimes add
+                                let cleanSentence =
+                                    sentence
+                                    .trimmingCharacters(
+                                        in: CharacterSet(
+                                            charactersIn: "\"'\u{201C}\u{201D}")
                                     )
-                                    continuation.yield(sentence)
+                                    .trimmingCharacters(in: .whitespaces)
+                                if !cleanSentence.isEmpty {
+                                    sentenceCount += 1
+                                    fullResponse += cleanSentence + " "
+                                    logger.info(
+                                        "LLM sentence \(sentenceCount): \"\(cleanSentence)\" (\(cleanSentence.count) chars)"
+                                    )
+                                    continuation.yield(cleanSentence)
                                 }
                                 sentenceBuffer = remainder
                             }
@@ -200,7 +208,12 @@ struct LocalLLMClient {
                     }
 
                     // Yield any remaining text that didn't end with sentence punctuation
-                    let remaining = sentenceBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+                    // Filter out fragments that are just quotes or punctuation (LLM wrapping artifacts)
+                    let remaining =
+                        sentenceBuffer
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
                     if !remaining.isEmpty {
                         sentenceCount += 1
                         fullResponse += remaining
