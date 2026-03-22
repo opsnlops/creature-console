@@ -1,3 +1,14 @@
+creature-cli (2.23.0) unstable; urgency=medium
+
+  * Add minSentenceChars config option to prevent very short phrases from
+    being sent to TTS independently (ElevenLabs adds garbage to short text).
+  * Short sentences are buffered and merged with the next sentence.
+  * Final sentence always yields regardless of length.
+  * Default: 0 (disabled). Set in config YAML: minSentenceChars: 50
+  * creature-agent: bump version to 2.23.0.
+
+ -- April White <april@creature.engineering>  Sat, 22 Mar 2026 08:00:00 +0000
+
 creature-cli (2.22.2) unstable; urgency=medium
 
   * Strip wrapping quotes from LLM output (Mistral Nemo wraps in "...").

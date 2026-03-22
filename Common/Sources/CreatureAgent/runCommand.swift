@@ -114,6 +114,7 @@ extension CreatureAgent {
                     systemPrompt: config.llmSystemPrompt,
                     temperature: config.llmTemperature,
                     maxTokens: config.localLlmMaxTokens,
+                    minSentenceChars: config.minSentenceChars,
                     conversationHistorySize: config.conversationHistorySize,
                     logger: logger,
                     traceResponses: traceResponses

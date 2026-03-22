@@ -13,6 +13,7 @@ struct LocalLLMClient {
     private let systemPrompt: String
     private let temperature: Double
     private let maxTokens: Int
+    private let minSentenceChars: Int
     private let logger: Logger
     private let traceResponses: Bool
     private let history: ConversationHistory
@@ -24,6 +25,7 @@ struct LocalLLMClient {
         systemPrompt: String,
         temperature: Double,
         maxTokens: Int,
+        minSentenceChars: Int = 0,
         conversationHistorySize: Int,
         logger: Logger,
         traceResponses: Bool
@@ -34,6 +36,7 @@ struct LocalLLMClient {
         self.systemPrompt = systemPrompt
         self.temperature = temperature
         self.maxTokens = maxTokens
+        self.minSentenceChars = minSentenceChars
         self.logger = logger
         self.traceResponses = traceResponses
         self.history = ConversationHistory(maxExchanges: conversationHistorySize)
@@ -195,14 +198,26 @@ struct LocalLLMClient {
                                     )
                                     .trimmingCharacters(in: .whitespaces)
                                 if !cleanSentence.isEmpty {
-                                    sentenceCount += 1
-                                    fullResponse += cleanSentence + " "
-                                    logger.info(
-                                        "LLM sentence \(sentenceCount): \"\(cleanSentence)\" (\(cleanSentence.count) chars)"
-                                    )
-                                    continuation.yield(cleanSentence)
+                                    if cleanSentence.count >= minSentenceChars {
+                                        // Sentence meets minimum length — yield it
+                                        sentenceCount += 1
+                                        fullResponse += cleanSentence + " "
+                                        logger.info(
+                                            "LLM sentence \(sentenceCount): \"\(cleanSentence)\" (\(cleanSentence.count) chars)"
+                                        )
+                                        continuation.yield(cleanSentence)
+                                        sentenceBuffer = remainder
+                                    } else {
+                                        // Too short for TTS — keep in buffer, merge with next sentence
+                                        logger.debug(
+                                            "LLM sentence too short (\(cleanSentence.count) < \(minSentenceChars) chars), buffering: \"\(cleanSentence)\""
+                                        )
+                                        // Don't clear the buffer — the split point stays and
+                                        // more text will accumulate until we hit the minimum
+                                    }
+                                } else {
+                                    sentenceBuffer = remainder
                                 }
-                                sentenceBuffer = remainder
                             }
                         }
                     }
