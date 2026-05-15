@@ -71,3 +71,7 @@ jobs:
           path: |
             artifacts/*.deb
             artifacts/*.ddeb
+          # 7-day retention so build artifacts don't pile up against the
+          # account-level Actions storage quota. Long enough to grab a
+          # .deb off a recent commit; older commits should be rebuilt.
+          retention-days: 7
