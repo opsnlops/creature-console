@@ -2,9 +2,9 @@ import Foundation
 import Logging
 
 /**
- A `Track` is one creature's set of moments in an animation. There could be several tracks in an animation, or just one. It all depends on who is involved.
+ A `Track` is one creature's (or fixture's) set of moments in an animation. There could be several tracks in an animation, or just one. It all depends on who is involved.
 
- The `creatureId` tells the server which Creature this track is connected to. It's up to the server to look up which offset to use for sending frames, not the Console.
+ The `creatureId` tells the server which Creature this track is connected to. The optional `fixtureId` instead targets a DMX fixture; exactly one of `creatureId` / `fixtureId` is meaningful per track.
  */
 
 public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
@@ -15,15 +15,17 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
     public var id: TrackIdentifier
     public var creatureId: CreatureIdentifier
     public var animationId: AnimationIdentifier
+    public var fixtureId: DmxFixtureIdentifier?
     public var frames: [Data]
 
     public init(
         id: TrackIdentifier, creatureId: CreatureIdentifier, animationId: AnimationIdentifier,
-        frames: [Data]
+        fixtureId: DmxFixtureIdentifier? = nil, frames: [Data]
     ) {
         self.id = id
         self.creatureId = creatureId
         self.animationId = animationId
+        self.fixtureId = fixtureId
         self.frames = frames
         Self.logger.trace("Created a new Track from init()")
     }
@@ -33,6 +35,7 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
         case id = "id"
         case creatureId = "creature_id"
         case animationId = "animation_id"
+        case fixtureId = "fixture_id"
         case frames = "frames"
     }
 
@@ -42,6 +45,9 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
         try container.encode(id.uuidString.lowercased(), forKey: .id)  // Lowercase UUID string
         try container.encode(creatureId.lowercased(), forKey: .creatureId)  // Lowercase UUID string
         try container.encode(animationId.lowercased(), forKey: .animationId)  // Lowercase UUID string
+        if let fixtureId, !fixtureId.isEmpty {
+            try container.encode(fixtureId.lowercased(), forKey: .fixtureId)
+        }
         let base64Frames = frames.map { $0.base64EncodedString() }
         try container.encode(base64Frames, forKey: .frames)
     }
@@ -52,6 +58,8 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
         self.id = try container.decode(TrackIdentifier.self, forKey: .id)
         self.creatureId = try container.decode(CreatureIdentifier.self, forKey: .creatureId)
         self.animationId = try container.decode(AnimationIdentifier.self, forKey: .animationId)
+        self.fixtureId = try container.decodeIfPresent(
+            DmxFixtureIdentifier.self, forKey: .fixtureId)
         let base64Frames = try container.decode([String].self, forKey: .frames)
         self.frames = try base64Frames.map {
             guard let data = Data(base64Encoded: $0) else {
@@ -67,6 +75,7 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
 
     public static func == (lhs: Track, rhs: Track) -> Bool {
         lhs.id == rhs.id && lhs.creatureId == rhs.creatureId && lhs.animationId == rhs.animationId
+            && lhs.fixtureId == rhs.fixtureId
             && lhs.frames.elementsEqual(rhs.frames, by: { $0 == $1 })
     }
 
@@ -74,6 +83,7 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
         hasher.combine(id)
         hasher.combine(creatureId)
         hasher.combine(animationId)
+        hasher.combine(fixtureId)
         frames.forEach { hasher.combine($0) }  // Hash each frame's data
     }
 

@@ -89,7 +89,7 @@ struct Creature_TVApp: App {
             let container = try ModelContainer(
                 for: SoundModel.self, CreatureModel.self, InputModel.self,
                 AnimationMetadataModel.self, PlaylistModel.self, PlaylistItemModel.self,
-                ServerLogModel.self,
+                ServerLogModel.self, DmxFixtureModel.self,
                 configurations: config)
 
             self.modelContainer = container

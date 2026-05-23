@@ -11,15 +11,23 @@ struct InterfaceSettings: View {
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 0
     @AppStorage("mouthImportDefaultAxis") private var defaultMouthAxis: Int = 2
     @AppStorage("animationFilmingCountdownSeconds") private var filmingCountdownSeconds: Int = 3
+    @AppStorage("dmxLiveHoldSeconds") private var dmxLiveHoldSeconds: Int = 3
     private let filmingCountdownRange = 0...10
     private var filmingCountdownRangeDouble: ClosedRange<Double> {
         Double(filmingCountdownRange.lowerBound)...Double(filmingCountdownRange.upperBound)
+    }
+    /// Range for the per-call live deadline. Server hard-caps at 600s; longer than ~10s
+    /// from a slider UI just leaves stale light if the user wanders off.
+    private let dmxLiveHoldRange = 1...10
+    private var dmxLiveHoldRangeDouble: ClosedRange<Double> {
+        Double(dmxLiveHoldRange.lowerBound)...Double(dmxLiveHoldRange.upperBound)
     }
 
     #if os(tvOS)
         @State private var tvDefaultMouthAxisText: String = ""
         @State private var tvServerLogsScrollbackText: String = ""
         @State private var tvFilmingCountdownText: String = ""
+        @State private var tvDmxLiveHoldText: String = ""
     #endif
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "InterfaceSettings")
@@ -185,6 +193,57 @@ struct InterfaceSettings: View {
                             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
                         #endif
                     }
+
+                    // Card: DMX live control hold duration. Controls how long the server
+                    // keeps each live update before blacking out — longer values keep the
+                    // light on through scrub-pause-scrub patterns without it flickering
+                    // dark while the user thinks.
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("DMX Live Control", systemImage: "lightbulb.led")
+                            .font(.headline)
+                        #if os(tvOS)
+                            HStack {
+                                Text("Hold Seconds")
+                                Spacer()
+                                TextField(
+                                    "\(dmxLiveHoldRange.lowerBound)–\(dmxLiveHoldRange.upperBound)",
+                                    text: $tvDmxLiveHoldText
+                                )
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: 120)
+                                .submitLabel(.done)
+                                .onSubmit {
+                                    let value =
+                                        Int(tvDmxLiveHoldText) ?? dmxLiveHoldSeconds
+                                    let clamped = max(
+                                        dmxLiveHoldRange.lowerBound,
+                                        min(dmxLiveHoldRange.upperBound, value))
+                                    dmxLiveHoldSeconds = clamped
+                                    tvDmxLiveHoldText = String(clamped)
+                                }
+                            }
+                            .padding(12)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #else
+                            HStack {
+                                Text("Hold Seconds")
+                                Spacer()
+                                Stepper(
+                                    value: Binding<Double>(
+                                        get: { Double(dmxLiveHoldSeconds) },
+                                        set: { dmxLiveHoldSeconds = Int($0) }
+                                    ),
+                                    in: dmxLiveHoldRangeDouble,
+                                    step: 1
+                                ) {
+                                    Text("\(dmxLiveHoldSeconds)s")
+                                }
+                                .frame(maxWidth: 180)
+                            }
+                            .padding(12)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                        #endif
+                    }
                 }
 
                 Spacer(minLength: 0)
@@ -195,6 +254,7 @@ struct InterfaceSettings: View {
                     tvDefaultMouthAxisText = String(defaultMouthAxis)
                     tvServerLogsScrollbackText = String(serverLogsScrollBackLines)
                     tvFilmingCountdownText = String(filmingCountdownSeconds)
+                    tvDmxLiveHoldText = String(dmxLiveHoldSeconds)
                 }
             #endif
         }

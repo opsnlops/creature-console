@@ -9,6 +9,8 @@ public typealias CreatureIdentifier = String
 public typealias PlaylistIdentifier = String
 public typealias SoundIdentifier = String
 public typealias UniverseIdentifier = Int
+public typealias DmxFixtureIdentifier = String
+public typealias FixturePatternIdentifier = String
 
 public typealias FrameDataIndentifier = String
 public typealias TrackIdentifier = UUID

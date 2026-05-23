@@ -23,12 +23,14 @@ actor AppBootstrapper {
         async let animationMetadataResult = importAnimationsIntoSwiftData()
         async let playlistsResult = importPlaylistsIntoSwiftData()
         async let soundsResult = importSoundsIntoSwiftData()
+        async let fixturesResult = importFixturesIntoSwiftData()
 
         let results = await (
             creaturesResult,
             animationMetadataResult,
             playlistsResult,
-            soundsResult
+            soundsResult,
+            fixturesResult
         )
 
         await handleImportResults(results)
@@ -44,12 +46,14 @@ actor AppBootstrapper {
         async let animationMetadataResult = importAnimationsIntoSwiftData()
         async let playlistsResult = importPlaylistsIntoSwiftData()
         async let soundsResult = importSoundsIntoSwiftData()
+        async let fixturesResult = importFixturesIntoSwiftData()
 
         let results = await (
             creaturesResult,
             animationMetadataResult,
             playlistsResult,
-            soundsResult
+            soundsResult,
+            fixturesResult
         )
 
         var errors: [String] = []
@@ -86,6 +90,14 @@ actor AppBootstrapper {
         case .failure(let error):
             logger.warning("Failed to import sounds after wake: \(error.localizedDescription)")
             errors.append("Sounds: \(error.localizedDescription)")
+        }
+
+        switch results.4 {
+        case .success:
+            break
+        case .failure(let error):
+            logger.warning("Failed to import fixtures after wake: \(error.localizedDescription)")
+            errors.append("Fixtures: \(error.localizedDescription)")
         }
 
         if !errors.isEmpty {
@@ -149,9 +161,28 @@ actor AppBootstrapper {
         }
     }
 
+    private func importFixturesIntoSwiftData() async -> Result<String, Error> {
+        do {
+            let container = await SwiftDataStore.shared.container()
+            let importer = DmxFixtureImporter(modelContainer: container)
+            let server = CreatureServerClient.shared
+            let result = await server.getAllFixtures()
+            switch result {
+            case .success(let list):
+                try await importer.upsertBatch(list)
+                return .success("Imported \(list.count) fixtures")
+            case .failure(let serverError):
+                return .failure(serverError)
+            }
+        } catch {
+            return .failure(error)
+        }
+    }
+
     private func handleImportResults(
         _ results: (
             Result<String, ServerError>,
+            Result<String, any Error>,
             Result<String, any Error>,
             Result<String, any Error>,
             Result<String, any Error>
@@ -189,6 +220,14 @@ actor AppBootstrapper {
         case .failure(let error):
             logger.warning("Failed to import sounds: \(error.localizedDescription)")
             errors.append("Sounds: \(error.localizedDescription)")
+        }
+
+        switch results.4 {
+        case .success:
+            logger.debug("Successfully imported fixtures")
+        case .failure(let error):
+            logger.warning("Failed to import fixtures: \(error.localizedDescription)")
+            errors.append("Fixtures: \(error.localizedDescription)")
         }
 
         if !errors.isEmpty {

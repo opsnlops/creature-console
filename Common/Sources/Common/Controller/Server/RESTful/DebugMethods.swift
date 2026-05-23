@@ -18,6 +18,8 @@ extension CreatureServerClient {
             cacheTypeString = "ad-hoc-animation-list"
         case .adHocSoundList:
             cacheTypeString = "ad-hoc-sound-list"
+        case .fixture:
+            cacheTypeString = "fixture"
         case .unknown:
             cacheTypeString = "unknown"
         }
@@ -62,6 +64,10 @@ extension CreatureServerClient {
 
     public func invalidateSoundListCache() async -> Result<StatusDTO, ServerError> {
         return await invalidateCache(for: .soundList)
+    }
+
+    public func invalidateFixtureCache() async -> Result<StatusDTO, ServerError> {
+        return await invalidateCache(for: .fixture)
     }
 
     public func testPlaylistUpdates() async -> Result<StatusDTO, ServerError> {

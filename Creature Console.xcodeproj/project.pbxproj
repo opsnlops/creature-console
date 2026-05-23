@@ -218,6 +218,17 @@
 		11F9A0162F0C123400123456 /* TVUserFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0032F0C123400123456 /* TVUserFeedback.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
+		2470F7BEF21E3FF180C260A8 /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
+		2B75A1837D08598F1F933DE5 /* BindingListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */; };
+		3C7DBB0033DA4971E5C9E4EC /* FixturesTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */; };
+		5D6C50909440E20E9E024A55 /* FixtureEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37787523823136F6AC32A769 /* FixtureEditor.swift */; };
+		5DFD7CF335A69D826BFF6FE5 /* PatternListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */; };
+		7411DC28B6B15B5F13C2FF33 /* PatternValueEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */; };
+		7DB638E818B72A9D9F481B7F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
+		9DE68FE4120C11C5EC98D74C /* LiveControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */; };
+		B0A5226481B86C3BEFB8D1CE /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
+		ED7C2D001F423B32AEAA7B05 /* ChannelListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */; };
+		F0078779AA60B7D1EA3CE06F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -434,6 +445,15 @@
 		11FF7C512BF0334E00BF5A09 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		11FF7C522BF0334E00BF5A09 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
 		11FF7C532BF0334E00BF5A09 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
+		1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternValueEditor.swift; sourceTree = "<group>"; };
+		37787523823136F6AC32A769 /* FixtureEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureEditor.swift; sourceTree = "<group>"; };
+		5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureModel.swift; sourceTree = "<group>"; };
+		5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListEditor.swift; sourceTree = "<group>"; };
+		B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlPanel.swift; sourceTree = "<group>"; };
+		B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternListEditor.swift; sourceTree = "<group>"; };
+		BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixturesTable.swift; sourceTree = "<group>"; };
+		D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureImporter.swift; sourceTree = "<group>"; };
+		F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingListEditor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -637,6 +657,7 @@
 				114B7E1D2E90B83900F5D1EC /* SwiftDataStore.swift */,
 				11D655612E909B7A00AEC888 /* Sounds */,
 				11E5CE7B2C9FDFB700749F94 /* Creature */,
+				EADED62D558C0D74CDBC5644 /* DmxFixture */,
 				1199D6C22BF5D222004E0D64 /* Server */,
 				110B12602A2491B9002C5585 /* Joystick */,
 				110B125F2A24918C002C5585 /* Audio */,
@@ -659,6 +680,7 @@
 				119D07472E90F67700C6AFEE /* WebSocketConnectionState+UI.swift */,
 				114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */,
 				118AE3602C439D1300346C0E /* Playlists */,
+				9976987744D9EB7801271AB7 /* Fixtures */,
 				1199D6CC2BF6F7E9004E0D64 /* Logging */,
 				110CABE52A9599DB007769E4 /* Processing */,
 				110B125C2A247BC4002C5585 /* Creatures */,
@@ -1217,6 +1239,29 @@
 			path = Sources/Common;
 			sourceTree = "<group>";
 		};
+		9976987744D9EB7801271AB7 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */,
+				B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */,
+				37787523823136F6AC32A769 /* FixtureEditor.swift */,
+				5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */,
+				B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */,
+				1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */,
+				F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		EADED62D558C0D74CDBC5644 /* DmxFixture */ = {
+			isa = PBXGroup;
+			children = (
+				5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */,
+				D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */,
+			);
+			path = DmxFixture;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1430,6 +1475,15 @@
 		11703D8429DD197F00EF7E3D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				9DE68FE4120C11C5EC98D74C /* LiveControlPanel.swift in Sources */,
+				7DB638E818B72A9D9F481B7F /* DmxFixtureModel.swift in Sources */,
+				2470F7BEF21E3FF180C260A8 /* DmxFixtureImporter.swift in Sources */,
+				3C7DBB0033DA4971E5C9E4EC /* FixturesTable.swift in Sources */,
+				5D6C50909440E20E9E024A55 /* FixtureEditor.swift in Sources */,
+				ED7C2D001F423B32AEAA7B05 /* ChannelListEditor.swift in Sources */,
+				5DFD7CF335A69D826BFF6FE5 /* PatternListEditor.swift in Sources */,
+				7411DC28B6B15B5F13C2FF33 /* PatternValueEditor.swift in Sources */,
+				2B75A1837D08598F1F933DE5 /* BindingListEditor.swift in Sources */,
 				11218E802B67522500AFFF65 /* Joystick.swift in Sources */,
 				11E53CCE2E889BB700C17F16 /* DiagnosticReporter.swift in Sources */,
 				11C7F0A92F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift in Sources */,
@@ -1563,6 +1617,8 @@
 		117C86FA2CA0CC81007B5682 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				F0078779AA60B7D1EA3CE06F /* DmxFixtureModel.swift in Sources */,
+				B0A5226481B86C3BEFB8D1CE /* DmxFixtureImporter.swift in Sources */,
 				117C87752CA0D710007B5682 /* JoystickDebugView.swift in Sources */,
 				117C87302CA0CE3B007B5682 /* CreatureHealthCache.swift in Sources */,
 				110C412B2E516F270079CA75 /* EmergencyStopMessageProcessor.swift in Sources */,
@@ -1835,7 +1891,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.18.2;
+				MARKETING_VERSION = 2.24.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1889,7 +1945,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.18.2;
+				MARKETING_VERSION = 2.24.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1973,7 +2029,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.18.2;
+				MARKETING_VERSION = 2.24.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2005,7 +2061,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.18.2;
+				MARKETING_VERSION = 2.24.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

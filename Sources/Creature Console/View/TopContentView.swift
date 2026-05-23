@@ -169,6 +169,22 @@ struct TopContentView: View {
                 #endif
 
                 #if os(iOS) || os(macOS)
+                    Section("Fixtures") {
+                        NavigationLink {
+                            FixturesTable()
+                        } label: {
+                            Label("List All", systemImage: "lightbulb.led")
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                        NavigationLink {
+                            FixtureEditor(createNew: true)
+                        } label: {
+                            Label("Create New", systemImage: "plus.circle")
+                        }
+                    }
+                #endif
+
+                #if os(iOS) || os(macOS)
                     Section("Sound Files") {
                         NavigationLink {
                             SoundFileListView()

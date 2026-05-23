@@ -14,6 +14,7 @@ struct CacheInvalidationProcessor {
     static nonisolated(unsafe) private var loadAnimationsTask: Task<Void, Never>? = nil
     static nonisolated(unsafe) private var loadPlaylistsTask: Task<Void, Never>? = nil
     static nonisolated(unsafe) private var loadSoundListsTask: Task<Void, Never>? = nil
+    static nonisolated(unsafe) private var loadFixturesTask: Task<Void, Never>? = nil
 
 
     static func processCacheInvalidation(_ request: CacheInvalidation) {
@@ -26,6 +27,8 @@ struct CacheInvalidationProcessor {
             rebuildPlaylistCache(deleteStaleEntries: true)
         case .soundList:
             rebuildSoundListCache(deleteStaleEntries: true)
+        case .fixture:
+            rebuildFixtureCache(deleteStaleEntries: true)
         case .adHocAnimationList:
             logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
         case .adHocSoundList:
@@ -244,6 +247,58 @@ struct CacheInvalidationProcessor {
         }
     }
 
+
+    // Async version that can be awaited for sequential execution
+    private static func rebuildFixtureCacheAsync(deleteStaleEntries: Bool = false) async {
+        logger.debug("calling out to the server now...")
+        let server = CreatureServerClient.shared
+        let result = await server.getAllFixtures()
+        switch result {
+        case .success(let fixtures):
+            do {
+                let container = await SwiftDataStore.shared.container()
+                let importer = DmxFixtureImporter(modelContainer: container)
+
+                if deleteStaleEntries {
+                    let ids = Set(fixtures.map { $0.id })
+                    try await importer.deleteAllExcept(ids: ids)
+                    logger.debug("deleted stale fixture entries not in server response")
+                }
+
+                try await importer.upsertBatch(fixtures)
+                logger.info(
+                    "(re)built the fixture cache in SwiftData: imported \(fixtures.count) fixtures"
+                )
+            } catch {
+                logger.warning(
+                    "unable to import fixtures into SwiftData: \(error.localizedDescription)")
+                await AppState.shared.setSystemAlert(
+                    show: true,
+                    message:
+                        "Unable to reload the fixture cache after getting an invalidation message: \(error.localizedDescription)"
+                )
+            }
+        case .failure(let error):
+            logger.warning(
+                "unable to fetch fixtures from server: \(error.localizedDescription)")
+            await AppState.shared.setSystemAlert(
+                show: true,
+                message:
+                    "Unable to fetch fixtures after invalidation: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    static func rebuildFixtureCache(deleteStaleEntries: Bool = false) {
+        logger.info("attempting to rebuild the fixture cache (SwiftData import)")
+
+        loadFixturesTask?.cancel()
+
+        loadFixturesTask = Task {
+            await rebuildFixtureCacheAsync(deleteStaleEntries: deleteStaleEntries)
+        }
+    }
+
     static func rebuildAllCaches() {
         logger.info("rebuilding all SwiftData caches (with stale entry deletion)")
 
@@ -256,12 +311,14 @@ struct CacheInvalidationProcessor {
             loadAnimationsTask?.cancel()
             loadPlaylistsTask?.cancel()
             loadSoundListsTask?.cancel()
+            loadFixturesTask?.cancel()
 
             // Run rebuilds one at a time
             await rebuildCreatureCacheAsync(deleteStaleEntries: true)
             await rebuildAnimationCacheAsync(deleteStaleEntries: true)
             await rebuildPlaylistCacheAsync(deleteStaleEntries: true)
             await rebuildSoundListCacheAsync(deleteStaleEntries: true)
+            await rebuildFixtureCacheAsync(deleteStaleEntries: true)
 
             logger.info("completed rebuild of all caches with stale entry deletion")
         }
