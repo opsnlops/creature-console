@@ -40,6 +40,8 @@ struct AnimationTable: View {
 
     @State private var navigateToEditor = false
     @State private var animationToEdit: Common.Animation? = nil
+    @State private var scriptToEdit: DialogScript? = nil
+    @State private var loadScriptTask: Task<Void, Never>? = nil
     @State private var generatingLipSyncForAnimation: AnimationIdentifier? = nil
     @State private var activeAnimationLipSyncJob:
         (animationId: AnimationIdentifier, jobId: String)? = nil
@@ -125,6 +127,22 @@ struct AnimationTable: View {
                         }
                         .disabled(!hasSelection)
 
+                        // Jump to the source dialog script, but only when this animation was
+                        // rendered from a saved one.
+                        let sourceScriptId: DialogScriptIdentifier? = {
+                            guard let id = targetId,
+                                let md = animations.first(where: { $0.id == id })
+                            else { return nil }
+                            return md.sourceScriptIdentifier
+                        }()
+                        if let sourceScriptId {
+                            Button {
+                                loadScriptForEditing(scriptId: sourceScriptId)
+                            } label: {
+                                Label("Edit Script", systemImage: "text.bubble")
+                            }
+                        }
+
                         Button {
                             copyAnimationId(targetId)
                         } label: {
@@ -202,6 +220,8 @@ struct AnimationTable: View {
                 jobEventsTask?.cancel()
                 deleteAnimationTask?.cancel()
                 renameAnimationTask?.cancel()
+                loadScriptTask?.cancel()
+                loadScriptTask = nil
                 generateLipSyncTask = nil
                 jobEventsTask = nil
                 deleteAnimationTask = nil
@@ -259,6 +279,19 @@ struct AnimationTable: View {
                     onSave: confirmAnimationRename
                 )
                 .frame(minWidth: 360)
+            }
+            .sheet(item: $scriptToEdit) { script in
+                NavigationStack {
+                    DialogScriptEditor(existing: script, mode: .animationLinked)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Close") { scriptToEdit = nil }
+                            }
+                        }
+                }
+                #if os(macOS)
+                    .frame(minWidth: 760, minHeight: 640)
+                #endif
             }
             .navigationTitle("Animations")
             .bottomToolbarInset()
@@ -599,6 +632,30 @@ struct AnimationTable: View {
 
     private func animationTitle(for animationId: AnimationIdentifier) -> String {
         animations.first(where: { $0.id == animationId })?.title ?? animationId
+    }
+
+    /// Fetch the source dialog script and present it in a sheet. The pointer is soft (the
+    /// script may have been deleted), so surface a friendly message on 404.
+    private func loadScriptForEditing(scriptId: DialogScriptIdentifier) {
+        loadScriptTask?.cancel()
+        loadScriptTask = Task {
+            let result = await server.getDialogScript(id: scriptId)
+            await MainActor.run {
+                switch result {
+                case .success(let script):
+                    scriptToEdit = script
+                case .failure(.notFound):
+                    alertTitle = "Dialog Script Not Found"
+                    alertMessage =
+                        "The source dialog script no longer exists — it may have been deleted. The animation still plays from its rendered snapshot."
+                    showErrorAlert = true
+                case .failure(let error):
+                    alertTitle = "Unable to Open Dialog Script"
+                    alertMessage = ServerError.detailedMessage(from: error)
+                    showErrorAlert = true
+                }
+            }
+        }
     }
 
     private func copyAnimationId(_ animationId: AnimationIdentifier?) {

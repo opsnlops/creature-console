@@ -15,6 +15,13 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
     public var numberOfFrames: UInt32
     public var multitrackAudio: Bool = false
 
+    /// Provenance for animations rendered from a dialog. `sourceScriptId` is a *soft* pointer
+    /// (the script may have been deleted — treat 404 on lookup as expected). `sourceScriptTurns`
+    /// is the authoritative copy-on-write snapshot of what was rendered. Both are absent for
+    /// animations not rendered from dialog. See the multichar-dialog feature.
+    public var sourceScriptId: String?
+    public var sourceScriptTurns: [DialogScriptTurn]?
+
 
     // Custom CodingKeys to map JSON keys to struct properties
     public enum CodingKeys: String, CodingKey {
@@ -26,11 +33,14 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
         case soundFile = "sound_file"
         case numberOfFrames = "number_of_frames"
         case multitrackAudio = "multitrack_audio"
+        case sourceScriptId = "source_script_id"
+        case sourceScriptTurns = "source_script_turns"
     }
 
     public init(
         id: AnimationIdentifier, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32,
-        note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool
+        note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool,
+        sourceScriptId: String? = nil, sourceScriptTurns: [DialogScriptTurn]? = nil
     ) {
         self.id = id
         self.title = title
@@ -40,6 +50,21 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
         self.soundFile = soundFile
         self.numberOfFrames = numberOfFrames
         self.multitrackAudio = multitrackAudio
+        self.sourceScriptId = sourceScriptId
+        self.sourceScriptTurns = sourceScriptTurns
+    }
+
+    /// The source dialog script's id as a typed `UUID`, or `nil` when there's no live source
+    /// (inline render, or the server sent an empty string).
+    public var sourceScriptIdentifier: DialogScriptIdentifier? {
+        guard let sourceScriptId, !sourceScriptId.isEmpty else { return nil }
+        return UUID(uuidString: sourceScriptId)
+    }
+
+    /// True when this animation was rendered from a dialog (has a script pointer and/or a
+    /// turns snapshot).
+    public var hasDialogProvenance: Bool {
+        sourceScriptIdentifier != nil || !(sourceScriptTurns?.isEmpty ?? true)
     }
 
 
@@ -48,6 +73,8 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
             && lhs.millisecondsPerFrame == rhs.millisecondsPerFrame && lhs.note == rhs.note
             && lhs.soundFile == rhs.soundFile && lhs.numberOfFrames == rhs.numberOfFrames
             && lhs.multitrackAudio == rhs.multitrackAudio
+            && lhs.sourceScriptId == rhs.sourceScriptId
+            && lhs.sourceScriptTurns == rhs.sourceScriptTurns
     }
 
 
@@ -60,6 +87,8 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
         hasher.combine(soundFile)
         hasher.combine(numberOfFrames)
         hasher.combine(multitrackAudio)
+        hasher.combine(sourceScriptId)
+        hasher.combine(sourceScriptTurns)
     }
 
 }

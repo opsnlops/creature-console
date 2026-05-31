@@ -85,13 +85,7 @@ struct Creature_TVApp: App {
                 try fm.createDirectory(at: storeURL, withIntermediateDirectories: true)
             #endif
 
-            let config = ModelConfiguration(url: storeURL)
-            let container = try ModelContainer(
-                for: SoundModel.self, CreatureModel.self, InputModel.self,
-                AnimationMetadataModel.self, PlaylistModel.self, PlaylistItemModel.self,
-                ServerLogModel.self, DmxFixtureModel.self,
-                configurations: config)
-
+            let container = try Self.makeModelContainer(at: storeURL)
             self.modelContainer = container
 
             // Set the container in the shared data store
@@ -102,6 +96,37 @@ struct Creature_TVApp: App {
             fatalError("Failed to create SwiftData ModelContainer: \(error)")
         }
 
+    }
+
+    /// All persisted SwiftData models. Keep in sync with the main app's schema.
+    private static var modelTypes: [any PersistentModel.Type] {
+        [
+            SoundModel.self, CreatureModel.self, AnimationMetadataModel.self,
+            PlaylistModel.self, PlaylistItemModel.self, ServerLogModel.self,
+            DmxFixtureModel.self, DialogScriptModel.self, StoryboardModel.self,
+        ]
+    }
+
+    /// Open the model container, recovering from an un-migratable schema change by wiping the
+    /// (disposable, server-backed) cache store and recreating it.
+    private static func makeModelContainer(at storeURL: URL) throws -> ModelContainer {
+        let schema = Schema(modelTypes)
+        let config = ModelConfiguration(url: storeURL)
+        do {
+            return try ModelContainer(for: schema, configurations: config)
+        } catch {
+            wipeStore(at: storeURL)
+            return try ModelContainer(for: schema, configurations: config)
+        }
+    }
+
+    private static func wipeStore(at storeURL: URL) {
+        let fm = FileManager.default
+        let base = storeURL.lastPathComponent
+        let parent = storeURL.deletingLastPathComponent()
+        for name in [base, base + "-shm", base + "-wal"] {
+            try? fm.removeItem(at: parent.appendingPathComponent(name))
+        }
     }
 
     var body: some Scene {

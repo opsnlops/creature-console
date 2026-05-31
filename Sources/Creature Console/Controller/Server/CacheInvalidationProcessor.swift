@@ -15,6 +15,8 @@ struct CacheInvalidationProcessor {
     static nonisolated(unsafe) private var loadPlaylistsTask: Task<Void, Never>? = nil
     static nonisolated(unsafe) private var loadSoundListsTask: Task<Void, Never>? = nil
     static nonisolated(unsafe) private var loadFixturesTask: Task<Void, Never>? = nil
+    static nonisolated(unsafe) private var loadDialogScriptsTask: Task<Void, Never>? = nil
+    static nonisolated(unsafe) private var loadStoryboardsTask: Task<Void, Never>? = nil
 
 
     static func processCacheInvalidation(_ request: CacheInvalidation) {
@@ -29,6 +31,10 @@ struct CacheInvalidationProcessor {
             rebuildSoundListCache(deleteStaleEntries: true)
         case .fixture:
             rebuildFixtureCache(deleteStaleEntries: true)
+        case .dialogScriptList:
+            rebuildDialogScriptCache(deleteStaleEntries: true)
+        case .storyboardList:
+            rebuildStoryboardCache(deleteStaleEntries: true)
         case .adHocAnimationList:
             logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
         case .adHocSoundList:
@@ -299,6 +305,108 @@ struct CacheInvalidationProcessor {
         }
     }
 
+    // Async version that can be awaited for sequential execution
+    private static func rebuildDialogScriptCacheAsync(deleteStaleEntries: Bool = false) async {
+        logger.debug("calling out to the server now...")
+        let server = CreatureServerClient.shared
+        let result = await server.listDialogScripts()
+        switch result {
+        case .success(let scripts):
+            do {
+                let container = await SwiftDataStore.shared.container()
+                let importer = DialogScriptImporter(modelContainer: container)
+
+                if deleteStaleEntries {
+                    let ids = Set(scripts.map { $0.id })
+                    try await importer.deleteAllExcept(ids: ids)
+                    logger.debug("deleted stale dialog script entries not in server response")
+                }
+
+                try await importer.upsertBatch(scripts)
+                logger.info(
+                    "(re)built the dialog script cache in SwiftData: imported \(scripts.count) scripts"
+                )
+            } catch {
+                logger.warning(
+                    "unable to import dialog scripts into SwiftData: \(error.localizedDescription)")
+                await AppState.shared.setSystemAlert(
+                    show: true,
+                    message:
+                        "Unable to reload the dialog script cache after getting an invalidation message: \(error.localizedDescription)"
+                )
+            }
+        case .failure(let error):
+            logger.warning(
+                "unable to fetch dialog scripts from server: \(error.localizedDescription)")
+            await AppState.shared.setSystemAlert(
+                show: true,
+                message:
+                    "Unable to fetch dialog scripts after invalidation: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    static func rebuildDialogScriptCache(deleteStaleEntries: Bool = false) {
+        logger.info("attempting to rebuild the dialog script cache (SwiftData import)")
+
+        loadDialogScriptsTask?.cancel()
+
+        loadDialogScriptsTask = Task {
+            await rebuildDialogScriptCacheAsync(deleteStaleEntries: deleteStaleEntries)
+        }
+    }
+
+    // Async version that can be awaited for sequential execution
+    private static func rebuildStoryboardCacheAsync(deleteStaleEntries: Bool = false) async {
+        logger.debug("calling out to the server now...")
+        let server = CreatureServerClient.shared
+        let result = await server.listStoryboards()
+        switch result {
+        case .success(let storyboards):
+            do {
+                let container = await SwiftDataStore.shared.container()
+                let importer = StoryboardImporter(modelContainer: container)
+
+                if deleteStaleEntries {
+                    let ids = Set(storyboards.map { $0.id })
+                    try await importer.deleteAllExcept(ids: ids)
+                    logger.debug("deleted stale storyboard entries not in server response")
+                }
+
+                try await importer.upsertBatch(storyboards)
+                logger.info(
+                    "(re)built the storyboard cache in SwiftData: imported \(storyboards.count) storyboards"
+                )
+            } catch {
+                logger.warning(
+                    "unable to import storyboards into SwiftData: \(error.localizedDescription)")
+                await AppState.shared.setSystemAlert(
+                    show: true,
+                    message:
+                        "Unable to reload the storyboard cache after getting an invalidation message: \(error.localizedDescription)"
+                )
+            }
+        case .failure(let error):
+            logger.warning(
+                "unable to fetch storyboards from server: \(error.localizedDescription)")
+            await AppState.shared.setSystemAlert(
+                show: true,
+                message:
+                    "Unable to fetch storyboards after invalidation: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    static func rebuildStoryboardCache(deleteStaleEntries: Bool = false) {
+        logger.info("attempting to rebuild the storyboard cache (SwiftData import)")
+
+        loadStoryboardsTask?.cancel()
+
+        loadStoryboardsTask = Task {
+            await rebuildStoryboardCacheAsync(deleteStaleEntries: deleteStaleEntries)
+        }
+    }
+
     static func rebuildAllCaches() {
         logger.info("rebuilding all SwiftData caches (with stale entry deletion)")
 
@@ -312,6 +420,8 @@ struct CacheInvalidationProcessor {
             loadPlaylistsTask?.cancel()
             loadSoundListsTask?.cancel()
             loadFixturesTask?.cancel()
+            loadDialogScriptsTask?.cancel()
+            loadStoryboardsTask?.cancel()
 
             // Run rebuilds one at a time
             await rebuildCreatureCacheAsync(deleteStaleEntries: true)
@@ -319,6 +429,8 @@ struct CacheInvalidationProcessor {
             await rebuildPlaylistCacheAsync(deleteStaleEntries: true)
             await rebuildSoundListCacheAsync(deleteStaleEntries: true)
             await rebuildFixtureCacheAsync(deleteStaleEntries: true)
+            await rebuildDialogScriptCacheAsync(deleteStaleEntries: true)
+            await rebuildStoryboardCacheAsync(deleteStaleEntries: true)
 
             logger.info("completed rebuild of all caches with stale entry deletion")
         }

@@ -115,13 +115,7 @@ struct CreatureConsole: App {
             let storeURL = appSupport.appendingPathComponent(
                 "CreatureConsoleStore", isDirectory: true)
 
-            let config = ModelConfiguration(url: storeURL)
-            let container = try ModelContainer(
-                for: SoundModel.self, CreatureModel.self, InputModel.self,
-                AnimationMetadataModel.self, PlaylistModel.self, PlaylistItemModel.self,
-                ServerLogModel.self, DmxFixtureModel.self,
-                configurations: config)
-
+            let container = try Self.makeModelContainer(at: storeURL)
             self.modelContainer = container
 
             // Set the container in the shared data store
@@ -130,6 +124,39 @@ struct CreatureConsole: App {
             }
         } catch {
             fatalError("Failed to create SwiftData ModelContainer: \(error)")
+        }
+    }
+
+    /// All persisted SwiftData models. Keep in sync with the schema across app launches.
+    private static var modelTypes: [any PersistentModel.Type] {
+        [
+            SoundModel.self, CreatureModel.self, AnimationMetadataModel.self,
+            PlaylistModel.self, PlaylistItemModel.self, ServerLogModel.self,
+            DmxFixtureModel.self, DialogScriptModel.self, StoryboardModel.self,
+        ]
+    }
+
+    /// Open the model container, recovering from an un-migratable schema change. The on-disk
+    /// store is a disposable cache of server data, so if a structural change can't be migrated
+    /// automatically we wipe it and recreate — the app repopulates from the server on launch.
+    private static func makeModelContainer(at storeURL: URL) throws -> ModelContainer {
+        let schema = Schema(modelTypes)
+        let config = ModelConfiguration(url: storeURL)
+        do {
+            return try ModelContainer(for: schema, configurations: config)
+        } catch {
+            wipeStore(at: storeURL)
+            return try ModelContainer(for: schema, configurations: config)
+        }
+    }
+
+    /// Remove the SwiftData store file and its `-shm` / `-wal` sidecars (or the directory).
+    private static func wipeStore(at storeURL: URL) {
+        let fm = FileManager.default
+        let base = storeURL.lastPathComponent
+        let parent = storeURL.deletingLastPathComponent()
+        for name in [base, base + "-shm", base + "-wal"] {
+            try? fm.removeItem(at: parent.appendingPathComponent(name))
         }
     }
 

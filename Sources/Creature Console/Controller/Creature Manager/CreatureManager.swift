@@ -52,6 +52,29 @@ actor CreatureManager {
 
     }
 
+    /// The creature currently under live (joystick) control, if any.
+    func currentStreamingCreature() -> CreatureIdentifier? { streamingCreature }
+
+    /// Single source of truth for toggling live control, used by both the creature detail screen
+    /// and storyboards. Per-creature semantics: if `creatureId` is already the streamed creature,
+    /// stop (→ `.idle`); otherwise start/switch to it (→ `.streaming`). The 50 Hz `EventLoop`
+    /// picks up the new `streamingCreature` on the next tick. Returns the now-live creature, or
+    /// `nil` if streaming stopped.
+    @discardableResult
+    func toggleStreaming(to creatureId: CreatureIdentifier) async -> CreatureIdentifier? {
+        if streamingCreature == creatureId {
+            streamingCreature = nil
+            await AppState.shared.setCurrentActivity(.idle)
+            logger.info("toggleStreaming: stopped live control (was \(creatureId))")
+            return nil
+        } else {
+            streamingCreature = creatureId
+            await AppState.shared.setCurrentActivity(.streaming)
+            logger.info("toggleStreaming: now streaming to \(creatureId)")
+            return creatureId
+        }
+    }
+
     /// This is called from the event look when it's our time to grab a frame
     func onEventLoopTick() async {
 

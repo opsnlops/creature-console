@@ -188,7 +188,14 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
             span.attributes["http.url"] = url.absoluteString
 
             do {
-                let request = createConfiguredURLRequest(for: url)
+                var request = createConfiguredURLRequest(for: url)
+                // Never serve these REST reads from the URL cache. The server doesn't send
+                // cache-control headers, so CFNetwork heuristically caches 200s and can hand a
+                // stale list back to a cache rebuild right after a save — leaving SwiftData behind
+                // (e.g. a newly-added tile missing in perform mode). Our SwiftData layer *is* the
+                // cache, refreshed via the websocket invalidation model; the HTTP layer must always
+                // hit the origin.
+                request.cachePolicy = .reloadIgnoringLocalCacheData
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let httpResponse = response as? HTTPURLResponse else {
                     logger.error("Invalid response for \(url)")

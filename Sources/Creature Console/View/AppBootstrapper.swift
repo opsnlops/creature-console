@@ -24,16 +24,27 @@ actor AppBootstrapper {
         async let playlistsResult = importPlaylistsIntoSwiftData()
         async let soundsResult = importSoundsIntoSwiftData()
         async let fixturesResult = importFixturesIntoSwiftData()
+        async let dialogScriptsResult = importDialogScriptsIntoSwiftData()
+        async let storyboardsResult = importStoryboardsIntoSwiftData()
 
-        let results = await (
-            creaturesResult,
-            animationMetadataResult,
-            playlistsResult,
-            soundsResult,
-            fixturesResult
-        )
+        let imports: [(label: String, result: Result<String, any Error>)] = [
+            ("Creature cache", (await creaturesResult).mapError { $0 as Error }),
+            ("Animation metadata", await animationMetadataResult),
+            ("Playlists", await playlistsResult),
+            ("Sounds", await soundsResult),
+            ("Fixtures", await fixturesResult),
+            ("Dialog scripts", await dialogScriptsResult),
+            ("Storyboards", await storyboardsResult),
+        ]
 
-        await handleImportResults(results)
+        let errors = logImportResults(imports)
+        if !errors.isEmpty {
+            let message =
+                "Some data failed to load from server:\n"
+                + errors.map { "• \($0)" }.joined(separator: "\n")
+                + "\n\nThe app will use cached data if available."
+            await AppState.shared.setSystemAlert(show: true, message: message)
+        }
 
         // Now that caches are populated, set to idle
         await AppState.shared.setCurrentActivity(.idle)
@@ -47,59 +58,20 @@ actor AppBootstrapper {
         async let playlistsResult = importPlaylistsIntoSwiftData()
         async let soundsResult = importSoundsIntoSwiftData()
         async let fixturesResult = importFixturesIntoSwiftData()
+        async let dialogScriptsResult = importDialogScriptsIntoSwiftData()
+        async let storyboardsResult = importStoryboardsIntoSwiftData()
 
-        let results = await (
-            creaturesResult,
-            animationMetadataResult,
-            playlistsResult,
-            soundsResult,
-            fixturesResult
-        )
+        let imports: [(label: String, result: Result<String, any Error>)] = [
+            ("Creature cache", (await creaturesResult).mapError { $0 as Error }),
+            ("Animation metadata", await animationMetadataResult),
+            ("Playlists", await playlistsResult),
+            ("Sounds", await soundsResult),
+            ("Fixtures", await fixturesResult),
+            ("Dialog scripts", await dialogScriptsResult),
+            ("Storyboards", await storyboardsResult),
+        ]
 
-        var errors: [String] = []
-
-        switch results.0 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning(
-                "Failed to populate creature cache after wake: \(error.localizedDescription)")
-            errors.append("Creature cache: \(error.localizedDescription)")
-        }
-
-        switch results.1 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning(
-                "Failed to fetch animation metadata list after wake: \(error.localizedDescription)")
-            errors.append("Animation metadata: \(error.localizedDescription)")
-        }
-
-        switch results.2 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning("Failed to fetch playlists after wake: \(error.localizedDescription)")
-            errors.append("Playlists: \(error.localizedDescription)")
-        }
-
-        switch results.3 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning("Failed to import sounds after wake: \(error.localizedDescription)")
-            errors.append("Sounds: \(error.localizedDescription)")
-        }
-
-        switch results.4 {
-        case .success:
-            break
-        case .failure(let error):
-            logger.warning("Failed to import fixtures after wake: \(error.localizedDescription)")
-            errors.append("Fixtures: \(error.localizedDescription)")
-        }
-
+        let errors = logImportResults(imports)
         if !errors.isEmpty {
             let message =
                 "Some data failed to refresh:\n" + errors.map { "• \($0)" }.joined(separator: "\n")
@@ -179,63 +151,58 @@ actor AppBootstrapper {
         }
     }
 
-    private func handleImportResults(
-        _ results: (
-            Result<String, ServerError>,
-            Result<String, any Error>,
-            Result<String, any Error>,
-            Result<String, any Error>,
-            Result<String, any Error>
-        )
-    ) async {
+    private func importDialogScriptsIntoSwiftData() async -> Result<String, Error> {
+        do {
+            let container = await SwiftDataStore.shared.container()
+            let importer = DialogScriptImporter(modelContainer: container)
+            let server = CreatureServerClient.shared
+            let result = await server.listDialogScripts()
+            switch result {
+            case .success(let list):
+                try await importer.upsertBatch(list)
+                return .success("Imported \(list.count) dialog scripts")
+            case .failure(let serverError):
+                return .failure(serverError)
+            }
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    private func importStoryboardsIntoSwiftData() async -> Result<String, Error> {
+        do {
+            let container = await SwiftDataStore.shared.container()
+            let importer = StoryboardImporter(modelContainer: container)
+            let server = CreatureServerClient.shared
+            let result = await server.listStoryboards()
+            switch result {
+            case .success(let list):
+                try await importer.upsertBatch(list)
+                return .success("Imported \(list.count) storyboards")
+            case .failure(let serverError):
+                return .failure(serverError)
+            }
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    /// Logs each labeled import result and returns the human-readable messages for any that
+    /// failed (empty when everything succeeded). Callers decide how to surface the failures.
+    private func logImportResults(
+        _ imports: [(label: String, result: Result<String, any Error>)]
+    ) -> [String] {
         var errors: [String] = []
-
-        switch results.0 {
-        case .success:
-            logger.debug("Successfully populated creature cache")
-        case .failure(let error):
-            logger.warning("Failed to populate creature cache: \(error.localizedDescription)")
-            errors.append("Creature cache: \(error.localizedDescription)")
+        for entry in imports {
+            switch entry.result {
+            case .success(let message):
+                logger.debug("\(entry.label): \(message)")
+            case .failure(let error):
+                logger.warning(
+                    "Failed to import \(entry.label): \(error.localizedDescription)")
+                errors.append("\(entry.label): \(error.localizedDescription)")
+            }
         }
-
-        switch results.1 {
-        case .success:
-            logger.debug("Successfully imported animation metadata")
-        case .failure(let error):
-            logger.warning("Failed to fetch animation metadata list: \(error.localizedDescription)")
-            errors.append("Animation metadata: \(error.localizedDescription)")
-        }
-
-        switch results.2 {
-        case .success:
-            logger.debug("Successfully imported playlists")
-        case .failure(let error):
-            logger.warning("Failed to fetch playlists: \(error.localizedDescription)")
-            errors.append("Playlists: \(error.localizedDescription)")
-        }
-
-        switch results.3 {
-        case .success:
-            logger.debug("Successfully imported sounds")
-        case .failure(let error):
-            logger.warning("Failed to import sounds: \(error.localizedDescription)")
-            errors.append("Sounds: \(error.localizedDescription)")
-        }
-
-        switch results.4 {
-        case .success:
-            logger.debug("Successfully imported fixtures")
-        case .failure(let error):
-            logger.warning("Failed to import fixtures: \(error.localizedDescription)")
-            errors.append("Fixtures: \(error.localizedDescription)")
-        }
-
-        if !errors.isEmpty {
-            let message =
-                "Some data failed to load from server:\n"
-                + errors.map { "• \($0)" }.joined(separator: "\n")
-                + "\n\nThe app will use cached data if available."
-            await AppState.shared.setSystemAlert(show: true, message: message)
-        }
+        return errors
     }
 }

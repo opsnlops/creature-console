@@ -12,12 +12,20 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 
 **Development Environment:** This project uses Xcode 26. Always prefer the new Apple Liquid Glass UI elements when possible for modern visual design.
 
+**Embrace new Apple technology — enthusiastically.** This app *loves* adopting the latest and shiniest Apple frameworks and design languages, and Liquid Glass is the flagship example. New UI should be built on Liquid Glass surfaces — `.glassEffect(...)`, `GlassEffectContainer`, glass button styles (`.buttonStyle(.glass)` / `.glassProminent`), `.glassEffect(.regular.tint(...).interactive(), in:)` — rather than older materials like `.thinMaterial` or flat fills. The same spirit applies across the board: reach for the newest SwiftUI, SwiftData, Observation, and platform APIs Apple ships. When in doubt, choose the newer, more native, more "Apple" option — there are no backwards-compatibility constraints holding us back.
+
 ## Development Commands
 
 ### Building
 - **Xcode**: Open `Creature Console.xcodeproj` and use standard Xcode build commands (⌘B)
 - **Swift Package (Common library)**: `cd Common && swift build`
 - **CLI tool**: `cd Common && swift build --target creature-cli`
+
+### Versioning
+- **Build number (`CFBundleVersion`)** is stamped automatically at build time from the git short SHA (`git rev-parse --short HEAD`) by the "Stamp Build Number (git SHA)" Run Script build phase on the **Creature Console** target. It writes the SHA into the processed `Info.plist` before signing, so the signature covers it, and runs on every build (`alwaysOutOfDate`).
+  - **Don't hand-edit the build number** expecting it to stick — the script overrides it in the product. `CURRENT_PROJECT_VERSION` in `project.pbxproj` is only a fallback for when git is unavailable. (A committed value can never equal its own commit's SHA, which is why this is done at build time.)
+  - The tvOS **Creature TV** target is not stamped; add the same phase there if its build number should track the SHA too.
+- **Marketing version (`CFBundleShortVersionString` / `MARKETING_VERSION`)** is separate and bumped manually. Keep the app version and the CLI `version` (in `Common/Sources/CreatureCLI/top.swift`) in sync, bump before committing, and create a matching git tag (e.g. `v2.25.0`).
 
 ### Code Formatting
 - Use `swift-format` with the configuration in `swift-format.json`

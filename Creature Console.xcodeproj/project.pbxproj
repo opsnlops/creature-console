@@ -218,17 +218,40 @@
 		11F9A0162F0C123400123456 /* TVUserFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F9A0032F0C123400123456 /* TVUserFeedback.swift */; };
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
+		181C4F50BC868ABAF7DA7A7E /* StoryboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54614CD9A93C664522211643 /* StoryboardModel.swift */; };
+		202B47D6B51E9DFCE7BF9E23 /* StoryboardEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED34910B9AE0FAF886C4B9D /* StoryboardEditor.swift */; };
+		EFFB0305957C4A0F3F33A479 /* StoryboardCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACD60A23863C4FD5518C910 /* StoryboardCanvas.swift */; };
+		234E4D4BAA45573AFDDE3327 /* StoryboardImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */; };
 		2470F7BEF21E3FF180C260A8 /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
 		2B75A1837D08598F1F933DE5 /* BindingListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */; };
 		3C7DBB0033DA4971E5C9E4EC /* FixturesTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */; };
+		482C4E30B337CAD9D301841D /* StoryboardTileButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4FE4831905123F081DB0B90 /* StoryboardTileButton.swift */; };
+		570E4A54A626EFB2A8951961 /* StoryboardActionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D37E45B9BCBD993ABC7B06C9 /* StoryboardActionRunner.swift */; };
+		57C6467BA3F27D9B1BCC4229 /* DialogScriptImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2104407DB3CA7408D07766E3 /* DialogScriptImporter.swift */; };
+		5B9C4C59AA4A60087B5A68FF /* DialogPreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54784797A276DA212FB115FD /* DialogPreviewPanel.swift */; };
 		5D6C50909440E20E9E024A55 /* FixtureEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37787523823136F6AC32A769 /* FixtureEditor.swift */; };
+		5D704AC98A11EFF081399DCA /* StoryboardTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 774845568DA1B938DF51A8C6 /* StoryboardTable.swift */; };
 		5DFD7CF335A69D826BFF6FE5 /* PatternListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */; };
+		5E0C4F2484847E68F061B13F /* StoryboardImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */; };
+		66CC489E8DB59A23AE379228 /* DialogRenderPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AE34D7DB49651F51F60C52A /* DialogRenderPanel.swift */; };
+		693A46978B64AF12F7917E14 /* StoryboardPerformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B114574B9AE13711DA368FE /* StoryboardPerformView.swift */; };
+		6C9444419FD99EECE583E33B /* DialogScriptImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2104407DB3CA7408D07766E3 /* DialogScriptImporter.swift */; };
 		7411DC28B6B15B5F13C2FF33 /* PatternValueEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */; };
+		745C4326AB6D80D744B547EE /* StoryboardTileInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A74517B38BEC26CE5A7D93 /* StoryboardTileInspector.swift */; };
+		786C4469BE761562C02CD8CA /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
 		7DB638E818B72A9D9F481B7F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
 		9DE68FE4120C11C5EC98D74C /* LiveControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */; };
+		A93D4886BE8CC2A68D8DA3E4 /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
 		B0A5226481B86C3BEFB8D1CE /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
+		B0EB4DDC9872D02FBC869667 /* StoryboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54614CD9A93C664522211643 /* StoryboardModel.swift */; };
+		BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */; };
+		C1B849B58E8EAD7B9E0510B9 /* WavFileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211450B80E5BBFE2141677F /* WavFileDocument.swift */; };
+		D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */; };
+		D2D44211BDB3B0F545B00C6E /* DialogScriptTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */; };
 		ED7C2D001F423B32AEAA7B05 /* ChannelListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */; };
+		EE2A4FCE9715D88FBB86BEA4 /* FixtureControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F645918F17837F963999E1 /* FixtureControlService.swift */; };
 		F0078779AA60B7D1EA3CE06F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
+		F539487A8A5CBD435D46567A /* DialogScriptEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B58446690618A288BDE246C /* DialogScriptEditor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -445,29 +468,47 @@
 		11FF7C512BF0334E00BF5A09 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		11FF7C522BF0334E00BF5A09 /* TimeHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHelper.swift; sourceTree = "<group>"; };
 		11FF7C532BF0334E00BF5A09 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
+		13A74517B38BEC26CE5A7D93 /* StoryboardTileInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardTileInspector.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardTileInspector.swift"; sourceTree = SOURCE_ROOT; };
 		1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternValueEditor.swift; sourceTree = "<group>"; };
+		2104407DB3CA7408D07766E3 /* DialogScriptImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptImporter.swift; path = "Sources/Creature Console/Model/Dialog/DialogScriptImporter.swift"; sourceTree = SOURCE_ROOT; };
+		34F645918F17837F963999E1 /* FixtureControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FixtureControlService.swift; path = "Sources/Creature Console/Controller/Fixtures/FixtureControlService.swift"; sourceTree = SOURCE_ROOT; };
 		37787523823136F6AC32A769 /* FixtureEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureEditor.swift; sourceTree = "<group>"; };
+		39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptModel.swift; path = "Sources/Creature Console/Model/Dialog/DialogScriptModel.swift"; sourceTree = SOURCE_ROOT; };
 		5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureModel.swift; sourceTree = "<group>"; };
+		54614CD9A93C664522211643 /* StoryboardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardModel.swift; path = "Sources/Creature Console/Model/Storyboard/StoryboardModel.swift"; sourceTree = SOURCE_ROOT; };
+		54784797A276DA212FB115FD /* DialogPreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogPreviewPanel.swift; path = "Sources/Creature Console/View/Dialog/DialogPreviewPanel.swift"; sourceTree = SOURCE_ROOT; };
 		5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListEditor.swift; sourceTree = "<group>"; };
+		5ED34910B9AE0FAF886C4B9D /* StoryboardEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardEditor.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardEditor.swift"; sourceTree = SOURCE_ROOT; };
+		AACD60A23863C4FD5518C910 /* StoryboardCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardCanvas.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardCanvas.swift"; sourceTree = SOURCE_ROOT; };
+		6AE34D7DB49651F51F60C52A /* DialogRenderPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogRenderPanel.swift; path = "Sources/Creature Console/View/Dialog/DialogRenderPanel.swift"; sourceTree = SOURCE_ROOT; };
+		6B58446690618A288BDE246C /* DialogScriptEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptEditor.swift; path = "Sources/Creature Console/View/Dialog/DialogScriptEditor.swift"; sourceTree = SOURCE_ROOT; };
+		774845568DA1B938DF51A8C6 /* StoryboardTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardTable.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardTable.swift"; sourceTree = SOURCE_ROOT; };
+		7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AnimationDialogProvenanceView.swift; path = "Sources/Creature Console/View/Dialog/AnimationDialogProvenanceView.swift"; sourceTree = SOURCE_ROOT; };
+		9B114574B9AE13711DA368FE /* StoryboardPerformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardPerformView.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardPerformView.swift"; sourceTree = SOURCE_ROOT; };
+		AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptTable.swift; path = "Sources/Creature Console/View/Dialog/DialogScriptTable.swift"; sourceTree = SOURCE_ROOT; };
+		AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardImporter.swift; path = "Sources/Creature Console/Model/Storyboard/StoryboardImporter.swift"; sourceTree = SOURCE_ROOT; };
 		B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlPanel.swift; sourceTree = "<group>"; };
 		B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternListEditor.swift; sourceTree = "<group>"; };
 		BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixturesTable.swift; sourceTree = "<group>"; };
+		C211450B80E5BBFE2141677F /* WavFileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WavFileDocument.swift; path = "Sources/Creature Console/View/Dialog/WavFileDocument.swift"; sourceTree = SOURCE_ROOT; };
 		D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureImporter.swift; sourceTree = "<group>"; };
+		D37E45B9BCBD993ABC7B06C9 /* StoryboardActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardActionRunner.swift; path = "Sources/Creature Console/Controller/Storyboard/StoryboardActionRunner.swift"; sourceTree = SOURCE_ROOT; };
+		E4FE4831905123F081DB0B90 /* StoryboardTileButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardTileButton.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardTileButton.swift"; sourceTree = SOURCE_ROOT; };
+		F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogRerenderButton.swift; path = "Sources/Creature Console/View/Dialog/DialogRerenderButton.swift"; sourceTree = SOURCE_ROOT; };
 		F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingListEditor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		117C876E2CA0CEFA007B5682 /* Exceptions for "Creature" folder in "Creature TV" target */ = {
+		117C876E2CA0CEFA007B5682 = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealth.swift,
 				CreatureImporter.swift,
 				CreatureModel.swift,
-				InputModel.swift,
 			);
 			target = 117C86FD2CA0CC81007B5682 /* Creature TV */;
 		};
-		119A44D22E88D8A80053B250 /* Exceptions for "Creature" folder in "Creature Console" target */ = {
+		119A44D22E88D8A80053B250 = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealthTests.swift,
@@ -476,7 +517,7 @@
 			);
 			target = 11703D8729DD197F00EF7E3D /* Creature Console */;
 		};
-		119A44D42E88D8AE0053B250 /* Exceptions for "Creature" folder in "Creature Console Tests" target */ = {
+		119A44D42E88D8AE0053B250 = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealthTests.swift,
@@ -488,46 +529,13 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1120F1D92EB03A24000342A3 /* Lightweight Console */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Lightweight Console";
-			sourceTree = "<group>";
-		};
-		1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Lightweight ConsoleTests";
-			sourceTree = "<group>";
-		};
-		1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Lightweight ConsoleUITests";
-			sourceTree = "<group>";
-		};
-		117C86FF2CA0CC81007B5682 /* Creature TV */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Creature TV";
-			sourceTree = "<group>";
-		};
-		117C87122CA0CC82007B5682 /* Creature TVTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Creature TVTests";
-			sourceTree = "<group>";
-		};
-		117C871C2CA0CC82007B5682 /* Creature TVUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Creature TVUITests";
-			sourceTree = "<group>";
-		};
-		11E5CE7B2C9FDFB700749F94 /* Creature */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				119A44D22E88D8A80053B250 /* Exceptions for "Creature" folder in "Creature Console" target */,
-				119A44D42E88D8AE0053B250 /* Exceptions for "Creature" folder in "Creature Console Tests" target */,
-				117C876E2CA0CEFA007B5682 /* Exceptions for "Creature" folder in "Creature TV" target */,
-			);
-			path = Creature;
-			sourceTree = "<group>";
-		};
+		1120F1D92EB03A24000342A3 /* Lightweight Console */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Lightweight Console"; sourceTree = "<group>"; };
+		1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Lightweight ConsoleTests"; sourceTree = "<group>"; };
+		1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Lightweight ConsoleUITests"; sourceTree = "<group>"; };
+		117C86FF2CA0CC81007B5682 /* Creature TV */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Creature TV"; sourceTree = "<group>"; };
+		117C87122CA0CC82007B5682 /* Creature TVTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Creature TVTests"; sourceTree = "<group>"; };
+		117C871C2CA0CC82007B5682 /* Creature TVUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Creature TVUITests"; sourceTree = "<group>"; };
+		11E5CE7B2C9FDFB700749F94 /* Creature */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (119A44D22E88D8A80053B250, 119A44D42E88D8AE0053B250, 117C876E2CA0CEFA007B5682, ); path = Creature; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -753,6 +761,25 @@
 				1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */,
 				11703D8929DD197F00EF7E3D /* Products */,
 				11F1757029DD42D800ADD5FB /* Frameworks */,
+				39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */,
+				2104407DB3CA7408D07766E3 /* DialogScriptImporter.swift */,
+				C211450B80E5BBFE2141677F /* WavFileDocument.swift */,
+				AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */,
+				54784797A276DA212FB115FD /* DialogPreviewPanel.swift */,
+				6AE34D7DB49651F51F60C52A /* DialogRenderPanel.swift */,
+				6B58446690618A288BDE246C /* DialogScriptEditor.swift */,
+				7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */,
+				F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */,
+				54614CD9A93C664522211643 /* StoryboardModel.swift */,
+				AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */,
+				E4FE4831905123F081DB0B90 /* StoryboardTileButton.swift */,
+				774845568DA1B938DF51A8C6 /* StoryboardTable.swift */,
+				5ED34910B9AE0FAF886C4B9D /* StoryboardEditor.swift */,
+				AACD60A23863C4FD5518C910 /* StoryboardCanvas.swift */,
+				13A74517B38BEC26CE5A7D93 /* StoryboardTileInspector.swift */,
+				9B114574B9AE13711DA368FE /* StoryboardPerformView.swift */,
+				D37E45B9BCBD993ABC7B06C9 /* StoryboardActionRunner.swift */,
+				34F645918F17837F963999E1 /* FixtureControlService.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1272,6 +1299,7 @@
 				11703D8429DD197F00EF7E3D /* Sources */,
 				11703D8529DD197F00EF7E3D /* Frameworks */,
 				11703D8629DD197F00EF7E3D /* Resources */,
+				323048998CFAFF61434DF674 /* Stamp Build Number (git SHA) */,
 			);
 			buildRules = (
 			);
@@ -1471,6 +1499,25 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		323048998CFAFF61434DF674 /* Stamp Build Number (git SHA) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Stamp Build Number (git SHA)";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Stamp CFBundleVersion with the current git short SHA\n# The build number always reflects the source it was built from. A committed value\n# can't equal its own commit's SHA, so this is stamped at build time instead.\nset -eu\nGIT_SHA=$(git -C \"${SRCROOT}\" rev-parse --short HEAD 2>/dev/null || echo \"\")\nif [ -z \"${GIT_SHA}\" ]; then\n  echo \"warning: could not determine git short SHA; leaving CFBundleVersion unchanged\"\n  exit 0\nfi\nINFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\nif [ ! -f \"${INFO_PLIST}\" ]; then\n  echo \"warning: Info.plist not found at ${INFO_PLIST}; skipping build-number stamp\"\n  exit 0\nfi\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${GIT_SHA}\" \"${INFO_PLIST}\" \\\n  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${GIT_SHA}\" \"${INFO_PLIST}\"\necho \"Stamped CFBundleVersion = ${GIT_SHA}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		11703D8429DD197F00EF7E3D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -1587,6 +1634,25 @@
 				11C2E0DD29ECA4F100B8A4F5 /* ByteChartView.swift in Sources */,
 				116C63A42CA280F400549CC4 /* VoltageMeterView.swift in Sources */,
 				11E53CC62E888F3C00C17F16 /* RootView.swift in Sources */,
+				A93D4886BE8CC2A68D8DA3E4 /* DialogScriptModel.swift in Sources */,
+				57C6467BA3F27D9B1BCC4229 /* DialogScriptImporter.swift in Sources */,
+				C1B849B58E8EAD7B9E0510B9 /* WavFileDocument.swift in Sources */,
+				D2D44211BDB3B0F545B00C6E /* DialogScriptTable.swift in Sources */,
+				5B9C4C59AA4A60087B5A68FF /* DialogPreviewPanel.swift in Sources */,
+				66CC489E8DB59A23AE379228 /* DialogRenderPanel.swift in Sources */,
+				F539487A8A5CBD435D46567A /* DialogScriptEditor.swift in Sources */,
+				BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */,
+				D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */,
+				181C4F50BC868ABAF7DA7A7E /* StoryboardModel.swift in Sources */,
+				5E0C4F2484847E68F061B13F /* StoryboardImporter.swift in Sources */,
+				482C4E30B337CAD9D301841D /* StoryboardTileButton.swift in Sources */,
+				5D704AC98A11EFF081399DCA /* StoryboardTable.swift in Sources */,
+				202B47D6B51E9DFCE7BF9E23 /* StoryboardEditor.swift in Sources */,
+				EFFB0305957C4A0F3F33A479 /* StoryboardCanvas.swift in Sources */,
+				745C4326AB6D80D744B547EE /* StoryboardTileInspector.swift in Sources */,
+				693A46978B64AF12F7917E14 /* StoryboardPerformView.swift in Sources */,
+				570E4A54A626EFB2A8951961 /* StoryboardActionRunner.swift in Sources */,
+				EE2A4FCE9715D88FBB86BEA4 /* FixtureControlService.swift in Sources */,
 			);
 		};
 		11754B692C0050AF001A6C83 /* Sources */ = {
@@ -1689,6 +1755,10 @@
 				114B7E3D2E90BE3100F5D1EC /* ServerLogModel.swift in Sources */,
 				117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */,
 				114B7E5E2E90CF5D00F5D1EC /* SensorDataLogic.swift in Sources */,
+				786C4469BE761562C02CD8CA /* DialogScriptModel.swift in Sources */,
+				6C9444419FD99EECE583E33B /* DialogScriptImporter.swift in Sources */,
+				B0EB4DDC9872D02FBC869667 /* StoryboardModel.swift in Sources */,
+				234E4D4BAA45573AFDDE3327 /* StoryboardImporter.swift in Sources */,
 			);
 		};
 		117C870B2CA0CC82007B5682 /* Sources */ = {
@@ -1722,7 +1792,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		11703D9529DD198000EF7E3D /* Debug configuration for PBXProject "Creature Console" */ = {
+		11703D9529DD198000EF7E3D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -1790,7 +1860,7 @@
 			};
 			name = Debug;
 		};
-		11703D9629DD198000EF7E3D /* Release configuration for PBXProject "Creature Console" */ = {
+		11703D9629DD198000EF7E3D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -1850,7 +1920,7 @@
 			};
 			name = Release;
 		};
-		11703D9829DD198000EF7E3D /* Debug configuration for PBXNativeTarget "Creature Console" */ = {
+		11703D9829DD198000EF7E3D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -1859,7 +1929,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0444927;
+				CURRENT_PROJECT_VERSION = e67f1d5;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1891,7 +1961,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.24.0;
+				MARKETING_VERSION = 2.25.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1904,7 +1974,7 @@
 			};
 			name = Debug;
 		};
-		11703D9929DD198000EF7E3D /* Release configuration for PBXNativeTarget "Creature Console" */ = {
+		11703D9929DD198000EF7E3D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -1913,7 +1983,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0444927;
+				CURRENT_PROJECT_VERSION = e67f1d5;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1945,7 +2015,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.24.0;
+				MARKETING_VERSION = 2.25.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1959,7 +2029,7 @@
 			};
 			name = Release;
 		};
-		11754B742C0050AF001A6C83 /* Debug configuration for PBXNativeTarget "Creature Console Tests" */ = {
+		11754B742C0050AF001A6C83 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -1984,7 +2054,7 @@
 			};
 			name = Debug;
 		};
-		11754B752C0050AF001A6C83 /* Release configuration for PBXNativeTarget "Creature Console Tests" */ = {
+		11754B752C0050AF001A6C83 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2009,14 +2079,14 @@
 			};
 			name = Release;
 		};
-		117C87212CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TV" */ = {
+		117C87212CA0CC82007B5682 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0444927;
+				CURRENT_PROJECT_VERSION = e67f1d5;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -2029,7 +2099,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.24.0;
+				MARKETING_VERSION = 2.25.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2041,14 +2111,14 @@
 			};
 			name = Debug;
 		};
-		117C87222CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TV" */ = {
+		117C87222CA0CC82007B5682 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0444927;
+				CURRENT_PROJECT_VERSION = e67f1d5;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -2061,7 +2131,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.24.0;
+				MARKETING_VERSION = 2.25.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2073,7 +2143,7 @@
 			};
 			name = Release;
 		};
-		117C87232CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TVTests" */ = {
+		117C87232CA0CC82007B5682 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2094,7 +2164,7 @@
 			};
 			name = Debug;
 		};
-		117C87242CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TVTests" */ = {
+		117C87242CA0CC82007B5682 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2115,7 +2185,7 @@
 			};
 			name = Release;
 		};
-		117C87252CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TVUITests" */ = {
+		117C87252CA0CC82007B5682 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -2135,7 +2205,7 @@
 			};
 			name = Debug;
 		};
-		117C87262CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TVUITests" */ = {
+		117C87262CA0CC82007B5682 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -2161,48 +2231,48 @@
 		11703D8329DD197F00EF7E3D /* Build configuration list for PBXProject "Creature Console" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				11703D9529DD198000EF7E3D /* Debug configuration for PBXProject "Creature Console" */,
-				11703D9629DD198000EF7E3D /* Release configuration for PBXProject "Creature Console" */,
+				11703D9529DD198000EF7E3D /* Debug */,
+				11703D9629DD198000EF7E3D /* Release */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		11703D9729DD198000EF7E3D /* Build configuration list for PBXNativeTarget "Creature Console" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				11703D9829DD198000EF7E3D /* Debug configuration for PBXNativeTarget "Creature Console" */,
-				11703D9929DD198000EF7E3D /* Release configuration for PBXNativeTarget "Creature Console" */,
+				11703D9829DD198000EF7E3D /* Debug */,
+				11703D9929DD198000EF7E3D /* Release */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		11754B732C0050AF001A6C83 /* Build configuration list for PBXNativeTarget "Creature Console Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				11754B742C0050AF001A6C83 /* Debug configuration for PBXNativeTarget "Creature Console Tests" */,
-				11754B752C0050AF001A6C83 /* Release configuration for PBXNativeTarget "Creature Console Tests" */,
+				11754B742C0050AF001A6C83 /* Debug */,
+				11754B752C0050AF001A6C83 /* Release */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		117C87272CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TV" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				117C87212CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TV" */,
-				117C87222CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TV" */,
+				117C87212CA0CC82007B5682 /* Debug */,
+				117C87222CA0CC82007B5682 /* Release */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		117C87282CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TVTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				117C87232CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TVTests" */,
-				117C87242CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TVTests" */,
+				117C87232CA0CC82007B5682 /* Debug */,
+				117C87242CA0CC82007B5682 /* Release */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		117C87292CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TVUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				117C87252CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TVUITests" */,
-				117C87262CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TVUITests" */,
+				117C87252CA0CC82007B5682 /* Debug */,
+				117C87262CA0CC82007B5682 /* Release */,
 			);
 			defaultConfigurationName = Debug;
 		};

@@ -5,46 +5,8 @@ import Testing
 
 @testable import Creature_Console
 
-@Suite("CreatureModel and InputModel basics")
+@Suite("CreatureModel basics")
 struct CreatureModelTests {
-
-    @Test("InputModel initializes with provided values")
-    func inputInitializesWithValues() throws {
-        let name = "Head Pan"
-        let slot: UInt16 = 1
-        let width: UInt8 = 8
-        let joystickAxis: UInt8 = 2
-
-        let input = InputModel(name: name, slot: slot, width: width, joystickAxis: joystickAxis)
-
-        #expect(input.name == name)
-        #expect(input.slot == slot)
-        #expect(input.width == width)
-        #expect(input.joystickAxis == joystickAxis)
-        #expect(input.creature == nil)
-    }
-
-    @Test("InputModel converts from DTO")
-    func inputConvertsFromDTO() throws {
-        let dto = Common.Input(name: "Eye Tilt", slot: 2, width: 16, joystickAxis: 3)
-        let input = InputModel(dto: dto)
-
-        #expect(input.name == dto.name)
-        #expect(input.slot == dto.slot)
-        #expect(input.width == dto.width)
-        #expect(input.joystickAxis == dto.joystickAxis)
-    }
-
-    @Test("InputModel converts to DTO")
-    func inputConvertsToDTO() throws {
-        let input = InputModel(name: "Jaw", slot: 3, width: 8, joystickAxis: 4)
-        let dto = input.toDTO()
-
-        #expect(dto.name == input.name)
-        #expect(dto.slot == input.slot)
-        #expect(dto.width == input.width)
-        #expect(dto.joystickAxis == input.joystickAxis)
-    }
 
     @Test("CreatureModel initializes with provided values")
     func creatureInitializesWithValues() throws {
@@ -57,8 +19,8 @@ struct CreatureModelTests {
         let speechLoopIds = ["speech1", "speech2"]
         let idleIds = ["idle1", "idle2"]
         let inputs = [
-            InputModel(name: "Input1", slot: 1, width: 8, joystickAxis: 0),
-            InputModel(name: "Input2", slot: 2, width: 16, joystickAxis: 1),
+            Common.Input(name: "Input1", slot: 1, width: 8, joystickAxis: 0),
+            Common.Input(name: "Input2", slot: 2, width: 16, joystickAxis: 1),
         ]
 
         let creature = CreatureModel(
@@ -123,8 +85,8 @@ struct CreatureModelTests {
     @Test("CreatureModel converts to DTO")
     func creatureConvertsToDTO() throws {
         let inputs = [
-            InputModel(name: "Input X", slot: 5, width: 8, joystickAxis: 2),
-            InputModel(name: "Input Y", slot: 6, width: 16, joystickAxis: 3),
+            Common.Input(name: "Input X", slot: 5, width: 8, joystickAxis: 2),
+            Common.Input(name: "Input Y", slot: 6, width: 16, joystickAxis: 3),
         ]
         let creature = CreatureModel(
             id: "creature_789",
@@ -193,25 +155,24 @@ struct CreatureModelTests {
         #expect(convertedDTO.idleAnimationIds == originalDTO.idleAnimationIds)
     }
 
-    @Test("CreatureModel persists with cascade delete relationship")
-    func creaturePersistsWithCascadeDelete() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+    @Test("CreatureModel persists and decodes its inputs blob")
+    func creaturePersistsInputs() async throws {
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
         let context = ModelContext(container)
 
-        let inputs = [
-            InputModel(name: "Cascade Input 1", slot: 1, width: 8, joystickAxis: 0),
-            InputModel(name: "Cascade Input 2", slot: 2, width: 16, joystickAxis: 1),
-        ]
         let creature = CreatureModel(
-            id: "creature_cascade",
-            name: "Cascade Test",
+            id: "creature_persist",
+            name: "Persist Test",
             channelOffset: 0,
             mouthSlot: 1,
             realData: false,
             audioChannel: 0,
-            inputs: inputs,
+            inputs: [
+                Common.Input(name: "Blob Input 1", slot: 1, width: 8, joystickAxis: 0),
+                Common.Input(name: "Blob Input 2", slot: 2, width: 16, joystickAxis: 1),
+            ],
             speechLoopAnimationIds: [],
             idleAnimationIds: []
         )
@@ -219,29 +180,20 @@ struct CreatureModelTests {
         context.insert(creature)
         try context.save()
 
-        let creatureFetch = FetchDescriptor<CreatureModel>()
-        var creatureResults = try context.fetch(creatureFetch)
-        #expect(creatureResults.count == 1)
+        let results = try context.fetch(FetchDescriptor<CreatureModel>())
+        #expect(results.count == 1)
+        #expect(results.first?.inputs.count == 2)
+        #expect(results.first?.inputs.first?.name == "Blob Input 1")
 
-        let inputFetch = FetchDescriptor<InputModel>()
-        var inputResults = try context.fetch(inputFetch)
-        #expect(inputResults.count == 2)
-
-        // Delete the creature
+        // No child models to orphan — deleting the creature leaves nothing behind.
         context.delete(creature)
         try context.save()
-
-        creatureResults = try context.fetch(creatureFetch)
-        #expect(creatureResults.count == 0)
-
-        // Inputs should be cascade deleted
-        inputResults = try context.fetch(inputFetch)
-        #expect(inputResults.count == 0)
+        #expect(try context.fetch(FetchDescriptor<CreatureModel>()).isEmpty)
     }
 
     @Test("CreatureModel enforces unique ID constraint")
     func creatureEnforcesUniqueID() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
         let context = ModelContext(container)
@@ -280,36 +232,5 @@ struct CreatureModelTests {
 
         #expect(results.count == 1)
         #expect(results.first?.name == "Second")
-    }
-
-    @Test("InputModel maintains inverse relationship to creature")
-    func inputMaintainsInverseRelationship() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        let context = ModelContext(container)
-
-        let inputs = [
-            InputModel(name: "Rel Input 1", slot: 1, width: 8, joystickAxis: 0),
-            InputModel(name: "Rel Input 2", slot: 2, width: 16, joystickAxis: 1),
-        ]
-        let creature = CreatureModel(
-            id: "creature_rel",
-            name: "Relationship Test",
-            channelOffset: 0,
-            mouthSlot: 2,
-            realData: false,
-            audioChannel: 0,
-            inputs: inputs,
-            speechLoopAnimationIds: [],
-            idleAnimationIds: []
-        )
-
-        context.insert(creature)
-        try context.save()
-
-        // Check inverse relationship
-        #expect(inputs[0].creature?.id == "creature_rel")
-        #expect(inputs[1].creature?.id == "creature_rel")
     }
 }

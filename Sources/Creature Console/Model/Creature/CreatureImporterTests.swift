@@ -10,7 +10,7 @@ struct CreatureImporterTests {
 
     @Test("upsertBatch inserts new creatures")
     func upsertBatchInsertsNew() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
 
@@ -64,7 +64,7 @@ struct CreatureImporterTests {
 
     @Test("upsertBatch updates existing creatures and inputs")
     func upsertBatchUpdatesExisting() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
 
@@ -118,7 +118,7 @@ struct CreatureImporterTests {
 
     @Test("upsertBatch deletes old inputs when updating")
     func upsertBatchDeletesOldInputs() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
 
@@ -171,17 +171,11 @@ struct CreatureImporterTests {
         #expect(creature.inputs.count == 1)
         #expect(creature.inputs.first?.name == "Input 4")
         #expect(creature.inputs.first?.slot == 4)
-
-        // Verify old inputs were deleted (not orphaned)
-        let inputFetch = FetchDescriptor<InputModel>()
-        let inputs = try context.fetch(inputFetch)
-        #expect(inputs.count == 1)
-        #expect(inputs.first?.name == "Input 4")
     }
 
     @Test("upsertBatch handles empty array")
     func upsertBatchHandlesEmpty() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
 
@@ -198,7 +192,7 @@ struct CreatureImporterTests {
 
     @Test("deleteAllExcept removes creatures not in set")
     func deleteAllExceptRemovesOthers() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
 
@@ -236,7 +230,7 @@ struct CreatureImporterTests {
 
     @Test("deleteAllExcept handles empty database")
     func deleteAllExceptHandlesEmpty() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
 
@@ -254,7 +248,7 @@ struct CreatureImporterTests {
 
     @Test("upsertBatch with empty inputs array")
     func upsertBatchWithEmptyInputs() async throws {
-        let schema = Schema([CreatureModel.self, InputModel.self])
+        let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
 

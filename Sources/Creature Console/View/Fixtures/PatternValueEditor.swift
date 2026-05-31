@@ -167,32 +167,9 @@ struct PatternValueEditor: View {
     }
 
     private func writeColorIntoValues(_ color: Color) {
-        // CIColor gives us reliable component extraction across platforms.
-        let cg = color.cgColor ?? platformCGColor(for: color)
-        guard let components = cg?.components, components.count >= 3 else { return }
-        let r = clampedByte(components[0])
-        let g = clampedByte(components[1])
-        let b = clampedByte(components[2])
-
-        if let red = redChannel { setValue(r, for: red.name) }
-        if let green = greenChannel { setValue(g, for: green.name) }
-        if let blue = blueChannel { setValue(b, for: blue.name) }
-    }
-
-    private func clampedByte(_ raw: CGFloat) -> UInt8 {
-        let scaled = (raw * 255).rounded()
-        return UInt8(clamping: Int(scaled))
-    }
-
-    /// SwiftUI's `Color.cgColor` can be `nil` for system colors; fall back to the
-    /// platform's bridged color which always resolves.
-    private func platformCGColor(for color: Color) -> CGColor? {
-        #if canImport(AppKit)
-            return NSColor(color).cgColor
-        #elseif canImport(UIKit)
-            return UIColor(color).cgColor
-        #else
-            return nil
-        #endif
+        // Single source of truth for color→RGB-channel mapping, shared with live control.
+        for value in FixtureControlService.colorValues(color, channels: fixture.channels) {
+            setValue(value.value, for: value.channel)
+        }
     }
 }

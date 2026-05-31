@@ -158,6 +158,36 @@ struct TopContentView: View {
                 #endif
 
                 #if os(iOS) || os(macOS)
+                    Section("Dialogs") {
+                        NavigationLink {
+                            DialogScriptTable()
+                        } label: {
+                            Label("List All", systemImage: "text.bubble")
+                        }
+                        NavigationLink {
+                            DialogScriptEditor(createNew: true)
+                        } label: {
+                            Label("Create New", systemImage: "plus.bubble")
+                        }
+                    }
+                #endif
+
+                #if os(iOS) || os(macOS)
+                    Section("Storyboards") {
+                        NavigationLink {
+                            StoryboardTable()
+                        } label: {
+                            Label("List All", systemImage: "square.grid.2x2")
+                        }
+                        NavigationLink {
+                            StoryboardEditor(createNew: true)
+                        } label: {
+                            Label("Create New", systemImage: "plus.square.on.square")
+                        }
+                    }
+                #endif
+
+                #if os(iOS) || os(macOS)
                     Section("Playlists") {
                         NavigationLink {
                             PlaylistsTable()
@@ -225,6 +255,17 @@ struct TopContentView: View {
                 }
             }
             .navigationTitle("Creature Console")
+            // The floating BottomToolBarView overlaps the sidebar on iPad/macOS, hiding the last
+            // rows (Settings). Reserve matching space so the whole list scrolls clear of it.
+            #if os(macOS)
+                .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 110) }
+            #elseif os(iOS)
+                .safeAreaInset(edge: .bottom) {
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        Color.clear.frame(height: 110)
+                    }
+                }
+            #endif
             .navigationDestination(for: CreatureIdentifier.self) { creature in
                 creatureDetailView(for: creature)
             }

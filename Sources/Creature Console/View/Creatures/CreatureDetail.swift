@@ -263,47 +263,12 @@ struct CreatureDetail: View {
 
     func toggleStreaming() {
         Task {
-            // Check AppState directly to avoid race conditions
-            let appStateActivity = await AppState.shared.getCurrentActivity
-            logger.debug("toggleStreaming called - AppState: \(appStateActivity.description)")
-
-            // Simple toggle: if streaming, stop. If not streaming, start.
-            if appStateActivity == .streaming {
-                // Stop streaming
-                let result = await CreatureManager.shared.stopStreaming()
-                switch result {
-                case .success:
-                    logger.debug("Successfully stopped streaming")
-                    await AppState.shared.setCurrentActivity(.idle)
-                    await MainActor.run {
-                        currentActivity = .idle
-                    }
-                case .failure(let error):
-                    logger.warning("Failed to stop streaming: \(error)")
-                // Don't change AppState if stopping failed
-                }
-
-            } else {
-                // Start streaming (from any other state)
-                await AppState.shared.setCurrentActivity(.streaming)
-                let result = await CreatureManager.shared.startStreamingToCreature(
-                    creatureId: creature.id)
-                switch result {
-                case .success(let message):
-                    logger.debug("Successfully started streaming: \(message)")
-                    await MainActor.run {
-                        currentActivity = .streaming
-                    }
-                case .failure(let error):
-                    logger.warning("Failed to start streaming: \(error)")
-                    // Revert state on failure
-                    await AppState.shared.setCurrentActivity(.idle)
-                    await MainActor.run {
-                        currentActivity = .idle
-                        errorMessage = "Unable to start streaming: \(error)"
-                        showErrorAlert = true
-                    }
-                }
+            // Single source of truth: CreatureManager owns the streamingCreature + AppState
+            // transition (shared with Storyboards). Per-creature toggle — stops if this creature
+            // is already live, otherwise starts/switches to it.
+            let nowLive = await CreatureManager.shared.toggleStreaming(to: creature.id)
+            await MainActor.run {
+                currentActivity = (nowLive == nil) ? .idle : .streaming
             }
         }
     }

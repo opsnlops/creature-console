@@ -6,6 +6,7 @@ public enum JobType: String, Codable, Sendable {
     case adHocSpeech = "ad-hoc-speech"
     case adHocSpeechPrepare = "ad-hoc-speech-prepare"
     case animationLipSync = "animation-lip-sync"
+    case dialog = "dialog"
     case unknown
 
     public init(from decoder: Decoder) throws {
@@ -218,6 +219,44 @@ public struct AdHocSpeechJobResult: Codable, Equatable, Sendable {
         self.autoPlay = autoPlay
         self.playbackTriggered = playbackTriggered
         self.universe = universe
+    }
+}
+
+/// Result payload returned when a dialog render job completes.
+///
+/// Parsed from the `result` JSON string of a `job-complete` message whose `job_type`
+/// is `dialog`. `animationId` is the rendered multi-track Animation to navigate to.
+public struct DialogJobResult: Codable, Equatable, Sendable {
+    public let animationId: String
+    public let numberOfFrames: Int
+    public let millisecondsPerFrame: Int
+    public let durationSeconds: Double
+    public let persistence: String
+    public let autoplayed: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case animationId = "animation_id"
+        case numberOfFrames = "number_of_frames"
+        case millisecondsPerFrame = "milliseconds_per_frame"
+        case durationSeconds = "duration_seconds"
+        case persistence
+        case autoplayed
+    }
+
+    public init(
+        animationId: String,
+        numberOfFrames: Int,
+        millisecondsPerFrame: Int,
+        durationSeconds: Double,
+        persistence: String,
+        autoplayed: Bool
+    ) {
+        self.animationId = animationId
+        self.numberOfFrames = numberOfFrames
+        self.millisecondsPerFrame = millisecondsPerFrame
+        self.durationSeconds = durationSeconds
+        self.persistence = persistence
+        self.autoplayed = autoplayed
     }
 }
 

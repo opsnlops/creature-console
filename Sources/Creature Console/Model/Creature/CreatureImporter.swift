@@ -29,11 +29,13 @@ actor CreatureImporter {
                     existing.speechLoopAnimationIds = dto.speechLoopAnimationIds
                     existing.idleAnimationIds = dto.idleAnimationIds
 
-                    // Update inputs: explicitly delete old ones before adding new ones
-                    for input in existing.inputs {
-                        modelContext.delete(input)
+                    // Inputs are a JSON blob now, so there are no child objects to invalidate.
+                    // Only write when the bytes actually change, to avoid waking SwiftUI on
+                    // no-op refreshes.
+                    let encodedInputs = CreatureModel.encodeInputs(dto.inputs)
+                    if existing.inputsJSON != encodedInputs {
+                        existing.inputsJSON = encodedInputs
                     }
-                    existing.inputs = dto.inputs.map { InputModel(dto: $0) }
                 } else {
                     // Insert new
                     modelContext.insert(CreatureModel(dto: dto))

@@ -295,6 +295,10 @@ struct AnimationEditor: View {
             GlassEffectContainer(spacing: 24) {
                 VStack(alignment: .leading, spacing: 16) {
                     animationMetadataForm
+                    AnimationDialogProvenanceView(
+                        metadata: model.animation.metadata,
+                        onRerendered: { updated in model.reload(with: updated) }
+                    )
                     TrackListingView(animation: model.animation)
                         .id(model.tracksVersion)
                     Spacer(minLength: 0)

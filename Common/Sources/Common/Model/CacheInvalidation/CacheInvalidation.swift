@@ -6,6 +6,8 @@ public enum CacheType: String, CustomStringConvertible, Codable {
     case adHocAnimationList = "ad-hoc-animation-list"
     case adHocSoundList = "ad-hoc-sound-list"
     case fixture = "fixture"
+    case dialogScriptList = "dialog-script-list"
+    case storyboardList = "storyboard-list"
     case unknown = "unknown"
 
     public var description: String {

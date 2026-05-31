@@ -17,10 +17,15 @@ final class AnimationMetadataModel: Identifiable {
     var soundFile: String = ""
     var numberOfFrames: UInt32 = 0
     var multitrackAudio: Bool = false
+    /// Soft pointer to the dialog script this animation was rendered from (UUID string), or
+    /// `nil` for animations not rendered from a saved dialog. Optional with a default, so it's
+    /// a lightweight SwiftData migration.
+    var sourceScriptId: String? = nil
 
     init(
         id: AnimationIdentifier, title: String, lastUpdated: Date?, millisecondsPerFrame: UInt32,
-        note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool
+        note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool,
+        sourceScriptId: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -30,6 +35,13 @@ final class AnimationMetadataModel: Identifiable {
         self.soundFile = soundFile
         self.numberOfFrames = numberOfFrames
         self.multitrackAudio = multitrackAudio
+        self.sourceScriptId = sourceScriptId
+    }
+
+    /// The source dialog script id as a typed `UUID`, or `nil` when absent/empty/non-UUID.
+    var sourceScriptIdentifier: DialogScriptIdentifier? {
+        guard let sourceScriptId, !sourceScriptId.isEmpty else { return nil }
+        return UUID(uuidString: sourceScriptId)
     }
 }
 
@@ -44,7 +56,8 @@ extension AnimationMetadataModel {
             note: dto.note,
             soundFile: dto.soundFile,
             numberOfFrames: dto.numberOfFrames,
-            multitrackAudio: dto.multitrackAudio
+            multitrackAudio: dto.multitrackAudio,
+            sourceScriptId: dto.sourceScriptId
         )
     }
 
@@ -58,7 +71,8 @@ extension AnimationMetadataModel {
             note: note,
             soundFile: soundFile,
             numberOfFrames: numberOfFrames,
-            multitrackAudio: multitrackAudio
+            multitrackAudio: multitrackAudio,
+            sourceScriptId: sourceScriptId
         )
     }
 }

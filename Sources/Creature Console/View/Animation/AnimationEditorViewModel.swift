@@ -25,6 +25,15 @@ final class AnimationEditorViewModel: ObservableObject {
         syncFromAnimation()
     }
 
+    /// Replace the whole animation with a freshly-fetched copy (e.g. after an in-place
+    /// dialog re-render, which overwrites the same `animation_id` server-side). Bumps
+    /// `tracksVersion` so `TrackListingView` rebuilds even when the track count is unchanged.
+    func reload(with animation: Common.Animation) {
+        self.animation = animation
+        syncFromAnimation()
+        tracksVersion &+= 1
+    }
+
     func syncFromAnimation() {
         title = animation.metadata.title
         soundFile = animation.metadata.soundFile
