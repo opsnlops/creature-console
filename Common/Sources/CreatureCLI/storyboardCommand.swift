@@ -11,8 +11,8 @@ extension CreatureCLI {
             discussion:
                 "List, inspect, rename, copy, and delete the storyboards saved on the server, or create/update them from a JSON file. Storyboards are authored in the Console; this is the command-line side for quick management.",
             subcommands: [
-                List.self, Detail.self, Create.self, Update.self, Rename.self, Copy.self,
-                Delete.self,
+                List.self, Detail.self, Create.self, Update.self, Import.self, Rename.self,
+                Copy.self, Delete.self,
             ]
         )
 
@@ -161,6 +161,70 @@ extension CreatureCLI {
                     case .failure(let error):
                         throw failWithMessage(
                             "Update failed: \(ServerError.detailedMessage(from: error))")
+                    }
+                }
+            }
+        }
+
+        // MARK: import
+
+        struct Import: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                commandName: "import",
+                abstract: "Upload a storyboard from a JSON file (restore a backup)",
+                discussion:
+                    "Restores a storyboard from a JSON file — e.g. one saved with `detail --json`. If a storyboard with the file's id still exists on the server it's updated in place (id preserved); otherwise a new one is created and the server assigns a fresh id. Use --as-new to always create a copy."
+            )
+
+            @Argument(help: "Path to the storyboard JSON file")
+            var inputPath: String
+
+            @Flag(help: "Always create a new storyboard, even if one with this id already exists")
+            var asNew: Bool = false
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let board = try decodeStoryboardFile(inputPath)
+                let forceNew = asNew
+                try await tracedRun("storyboards.import", config: globalOptions) { server in
+                    // Restore-in-place when the board still exists (preserving its id); otherwise
+                    // fall through to create. The server stamps its own id on create, so a board
+                    // restored from scratch comes back with a new id.
+                    if !forceNew {
+                        switch await server.getStoryboard(id: board.id) {
+                        case .success:
+                            switch await server.updateStoryboard(board) {
+                            case .success(let saved):
+                                print(
+                                    "✅ Restored '\(saved.title)' in place (\(saved.id.uuidString.lowercased())) — \(saved.tiles.count) tile(s)"
+                                )
+                                return
+                            case .failure(let error):
+                                throw failWithMessage(
+                                    "Restore (update) failed: \(ServerError.detailedMessage(from: error))"
+                                )
+                            }
+                        case .failure(.notFound):
+                            break  // not on the server anymore — create it fresh below
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Could not check for an existing storyboard: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
+                    }
+
+                    switch await server.createStoryboard(board) {
+                    case .success(let saved):
+                        let idNote =
+                            saved.id == board.id ? "" : " — note: the server assigned a new id"
+                        print(
+                            "✅ Restored '\(saved.title)' as new (\(saved.id.uuidString.lowercased())) — \(saved.tiles.count) tile(s)\(idNote)"
+                        )
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Restore (create) failed: \(ServerError.detailedMessage(from: error))")
                     }
                 }
             }
