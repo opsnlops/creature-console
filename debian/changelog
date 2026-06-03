@@ -1,3 +1,13 @@
+creature-cli (2.25.3) unstable; urgency=medium
+
+  * Build against the Swift 6.3.2 release toolchain (was 6.2.x). Updated the
+    CI workflow (build-deb.yml SWIFT_VERSION), the Dockerfile.debian builder
+    image, and the README install snippet.
+  * creature-cli + creature-mqtt + creature-agent: rebuilt on Swift 6.3.2.
+  * creature-cli: bump version to 2.25.3.
+
+ -- April White <april@creature.engineering>  Wed, 03 Jun 2026 03:15:16 +0000
+
 creature-cli (2.25.2) unstable; urgency=medium
 
   * creature-cli: add `storyboards import <file>` to restore a storyboard

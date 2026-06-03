@@ -3,7 +3,7 @@ FROM debian:trixie-slim
 SHELL ["/bin/bash", "-lc"]
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    SWIFT_VERSION=6.2.2 \
+    SWIFT_VERSION=6.3.2 \
     SWIFT_PREFIX=/opt/swift
 
 # Dependencies mirror the CI deb build job.
@@ -19,7 +19,7 @@ RUN set -eux; \
 
 # Install Swift toolchain directly from swift.org release tarball.
 # Swift download URLs use platform segments like "ubuntu2204-aarch64" and
-# tarballs like "swift-6.2.2-RELEASE-ubuntu22.04-aarch64.tar.gz".
+# tarballs like "swift-6.3.2-RELEASE-ubuntu22.04-aarch64.tar.gz".
 RUN set -eux; \
     ARCH="$(uname -m)"; \
     case "$ARCH" in \

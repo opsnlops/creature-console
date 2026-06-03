@@ -76,7 +76,7 @@ swift run creature-cli --help
   tar zxf swiftly-$(uname -m).tar.gz
   ./swiftly init --quiet-shell-followup
   . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
-  swiftly install 6.2.1
+  swiftly install 6.3.2
   ```
 - Build the .deb (uses existing `debian/` metadata):
   ```bash
