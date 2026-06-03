@@ -1,3 +1,51 @@
+creature-cli (2.25.2) unstable; urgency=medium
+
+  * creature-cli: add `storyboards import <file>` to restore a storyboard
+    from a JSON backup (the server-shape JSON that `detail --json` emits, so
+    a dump round-trips straight back). Updates in place when the file's id
+    still exists; otherwise creates fresh and reports the new id. --as-new
+    always creates a copy.
+  * creature-cli: bump version to 2.25.2.
+
+ -- April White <april@creature.engineering>  Mon, 01 Jun 2026 22:54:14 -0700
+
+creature-cli (2.25.1) unstable; urgency=medium
+
+  * creature-cli: add `storyboards` command group backed by the Storyboard
+    REST methods: list, detail [--json], create/update from a JSON file,
+    rename, copy, and delete.
+  * creature-cli: bump version to 2.25.1.
+
+ -- April White <april@creature.engineering>  Mon, 01 Jun 2026 22:50:17 -0700
+
+creature-cli (2.25.0) unstable; urgency=medium
+
+  * Add Storyboards: a client-only HyperCard-style surface of programmable
+    tiles for live show control, against a documented server contract.
+  * creature-cli: add Dialog Script support — author multi-creature dialog
+    and render it to multi-track animations, with provenance / in-place
+    re-render.
+  * Common: add Storyboard REST methods and Dialog Script types.
+  * fetchData uses .reloadIgnoringLocalCacheData so REST reads are always
+    fresh (the server sends no cache-control headers; SwiftData is the cache,
+    refreshed via the websocket invalidation model).
+  * Add DRY facades (CreatureManager.toggleStreaming(to:), FixtureControlService)
+    shared across the detail screens and the storyboard action runner.
+  * creature-cli: bump version to 2.25.0.
+
+ -- April White <april@creature.engineering>  Sun, 31 May 2026 01:02:57 -0700
+
+creature-cli (2.24.0) unstable; urgency=medium
+
+  * creature-cli: add `fixtures` subcommand for DMX fixture CRUD, universe
+    assignment, and pattern fire/preview, mirroring the new server endpoints.
+  * Common: add first-class DmxFixture model with REST client and SwiftData
+    persistence + cache invalidation; Track gains an optional fixture_id
+    field (back-compatible with existing animations).
+  * creature-cli: bump version to 2.24.0.
+
+ -- April White <april@creature.engineering>  Fri, 22 May 2026 22:26:05 -0700
+
 creature-cli (2.23.0) unstable; urgency=medium
 
   * Add minSentenceChars config option to prevent very short phrases from
