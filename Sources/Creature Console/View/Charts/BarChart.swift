@@ -26,52 +26,60 @@ struct BarChart: View {
         GeometryReader { geometry in
             HStack(alignment: .bottom, spacing: barSpacing) {
                 ForEach(0..<data.count, id: \.self) { index in
-                    let color = rainbowColors[index % rainbowColors.count]
-                    let normalized = min(max(CGFloat(data[index]) / CGFloat(maxValue), 0), 1)
-
-                    ZStack(alignment: .bottom) {
-                        if showTrack {
-                            // Optional subtle track showing full scale
-                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.08))
-                        }
-
-                        // The bar itself
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(color)
-                            .frame(height: geometry.size.height * normalized)
-                            // Sheen highlight (paint-only)
-                            .overlay(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.18),
-                                        Color.white.opacity(0.04),
-                                        .clear,
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                .blendMode(.screen)
-                            )
-                            // Hairline edge for definition
-                            .overlay(
-                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                            )
-                            // Conditional glow when peaking
-                            .shadow(
-                                color: color.opacity(normalized >= peakGlowThreshold ? 0.35 : 0.0),
-                                radius: normalized >= peakGlowThreshold ? 10 : 0,
-                                x: 0, y: 0
-                            )
-                    }
-                    // Anchor each bar container to the bottom so bars grow upward
-                    .frame(height: geometry.size.height, alignment: .bottom)
+                    bar(at: index, in: geometry.size)
                 }
             }
             // Avoid implicit animations on frequent updates
             .animation(nil, value: data)
         }
+    }
+
+    @ViewBuilder
+    private func bar(at index: Int, in size: CGSize) -> some View {
+        let color = rainbowColors[index % rainbowColors.count]
+        let normalized = min(max(CGFloat(data[index]) / CGFloat(maxValue), 0), 1)
+        let isPeaking = normalized >= peakGlowThreshold
+
+        ZStack(alignment: .bottom) {
+            if showTrack {
+                // Optional subtle track showing full scale
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.08))
+            }
+
+            // The bar itself
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(color)
+                .frame(height: size.height * normalized)
+                // Sheen highlight (paint-only)
+                .overlay(sheen)
+                // Hairline edge for definition
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                )
+                // Conditional glow when peaking
+                .shadow(
+                    color: color.opacity(isPeaking ? 0.35 : 0.0),
+                    radius: isPeaking ? 10 : 0,
+                    x: 0, y: 0
+                )
+        }
+        // Anchor each bar container to the bottom so bars grow upward
+        .frame(height: size.height, alignment: .bottom)
+    }
+
+    private var sheen: some View {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(0.18),
+                Color.white.opacity(0.04),
+                .clear,
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .blendMode(.screen)
     }
 }
 
