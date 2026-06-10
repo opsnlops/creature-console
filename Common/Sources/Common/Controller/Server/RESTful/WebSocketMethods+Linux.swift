@@ -536,8 +536,8 @@
                 // Yield synchronously on the event loop so message order is preserved;
                 // hopping through a Task here would let frames race each other.
                 var unmasked = frame.unmaskedData
-                if let payload = unmasked.readData(length: unmasked.readableBytes) {
-                    ingest?.yield(payload)
+                if let bytes = unmasked.readBytes(length: unmasked.readableBytes) {
+                    ingest?.yield(Data(bytes))
                 }
             default:
                 Task { [weak owner] in

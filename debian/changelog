@@ -1,3 +1,11 @@
+creature-cli (2.26.1) unstable; urgency=medium
+
+  * Fix Linux build: ByteBuffer.readData(length:) is NIOFoundationCompat-only;
+    the Linux websocket frame handler now uses core NIO's readBytes(length:).
+    The 2.26.0 Debian packages never built because of this.
+
+ -- April White <april@creature.engineering>  Wed, 10 Jun 2026 04:58:01 +0000
+
 creature-cli (2.26.0) unstable; urgency=medium
 
   * Console app: new Debug section in Settings (all platforms, aimed at iOS)
