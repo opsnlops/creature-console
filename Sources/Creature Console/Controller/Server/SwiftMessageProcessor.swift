@@ -16,64 +16,64 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
         logger.debug("Swift-based MessageProcessor created")
     }
 
-    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
+    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) async {
         logger.debug(
             "SwiftMessageProcessor: Processing board sensor report for creature \(boardSensorReport.creatureId)"
         )
-        BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
+        await BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
     }
 
-    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) {
+    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) async {
         CacheInvalidationProcessor.processCacheInvalidation(cacheInvalidation)
     }
 
-    func processEmergencyStop(_ emergencyStop: EmergencyStop) {
-        EmergencyStopMessageProcessor.processEmergencyStop(emergencyStop)
+    func processEmergencyStop(_ emergencyStop: EmergencyStop) async {
+        await EmergencyStopMessageProcessor.processEmergencyStop(emergencyStop)
     }
 
-    func processLog(_ logItem: ServerLogItem) {
-        ServerLogItemProcessor.processServerLogItem(logItem)
+    func processLog(_ logItem: ServerLogItem) async {
+        await ServerLogItemProcessor.processServerLogItem(logItem)
     }
 
-    func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) {
-        MotorSensorReportMessageProcessor.processMotorSensorReport(motorSensorReport)
+    func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) async {
+        await MotorSensorReportMessageProcessor.processMotorSensorReport(motorSensorReport)
     }
 
-    func processNotice(_ notice: Notice) {
-        NoticeMessageProcessor.processNotice(notice)
+    func processNotice(_ notice: Notice) async {
+        await NoticeMessageProcessor.processNotice(notice)
     }
 
-    func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
+    func processPlaylistStatus(_ playlistStatus: PlaylistStatus) async {
         PlaylistRuntimeChannel.handle(status: playlistStatus)
     }
 
-    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
-        VirtualStatusLightsProcessor.processVirtualStatusLights(statusLights)
+    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) async {
+        await VirtualStatusLightsProcessor.processVirtualStatusLights(statusLights)
     }
 
-    func processSystemCounters(_ counters: ServerCountersPayload) {
-        SystemCountersItemProcessor.processSystemCounters(counters)
+    func processSystemCounters(_ counters: ServerCountersPayload) async {
+        await SystemCountersItemProcessor.processSystemCounters(counters)
     }
 
-    func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) {
+    func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) async {
         logger.info(
             "Watchdog warning received: \(watchdogWarning.warningType) - \(watchdogWarning.currentValue)/\(watchdogWarning.threshold)"
         )
     }
 
-    func processJobProgress(_ jobProgress: JobProgress) {
-        JobStatusMessageProcessor.processJobProgress(jobProgress)
+    func processJobProgress(_ jobProgress: JobProgress) async {
+        await JobStatusMessageProcessor.processJobProgress(jobProgress)
     }
 
-    func processJobComplete(_ jobComplete: JobCompletion) {
-        JobStatusMessageProcessor.processJobCompletion(jobComplete)
+    func processJobComplete(_ jobComplete: JobCompletion) async {
+        await JobStatusMessageProcessor.processJobCompletion(jobComplete)
     }
 
-    func processIdleStateChanged(_ idleState: IdleStateChanged) {
+    func processIdleStateChanged(_ idleState: IdleStateChanged) async {
         logger.info(
             "Idle state changed for \(idleState.creatureId): \(idleState.idleEnabled ? "enabled" : "disabled")"
         )
-        Task { @MainActor in
+        await MainActor.run {
             SystemCountersStore.shared.updateRuntimeState(
                 creatureId: idleState.creatureId,
                 idleEnabled: idleState.idleEnabled
@@ -85,11 +85,11 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
         }
     }
 
-    func processCreatureActivity(_ activity: CreatureActivity) {
+    func processCreatureActivity(_ activity: CreatureActivity) async {
         logger.debug(
             "Activity update for \(activity.creatureId): state=\(activity.state.rawValue) anim=\(activity.animationId ?? "none") session=\(activity.sessionId ?? "n/a") reason=\(activity.reason?.rawValue ?? "unknown")"
         )
-        Task { @MainActor in
+        await MainActor.run {
             SystemCountersStore.shared.updateRuntimeActivity(
                 creatureId: activity.creatureId,
                 activity: CreatureRuntimeActivity(

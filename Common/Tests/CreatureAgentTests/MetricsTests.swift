@@ -112,7 +112,7 @@ struct ObservabilityMetricsTests {
                 hiddenTypes: [.emergencyStop]
             )
 
-            processor.processEmergencyStop(
+            await processor.processEmergencyStop(
                 EmergencyStop(reason: "test", timestamp: Date()))
 
             let filtered = try testMetrics.expectCounter(
@@ -134,7 +134,7 @@ struct ObservabilityMetricsTests {
                 allowedTypes: [.notice]
             )
 
-            processor.processEmergencyStop(
+            await processor.processEmergencyStop(
                 EmergencyStop(reason: "test", timestamp: Date()))
 
             let filtered = try testMetrics.expectCounter(
@@ -155,7 +155,7 @@ struct ObservabilityMetricsTests {
 
             var notice = Notice()
             notice.message = "hello"
-            processor.processNotice(notice)
+            await processor.processNotice(notice)
 
             // publishValue fires a detached Task; give it time to complete
             try await Task.sleep(for: .milliseconds(200))
@@ -176,7 +176,7 @@ struct ObservabilityMetricsTests {
 
             var notice = Notice()
             notice.message = "hello"
-            processor.processNotice(notice)
+            await processor.processNotice(notice)
 
             // publishValue fires a detached Task; give it time to complete
             try await Task.sleep(for: .milliseconds(200))

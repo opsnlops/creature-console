@@ -6,18 +6,21 @@ struct ServerLogItemProcessor {
 
     static let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "ServerLog")
 
-    static public func processServerLogItem(_ serverLogItem: ServerLogItem) {
+    // One long-lived importer for the whole app. Creating a fresh @ModelActor (and its
+    // ModelContext) for every log line is wasteful at log-burst rates, and any
+    // per-instance state in the importer would never accumulate across instances.
+    private static let sharedImporter = Task {
+        ServerLogImporter(modelContainer: await SwiftDataStore.shared.container())
+    }
+
+    static public func processServerLogItem(_ serverLogItem: ServerLogItem) async {
 
         // Feed this to SwiftData so it shows up in the UI
-        Task {
-            do {
-                let container = await SwiftDataStore.shared.container()
-                let importer = ServerLogImporter(modelContainer: container)
-                try await importer.addLog(serverLogItem)
-            } catch {
-                logger.warning(
-                    "Failed to save server log to SwiftData: \(error.localizedDescription)")
-            }
+        do {
+            try await sharedImporter.value.addLog(serverLogItem)
+        } catch {
+            logger.warning(
+                "Failed to save server log to SwiftData: \(error.localizedDescription)")
         }
 
         // Convert the level to our enum

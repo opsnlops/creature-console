@@ -156,7 +156,7 @@ final class CLIMessageProcessor: MessageProcessor {
         }
     }
 
-    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
+    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) async {
         guard shouldPrint(.boardSensors) else { return }
         if outputFormat == .json {
             emitJSON(type: .boardSensors, payload: boardSensorReport)
@@ -180,7 +180,7 @@ final class CLIMessageProcessor: MessageProcessor {
         )
     }
 
-    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) {
+    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) async {
         guard shouldPrint(.cacheInvalidation) else { return }
         if outputFormat == .json {
             emitJSON(type: .cacheInvalidation, payload: cacheInvalidation)
@@ -192,7 +192,7 @@ final class CLIMessageProcessor: MessageProcessor {
         )
     }
 
-    func processEmergencyStop(_ emergencyStop: EmergencyStop) {
+    func processEmergencyStop(_ emergencyStop: EmergencyStop) async {
         guard shouldPrint(.emergencyStop) else { return }
         if outputFormat == .json {
             emitJSON(type: .emergencyStop, payload: emergencyStop)
@@ -204,7 +204,7 @@ final class CLIMessageProcessor: MessageProcessor {
         )
     }
 
-    func processLog(_ logItem: ServerLogItem) {
+    func processLog(_ logItem: ServerLogItem) async {
         guard shouldPrint(.log) else { return }
         if outputFormat == .json {
             emitJSON(type: .log, payload: LogPayload(logItem))
@@ -213,7 +213,7 @@ final class CLIMessageProcessor: MessageProcessor {
         print(buildLogLine(for: logItem))
     }
 
-    func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) {
+    func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) async {
         guard shouldPrint(.motorSensors) else { return }
         if outputFormat == .json {
             emitJSON(type: .motorSensors, payload: motorSensorReport)
@@ -235,7 +235,7 @@ final class CLIMessageProcessor: MessageProcessor {
         )
     }
 
-    func processNotice(_ notice: Notice) {
+    func processNotice(_ notice: Notice) async {
         guard shouldPrint(.notice) else { return }
         if outputFormat == .json {
             emitJSON(type: .notice, payload: notice)
@@ -246,7 +246,7 @@ final class CLIMessageProcessor: MessageProcessor {
             "[NOTICE] [\(TimeHelper.formatToLocalTime(notice.timestamp))] \(notice.message)")
     }
 
-    func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
+    func processPlaylistStatus(_ playlistStatus: PlaylistStatus) async {
         guard shouldPrint(.playlistStatus) else { return }
         if outputFormat == .json {
             emitJSON(type: .playlistStatus, payload: playlistStatus)
@@ -258,7 +258,7 @@ final class CLIMessageProcessor: MessageProcessor {
         )
     }
 
-    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
+    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) async {
         guard shouldPrint(.statusLights) else { return }
         if outputFormat == .json {
             emitJSON(type: .statusLights, payload: statusLights)
@@ -273,7 +273,7 @@ final class CLIMessageProcessor: MessageProcessor {
         printLine(.statusLights, message)
     }
 
-    func processSystemCounters(_ counters: ServerCountersPayload) {
+    func processSystemCounters(_ counters: ServerCountersPayload) async {
         guard shouldPrint(.systemCounters) else { return }
         if outputFormat == .json {
             emitJSON(type: .systemCounters, payload: counters)
@@ -339,7 +339,7 @@ final class CLIMessageProcessor: MessageProcessor {
         }
     }
 
-    func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) {
+    func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) async {
         guard shouldPrint(.watchdogWarning) else { return }
         if outputFormat == .json {
             emitJSON(type: .watchdogWarning, payload: watchdogWarning)
@@ -351,7 +351,7 @@ final class CLIMessageProcessor: MessageProcessor {
         )
     }
 
-    func processJobProgress(_ jobProgress: JobProgress) {
+    func processJobProgress(_ jobProgress: JobProgress) async {
         guard shouldPrint(.jobProgress) else { return }
         if outputFormat == .json {
             emitJSON(type: .jobProgress, payload: jobProgress)
@@ -388,7 +388,7 @@ final class CLIMessageProcessor: MessageProcessor {
         printLine(.jobProgress, parts.joined(separator: " "))
     }
 
-    func processJobComplete(_ jobComplete: JobCompletion) {
+    func processJobComplete(_ jobComplete: JobCompletion) async {
         guard shouldPrint(.jobComplete) else { return }
         if outputFormat == .json {
             emitJSON(type: .jobComplete, payload: jobComplete)
@@ -445,7 +445,7 @@ final class CLIMessageProcessor: MessageProcessor {
         printLine(.jobComplete, parts.joined(separator: " "))
     }
 
-    func processIdleStateChanged(_ idleState: IdleStateChanged) {
+    func processIdleStateChanged(_ idleState: IdleStateChanged) async {
         guard shouldPrint(.idleStateChanged) else { return }
         if outputFormat == .json {
             emitJSON(type: .idleStateChanged, payload: idleState)
@@ -457,7 +457,7 @@ final class CLIMessageProcessor: MessageProcessor {
             .idleStateChanged, "[IDLE STATE] [\(ts)] \(idleState.creatureId) idle \(stateText)")
     }
 
-    func processCreatureActivity(_ activity: CreatureActivity) {
+    func processCreatureActivity(_ activity: CreatureActivity) async {
         guard shouldPrint(.creatureActivity) else { return }
         if outputFormat == .json {
             emitJSON(type: .creatureActivity, payload: activity)

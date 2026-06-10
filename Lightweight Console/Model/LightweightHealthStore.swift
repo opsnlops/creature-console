@@ -14,7 +14,9 @@ actor LightweightHealthStore {
     private init() {}
 
     func updates() -> AsyncStream<LightweightHealthSnapshot> {
-        AsyncStream { continuation in
+        // Snapshot stream: only the latest state matters, so a slow subscriber skips
+        // straight to the freshest value instead of replaying a backlog of stale ones.
+        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             let id = UUID()
             continuations[id] = continuation
 

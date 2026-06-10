@@ -162,6 +162,12 @@ extension CreatureServerClient {
         private var messageProcessor: MessageProcessor?
         private let headers: [String: String]
 
+        // Ordered ingestion pipeline: incoming frames are queued here and consumed by a
+        // single task, so messages are processed strictly in arrival order instead of
+        // racing each other through fire-and-forget Tasks.
+        private var incomingMessages: AsyncStream<Data>.Continuation?
+        private var messageProcessingTask: Task<Void, Never>?
+
         private let logger = Logger(label: "io.opsnlops.CreatureController.WebSocketClient")
 
         static let shouldRefreshCachesNotification = Notification.Name(
@@ -189,6 +195,28 @@ extension CreatureServerClient {
 
         private func isNetworkAvailable() -> Bool {
             return isNetworkPathSatisfied
+        }
+
+        /// Start the single consumer task that drains the ingestion stream. Because there's
+        /// exactly one loop awaiting each message before taking the next, server ordering is
+        /// preserved end to end (an emergency stop can never be overtaken by a sensor report
+        /// that arrived before it).
+        private func startMessagePipeline() {
+            guard messageProcessingTask == nil else { return }
+
+            let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
+            incomingMessages = continuation
+            messageProcessingTask = Task { [weak self] in
+                for await data in stream {
+                    await self?.decodeIncomingMessage(data)
+                }
+            }
+        }
+
+        private func stopMessagePipeline() {
+            incomingMessages?.finish()
+            incomingMessages = nil
+            messageProcessingTask = nil
         }
 
         #if canImport(Network)
@@ -486,6 +514,7 @@ extension CreatureServerClient {
             isConnecting = true
             reconnectTask?.cancel()
             setupLifecycleMonitoring()
+            startMessagePipeline()
 
             var request = URLRequest(url: url)
             request.timeoutInterval = 5
@@ -529,6 +558,7 @@ extension CreatureServerClient {
             isConnecting = false
 
             teardownLifecycleMonitoring()
+            stopMessagePipeline()
 
             logger.debug("websocket is disconnected")
             Task {
@@ -672,7 +702,7 @@ extension CreatureServerClient {
             case .string(let text):
                 logger.trace("string received from the websocket: \(text)")
                 if let data = text.data(using: .utf8) {
-                    decodeIncomingMessage(data)
+                    incomingMessages?.yield(data)
                 } else {
                     logger.warning("unable to decode incoming string as UTF-8: \(text)")
                 }
@@ -743,7 +773,7 @@ extension CreatureServerClient {
             }
         }
 
-        private func decodeIncomingMessage(_ data: Data) {
+        private func decodeIncomingMessage(_ data: Data) async {
             logger.debug("Attempting to decode an incoming message from the websocket")
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
@@ -759,67 +789,67 @@ extension CreatureServerClient {
                 case .notice:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<Notice>.self, from: data)
-                    messageProcessor?.processNotice(messageDTO.payload)
+                    await messageProcessor?.processNotice(messageDTO.payload)
                 case .logging:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<ServerLogItem>.self, from: data)
-                    messageProcessor?.processLog(messageDTO.payload)
+                    await messageProcessor?.processLog(messageDTO.payload)
                 case .serverCounters:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<ServerCountersPayload>.self, from: data)
-                    messageProcessor?.processSystemCounters(messageDTO.payload)
+                    await messageProcessor?.processSystemCounters(messageDTO.payload)
                 case .statusLights:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<VirtualStatusLightsDTO>.self, from: data)
-                    messageProcessor?.processStatusLights(messageDTO.payload)
+                    await messageProcessor?.processStatusLights(messageDTO.payload)
                 case .motorSensorReport:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<MotorSensorReport>.self, from: data)
-                    messageProcessor?.processMotorSensorReport(messageDTO.payload)
+                    await messageProcessor?.processMotorSensorReport(messageDTO.payload)
                 case .boardSensorReport:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<BoardSensorReport>.self, from: data)
-                    messageProcessor?.processBoardSensorReport(messageDTO.payload)
+                    await messageProcessor?.processBoardSensorReport(messageDTO.payload)
                 case .cacheInvalidation:
                     logger.debug("cache-invalidation")
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<CacheInvalidation>.self, from: data)
-                    messageProcessor?.processCacheInvalidation(messageDTO.payload)
+                    await messageProcessor?.processCacheInvalidation(messageDTO.payload)
                 case .playlistStatus:
                     logger.debug("playlist")
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<PlaylistStatus>.self, from: data)
-                    messageProcessor?.processPlaylistStatus(messageDTO.payload)
+                    await messageProcessor?.processPlaylistStatus(messageDTO.payload)
                 case .emergencyStop:
                     logger.debug("emergency-stop")
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<EmergencyStop>.self, from: data)
-                    messageProcessor?.processEmergencyStop(messageDTO.payload)
+                    await messageProcessor?.processEmergencyStop(messageDTO.payload)
                 case .watchdogWarning:
                     logger.debug("watchdog-warning")
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<WatchdogWarning>.self, from: data)
-                    messageProcessor?.processWatchdogWarning(messageDTO.payload)
+                    await messageProcessor?.processWatchdogWarning(messageDTO.payload)
                 case .jobProgress:
                     logger.debug("job-progress")
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<JobProgress>.self, from: data)
-                    messageProcessor?.processJobProgress(messageDTO.payload)
+                    await messageProcessor?.processJobProgress(messageDTO.payload)
                 case .jobComplete:
                     logger.debug("job-complete")
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<JobCompletion>.self, from: data)
-                    messageProcessor?.processJobComplete(messageDTO.payload)
+                    await messageProcessor?.processJobComplete(messageDTO.payload)
                 case .idleStateChanged:
                     logger.debug("idle-state-changed")
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<IdleStateChanged>.self, from: data)
-                    messageProcessor?.processIdleStateChanged(messageDTO.payload)
+                    await messageProcessor?.processIdleStateChanged(messageDTO.payload)
                 case .creatureActivity:
                     logger.debug("creature-activity")
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<CreatureActivity>.self, from: data)
-                    messageProcessor?.processCreatureActivity(messageDTO.payload)
+                    await messageProcessor?.processCreatureActivity(messageDTO.payload)
                 default:
                     logger.warning("Unknown message type: \(commandDTO.command), data: \(data)")
                 }

@@ -8,14 +8,11 @@ struct MotorSensorReportMessageProcessor {
     static let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "MotorSensorReportMessageProcessor")
 
-    public static func processMotorSensorReport(_ motorSenseReport: MotorSensorReport) {
+    public static func processMotorSensorReport(_ motorSenseReport: MotorSensorReport) async {
 
         logger.debug("Received motor sensor report for creature: \(motorSenseReport.creatureId)")
 
-        let cache = CreatureHealthCache.shared
-        let creatureId = motorSenseReport.creatureId
-        Task {
-            await cache.addMotorSensorData(motorSenseReport, forCreature: creatureId)
-        }
+        await CreatureHealthCache.shared.addMotorSensorData(
+            motorSenseReport, forCreature: motorSenseReport.creatureId)
     }
 }

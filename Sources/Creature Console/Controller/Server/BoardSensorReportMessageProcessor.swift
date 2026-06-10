@@ -7,15 +7,12 @@ struct BoardSensorReportMessageProcessor {
     static let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "BoardSensorReportMessageProcessor")
 
-    public static func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
+    public static func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) async {
 
         logger.debug("Received board sensor report for creature: \(boardSensorReport.creatureId)")
 
-        let cache = CreatureHealthCache.shared
-        let creatureId = boardSensorReport.creatureId
-        Task {
-            await cache.addBoardSensorData(boardSensorReport, forCreature: creatureId)
-        }
+        await CreatureHealthCache.shared.addBoardSensorData(
+            boardSensorReport, forCreature: boardSensorReport.creatureId)
     }
 
 }

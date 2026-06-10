@@ -23,6 +23,12 @@
         private var shouldStayConnected: Bool = false
         private var reconnectAttempt: Int = 0
 
+        // Ordered ingestion pipeline: text frames are yielded into this stream synchronously
+        // from the NIO event loop (which delivers frames in order) and drained by a single
+        // consumer task, so messages are processed strictly in arrival order.
+        private var incomingMessages: AsyncStream<Data>.Continuation?
+        private var messageProcessingTask: Task<Void, Never>?
+
         static let shouldRefreshCachesNotification = Notification.Name(
             "WebSocketShouldRefreshCaches")
         static let didEncounterErrorNotification = Notification.Name("WebSocketDidEncounterError")
@@ -37,6 +43,7 @@
             guard !isConnecting else { return }
             isConnecting = true
             shouldStayConnected = true
+            startMessagePipeline()
             Task { [weak self] in
                 guard let self else { return }
                 await self.startConnection()
@@ -46,11 +53,32 @@
         func disconnect() {
             shouldStayConnected = false
             reconnectAttempt = 0
+            stopMessagePipeline()
             Task { [weak self] in
                 guard let self else { return }
                 await self.closeChannel()
                 await WebSocketStateManager.shared.setState(.disconnected)
             }
+        }
+
+        /// Start the single consumer task that drains the ingestion stream, preserving
+        /// server message ordering end to end.
+        private func startMessagePipeline() {
+            guard messageProcessingTask == nil else { return }
+
+            let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
+            incomingMessages = continuation
+            messageProcessingTask = Task { [weak self] in
+                for await data in stream {
+                    await self?.decodeIncomingMessage(data)
+                }
+            }
+        }
+
+        private func stopMessagePipeline() {
+            incomingMessages?.finish()
+            incomingMessages = nil
+            messageProcessingTask = nil
         }
 
         nonisolated var isWebSocketConnected: Bool {
@@ -96,6 +124,7 @@
                     [
                         headers = self.headers,
                         host,
+                        ingest = self.incomingMessages,
                         initialHandlerName,
                         owner = self,
                         port,
@@ -112,7 +141,8 @@
                         headers: headers,
                         initialHandlerName: initialHandlerName,
                         upgradeLogger: upgradeLogger,
-                        owner: owner
+                        owner: owner,
+                        ingest: ingest
                     )
                 }
 
@@ -163,7 +193,8 @@
             headers: [String: String],
             initialHandlerName: String,
             upgradeLogger: Logger,
-            owner: WebSocketClient
+            owner: WebSocketClient,
+            ingest: AsyncStream<Data>.Continuation?
         ) -> EventLoopFuture<Void> {
             let websocketUpgrader = NIOWebSocketClientUpgrader(
                 requestKey: NIOWebSocketClientUpgrader.randomRequestKey(),
@@ -171,7 +202,9 @@
                 automaticErrorHandling: true
             ) { [weak owner] channel, _ in
                 guard let owner else { return channel.eventLoop.makeSucceededFuture(()) }
-                return channel.pipeline.addHandler(WebSocketFrameHandler(owner: owner)).flatMap {
+                return channel.pipeline.addHandler(
+                    WebSocketFrameHandler(owner: owner, ingest: ingest)
+                ).flatMap {
                     channel.eventLoop.submit { [weak owner] in
                         guard let owner else { return }
                         let local = channel.localAddress?.description ?? "<unknown>"
@@ -221,15 +254,9 @@
         }
 
         fileprivate func handleFrame(_ frame: WebSocketFrame) {
+            // Text frames are yielded straight into the ingestion stream by the frame
+            // handler on the event loop; only control frames land here.
             switch frame.opcode {
-            case .text:
-                var data = frame.unmaskedData
-                if let string = data.readString(length: data.readableBytes) {
-                    Self.logger.debug("Decoding text frame: \(string)")
-                    Task { [weak self] in
-                        await self?.handleMessageString(string)
-                    }
-                }
             case .ping:
                 writeFrame(.init(fin: true, opcode: .pong, data: frame.data))
             case .connectionClose:
@@ -241,11 +268,6 @@
             default:
                 break
             }
-        }
-
-        private func handleMessageString(_ text: String) async {
-            guard let data = text.data(using: .utf8) else { return }
-            decodeIncomingMessage(data)
         }
 
         fileprivate func handleUpgradeSucceeded() async {
@@ -277,7 +299,7 @@
             }
         }
 
-        private func decodeIncomingMessage(_ data: Data) {
+        private func decodeIncomingMessage(_ data: Data) async {
             Self.logger.debug("Attempting to decode an incoming message from the websocket")
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
@@ -291,59 +313,59 @@
                 case .notice:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<Notice>.self, from: data)
-                    messageProcessor?.processNotice(messageDTO.payload)
+                    await messageProcessor?.processNotice(messageDTO.payload)
                 case .logging:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<ServerLogItem>.self, from: data)
-                    messageProcessor?.processLog(messageDTO.payload)
+                    await messageProcessor?.processLog(messageDTO.payload)
                 case .serverCounters:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<ServerCountersPayload>.self, from: data)
-                    messageProcessor?.processSystemCounters(messageDTO.payload)
+                    await messageProcessor?.processSystemCounters(messageDTO.payload)
                 case .statusLights:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<VirtualStatusLightsDTO>.self, from: data)
-                    messageProcessor?.processStatusLights(messageDTO.payload)
+                    await messageProcessor?.processStatusLights(messageDTO.payload)
                 case .motorSensorReport:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<MotorSensorReport>.self, from: data)
-                    messageProcessor?.processMotorSensorReport(messageDTO.payload)
+                    await messageProcessor?.processMotorSensorReport(messageDTO.payload)
                 case .boardSensorReport:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<BoardSensorReport>.self, from: data)
-                    messageProcessor?.processBoardSensorReport(messageDTO.payload)
+                    await messageProcessor?.processBoardSensorReport(messageDTO.payload)
                 case .cacheInvalidation:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<CacheInvalidation>.self, from: data)
-                    messageProcessor?.processCacheInvalidation(messageDTO.payload)
+                    await messageProcessor?.processCacheInvalidation(messageDTO.payload)
                 case .playlistStatus:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<PlaylistStatus>.self, from: data)
-                    messageProcessor?.processPlaylistStatus(messageDTO.payload)
+                    await messageProcessor?.processPlaylistStatus(messageDTO.payload)
                 case .emergencyStop:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<EmergencyStop>.self, from: data)
-                    messageProcessor?.processEmergencyStop(messageDTO.payload)
+                    await messageProcessor?.processEmergencyStop(messageDTO.payload)
                 case .watchdogWarning:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<WatchdogWarning>.self, from: data)
-                    messageProcessor?.processWatchdogWarning(messageDTO.payload)
+                    await messageProcessor?.processWatchdogWarning(messageDTO.payload)
                 case .jobProgress:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<JobProgress>.self, from: data)
-                    messageProcessor?.processJobProgress(messageDTO.payload)
+                    await messageProcessor?.processJobProgress(messageDTO.payload)
                 case .jobComplete:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<JobCompletion>.self, from: data)
-                    messageProcessor?.processJobComplete(messageDTO.payload)
+                    await messageProcessor?.processJobComplete(messageDTO.payload)
                 case .idleStateChanged:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<IdleStateChanged>.self, from: data)
-                    messageProcessor?.processIdleStateChanged(messageDTO.payload)
+                    await messageProcessor?.processIdleStateChanged(messageDTO.payload)
                 case .creatureActivity:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<CreatureActivity>.self, from: data)
-                    messageProcessor?.processCreatureActivity(messageDTO.payload)
+                    await messageProcessor?.processCreatureActivity(messageDTO.payload)
                 default:
                     Self.logger.warning(
                         "Unknown message type: \(commandDTO.command), data: \(data)")
@@ -496,19 +518,32 @@
         typealias OutboundOut = WebSocketFrame
 
         private weak var owner: WebSocketClient?
+        private let ingest: AsyncStream<Data>.Continuation?
 
-        init(owner: WebSocketClient) {
+        init(owner: WebSocketClient, ingest: AsyncStream<Data>.Continuation?) {
             self.owner = owner
+            self.ingest = ingest
         }
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
             let frame = self.unwrapInboundIn(data)
-            Task { [weak owner] in
-                guard let owner else { return }
-                WebSocketClient.logger.debug(
-                    "Received websocket frame opcode=\(frame.opcode) length=\(frame.unmaskedData.readableBytes)"
-                )
-                await owner.handleFrame(frame)
+            WebSocketClient.logger.debug(
+                "Received websocket frame opcode=\(frame.opcode) length=\(frame.unmaskedData.readableBytes)"
+            )
+
+            switch frame.opcode {
+            case .text:
+                // Yield synchronously on the event loop so message order is preserved;
+                // hopping through a Task here would let frames race each other.
+                var unmasked = frame.unmaskedData
+                if let payload = unmasked.readData(length: unmasked.readableBytes) {
+                    ingest?.yield(payload)
+                }
+            default:
+                Task { [weak owner] in
+                    guard let owner else { return }
+                    await owner.handleFrame(frame)
+                }
             }
         }
 

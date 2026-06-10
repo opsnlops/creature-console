@@ -6,16 +6,23 @@ import SwiftUI
     import UIKit
 #endif
 
+// Fetch logs in reverse order (newest first), capped at the maximum scrollback. The cap
+// matters: an unbounded query materializes the whole table on the main thread, which
+// freezes the app if the store has accumulated more logs than the importer's trim limit.
+private let recentLogsDescriptor: FetchDescriptor<ServerLogModel> = {
+    var descriptor = FetchDescriptor<ServerLogModel>(
+        sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+    )
+    descriptor.fetchLimit = 500
+    return descriptor
+}()
+
 struct LogView: View {
     @Environment(\.modelContext) private var modelContext
 
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 150
 
-    // Fetch logs in reverse order (newest first)
-    @Query(
-        sort: \ServerLogModel.timestamp,
-        order: .reverse
-    )
+    @Query(recentLogsDescriptor)
     private var serverLogsReversed: [ServerLogModel]
 
     @State private var autoScrollEnabled = true

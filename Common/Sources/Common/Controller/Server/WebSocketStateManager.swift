@@ -10,7 +10,9 @@ public actor WebSocketStateManager {
     private var continuations: [UUID: AsyncStream<WebSocketConnectionState>.Continuation] = [:]
 
     public var stateUpdates: AsyncStream<WebSocketConnectionState> {
-        AsyncStream { continuation in
+        // Snapshot stream: only the latest state matters, so a slow subscriber skips
+        // straight to the freshest value instead of replaying a backlog of stale ones.
+        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             let id = UUID()
             continuations[id] = continuation
 

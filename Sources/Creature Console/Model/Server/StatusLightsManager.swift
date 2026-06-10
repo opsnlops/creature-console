@@ -23,7 +23,9 @@ actor StatusLightsManager {
     private var continuations: [UUID: AsyncStream<StatusLightsState>.Continuation] = [:]
 
     var stateUpdates: AsyncStream<StatusLightsState> {
-        AsyncStream { continuation in
+        // Snapshot stream: only the latest state matters, so a slow subscriber skips
+        // straight to the freshest value instead of replaying a backlog of stale ones.
+        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             let id = UUID()
             // Register and seed on the actor
             Task { [weak self] in
@@ -48,7 +50,9 @@ actor StatusLightsManager {
         )
     }
 
-    private func addContinuation(id: UUID, _ continuation: AsyncStream<StatusLightsState>.Continuation) {
+    private func addContinuation(
+        id: UUID, _ continuation: AsyncStream<StatusLightsState>.Continuation
+    ) {
         continuations[id] = continuation
         // Seed with the current state immediately
         continuation.yield(currentSnapshot())
@@ -60,7 +64,9 @@ actor StatusLightsManager {
 
     private func publishState() {
         let snapshot = currentSnapshot()
-        logger.debug("StatusLightsManager: Broadcasting state (running: \(self.running), dmx: \(self.dmx), streaming: \(self.streaming), animationPlaying: \(self.animationPlaying))")
+        logger.debug(
+            "StatusLightsManager: Broadcasting state (running: \(self.running), dmx: \(self.dmx), streaming: \(self.streaming), animationPlaying: \(self.animationPlaying))"
+        )
         for continuation in continuations.values {
             continuation.yield(snapshot)
         }

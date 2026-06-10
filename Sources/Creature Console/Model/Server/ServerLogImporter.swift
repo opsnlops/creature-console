@@ -11,56 +11,37 @@ actor ServerLogImporter {
     // Keep more logs in the database than we display to allow for search/filtering
     private let maxLogEntries = 500
 
-    // Track insert count to avoid trimming on every single log
-    private var insertsSinceLastTrim = 0
-    private let trimInterval = 50
-
     // Add a single log entry (logs come in one at a time from the server)
     func addLog(_ dto: ServerLogItem) async throws {
         let logModel = ServerLogModel(dto: dto)
         modelContext.insert(logModel)
-
-        insertsSinceLastTrim += 1
-
-        // Only trim periodically — trimming on every insert causes a full fetch+sort
-        // of all logs which blocks this actor and stalls the UI during log bursts.
-        if insertsSinceLastTrim >= trimInterval {
-            try trimOldLogs()
-            insertsSinceLastTrim = 0
-        }
-
         try modelContext.save()
+        try trimOldLogs()
     }
 
-    // Remove logs older than the max count
+    // Remove the oldest logs once the table exceeds the max count. A COUNT query plus a
+    // fetch limited to just the overflow keeps the steady-state cost per insert tiny —
+    // never a full fetch+sort of the table — so this is safe to run on every insert.
     private func trimOldLogs() throws {
-        let descriptor = FetchDescriptor<ServerLogModel>(
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        let count = try modelContext.fetchCount(FetchDescriptor<ServerLogModel>())
+        guard count > maxLogEntries else { return }
+
+        var overflow = FetchDescriptor<ServerLogModel>(
+            sortBy: [SortDescriptor(\.timestamp, order: .forward)]
         )
-        let allLogs = try modelContext.fetch(descriptor)
-
-        guard allLogs.count > maxLogEntries else { return }
-
-        // Delete old logs beyond the max count
-        let logsToDelete = Array(allLogs.dropFirst(maxLogEntries))
+        overflow.fetchLimit = count - maxLogEntries
+        let logsToDelete = try modelContext.fetch(overflow)
         for log in logsToDelete {
             modelContext.delete(log)
         }
+        try modelContext.save()
 
         logger.trace("Trimmed \(logsToDelete.count) old log entries")
     }
 
     // Clear all logs
     func clearAllLogs() async throws {
-        let descriptor = FetchDescriptor<ServerLogModel>()
-        let allLogs = try modelContext.fetch(descriptor)
-
-        try modelContext.transaction {
-            for log in allLogs {
-                modelContext.delete(log)
-            }
-        }
-
+        try modelContext.delete(model: ServerLogModel.self)
         try modelContext.save()
         logger.info("Cleared all log entries")
     }

@@ -147,7 +147,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         }
     }
 
-    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) {
+    func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) async {
         guard shouldPublish(.boardSensors) else { return }
         let resolved = resolveCreature(id: boardSensorReport.creatureId)
         let base = [resolved.topicComponent, "sensors", "board"]
@@ -165,7 +165,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         }
     }
 
-    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) {
+    func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) async {
         if shouldPublish(.cacheInvalidation) {
             let base = ["cache_invalidation"]
             publishValue(cacheInvalidation.cacheType.description, components: base + ["cache_type"])
@@ -183,14 +183,14 @@ final class MQTTMessageProcessor: MessageProcessor {
         }
     }
 
-    func processEmergencyStop(_ emergencyStop: EmergencyStop) {
+    func processEmergencyStop(_ emergencyStop: EmergencyStop) async {
         guard shouldPublish(.emergencyStop) else { return }
         let base = ["events", "emergency_stop"]
         publishValue(emergencyStop.reason, components: base + ["reason"])
         publishDate(emergencyStop.timestamp, components: base + ["timestamp"])
     }
 
-    func processLog(_ logItem: ServerLogItem) {
+    func processLog(_ logItem: ServerLogItem) async {
         guard shouldPublish(.log) else { return }
         let base = ["logs"]
         publishDate(logItem.timestamp, components: base + ["timestamp"])
@@ -200,7 +200,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         publishNumber(logItem.thread_id, components: base + ["thread_id"])
     }
 
-    func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) {
+    func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) async {
         guard shouldPublish(.motorSensors) else { return }
         let resolved = resolveCreature(id: motorSensorReport.creatureId)
         let base = [resolved.topicComponent, "sensors", "motors"]
@@ -217,14 +217,14 @@ final class MQTTMessageProcessor: MessageProcessor {
         }
     }
 
-    func processNotice(_ notice: Notice) {
+    func processNotice(_ notice: Notice) async {
         guard shouldPublish(.notice) else { return }
         let base = ["notices", "latest"]
         publishValue(notice.message, components: base + ["message"])
         publishDate(notice.timestamp, components: base + ["timestamp"])
     }
 
-    func processPlaylistStatus(_ playlistStatus: PlaylistStatus) {
+    func processPlaylistStatus(_ playlistStatus: PlaylistStatus) async {
         guard shouldPublish(.playlistStatus) else { return }
         let base = ["playlists", playlistStatus.playlist]
         publishBool(playlistStatus.playing, components: base + ["playing"])
@@ -233,7 +233,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         publishDate(.now, components: base + ["timestamp"])
     }
 
-    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) {
+    func processStatusLights(_ statusLights: VirtualStatusLightsDTO) async {
         guard shouldPublish(.statusLights) else { return }
         let base = ["status_lights"]
         publishBool(statusLights.running, components: base + ["running"])
@@ -243,7 +243,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         publishDate(.now, components: base + ["timestamp"])
     }
 
-    func processSystemCounters(_ counters: ServerCountersPayload) {
+    func processSystemCounters(_ counters: ServerCountersPayload) async {
         guard shouldPublish(.systemCounters) else { return }
         let countersBase = ["system", "counters"]
         publishNumber(counters.counters.totalFrames, components: countersBase + ["total_frames"])
@@ -369,7 +369,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         }
     }
 
-    func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) {
+    func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) async {
         guard shouldPublish(.watchdogWarning) else { return }
         let base = ["watchdog", watchdogWarning.warningType]
         publishNumber(watchdogWarning.currentValue, components: base + ["current_value"])
@@ -377,7 +377,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         publishDate(watchdogWarning.timestamp, components: base + ["timestamp"])
     }
 
-    func processJobProgress(_ jobProgress: JobProgress) {
+    func processJobProgress(_ jobProgress: JobProgress) async {
         guard shouldPublish(.jobProgress) else { return }
         let base = ["jobs", jobProgress.jobId]
         publishValue(jobProgress.jobType.rawValue, components: base + ["job_type"])
@@ -390,7 +390,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         }
     }
 
-    func processJobComplete(_ jobComplete: JobCompletion) {
+    func processJobComplete(_ jobComplete: JobCompletion) async {
         guard shouldPublish(.jobComplete) else { return }
         let base = ["jobs", jobComplete.jobId]
         publishValue(jobComplete.jobType.rawValue, components: base + ["job_type"])
@@ -403,7 +403,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         }
     }
 
-    func processIdleStateChanged(_ idleState: IdleStateChanged) {
+    func processIdleStateChanged(_ idleState: IdleStateChanged) async {
         guard shouldPublish(.idleStateChanged) else { return }
         let resolved = resolveCreature(id: idleState.creatureId)
         let base = [resolved.topicComponent, "idle"]
@@ -414,7 +414,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         publishDate(idleState.timestamp, components: base + ["timestamp"])
     }
 
-    func processCreatureActivity(_ activity: CreatureActivity) {
+    func processCreatureActivity(_ activity: CreatureActivity) async {
         guard shouldPublish(.creatureActivity) else { return }
         let resolved = resolveCreature(
             id: activity.creatureId, preferredName: activity.creatureName)

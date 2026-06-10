@@ -1,3 +1,18 @@
+creature-cli (2.25.4) unstable; urgency=medium
+
+  * Websocket message handling is now an ordered ingestion pipeline: incoming
+    messages are processed strictly in arrival order through a single consumer
+    task instead of racing fire-and-forget Tasks. MessageProcessor protocol
+    methods are now async.
+  * On Linux, websocket text frames are yielded synchronously from the NIO
+    event loop, fixing a frame reordering race in the NIO client.
+  * Snapshot-style state streams now use bufferingNewest(1) so slow consumers
+    skip to the freshest state instead of replaying a stale backlog.
+  * creature-cli + creature-mqtt + creature-agent: versions synced to 2.25.4
+    (creature-mqtt was 2.20.1, creature-agent was 2.23.0).
+
+ -- April White <april@creature.engineering>  Wed, 10 Jun 2026 04:30:27 +0000
+
 creature-cli (2.25.3) unstable; urgency=medium
 
   * Build against the Swift 6.3.2 release toolchain (was 6.2.x). Updated the

@@ -34,7 +34,9 @@ actor CreatureHealthCache {
     private var subscribers: [UUID: AsyncStream<CreatureHealthCacheState>.Continuation] = [:]
 
     var stateUpdates: AsyncStream<CreatureHealthCacheState> {
-        AsyncStream { continuation in
+        // Snapshot stream: each yield carries the full cache, so buffering more than the
+        // newest snapshot just pins stale copies of large sensor arrays in memory.
+        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             let id = UUID()
             subscribers[id] = continuation
 
