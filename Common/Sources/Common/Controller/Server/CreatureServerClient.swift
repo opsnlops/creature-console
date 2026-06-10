@@ -9,6 +9,13 @@ import Tracing
 public final class CreatureServerClient: CreatureServerClientProtocol, Sendable {
 
     public static let shared = CreatureServerClient()
+    typealias HTTPDataLoader = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
+    struct HTTPResponseData: Sendable {
+        let data: Data
+        let statusCode: Int
+        let contentDisposition: String?
+    }
 
     // WebSocket processing stuff
     private let _processor: CreatureLock<MessageProcessor?>
@@ -26,6 +33,7 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
     }
 
     let logger: Logging.Logger
+    private let httpDataLoader: HTTPDataLoader
     private let _serverHostname: CreatureLock<String>
     private let _serverPort: CreatureLock<Int>
     private let _useTLS: CreatureLock<Bool>
@@ -64,10 +72,17 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
     }
 
 
-    public init() {
+    public convenience init() {
+        self.init { request in
+            try await URLSession.shared.data(for: request)
+        }
+    }
+
+    init(httpDataLoader: @escaping HTTPDataLoader) {
         var logger = Logging.Logger(label: "io.opsnlops.creature-controller.common")
         logger.logLevel = .debug
         self.logger = logger
+        self.httpDataLoader = httpDataLoader
         self._processor = CreatureLock(initialState: nil)
         self._webSocketClient = CreatureLock(initialState: nil)
         self._serverHostname = CreatureLock(
@@ -183,88 +198,12 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
 
     func fetchData<T: Decodable>(_ url: URL, returnType: T.Type) async -> Result<T, ServerError> {
-        await withSpan("HTTP GET \(url.path)") { span in
-            span.attributes["http.method"] = "GET"
-            span.attributes["http.url"] = url.absoluteString
-
-            do {
-                var request = createConfiguredURLRequest(for: url)
-                // Never serve these REST reads from the URL cache. The server doesn't send
-                // cache-control headers, so CFNetwork heuristically caches 200s and can hand a
-                // stale list back to a cache rebuild right after a save — leaving SwiftData behind
-                // (e.g. a newly-added tile missing in perform mode). Our SwiftData layer *is* the
-                // cache, refreshed via the websocket invalidation model; the HTTP layer must always
-                // hit the origin.
-                request.cachePolicy = .reloadIgnoringLocalCacheData
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    logger.error("Invalid response for \(url)")
-                    return .failure(.serverError("Invalid response for \(url)"))
-                }
-
-                span.attributes["http.status_code"] = httpResponse.statusCode
-
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-
-                switch httpResponse.statusCode {
-
-                case 200:
-                    do {
-
-                        let result = try decoder.decode(T.self, from: data)
-                        return .success(result)
-
-                    } catch let decodingError as DecodingError {
-                        var errorMessage = "Decoding Error: "
-                        switch decodingError {
-                        case .typeMismatch(let type, let context):
-                            errorMessage +=
-                                "Type mismatch for type \(type): \(context.debugDescription) - coding path: \(context.codingPath)"
-                        case .valueNotFound(let type, let context):
-                            errorMessage +=
-                                "Value not found for type \(type): \(context.debugDescription) - coding path: \(context.codingPath)"
-                        case .keyNotFound(let key, let context):
-                            errorMessage +=
-                                "Key '\(key.stringValue)' not found: \(context.debugDescription) - coding path: \(context.codingPath)"
-                        case .dataCorrupted(let context):
-                            errorMessage +=
-                                "Data corrupted: \(context.debugDescription) - coding path: \(context.codingPath)"
-                        @unknown default:
-                            errorMessage += "Unknown decoding error."
-                        }
-                        logger.error("\(errorMessage)")
-                        return .failure(.serverError(errorMessage))
-                    } catch {
-                        return .failure(
-                            .serverError("Decoding error: \(error.localizedDescription)"))
-                    }
-
-                case 404:
-                    do {
-                        let status = try decoder.decode(StatusDTO.self, from: data)
-                        return .failure(.notFound(status.message))
-                    } catch {
-                        return .failure(.notFound("Resource not found"))
-                    }
-
-                case 500:
-                    do {
-                        let status = try decoder.decode(StatusDTO.self, from: data)
-                        return .failure(.serverError(status.message))
-                    } catch {
-                        return .failure(.serverError("Server error"))
-                    }
-
-                default:
-                    return .failure(
-                        .serverError("Unexpected status code \(httpResponse.statusCode)"))
-                }
-
-            } catch {
-                span.recordError(error)
-                return .failure(.serverError(error.localizedDescription))
-            }
+        let response = await fetchDataResponse(url)
+        switch response {
+        case .success(let response):
+            return decodeResponse(response.data, returnType: returnType)
+        case .failure(let error):
+            return .failure(error)
         }
     }
 
@@ -273,81 +212,12 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
     func sendData<T: Decodable, U: Encodable>(
         _ url: URL, method: String = "POST", body: U, returnType: T.Type
     ) async -> Result<T, ServerError> {
-        await withSpan("HTTP \(method) \(url.path)") { span in
-            span.attributes["http.method"] = method
-            span.attributes["http.url"] = url.absoluteString
-
-            do {
-                // Convert the request body to JSON data
-                let encoder = JSONEncoder()
-                let requestBody = try encoder.encode(body)
-
-                // Set up a URLRequest
-                var request = createConfiguredURLRequest(for: url)
-                request.httpMethod = method
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.httpBody = requestBody
-
-                // Perform the request
-                let (data, response) = try await URLSession.shared.data(for: request)
-
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    logger.error("Invalid response from \(url)")
-                    return .failure(.serverError("Invalid response from \(url)"))
-                }
-
-                span.attributes["http.status_code"] = httpResponse.statusCode
-
-                // Decode the server's response
-                let decoder = JSONDecoder()
-                switch httpResponse.statusCode {
-
-                case 200, 201, 202:
-                    do {
-                        let result = try decoder.decode(T.self, from: data)
-                        return .success(result)
-                    } catch {
-                        logger.error("Decoding error: \(error.localizedDescription)")
-                        return .failure(
-                            .serverError("Decoding error: \(error.localizedDescription)"))
-                    }
-
-                case 400:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(.dataFormatError(status?.message ?? "Data format error"))
-
-                case 404:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(.notFound(status?.message ?? "Resource not found"))
-
-                case 422:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(
-                        .dataFormatError(status?.message ?? "Request could not be processed"))
-
-                case 409:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(
-                        .conflict(
-                            status?.message ?? "Request conflicts with current server state"))
-
-                case 500:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(.serverError(status?.message ?? "Server error"))
-
-                default:
-                    logger.error(
-                        "Unexpected status code \(httpResponse.statusCode) from \(url)")
-                    return .failure(
-                        .serverError("Unexpected status code \(httpResponse.statusCode)"))
-                }
-
-            } catch {
-                span.recordError(error)
-                logger.error("Request error: \(error.localizedDescription)")
-                return .failure(
-                    .serverError("Request error: \(error.localizedDescription)"))
-            }
+        let response = await sendDataResponse(url, method: method, body: body)
+        switch response {
+        case .success(let response):
+            return decodeResponse(response.data, returnType: returnType)
+        case .failure(let error):
+            return .failure(error)
         }
     }
 
@@ -355,79 +225,221 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
     func sendRawJson<T: Decodable>(
         _ url: URL, method: String = "POST", rawJson: String, returnType: T.Type
     ) async -> Result<T, ServerError> {
+        let response = await sendRawJsonResponse(url, method: method, rawJson: rawJson)
+        switch response {
+        case .success(let response):
+            return decodeResponse(response.data, returnType: returnType)
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
+    func fetchDataResponse(_ url: URL) async -> Result<HTTPResponseData, ServerError> {
+        var request = createConfiguredURLRequest(for: url)
+        // Never serve these REST reads from the URL cache. The server doesn't send
+        // cache-control headers, so CFNetwork heuristically caches 200s and can hand a
+        // stale list back to a cache rebuild right after a save — leaving SwiftData behind
+        // (e.g. a newly-added tile missing in perform mode). Our SwiftData layer *is* the
+        // cache, refreshed via the websocket invalidation model; the HTTP layer must always
+        // hit the origin.
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+
+        return await performRequest(
+            request,
+            method: "GET",
+            url: url,
+            successStatusCodes: [200]
+        )
+    }
+
+    func sendDataResponse<U: Encodable>(
+        _ url: URL,
+        method: String = "POST",
+        body: U,
+        successStatusCodes: Set<Int> = [200, 201, 202]
+    ) async -> Result<HTTPResponseData, ServerError> {
+        let requestBody: Data
+        do {
+            requestBody = try JSONEncoder().encode(body)
+        } catch {
+            logger.error("Encoding error: \(error.localizedDescription)")
+            return .failure(.dataFormatError("Encoding error: \(error.localizedDescription)"))
+        }
+
+        var request = createConfiguredURLRequest(for: url)
+        request.httpMethod = method
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = requestBody
+
+        return await performRequest(
+            request,
+            method: method,
+            url: url,
+            successStatusCodes: successStatusCodes
+        )
+    }
+
+    func sendRawJsonResponse(
+        _ url: URL,
+        method: String = "POST",
+        rawJson: String,
+        successStatusCodes: Set<Int> = [200, 201, 202]
+    ) async -> Result<HTTPResponseData, ServerError> {
         guard let requestBody = rawJson.data(using: .utf8) else {
             return .failure(.dataFormatError("Unable to encode raw JSON body"))
         }
 
-        return await withSpan("HTTP \(method) \(url.path)") { span in
+        var request = createConfiguredURLRequest(for: url)
+        request.httpMethod = method
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = requestBody
+
+        return await performRequest(
+            request,
+            method: method,
+            url: url,
+            successStatusCodes: successStatusCodes
+        )
+    }
+
+    func sendBinaryDataResponse(
+        _ url: URL,
+        method: String = "POST",
+        body: Data,
+        contentType: String,
+        successStatusCodes: Set<Int> = [200, 201, 202]
+    ) async -> Result<HTTPResponseData, ServerError> {
+        var request = createConfiguredURLRequest(for: url)
+        request.httpMethod = method
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        request.httpBody = body
+
+        return await performRequest(
+            request,
+            method: method,
+            url: url,
+            successStatusCodes: successStatusCodes
+        )
+    }
+
+    private func performRequest(
+        _ request: URLRequest,
+        method: String,
+        url: URL,
+        successStatusCodes: Set<Int>
+    ) async -> Result<HTTPResponseData, ServerError> {
+        await withSpan("HTTP \(method) \(url.path)") { span in
             span.attributes["http.method"] = method
             span.attributes["http.url"] = url.absoluteString
 
-            do {
-                var request = createConfiguredURLRequest(for: url)
-                request.httpMethod = method
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.httpBody = requestBody
-
-                let (data, response) = try await URLSession.shared.data(for: request)
-
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    logger.error("Invalid response from \(url)")
-                    return .failure(.serverError("Invalid response from \(url)"))
-                }
-
-                span.attributes["http.status_code"] = httpResponse.statusCode
-
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                switch httpResponse.statusCode {
-
-                case 200, 201, 202:
-                    do {
-                        let result = try decoder.decode(T.self, from: data)
-                        return .success(result)
-                    } catch {
-                        logger.error("Decoding error: \(error.localizedDescription)")
-                        return .failure(
-                            .serverError("Decoding error: \(error.localizedDescription)"))
-                    }
-
-                case 400:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(.dataFormatError(status?.message ?? "Data format error"))
-
-                case 404:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(.notFound(status?.message ?? "Resource not found"))
-
-                case 422:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(
-                        .dataFormatError(status?.message ?? "Request could not be processed"))
-
-                case 409:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(
-                        .conflict(
-                            status?.message ?? "Request conflicts with current server state"))
-
-                case 500:
-                    let status = try? decoder.decode(StatusDTO.self, from: data)
-                    return .failure(.serverError(status?.message ?? "Server error"))
-
-                default:
-                    logger.error(
-                        "Unexpected status code \(httpResponse.statusCode) from \(url)")
-                    return .failure(
-                        .serverError("Unexpected status code \(httpResponse.statusCode)"))
-                }
-
-            } catch {
+            let responseResult = await executeRequest(request, url: url)
+            switch responseResult {
+            case .failure(let error):
                 span.recordError(error)
-                logger.error("Request error: \(error.localizedDescription)")
-                return .failure(
-                    .serverError("Request error: \(error.localizedDescription)"))
+                return .failure(error)
+
+            case .success(let response):
+                span.attributes["http.status_code"] = response.statusCode
+
+                guard successStatusCodes.contains(response.statusCode) else {
+                    let error = serverError(for: response)
+                    span.recordError(error)
+                    logger.error(
+                        "HTTP \(response.statusCode) from \(url): \(error.localizedDescription)")
+                    return .failure(error)
+                }
+
+                return .success(response)
             }
+        }
+    }
+
+    private func executeRequest(
+        _ request: URLRequest,
+        url: URL
+    ) async -> Result<HTTPResponseData, ServerError> {
+        do {
+            let (data, response) = try await httpDataLoader(request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                logger.error("Invalid response from \(url)")
+                return .failure(.serverError("Invalid response from \(url)"))
+            }
+
+            return .success(
+                HTTPResponseData(
+                    data: data,
+                    statusCode: httpResponse.statusCode,
+                    contentDisposition: httpResponse.value(
+                        forHTTPHeaderField: "Content-Disposition")
+                )
+            )
+        } catch {
+            logger.error("Request error: \(error.localizedDescription)")
+            return .failure(.communicationError("Request error: \(error.localizedDescription)"))
+        }
+    }
+
+    func decodeResponse<T: Decodable>(
+        _ data: Data,
+        returnType: T.Type
+    ) -> Result<T, ServerError> {
+        do {
+            let result = try makeJSONDecoder().decode(T.self, from: data)
+            return .success(result)
+        } catch {
+            let message = decodingErrorMessage(error)
+            logger.error("\(message)")
+            return .failure(.serverError(message))
+        }
+    }
+
+    private func serverError(for response: HTTPResponseData) -> ServerError {
+        let status = try? makeJSONDecoder().decode(StatusDTO.self, from: response.data)
+        let message = status?.message
+
+        switch response.statusCode {
+        case 400, 422:
+            return .dataFormatError(message ?? "Data format error")
+        case 404:
+            return .notFound(message ?? "Resource not found")
+        case 409:
+            return .conflict(message ?? "Request conflicts with current server state")
+        case 501:
+            return .notImplemented(message ?? "Not implemented")
+        case 500...599:
+            return .serverError(message ?? "Server error")
+        default:
+            return .serverError(message ?? "Unexpected status code \(response.statusCode)")
+        }
+    }
+
+    func makeJSONDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
+
+    private func decodingErrorMessage(_ error: Error) -> String {
+        guard let decodingError = error as? DecodingError else {
+            return "Decoding error: \(error.localizedDescription)"
+        }
+
+        switch decodingError {
+        case .typeMismatch(let type, let context):
+            return
+                "Decoding error: Type mismatch for type \(type): \(context.debugDescription) - coding path: \(context.codingPath)"
+        case .valueNotFound(let type, let context):
+            return
+                "Decoding error: Value not found for type \(type): \(context.debugDescription) - coding path: \(context.codingPath)"
+        case .keyNotFound(let key, let context):
+            return
+                "Decoding error: Key '\(key.stringValue)' not found: \(context.debugDescription) - coding path: \(context.codingPath)"
+        case .dataCorrupted(let context):
+            return
+                "Decoding error: Data corrupted: \(context.debugDescription) - coding path: \(context.codingPath)"
+        @unknown default:
+            return "Decoding error: Unknown decoding error."
         }
     }
 

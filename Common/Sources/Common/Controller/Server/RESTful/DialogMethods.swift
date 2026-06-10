@@ -1,10 +1,5 @@
 import Foundation
 import Logging
-import Tracing
-
-#if canImport(FoundationNetworking)
-    import FoundationNetworking
-#endif
 
 private struct EmptyBody: Encodable {}
 
@@ -213,29 +208,13 @@ extension CreatureServerClient {
     /// Downloads the raw bytes at a URL (e.g. the mono preview WAV) using the configured
     /// request headers. Use with `makeAbsoluteURL(fromRelativePath:)` on a preview `audio_url`.
     public func downloadRawData(from url: URL) async -> Result<Data, ServerError> {
-        await withSpan("HTTP GET \(url.path)") { span in
-            span.attributes["http.method"] = "GET"
-            span.attributes["http.url"] = url.absoluteString
-            do {
-                let request = createConfiguredURLRequest(for: url)
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    return .failure(.serverError("Invalid response for \(url)"))
-                }
-                span.attributes["http.status_code"] = httpResponse.statusCode
-                switch httpResponse.statusCode {
-                case 200:
-                    return .success(data)
-                case 404:
-                    return .failure(.notFound("Audio not found (it may have been swept)"))
-                default:
-                    return .failure(
-                        .serverError("Unexpected status code \(httpResponse.statusCode)"))
-                }
-            } catch {
-                span.recordError(error)
-                return .failure(.serverError(error.localizedDescription))
-            }
+        switch await fetchDataResponse(url) {
+        case .success(let response):
+            return .success(response.data)
+        case .failure(.notFound):
+            return .failure(.notFound("Audio not found (it may have been swept)"))
+        case .failure(let error):
+            return .failure(error)
         }
     }
 
@@ -246,42 +225,6 @@ extension CreatureServerClient {
     private func postForRawData<U: Encodable>(_ url: URL, body: U) async -> Result<
         Data, ServerError
     > {
-        await withSpan("HTTP POST \(url.path)") { span in
-            span.attributes["http.method"] = "POST"
-            span.attributes["http.url"] = url.absoluteString
-            do {
-                let requestBody = try JSONEncoder().encode(body)
-                var request = createConfiguredURLRequest(for: url)
-                request.httpMethod = "POST"
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.httpBody = requestBody
-
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    return .failure(.serverError("Invalid response from \(url)"))
-                }
-                span.attributes["http.status_code"] = httpResponse.statusCode
-
-                switch httpResponse.statusCode {
-                case 200, 201, 202:
-                    return .success(data)
-                case 400:
-                    let status = try? JSONDecoder().decode(StatusDTO.self, from: data)
-                    return .failure(.dataFormatError(status?.message ?? "Data format error"))
-                case 404:
-                    let status = try? JSONDecoder().decode(StatusDTO.self, from: data)
-                    return .failure(.notFound(status?.message ?? "Resource not found"))
-                case 500:
-                    let status = try? JSONDecoder().decode(StatusDTO.self, from: data)
-                    return .failure(.serverError(status?.message ?? "Server error"))
-                default:
-                    return .failure(
-                        .serverError("Unexpected status code \(httpResponse.statusCode)"))
-                }
-            } catch {
-                span.recordError(error)
-                return .failure(.serverError("Request error: \(error.localizedDescription)"))
-            }
-        }
+        await sendDataResponse(url, method: "POST", body: body).map { $0.data }
     }
 }

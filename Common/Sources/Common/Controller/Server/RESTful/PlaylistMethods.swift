@@ -80,74 +80,40 @@ extension CreatureServerClient {
         }
         self.logger.debug("Using URL: \(url)")
 
-        // Try to send as StatusDTO first, but handle the case where server returns different format
-        let result = await sendData(url, method: "POST", body: playlist, returnType: StatusDTO.self)
+        let result = await sendDataResponse(
+            url,
+            method: "POST",
+            body: playlist,
+            successStatusCodes: [200, 201]
+        )
 
         switch result {
-        case .success(let status):
-            return .success(status.message)
+        case .success(let response):
+            return playlistUpsertMessage(from: response.data)
         case .failure(let error):
-            // If decoding failed but it might be a successful operation, let's try a more flexible approach
-            self.logger.warning(
-                "StatusDTO decoding failed: \(error.localizedDescription), trying raw response")
-            return await sendDataFlexible(url, method: "POST", body: playlist)
+            return .failure(error)
         }
     }
 
-    // Flexible version that can handle different server response formats
-    private func sendDataFlexible<U: Encodable>(_ url: URL, method: String = "POST", body: U) async
-        -> Result<String, ServerError>
-    {
-        do {
-            let encoder = JSONEncoder()
-            let requestBody = try encoder.encode(body)
-
-            var request = createConfiguredURLRequest(for: url)
-            request.httpMethod = method
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = requestBody
-
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                logger.error("Invalid response from \(url)")
-                return .failure(.serverError("Invalid response from \(url)"))
-            }
-
-            switch httpResponse.statusCode {
-            case 200, 201:
-                // Success - try to parse response or return generic success message
-                if data.isEmpty {
-                    return .success("Playlist updated successfully")
-                }
-
-                // Try to decode as StatusDTO
-                if let status = try? JSONDecoder().decode(StatusDTO.self, from: data) {
-                    return .success(status.message)
-                }
-
-                // Try to decode as plain string
-                if let message = String(data: data, encoding: .utf8) {
-                    return .success(message)
-                }
-
-                // Fallback to generic success
-                return .success("Playlist updated successfully")
-
-            case 400:
-                return .failure(.dataFormatError("Bad request"))
-            case 404:
-                return .failure(.notFound("Playlist not found"))
-            case 500:
-                return .failure(.serverError("Internal server error"))
-            default:
-                return .failure(.serverError("HTTP \(httpResponse.statusCode)"))
-            }
-
-        } catch {
-            logger.error("Network error: \(error.localizedDescription)")
-            return .failure(.communicationError("Network error: \(error.localizedDescription)"))
+    private func playlistUpsertMessage(from data: Data) -> Result<String, ServerError> {
+        guard !data.isEmpty else {
+            return .success("Playlist updated successfully")
         }
+
+        let decoder = makeJSONDecoder()
+        if let status = try? decoder.decode(StatusDTO.self, from: data) {
+            return .success(status.message)
+        }
+
+        if let playlist = try? decoder.decode(Playlist.self, from: data) {
+            return .success("Saved '\(playlist.name)' to server")
+        }
+
+        if let message = String(data: data, encoding: .utf8) {
+            return .success(message)
+        }
+
+        return .success("Playlist updated successfully")
     }
 
     public func deletePlaylist(_ playlistId: PlaylistIdentifier) async -> Result<

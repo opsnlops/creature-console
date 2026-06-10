@@ -1,3 +1,15 @@
+creature-cli (2.26.2) unstable; urgency=medium
+
+  * Refactor HTTP client: all REST calls now flow through shared
+    performRequest/serverError helpers with an injectable data loader,
+    unifying status-code mapping and ISO8601 date decoding.
+  * Fix playlist upsert double-POST on undecodable responses; the single
+    response is now parsed flexibly instead of re-sending the request.
+  * Fix PATCH/POST response decoding of Date fields (e.g. Creature.runtime)
+    and remove the setIdleEnabled re-fetch workaround it required.
+
+ -- April White <april@creature.engineering>  Wed, 10 Jun 2026 06:10:56 +0000
+
 creature-cli (2.26.1) unstable; urgency=medium
 
   * Fix Linux build: ByteBuffer.readData(length:) is NIOFoundationCompat-only;

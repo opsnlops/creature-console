@@ -53,28 +53,8 @@ extension CreatureServerClient {
         logger.debug("Using URL: \(url)")
 
         let requestBody = IdleToggleDTO(enabled: enabled)
-        let result = await sendData(
+        return await sendData(
             url, method: "PATCH", body: requestBody, returnType: Creature.self)
-
-        switch result {
-        case .success:
-            return result
-        case .failure(let error):
-            if case .serverError(let message) = error, message.contains("Decoding error") {
-                do {
-                    let fallback = try await getCreature(creatureId: creatureId)
-                    switch fallback {
-                    case .success:
-                        return fallback
-                    case .failure:
-                        return result
-                    }
-                } catch {
-                    return result
-                }
-            }
-            return result
-        }
     }
 
 }

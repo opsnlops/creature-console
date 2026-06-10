@@ -1,10 +1,6 @@
 import Foundation
 import Logging
 
-#if canImport(FoundationNetworking)
-    import FoundationNetworking
-#endif
-
 extension CreatureServerClient {
 
 
@@ -23,49 +19,11 @@ extension CreatureServerClient {
         }
         self.logger.debug("Using URL: \(url)")
 
-        do {
-            let request = createConfiguredURLRequest(for: url)
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                self.logger.error("HTTP Error while trying to get the server's counters")
-                return .failure(
-                    .serverError("HTTP error while trying to get the server's counters"))
-            }
-
-            // DECODE ME!
-            let decoder = JSONDecoder()
-
-            do {
-                switch httpResponse.statusCode {
-
-                case 200:
-                    let counters = try decoder.decode(SystemCountersDTO.self, from: data)
-                    logger.debug("Got the server's counters, it's on frame \(counters.totalFrames)")
-                    return .success(counters)
-
-                case 500:
-                    let status = try decoder.decode(StatusDTO.self, from: data)
-                    logger.error(
-                        "Server error while trying to get the server's counters: \(status.message)")
-                    return .failure(.serverError(status.message))
-
-                default:
-                    self.logger.error(
-                        "unexpected return code from \(url) while to get the server's counters: \(httpResponse.statusCode)"
-                    )
-                    return .failure(
-                        .serverError(
-                            "Unexepcted status code while getting the server's counters: \(httpResponse.statusCode)"
-                        ))
-                }
-
-            } catch {
-                return .failure(.serverError(error.localizedDescription))
-            }
-        } catch {
-            return .failure(.serverError(error.localizedDescription))
+        let result = await fetchData(url, returnType: SystemCountersDTO.self)
+        if case .success(let counters) = result {
+            logger.debug("Got the server's counters, it's on frame \(counters.totalFrames)")
         }
+        return result
     }
 
 }
