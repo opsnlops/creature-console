@@ -1,3 +1,13 @@
+creature-cli (2.26.0) unstable; urgency=medium
+
+  * Console app: new Debug section in Settings (all platforms, aimed at iOS)
+    with a "Reset Local Data & Re-sync" action that wipes the local SwiftData
+    store and pulls a fresh copy from the server, plus per-cache invalidation
+    buttons mirroring the macOS Caches menu.
+  * creature-cli + creature-mqtt + creature-agent: version bump only.
+
+ -- April White <april@creature.engineering>  Wed, 10 Jun 2026 04:45:56 +0000
+
 creature-cli (2.25.4) unstable; urgency=medium
 
   * Websocket message handling is now an ordered ingestion pipeline: incoming

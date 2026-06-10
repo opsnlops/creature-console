@@ -4,7 +4,7 @@ import SwiftUI
 
 struct SettingsView: View {
     private enum Tabs: Hashable {
-        case network, joystick, interface, advanced
+        case network, joystick, interface, advanced, debug
     }
     var body: some View {
         ZStack {
@@ -36,6 +36,11 @@ struct SettingsView: View {
                             Label("Advanced", systemImage: "wand.and.stars")
                         }
                         .tag(Tabs.advanced)
+                    DebugSettingsView()
+                        .tabItem {
+                            Label("Debug", systemImage: "ladybug")
+                        }
+                        .tag(Tabs.debug)
                 }
             #endif
         }

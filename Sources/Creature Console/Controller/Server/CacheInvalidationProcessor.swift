@@ -408,31 +408,49 @@ struct CacheInvalidationProcessor {
     }
 
     static func rebuildAllCaches() {
+        Task {
+            await rebuildAllCachesAsync()
+        }
+    }
+
+    // Awaitable variant so callers (like the Debug settings reset flow) can report
+    // completion to the user.
+    static func rebuildAllCachesAsync() async {
         logger.info("rebuilding all SwiftData caches (with stale entry deletion)")
 
-        // Run cache rebuilds sequentially to avoid concurrent SwiftData access
-        // Each rebuild creates a Task that performs async database operations,
-        // so running them in parallel causes race conditions and crashes
-        Task {
-            // Cancel any existing rebuild tasks first
-            loadCeaturesTask?.cancel()
-            loadAnimationsTask?.cancel()
-            loadPlaylistsTask?.cancel()
-            loadSoundListsTask?.cancel()
-            loadFixturesTask?.cancel()
-            loadDialogScriptsTask?.cancel()
-            loadStoryboardsTask?.cancel()
+        // Cancel any existing rebuild tasks first
+        loadCeaturesTask?.cancel()
+        loadAnimationsTask?.cancel()
+        loadPlaylistsTask?.cancel()
+        loadSoundListsTask?.cancel()
+        loadFixturesTask?.cancel()
+        loadDialogScriptsTask?.cancel()
+        loadStoryboardsTask?.cancel()
 
-            // Run rebuilds one at a time
-            await rebuildCreatureCacheAsync(deleteStaleEntries: true)
-            await rebuildAnimationCacheAsync(deleteStaleEntries: true)
-            await rebuildPlaylistCacheAsync(deleteStaleEntries: true)
-            await rebuildSoundListCacheAsync(deleteStaleEntries: true)
-            await rebuildFixtureCacheAsync(deleteStaleEntries: true)
-            await rebuildDialogScriptCacheAsync(deleteStaleEntries: true)
-            await rebuildStoryboardCacheAsync(deleteStaleEntries: true)
+        // Run cache rebuilds sequentially to avoid concurrent SwiftData access —
+        // running them in parallel causes race conditions and crashes
+        await rebuildCreatureCacheAsync(deleteStaleEntries: true)
+        await rebuildAnimationCacheAsync(deleteStaleEntries: true)
+        await rebuildPlaylistCacheAsync(deleteStaleEntries: true)
+        await rebuildSoundListCacheAsync(deleteStaleEntries: true)
+        await rebuildFixtureCacheAsync(deleteStaleEntries: true)
+        await rebuildDialogScriptCacheAsync(deleteStaleEntries: true)
+        await rebuildStoryboardCacheAsync(deleteStaleEntries: true)
 
-            logger.info("completed rebuild of all caches with stale entry deletion")
-        }
+        logger.info("completed rebuild of all caches with stale entry deletion")
+    }
+
+    /// Wipe every record from the local SwiftData store and pull a fresh copy of
+    /// everything from the server. This is the heavy hammer for when the local cache
+    /// has drifted from reality (e.g. items deleted on the server still showing up).
+    static func resetLocalStoreAndResync() async throws {
+        logger.info("resetting the local SwiftData store")
+
+        let container = await SwiftDataStore.shared.container()
+        let wiper = SwiftDataStoreWiper(modelContainer: container)
+        try await wiper.wipeAll()
+        logger.info("local SwiftData store wiped, re-syncing from the server")
+
+        await rebuildAllCachesAsync()
     }
 }

@@ -127,20 +127,11 @@ struct CreatureConsole: App {
         }
     }
 
-    /// All persisted SwiftData models. Keep in sync with the schema across app launches.
-    private static var modelTypes: [any PersistentModel.Type] {
-        [
-            SoundModel.self, CreatureModel.self, AnimationMetadataModel.self,
-            PlaylistModel.self, PlaylistItemModel.self, ServerLogModel.self,
-            DmxFixtureModel.self, DialogScriptModel.self, StoryboardModel.self,
-        ]
-    }
-
     /// Open the model container, recovering from an un-migratable schema change. The on-disk
     /// store is a disposable cache of server data, so if a structural change can't be migrated
     /// automatically we wipe it and recreate — the app repopulates from the server on launch.
     private static func makeModelContainer(at storeURL: URL) throws -> ModelContainer {
-        let schema = Schema(modelTypes)
+        let schema = Schema(AppSchema.modelTypes)
         let config = ModelConfiguration(url: storeURL)
         do {
             return try ModelContainer(for: schema, configurations: config)
