@@ -5,34 +5,68 @@ import Testing
 @Suite("MongoServerAddress tests")
 struct MongoServerAddressTests {
 
+    /// Query string appended to every URI built from a bare host, so bad addresses fail fast.
+    private let timeout = "?connectTimeoutMS=\(MongoServerAddress.connectTimeoutMS)"
+
     // MARK: - Bare hostnames and IPs
 
     @Test("bare hostname gets default port and database")
     func bareHostname() throws {
         let uri = try MongoServerAddress.connectionURI(
             for: "mainstage.local", database: "creature_server")
-        #expect(uri == "mongodb://mainstage.local:27017/creature_server")
+        #expect(uri == "mongodb://mainstage.local:27017/creature_server\(timeout)")
     }
 
     @Test("bare IPv4 address gets default port and database")
     func bareIPv4() throws {
         let uri = try MongoServerAddress.connectionURI(
             for: "10.3.2.11", database: "creature_server")
-        #expect(uri == "mongodb://10.3.2.11:27017/creature_server")
+        #expect(uri == "mongodb://10.3.2.11:27017/creature_server\(timeout)")
     }
 
     @Test("host with explicit port is preserved")
     func hostWithPort() throws {
         let uri = try MongoServerAddress.connectionURI(
             for: "travel.local:27018", database: "creature_server")
-        #expect(uri == "mongodb://travel.local:27018/creature_server")
+        #expect(uri == "mongodb://travel.local:27018/creature_server\(timeout)")
     }
 
     @Test("surrounding whitespace is trimmed")
     func trimsWhitespace() throws {
         let uri = try MongoServerAddress.connectionURI(
             for: "  mainstage.local  ", database: "creature_server")
-        #expect(uri == "mongodb://mainstage.local:27017/creature_server")
+        #expect(uri == "mongodb://mainstage.local:27017/creature_server\(timeout)")
+    }
+
+    // MARK: - Port parameter
+
+    @Test("port parameter is used for a bare hostname")
+    func portParameter() throws {
+        let uri = try MongoServerAddress.connectionURI(
+            for: "travel.local", database: "creature_server", port: 27018)
+        #expect(uri == "mongodb://travel.local:27018/creature_server\(timeout)")
+    }
+
+    @Test("explicit port in the address beats the port parameter")
+    func addressPortWins() throws {
+        let uri = try MongoServerAddress.connectionURI(
+            for: "travel.local:27018", database: "creature_server", port: 9999)
+        #expect(uri == "mongodb://travel.local:27018/creature_server\(timeout)")
+    }
+
+    @Test("port parameter applies to bare IPv6 literals")
+    func portParameterIPv6() throws {
+        let uri = try MongoServerAddress.connectionURI(
+            for: "fd00::5", database: "creature_server", port: 27018)
+        #expect(uri == "mongodb://[fd00::5]:27018/creature_server\(timeout)")
+    }
+
+    @Test("out-of-range port parameter throws")
+    func invalidPortParameter() {
+        #expect(throws: MongoServerAddress.AddressError.invalidPort("0")) {
+            try MongoServerAddress.connectionURI(
+                for: "travel.local", database: "creature_server", port: 0)
+        }
     }
 
     // MARK: - IPv6
@@ -40,21 +74,21 @@ struct MongoServerAddressTests {
     @Test("bare IPv6 literal is bracketed and gets default port")
     func bareIPv6() throws {
         let uri = try MongoServerAddress.connectionURI(for: "::1", database: "creature_server")
-        #expect(uri == "mongodb://[::1]:27017/creature_server")
+        #expect(uri == "mongodb://[::1]:27017/creature_server\(timeout)")
     }
 
     @Test("bracketed IPv6 without port gets default port")
     func bracketedIPv6NoPort() throws {
         let uri = try MongoServerAddress.connectionURI(
             for: "[fd00::5]", database: "creature_server")
-        #expect(uri == "mongodb://[fd00::5]:27017/creature_server")
+        #expect(uri == "mongodb://[fd00::5]:27017/creature_server\(timeout)")
     }
 
     @Test("bracketed IPv6 with port is preserved")
     func bracketedIPv6WithPort() throws {
         let uri = try MongoServerAddress.connectionURI(
             for: "[fd00::5]:27018", database: "creature_server")
-        #expect(uri == "mongodb://[fd00::5]:27018/creature_server")
+        #expect(uri == "mongodb://[fd00::5]:27018/creature_server\(timeout)")
     }
 
     // MARK: - Full URIs

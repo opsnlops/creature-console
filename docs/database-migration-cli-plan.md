@@ -24,23 +24,30 @@ creature-cli util migrate-database \
 - `--mainline-server` (required): hostname/IP of the source (mainstage) MongoDB. May be a bare
   host, `host:port`, or a full `mongodb://` URI.
 - `--travel-server` (required): hostname/IP of the destination (travel) MongoDB, same formats.
+- `--mainline-port` / `--travel-port`: MongoDB port for each server (default 27017); an
+  explicit port in the address wins. URIs built from bare hosts get `connectTimeoutMS=5000`
+  so a wrong address fails in seconds rather than MongoKitten's five-minute default.
 - `--database`: database name, defaults to `creature_server` (matches `DB_NAME` in
   creature-server's `config.h`).
-- `--batch-size`: documents per `insertMany` batch (default 500).
 - `--dry-run`: connect, list collections and counts, but write nothing.
-- `--yes`: skip the interactive confirmation before overwriting the travel database.
+- `--yes`: skip the interactive confirmation before writing to the travel database.
 
 ## Migration Algorithm
+
+The copy is a **merge, not a replace**: documents are matched by `_id`, the mainstage
+server always wins on conflict, and documents that only exist on the travel server are
+left alone.
 
 1. Connect to both servers (fail fast with a clear message naming which side failed).
 2. List collections on the source database.
 3. Show a summary (collection names + document counts) and confirm before touching the
    destination (unless `--yes`).
 4. For each collection:
-   a. Drop the destination collection (travel mirrors mainstage exactly).
-   b. Stream documents from the source in batches and `insertMany` into the destination.
-   c. Re-create non-`_id` indexes on the destination.
-5. Print a summary table of collections, documents copied, and indexes created.
+   a. Stream documents from the source and upsert each into the destination by `_id`
+      (full-document replacement, so the mainline copy wins).
+   b. Re-create non-`_id` indexes on the destination.
+5. Print a summary table of collections, documents merged (added / updated / unchanged),
+   and indexes created.
 
 ## Code Layout
 

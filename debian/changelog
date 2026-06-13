@@ -1,3 +1,14 @@
+creature-cli (2.27.1) unstable; urgency=medium
+
+  * util migrate-database now merges instead of replacing: documents are
+    upserted by _id so the mainline server always wins, and documents
+    that only exist on the travel server are kept. The --batch-size
+    option is gone; the summary now reports added/updated/unchanged.
+  * New --mainline-port and --travel-port options; bare hostnames now
+    connect with a 5 second timeout instead of MongoKitten's default.
+
+ -- April White <april@creature.engineering>  Sat, 13 Jun 2026 01:53:35 +0000
+
 creature-cli (2.27.0) unstable; urgency=medium
 
   * New util migrate-database command: copies the creature database

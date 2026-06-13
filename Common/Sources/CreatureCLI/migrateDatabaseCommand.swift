@@ -7,12 +7,13 @@ extension CreatureCLI.Util {
     struct MigrateDatabase: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             commandName: "migrate-database",
-            abstract: "Copy the creature database from the mainline server to the travel server",
+            abstract: "Merge the creature database from the mainline server into the travel server",
             discussion: """
-                Connects directly to MongoDB on both servers and copies every collection \
-                (documents and indexes) from the mainline server to the travel server. The \
-                travel server's copy of the database is replaced so it exactly mirrors the \
-                mainline server.
+                Connects directly to MongoDB on both servers and merges every collection \
+                (documents and indexes) from the mainline server into the travel server. \
+                Documents are matched by _id: ones that exist on both servers are \
+                overwritten with the mainline copy (the mainline server always wins), and \
+                documents that only exist on the travel server are left alone.
 
                 Servers may be given as a hostname or IP (the default port \
                 \(MongoServerAddress.defaultPort) is assumed), host:port, or a full \
@@ -23,14 +24,17 @@ extension CreatureCLI.Util {
         @Option(help: "Hostname or IP of the mainline (source) MongoDB server")
         var mainlineServer: String
 
+        @Option(help: "Port of the mainline MongoDB server")
+        var mainlinePort: Int = MongoServerAddress.defaultPort
+
         @Option(help: "Hostname or IP of the travel (destination) MongoDB server")
         var travelServer: String
 
+        @Option(help: "Port of the travel MongoDB server")
+        var travelPort: Int = MongoServerAddress.defaultPort
+
         @Option(help: "Name of the database to migrate")
         var database: String = "creature_server"
-
-        @Option(help: "Number of documents to copy per batch")
-        var batchSize: Int = 500
 
         @Flag(help: "Show what would be copied without writing anything")
         var dryRun: Bool = false
@@ -41,18 +45,13 @@ extension CreatureCLI.Util {
         @OptionGroup()
         var globalOptions: GlobalOptions
 
-        func validate() throws {
-            guard batchSize > 0 else {
-                throw ValidationError("--batch-size must be greater than zero")
-            }
-        }
-
         func run() async throws {
             let plan = MigrationPlan(
                 mainlineServer: mainlineServer,
+                mainlinePort: mainlinePort,
                 travelServer: travelServer,
+                travelPort: travelPort,
                 database: database,
-                batchSize: batchSize,
                 dryRun: dryRun,
                 assumeYes: assumeYes
             )
@@ -67,23 +66,28 @@ extension CreatureCLI.Util {
 /// plumbing so it can run inside the traced `@Sendable` closure.
 private struct MigrationPlan: Sendable {
     let mainlineServer: String
+    let mainlinePort: Int
     let travelServer: String
+    let travelPort: Int
     let database: String
-    let batchSize: Int
     let dryRun: Bool
     let assumeYes: Bool
 
     private struct CollectionResult {
         let name: String
         let documents: Int
+        let added: Int
+        let updated: Int
         let indexes: Int
+
+        var unchanged: Int { documents - added - updated }
     }
 
     func execute() async throws {
         let mainlineURI = try MongoServerAddress.connectionURI(
-            for: mainlineServer, database: database)
+            for: mainlineServer, database: database, port: mainlinePort)
         let travelURI = try MongoServerAddress.connectionURI(
-            for: travelServer, database: database)
+            for: travelServer, database: database, port: travelPort)
 
         print("Connecting to mainline server at \(mainlineServer)...")
         let source: MongoDatabase
@@ -158,7 +162,9 @@ private struct MigrationPlan: Sendable {
         guard !assumeYes else { return }
 
         print(
-            "This will REPLACE database '\(database)' on the travel server (\(travelServer)).")
+            "This will merge database '\(database)' from the mainline server into the travel "
+                + "server (\(travelServer)). Documents that exist on both servers will be "
+                + "overwritten with the mainline copy.")
         print("Type 'yes' to continue: ", terminator: "")
         guard let answer = readLine(), answer.lowercased() == "yes" else {
             throw failWithMessage("Migration cancelled.")
@@ -166,46 +172,49 @@ private struct MigrationPlan: Sendable {
         print("")
     }
 
+    /// Merges one collection: every mainline document is upserted into the travel server
+    /// by `_id`, so mainline always wins and travel-only documents are left alone.
     private func copy(
         collection name: String, from source: MongoDatabase, to destination: MongoDatabase
     ) async throws -> CollectionResult {
         let sourceCollection = source[name]
         let destinationCollection = destination[name]
 
-        print("Copying \(name)...")
-        try await destinationCollection.drop()
+        print("Merging \(name)...")
 
-        var copied = 0
-        var batch: [Document] = []
-        batch.reserveCapacity(batchSize)
+        var documents = 0
+        var added = 0
+        var updated = 0
 
         for try await document in sourceCollection.find() {
-            batch.append(document)
-            if batch.count >= batchSize {
-                copied += try await insert(batch: batch, into: destinationCollection, named: name)
-                batch.removeAll(keepingCapacity: true)
+            guard let id = document["_id"] else {
+                throw failWithMessage(
+                    "A document in '\(name)' on the mainline server has no _id; "
+                        + "refusing to continue.")
             }
-        }
-        if !batch.isEmpty {
-            copied += try await insert(batch: batch, into: destinationCollection, named: name)
+
+            let reply = try await destinationCollection.upsert(document, where: ["_id": id])
+            guard reply.ok == 1, reply.writeErrors?.isEmpty != false else {
+                throw failWithMessage(
+                    "Upsert into '\(name)' on the travel server failed: \(reply)")
+            }
+
+            documents += 1
+            if reply.upserted?.isEmpty == false {
+                added += 1
+            } else if reply.updatedCount > 0 {
+                updated += 1
+            }
         }
 
         let indexes = try await copyIndexes(
             from: sourceCollection, to: destinationCollection, named: name)
 
-        print("  \(formatNumber(UInt64(copied))) documents, \(indexes) indexes")
-        return CollectionResult(name: name, documents: copied, indexes: indexes)
-    }
-
-    private func insert(
-        batch: [Document], into collection: MongoCollection, named name: String
-    ) async throws -> Int {
-        let reply = try await collection.insertMany(batch)
-        guard reply.ok == 1, reply.writeErrors?.isEmpty != false else {
-            throw failWithMessage(
-                "Insert into '\(name)' on the travel server failed: \(reply.debugDescription)")
-        }
-        return reply.insertCount
+        print(
+            "  \(formatNumber(UInt64(documents))) documents "
+                + "(\(added) added, \(updated) updated), \(indexes) indexes")
+        return CollectionResult(
+            name: name, documents: documents, added: added, updated: updated, indexes: indexes)
     }
 
     /// Re-creates the source collection's non-`_id` indexes on the destination. Index
@@ -242,6 +251,8 @@ private struct MigrationPlan: Sendable {
 
     private func printSummary(of results: [CollectionResult]) {
         let totalDocuments = results.reduce(0) { $0 + $1.documents }
+        let totalAdded = results.reduce(0) { $0 + $1.added }
+        let totalUpdated = results.reduce(0) { $0 + $1.updated }
 
         print("")
         printTable(
@@ -249,11 +260,15 @@ private struct MigrationPlan: Sendable {
             columns: [
                 TableColumn(title: "Collection") { $0.name },
                 TableColumn(title: "Documents") { formatNumber(UInt64($0.documents)) },
+                TableColumn(title: "Added") { String($0.added) },
+                TableColumn(title: "Updated") { String($0.updated) },
+                TableColumn(title: "Unchanged") { String($0.unchanged) },
                 TableColumn(title: "Indexes") { String($0.indexes) },
             ])
         print("")
         print(
-            "Done! Copied \(formatNumber(UInt64(totalDocuments))) documents in "
-                + "\(results.count) collections from \(mainlineServer) to \(travelServer).")
+            "Done! Merged \(formatNumber(UInt64(totalDocuments))) documents "
+                + "(\(totalAdded) added, \(totalUpdated) updated) in \(results.count) "
+                + "collections from \(mainlineServer) into \(travelServer).")
     }
 }
