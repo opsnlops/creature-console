@@ -32,6 +32,20 @@ extension CreatureServerClient {
         return await fetchData(url, returnType: Creature.self)
     }
 
+    /// Fetches a creature's complete stored configuration as raw JSON, exactly as the
+    /// server persists it (every field, `_id` stripped) — for disaster-recovery export.
+    /// Returns the body verbatim rather than decoding into `Creature`, which is a trimmed
+    /// view and would silently drop fields like motors and servo settings.
+    public func exportCreature(creatureId: CreatureIdentifier) async -> Result<String, ServerError>
+    {
+        guard let url = URL(string: makeBaseURL(.http) + "/creature/\(creatureId)/export") else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await fetchDataResponse(url).map { String(decoding: $0.data, as: UTF8.self) }
+    }
+
     public func validateCreatureConfig(rawConfig: String) async -> Result<
         CreatureConfigValidationDTO, ServerError
     > {

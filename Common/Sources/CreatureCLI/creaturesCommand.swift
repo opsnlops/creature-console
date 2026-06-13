@@ -75,7 +75,10 @@ extension CreatureCLI {
 
         struct Detail: AsyncParsableCommand {
             static let configuration = CommandConfiguration(
-                abstract: "Show details for a single creature by ID")
+                abstract: "Show details for a single creature by ID",
+                discussion:
+                    "Prints a formatted summary, or with --json dumps the creature's complete stored config as raw JSON — every field the server persists (motors, servo settings, etc.), suitable as a backup or for re-importing. Redirect it to a file: creatures detail <id> --json > creature.json"
+            )
 
             @OptionGroup()
             var globalOptions: GlobalOptions
@@ -83,8 +86,26 @@ extension CreatureCLI {
             @Argument(help: "Creature ID to show")
             var creatureId: CreatureIdentifier
 
+            @Flag(help: "Dump the complete stored creature JSON instead of the formatted summary")
+            var json: Bool = false
+
             func run() async throws {
+                let dumpJSON = json
                 try await tracedRun("creatures.detail", config: globalOptions) { server in
+                    if dumpJSON {
+                        // Raw server export — every stored field, re-importable. The typed
+                        // Creature model is a trimmed view, so we never round-trip through it here.
+                        switch await server.exportCreature(creatureId: creatureId) {
+                        case .success(let rawJSON):
+                            print(rawJSON)
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Error exporting creature: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
+                        return
+                    }
+
                     let result = try await server.getCreature(creatureId: creatureId)
                     switch result {
                     case .success(let creature):

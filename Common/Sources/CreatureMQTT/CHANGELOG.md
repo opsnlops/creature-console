@@ -1,5 +1,8 @@
 # Creature MQTT Changelog
 
+## 2.28.1 - 2026-06-12
+- Version sync to 2.28.1 to stay aligned with the rest of the CLI tools (creature-cli added a creature-export command). No functional changes to creature-mqtt or creature-agent.
+
 ## 2.28.0 - 2026-06-12
 - Align creature-mqtt and creature-agent to 2.28.0 to match the rest of the CLI tools.
 - Fix `creature-agent` declaring `--trace-open-ai` twice (the compat alias collided with the auto-derived flag name), which made every invocation fail argument validation. The alias is now `--trace-openai`.
