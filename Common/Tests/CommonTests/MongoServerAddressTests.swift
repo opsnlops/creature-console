@@ -1,6 +1,5 @@
+import CreatureMigration
 import Testing
-
-@testable import creature_cli
 
 @Suite("MongoServerAddress tests")
 struct MongoServerAddressTests {

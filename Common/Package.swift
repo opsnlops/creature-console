@@ -88,10 +88,21 @@ let package = Package(
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ]),
 
+        // MongoDB migration/back-fill building blocks (server-address parsing, connection
+        // helper, content-reference extraction). Kept out of Common so MongoKitten doesn't
+        // leak into the GUI app; the CLI commands depend on this.
+        .target(
+            name: "CreatureMigration",
+            dependencies: [
+                .product(name: "MongoKitten", package: "MongoKitten")
+            ],
+            path: "Sources/CreatureMigration/"),
+
         .executableTarget(
             name: "creature-cli",
             dependencies: [
                 "Common",
+                "CreatureMigration",
                 "Observability",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "MongoKitten", package: "MongoKitten"),
@@ -136,6 +147,8 @@ let package = Package(
             dependencies: [
                 "Common",
                 "creature-cli",
+                "CreatureMigration",
+                .product(name: "MongoKitten", package: "MongoKitten"),
             ]
         ),
         .testTarget(
