@@ -1,4 +1,5 @@
 import ArgumentParser
+import CreatureMigration
 import Foundation
 import MongoKitten
 
@@ -84,28 +85,10 @@ private struct MigrationPlan: Sendable {
     }
 
     func execute() async throws {
-        let mainlineURI = try MongoServerAddress.connectionURI(
-            for: mainlineServer, database: database, port: mainlinePort)
-        let travelURI = try MongoServerAddress.connectionURI(
-            for: travelServer, database: database, port: travelPort)
-
-        print("Connecting to mainline server at \(mainlineServer)...")
-        let source: MongoDatabase
-        do {
-            source = try await MongoDatabase.connect(to: mainlineURI)
-        } catch {
-            throw failWithMessage(
-                "Unable to connect to the mainline server (\(mainlineServer)): \(error)")
-        }
-
-        print("Connecting to travel server at \(travelServer)...")
-        let destination: MongoDatabase
-        do {
-            destination = try await MongoDatabase.connect(to: travelURI)
-        } catch {
-            throw failWithMessage(
-                "Unable to connect to the travel server (\(travelServer)): \(error)")
-        }
+        let source = try await connectCreatureDatabase(
+            server: mainlineServer, port: mainlinePort, database: database, role: "mainline")
+        let destination = try await connectCreatureDatabase(
+            server: travelServer, port: travelPort, database: database, role: "travel")
 
         let collections = try await sourceCollections(in: source)
         guard !collections.isEmpty else {

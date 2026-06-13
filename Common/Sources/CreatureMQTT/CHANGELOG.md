@@ -1,6 +1,47 @@
 # Creature MQTT Changelog
 
-# Creature MQTT Changelog
+## 2.28.0 - 2026-06-12
+- Align creature-mqtt and creature-agent to 2.28.0 to match the rest of the CLI tools.
+- Fix `creature-agent` declaring `--trace-open-ai` twice (the compat alias collided with the auto-derived flag name), which made every invocation fail argument validation. The alias is now `--trace-openai`.
+
+## 2.25.4 - 2026-06-09
+- Align `MQTTMessageProcessor` with the server's ordered websocket ingestion pipeline.
+
+## 2.20.0 - 2026-03-18
+- Add distributed tracing with W3C trace context propagation.
+
+## 2.19.10 - 2026-03-14
+- Add request timeouts to the LLM clients and fix error reporting.
+
+## 2.19.9 - 2026-03-14
+- Fix a cooldown race condition in creature-agent.
+
+## 2.19.8 - 2026-03-07
+- Set a 10s timeout on local LLM health-check requests.
+
+## 2.19.7 - 2026-03-07
+- Use `cancelWhenGracefulShutdown` for the health-check loop.
+
+## 2.19.6 - 2026-03-07
+- Fix the health check blocking graceful shutdown.
+
+## 2.19.5 - 2026-03-07
+- Add a local LLM health check with OTel alerting support.
+
+## 2.19.4 - 2026-03-07
+- Fix slow SIGTERM shutdown in creature-agent and creature-mqtt.
+
+## 2.19.3 - 2026-03-07
+- Fix runaway local LLM generation with stop sequences.
+
+## 2.19.2 - 2026-03-07
+- Rename LM Studio references to generic local LLM naming.
+
+## 2.19.1 - 2026-03-07
+- Use backend-agnostic LLM naming in OTel spans, counters, and descriptions.
+
+## 2.19.0 - 2026-03-07
+- Add LM Studio backend support for creature-agent.
 
 ## 2.18.2 - 2026-03-02
 - Wire systemd env files to CLI flags so services use configured hosts instead of compiled-in defaults.

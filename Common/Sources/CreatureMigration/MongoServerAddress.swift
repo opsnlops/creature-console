@@ -6,21 +6,21 @@ import Foundation
 /// (`travel.local:27018`), an IPv6 literal (`::1` or `[::1]:27017`), or a complete
 /// `mongodb://` / `mongodb+srv://` URI. The result always carries a database name in
 /// its path so MongoKitten connects to the right database.
-enum MongoServerAddress {
+public enum MongoServerAddress {
 
-    static let defaultPort = 27017
+    public static let defaultPort = 27017
 
     /// Connect timeout baked into URIs we build from bare hostnames, so a wrong address
     /// fails in seconds instead of MongoKitten's five-minute default.
-    static let connectTimeoutMS = 5000
+    public static let connectTimeoutMS = 5000
 
-    enum AddressError: Error, LocalizedError, Equatable {
+    public enum AddressError: Error, LocalizedError, Equatable {
         case emptyAddress
         case unsupportedScheme(String)
         case invalidPort(String)
         case invalidAddress(String)
 
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .emptyAddress:
                 return "Server address is empty"
@@ -40,7 +40,7 @@ enum MongoServerAddress {
     /// `port` is used when the address itself doesn't carry one; an explicit port in the
     /// address (`host:27018`) wins. Full `mongodb://` URIs are the user's business and are
     /// passed through untouched apart from getting the database path filled in.
-    static func connectionURI(
+    public static func connectionURI(
         for server: String, database: String, port: Int = defaultPort
     ) throws -> String {
         let trimmed = server.trimmingCharacters(in: .whitespacesAndNewlines)

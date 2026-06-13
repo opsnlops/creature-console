@@ -1,3 +1,19 @@
+creature-cli (2.28.0) unstable; urgency=medium
+
+  * New util backfill command: copy road-created animations, dialog
+    scripts, and storyboards from the travel server back into the mainline
+    server. Matches on the UUID id (add-only by default; --update-existing
+    to overwrite). Resolves each storyboard's and dialog script's
+    references and prompts when one is missing on the mainline server
+    (copy anyway / pull the missing item across / skip / abort).
+  * After writing, tells the mainline creature-server to invalidate the
+    caches for the collections that changed (via CreatureServerClient).
+    Use --skip-cache-invalidation to disable.
+  * Version sync: creature-mqtt and creature-agent are bumped to 2.28.0 to
+    match creature-cli (no functional change in those two tools).
+
+ -- April White <april@creature.engineering>  Sat, 13 Jun 2026 02:58:24 +0000
+
 creature-cli (2.27.1) unstable; urgency=medium
 
   * util migrate-database now merges instead of replacing: documents are

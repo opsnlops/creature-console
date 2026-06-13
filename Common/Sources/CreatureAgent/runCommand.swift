@@ -38,8 +38,8 @@ extension CreatureAgent {
         var traceOpenAI: Bool = false
 
         @Flag(
-            name: .customLong("trace-open-ai"),
-            help: "Log OpenAI response bodies for debugging")
+            name: .customLong("trace-openai"),
+            help: "Alias for --trace-open-ai")
         var traceOpenAICompat: Bool = false
 
         @OptionGroup()
