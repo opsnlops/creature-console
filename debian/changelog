@@ -1,3 +1,12 @@
+creature-cli (2.27.0) unstable; urgency=medium
+
+  * New util migrate-database command: copies the creature database
+    (documents and indexes) straight from the mainline MongoDB server to
+    the travel server using MongoKitten, with --dry-run, confirmation
+    prompt, and batched inserts. Works across MongoDB 8 -> 4.4.
+
+ -- April White <april@creature.engineering>  Sat, 13 Jun 2026 01:46:21 +0000
+
 creature-cli (2.26.2) unstable; urgency=medium
 
   * Refactor HTTP client: all REST calls now flow through shared
