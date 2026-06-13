@@ -10,6 +10,10 @@ enum MongoServerAddress {
 
     static let defaultPort = 27017
 
+    /// Connect timeout baked into URIs we build from bare hostnames, so a wrong address
+    /// fails in seconds instead of MongoKitten's five-minute default.
+    static let connectTimeoutMS = 5000
+
     enum AddressError: Error, LocalizedError, Equatable {
         case emptyAddress
         case unsupportedScheme(String)
@@ -32,7 +36,13 @@ enum MongoServerAddress {
     }
 
     /// Builds a MongoDB connection URI for the given server address and database.
-    static func connectionURI(for server: String, database: String) throws -> String {
+    ///
+    /// `port` is used when the address itself doesn't carry one; an explicit port in the
+    /// address (`host:27018`) wins. Full `mongodb://` URIs are the user's business and are
+    /// passed through untouched apart from getting the database path filled in.
+    static func connectionURI(
+        for server: String, database: String, port: Int = defaultPort
+    ) throws -> String {
         let trimmed = server.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             throw AddressError.emptyAddress
@@ -46,8 +56,9 @@ enum MongoServerAddress {
             return ensureDatabase(in: trimmed, after: schemeRange.upperBound, database: database)
         }
 
-        let hostAndPort = try normalizeHostAndPort(trimmed)
-        return "mongodb://\(hostAndPort)/\(database)"
+        let fallbackPort = try validatedPort(String(port))
+        let hostAndPort = try normalizeHostAndPort(trimmed, fallbackPort: fallbackPort)
+        return "mongodb://\(hostAndPort)/\(database)?connectTimeoutMS=\(connectTimeoutMS)"
     }
 
     /// Inserts the database name into a full URI's path if the URI doesn't already have one,
@@ -75,7 +86,9 @@ enum MongoServerAddress {
 
     /// Normalizes a bare `host`, `host:port`, `ipv6`, or `[ipv6]:port` value into
     /// a `host:port` authority string suitable for a mongodb:// URI.
-    private static func normalizeHostAndPort(_ address: String) throws -> String {
+    private static func normalizeHostAndPort(
+        _ address: String, fallbackPort: Int
+    ) throws -> String {
         // Bracketed IPv6, possibly with a port: [::1] or [::1]:27017
         if address.hasPrefix("[") {
             guard let closingBracket = address.firstIndex(of: "]") else {
@@ -84,7 +97,7 @@ enum MongoServerAddress {
             let host = String(address[...closingBracket])
             let remainder = address[address.index(after: closingBracket)...]
             if remainder.isEmpty {
-                return "\(host):\(defaultPort)"
+                return "\(host):\(fallbackPort)"
             }
             guard remainder.hasPrefix(":") else {
                 throw AddressError.invalidAddress(address)
@@ -97,7 +110,7 @@ enum MongoServerAddress {
 
         // More than one colon and no brackets means a bare IPv6 literal like ::1
         if colonCount > 1 {
-            return "[\(address)]:\(defaultPort)"
+            return "[\(address)]:\(fallbackPort)"
         }
 
         if colonCount == 1 {
@@ -109,7 +122,7 @@ enum MongoServerAddress {
             return "\(parts[0]):\(port)"
         }
 
-        return "\(address):\(defaultPort)"
+        return "\(address):\(fallbackPort)"
     }
 
     private static func validatedPort(_ value: String) throws -> Int {
