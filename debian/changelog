@@ -1,3 +1,13 @@
+creature-cli (2.28.1) unstable; urgency=medium
+
+  * New 'creatures detail <id> --json' flag: dumps a creature's complete
+    stored config as raw JSON (every persisted field — motors, servo
+    settings, etc.) via the server's new /creature/{id}/export endpoint,
+    bypassing the trimmed typed model. Use it for disaster-recovery
+    backups, e.g. when a creature's controller Pi is lost.
+
+ -- April White <april@creature.engineering>  Sat, 13 Jun 2026 06:26:53 +0000
+
 creature-cli (2.28.0) unstable; urgency=medium
 
   * New util backfill command: copy road-created animations, dialog
