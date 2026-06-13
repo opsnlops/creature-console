@@ -7,7 +7,7 @@ extension CreatureCLI {
     struct Util: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Helper utils that might be fun!",
-            subcommands: [Oid.self]
+            subcommands: [MigrateDatabase.self, Oid.self]
         )
 
         @OptionGroup()

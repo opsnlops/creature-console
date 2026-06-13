@@ -32,6 +32,7 @@ let package = Package(
             from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-metrics.git", from: "2.5.0"),
         .package(url: "https://github.com/apple/swift-distributed-tracing.git", from: "1.4.0"),
+        .package(url: "https://github.com/orlandos-nl/MongoKitten.git", from: "7.16.0"),
     ],
 
     targets: [
@@ -93,6 +94,7 @@ let package = Package(
                 "Common",
                 "Observability",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "MongoKitten", package: "MongoKitten"),
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
                 .product(
                     name: "NIOCore",
