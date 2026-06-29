@@ -31,6 +31,8 @@ public struct WebSocketMessageDTO<T: Codable>: Codable {
             payload = try container.decode(ServerLogItem.self, forKey: .payload) as! T
         case .motorSensorReport:
             payload = try container.decode(MotorSensorReport.self, forKey: .payload) as! T
+        case .dynamixelSensorReport:
+            payload = try container.decode(DynamixelSensorReport.self, forKey: .payload) as! T
         case .notice:
             payload = try container.decode(Notice.self, forKey: .payload) as! T
         case .playlistStatus:

@@ -39,6 +39,11 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
         await MotorSensorReportMessageProcessor.processMotorSensorReport(motorSensorReport)
     }
 
+    func processDynamixelSensorReport(_ dynamixelSensorReport: DynamixelSensorReport) async {
+        await DynamixelSensorReportMessageProcessor.processDynamixelSensorReport(
+            dynamixelSensorReport)
+    }
+
     func processNotice(_ notice: Notice) async {
         await NoticeMessageProcessor.processNotice(notice)
     }

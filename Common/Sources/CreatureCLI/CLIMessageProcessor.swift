@@ -12,6 +12,7 @@ final class CLIMessageProcessor: MessageProcessor {
         case idleStateChanged = "idle-state-changed"
         case log = "log"
         case motorSensors = "motor-sensors"
+        case dynamixelSensors = "dynamixel-sensors"
         case notice = "notice"
         case playlistStatus = "playlist-status"
         case statusLights = "status-lights"
@@ -38,6 +39,7 @@ final class CLIMessageProcessor: MessageProcessor {
         .idleStateChanged: "94",
         .log: "37",
         .motorSensors: "36",
+        .dynamixelSensors: "38;5;208",
         .notice: "32",
         .playlistStatus: "34",
         .statusLights: "96",
@@ -232,6 +234,30 @@ final class CLIMessageProcessor: MessageProcessor {
                 TableColumn(title: headers[4], valueProvider: { String($0.power) }),
             ],
             colorCode: colorCode(for: .motorSensors)
+        )
+    }
+
+    func processDynamixelSensorReport(_ dynamixelSensorReport: DynamixelSensorReport) async {
+        guard shouldPrint(.dynamixelSensors) else { return }
+        if outputFormat == .json {
+            emitJSON(type: .dynamixelSensors, payload: dynamixelSensorReport)
+            return
+        }
+        printLine(
+            .dynamixelSensors,
+            "[DYNAMIXEL_SENSORS] Creature: \(dynamixelSensorReport.creatureId)")
+
+        let headers = ["DXL ID", "Temp (°F)", "Load", "Voltage (mV)", "Voltage (V)"]
+        printTable(
+            dynamixelSensorReport.motors,
+            columns: [
+                TableColumn(title: headers[0], valueProvider: { String($0.dxlId) }),
+                TableColumn(title: headers[1], valueProvider: { String($0.temperatureF) }),
+                TableColumn(title: headers[2], valueProvider: { String($0.presentLoad) }),
+                TableColumn(title: headers[3], valueProvider: { String($0.voltageMv) }),
+                TableColumn(title: headers[4], valueProvider: { String($0.voltageV) }),
+            ],
+            colorCode: colorCode(for: .dynamixelSensors)
         )
     }
 

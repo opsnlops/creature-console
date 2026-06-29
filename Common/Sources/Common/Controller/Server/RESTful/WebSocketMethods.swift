@@ -806,6 +806,10 @@ extension CreatureServerClient {
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<MotorSensorReport>.self, from: data)
                     await messageProcessor?.processMotorSensorReport(messageDTO.payload)
+                case .dynamixelSensorReport:
+                    let messageDTO = try decoder.decode(
+                        WebSocketMessageDTO<DynamixelSensorReport>.self, from: data)
+                    await messageProcessor?.processDynamixelSensorReport(messageDTO.payload)
                 case .boardSensorReport:
                     let messageDTO = try decoder.decode(
                         WebSocketMessageDTO<BoardSensorReport>.self, from: data)

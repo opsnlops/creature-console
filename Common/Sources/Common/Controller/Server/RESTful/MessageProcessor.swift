@@ -12,6 +12,7 @@ public protocol MessageProcessor: Sendable {
     func processEmergencyStop(_ emergencyStop: EmergencyStop) async
     func processLog(_ logItem: ServerLogItem) async
     func processMotorSensorReport(_ motorSensorReport: MotorSensorReport) async
+    func processDynamixelSensorReport(_ dynamixelSensorReport: DynamixelSensorReport) async
     func processNotice(_ notice: Notice) async
     func processPlaylistStatus(_ playlistStatus: PlaylistStatus) async
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO) async

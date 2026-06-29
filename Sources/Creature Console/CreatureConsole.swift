@@ -130,14 +130,29 @@ struct CreatureConsole: App {
     /// Open the model container, recovering from an un-migratable schema change. The on-disk
     /// store is a disposable cache of server data, so if a structural change can't be migrated
     /// automatically we wipe it and recreate — the app repopulates from the server on launch.
+    ///
+    /// We wipe up front whenever the model-set fingerprint changed (catches *removed* models,
+    /// which SwiftData would otherwise open into a corrupt store without throwing — see
+    /// `SwiftDataStoreMigration`), and keep the catch as a last resort for changes that do throw.
     private static func makeModelContainer(at storeURL: URL) throws -> ModelContainer {
         let schema = Schema(AppSchema.modelTypes)
         let config = ModelConfiguration(url: storeURL)
+
+        if SwiftDataStoreMigration.needsWipe(storeURL: storeURL, modelTypes: AppSchema.modelTypes) {
+            wipeStore(at: storeURL)
+        }
+
         do {
-            return try ModelContainer(for: schema, configurations: config)
+            let container = try ModelContainer(for: schema, configurations: config)
+            SwiftDataStoreMigration.recordSignature(
+                storeURL: storeURL, modelTypes: AppSchema.modelTypes)
+            return container
         } catch {
             wipeStore(at: storeURL)
-            return try ModelContainer(for: schema, configurations: config)
+            let container = try ModelContainer(for: schema, configurations: config)
+            SwiftDataStoreMigration.recordSignature(
+                storeURL: storeURL, modelTypes: AppSchema.modelTypes)
+            return container
         }
     }
 

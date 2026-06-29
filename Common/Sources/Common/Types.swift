@@ -10,6 +10,9 @@ public typealias PlaylistIdentifier = String
 public typealias SoundIdentifier = String
 public typealias UniverseIdentifier = Int
 public typealias DmxFixtureIdentifier = String
+
+/// A Dynamixel servo's ID on its bus (the `dxl_id` reported by the server).
+public typealias DynamixelIdentifier = Int
 public typealias FixturePatternIdentifier = String
 
 /// Dialog scripts use real `UUID`s (not the legacy `String` OID-era identifiers).

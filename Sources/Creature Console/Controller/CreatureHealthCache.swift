@@ -16,6 +16,7 @@ enum CacheError: Error, CustomStringConvertible {
 
 struct CreatureHealthCacheState: Sendable {
     let motorSensorCache: [CreatureIdentifier: [MotorSensorReport]]
+    let dynamixelSensorCache: [CreatureIdentifier: [DynamixelSensorReport]]
     let boardSensorCache: [CreatureIdentifier: [BoardSensorReport]]
 }
 
@@ -23,6 +24,7 @@ actor CreatureHealthCache {
     static let shared = CreatureHealthCache()
 
     private var motorSensorCache: [CreatureIdentifier: [MotorSensorReport]] = [:]
+    private var dynamixelSensorCache: [CreatureIdentifier: [DynamixelSensorReport]] = [:]
     private var boardSensorCache: [CreatureIdentifier: [BoardSensorReport]] = [:]
 
     private let maxSensorCount = 1000
@@ -43,6 +45,7 @@ actor CreatureHealthCache {
             // Send current state immediately to new subscriber
             let currentState = CreatureHealthCacheState(
                 motorSensorCache: motorSensorCache,
+                dynamixelSensorCache: dynamixelSensorCache,
                 boardSensorCache: boardSensorCache
             )
             continuation.yield(currentState)
@@ -62,6 +65,7 @@ actor CreatureHealthCache {
     func getCurrentState() -> CreatureHealthCacheState {
         CreatureHealthCacheState(
             motorSensorCache: motorSensorCache,
+            dynamixelSensorCache: dynamixelSensorCache,
             boardSensorCache: boardSensorCache
         )
     }
@@ -85,9 +89,26 @@ actor CreatureHealthCache {
         publishState()
     }
 
+    // Add a new DynamixelSensorData for a Creature
+    func addDynamixelSensorData(
+        _ sensorData: DynamixelSensorReport, forCreature creatureId: CreatureIdentifier
+    ) {
+        var updatedCache = dynamixelSensorCache[creatureId, default: []]
+        updatedCache.append(sensorData)
+
+        // Trim to keep only the most recent sensor data points
+        if updatedCache.count > maxSensorCount {
+            updatedCache.removeFirst()
+        }
+
+        dynamixelSensorCache[creatureId] = updatedCache
+        publishState()
+    }
+
     private func publishState() {
         let currentState = CreatureHealthCacheState(
             motorSensorCache: motorSensorCache,
+            dynamixelSensorCache: dynamixelSensorCache,
             boardSensorCache: boardSensorCache
         )
         logger.debug(
@@ -133,6 +154,28 @@ actor CreatureHealthCache {
         [MotorSensorReport], CacheError
     > {
         if let sensorData = motorSensorCache[creatureId], !sensorData.isEmpty {
+            return .success(sensorData.sorted(by: { $0.timestamp < $1.timestamp }))
+        } else {
+            return .failure(.noDataForCreature)
+        }
+    }
+
+    // Get the most recent DynamixelSensorData for a Creature
+    func latestDynamixelSensorData(forCreature creatureId: CreatureIdentifier) -> Result<
+        DynamixelSensorReport, CacheError
+    > {
+        if let latestData = dynamixelSensorCache[creatureId]?.last {
+            return .success(latestData)
+        } else {
+            return .failure(.noDataForCreature)
+        }
+    }
+
+    // Get all DynamixelSensorData for a Creature, sorted by time
+    func allDynamixelSensorData(forCreature creatureId: CreatureIdentifier) -> Result<
+        [DynamixelSensorReport], CacheError
+    > {
+        if let sensorData = dynamixelSensorCache[creatureId], !sensorData.isEmpty {
             return .success(sensorData.sorted(by: { $0.timestamp < $1.timestamp }))
         } else {
             return .failure(.noDataForCreature)

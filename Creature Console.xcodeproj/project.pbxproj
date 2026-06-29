@@ -98,6 +98,7 @@
 		117C87352CA0CE9F007B5682 /* ServerLogItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */; };
 		117C87362CA0CE9F007B5682 /* BoardSensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */; };
 		117C87372CA0CE9F007B5682 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
+		DA17A0010000000000000003 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
 		117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */; };
 		117C87392CA0CEB1007B5682 /* CacheMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11754B662C002940001A6C83 /* CacheMethods.swift */; };
 		117C873A2CA0CEB1007B5682 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
@@ -204,6 +205,7 @@
 		11E53CD02E88A0C400C17F16 /* AppBootstrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC32E888F3900C17F16 /* AppBootstrapper.swift */; };
 		11E53CD22E88A51B00C17F16 /* MetricKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC72E88964100C17F16 /* MetricKitManager.swift */; };
 		11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
+		DA17A0010000000000000002 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
 		11E5CE802C9FE1C600749F94 /* CreatureHealthCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */; };
 		11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE812C9FEA9D00749F94 /* SensorData.swift */; };
 		11F0E4992E9089970085918D /* SoundModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E4982E9089970085918D /* SoundModel.swift */; };
@@ -412,6 +414,7 @@
 		11E53CC92E8896B700C17F16 /* MailComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposer.swift; sourceTree = "<group>"; };
 		11E53CCC2E889BB700C17F16 /* DiagnosticReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticReporter.swift; sourceTree = "<group>"; };
 		11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorSensorReportProcessor.swift; sourceTree = "<group>"; };
+		DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamixelSensorReportProcessor.swift; sourceTree = "<group>"; };
 		11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureHealthCache.swift; sourceTree = "<group>"; };
 		11E5CE812C9FEA9D00749F94 /* SensorData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorData.swift; sourceTree = "<group>"; };
 		11F0E4982E9089970085918D /* SoundModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundModel.swift; sourceTree = "<group>"; };
@@ -917,6 +920,7 @@
 				112AABF22EA894B1000F4BC2 /* JobStatusMessageProcessor.swift */,
 				110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */,
 				11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */,
+				DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */,
 				1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */,
 				1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */,
 				1199D6C52BF5D588004E0D64 /* SystemCountersItemProcessor.swift */,
@@ -1571,6 +1575,7 @@
 				114B7E372E90B8B000F5D1EC /* PlaylistImporter.swift in Sources */,
 				114147922C0145270046601D /* TrackListingView.swift in Sources */,
 				11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */,
+				DA17A0010000000000000002 /* DynamixelSensorReportProcessor.swift in Sources */,
 				114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */,
 				11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */,
 				11C522372BF84E0C0009A53E /* StatusLightsManager.swift in Sources */,
@@ -1763,6 +1768,7 @@
 				11E53CD22E88A51B00C17F16 /* MetricKitManager.swift in Sources */,
 				117C87362CA0CE9F007B5682 /* BoardSensorReportMessageProcessor.swift in Sources */,
 				117C87372CA0CE9F007B5682 /* MotorSensorReportProcessor.swift in Sources */,
+				DA17A0010000000000000003 /* DynamixelSensorReportProcessor.swift in Sources */,
 				114B7E3C2E90BE3100F5D1EC /* ServerLogImporter.swift in Sources */,
 				114B7E3D2E90BE3100F5D1EC /* ServerLogModel.swift in Sources */,
 				117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */,
@@ -1973,7 +1979,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.28.1;
+				MARKETING_VERSION = 2.29.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2027,7 +2033,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.28.1;
+				MARKETING_VERSION = 2.29.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2111,7 +2117,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.28.1;
+				MARKETING_VERSION = 2.29.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2143,7 +2149,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.28.1;
+				MARKETING_VERSION = 2.29.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

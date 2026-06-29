@@ -109,14 +109,27 @@ struct Creature_TVApp: App {
 
     /// Open the model container, recovering from an un-migratable schema change by wiping the
     /// (disposable, server-backed) cache store and recreating it.
+    ///
+    /// Wipes up front when the model-set fingerprint changed (catches *removed* models, which
+    /// SwiftData opens into a corrupt store without throwing — see `SwiftDataStoreMigration`),
+    /// with the catch as a last resort for changes that do throw.
     private static func makeModelContainer(at storeURL: URL) throws -> ModelContainer {
         let schema = Schema(modelTypes)
         let config = ModelConfiguration(url: storeURL)
+
+        if SwiftDataStoreMigration.needsWipe(storeURL: storeURL, modelTypes: modelTypes) {
+            wipeStore(at: storeURL)
+        }
+
         do {
-            return try ModelContainer(for: schema, configurations: config)
+            let container = try ModelContainer(for: schema, configurations: config)
+            SwiftDataStoreMigration.recordSignature(storeURL: storeURL, modelTypes: modelTypes)
+            return container
         } catch {
             wipeStore(at: storeURL)
-            return try ModelContainer(for: schema, configurations: config)
+            let container = try ModelContainer(for: schema, configurations: config)
+            SwiftDataStoreMigration.recordSignature(storeURL: storeURL, modelTypes: modelTypes)
+            return container
         }
     }
 

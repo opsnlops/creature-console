@@ -8,6 +8,7 @@ public enum ServerMessageType: String {
     case statusLights = "status-lights"
     case streamFrame = "stream-frame"
     case motorSensorReport = "motor-sensor-report"
+    case dynamixelSensorReport = "dynamixel-sensor-report"
     case boardSensorReport = "board-sensor-report"
     case cacheInvalidation = "cache-invalidation"
     case playlistStatus = "playlist-status"

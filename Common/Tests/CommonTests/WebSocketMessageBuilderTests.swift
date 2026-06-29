@@ -73,6 +73,7 @@ struct WebSocketMessageBuilderTests {
             .statusLights,
             .streamFrame,
             .motorSensorReport,
+            .dynamixelSensorReport,
             .boardSensorReport,
             .cacheInvalidation,
             .playlistStatus,

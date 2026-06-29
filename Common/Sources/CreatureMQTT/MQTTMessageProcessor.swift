@@ -15,6 +15,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         case idleStateChanged = "idle-state-changed"
         case log = "log"
         case motorSensors = "motor-sensors"
+        case dynamixelSensors = "dynamixel-sensors"
         case notice = "notice"
         case playlistStatus = "playlist-status"
         case statusLights = "status-lights"
@@ -214,6 +215,25 @@ final class MQTTMessageProcessor: MessageProcessor {
             publishNumber(motor.current, components: motorBase + ["current"])
             publishNumber(motor.power, components: motorBase + ["power"])
             publishNumber(motor.voltage, components: motorBase + ["voltage"])
+        }
+    }
+
+    func processDynamixelSensorReport(_ dynamixelSensorReport: DynamixelSensorReport) async {
+        guard shouldPublish(.dynamixelSensors) else { return }
+        let resolved = resolveCreature(
+            id: dynamixelSensorReport.creatureId,
+            preferredName: dynamixelSensorReport.creatureName)
+        let base = [resolved.topicComponent, "sensors", "dynamixel"]
+        publishIdentity(
+            topicComponent: resolved.topicComponent, id: dynamixelSensorReport.creatureId,
+            name: resolved.resolvedName)
+        publishDate(dynamixelSensorReport.timestamp, components: base + ["timestamp"])
+        for motor in dynamixelSensorReport.motors {
+            let motorBase = base + ["\(motor.dxlId)"]
+            publishNumber(motor.temperatureF, components: motorBase + ["temperature_f"])
+            publishNumber(motor.presentLoad, components: motorBase + ["present_load"])
+            publishNumber(motor.voltageMv, components: motorBase + ["voltage_mv"])
+            publishNumber(motor.voltageV, components: motorBase + ["voltage_v"])
         }
     }
 

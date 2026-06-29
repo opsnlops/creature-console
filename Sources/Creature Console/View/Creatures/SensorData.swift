@@ -10,7 +10,7 @@ struct SensorData: View {
     var showTitle: Bool = true
 
     @State private var healthCacheState = CreatureHealthCacheState(
-        motorSensorCache: [:], boardSensorCache: [:])
+        motorSensorCache: [:], dynamixelSensorCache: [:], boardSensorCache: [:])
     @State private var showingHistoricalData = false
     @State private var subscriptionTask: Task<Void, Never>?
 
@@ -37,27 +37,49 @@ struct SensorData: View {
         }
     }
 
+    private var latestDynamixelReport: DynamixelSensorReport? {
+        healthCacheState.dynamixelSensorCache[creature.id]?
+            .max(by: { $0.timestamp < $1.timestamp })
+    }
+
+    private var hasAnyData: Bool {
+        if case .success = healthReport { return true }
+        return latestDynamixelReport != nil
+    }
+
+    /// The most recent timestamp across all sensor families we display.
+    private var lastUpdated: Date? {
+        var candidates: [Date] = []
+        if case .success(let reports) = healthReport, let latest = reports.last {
+            candidates.append(latest.timestamp)
+        }
+        if let dynamixel = latestDynamixelReport {
+            candidates.append(dynamixel.timestamp)
+        }
+        return candidates.max()
+    }
+
     var body: some View {
         Group {
-            switch healthReport {
-            case .success(let reports):
-                if let latestReport = reports.last {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Header with timestamp
-                        if showTitle {
-                            HStack {
-                                Text("Sensor Data")
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                                Spacer()
-                                Text(
-                                    "Last updated: \(dateFormatter.string(from: latestReport.timestamp))"
-                                )
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+            if hasAnyData {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Header with timestamp
+                    if showTitle {
+                        HStack {
+                            Text("Sensor Data")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            Spacer()
+                            if let lastUpdated {
+                                Text("Last updated: \(dateFormatter.string(from: lastUpdated))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
+                    }
 
+                    // Board sensors (temperature and power rails)
+                    if case .success(let reports) = healthReport, let latestReport = reports.last {
                         // Critical metrics graphs
                         criticalMetricsGraphs(reports)
 
@@ -85,10 +107,14 @@ struct SensorData: View {
                             }
                         }
                     }
-                } else {
-                    emptyStateView()
+
+                    // Dynamixel servos
+                    if let dynamixelReport = latestDynamixelReport, !dynamixelReport.motors.isEmpty
+                    {
+                        dynamixelSensorTable(dynamixelReport)
+                    }
                 }
-            case .failure:
+            } else {
                 emptyStateView()
             }
         }
@@ -300,6 +326,59 @@ struct SensorData: View {
     }
 
     @ViewBuilder
+    private func dynamixelSensorTable(_ report: DynamixelSensorReport) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Dynamixel Servos")
+                .font(.headline)
+
+            VStack(spacing: 1) {
+                // Header row
+                HStack {
+                    Text("DXL ID")
+                        .fontWeight(.medium)
+                        .frame(width: 70, alignment: .leading)
+                    Text("Temp")
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    Text("Load")
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    Text("Voltage")
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.secondary.opacity(0.1))
+
+                let motors = report.motors.sorted(by: { $0.dxlId < $1.dxlId })
+                ForEach(motors) { motor in
+                    HStack {
+                        Text("\(motor.dxlId)")
+                            .frame(width: 70, alignment: .leading)
+                        Text("\(String(format: "%.1f", motor.temperatureF)) °F")
+                            .foregroundColor(temperatureColor(motor.temperatureF))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        Text("\(motor.presentLoad)")
+                            .foregroundColor(loadColor(motor.presentLoad))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        Text("\(String(format: "%.2f", motor.voltageV)) V")
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.secondary.opacity(0.1))
+                }
+            }
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+            )
+        }
+    }
+
+    @ViewBuilder
     private func historicalDataTable(_ reports: [BoardSensorReport]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Recent History")
@@ -407,6 +486,15 @@ struct SensorData: View {
         case ..<7.0: return .red  // Below acceptable range
         case 7.0...8.8: return .green  // Acceptable range (7.0V - 8.4V)
         default: return .orange  // Above acceptable range
+        }
+    }
+
+    /// Color the present-load magnitude (raw signed Dynamixel units; ±1000 is roughly full scale).
+    private func loadColor(_ load: Int) -> Color {
+        switch abs(load) {
+        case ..<400: return .green
+        case 400..<800: return .orange
+        default: return .red
         }
     }
 

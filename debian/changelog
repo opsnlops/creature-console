@@ -1,3 +1,15 @@
+creature-cli (2.29.0) unstable; urgency=medium
+
+  * Support the server's new 'dynamixel-sensor-report' websocket message,
+    which reports per-servo telemetry (temperature, present load, and bus
+    voltage) for creatures driven by Dynamixel motors — alongside the
+    existing 'motor-sensor-report' used for standard servos. The CLI
+    'websocket monitor' now decodes and prints these as 'dynamixel-sensors'
+    (text table or JSON), and creature-mqtt republishes them under
+    <creature>/sensors/dynamixel/<dxl_id>/...
+
+ -- April White <april@creature.engineering>  Sun, 28 Jun 2026 00:00:00 +0000
+
 creature-cli (2.28.1) unstable; urgency=medium
 
   * New 'creatures detail <id> --json' flag: dumps a creature's complete
