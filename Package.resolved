@@ -1,6 +1,15 @@
 {
-  "originHash" : "dd7d329d907a769f7f4c4849bb58abf42e066f84bb69369fc8a2be39faec7227",
+  "originHash" : "20f0ba000a1443158858e16ddb8d85d19d516b5cc93cc1fceb51dba520145576",
   "pins" : [
+    {
+      "identity" : "simplekeychain",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/auth0/SimpleKeychain",
+      "state" : {
+        "revision" : "776c4a6db74d5c6c143974be91c383680d468630",
+        "version" : "1.3.0"
+      }
+    },
     {
       "identity" : "swift-atomics",
       "kind" : "remoteSourceControl",
