@@ -41,6 +41,24 @@ struct DynamixelSensorsTests {
         #expect(sensor.presentLoad == 15)
         #expect(sensor.voltageMv == 12000)
         #expect(sensor.voltageV == 12.0)
+        // Older firmware omits present_position → nil, not zero.
+        #expect(sensor.presentPosition == nil)
+    }
+
+    @Test("decodes present_position when newer firmware reports it")
+    func decodesPresentPosition() throws {
+        let json = """
+            {
+                "dxl_id": 3,
+                "temperature_f": 98.6,
+                "present_load": 15,
+                "voltage_mv": 12000,
+                "voltage_v": 12.0,
+                "present_position": 2048
+            }
+            """
+        let sensor = try JSONDecoder().decode(DynamixelSensors.self, from: Data(json.utf8))
+        #expect(sensor.presentPosition == 2048)
     }
 
     @Test("round-trips through encode and decode")
@@ -50,6 +68,39 @@ struct DynamixelSensorsTests {
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(DynamixelSensors.self, from: data)
         #expect(decoded == original)
+        #expect(decoded.presentPosition == nil)
+    }
+
+    @Test("round-trips with present_position set")
+    func roundTripsWithPosition() throws {
+        let original = DynamixelSensors(
+            dxlId: 11, temperatureF: 88.0, presentLoad: 0, voltageMv: 12100, voltageV: 12.1,
+            presentPosition: 1234)
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(DynamixelSensors.self, from: data)
+        #expect(decoded == original)
+        #expect(decoded.presentPosition == 1234)
+    }
+
+    @Test("present_position participates in equality")
+    func positionAffectsEquality() {
+        let withPos = DynamixelSensors(
+            dxlId: 1, temperatureF: 90, presentLoad: 5, voltageMv: 12000, voltageV: 12,
+            presentPosition: 100)
+        let withoutPos = DynamixelSensors(
+            dxlId: 1, temperatureF: 90, presentLoad: 5, voltageMv: 12000, voltageV: 12)
+        #expect(withPos != withoutPos)
+    }
+
+    @Test("encodes present_position only when present")
+    func encodesPositionConditionally() throws {
+        let absent = try JSONEncoder().encode(
+            DynamixelSensors(
+                dxlId: 1, temperatureF: 90, presentLoad: 5, voltageMv: 12000, voltageV: 12))
+        #expect(!String(decoding: absent, as: UTF8.self).contains("present_position"))
+
+        let present = try JSONEncoder().encode(DynamixelSensors.mock())
+        #expect(String(decoding: present, as: UTF8.self).contains("\"present_position\""))
     }
 
     @Test("equality and hashing ignore identity, compare values")
@@ -91,7 +142,7 @@ struct DynamixelSensorReportTests {
                 "creature_id": "creature_abc",
                 "creatureName": "Beaky",
                 "dynamixel_motors": [
-                    { "dxl_id": 1, "temperature_f": 95.0, "present_load": -10, "voltage_mv": 12000, "voltage_v": 12.0 },
+                    { "dxl_id": 1, "temperature_f": 95.0, "present_load": -10, "voltage_mv": 12000, "voltage_v": 12.0, "present_position": 2048 },
                     { "dxl_id": 2, "temperature_f": 101.2, "present_load": 33, "voltage_mv": 11900, "voltage_v": 11.9 }
                 ]
             }
@@ -103,6 +154,9 @@ struct DynamixelSensorReportTests {
         #expect(report.motors.count == 2)
         #expect(report.motors[0].dxlId == 1)
         #expect(report.motors[1].presentLoad == 33)
+        // Mixed firmware in one report: servo 1 reports position, servo 2 (older) doesn't.
+        #expect(report.motors[0].presentPosition == 2048)
+        #expect(report.motors[1].presentPosition == nil)
     }
 
     @Test("decodes when the optional creatureName is missing")

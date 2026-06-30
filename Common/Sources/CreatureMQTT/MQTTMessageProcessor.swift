@@ -234,6 +234,10 @@ final class MQTTMessageProcessor: MessageProcessor {
             publishNumber(motor.presentLoad, components: motorBase + ["present_load"])
             publishNumber(motor.voltageMv, components: motorBase + ["voltage_mv"])
             publishNumber(motor.voltageV, components: motorBase + ["voltage_v"])
+            // Only published when the controller firmware reported it (older firmware omits it).
+            if let presentPosition = motor.presentPosition {
+                publishNumber(presentPosition, components: motorBase + ["present_position"])
+            }
         }
     }
 

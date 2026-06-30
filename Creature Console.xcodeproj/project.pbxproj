@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0930B7036CD140AB9A85D6AC /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DFE236913DA409FB1992756 /* DebugSettings.swift */; };
 		1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */; };
 		110C412B2E516F270079CA75 /* EmergencyStopMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */; };
 		110C412C2E516F270079CA75 /* EmergencyStopMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */; };
@@ -39,8 +40,6 @@
 		114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147932C017E640046601D /* ChooseCreatureSheet.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
 		114B7E1E2E90B83900F5D1EC /* SwiftDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E1D2E90B83900F5D1EC /* SwiftDataStore.swift */; };
-		722F736E8BFF4CF982B99A74 /* AppSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */; };
-		6F5490D163354A25AC41AE74 /* AppSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */; };
 		114B7E1F2E90B83900F5D1EC /* SwiftDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E1D2E90B83900F5D1EC /* SwiftDataStore.swift */; };
 		114B7E2A2E90B88300F5D1EC /* AnimationMetadataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E272E90B88300F5D1EC /* AnimationMetadataImporter.swift */; };
 		114B7E2B2E90B88300F5D1EC /* AnimationMetadataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E282E90B88300F5D1EC /* AnimationMetadataModel.swift */; };
@@ -98,7 +97,6 @@
 		117C87352CA0CE9F007B5682 /* ServerLogItemProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */; };
 		117C87362CA0CE9F007B5682 /* BoardSensorReportMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C622F42C27CDD300D9AEE4 /* BoardSensorReportMessageProcessor.swift */; };
 		117C87372CA0CE9F007B5682 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
-		DA17A0010000000000000003 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
 		117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C522382BF850320009A53E /* VirtualStatusLightsProcessor.swift */; };
 		117C87392CA0CEB1007B5682 /* CacheMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11754B662C002940001A6C83 /* CacheMethods.swift */; };
 		117C873A2CA0CEB1007B5682 /* CreatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AFC3182BE9ED7700602604 /* CreatureManager.swift */; };
@@ -118,8 +116,6 @@
 		117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6C02BF5CD80004E0D64 /* BottomToolBarView.swift */; };
 		117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		117C87712CA0D586007B5682 /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */; };
-		0930B7036CD140AB9A85D6AC /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DFE236913DA409FB1992756 /* DebugSettings.swift */; };
-		EB025017FF254DAEB1CA3B84 /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DFE236913DA409FB1992756 /* DebugSettings.swift */; };
 		117C87722CA0D586007B5682 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		117C87732CA0D586007B5682 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
 		117C87742CA0D586007B5682 /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
@@ -205,7 +201,6 @@
 		11E53CD02E88A0C400C17F16 /* AppBootstrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC32E888F3900C17F16 /* AppBootstrapper.swift */; };
 		11E53CD22E88A51B00C17F16 /* MetricKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E53CC72E88964100C17F16 /* MetricKitManager.swift */; };
 		11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
-		DA17A0010000000000000002 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
 		11E5CE802C9FE1C600749F94 /* CreatureHealthCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */; };
 		11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE812C9FEA9D00749F94 /* SensorData.swift */; };
 		11F0E4992E9089970085918D /* SoundModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E4982E9089970085918D /* SoundModel.swift */; };
@@ -226,7 +221,6 @@
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
 		181C4F50BC868ABAF7DA7A7E /* StoryboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54614CD9A93C664522211643 /* StoryboardModel.swift */; };
 		202B47D6B51E9DFCE7BF9E23 /* StoryboardEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED34910B9AE0FAF886C4B9D /* StoryboardEditor.swift */; };
-		EFFB0305957C4A0F3F33A479 /* StoryboardCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACD60A23863C4FD5518C910 /* StoryboardCanvas.swift */; };
 		234E4D4BAA45573AFDDE3327 /* StoryboardImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */; };
 		2470F7BEF21E3FF180C260A8 /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
 		2B75A1837D08598F1F933DE5 /* BindingListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */; };
@@ -242,6 +236,8 @@
 		66CC489E8DB59A23AE379228 /* DialogRenderPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AE34D7DB49651F51F60C52A /* DialogRenderPanel.swift */; };
 		693A46978B64AF12F7917E14 /* StoryboardPerformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B114574B9AE13711DA368FE /* StoryboardPerformView.swift */; };
 		6C9444419FD99EECE583E33B /* DialogScriptImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2104407DB3CA7408D07766E3 /* DialogScriptImporter.swift */; };
+		6F5490D163354A25AC41AE74 /* AppSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */; };
+		722F736E8BFF4CF982B99A74 /* AppSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */; };
 		7411DC28B6B15B5F13C2FF33 /* PatternValueEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */; };
 		745C4326AB6D80D744B547EE /* StoryboardTileInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A74517B38BEC26CE5A7D93 /* StoryboardTileInspector.swift */; };
 		786C4469BE761562C02CD8CA /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
@@ -254,8 +250,12 @@
 		C1B849B58E8EAD7B9E0510B9 /* WavFileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211450B80E5BBFE2141677F /* WavFileDocument.swift */; };
 		D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */; };
 		D2D44211BDB3B0F545B00C6E /* DialogScriptTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */; };
+		DA17A0010000000000000002 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
+		DA17A0010000000000000003 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
+		EB025017FF254DAEB1CA3B84 /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DFE236913DA409FB1992756 /* DebugSettings.swift */; };
 		ED7C2D001F423B32AEAA7B05 /* ChannelListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */; };
 		EE2A4FCE9715D88FBB86BEA4 /* FixtureControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F645918F17837F963999E1 /* FixtureControlService.swift */; };
+		EFFB0305957C4A0F3F33A479 /* StoryboardCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACD60A23863C4FD5518C910 /* StoryboardCanvas.swift */; };
 		F0078779AA60B7D1EA3CE06F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
 		F539487A8A5CBD435D46567A /* DialogScriptEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B58446690618A288BDE246C /* DialogScriptEditor.swift */; };
 /* End PBXBuildFile section */
@@ -310,7 +310,6 @@
 		114147932C017E640046601D /* ChooseCreatureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseCreatureSheet.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
 		114B7E1D2E90B83900F5D1EC /* SwiftDataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataStore.swift; sourceTree = "<group>"; };
-		D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSchema.swift; sourceTree = "<group>"; };
 		114B7E272E90B88300F5D1EC /* AnimationMetadataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataImporter.swift; sourceTree = "<group>"; };
 		114B7E282E90B88300F5D1EC /* AnimationMetadataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataModel.swift; sourceTree = "<group>"; };
 		114B7E2E2E90B8B000F5D1EC /* PlaylistImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistImporter.swift; sourceTree = "<group>"; };
@@ -374,7 +373,6 @@
 		1199D6CD2BF6F7F8004E0D64 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		119A016229EE297800D3DA12 /* BarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChart.swift; sourceTree = "<group>"; };
 		119A016529EE4C2600D3DA12 /* AdvancedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettings.swift; sourceTree = "<group>"; };
-		8DFE236913DA409FB1992756 /* DebugSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSettings.swift; sourceTree = "<group>"; };
 		119A44CA2E88CCFB0053B250 /* SensorDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorDataTests.swift; sourceTree = "<group>"; };
 		119A44CD2E88D6E70053B250 /* SensorDataLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorDataLogic.swift; sourceTree = "<group>"; };
 		119A44D52E88D9120053B250 /* SystemCountersStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersStoreTests.swift; sourceTree = "<group>"; };
@@ -414,7 +412,6 @@
 		11E53CC92E8896B700C17F16 /* MailComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposer.swift; sourceTree = "<group>"; };
 		11E53CCC2E889BB700C17F16 /* DiagnosticReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticReporter.swift; sourceTree = "<group>"; };
 		11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorSensorReportProcessor.swift; sourceTree = "<group>"; };
-		DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamixelSensorReportProcessor.swift; sourceTree = "<group>"; };
 		11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureHealthCache.swift; sourceTree = "<group>"; };
 		11E5CE812C9FEA9D00749F94 /* SensorData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorData.swift; sourceTree = "<group>"; };
 		11F0E4982E9089970085918D /* SoundModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundModel.swift; sourceTree = "<group>"; };
@@ -488,27 +485,30 @@
 		54784797A276DA212FB115FD /* DialogPreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogPreviewPanel.swift; path = "Sources/Creature Console/View/Dialog/DialogPreviewPanel.swift"; sourceTree = SOURCE_ROOT; };
 		5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListEditor.swift; sourceTree = "<group>"; };
 		5ED34910B9AE0FAF886C4B9D /* StoryboardEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardEditor.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardEditor.swift"; sourceTree = SOURCE_ROOT; };
-		AACD60A23863C4FD5518C910 /* StoryboardCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardCanvas.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardCanvas.swift"; sourceTree = SOURCE_ROOT; };
 		6AE34D7DB49651F51F60C52A /* DialogRenderPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogRenderPanel.swift; path = "Sources/Creature Console/View/Dialog/DialogRenderPanel.swift"; sourceTree = SOURCE_ROOT; };
 		6B58446690618A288BDE246C /* DialogScriptEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptEditor.swift; path = "Sources/Creature Console/View/Dialog/DialogScriptEditor.swift"; sourceTree = SOURCE_ROOT; };
 		774845568DA1B938DF51A8C6 /* StoryboardTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardTable.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardTable.swift"; sourceTree = SOURCE_ROOT; };
 		7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AnimationDialogProvenanceView.swift; path = "Sources/Creature Console/View/Dialog/AnimationDialogProvenanceView.swift"; sourceTree = SOURCE_ROOT; };
+		8DFE236913DA409FB1992756 /* DebugSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSettings.swift; sourceTree = "<group>"; };
 		9B114574B9AE13711DA368FE /* StoryboardPerformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardPerformView.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardPerformView.swift"; sourceTree = SOURCE_ROOT; };
+		AACD60A23863C4FD5518C910 /* StoryboardCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardCanvas.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardCanvas.swift"; sourceTree = SOURCE_ROOT; };
 		AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptTable.swift; path = "Sources/Creature Console/View/Dialog/DialogScriptTable.swift"; sourceTree = SOURCE_ROOT; };
 		AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardImporter.swift; path = "Sources/Creature Console/Model/Storyboard/StoryboardImporter.swift"; sourceTree = SOURCE_ROOT; };
 		B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlPanel.swift; sourceTree = "<group>"; };
 		B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternListEditor.swift; sourceTree = "<group>"; };
 		BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixturesTable.swift; sourceTree = "<group>"; };
 		C211450B80E5BBFE2141677F /* WavFileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WavFileDocument.swift; path = "Sources/Creature Console/View/Dialog/WavFileDocument.swift"; sourceTree = SOURCE_ROOT; };
+		D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSchema.swift; sourceTree = "<group>"; };
 		D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureImporter.swift; sourceTree = "<group>"; };
 		D37E45B9BCBD993ABC7B06C9 /* StoryboardActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardActionRunner.swift; path = "Sources/Creature Console/Controller/Storyboard/StoryboardActionRunner.swift"; sourceTree = SOURCE_ROOT; };
+		DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamixelSensorReportProcessor.swift; sourceTree = "<group>"; };
 		E4FE4831905123F081DB0B90 /* StoryboardTileButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardTileButton.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardTileButton.swift"; sourceTree = SOURCE_ROOT; };
 		F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogRerenderButton.swift; path = "Sources/Creature Console/View/Dialog/DialogRerenderButton.swift"; sourceTree = SOURCE_ROOT; };
 		F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingListEditor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		117C876E2CA0CEFA007B5682 = {
+		117C876E2CA0CEFA007B5682 /* Exceptions for "Creature" folder in "Creature TV" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealth.swift,
@@ -517,7 +517,7 @@
 			);
 			target = 117C86FD2CA0CC81007B5682 /* Creature TV */;
 		};
-		119A44D22E88D8A80053B250 = {
+		119A44D22E88D8A80053B250 /* Exceptions for "Creature" folder in "Creature Console" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealthTests.swift,
@@ -526,7 +526,7 @@
 			);
 			target = 11703D8729DD197F00EF7E3D /* Creature Console */;
 		};
-		119A44D42E88D8AE0053B250 = {
+		119A44D42E88D8AE0053B250 /* Exceptions for "Creature" folder in "Creature Console Tests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CreatureHealthTests.swift,
@@ -538,13 +538,46 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1120F1D92EB03A24000342A3 /* Lightweight Console */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Lightweight Console"; sourceTree = "<group>"; };
-		1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Lightweight ConsoleTests"; sourceTree = "<group>"; };
-		1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Lightweight ConsoleUITests"; sourceTree = "<group>"; };
-		117C86FF2CA0CC81007B5682 /* Creature TV */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Creature TV"; sourceTree = "<group>"; };
-		117C87122CA0CC82007B5682 /* Creature TVTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Creature TVTests"; sourceTree = "<group>"; };
-		117C871C2CA0CC82007B5682 /* Creature TVUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = "Creature TVUITests"; sourceTree = "<group>"; };
-		11E5CE7B2C9FDFB700749F94 /* Creature */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (119A44D22E88D8A80053B250, 119A44D42E88D8AE0053B250, 117C876E2CA0CEFA007B5682, ); path = Creature; sourceTree = "<group>"; };
+		1120F1D92EB03A24000342A3 /* Lightweight Console */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight Console";
+			sourceTree = "<group>";
+		};
+		1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight ConsoleTests";
+			sourceTree = "<group>";
+		};
+		1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Lightweight ConsoleUITests";
+			sourceTree = "<group>";
+		};
+		117C86FF2CA0CC81007B5682 /* Creature TV */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Creature TV";
+			sourceTree = "<group>";
+		};
+		117C87122CA0CC82007B5682 /* Creature TVTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Creature TVTests";
+			sourceTree = "<group>";
+		};
+		117C871C2CA0CC82007B5682 /* Creature TVUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Creature TVUITests";
+			sourceTree = "<group>";
+		};
+		11E5CE7B2C9FDFB700749F94 /* Creature */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				119A44D22E88D8A80053B250 /* Exceptions for "Creature" folder in "Creature Console" target */,
+				119A44D42E88D8AE0053B250 /* Exceptions for "Creature" folder in "Creature Console Tests" target */,
+				117C876E2CA0CEFA007B5682 /* Exceptions for "Creature" folder in "Creature TV" target */,
+			);
+			path = Creature;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1515,17 +1548,28 @@
 		323048998CFAFF61434DF674 /* Stamp Build Number (git SHA) */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
 			name = "Stamp Build Number (git SHA)";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Stamp CFBundleVersion with the current git short SHA\n# The build number always reflects the source it was built from. A committed value\n# can't equal its own commit's SHA, so this is stamped at build time instead.\nset -eu\nGIT_SHA=$(git -C \"${SRCROOT}\" rev-parse --short HEAD 2>/dev/null || echo \"\")\nif [ -z \"${GIT_SHA}\" ]; then\n  echo \"warning: could not determine git short SHA; leaving CFBundleVersion unchanged\"\n  exit 0\nfi\nINFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\nif [ ! -f \"${INFO_PLIST}\" ]; then\n  echo \"warning: Info.plist not found at ${INFO_PLIST}; skipping build-number stamp\"\n  exit 0\nfi\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${GIT_SHA}\" \"${INFO_PLIST}\" \\\n  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${GIT_SHA}\" \"${INFO_PLIST}\"\necho \"Stamped CFBundleVersion = ${GIT_SHA}\"\n";
+			shellScript = (
+				"# Stamp CFBundleVersion with the current git short SHA",
+				"# The build number always reflects the source it was built from. A committed value",
+				"# can't equal its own commit's SHA, so this is stamped at build time instead.",
+				"set -eu",
+				"GIT_SHA=$(git -C \"${SRCROOT}\" rev-parse --short HEAD 2>/dev/null || echo \"\")",
+				"if [ -z \"${GIT_SHA}\" ]; then",
+				"  echo \"warning: could not determine git short SHA; leaving CFBundleVersion unchanged\"",
+				"  exit 0",
+				"fi",
+				"INFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"",
+				"if [ ! -f \"${INFO_PLIST}\" ]; then",
+				"  echo \"warning: Info.plist not found at ${INFO_PLIST}; skipping build-number stamp\"",
+				"  exit 0",
+				"fi",
+				"/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${GIT_SHA}\" \"${INFO_PLIST}\" \\",
+				"  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${GIT_SHA}\" \"${INFO_PLIST}\"",
+				"echo \"Stamped CFBundleVersion = ${GIT_SHA}\"",
+				"",
+			);
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -1810,7 +1854,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		11703D9529DD198000EF7E3D /* Debug */ = {
+		11703D9529DD198000EF7E3D /* Debug configuration for PBXProject "Creature Console" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -1878,7 +1922,7 @@
 			};
 			name = Debug;
 		};
-		11703D9629DD198000EF7E3D /* Release */ = {
+		11703D9629DD198000EF7E3D /* Release configuration for PBXProject "Creature Console" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -1938,7 +1982,7 @@
 			};
 			name = Release;
 		};
-		11703D9829DD198000EF7E3D /* Debug */ = {
+		11703D9829DD198000EF7E3D /* Debug configuration for PBXNativeTarget "Creature Console" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -1947,7 +1991,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = e67f1d5;
+				CURRENT_PROJECT_VERSION = 3428c62;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -1979,7 +2023,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.29.0;
+				MARKETING_VERSION = 2.29.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1992,7 +2036,7 @@
 			};
 			name = Debug;
 		};
-		11703D9929DD198000EF7E3D /* Release */ = {
+		11703D9929DD198000EF7E3D /* Release configuration for PBXNativeTarget "Creature Console" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -2001,7 +2045,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = e67f1d5;
+				CURRENT_PROJECT_VERSION = 3428c62;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -2033,7 +2077,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.29.0;
+				MARKETING_VERSION = 2.29.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2047,7 +2091,7 @@
 			};
 			name = Release;
 		};
-		11754B742C0050AF001A6C83 /* Debug */ = {
+		11754B742C0050AF001A6C83 /* Debug configuration for PBXNativeTarget "Creature Console Tests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2072,7 +2116,7 @@
 			};
 			name = Debug;
 		};
-		11754B752C0050AF001A6C83 /* Release */ = {
+		11754B752C0050AF001A6C83 /* Release configuration for PBXNativeTarget "Creature Console Tests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2097,14 +2141,14 @@
 			};
 			name = Release;
 		};
-		117C87212CA0CC82007B5682 /* Debug */ = {
+		117C87212CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TV" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = e67f1d5;
+				CURRENT_PROJECT_VERSION = 3428c62;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -2117,7 +2161,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.29.0;
+				MARKETING_VERSION = 2.29.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2129,14 +2173,14 @@
 			};
 			name = Debug;
 		};
-		117C87222CA0CC82007B5682 /* Release */ = {
+		117C87222CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TV" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = e67f1d5;
+				CURRENT_PROJECT_VERSION = 3428c62;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -2149,7 +2193,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.29.0;
+				MARKETING_VERSION = 2.29.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2161,7 +2205,7 @@
 			};
 			name = Release;
 		};
-		117C87232CA0CC82007B5682 /* Debug */ = {
+		117C87232CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TVTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2182,7 +2226,7 @@
 			};
 			name = Debug;
 		};
-		117C87242CA0CC82007B5682 /* Release */ = {
+		117C87242CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TVTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2203,7 +2247,7 @@
 			};
 			name = Release;
 		};
-		117C87252CA0CC82007B5682 /* Debug */ = {
+		117C87252CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TVUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -2223,7 +2267,7 @@
 			};
 			name = Debug;
 		};
-		117C87262CA0CC82007B5682 /* Release */ = {
+		117C87262CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TVUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -2249,48 +2293,48 @@
 		11703D8329DD197F00EF7E3D /* Build configuration list for PBXProject "Creature Console" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				11703D9529DD198000EF7E3D /* Debug */,
-				11703D9629DD198000EF7E3D /* Release */,
+				11703D9529DD198000EF7E3D /* Debug configuration for PBXProject "Creature Console" */,
+				11703D9629DD198000EF7E3D /* Release configuration for PBXProject "Creature Console" */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		11703D9729DD198000EF7E3D /* Build configuration list for PBXNativeTarget "Creature Console" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				11703D9829DD198000EF7E3D /* Debug */,
-				11703D9929DD198000EF7E3D /* Release */,
+				11703D9829DD198000EF7E3D /* Debug configuration for PBXNativeTarget "Creature Console" */,
+				11703D9929DD198000EF7E3D /* Release configuration for PBXNativeTarget "Creature Console" */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		11754B732C0050AF001A6C83 /* Build configuration list for PBXNativeTarget "Creature Console Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				11754B742C0050AF001A6C83 /* Debug */,
-				11754B752C0050AF001A6C83 /* Release */,
+				11754B742C0050AF001A6C83 /* Debug configuration for PBXNativeTarget "Creature Console Tests" */,
+				11754B752C0050AF001A6C83 /* Release configuration for PBXNativeTarget "Creature Console Tests" */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		117C87272CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TV" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				117C87212CA0CC82007B5682 /* Debug */,
-				117C87222CA0CC82007B5682 /* Release */,
+				117C87212CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TV" */,
+				117C87222CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TV" */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		117C87282CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TVTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				117C87232CA0CC82007B5682 /* Debug */,
-				117C87242CA0CC82007B5682 /* Release */,
+				117C87232CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TVTests" */,
+				117C87242CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TVTests" */,
 			);
 			defaultConfigurationName = Debug;
 		};
 		117C87292CA0CC82007B5682 /* Build configuration list for PBXNativeTarget "Creature TVUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				117C87252CA0CC82007B5682 /* Debug */,
-				117C87262CA0CC82007B5682 /* Release */,
+				117C87252CA0CC82007B5682 /* Debug configuration for PBXNativeTarget "Creature TVUITests" */,
+				117C87262CA0CC82007B5682 /* Release configuration for PBXNativeTarget "Creature TVUITests" */,
 			);
 			defaultConfigurationName = Debug;
 		};
