@@ -33,9 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        destination:
-          - platform=macOS
-          - platform=iOS Simulator,name=iPhone 16 Pro
+        platform: [macOS, iOS]
 
     steps:
       - name: Checkout code
@@ -46,10 +44,28 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Resolve test destination
+        id: dest
+        run: |
+          if [ "${{ matrix.platform }}" = "macOS" ]; then
+            echo "destination=platform=macOS" >> "$GITHUB_OUTPUT"
+          else
+            # Pre-installed simulator device names vary by runner image, so pick an
+            # available iPhone by UDID instead of hardcoding a model that may not exist.
+            udid=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { print $2; exit }')
+            if [ -z "$udid" ]; then
+              echo "No available iPhone simulator found" >&2
+              xcrun simctl list devices available >&2
+              exit 1
+            fi
+            echo "Using iPhone simulator $udid"
+            echo "destination=platform=iOS Simulator,id=$udid" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run tests
         run: |
           xcodebuild test \
             -project "Creature Console.xcodeproj" \
             -scheme "Creature Console" \
-            -destination "${{ matrix.destination }}" \
+            -destination "${{ steps.dest.outputs.destination }}" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
