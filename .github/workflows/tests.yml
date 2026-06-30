@@ -26,9 +26,12 @@ jobs:
 
   xcode-tests:
     name: Xcode Tests
-    runs-on: macos-latest
+    # The app targets macOS 26 / iOS 26, so native macOS tests need a macOS 26 host
+    # (macos-latest is still macOS 15 mid-migration and can't run a macOS 26 test bundle).
+    runs-on: macos-26
 
     strategy:
+      fail-fast: false
       matrix:
         destination:
           - platform=macOS
