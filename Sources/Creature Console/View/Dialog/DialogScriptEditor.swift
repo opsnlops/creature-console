@@ -94,7 +94,8 @@ struct DialogScriptEditor: View {
                     // first save (an unsaved scene renders inline). They appear once there's a turn.
                     if !script.turns.isEmpty {
                         DialogPreviewPanel(
-                            turns: script.turns, selectedGenerationId: $selectedGenerationId)
+                            turns: script.turns, title: script.title,
+                            selectedGenerationId: $selectedGenerationId)
                         switch mode {
                         case .standalone:
                             DialogRenderPanel(

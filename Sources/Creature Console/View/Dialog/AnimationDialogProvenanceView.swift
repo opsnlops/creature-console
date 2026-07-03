@@ -57,7 +57,9 @@ struct AnimationDialogProvenanceView: View {
                 // from. The 17-channel WAV is only available via the preview endpoint (turns-based),
                 // so we drive all of it off the CoW snapshot.
                 if let turns = metadata.sourceScriptTurns, !turns.isEmpty {
-                    DialogPreviewPanel(turns: turns, selectedGenerationId: $selectedGenerationId)
+                    DialogPreviewPanel(
+                        turns: turns, title: metadata.title,
+                        selectedGenerationId: $selectedGenerationId)
                 }
             }
         }

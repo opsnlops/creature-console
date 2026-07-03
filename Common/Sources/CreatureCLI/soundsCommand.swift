@@ -193,7 +193,9 @@ extension CreatureCLI {
                         printTable(
                             sounds,
                             columns: [
-                                TableColumn(title: "Name", valueProvider: { $0.fileName }),
+                                // Lead with the embedded title when there is one, so dialog
+                                // renders aren't just UUIDs.
+                                TableColumn(title: "Name", valueProvider: { $0.displayName }),
                                 TableColumn(
                                     title: "File Size",
                                     valueProvider: {
@@ -201,8 +203,8 @@ extension CreatureCLI {
                                     }
                                 ),
                                 TableColumn(
-                                    title: "Has Transcript",
-                                    valueProvider: { $0.transcript.isEmpty ? "" : "✅" }
+                                    title: "Has Text",
+                                    valueProvider: { $0.hasText ? "✅" : "" }
                                 ),
                                 TableColumn(
                                     title: "Has Lip Sync",

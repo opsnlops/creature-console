@@ -12,29 +12,37 @@ public struct DialogPreviewRequest: Encodable, Sendable {
     public var turns: [DialogScriptTurn]
     public var generationId: DialogGenerationIdentifier?
     public var regenerate: Bool?
+    /// Optional scene title, embedded in the provenance of editor exports (#51).
+    /// Not part of the cache key.
+    public var title: String?
 
     enum CodingKeys: String, CodingKey {
         case turns
         case generationId = "generation_id"
         case regenerate
+        case title
     }
 
     public init(
         turns: [DialogScriptTurn],
         generationId: DialogGenerationIdentifier? = nil,
-        regenerate: Bool? = nil
+        regenerate: Bool? = nil,
+        title: String? = nil
     ) {
         self.turns = turns
         self.generationId = generationId
         self.regenerate = regenerate
+        self.title = title
     }
 
     public static func fromTurns(
         _ turns: [DialogScriptTurn],
         generationId: DialogGenerationIdentifier? = nil,
-        regenerate: Bool? = nil
+        regenerate: Bool? = nil,
+        title: String? = nil
     ) -> DialogPreviewRequest {
-        DialogPreviewRequest(turns: turns, generationId: generationId, regenerate: regenerate)
+        DialogPreviewRequest(
+            turns: turns, generationId: generationId, regenerate: regenerate, title: title)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -43,6 +51,10 @@ public struct DialogPreviewRequest: Encodable, Sendable {
         try container.encodeIfPresent(
             generationId?.uuidString.lowercased(), forKey: .generationId)
         try container.encodeIfPresent(regenerate, forKey: .regenerate)
+        // Only send a non-empty title (avoids overwriting a stored title with "").
+        if let title, !title.isEmpty {
+            try container.encode(title, forKey: .title)
+        }
     }
 }
 

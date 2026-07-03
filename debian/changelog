@@ -1,3 +1,14 @@
+creature-cli (2.32.0) unstable; urgency=medium
+
+  * 'sounds list' is richer: shows the embedded scene title instead of a bare
+    UUID for dialog renders, and its "Has Text" column now reflects embedded
+    (iXML) script text, not just a sidecar transcript (creature-server 3.25.0+).
+  * Editor exports now embed the scene title in provenance, and dialog WAVs
+    carry a complete per-channel iXML track list so tools like Wave Agent show
+    the creature names.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.31.0) unstable; urgency=medium
 
   * New 'sounds provenance <name>' command: prints the script provenance

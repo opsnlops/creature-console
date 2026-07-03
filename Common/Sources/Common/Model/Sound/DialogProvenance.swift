@@ -86,7 +86,12 @@ public struct DialogProvenance: Sendable, Equatable {
             if let channelString = field("CHANNEL_INDEX", in: block),
                 let channel = Int(channelString)
             {
-                tracks.append(Track(channel: channel, name: field("NAME", in: block) ?? ""))
+                let name = field("NAME", in: block) ?? ""
+                // A complete poly-WAV TRACK_LIST names every channel and leaves silent
+                // lanes blank; only surface the named ones in the UI.
+                if !name.isEmpty {
+                    tracks.append(Track(channel: channel, name: name))
+                }
             }
             searchStart = end.upperBound
         }

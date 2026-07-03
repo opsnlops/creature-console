@@ -54,6 +54,26 @@ struct DialogProvenanceTests {
         #expect(p.tracks.map(\.name) == ["Beaky", "Pip", "BGM"])
     }
 
+    @Test("skips silent (blank-name) lanes from a complete poly track list")
+    func skipsBlankTrackNames() throws {
+        // A full 17-channel export names every lane, silent ones blank.
+        let xml = """
+            <BWFXML>
+              <TRACK_LIST>
+                <TRACK_COUNT>4</TRACK_COUNT>
+                <TRACK><CHANNEL_INDEX>1</CHANNEL_INDEX><NAME>Beaky</NAME><INTERLEAVE_INDEX>1</INTERLEAVE_INDEX></TRACK>
+                <TRACK><CHANNEL_INDEX>2</CHANNEL_INDEX><NAME></NAME><INTERLEAVE_INDEX>2</INTERLEAVE_INDEX></TRACK>
+                <TRACK><CHANNEL_INDEX>3</CHANNEL_INDEX><NAME></NAME><INTERLEAVE_INDEX>3</INTERLEAVE_INDEX></TRACK>
+                <TRACK><CHANNEL_INDEX>17</CHANNEL_INDEX><NAME>BGM</NAME><INTERLEAVE_INDEX>17</INTERLEAVE_INDEX></TRACK>
+              </TRACK_LIST>
+              <USER><DIALOG_SCRIPT></DIALOG_SCRIPT></USER>
+            </BWFXML>
+            """
+        let p = try #require(DialogProvenance(iXML: xml))
+        #expect(p.tracks.map(\.name) == ["Beaky", "BGM"])
+        #expect(p.tracks.map(\.channel) == [1, 17])
+    }
+
     @Test("returns nil for a non-BWFXML string")
     func rejectsNonBwfxml() {
         #expect(DialogProvenance(iXML: "not xml at all") == nil)

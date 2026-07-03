@@ -41,7 +41,18 @@ struct SoundFileListView: View {
                 if !sounds.isEmpty {
                     Table(sounds, selection: $selection) {
                         TableColumn("File Name") { s in
-                            Text(s.id)
+                            if s.title.isEmpty {
+                                Text(s.id)
+                            } else {
+                                // A dialog render: lead with its embedded title, keep the
+                                // (UUID) file name as a quiet subtitle.
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(s.title)
+                                    Text(s.id)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                         .width(min: 300, ideal: 500)
 
@@ -51,7 +62,8 @@ struct SoundFileListView: View {
                         .width(min: 120)
 
                         TableColumn("Text?") { s in
-                            Text(s.transcript.isEmpty ? "" : "✅")
+                            // ✅ for a sidecar transcript OR embedded (iXML) script text.
+                            Text(s.transcript.isEmpty && !s.hasEmbeddedScript ? "" : "✅")
                         }
                         .width(100)
 

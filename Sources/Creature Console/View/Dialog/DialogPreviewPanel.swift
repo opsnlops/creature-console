@@ -18,6 +18,9 @@ struct DialogPreviewPanel: View {
         subsystem: "io.opsnlops.CreatureConsole", category: "DialogPreviewPanel")
 
     let turns: [DialogScriptTurn]
+    /// Scene title, embedded in the provenance of editor exports (#51). Empty when
+    /// the editor has no title yet.
+    var title: String = ""
     /// The take chosen here is shared with the render panel so a render uses exactly what was
     /// auditioned. `nil` means "latest / server decides".
     @Binding var selectedGenerationId: DialogGenerationIdentifier?
@@ -239,7 +242,8 @@ struct DialogPreviewPanel: View {
         let request = DialogPreviewRequest.fromTurns(
             turns,
             generationId: regenerate ? nil : selectedGenerationId,
-            regenerate: regenerate ? true : nil)
+            regenerate: regenerate ? true : nil,
+            title: title)
         Task {
             let result = await resolveMeta(request)
             switch result {
@@ -314,7 +318,8 @@ struct DialogPreviewPanel: View {
         // Ensure we have meta (and therefore an audio URL) for the current selection.
         isWorking = true
         statusMessage = "Fetching mono WAV…"
-        let request = DialogPreviewRequest.fromTurns(turns, generationId: selectedGenerationId)
+        let request = DialogPreviewRequest.fromTurns(
+            turns, generationId: selectedGenerationId, title: title)
         Task {
             let metaResult = await resolveMeta(request)
             guard case .success(let dto) = metaResult,
@@ -347,7 +352,8 @@ struct DialogPreviewPanel: View {
         // then let the server encode that take's cached PCM to Ogg/Opus.
         isWorking = true
         statusMessage = "Encoding shareable Ogg…"
-        let request = DialogPreviewRequest.fromTurns(turns, generationId: selectedGenerationId)
+        let request = DialogPreviewRequest.fromTurns(
+            turns, generationId: selectedGenerationId, title: title)
         Task {
             let metaResult = await resolveMeta(request)
             guard case .success(let dto) = metaResult,
@@ -381,7 +387,8 @@ struct DialogPreviewPanel: View {
     private func exportMultichannel() {
         isWorking = true
         statusMessage = "Rendering 17-channel WAV…"
-        let request = DialogPreviewRequest.fromTurns(turns, generationId: selectedGenerationId)
+        let request = DialogPreviewRequest.fromTurns(
+            turns, generationId: selectedGenerationId, title: title)
         Task {
             // Always a job now (server 3.23.0) — long scenes make enormous WAVs. Watch
             // it, then download the assembled file from the ad-hoc sound bucket.
