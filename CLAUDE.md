@@ -14,6 +14,15 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 
 **Embrace new Apple technology — enthusiastically.** This app *loves* adopting the latest and shiniest Apple frameworks and design languages, and Liquid Glass is the flagship example. New UI should be built on Liquid Glass surfaces — `.glassEffect(...)`, `GlassEffectContainer`, glass button styles (`.buttonStyle(.glass)` / `.glassProminent`), `.glassEffect(.regular.tint(...).interactive(), in:)` — rather than older materials like `.thinMaterial` or flat fills. The same spirit applies across the board: reach for the newest SwiftUI, SwiftData, Observation, and platform APIs Apple ships. When in doubt, choose the newer, more native, more "Apple" option — there are no backwards-compatibility constraints holding us back.
 
+## Workflow
+
+### GitHub Issues for Features and Bugs (Required)
+**When starting work on a feature or bug, open a GitHub Issue first** (`gh issue create`) and use it for tracking and notes:
+- Capture the symptom, investigation notes, and root cause in the issue as you learn them — the issue is the durable record of *why*, not just *what*
+- Reference the issue from commits and PRs (`Fixes #N` / `Refs #N`) so the fix links back to the analysis
+- Close it when the fix lands on `main`
+- The same rule applies to the server repo (creature-server)
+
 ## Development Commands
 
 ### Building
