@@ -89,16 +89,19 @@ import UniformTypeIdentifiers
     }
 
     /// A menu-item / button label that triggers a `shareableSoundFlow` hosted on an
-    /// ancestor view. Keeps every surface's wording and icon identical.
+    /// ancestor view. Keeps every surface's icon and behavior identical; the title is
+    /// adjustable so surfaces that aren't obviously "a sound" (like an animation row)
+    /// can say what's actually being shared.
     struct ShareableSoundButton: View {
         let fileName: String
+        var title: String = "Generate Shareable Version…"
         @Binding var trigger: String?
 
         var body: some View {
             Button {
                 trigger = fileName
             } label: {
-                Label("Generate Shareable Version…", systemImage: "square.and.arrow.up")
+                Label(title, systemImage: "square.and.arrow.up")
             }
             .disabled(fileName.isEmpty)
         }
@@ -116,6 +119,7 @@ import UniformTypeIdentifiers
 
     struct ShareableSoundButton: View {
         let fileName: String
+        var title: String = "Generate Shareable Version…"
         @Binding var trigger: String?
 
         var body: some View {

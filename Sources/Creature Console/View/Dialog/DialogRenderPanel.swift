@@ -160,7 +160,9 @@ struct DialogRenderPanel: View {
             Button {
                 shareRenderedSound(result)
             } label: {
-                Label("Generate Shareable Version…", systemImage: "square.and.arrow.up")
+                Label(
+                    "Generate Shareable Version of Sound…",
+                    systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.bordered)
             .controlSize(.small)

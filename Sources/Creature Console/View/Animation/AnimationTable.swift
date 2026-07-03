@@ -167,7 +167,9 @@ struct AnimationTable: View {
                         .disabled(!hasSound)
 
                         ShareableSoundButton(
-                            fileName: soundFileName, trigger: $animationSoundToShare)
+                            fileName: soundFileName,
+                            title: "Generate Shareable Version of Sound…",
+                            trigger: $animationSoundToShare)
 
                         let canGenerateLipSync: Bool = {
                             guard let id = targetId,
