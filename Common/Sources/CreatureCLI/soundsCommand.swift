@@ -39,9 +39,14 @@ protocol AdHocSoundListing: Sendable {
     func soundURL(for fileName: String) async -> Result<URL, ServerError>
 }
 
+@preconcurrency protocol ShareableSoundURLProviding: Sendable {
+    func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError>
+}
+
 typealias SoundCommandClient = SoundListing & SoundPlaying & LipSyncGenerating
     & LipSyncUploadGenerating
     & AdHocSoundListing & AdHocSoundURLProviding & SoundURLProviding
+    & ShareableSoundURLProviding
 
 extension CreatureServerClient: SoundListing {}
 extension CreatureServerClient: SoundPlaying {}
@@ -63,6 +68,11 @@ extension CreatureServerClient: AdHocSoundURLProviding {
 extension CreatureServerClient: SoundURLProviding {
     public func soundURL(for fileName: String) async -> Result<URL, ServerError> {
         getSoundURL(fileName)
+    }
+}
+extension CreatureServerClient: ShareableSoundURLProviding {
+    public func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError> {
+        getShareableSoundURL(fileName)
     }
 }
 
@@ -132,6 +142,7 @@ extension CreatureCLI {
                 GenerateLipSync.self,
                 GenerateLipSyncFromFile.self,
                 Download.self,
+                Share.self,
                 AdHoc.self,
             ]
         )
@@ -453,6 +464,55 @@ extension CreatureCLI {
                         globalOptions: globalOptions
                     ) { server in
                         await server.soundURL(for: fileName)
+                    }
+                }
+            }
+        }
+
+        struct Share: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Download a shareable Ogg/Opus version of a sound file",
+                discussion:
+                    "The server finds the file (permanent store first, then ad-hoc), downmixes "
+                    + "multi-channel WAVs to mono, and encodes at 96 kbps — perfect for Telegram "
+                    + "and Slack instead of a giant WAV."
+            )
+
+            @Argument(help: "Name of the sound file to share (e.g. goofy.wav)")
+            var fileName: String
+
+            @Option(
+                name: .shortAndLong,
+                help:
+                    "Destination file or directory. Defaults to the current directory with the .ogg file name."
+            )
+            var output: String?
+
+            @Flag(
+                name: .customLong("overwrite"),
+                help: "Replace the destination file if it already exists."
+            )
+            var overwrite = false
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let oggName: String
+                if let dotIndex = fileName.lastIndex(of: ".") {
+                    oggName = String(fileName[..<dotIndex]) + ".ogg"
+                } else {
+                    oggName = fileName + ".ogg"
+                }
+                try await tracedRun("sounds.share", config: globalOptions) {
+                    try await Sounds.performDownload(
+                        requestedName: fileName,
+                        defaultFileName: oggName,
+                        output: output,
+                        overwrite: overwrite,
+                        globalOptions: globalOptions
+                    ) { server in
+                        await server.shareableSoundURL(for: fileName)
                     }
                 }
             }

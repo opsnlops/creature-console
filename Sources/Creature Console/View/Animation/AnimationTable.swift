@@ -32,6 +32,7 @@ struct AnimationTable: View {
     @State private var alertTitle = "Unable to load Animations"
     @State private var alertMessage = ""
     @State private var selection: AnimationIdentifier? = nil
+    @State private var animationSoundToShare: String? = nil
 
     @State private var loadAnimationTask: Task<Void, Never>? = nil
     @State private var playAnimationTask: Task<Void, Never>? = nil
@@ -151,18 +152,22 @@ struct AnimationTable: View {
                         .disabled(!hasSelection)
 
                         // Sound file action (kept as a stub; disabled when no sound file)
-                        let hasSound: Bool = {
+                        let soundFileName: String = {
                             guard let id = targetId,
                                 let md = animations.first(where: { $0.id == id })
-                            else { return false }
-                            return !md.soundFile.isEmpty
+                            else { return "" }
+                            return md.soundFile
                         }()
+                        let hasSound = !soundFileName.isEmpty
                         Button {
                             print("play sound file selected")
                         } label: {
                             Label("Play Sound File", systemImage: "music.quarternote.3")
                         }
                         .disabled(!hasSound)
+
+                        ShareableSoundButton(
+                            fileName: soundFileName, trigger: $animationSoundToShare)
 
                         let canGenerateLipSync: Bool = {
                             guard let id = targetId,
@@ -207,6 +212,7 @@ struct AnimationTable: View {
                         }
                         .disabled(targetId == nil || isDeletingAnimation || isRenamingAnimation)
                     }
+                    .shareableSoundFlow(fileName: $animationSoundToShare)
                 } else {
                     ProgressView("Loading animations...")
                         .padding()

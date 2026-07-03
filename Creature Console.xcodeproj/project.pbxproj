@@ -209,6 +209,8 @@
 		11F0E49C2E90899C0085918D /* SoundImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49B2E90899C0085918D /* SoundImporter.swift */; };
 		11F0E49D2E90899C0085918D /* SoundImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49B2E90899C0085918D /* SoundImporter.swift */; };
 		11F0E4A02E9089AD0085918D /* SoundFileListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49E2E9089AD0085918D /* SoundFileListView.swift */; };
+		11AB0000000000000000B002 /* ShareableSoundButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000B001 /* ShareableSoundButton.swift */; };
+		11AB0000000000000000B003 /* ShareableSoundButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000B001 /* ShareableSoundButton.swift */; };
 		11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5629EA7DF300078790 /* SettingsView.swift */; };
 		11F4BA5929EA7E4A00078790 /* NetworkSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */; };
 		11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */; };
@@ -248,7 +250,7 @@
 		B0A5226481B86C3BEFB8D1CE /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
 		B0EB4DDC9872D02FBC869667 /* StoryboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54614CD9A93C664522211643 /* StoryboardModel.swift */; };
 		BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */; };
-		C1B849B58E8EAD7B9E0510B9 /* WavFileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211450B80E5BBFE2141677F /* WavFileDocument.swift */; };
+		C1B849B58E8EAD7B9E0510B9 /* AudioFileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211450B80E5BBFE2141677F /* AudioFileDocument.swift */; };
 		D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */; };
 		D2D44211BDB3B0F545B00C6E /* DialogScriptTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */; };
 		DA17A0010000000000000002 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
@@ -419,6 +421,7 @@
 		11F0E4982E9089970085918D /* SoundModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundModel.swift; sourceTree = "<group>"; };
 		11F0E49B2E90899C0085918D /* SoundImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundImporter.swift; sourceTree = "<group>"; };
 		11F0E49E2E9089AD0085918D /* SoundFileListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundFileListView.swift; sourceTree = "<group>"; };
+		11AB0000000000000000B001 /* ShareableSoundButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableSoundButton.swift; sourceTree = "<group>"; };
 		11F4BA5629EA7DF300078790 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5829EA7E4A00078790 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		11F4BA5A29EA7EA200078790 /* JoystickSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickSettingsView.swift; sourceTree = "<group>"; };
@@ -499,7 +502,7 @@
 		B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlPanel.swift; sourceTree = "<group>"; };
 		B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternListEditor.swift; sourceTree = "<group>"; };
 		BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixturesTable.swift; sourceTree = "<group>"; };
-		C211450B80E5BBFE2141677F /* WavFileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WavFileDocument.swift; path = "Sources/Creature Console/View/Dialog/WavFileDocument.swift"; sourceTree = SOURCE_ROOT; };
+		C211450B80E5BBFE2141677F /* AudioFileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioFileDocument.swift; path = "Sources/Creature Console/View/Dialog/AudioFileDocument.swift"; sourceTree = SOURCE_ROOT; };
 		D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSchema.swift; sourceTree = "<group>"; };
 		D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureImporter.swift; sourceTree = "<group>"; };
 		D37E45B9BCBD993ABC7B06C9 /* StoryboardActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardActionRunner.swift; path = "Sources/Creature Console/Controller/Storyboard/StoryboardActionRunner.swift"; sourceTree = SOURCE_ROOT; };
@@ -809,7 +812,7 @@
 				11F1757029DD42D800ADD5FB /* Frameworks */,
 				39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */,
 				2104407DB3CA7408D07766E3 /* DialogScriptImporter.swift */,
-				C211450B80E5BBFE2141677F /* WavFileDocument.swift */,
+				C211450B80E5BBFE2141677F /* AudioFileDocument.swift */,
 				AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */,
 				54784797A276DA212FB115FD /* DialogPreviewPanel.swift */,
 				6AE34D7DB49651F51F60C52A /* DialogRenderPanel.swift */,
@@ -1063,6 +1066,7 @@
 			isa = PBXGroup;
 			children = (
 				11F0E49E2E9089AD0085918D /* SoundFileListView.swift */,
+				11AB0000000000000000B001 /* ShareableSoundButton.swift */,
 				11C5B8482C0D57F40037E70A /* CreateNewCreatureSoundView.swift */,
 			);
 			path = Sounds;
@@ -1617,6 +1621,7 @@
 				1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */,
 				112AABF72EA894D9000F4BC2 /* JobStatusStore.swift in Sources */,
 				11F0E4A02E9089AD0085918D /* SoundFileListView.swift in Sources */,
+				11AB0000000000000000B002 /* ShareableSoundButton.swift in Sources */,
 				114B7E352E90B8B000F5D1EC /* PlaylistItemModel.swift in Sources */,
 				114B7E362E90B8B000F5D1EC /* PlaylistModel.swift in Sources */,
 				114B7E372E90B8B000F5D1EC /* PlaylistImporter.swift in Sources */,
@@ -1698,7 +1703,7 @@
 				11E53CC62E888F3C00C17F16 /* RootView.swift in Sources */,
 				A93D4886BE8CC2A68D8DA3E4 /* DialogScriptModel.swift in Sources */,
 				57C6467BA3F27D9B1BCC4229 /* DialogScriptImporter.swift in Sources */,
-				C1B849B58E8EAD7B9E0510B9 /* WavFileDocument.swift in Sources */,
+				C1B849B58E8EAD7B9E0510B9 /* AudioFileDocument.swift in Sources */,
 				D2D44211BDB3B0F545B00C6E /* DialogScriptTable.swift in Sources */,
 				5B9C4C59AA4A60087B5A68FF /* DialogPreviewPanel.swift in Sources */,
 				66CC489E8DB59A23AE379228 /* DialogRenderPanel.swift in Sources */,
@@ -1788,6 +1793,7 @@
 				113D00552EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */,
 				113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
 				113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
+				11AB0000000000000000B003 /* ShareableSoundButton.swift in Sources */,
 				11C7F0A42F2A6D2C009A1B2C /* SACNUniverseMonitorView.swift in Sources */,
 				11F9A0122F0C123400123456 /* TVSoundboardView.swift in Sources */,
 				11F9A0142F0C123400123456 /* TVAnimationTriggerView.swift in Sources */,
@@ -2027,7 +2033,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.29.2;
+				MARKETING_VERSION = 2.30.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2081,7 +2087,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.29.2;
+				MARKETING_VERSION = 2.30.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2165,7 +2171,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.29.2;
+				MARKETING_VERSION = 2.30.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2197,7 +2203,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.29.2;
+				MARKETING_VERSION = 2.30.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

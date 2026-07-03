@@ -30,6 +30,7 @@ struct SoundFileListView: View {
     @State private var showRegenerateConfirmation = false
     @State private var observedJobInfo: JobStatusStore.JobInfo?
     @State private var jobEventsTask: Task<Void, Never>?
+    @State private var soundToShare: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -87,6 +88,8 @@ struct SoundFileListView: View {
                             .disabled(sound.transcript.isEmpty)
 
                             if isWavFile {
+                                ShareableSoundButton(fileName: sound.id, trigger: $soundToShare)
+
                                 if sound.lipsync.isEmpty {
                                     Button {
                                         startLipSyncGeneration(for: sound.id, allowOverwrite: false)
@@ -109,6 +112,7 @@ struct SoundFileListView: View {
                             }
                         }
                     }
+                    .shareableSoundFlow(fileName: $soundToShare)
                 } else {
                     ContentUnavailableView {
                         Label("No Sounds", systemImage: "speaker.wave.2")

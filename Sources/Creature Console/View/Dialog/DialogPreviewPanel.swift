@@ -140,7 +140,7 @@ struct DialogPreviewPanel: View {
         }
         .fileExporter(
             isPresented: $showExporter,
-            document: WavFileDocument(data: exportData ?? Data()),
+            document: AudioFileDocument(data: exportData ?? Data()),
             contentType: .wav,
             defaultFilename: exportFilename
         ) { result in

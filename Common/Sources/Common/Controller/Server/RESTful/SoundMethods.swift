@@ -175,4 +175,59 @@ extension CreatureServerClient {
         return .success(url)
     }
 
+    /**
+     Returns the URL of the shareable Ogg/Opus rendition of a sound file (the server
+     searches the permanent store, then the ad-hoc store).
+     */
+    public func getShareableSoundURL(_ fileName: String) -> Result<URL, ServerError> {
+
+        logger.debug("attempting to get shareable sound URL for \(fileName)")
+
+        guard let encodedName = urlEncode(fileName),
+            let url = URL(string: makeBaseURL(.http) + "/sound/shareable/" + encodedName)
+        else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+
+        logger.debug("Shareable sound URL: \(url)")
+        return .success(url)
+    }
+
+    /// A downloaded shareable rendition of a sound, ready to write to disk.
+    public struct ShareableSound: Sendable {
+        public let data: Data
+        public let suggestedFilename: String
+    }
+
+    /**
+     Download a shareable Ogg/Opus rendition of a sound file.
+    
+     The server looks in the permanent sound store first, then the ad-hoc store,
+     downmixes multi-channel WAVs to mono, and encodes at 96 kbps.
+     */
+    public func downloadShareableSound(fileName: String) async -> Result<
+        ShareableSound, ServerError
+    > {
+
+        logger.debug("attempting to download a shareable version of \(fileName)")
+
+        guard let encodedName = urlEncode(fileName),
+            let url = URL(string: makeBaseURL(.http) + "/sound/shareable/" + encodedName)
+        else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await fetchDataResponse(url).map { response in
+            let fallback: String
+            if let dotIndex = fileName.lastIndex(of: ".") {
+                fallback = String(fileName[..<dotIndex]) + ".ogg"
+            } else {
+                fallback = fileName + ".ogg"
+            }
+            let name = parseFilenameFromContentDisposition(response.contentDisposition) ?? fallback
+            return ShareableSound(data: response.data, suggestedFilename: name)
+        }
+    }
+
 }
