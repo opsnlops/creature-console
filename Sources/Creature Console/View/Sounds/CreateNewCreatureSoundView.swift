@@ -159,15 +159,41 @@ struct CreateNewCreatureSoundView: View {
                     currentAction = "saving"
                 }
 
+                // Server 3.23.0+: sound creation is an async job (long text takes a
+                // while). Watch it via the shared per-job stream.
                 let saveResult = await server.createCreatureSpeechSoundFile(
                     creatureId: creatureId, title: title, text: text)
 
                 switch saveResult {
-                case .success(let result):
-                    logger.debug("Success!")
-
-                    DispatchQueue.main.async {
-                        soundFileName = result.soundFileName
+                case .success(let job):
+                    await JobStatusStore.shared.seedQueued(job)
+                    for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
+                        switch event {
+                        case .updated:
+                            continue
+                        case .terminal(let info):
+                            await MainActor.run {
+                                if info.status == .completed,
+                                    let result = info.result,
+                                    let data = result.data(using: .utf8),
+                                    let response = try? JSONDecoder().decode(
+                                        CreatureSpeechResponseDTO.self, from: data)
+                                {
+                                    logger.debug("Success!")
+                                    soundFileName = response.soundFileName
+                                } else {
+                                    alertMessage =
+                                        info.result
+                                        ?? "The sound file job failed on the server."
+                                    showErrorAlert = true
+                                }
+                            }
+                        case .removed:
+                            await MainActor.run {
+                                alertMessage = "The sound file job was removed before finishing."
+                                showErrorAlert = true
+                            }
+                        }
                     }
 
                 case .failure(let error):

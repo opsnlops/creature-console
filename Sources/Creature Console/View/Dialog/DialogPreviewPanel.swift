@@ -188,6 +188,50 @@ struct DialogPreviewPanel: View {
 
     // MARK: - Actions
 
+    /// Resolve preview meta, transparently riding the generation job when the server
+    /// queues one (fresh takes / long scenes). Cache hits return immediately; queued
+    /// generations publish progress into `statusMessage` and resolve from the job's
+    /// completion result.
+    private func resolveMeta(_ request: DialogPreviewRequest) async -> Result<
+        DialogPreviewMetaDTO, ServerError
+    > {
+        switch await server.dialogPreviewMeta(request) {
+        case .failure(let error):
+            return .failure(error)
+        case .success(.meta(let dto)):
+            return .success(dto)
+        case .success(.queued(let job)):
+            await JobStatusStore.shared.seedQueued(job)
+            for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
+                switch event {
+                case .updated(let info):
+                    let percent = Int((info.progress ?? 0) * 100)
+                    await MainActor.run { statusMessage = "Generating voices… \(percent)%" }
+                case .terminal(let info):
+                    guard info.status == .completed else {
+                        return .failure(
+                            .serverError(
+                                info.result ?? "The preview generation failed on the server."))
+                    }
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .iso8601
+                    guard let result = info.result, let data = result.data(using: .utf8),
+                        let dto = try? decoder.decode(DialogPreviewMetaDTO.self, from: data)
+                    else {
+                        return .failure(
+                            .dataFormatError(
+                                "The preview job finished but its result could not be decoded."))
+                    }
+                    return .success(dto)
+                case .removed:
+                    return .failure(
+                        .serverError("The preview job was removed before it finished."))
+                }
+            }
+            return .failure(.serverError("The preview job stream ended unexpectedly."))
+        }
+    }
+
     private func preview(regenerate: Bool) {
         guard turnsAreReady else { return }
         isWorking = true
@@ -197,7 +241,7 @@ struct DialogPreviewPanel: View {
             generationId: regenerate ? nil : selectedGenerationId,
             regenerate: regenerate ? true : nil)
         Task {
-            let result = await server.dialogPreviewMeta(request)
+            let result = await resolveMeta(request)
             switch result {
             case .success(let dto):
                 await MainActor.run {
@@ -272,7 +316,7 @@ struct DialogPreviewPanel: View {
         statusMessage = "Fetching mono WAV…"
         let request = DialogPreviewRequest.fromTurns(turns, generationId: selectedGenerationId)
         Task {
-            let metaResult = await server.dialogPreviewMeta(request)
+            let metaResult = await resolveMeta(request)
             guard case .success(let dto) = metaResult,
                 let url = server.makeAbsoluteURL(fromRelativePath: dto.audioUrl)
             else {
@@ -305,7 +349,7 @@ struct DialogPreviewPanel: View {
         statusMessage = "Encoding shareable Ogg…"
         let request = DialogPreviewRequest.fromTurns(turns, generationId: selectedGenerationId)
         Task {
-            let metaResult = await server.dialogPreviewMeta(request)
+            let metaResult = await resolveMeta(request)
             guard case .success(let dto) = metaResult,
                 case .success(let url) = server.dialogPreviewShareableURL(
                     cacheKey: dto.cacheKey, generationId: dto.generationId)
@@ -339,20 +383,69 @@ struct DialogPreviewPanel: View {
         statusMessage = "Rendering 17-channel WAV…"
         let request = DialogPreviewRequest.fromTurns(turns, generationId: selectedGenerationId)
         Task {
-            let result = await server.dialogPreviewMultichannel(request)
-            await MainActor.run {
-                isWorking = false
-                switch result {
-                case .success(let data):
-                    exportData = data
-                    let suffix = selectedGenerationId?.uuidString.lowercased() ?? "latest"
-                    exportFilename = "dialog-17ch-\(suffix).wav"
-                    exportContentType = .wav
-                    showExporter = true
-                    statusMessage = "Ready to save 17-channel WAV"
-                case .failure(let error):
+            // Always a job now (server 3.23.0) — long scenes make enormous WAVs. Watch
+            // it, then download the assembled file from the ad-hoc sound bucket.
+            switch await server.dialogPreviewMultichannel(request) {
+            case .failure(let error):
+                await MainActor.run {
+                    isWorking = false
                     presentError(ServerError.detailedMessage(from: error))
                 }
+            case .success(let job):
+                await JobStatusStore.shared.seedQueued(job)
+                for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
+                    switch event {
+                    case .updated(let info):
+                        let percent = Int((info.progress ?? 0) * 100)
+                        await MainActor.run {
+                            statusMessage = "Rendering 17-channel WAV… \(percent)%"
+                        }
+                    case .terminal(let info):
+                        await finishMultichannelExport(info)
+                    case .removed:
+                        await MainActor.run {
+                            isWorking = false
+                            presentError("The export job was removed before it finished.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func finishMultichannelExport(_ info: JobStatusStore.JobInfo) async {
+        guard info.status == .completed,
+            let result = info.result, let data = result.data(using: .utf8),
+            let export = try? JSONDecoder().decode(DialogPreviewExportResult.self, from: data)
+        else {
+            await MainActor.run {
+                isWorking = false
+                presentError(
+                    info.status == .completed
+                        ? "The export finished but its result could not be decoded."
+                        : (info.result ?? "The 17-channel export failed on the server."))
+            }
+            return
+        }
+        guard case .success(let url) = server.getAdHocSoundURL(export.fileName) else {
+            await MainActor.run {
+                isWorking = false
+                presentError("Could not build the download URL for the exported WAV.")
+            }
+            return
+        }
+        let dataResult = await server.downloadRawData(from: url)
+        await MainActor.run {
+            isWorking = false
+            switch dataResult {
+            case .success(let wavData):
+                exportData = wavData
+                exportFilename = export.fileName
+                exportContentType = .wav
+                showExporter = true
+                statusMessage = "Ready to save 17-channel WAV"
+            case .failure(let error):
+                presentError(ServerError.detailedMessage(from: error))
             }
         }
     }

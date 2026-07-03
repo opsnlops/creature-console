@@ -111,10 +111,14 @@ extension CreatureCLI {
                 try await tracedRun("voice.create-sound-file", config: globalOptions) { server in
                     print("\nMaking request to server! (This might take a few seconds)...\n")
 
+                    // An async job now (server 3.23.0) — poll it to completion.
                     let result = await server.createCreatureSpeechSoundFile(
                         creatureId: creatureId, title: title, text: text)
                     switch result {
-                    case .success(let speechFile):
+                    case .success(let job):
+                        let speechFile = try await waitForJobResult(
+                            server: server, jobId: job.jobId, label: "Generating speech",
+                            resultType: CreatureSpeechResponseDTO.self)
 
                         print("\n...done!\n")
 

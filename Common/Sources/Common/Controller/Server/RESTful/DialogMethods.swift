@@ -180,16 +180,30 @@ extension CreatureServerClient {
 
     /// Generates (or loads from cache) a preview take and returns metadata + a relative audio
     /// URL. Build the playable URL with `makeAbsoluteURL(fromRelativePath:)`.
+    /// How a preview-meta request resolved: cache hits come back immediately with the
+    /// meta; fresh generation is queued as a job (server 3.23.0+) whose completion
+    /// result carries the same meta DTO.
+    public enum DialogPreviewMetaOutcome: Sendable {
+        case meta(DialogPreviewMetaDTO)
+        case queued(JobCreatedResponse)
+    }
+
     public func dialogPreviewMeta(_ request: DialogPreviewRequest) async -> Result<
-        DialogPreviewMetaDTO, ServerError
+        DialogPreviewMetaOutcome, ServerError
     > {
         guard let url = URL(string: makeBaseURL(.http) + "/animation/dialog/preview/meta") else {
             return .failure(.serverError("unable to make base URL"))
         }
         self.logger.debug("Using URL: \(url)")
 
-        return await sendData(
-            url, method: "POST", body: request, returnType: DialogPreviewMetaDTO.self)
+        return await sendDataResponse(url, method: "POST", body: request).flatMap { response in
+            if response.statusCode == 202 {
+                return decodeResponse(response.data, returnType: JobCreatedResponse.self)
+                    .map { .queued($0) }
+            }
+            return decodeResponse(response.data, returnType: DialogPreviewMetaDTO.self)
+                .map { .meta($0) }
+        }
     }
 
     /// Cheap cache check — which generations already exist for these turns. Returns `.notFound`
@@ -208,8 +222,11 @@ extension CreatureServerClient {
 
     /// Fetches the full 17-channel WAV bytes (S16 LE @ 48 kHz, each creature in its
     /// `audio_channel` lane) for inspection in Audacity. Reuses any cached generation.
+    /// Queue assembly of the 17-channel WAV (server 3.23.0+: always an async job — long
+    /// scenes produce enormous WAVs). The job's completion result is a
+    /// `DialogPreviewExportResult` naming the file in the ad-hoc sound bucket.
     public func dialogPreviewMultichannel(_ request: DialogPreviewRequest) async -> Result<
-        Data, ServerError
+        JobCreatedResponse, ServerError
     > {
         guard
             let url = URL(string: makeBaseURL(.http) + "/animation/dialog/preview/multichannel")
@@ -218,7 +235,8 @@ extension CreatureServerClient {
         }
         self.logger.debug("Using URL: \(url)")
 
-        return await postForRawData(url, body: request)
+        return await sendData(
+            url, method: "POST", body: request, returnType: JobCreatedResponse.self)
     }
 
     /// Downloads the raw bytes at a URL (e.g. the mono preview WAV) using the configured

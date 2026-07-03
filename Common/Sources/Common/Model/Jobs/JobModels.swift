@@ -7,6 +7,9 @@ public enum JobType: String, Codable, Sendable {
     case adHocSpeechPrepare = "ad-hoc-speech-prepare"
     case animationLipSync = "animation-lip-sync"
     case dialog = "dialog"
+    case dialogPreview = "dialog-preview"
+    case dialogPreviewExport = "dialog-preview-export"
+    case voiceFile = "voice-file"
     case unknown
 
     public init(from decoder: Decoder) throws {
@@ -257,6 +260,64 @@ public struct DialogJobResult: Codable, Equatable, Sendable {
         self.durationSeconds = durationSeconds
         self.persistence = persistence
         self.autoplayed = autoplayed
+    }
+}
+
+/// Result payload of a `dialog-preview-export` job: where the assembled 17-channel WAV
+/// landed in the ad-hoc sound bucket (download via the ad-hoc sound URL).
+public struct DialogPreviewExportResult: Codable, Equatable, Sendable {
+    public let fileName: String
+    public let generationId: String
+    public let cacheKey: String
+
+    enum CodingKeys: String, CodingKey {
+        case fileName = "file_name"
+        case generationId = "generation_id"
+        case cacheKey = "cache_key"
+    }
+
+    public init(fileName: String, generationId: String, cacheKey: String) {
+        self.fileName = fileName
+        self.generationId = generationId
+        self.cacheKey = cacheKey
+    }
+}
+
+/// A point-in-time snapshot of a job, as returned by `GET /api/v1/job/{jobId}`.
+/// Used by the CLI to poll jobs it can't watch over the WebSocket.
+public struct JobStateSnapshot: Codable, Sendable {
+    public let jobId: String
+    public let jobType: JobType
+    public let status: JobStatus
+    public let progress: Double?
+    public let result: String?
+    public let details: String?
+
+    enum CodingKeys: String, CodingKey {
+        case jobId = "job_id"
+        case jobType = "job_type"
+        case status
+        case progress
+        case result
+        case details
+    }
+
+    public init(
+        jobId: String, jobType: JobType, status: JobStatus, progress: Double?, result: String?,
+        details: String?
+    ) {
+        self.jobId = jobId
+        self.jobType = jobType
+        self.status = status
+        self.progress = progress
+        self.result = result
+        self.details = details
+    }
+
+    /// Parses the `result` JSON into strongly typed metadata.
+    public func decodeResult<T: Decodable>(as type: T.Type) -> T? {
+        guard let result, let data = result.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
     }
 }
 
