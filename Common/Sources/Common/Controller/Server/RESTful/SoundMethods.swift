@@ -193,6 +193,37 @@ extension CreatureServerClient {
         return .success(url)
     }
 
+    /**
+     Fetch the embedded provenance of a dialog sound file.
+    
+     Dialog renders carry an iXML chunk describing the source script and channel
+     layout (server issue #47). Returns the parsed `DialogProvenance`, or a failure
+     (404) when the sound carries no embedded provenance.
+     */
+    public func fetchDialogProvenance(fileName: String) async -> Result<
+        DialogProvenance, ServerError
+    > {
+
+        logger.debug("attempting to fetch provenance for \(fileName)")
+
+        guard let encodedName = urlEncode(fileName),
+            let url = URL(string: makeBaseURL(.http) + "/sound/provenance/" + encodedName)
+        else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        self.logger.debug("Using URL: \(url)")
+
+        return await fetchDataResponse(url).flatMap { response in
+            guard let xml = String(data: response.data, encoding: .utf8) else {
+                return .failure(.dataFormatError("provenance response was not valid UTF-8"))
+            }
+            guard let provenance = DialogProvenance(iXML: xml) else {
+                return .failure(.dataFormatError("could not parse provenance for \(fileName)"))
+            }
+            return .success(provenance)
+        }
+    }
+
     /// A downloaded shareable rendition of a sound, ready to write to disk.
     public struct ShareableSound: Sendable {
         public let data: Data

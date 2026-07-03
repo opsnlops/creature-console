@@ -24,8 +24,10 @@ func waitForJob(
             }
             let percent = Int((job.progress ?? 0) * 100)
             if percent != lastPercent {
-                print("\r\(label)… \(percent)%", terminator: "")
-                fflush(stdout)
+                // Write straight to the file handle (unbuffered, no newline) instead of
+                // print + fflush(stdout): Glibc's `stdout` is a mutable global that Swift 6
+                // strict concurrency rejects, so `fflush(stdout)` doesn't compile on Linux.
+                FileHandle.standardOutput.write(Data("\r\(label)… \(percent)%".utf8))
                 lastPercent = percent
             }
         case .failure(let error):

@@ -1,3 +1,14 @@
+creature-cli (2.31.0) unstable; urgency=medium
+
+  * New 'sounds provenance <name>' command: prints the script provenance
+    embedded in a dialog render (creature-server 3.24.0+) — the source
+    script id, generations used, the creature/channel layout, and the full
+    rendered script text. This is how you tell what an otherwise anonymous
+    dialog/<uuid>.wav actually says. The Console app gains a matching
+    "View Script Provenance…" action on dialog sounds.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.30.0) unstable; urgency=medium
 
   * New 'sounds share' command: downloads a shareable Ogg/Opus version of

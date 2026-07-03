@@ -43,10 +43,14 @@ protocol AdHocSoundListing: Sendable {
     func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError>
 }
 
+protocol DialogProvenanceFetching: Sendable {
+    func fetchDialogProvenance(fileName: String) async -> Result<DialogProvenance, ServerError>
+}
+
 typealias SoundCommandClient = SoundListing & SoundPlaying & LipSyncGenerating
     & LipSyncUploadGenerating
     & AdHocSoundListing & AdHocSoundURLProviding & SoundURLProviding
-    & ShareableSoundURLProviding
+    & ShareableSoundURLProviding & DialogProvenanceFetching
 
 extension CreatureServerClient: SoundListing {}
 extension CreatureServerClient: SoundPlaying {}
@@ -65,6 +69,7 @@ extension CreatureServerClient: AdHocSoundURLProviding {
         getAdHocSoundURL(fileName)
     }
 }
+extension CreatureServerClient: DialogProvenanceFetching {}
 extension CreatureServerClient: SoundURLProviding {
     public func soundURL(for fileName: String) async -> Result<URL, ServerError> {
         getSoundURL(fileName)
@@ -143,6 +148,7 @@ extension CreatureCLI {
                 GenerateLipSyncFromFile.self,
                 Download.self,
                 Share.self,
+                Provenance.self,
                 AdHoc.self,
             ]
         )
@@ -513,6 +519,65 @@ extension CreatureCLI {
                         globalOptions: globalOptions
                     ) { server in
                         await server.shareableSoundURL(for: fileName)
+                    }
+                }
+            }
+        }
+
+        struct Provenance: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Show the embedded script provenance of a dialog sound file",
+                discussion:
+                    "Permanent dialog renders carry an iXML chunk linking them back to their source "
+                    + "script — the script id, the generations used, which creature is on which channel, "
+                    + "and the full rendered script text. This is what tells you what an otherwise "
+                    + "anonymous dialog/<uuid>.wav actually says."
+            )
+
+            @Argument(help: "The sound file name (e.g. a dialog render's <uuid>.wav)")
+            var fileName: String
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                try await tracedRun("sounds.provenance", config: globalOptions) {
+                    let server = await Sounds.makeServer(for: globalOptions)
+                    let result = await server.fetchDialogProvenance(fileName: fileName)
+
+                    switch result {
+                    case .success(let provenance):
+                        print("\nProvenance for \(fileName):\n")
+                        if !provenance.title.isEmpty {
+                            print("  Title:       \(provenance.title)")
+                        }
+                        if !provenance.sourceScriptId.isEmpty {
+                            print("  Script ID:   \(provenance.sourceScriptId)")
+                        }
+                        if !provenance.generationIds.isEmpty {
+                            print(
+                                "  Generations: \(provenance.generationIds.joined(separator: ", "))"
+                            )
+                        }
+
+                        if !provenance.tracks.isEmpty {
+                            print("\n  Channels:")
+                            for track in provenance.tracks {
+                                print("    \(String(format: "%2d", track.channel))  \(track.name)")
+                            }
+                        }
+
+                        if !provenance.scriptLines.isEmpty {
+                            print("\n  Script:")
+                            for line in provenance.scriptLines {
+                                print("    \(line)")
+                            }
+                        }
+                        print("")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "No provenance for \(fileName): \(ServerError.detailedMessage(from: error))"
+                        )
                     }
                 }
             }
