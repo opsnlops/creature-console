@@ -16,6 +16,9 @@ Creature Console is a multi-platform SwiftUI application (macOS, iOS, tvOS) with
 
 ## Workflow
 
+### Commit Signing (YubiKey)
+Commits are signed with a YubiKey, and the touch prompt times out. If `git commit` fails with `Couldn't sign message (signer): agent refused operation`, **tell April to touch the YubiKey when its light flashes**, then retry the exact same commit — it succeeds once the key is touched.
+
 ### GitHub Issues for Features and Bugs (Required)
 **When starting work on a feature or bug, open a GitHub Issue first** (`gh issue create`) and use it for tracking and notes:
 - Capture the symptom, investigation notes, and root cause in the issue as you learn them — the issue is the durable record of *why*, not just *what*
