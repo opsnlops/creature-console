@@ -111,20 +111,17 @@ struct DialogRenderPanel: View {
             jobEventsTask?.cancel()
             guard let jobId = activeJobId else { return }
             jobEventsTask = Task {
-                let stream = await JobStatusStore.shared.events()
-                for await event in stream {
+                for await event in await JobStatusStore.shared.events(forJob: jobId) {
                     switch event {
-                    case .updated(let info) where info.jobId == jobId:
+                    case .updated(let info):
                         await MainActor.run { observedJob = info }
-                        if info.isTerminal {
-                            await MainActor.run { handleTerminal(info) }
-                            await JobStatusStore.shared.remove(jobId: jobId)
-                            return
+                    case .terminal(let info):
+                        await MainActor.run {
+                            observedJob = info
+                            handleTerminal(info)
                         }
-                    case .removed(let removedId) where removedId == jobId:
-                        return
-                    default:
-                        continue
+                    case .removed:
+                        break
                     }
                 }
             }
@@ -193,12 +190,8 @@ struct DialogRenderPanel: View {
                 switch result {
                 case .success(let job):
                     logger.info("dialog render job queued: \(job.jobId)")
-                    // Seed the store so progress shows even before the first websocket tick.
                     Task {
-                        await JobStatusStore.shared.update(
-                            with: JobProgress(
-                                jobId: job.jobId, jobType: job.jobType, status: .queued,
-                                progress: 0, details: nil))
+                        await JobStatusStore.shared.seedQueued(job)
                     }
                     activeJobId = job.jobId
                 case .failure(let error):

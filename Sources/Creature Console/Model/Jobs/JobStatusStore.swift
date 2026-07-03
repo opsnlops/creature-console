@@ -36,6 +36,18 @@ actor JobStatusStore {
         case removed(String)
     }
 
+    /// One job's lifecycle, as seen by a `events(forJob:)` watcher.
+    enum JobWatchEvent: Sendable {
+        /// Progress while the job is running (non-terminal).
+        case updated(JobInfo)
+        /// The job reached a terminal status. The store removes the job right after
+        /// yielding this, and the stream finishes.
+        case terminal(JobInfo)
+        /// Someone else removed the job before it reached a terminal status. The
+        /// stream finishes.
+        case removed
+    }
+
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "JobStatusStore")
 
@@ -48,6 +60,57 @@ actor JobStatusStore {
         AsyncStream { continuation in
             Task { self.register(continuation: continuation) }
         }
+    }
+
+    /// Watch a single job — the one shared implementation of the subscribe/filter/finish
+    /// dance every job panel needs. Replays the job's current state on subscription,
+    /// yields `.updated` while it runs, then finishes after exactly one `.terminal`
+    /// (auto-removing the job from the store) or `.removed`.
+    func events(forJob jobId: String) -> AsyncStream<JobWatchEvent> {
+        AsyncStream { continuation in
+            let task = Task {
+                for await event in self.events() {
+                    switch event {
+                    case .updated(let info) where info.jobId == jobId:
+                        if info.isTerminal {
+                            continuation.yield(.terminal(info))
+                            self.remove(jobId: jobId)
+                            continuation.finish()
+                            return
+                        }
+                        continuation.yield(.updated(info))
+                    case .removed(let removedId) where removedId == jobId:
+                        continuation.yield(.removed)
+                        continuation.finish()
+                        return
+                    default:
+                        continue
+                    }
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Seed the store with an optimistic queued/0.0 entry right after the server accepts
+    /// a job (HTTP 202), so panels can show progress before the first websocket tick.
+    /// Owns the details JSON encoding that call sites used to hand-roll. The terminal
+    /// guard in `update(with:)` keeps this seed from resurrecting a fast job whose
+    /// completion already arrived.
+    func seedQueued(_ job: JobCreatedResponse, details: (any Encodable)? = nil) {
+        var detailsString: String? = nil
+        if let details, let data = try? JSONEncoder().encode(details) {
+            detailsString = String(data: data, encoding: .utf8)
+        }
+        update(
+            with: JobProgress(
+                jobId: job.jobId,
+                jobType: job.jobType,
+                status: .queued,
+                progress: 0,
+                details: detailsString
+            ))
     }
 
     func job(for id: String) -> JobInfo? {

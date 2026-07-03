@@ -80,20 +80,14 @@ struct DialogRerenderButton: View {
             jobTask?.cancel()
             guard let jobId else { return }
             jobTask = Task {
-                let stream = await JobStatusStore.shared.events()
-                for await event in stream {
+                for await event in await JobStatusStore.shared.events(forJob: jobId) {
                     switch event {
-                    case .updated(let info) where info.jobId == jobId:
+                    case .updated(let info):
                         await MainActor.run { progress = info.progress }
-                        if info.isTerminal {
-                            await MainActor.run { handleTerminal(info) }
-                            await JobStatusStore.shared.remove(jobId: jobId)
-                            return
-                        }
-                    case .removed(let removedId) where removedId == jobId:
-                        return
-                    default:
-                        continue
+                    case .terminal(let info):
+                        await MainActor.run { handleTerminal(info) }
+                    case .removed:
+                        break
                     }
                 }
             }
@@ -118,10 +112,7 @@ struct DialogRerenderButton: View {
                 case .success(let job):
                     logger.info("in-place re-render job queued: \(job.jobId)")
                     Task {
-                        await JobStatusStore.shared.update(
-                            with: JobProgress(
-                                jobId: job.jobId, jobType: job.jobType, status: .queued,
-                                progress: 0, details: nil))
+                        await JobStatusStore.shared.seedQueued(job)
                     }
                     jobId = job.jobId
                 case .failure(let error):

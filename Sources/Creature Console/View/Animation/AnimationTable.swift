@@ -353,28 +353,20 @@ struct AnimationTable: View {
 
                 guard let job = activeAnimationLipSyncJob else { return }
                 jobEventsTask = Task {
-                    let stream = await JobStatusStore.shared.events()
-                    for await event in stream {
+                    for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
                         switch event {
-                        case .updated(let info) where info.jobId == job.jobId:
+                        case .updated(let info):
+                            await MainActor.run { observedJobInfo = info }
+                        case .terminal(let info):
                             await MainActor.run {
                                 observedJobInfo = info
-                                if info.isTerminal {
-                                    handleAnimationJobCompletion(
-                                        info: info, animationId: job.animationId)
-                                }
+                                handleAnimationJobCompletion(
+                                    info: info, animationId: job.animationId)
                             }
-                            if info.isTerminal {
-                                await JobStatusStore.shared.remove(jobId: job.jobId)
-                                return
-                            }
-                        case .removed(let removedId) where removedId == job.jobId:
+                        case .removed:
                             await MainActor.run {
                                 finalizeAnimationJob()
                             }
-                            return
-                        default:
-                            continue
                         }
                     }
                 }
@@ -416,19 +408,8 @@ struct AnimationTable: View {
             logger.debug(
                 "Animation lip sync job queued: \(job.jobId) for animation \(animationId) (\(job.jobType.rawValue))"
             )
-            if let data = try? JSONEncoder().encode(
-                AnimationLipSyncJobDetails(animationId: animationId)),
-                let detailsString = String(data: data, encoding: .utf8)
-            {
-                let seeded = JobProgress(
-                    jobId: job.jobId,
-                    jobType: job.jobType,
-                    status: .queued,
-                    progress: 0.0,
-                    details: detailsString
-                )
-                await JobStatusStore.shared.update(with: seeded)
-            }
+            await JobStatusStore.shared.seedQueued(
+                job, details: AnimationLipSyncJobDetails(animationId: animationId))
 
             await MainActor.run {
                 activeAnimationLipSyncJob = (animationId, job.jobId)

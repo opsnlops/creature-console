@@ -156,27 +156,19 @@ struct SoundFileListView: View {
 
                 guard let job = activeLipSyncJob else { return }
                 jobEventsTask = Task {
-                    let stream = await JobStatusStore.shared.events()
-                    for await event in stream {
+                    for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
                         switch event {
-                        case .updated(let info) where info.jobId == job.jobId:
+                        case .updated(let info):
+                            await MainActor.run { observedJobInfo = info }
+                        case .terminal(let info):
                             await MainActor.run {
                                 observedJobInfo = info
-                                if info.isTerminal {
-                                    handleJobCompletion(info: info, soundId: job.soundId)
-                                }
+                                handleJobCompletion(info: info, soundId: job.soundId)
                             }
-                            if info.isTerminal {
-                                await JobStatusStore.shared.remove(jobId: job.jobId)
-                                return
-                            }
-                        case .removed(let removedId) where removedId == job.jobId:
+                        case .removed:
                             await MainActor.run {
                                 finalizeActiveJob()
                             }
-                            return
-                        default:
-                            continue
                         }
                     }
                 }
@@ -327,18 +319,8 @@ struct SoundFileListView: View {
         switch result {
         case .success(let job):
             logger.debug("Lip sync job queued: \(job.jobId) for \(soundId)")
-            if let data = try? JSONEncoder().encode(
-                LipSyncJobDetails(soundFile: soundId, allowOverwrite: allowOverwrite)
-            ), let detailsString = String(data: data, encoding: .utf8) {
-                let seeded = JobProgress(
-                    jobId: job.jobId,
-                    jobType: job.jobType,
-                    status: .queued,
-                    progress: 0.0,
-                    details: detailsString
-                )
-                await JobStatusStore.shared.update(with: seeded)
-            }
+            await JobStatusStore.shared.seedQueued(
+                job, details: LipSyncJobDetails(soundFile: soundId, allowOverwrite: allowOverwrite))
 
             await MainActor.run {
                 activeLipSyncJob = (soundId, job.jobId)

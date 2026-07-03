@@ -71,6 +71,62 @@ struct JobStatusStoreTests {
         await store.remove(jobId: jobId)
     }
 
+    @Test("events(forJob:) yields terminal exactly once and auto-removes the job")
+    func perJobStreamTerminalAutoRemoves() async {
+        let jobId = UUID().uuidString
+        let store = JobStatusStore.shared
+
+        await store.update(
+            with: JobProgress(
+                jobId: jobId, jobType: .dialog, status: .running, progress: 0.5, details: nil))
+
+        var iterator = await store.events(forJob: jobId).makeAsyncIterator()
+
+        // Registration replays the job's current state, proving the watcher is attached
+        // before we complete the job (keeps the test deterministic).
+        guard case .updated(let replayed) = await iterator.next() else {
+            Issue.record("expected the replayed running state first")
+            return
+        }
+        #expect(replayed.progress == 0.5)
+
+        await store.update(
+            with: JobCompletion(
+                jobId: jobId, jobType: .dialog, status: .completed, result: nil, details: nil))
+
+        guard case .terminal(let info) = await iterator.next() else {
+            Issue.record("expected a terminal event after completion")
+            return
+        }
+        #expect(info.status == .completed)
+        #expect(await iterator.next() == nil)
+        #expect(await store.job(for: jobId) == nil)
+    }
+
+    @Test("events(forJob:) ends with removed when the job is removed externally")
+    func perJobStreamEndsOnExternalRemoval() async {
+        let jobId = UUID().uuidString
+        let store = JobStatusStore.shared
+
+        await store.update(
+            with: JobProgress(
+                jobId: jobId, jobType: .dialog, status: .running, progress: 0.2, details: nil))
+
+        var iterator = await store.events(forJob: jobId).makeAsyncIterator()
+        guard case .updated = await iterator.next() else {
+            Issue.record("expected the replayed running state first")
+            return
+        }
+
+        await store.remove(jobId: jobId)
+
+        guard case .removed = await iterator.next() else {
+            Issue.record("expected a removed event after external removal")
+            return
+        }
+        #expect(await iterator.next() == nil)
+    }
+
     @Test("a late progress update does not revive a failed job")
     func lateProgressDoesNotReviveFailedJob() async {
         let jobId = UUID().uuidString
