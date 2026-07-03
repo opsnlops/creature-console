@@ -38,6 +38,22 @@ extension CreatureServerClient {
         return .success(url)
     }
 
+    /// Direct URL to the shareable Ogg/Opus rendition of a specific cached preview take
+    /// (mono, 96 kbps — the server encodes the cached PCM on demand).
+    public func dialogPreviewShareableURL(
+        cacheKey: String, generationId: DialogGenerationIdentifier
+    ) -> Result<URL, ServerError> {
+        let filename = generationId.uuidString.lowercased() + ".ogg"
+        guard
+            let url = URL(
+                string: makeBaseURL(.http)
+                    + "/animation/dialog/preview/share/\(cacheKey)/\(filename)")
+        else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        return .success(url)
+    }
+
     // MARK: - DialogScript CRUD
 
     public func listDialogScripts() async -> Result<[DialogScript], ServerError> {

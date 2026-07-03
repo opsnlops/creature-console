@@ -3,6 +3,7 @@ import Common
 import Foundation
 import OSLog
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// "Listen before you render" panel. Generates (or loads from cache) a preview take for the
 /// current turns, plays the mono mixdown locally, lets the author flip between cached takes,
@@ -35,6 +36,7 @@ struct DialogPreviewPanel: View {
     // Export state (cross-platform via .fileExporter)
     @State private var exportData: Data? = nil
     @State private var exportFilename = "dialog.wav"
+    @State private var exportContentType: UTType = .wav
     @State private var showExporter = false
 
     private var turnsAreReady: Bool {
@@ -121,6 +123,13 @@ struct DialogPreviewPanel: View {
                         Label("Export 17-Channel WAV", systemImage: "square.split.1x2")
                     }
                     .disabled(isWorking)
+
+                    Button {
+                        exportShareable()
+                    } label: {
+                        Label("Export Shareable Ogg", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(isWorking)
                 }
             }
         }
@@ -141,7 +150,7 @@ struct DialogPreviewPanel: View {
         .fileExporter(
             isPresented: $showExporter,
             document: AudioFileDocument(data: exportData ?? Data()),
-            contentType: .wav,
+            contentType: exportContentType,
             defaultFilename: exportFilename
         ) { result in
             switch result {
@@ -280,7 +289,44 @@ struct DialogPreviewPanel: View {
                 case .success(let data):
                     exportData = data
                     exportFilename = "dialog-mono-\(dto.generationId.uuidString.lowercased()).wav"
+                    exportContentType = .wav
                     showExporter = true
+                case .failure(let error):
+                    presentError(ServerError.detailedMessage(from: error))
+                }
+            }
+        }
+    }
+
+    private func exportShareable() {
+        // Resolve meta for the current selection so we have the cache key + take id,
+        // then let the server encode that take's cached PCM to Ogg/Opus.
+        isWorking = true
+        statusMessage = "Encoding shareable Ogg…"
+        let request = DialogPreviewRequest.fromTurns(turns, generationId: selectedGenerationId)
+        Task {
+            let metaResult = await server.dialogPreviewMeta(request)
+            guard case .success(let dto) = metaResult,
+                case .success(let url) = server.dialogPreviewShareableURL(
+                    cacheKey: dto.cacheKey, generationId: dto.generationId)
+            else {
+                await MainActor.run {
+                    isWorking = false
+                    presentError("Could not resolve the shareable audio for export.")
+                }
+                return
+            }
+            let dataResult = await server.downloadRawData(from: url)
+            await MainActor.run {
+                isWorking = false
+                switch dataResult {
+                case .success(let data):
+                    exportData = data
+                    exportFilename =
+                        "dialog-preview-\(dto.generationId.uuidString.lowercased().prefix(8)).ogg"
+                    exportContentType = .oggAudio
+                    showExporter = true
+                    statusMessage = "Ready to save shareable Ogg"
                 case .failure(let error):
                     presentError(ServerError.detailedMessage(from: error))
                 }
@@ -301,6 +347,7 @@ struct DialogPreviewPanel: View {
                     exportData = data
                     let suffix = selectedGenerationId?.uuidString.lowercased() ?? "latest"
                     exportFilename = "dialog-17ch-\(suffix).wav"
+                    exportContentType = .wav
                     showExporter = true
                     statusMessage = "Ready to save 17-channel WAV"
                 case .failure(let error):
