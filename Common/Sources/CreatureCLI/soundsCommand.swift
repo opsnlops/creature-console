@@ -575,6 +575,28 @@ extension CreatureCLI {
                                 print("    \(line)")
                             }
                         }
+
+                        if !provenance.lipsync.isEmpty {
+                            print("\n  Lip Sync (mouth cues, from the ElevenLabs alignment):")
+                            for track in provenance.lipsync {
+                                let span =
+                                    (track.cues.first.map { String(format: "%.2f", $0.start) }
+                                        ?? "?")
+                                    + "–"
+                                    + (track.cues.last.map { String(format: "%.2f", $0.end) } ?? "?")
+                                    + "s"
+                                print(
+                                    "    \(track.name) (channel \(track.channel)) — \(track.cues.count) cues, \(span)"
+                                )
+                                // Compact stream of shape@start, wrapped by the terminal.
+                                let stream = track.cues.map {
+                                    "\($0.shape)@\(String(format: "%.2f", $0.start))"
+                                }.joined(separator: " ")
+                                if !stream.isEmpty {
+                                    print("      \(stream)")
+                                }
+                            }
+                        }
                         print("")
                     case .failure(let error):
                         throw failWithMessage(

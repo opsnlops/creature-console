@@ -30,6 +30,9 @@ import SwiftUI
                         if !provenance.scriptLines.isEmpty {
                             scriptCard
                         }
+                        if !provenance.lipsync.isEmpty {
+                            lipsyncCard
+                        }
                     }
                     .padding()
                 }
@@ -99,6 +102,31 @@ import SwiftUI
                             .font(.system(.callout, design: .rounded))
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+
+        private var lipsyncCard: some View {
+            card {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Lip Sync")
+                        .font(.headline)
+                    Text("Mouth cues derived from the ElevenLabs alignment.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ForEach(provenance.lipsync) { track in
+                        HStack(spacing: 12) {
+                            Text("\(track.channel)")
+                                .font(.system(.body, design: .monospaced))
+                                .frame(width: 28, alignment: .trailing)
+                                .foregroundStyle(.secondary)
+                            Text(track.name)
+                            Spacer()
+                            Text("\(track.cues.count) cues")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }

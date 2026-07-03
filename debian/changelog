@@ -1,3 +1,11 @@
+creature-cli (2.34.0) unstable; urgency=medium
+
+  * 'sounds provenance <name>' now prints the embedded lip-sync: per-creature
+    mouth cues (shape@time) derived from the ElevenLabs alignment. The console's
+    provenance sheet shows a per-creature cue summary too.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.33.0) unstable; urgency=medium
 
   * 'sounds list' "Has Lip Sync" now reflects lip-sync embedded in a dialog
