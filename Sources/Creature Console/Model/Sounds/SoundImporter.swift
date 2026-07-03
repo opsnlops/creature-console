@@ -28,6 +28,7 @@ actor SoundImporter {
                     existing.script = dto.script
                     existing.generationIds = dto.generationIds
                     existing.hasEmbeddedScript = dto.hasEmbeddedScript
+                    existing.hasEmbeddedLipsync = dto.hasEmbeddedLipsync
                 } else {
                     // Insert new
                     modelContext.insert(SoundModel(dto: dto))

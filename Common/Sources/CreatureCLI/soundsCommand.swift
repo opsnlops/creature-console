@@ -208,7 +208,7 @@ extension CreatureCLI {
                                 ),
                                 TableColumn(
                                     title: "Has Lip Sync",
-                                    valueProvider: { $0.lipsync.isEmpty ? "" : "✅" }
+                                    valueProvider: { $0.hasLipsync ? "✅" : "" }
                                 ),
                             ])
 

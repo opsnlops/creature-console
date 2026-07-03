@@ -68,7 +68,8 @@ struct SoundFileListView: View {
                         .width(100)
 
                         TableColumn("Lip Sync?") { s in
-                            Text(s.lipsync.isEmpty ? "" : "✅")
+                            // ✅ for a sidecar Rhubarb file OR embedded (iXML) mouth cues.
+                            Text(s.lipsync.isEmpty && !s.hasEmbeddedLipsync ? "" : "✅")
                         }
                         .width(110)
 

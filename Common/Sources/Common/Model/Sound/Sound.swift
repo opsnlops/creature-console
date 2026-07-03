@@ -17,6 +17,8 @@ public final class Sound: Identifiable, Hashable, Equatable, Codable, Sendable {
     public let generationIds: String
     /// True when the file carries embedded (iXML) script text.
     public let hasEmbeddedScript: Bool
+    /// True when the file carries embedded (iXML) lip-sync (mouth cues from the ElevenLabs alignment).
+    public let hasEmbeddedLipsync: Bool
 
     /// The best name to show a human: the embedded scene title if there is one,
     /// otherwise the (often UUID) file name.
@@ -28,6 +30,12 @@ public final class Sound: Identifiable, Hashable, Equatable, Codable, Sendable {
     /// embedded script.
     public var hasText: Bool {
         !transcript.isEmpty || hasEmbeddedScript
+    }
+
+    /// True when there's lip-sync for this sound — a sidecar Rhubarb file or
+    /// embedded mouth cues.
+    public var hasLipsync: Bool {
+        !lipsync.isEmpty || hasEmbeddedLipsync
     }
 
     // Use the file name for the identifiable thing. Since these are files on the file system, all in the
@@ -46,6 +54,7 @@ public final class Sound: Identifiable, Hashable, Equatable, Codable, Sendable {
         case script
         case generationIds = "generation_ids"
         case hasEmbeddedScript = "has_embedded_script"
+        case hasEmbeddedLipsync = "has_embedded_lipsync"
     }
 
     public required init(from decoder: Decoder) throws {
@@ -60,6 +69,8 @@ public final class Sound: Identifiable, Hashable, Equatable, Codable, Sendable {
         generationIds = try container.decodeIfPresent(String.self, forKey: .generationIds) ?? ""
         hasEmbeddedScript =
             try container.decodeIfPresent(Bool.self, forKey: .hasEmbeddedScript) ?? false
+        hasEmbeddedLipsync =
+            try container.decodeIfPresent(Bool.self, forKey: .hasEmbeddedLipsync) ?? false
         logger.debug("Created a new Sound from init(from:)")
     }
 
@@ -72,7 +83,8 @@ public final class Sound: Identifiable, Hashable, Equatable, Codable, Sendable {
         sourceScriptId: String = "",
         script: String = "",
         generationIds: String = "",
-        hasEmbeddedScript: Bool = false
+        hasEmbeddedScript: Bool = false,
+        hasEmbeddedLipsync: Bool = false
     ) {
         self.fileName = fileName
         self.size = size
@@ -83,6 +95,7 @@ public final class Sound: Identifiable, Hashable, Equatable, Codable, Sendable {
         self.script = script
         self.generationIds = generationIds
         self.hasEmbeddedScript = hasEmbeddedScript
+        self.hasEmbeddedLipsync = hasEmbeddedLipsync
         logger.debug("Created a new Sound from init()")
     }
 
@@ -103,6 +116,7 @@ public final class Sound: Identifiable, Hashable, Equatable, Codable, Sendable {
             && lhs.title == rhs.title && lhs.sourceScriptId == rhs.sourceScriptId
             && lhs.script == rhs.script && lhs.generationIds == rhs.generationIds
             && lhs.hasEmbeddedScript == rhs.hasEmbeddedScript
+            && lhs.hasEmbeddedLipsync == rhs.hasEmbeddedLipsync
     }
 }
 

@@ -1,3 +1,11 @@
+creature-cli (2.33.0) unstable; urgency=medium
+
+  * 'sounds list' "Has Lip Sync" now reflects lip-sync embedded in a dialog
+    render's iXML (mouth cues derived from the ElevenLabs alignment), not just a
+    sidecar Rhubarb .json (creature-server 3.26.0+).
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.32.0) unstable; urgency=medium
 
   * 'sounds list' is richer: shows the embedded scene title instead of a bare

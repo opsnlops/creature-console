@@ -18,11 +18,13 @@ final class SoundModel: Identifiable {
     var script: String = ""
     var generationIds: String = ""
     var hasEmbeddedScript: Bool = false
+    var hasEmbeddedLipsync: Bool = false
 
     init(
         id: SoundIdentifier, size: UInt32, transcript: String, lipsync: String,
         title: String = "", sourceScriptId: String = "", script: String = "",
-        generationIds: String = "", hasEmbeddedScript: Bool = false
+        generationIds: String = "", hasEmbeddedScript: Bool = false,
+        hasEmbeddedLipsync: Bool = false
     ) {
         self.id = id
         self.size = size
@@ -33,6 +35,7 @@ final class SoundModel: Identifiable {
         self.script = script
         self.generationIds = generationIds
         self.hasEmbeddedScript = hasEmbeddedScript
+        self.hasEmbeddedLipsync = hasEmbeddedLipsync
     }
 }
 
@@ -48,7 +51,8 @@ extension SoundModel {
             sourceScriptId: dto.sourceScriptId,
             script: dto.script,
             generationIds: dto.generationIds,
-            hasEmbeddedScript: dto.hasEmbeddedScript
+            hasEmbeddedScript: dto.hasEmbeddedScript,
+            hasEmbeddedLipsync: dto.hasEmbeddedLipsync
         )
     }
 
@@ -57,6 +61,7 @@ extension SoundModel {
         Common.Sound(
             fileName: id, size: size, transcript: transcript, lipsync: lipsync,
             title: title, sourceScriptId: sourceScriptId, script: script,
-            generationIds: generationIds, hasEmbeddedScript: hasEmbeddedScript)
+            generationIds: generationIds, hasEmbeddedScript: hasEmbeddedScript,
+            hasEmbeddedLipsync: hasEmbeddedLipsync)
     }
 }
