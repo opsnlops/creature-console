@@ -1,6 +1,17 @@
 import Foundation
 import Logging
 
+/// The server addresses sounds by **basename** — it resolves the actual file by
+/// walking the permanent tree (dialog/ renders) and the ad-hoc tree. Callers may
+/// hold a stored reference that's a relative or absolute path (e.g.
+/// `animation.metadata.sound_file`, which is `dialog/<uuid>.wav` for permanent
+/// renders and an absolute `/tmp/creature-adhoc/…` path for ad-hoc ones). Reduce
+/// any such reference to its last path component before putting it in a URL, so a
+/// path never leaks in as extra route segments (which oatpp can't map).
+func soundBasename(_ stored: String) -> String {
+    stored.split(separator: "/").last.map(String.init) ?? stored
+}
+
 private func parseFilenameFromContentDisposition(_ header: String?) -> String? {
     guard let header else { return nil }
 
@@ -155,7 +166,10 @@ extension CreatureServerClient {
 
         logger.debug("attempting to get sound URI for \(fileName)")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/sound/" + fileName) else {
+        let name = soundBasename(fileName)
+        guard let encodedName = urlEncode(name),
+            let url = URL(string: makeBaseURL(.http) + "/sound/" + encodedName)
+        else {
             return .failure(.serverError("unable to make base URL"))
         }
 
@@ -167,7 +181,10 @@ extension CreatureServerClient {
 
         logger.debug("attempting to get ad-hoc sound URI for \(fileName)")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/sound/ad-hoc/" + fileName) else {
+        let name = soundBasename(fileName)
+        guard let encodedName = urlEncode(name),
+            let url = URL(string: makeBaseURL(.http) + "/sound/ad-hoc/" + encodedName)
+        else {
             return .failure(.serverError("unable to make base URL"))
         }
 
@@ -183,7 +200,7 @@ extension CreatureServerClient {
 
         logger.debug("attempting to get shareable sound URL for \(fileName)")
 
-        guard let encodedName = urlEncode(fileName),
+        guard let encodedName = urlEncode(soundBasename(fileName)),
             let url = URL(string: makeBaseURL(.http) + "/sound/shareable/" + encodedName)
         else {
             return .failure(.serverError("unable to make base URL"))
@@ -206,7 +223,7 @@ extension CreatureServerClient {
 
         logger.debug("attempting to fetch provenance for \(fileName)")
 
-        guard let encodedName = urlEncode(fileName),
+        guard let encodedName = urlEncode(soundBasename(fileName)),
             let url = URL(string: makeBaseURL(.http) + "/sound/provenance/" + encodedName)
         else {
             return .failure(.serverError("unable to make base URL"))
@@ -234,7 +251,7 @@ extension CreatureServerClient {
      Download a shareable Ogg/Opus rendition of a sound file.
     
      The server looks in the permanent sound store first, then the ad-hoc store,
-     downmixes multi-channel WAVs to mono, and encodes at 96 kbps.
+     downmixes multi-channel WAVs to mono, and encodes to Ogg/Opus.
      */
     public func downloadShareableSound(fileName: String) async -> Result<
         ShareableSound, ServerError
@@ -242,7 +259,8 @@ extension CreatureServerClient {
 
         logger.debug("attempting to download a shareable version of \(fileName)")
 
-        guard let encodedName = urlEncode(fileName),
+        let name = soundBasename(fileName)
+        guard let encodedName = urlEncode(name),
             let url = URL(string: makeBaseURL(.http) + "/sound/shareable/" + encodedName)
         else {
             return .failure(.serverError("unable to make base URL"))
@@ -251,13 +269,14 @@ extension CreatureServerClient {
 
         return await fetchDataResponse(url).map { response in
             let fallback: String
-            if let dotIndex = fileName.lastIndex(of: ".") {
-                fallback = String(fileName[..<dotIndex]) + ".ogg"
+            if let dotIndex = name.lastIndex(of: ".") {
+                fallback = String(name[..<dotIndex]) + ".ogg"
             } else {
-                fallback = fileName + ".ogg"
+                fallback = name + ".ogg"
             }
-            let name = parseFilenameFromContentDisposition(response.contentDisposition) ?? fallback
-            return ShareableSound(data: response.data, suggestedFilename: name)
+            let suggested =
+                parseFilenameFromContentDisposition(response.contentDisposition) ?? fallback
+            return ShareableSound(data: response.data, suggestedFilename: suggested)
         }
     }
 
