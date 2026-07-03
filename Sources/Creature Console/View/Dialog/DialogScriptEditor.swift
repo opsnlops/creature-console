@@ -172,6 +172,12 @@ struct DialogScriptEditor: View {
         .onChange(of: script) { _, newValue in
             scheduleValidation(for: newValue)
         }
+        .onChange(of: script.turns) {
+            // The server's preview cache key is sha256(turns), so any turn change (text,
+            // creature, add/remove/reorder) orphans the selected take — asking for it under
+            // the new key would 404. Fall back to "latest / server decides".
+            selectedGenerationId = nil
+        }
     }
 
     // MARK: - Sections

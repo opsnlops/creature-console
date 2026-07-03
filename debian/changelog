@@ -1,3 +1,13 @@
+creature-cli (2.29.2) unstable; urgency=medium
+
+  * No CLI-visible changes; version kept in sync with the Console app.
+    This release fixes three dialog-feature bugs in the app: stale preview
+    generation ids after editing turns, a render-status race that left the
+    UI stuck on "Generating voices...", and (server-side) replaying saved
+    multi-creature ad-hoc dialog animations.
+
+ -- April White <april@creature.engineering>  Thu, 02 Jul 2026 00:00:00 +0000
+
 creature-cli (2.29.1) unstable; urgency=medium
 
   * Dynamixel sensor reports: capture the optional 'present_position' field

@@ -67,6 +67,7 @@
 		114B7E762E90D5D400F5D1EC /* ServerLogImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E752E90D5D400F5D1EC /* ServerLogImporterTests.swift */; };
 		114B7E782E90D90900F5D1EC /* ActivityTintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */; };
 		114B7E7A2E90DBD900F5D1EC /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E792E90DBD900F5D1EC /* AppStateTests.swift */; };
+		11AB0000000000000000A002 /* JobStatusStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000A001 /* JobStatusStoreTests.swift */; };
 		114C9AB22A117A620025D40B /* AnimationWaveformEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */; };
 		1156EBCB2E76640500CBC202 /* ButtonGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1156EBCA2E76640500CBC202 /* ButtonGate.swift */; };
 		115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115DADA029DF95890021C4E0 /* JoystickHandler.swift */; };
@@ -328,6 +329,7 @@
 		114B7E752E90D5D400F5D1EC /* ServerLogImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogImporterTests.swift; sourceTree = "<group>"; };
 		114B7E772E90D90900F5D1EC /* ActivityTintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityTintTests.swift; sourceTree = "<group>"; };
 		114B7E792E90DBD900F5D1EC /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
+		11AB0000000000000000A001 /* JobStatusStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobStatusStoreTests.swift; sourceTree = "<group>"; };
 		114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationWaveformEditor.swift; sourceTree = "<group>"; };
 		1156EBCA2E76640500CBC202 /* ButtonGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonGate.swift; sourceTree = "<group>"; };
 		115DAD9F29DF8C4F0021C4E0 /* Creature-Console-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creature-Console-Info.plist"; sourceTree = SOURCE_ROOT; };
@@ -674,6 +676,7 @@
 			isa = PBXGroup;
 			children = (
 				112AABF52EA894D9000F4BC2 /* JobStatusStore.swift */,
+				11AB0000000000000000A001 /* JobStatusStoreTests.swift */,
 			);
 			path = Jobs;
 			sourceTree = "<group>";
@@ -1735,6 +1738,7 @@
 				1183318F2C0059490017DC2A /* TrackTests.swift in Sources */,
 				119A44D82E88D9240053B250 /* SystemCountersStoreTests.swift in Sources */,
 				114B7E7A2E90DBD900F5D1EC /* AppStateTests.swift in Sources */,
+				11AB0000000000000000A002 /* JobStatusStoreTests.swift in Sources */,
 				11AF09122E8651C500E0BE28 /* TrackViewerTests.swift in Sources */,
 				114B7E622E90D14C00F5D1EC /* SwiftDataStoreTests.swift in Sources */,
 			);
@@ -2023,7 +2027,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.29.1;
+				MARKETING_VERSION = 2.29.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2077,7 +2081,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.29.1;
+				MARKETING_VERSION = 2.29.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2161,7 +2165,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.29.1;
+				MARKETING_VERSION = 2.29.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2193,7 +2197,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.29.1;
+				MARKETING_VERSION = 2.29.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

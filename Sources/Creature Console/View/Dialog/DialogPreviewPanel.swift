@@ -126,6 +126,13 @@ struct DialogPreviewPanel: View {
         }
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .onChange(of: turns) {
+            // Takes are keyed by sha256(turns) server-side; a turn change means everything
+            // shown here belongs to a different cache key now.
+            meta = nil
+            takes = []
+            statusMessage = nil
+        }
         .alert("Preview Error", isPresented: $showError) {
             Button("OK") {}
         } message: {
@@ -158,9 +165,14 @@ struct DialogPreviewPanel: View {
                 }
             }
             .labelsHidden()
-            .onChange(of: selectedGenerationId) { _, _ in
-                // Re-audition the newly chosen take.
-                if turnsAreReady { preview(regenerate: false) }
+            .onChange(of: selectedGenerationId) { _, newValue in
+                // Re-audition the newly chosen take. Skip when the selection was cleared
+                // (turns changed) or when it's the take we're already showing (preview()
+                // writes the id back after each request).
+                guard let newValue, newValue != meta?.generationId, turnsAreReady else {
+                    return
+                }
+                preview(regenerate: false)
             }
         }
     }

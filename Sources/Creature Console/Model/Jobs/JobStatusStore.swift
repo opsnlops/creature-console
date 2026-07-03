@@ -55,6 +55,15 @@ actor JobStatusStore {
     }
 
     func update(with progress: JobProgress) {
+        // A terminal status is final. Completions arrive on the same ordered websocket
+        // pipeline as progress, so the only out-of-order producer is a panel's optimistic
+        // queued/0.0 seed racing a fast job's completion — letting it through would
+        // resurrect the job as non-terminal and strand its observers.
+        if let existing = jobs[progress.jobId], existing.isTerminal {
+            logger.debug(
+                "JobStatusStore: ignoring progress for terminal job \(progress.jobId)")
+            return
+        }
         var info =
             jobs[progress.jobId]
             ?? JobInfo(
