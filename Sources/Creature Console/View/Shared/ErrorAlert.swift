@@ -5,8 +5,8 @@ import SwiftUI
 /// `.errorAlert(_:)` modifier.
 ///
 /// This replaces the per-view `showError` / `errorMessage` / `presentError(...)` triads
-/// that were copy-pasted across ~two dozen views, along with the near-identical
-/// `AlertDescriptor` / `TVAlertDescriptor` value types (issue #8). Build one from a thrown
+/// that were copy-pasted across ~two dozen views, along with the tvOS `TVAlertDescriptor`
+/// value type (issue #8). Build one from a thrown
 /// error and it preserves the server's detailed message automatically:
 ///
 /// ```swift

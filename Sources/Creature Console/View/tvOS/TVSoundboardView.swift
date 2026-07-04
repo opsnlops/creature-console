@@ -17,7 +17,7 @@
 
         @State private var isRefreshing = false
         @State private var pendingSoundId: SoundIdentifier?
-        @State private var alertDescriptor: TVAlertDescriptor?
+        @State private var errorAlert: ErrorAlert?
         @State private var toast: TVStatusToast?
         @State private var toastTask: Task<Void, Never>?
 
@@ -73,13 +73,7 @@
             }
             .animation(.easeInOut(duration: 0.35), value: isRefreshing)
             .animation(.easeInOut(duration: 0.35), value: toast)
-            .alert(item: $alertDescriptor) { descriptor in
-                Alert(
-                    title: Text(descriptor.title),
-                    message: Text(descriptor.message),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
+            .errorAlert($errorAlert)
             .task {
                 await refresh()
             }
@@ -291,7 +285,7 @@
 
         @MainActor
         private func presentError(_ title: String, message: String) {
-            alertDescriptor = TVAlertDescriptor(title: title, message: message)
+            errorAlert = ErrorAlert(title: title, message: message)
         }
 
         @MainActor

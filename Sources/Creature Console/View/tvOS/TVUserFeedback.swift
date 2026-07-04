@@ -1,12 +1,6 @@
 #if os(tvOS)
     import SwiftUI
 
-    struct TVAlertDescriptor: Identifiable {
-        let id = UUID()
-        let title: String
-        let message: String
-    }
-
     struct TVStatusToast: Identifiable, Equatable {
         enum Kind {
             case success
