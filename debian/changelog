@@ -1,3 +1,11 @@
+creature-cli (2.34.2) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which fixes the dialog render Title field (it now pre-fills with and uses
+    the scene name instead of showing it only as an ignored placeholder).
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.34.1) unstable; urgency=medium
 
   * Fix an intermittent crash on exit ("freed pointer was not the last
