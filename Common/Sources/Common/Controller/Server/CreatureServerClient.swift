@@ -234,6 +234,66 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         }
     }
 
+    // MARK: - Path-based overloads
+    //
+    // Every REST method used to hand-roll the same three lines: build the URL from the HTTP
+    // base + a path, `guard` it (returning the same "unable to make base URL" failure), and
+    // log it. These overloads own that so callers just pass a `path:`.
+
+    /// Builds the REST URL for `path` against the HTTP base, or `nil` if the result isn't a
+    /// valid URL.
+    func makeURL(_ path: String) -> URL? {
+        URL(string: makeBaseURL(.http) + path)
+    }
+
+    func fetchData<T: Decodable>(path: String, returnType: T.Type) async -> Result<T, ServerError> {
+        guard let url = makeURL(path) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        logger.debug("Using URL: \(url)")
+        return await fetchData(url, returnType: returnType)
+    }
+
+    func fetchDataResponse(path: String) async -> Result<HTTPResponseData, ServerError> {
+        guard let url = makeURL(path) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        logger.debug("Using URL: \(url)")
+        return await fetchDataResponse(url)
+    }
+
+    func sendData<T: Decodable, U: Encodable>(
+        path: String, method: String = "POST", body: U, returnType: T.Type
+    ) async -> Result<T, ServerError> {
+        guard let url = makeURL(path) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        logger.debug("Using URL: \(url)")
+        return await sendData(url, method: method, body: body, returnType: returnType)
+    }
+
+    func sendDataResponse<U: Encodable>(
+        path: String, method: String = "POST", body: U,
+        successStatusCodes: Set<Int> = [200, 201, 202]
+    ) async -> Result<HTTPResponseData, ServerError> {
+        guard let url = makeURL(path) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        logger.debug("Using URL: \(url)")
+        return await sendDataResponse(
+            url, method: method, body: body, successStatusCodes: successStatusCodes)
+    }
+
+    func sendRawJson<T: Decodable>(
+        path: String, method: String = "POST", rawJson: String, returnType: T.Type
+    ) async -> Result<T, ServerError> {
+        guard let url = makeURL(path) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        logger.debug("Using URL: \(url)")
+        return await sendRawJson(url, method: method, rawJson: rawJson, returnType: returnType)
+    }
+
     func fetchDataResponse(_ url: URL) async -> Result<HTTPResponseData, ServerError> {
         var request = createConfiguredURLRequest(for: url)
         // Never serve these REST reads from the URL cache. The server doesn't send

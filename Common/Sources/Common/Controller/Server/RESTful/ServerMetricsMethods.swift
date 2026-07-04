@@ -14,12 +14,7 @@ extension CreatureServerClient {
 
         logger.debug("trying to get the system metrics from the server")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/metric/counters") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        let result = await fetchData(url, returnType: SystemCountersDTO.self)
+        let result = await fetchData(path: "/metric/counters", returnType: SystemCountersDTO.self)
         if case .success(let counters) = result {
             logger.debug("Got the server's counters, it's on frame \(counters.totalFrames)")
         }

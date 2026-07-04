@@ -30,16 +30,9 @@ extension CreatureServerClient {
 
         logger.debug("telling the server to send a \(cacheTypeString) cache invalidation message")
 
-        // Construct the URL
-        guard
-            let url = URL(string: makeBaseURL(.http) + "/debug/cache-invalidate/\(cacheTypeString)")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         logger.debug("calling fetchData() now...")
-        let returnObject = await fetchData(url, returnType: StatusDTO.self)
+        let returnObject = await fetchData(
+            path: "/debug/cache-invalidate/\(cacheTypeString)", returnType: StatusDTO.self)
         logger.debug("...and we're back!")
 
         // Yay we got something back
@@ -86,14 +79,8 @@ extension CreatureServerClient {
 
         logger.debug("telling the server to send a fake playlist update command")
 
-        // Construct the URL
-        guard let url = URL(string: makeBaseURL(.http) + "/debug/playlist/update") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         logger.debug("calling fetchData() now...")
-        let returnObject = await fetchData(url, returnType: StatusDTO.self)
+        let returnObject = await fetchData(path: "/debug/playlist/update", returnType: StatusDTO.self)
         logger.debug("...and we're back!")
 
         // Yay we got something back

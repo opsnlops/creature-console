@@ -44,24 +44,16 @@ extension CreatureServerClient {
 
         logger.debug("attempting to get all of the sounds")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/sound") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: SoundListDTO.self).map { $0.items }
+        return await fetchData(path: "/sound", returnType: SoundListDTO.self).map { $0.items }
     }
 
     public func listAdHocSounds() async -> Result<[AdHocSoundEntry], ServerError> {
 
         logger.debug("attempting to get ad-hoc/generated sounds")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/sound/ad-hoc") else {
-            return .failure(.serverError("unable to make base URL"))
+        return await fetchData(path: "/sound/ad-hoc", returnType: AdHocSoundListDTO.self).map {
+            $0.items
         }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: AdHocSoundListDTO.self).map { $0.items }
     }
 
     /**
@@ -76,16 +68,11 @@ extension CreatureServerClient {
             "attempting to generate lip sync for \(fileName) (allow overwrite: \(allowOverwrite ? "yes" : "no"))"
         )
 
-        guard let url = URL(string: makeBaseURL(.http) + "/sound/generate-lipsync") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         let requestBody = GenerateLipSyncRequestDTO(
             soundFile: fileName, allowOverwrite: allowOverwrite)
 
         return await sendData(
-            url,
+            path: "/sound/generate-lipsync",
             method: "POST",
             body: requestBody,
             returnType: JobCreatedResponse.self
@@ -144,19 +131,15 @@ extension CreatureServerClient {
 
         logger.debug("attempting play sound \(fileName) on server")
 
-        // Construct the URL
-        guard let url = URL(string: makeBaseURL(.http) + "/sound/play") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         // No body is needed for this one
         //struct EmptyBody: Encodable {}
 
         let requestBody = PlaySoundRequestDTO(file_name: fileName)
 
-        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self)
-            .map { $0.message }
+        return await sendData(
+            path: "/sound/play", method: "POST", body: requestBody, returnType: StatusDTO.self
+        )
+        .map { $0.message }
     }
 
     /**
@@ -223,14 +206,12 @@ extension CreatureServerClient {
 
         logger.debug("attempting to fetch provenance for \(fileName)")
 
-        guard let encodedName = urlEncode(soundBasename(fileName)),
-            let url = URL(string: makeBaseURL(.http) + "/sound/provenance/" + encodedName)
-        else {
+        guard let encodedName = urlEncode(soundBasename(fileName)) else {
             return .failure(.serverError("unable to make base URL"))
         }
-        self.logger.debug("Using URL: \(url)")
 
-        return await fetchDataResponse(url).flatMap { response in
+        return await fetchDataResponse(path: "/sound/provenance/" + encodedName).flatMap {
+            response in
             guard let xml = String(data: response.data, encoding: .utf8) else {
                 return .failure(.dataFormatError("provenance response was not valid UTF-8"))
             }
@@ -260,14 +241,11 @@ extension CreatureServerClient {
         logger.debug("attempting to download a shareable version of \(fileName)")
 
         let name = soundBasename(fileName)
-        guard let encodedName = urlEncode(name),
-            let url = URL(string: makeBaseURL(.http) + "/sound/shareable/" + encodedName)
-        else {
+        guard let encodedName = urlEncode(name) else {
             return .failure(.serverError("unable to make base URL"))
         }
-        self.logger.debug("Using URL: \(url)")
 
-        return await fetchDataResponse(url).map { response in
+        return await fetchDataResponse(path: "/sound/shareable/" + encodedName).map { response in
             let fallback: String
             if let dotIndex = name.lastIndex(of: ".") {
                 fallback = String(name[..<dotIndex]) + ".ogg"

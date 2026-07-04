@@ -59,12 +59,10 @@ extension CreatureServerClient {
     public func listDialogScripts() async -> Result<[DialogScript], ServerError> {
         logger.debug("attempting to get all of the dialog scripts")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/dialog/script") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: DialogScriptListDTO.self).map { $0.items }
+        return await fetchData(
+            path: "/animation/dialog/script", returnType: DialogScriptListDTO.self
+        )
+        .map { $0.items }
     }
 
     public func getDialogScript(id: DialogScriptIdentifier) async -> Result<
@@ -72,16 +70,9 @@ extension CreatureServerClient {
     > {
         logger.debug("attempting to load dialog script \(id)")
 
-        guard
-            let url = URL(
-                string: makeBaseURL(.http)
-                    + "/animation/dialog/script/\(id.uuidString.lowercased())")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: DialogScript.self)
+        return await fetchData(
+            path: "/animation/dialog/script/\(id.uuidString.lowercased())",
+            returnType: DialogScript.self)
     }
 
     /// Creates a new script. The server stamps `id` + timestamps and returns the full record
@@ -91,14 +82,10 @@ extension CreatureServerClient {
     > {
         logger.debug("attempting to create a new dialog script: \(script.title)")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/dialog/script") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         // Send only the editable fields — the server rejects id/created_at/updated_at.
         return await sendData(
-            url, method: "POST", body: UpsertDialogScriptRequest(script),
+            path: "/animation/dialog/script", method: "POST",
+            body: UpsertDialogScriptRequest(script),
             returnType: DialogScript.self)
     }
 
@@ -109,18 +96,10 @@ extension CreatureServerClient {
     > {
         logger.debug("attempting to update dialog script \(script.id)")
 
-        guard
-            let url = URL(
-                string: makeBaseURL(.http)
-                    + "/animation/dialog/script/\(script.id.uuidString.lowercased())")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         // The id travels in the URL path; the body carries only the editable fields.
         return await sendData(
-            url, method: "PUT", body: UpsertDialogScriptRequest(script),
+            path: "/animation/dialog/script/\(script.id.uuidString.lowercased())", method: "PUT",
+            body: UpsertDialogScriptRequest(script),
             returnType: DialogScript.self)
     }
 
@@ -128,17 +107,9 @@ extension CreatureServerClient {
     {
         logger.debug("attempting to delete dialog script \(id)")
 
-        guard
-            let url = URL(
-                string: makeBaseURL(.http)
-                    + "/animation/dialog/script/\(id.uuidString.lowercased())")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         return await sendData(
-            url, method: "DELETE", body: EmptyBody(), returnType: StatusDTO.self
+            path: "/animation/dialog/script/\(id.uuidString.lowercased())", method: "DELETE",
+            body: EmptyBody(), returnType: StatusDTO.self
         ).map { $0.message }
     }
 
@@ -147,15 +118,9 @@ extension CreatureServerClient {
     public func validateDialogScript(_ script: DialogScript) async -> Result<
         DialogScriptValidationDTO, ServerError
     > {
-        guard
-            let url = URL(string: makeBaseURL(.http) + "/animation/dialog/script/validate")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         return await sendData(
-            url, method: "POST", body: script, returnType: DialogScriptValidationDTO.self)
+            path: "/animation/dialog/script/validate", method: "POST", body: script,
+            returnType: DialogScriptValidationDTO.self)
     }
 
     // MARK: - Render
@@ -167,13 +132,9 @@ extension CreatureServerClient {
     > {
         logger.debug("attempting to render a dialog (persistence: \(request.persistence.rawValue))")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/dialog") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         return await sendData(
-            url, method: "POST", body: request, returnType: JobCreatedResponse.self)
+            path: "/animation/dialog", method: "POST", body: request,
+            returnType: JobCreatedResponse.self)
     }
 
     // MARK: - Preview
@@ -191,12 +152,10 @@ extension CreatureServerClient {
     public func dialogPreviewMeta(_ request: DialogPreviewRequest) async -> Result<
         DialogPreviewMetaOutcome, ServerError
     > {
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/dialog/preview/meta") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await sendDataResponse(url, method: "POST", body: request).flatMap { response in
+        return await sendDataResponse(
+            path: "/animation/dialog/preview/meta", method: "POST", body: request
+        )
+        .flatMap { response in
             if response.statusCode == 202 {
                 return decodeResponse(response.data, returnType: JobCreatedResponse.self)
                     .map { .queued($0) }
@@ -211,13 +170,9 @@ extension CreatureServerClient {
     public func dialogPreviewLookup(_ request: DialogPreviewRequest) async -> Result<
         DialogPreviewLookupDTO, ServerError
     > {
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/dialog/preview/lookup") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         return await sendData(
-            url, method: "POST", body: request, returnType: DialogPreviewLookupDTO.self)
+            path: "/animation/dialog/preview/lookup", method: "POST", body: request,
+            returnType: DialogPreviewLookupDTO.self)
     }
 
     /// Fetches the full 17-channel WAV bytes (S16 LE @ 48 kHz, each creature in its
@@ -228,15 +183,9 @@ extension CreatureServerClient {
     public func dialogPreviewMultichannel(_ request: DialogPreviewRequest) async -> Result<
         JobCreatedResponse, ServerError
     > {
-        guard
-            let url = URL(string: makeBaseURL(.http) + "/animation/dialog/preview/multichannel")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         return await sendData(
-            url, method: "POST", body: request, returnType: JobCreatedResponse.self)
+            path: "/animation/dialog/preview/multichannel", method: "POST", body: request,
+            returnType: JobCreatedResponse.self)
     }
 
     /// Downloads the raw bytes at a URL (e.g. the mono preview WAV) using the configured

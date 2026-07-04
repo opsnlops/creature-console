@@ -7,12 +7,7 @@ extension CreatureServerClient {
 
         logger.debug("attempting to get all of the creatures")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/creature") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: CreatureListDTO.self).map { $0.items }
+        return await fetchData(path: "/creature", returnType: CreatureListDTO.self).map { $0.items }
 
     }
 
@@ -24,12 +19,7 @@ extension CreatureServerClient {
     public func getCreature(creatureId: CreatureIdentifier) async throws -> Result<
         Creature, ServerError
     > {
-        guard let url = URL(string: makeBaseURL(.http) + "/creature/\(creatureId)") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: Creature.self)
+        return await fetchData(path: "/creature/\(creatureId)", returnType: Creature.self)
     }
 
     /// Fetches a creature's complete stored configuration as raw JSON, exactly as the
@@ -38,37 +28,26 @@ extension CreatureServerClient {
     /// view and would silently drop fields like motors and servo settings.
     public func exportCreature(creatureId: CreatureIdentifier) async -> Result<String, ServerError>
     {
-        guard let url = URL(string: makeBaseURL(.http) + "/creature/\(creatureId)/export") else {
-            return .failure(.serverError("unable to make base URL"))
+        return await fetchDataResponse(path: "/creature/\(creatureId)/export").map {
+            String(decoding: $0.data, as: UTF8.self)
         }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchDataResponse(url).map { String(decoding: $0.data, as: UTF8.self) }
     }
 
     public func validateCreatureConfig(rawConfig: String) async -> Result<
         CreatureConfigValidationDTO, ServerError
     > {
-        guard let url = URL(string: makeBaseURL(.http) + "/creature/validate") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        logger.debug("Using URL: \(url)")
-
         return await sendRawJson(
-            url, method: "POST", rawJson: rawConfig, returnType: CreatureConfigValidationDTO.self)
+            path: "/creature/validate", method: "POST", rawJson: rawConfig,
+            returnType: CreatureConfigValidationDTO.self)
     }
 
     public func setIdleEnabled(creatureId: CreatureIdentifier, enabled: Bool) async -> Result<
         Creature, ServerError
     > {
-        guard let url = URL(string: makeBaseURL(.http) + "/creature/\(creatureId)/idle") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        logger.debug("Using URL: \(url)")
-
         let requestBody = IdleToggleDTO(enabled: enabled)
         return await sendData(
-            url, method: "PATCH", body: requestBody, returnType: Creature.self)
+            path: "/creature/\(creatureId)/idle", method: "PATCH", body: requestBody,
+            returnType: Creature.self)
     }
 
 }
