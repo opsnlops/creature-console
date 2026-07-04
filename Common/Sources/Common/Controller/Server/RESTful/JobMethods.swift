@@ -14,14 +14,11 @@ extension CreatureServerClient {
 
         logger.debug("fetching job state for \(jobId)")
 
-        guard let encodedId = urlEncode(jobId),
-            let url = URL(string: makeBaseURL(.http) + "/job/" + encodedId)
-        else {
+        guard let encodedId = urlEncode(jobId) else {
             return .failure(.serverError("unable to make base URL"))
         }
-        self.logger.debug("Using URL: \(url)")
 
-        return await fetchData(url, returnType: JobStateSnapshot.self)
+        return await fetchData(path: "/job/" + encodedId, returnType: JobStateSnapshot.self)
     }
 
 }

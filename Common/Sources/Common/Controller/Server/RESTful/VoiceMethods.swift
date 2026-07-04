@@ -11,12 +11,9 @@ extension CreatureServerClient {
 
         logger.debug("attempting to get all of the voices that are available to us")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/voice/list-available") else {
-            return .failure(.serverError("unable to make base URL"))
+        return await fetchData(path: "/voice/list-available", returnType: VoiceListDTO.self).map {
+            $0.items
         }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: VoiceListDTO.self).map { $0.items }
     }
 
     /**
@@ -26,12 +23,8 @@ extension CreatureServerClient {
 
         logger.debug("attempting to get the current state of our elevenlabs.io subscription...")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/voice/subscription") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: VoiceSubscriptionStatus.self)
+        return await fetchData(
+            path: "/voice/subscription", returnType: VoiceSubscriptionStatus.self)
     }
 
     /**
@@ -46,15 +39,10 @@ extension CreatureServerClient {
 
         logger.debug("asking the server to request a new creature speech sound file")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/voice") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         let requestBody = MakeSoundFileRequestDTO(creature_id: creatureId, title: title, text: text)
 
         return await sendData(
-            url, method: "POST", body: requestBody, returnType: JobCreatedResponse.self)
+            path: "/voice", method: "POST", body: requestBody, returnType: JobCreatedResponse.self)
     }
 
 

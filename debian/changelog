@@ -1,3 +1,15 @@
+creature-cli (2.34.6) unstable; urgency=medium
+
+  * Internal refactor (no behavior change): the ~50 REST methods that each
+    hand-rolled the same `guard let url = URL(string: makeBaseURL(.http) + path)`
+    boilerplate now call `path:` overloads on the client that own URL building,
+    the guard, and the debug log. Net ~210 fewer lines (DRY audit, issue #8).
+  * Version sync: creature-mqtt and creature-agent are bumped to 2.34.6 to match
+    creature-cli (their `--version` had drifted, still reporting 2.28.1). No
+    functional change in those two tools.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.34.5) unstable; urgency=medium
 
   * Internal refactor (no behavior change): the duplicated `formatMillis` date

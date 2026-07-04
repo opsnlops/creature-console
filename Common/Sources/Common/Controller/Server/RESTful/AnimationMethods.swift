@@ -13,16 +13,12 @@ extension CreatureServerClient {
         logger.debug(
             "attempting to play an already-stored animation \(animationId) on universe \(universe)")
 
-        // Construct the URL
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/play") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         let requestBody = PlayAnimationRequestDto(animation_id: animationId, universe: universe)
 
-        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self)
-            .map { $0.message }
+        return await sendData(
+            path: "/animation/play", method: "POST", body: requestBody, returnType: StatusDTO.self
+        )
+        .map { $0.message }
     }
 
     public func interruptWithAnimation(
@@ -33,17 +29,14 @@ extension CreatureServerClient {
             "attempting to interrupt with animation \(animationId) on universe \(universe), resumePlaylist: \(resumePlaylist)"
         )
 
-        // Construct the URL
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/interrupt") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         let requestBody = PlayAnimationRequestDto(
             animation_id: animationId, universe: universe, resumePlaylist: resumePlaylist)
 
-        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self)
-            .map { $0.message }
+        return await sendData(
+            path: "/animation/interrupt", method: "POST", body: requestBody,
+            returnType: StatusDTO.self
+        )
+        .map { $0.message }
     }
 
 
@@ -51,15 +44,9 @@ extension CreatureServerClient {
 
         logger.debug("attempting to save animation \(animation.metadata.title) on server")
 
-        // Construct the URL
-        guard let url = URL(string: makeBaseURL(.http) + "/animation") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         logger.debug("calling sendData() now...")
         let returnObject = await sendData(
-            url, method: "POST", body: animation, returnType: Animation.self)
+            path: "/animation", method: "POST", body: animation, returnType: Animation.self)
         logger.debug("...and we're back!")
 
         // Yay we got something back
@@ -84,12 +71,9 @@ extension CreatureServerClient {
             "attempting to get all of the animation metadatas"
         )
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation") else {
-            return .failure(.serverError("unable to make base URL"))
+        return await fetchData(path: "/animation", returnType: AnimationMetadataListDTO.self).map {
+            $0.items
         }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: AnimationMetadataListDTO.self).map { $0.items }
 
     }
 
@@ -99,12 +83,7 @@ extension CreatureServerClient {
 
         logger.debug("attempting to load animation \(animationId)")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/\(animationId)") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: Animation.self)
+        return await fetchData(path: "/animation/\(animationId)", returnType: Animation.self)
     }
 
     public func deleteAnimation(animationId: AnimationIdentifier) async -> Result<
@@ -112,13 +91,11 @@ extension CreatureServerClient {
     > {
         logger.debug("attempting to delete animation \(animationId)")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/\(animationId)") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await sendData(url, method: "DELETE", body: EmptyBody(), returnType: StatusDTO.self)
-            .map { $0.message }
+        return await sendData(
+            path: "/animation/\(animationId)", method: "DELETE", body: EmptyBody(),
+            returnType: StatusDTO.self
+        )
+        .map { $0.message }
     }
 
     public func generateLipSyncForAnimation(animationId: AnimationIdentifier)
@@ -127,15 +104,11 @@ extension CreatureServerClient {
 
         logger.debug("queue lip sync generation for animation \(animationId)")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/generate-lipsync") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         let requestBody = RegenerateLipSyncRequestDTO(animationId: animationId)
 
         return await sendData(
-            url, method: "POST", body: requestBody, returnType: JobCreatedResponse.self)
+            path: "/animation/generate-lipsync", method: "POST", body: requestBody,
+            returnType: JobCreatedResponse.self)
     }
 
     public func getAdHocAnimation(animationId: AnimationIdentifier) async -> Result<
@@ -144,37 +117,23 @@ extension CreatureServerClient {
 
         logger.debug("attempting to load ad-hoc animation \(animationId)")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc/\(animationId)")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: Animation.self)
+        return await fetchData(path: "/animation/ad-hoc/\(animationId)", returnType: Animation.self)
     }
 
     public func listAdHocAnimations() async -> Result<[AdHocAnimationSummary], ServerError> {
 
         logger.debug("attempting to load ad-hoc animations")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: AdHocAnimationListDTO.self).map { $0.items }
+        return await fetchData(path: "/animation/ad-hoc", returnType: AdHocAnimationListDTO.self)
+            .map { $0.items }
     }
 
     private func sendAdHocAnimationRequest(
         path: String, body: CreateAdHocAnimationRequestDTO
     ) async -> Result<JobCreatedResponse, ServerError> {
 
-        guard let url = URL(string: makeBaseURL(.http) + path) else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await sendData(url, method: "POST", body: body, returnType: JobCreatedResponse.self)
+        return await sendData(
+            path: path, method: "POST", body: body, returnType: JobCreatedResponse.self)
     }
 
     public func createAdHocSpeechAnimation(
@@ -199,54 +158,43 @@ extension CreatureServerClient {
     public func startStreamingAdHocSpeech(
         creatureId: CreatureIdentifier, resumePlaylist: Bool = true
     ) async -> Result<StreamingAdHocStartResponse, ServerError> {
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc-stream/start")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
         let body = StreamingAdHocStartRequest(
             creatureId: creatureId, resumePlaylist: resumePlaylist)
         return await sendData(
-            url, method: "POST", body: body, returnType: StreamingAdHocStartResponse.self)
+            path: "/animation/ad-hoc-stream/start", method: "POST", body: body,
+            returnType: StreamingAdHocStartResponse.self)
     }
 
     /// Add a text chunk (sentence) to an active streaming session.
     public func addStreamingAdHocText(
         sessionId: String, text: String
     ) async -> Result<StreamingAdHocTextResponse, ServerError> {
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc-stream/text")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
         let body = StreamingAdHocTextRequest(sessionId: sessionId, text: text)
         return await sendData(
-            url, method: "POST", body: body, returnType: StreamingAdHocTextResponse.self)
+            path: "/animation/ad-hoc-stream/text", method: "POST", body: body,
+            returnType: StreamingAdHocTextResponse.self)
     }
 
     /// Finish a streaming session — synthesizes speech, builds animation, plays it.
     public func finishStreamingAdHocSpeech(
         sessionId: String
     ) async -> Result<StreamingAdHocFinishResponse, ServerError> {
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc-stream/finish")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
         let body = StreamingAdHocFinishRequest(sessionId: sessionId)
         return await sendData(
-            url, method: "POST", body: body, returnType: StreamingAdHocFinishResponse.self)
+            path: "/animation/ad-hoc-stream/finish", method: "POST", body: body,
+            returnType: StreamingAdHocFinishResponse.self)
     }
 
     public func triggerPreparedAdHocSpeech(
         animationId: AnimationIdentifier, resumePlaylist: Bool = true
     ) async -> Result<String, ServerError> {
-        guard let url = URL(string: makeBaseURL(.http) + "/animation/ad-hoc/play") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         let requestBody = TriggerAdHocAnimationRequestDTO(
             animationId: animationId, resumePlaylist: resumePlaylist)
 
-        return await sendData(url, method: "POST", body: requestBody, returnType: StatusDTO.self)
-            .map { $0.message }
+        return await sendData(
+            path: "/animation/ad-hoc/play", method: "POST", body: requestBody,
+            returnType: StatusDTO.self
+        )
+        .map { $0.message }
     }
 }

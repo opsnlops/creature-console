@@ -8,25 +8,16 @@ extension CreatureServerClient {
     public func listStoryboards() async -> Result<[Storyboard], ServerError> {
         logger.debug("attempting to get all of the storyboards")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/storyboard") else {
-            return .failure(.serverError("unable to make base URL"))
+        return await fetchData(path: "/storyboard", returnType: StoryboardListDTO.self).map {
+            $0.items
         }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: StoryboardListDTO.self).map { $0.items }
     }
 
     public func getStoryboard(id: StoryboardIdentifier) async -> Result<Storyboard, ServerError> {
         logger.debug("attempting to load storyboard \(id)")
 
-        guard
-            let url = URL(string: makeBaseURL(.http) + "/storyboard/\(id.uuidString.lowercased())")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
-        return await fetchData(url, returnType: Storyboard.self)
+        return await fetchData(
+            path: "/storyboard/\(id.uuidString.lowercased())", returnType: Storyboard.self)
     }
 
     /// Creates a new storyboard. The server stamps `id` + timestamps and returns the full record
@@ -35,13 +26,8 @@ extension CreatureServerClient {
     {
         logger.debug("attempting to create a new storyboard: \(storyboard.title)")
 
-        guard let url = URL(string: makeBaseURL(.http) + "/storyboard") else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         return await sendData(
-            url, method: "POST", body: UpsertStoryboardRequest(storyboard),
+            path: "/storyboard", method: "POST", body: UpsertStoryboardRequest(storyboard),
             returnType: Storyboard.self)
     }
 
@@ -51,31 +37,18 @@ extension CreatureServerClient {
     {
         logger.debug("attempting to update storyboard \(storyboard.id)")
 
-        guard
-            let url = URL(
-                string: makeBaseURL(.http) + "/storyboard/\(storyboard.id.uuidString.lowercased())")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         return await sendData(
-            url, method: "PUT", body: UpsertStoryboardRequest(storyboard),
+            path: "/storyboard/\(storyboard.id.uuidString.lowercased())", method: "PUT",
+            body: UpsertStoryboardRequest(storyboard),
             returnType: Storyboard.self)
     }
 
     public func deleteStoryboard(id: StoryboardIdentifier) async -> Result<String, ServerError> {
         logger.debug("attempting to delete storyboard \(id)")
 
-        guard
-            let url = URL(string: makeBaseURL(.http) + "/storyboard/\(id.uuidString.lowercased())")
-        else {
-            return .failure(.serverError("unable to make base URL"))
-        }
-        self.logger.debug("Using URL: \(url)")
-
         return await sendData(
-            url, method: "DELETE", body: EmptyBody(), returnType: StatusDTO.self
+            path: "/storyboard/\(id.uuidString.lowercased())", method: "DELETE", body: EmptyBody(),
+            returnType: StatusDTO.self
         ).map { $0.message }
     }
 }
