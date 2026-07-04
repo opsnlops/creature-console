@@ -47,7 +47,7 @@ extension CreatureCLI {
                                     title: "Tiles", valueProvider: { String($0.tiles.count) }),
                                 TableColumn(
                                     title: "Updated",
-                                    valueProvider: { formatMillis($0.updatedAt) }),
+                                    valueProvider: { TimeHelper.formatEpochMillis($0.updatedAt) }),
                             ])
                         print(
                             "\n\(boards.count) storyboard(s) on server at \(server.serverHostname)\n"
@@ -391,14 +391,6 @@ private func readFileData(at path: String) throws -> Data {
     }
 }
 
-private func formatMillis(_ millis: Int64?) -> String {
-    guard let millis else { return "—" }
-    let date = Date(timeIntervalSince1970: Double(millis) / 1000.0)
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd HH:mm"
-    return formatter.string(from: date)
-}
-
 private func storyboardDetails(_ board: Storyboard) -> String {
     var lines: [String] = []
     lines.append("Title:    \(board.title.isEmpty ? "(untitled)" : board.title)")
@@ -406,8 +398,8 @@ private func storyboardDetails(_ board: Storyboard) -> String {
     if !board.notes.isEmpty {
         lines.append("Notes:    \(board.notes)")
     }
-    lines.append("Created:  \(formatMillis(board.createdAt))")
-    lines.append("Updated:  \(formatMillis(board.updatedAt))")
+    lines.append("Created:  \(TimeHelper.formatEpochMillis(board.createdAt))")
+    lines.append("Updated:  \(TimeHelper.formatEpochMillis(board.updatedAt))")
     lines.append("Tiles:    \(board.tiles.count)")
     lines.append("")
     for (index, tile) in board.tiles.enumerated() {

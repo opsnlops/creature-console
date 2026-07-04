@@ -46,7 +46,7 @@ extension CreatureCLI {
                                     title: "Turns", valueProvider: { String($0.turns.count) }),
                                 TableColumn(
                                     title: "Updated",
-                                    valueProvider: { formatMillis($0.updatedAt) }),
+                                    valueProvider: { TimeHelper.formatEpochMillis($0.updatedAt) }),
                             ])
                         print(
                             "\n\(scripts.count) script(s) on server at \(server.serverHostname)\n")
@@ -516,14 +516,6 @@ private func writeWav(_ data: Data, to path: String) throws {
     }
 }
 
-private func formatMillis(_ millis: Int64?) -> String {
-    guard let millis else { return "—" }
-    let date = Date(timeIntervalSince1970: Double(millis) / 1000.0)
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd HH:mm"
-    return formatter.string(from: date)
-}
-
 private func dialogScriptDetails(_ script: DialogScript) -> String {
     var lines: [String] = []
     lines.append("Title:    \(script.title)")
@@ -531,8 +523,8 @@ private func dialogScriptDetails(_ script: DialogScript) -> String {
     if !script.notes.isEmpty {
         lines.append("Notes:    \(script.notes)")
     }
-    lines.append("Created:  \(formatMillis(script.createdAt))")
-    lines.append("Updated:  \(formatMillis(script.updatedAt))")
+    lines.append("Created:  \(TimeHelper.formatEpochMillis(script.createdAt))")
+    lines.append("Updated:  \(TimeHelper.formatEpochMillis(script.updatedAt))")
     lines.append("Turns:    \(script.turns.count)")
     lines.append("")
     for (index, turn) in script.turns.enumerated() {

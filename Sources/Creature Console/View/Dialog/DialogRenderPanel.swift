@@ -141,7 +141,7 @@ struct DialogRenderPanel: View {
                 .foregroundStyle(.green)
                 .font(.subheadline.bold())
             Text(
-                "\(result.numberOfFrames) frames • \(formatDuration(result.durationSeconds)) • \(result.persistence)"
+                "\(result.numberOfFrames) frames • \(TimeHelper.formatDuration(result.durationSeconds)) • \(result.persistence)"
                     + (result.autoplayed ? " • autoplayed" : "")
             )
             .font(.caption)
@@ -257,11 +257,6 @@ struct DialogRenderPanel: View {
                 }
             }
         }
-    }
-
-    private func formatDuration(_ seconds: Double) -> String {
-        let total = Int(seconds.rounded())
-        return String(format: "%d:%02d", total / 60, total % 60)
     }
 
     private func progressMilestone(_ progress: Double?) -> String {
