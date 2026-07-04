@@ -95,7 +95,7 @@ struct DialogPreviewPanel: View {
                     Image(systemName: meta.cached ? "bolt.fill" : "sparkles")
                         .foregroundStyle(meta.cached ? .yellow : .blue)
                     Text(
-                        "\(meta.cached ? "Cached take" : "Fresh take") • \(formatDuration(meta.durationSeconds))"
+                        "\(meta.cached ? "Cached take" : "Fresh take") • \(TimeHelper.formatDuration(meta.durationSeconds))"
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -455,11 +455,6 @@ struct DialogPreviewPanel: View {
     private func presentError(_ message: String) {
         errorAlert = ErrorAlert(title: "Preview Error", message: message)
         statusMessage = nil
-    }
-
-    private func formatDuration(_ seconds: Double) -> String {
-        let total = Int(seconds.rounded())
-        return String(format: "%d:%02d", total / 60, total % 60)
     }
 
     private func takeLabel(_ take: DialogPreviewLookupDTO.Generation, index: Int) -> String {
