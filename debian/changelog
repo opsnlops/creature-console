@@ -1,3 +1,13 @@
+creature-cli (2.34.4) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which finishes the tvOS half of the error-alert consolidation: the tvOS
+    soundboard and animation-trigger views now use the shared ErrorAlert
+    facade, the duplicate TVAlertDescriptor type is gone, and those alerts move
+    off the deprecated Alert API (DRY audit, issue #8).
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.34.3) unstable; urgency=medium
 
   * No CLI changes — version bump to stay in lockstep with the Console app,
