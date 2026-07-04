@@ -103,6 +103,11 @@ struct DialogRenderPanel: View {
         }
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .onAppear {
+            // Pre-fill the title with the suggested scene name so it's a real, editable
+            // value that's actually used — not just a grey placeholder that gets ignored.
+            if titleText.isEmpty { titleText = defaultTitle }
+        }
         .shareableSoundFlow(fileName: $renderedSoundToShare)
         .alert("Render Error", isPresented: $showError) {
             Button("OK") {}
@@ -180,8 +185,12 @@ struct DialogRenderPanel: View {
         observedJob = nil
         completedResult = nil
 
+        // Fall back to the suggested title (the script/scene name) when the field is
+        // left blank, so a dialog render is never saved as "Dialog <uuid>".
         let trimmedTitle = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let title = trimmedTitle.isEmpty ? nil : trimmedTitle
+        let fallback = defaultTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let effectiveTitle = trimmedTitle.isEmpty ? fallback : trimmedTitle
+        let title = effectiveTitle.isEmpty ? nil : effectiveTitle
 
         let request: DialogRequest
         if let scriptId {
