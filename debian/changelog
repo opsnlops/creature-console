@@ -1,3 +1,11 @@
+creature-cli (2.34.3) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which consolidates the copy-pasted error-alert plumbing behind a shared
+    ErrorAlert value + .errorAlert(_:) modifier (DRY audit, issue #8).
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.34.2) unstable; urgency=medium
 
   * No CLI changes — version bump to stay in lockstep with the Console app,

@@ -40,7 +40,7 @@ struct AdHocAnimationListView: View {
 
     @State private var animations: [AdHocAnimationSummary] = []
     @State private var isLoading = false
-    @State private var errorMessage: String?
+    @State private var errorAlert: ErrorAlert?
     @PlaylistResumePreference private var resumePlaylistAfterPlayback: Bool
     @State private var playingAnimationId: AnimationIdentifier?
     @State private var playTask: Task<Void, Never>?
@@ -113,17 +113,7 @@ struct AdHocAnimationListView: View {
             playTask?.cancel()
             playTask = nil
         }
-        .alert(
-            "Unable to Load",
-            isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .errorAlert($errorAlert)
     }
 
     private func triggerPlayback(for animationId: AnimationIdentifier) {
@@ -147,9 +137,9 @@ struct AdHocAnimationListView: View {
             playTask = nil
             switch result {
             case .success:
-                errorMessage = nil
+                errorAlert = nil
             case .failure(let error):
-                errorMessage = ServerError.detailedMessage(from: error)
+                errorAlert = ErrorAlert(title: "Unable to Load", error: error)
             }
         }
     }
@@ -163,9 +153,9 @@ struct AdHocAnimationListView: View {
             switch result {
             case .success(let list):
                 animations = list
-                errorMessage = nil
+                errorAlert = nil
             case .failure(let error):
-                errorMessage = ServerError.detailedMessage(from: error)
+                errorAlert = ErrorAlert(title: "Unable to Load", error: error)
             }
         }
     }
@@ -364,12 +354,9 @@ struct AdHocSoundListView: View {
 
     @State private var sounds: [AdHocSoundEntry] = []
     @State private var isLoading = false
-    @State private var errorMessage: String?
+    @State private var errorAlert: ErrorAlert?
     @State private var preparingSound: String?
     @State private var playTask: Task<Void, Never>?
-    @State private var alertTitle: String = ""
-    @State private var alertMessage: String = ""
-    @State private var showAlert: Bool = false
     @State private var soundToShare: String? = nil
 
     var body: some View {
@@ -419,17 +406,7 @@ struct AdHocSoundListView: View {
         .task {
             await load()
         }
-        .alert(
-            "Unable to Load",
-            isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .errorAlert($errorAlert)
     }
 
     private func load(force: Bool = false) async {
@@ -441,9 +418,9 @@ struct AdHocSoundListView: View {
             switch result {
             case .success(let list):
                 sounds = list
-                errorMessage = nil
+                errorAlert = nil
             case .failure(let error):
-                errorMessage = ServerError.detailedMessage(from: error)
+                errorAlert = ErrorAlert(title: "Unable to Load", error: error)
             }
         }
     }
@@ -484,9 +461,7 @@ struct AdHocSoundListView: View {
 
     private func presentError(_ title: String, message: String) async {
         await MainActor.run {
-            alertTitle = title
-            alertMessage = message
-            showAlert = true
+            errorAlert = ErrorAlert(title: title, message: message)
             preparingSound = nil
         }
     }

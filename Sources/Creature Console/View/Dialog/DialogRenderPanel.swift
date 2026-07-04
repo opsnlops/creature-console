@@ -33,8 +33,7 @@ struct DialogRenderPanel: View {
     @State private var isSubmitting = false
 
     @State private var completedResult: DialogJobResult? = nil
-    @State private var showError = false
-    @State private var errorMessage = ""
+    @State private var errorAlert: ErrorAlert?
     @State private var renderedSoundToShare: String? = nil
 
     private var turnsAreReady: Bool {
@@ -109,11 +108,7 @@ struct DialogRenderPanel: View {
             if titleText.isEmpty { titleText = defaultTitle }
         }
         .shareableSoundFlow(fileName: $renderedSoundToShare)
-        .alert("Render Error", isPresented: $showError) {
-            Button("OK") {}
-        } message: {
-            Text(errorMessage)
-        }
+        .errorAlert($errorAlert)
         .task(id: activeJobId) {
             jobEventsTask?.cancel()
             guard let jobId = activeJobId else { return }
@@ -215,7 +210,7 @@ struct DialogRenderPanel: View {
                     }
                     activeJobId = job.jobId
                 case .failure(let error):
-                    presentError(ServerError.detailedMessage(from: error))
+                    errorAlert = ErrorAlert(title: "Render Error", error: error)
                 }
             }
         }
@@ -230,7 +225,9 @@ struct DialogRenderPanel: View {
             CacheInvalidationProcessor.rebuildAnimationCache(deleteStaleEntries: true)
             CacheInvalidationProcessor.rebuildSoundListCache(deleteStaleEntries: true)
         case .failed:
-            presentError(info.result ?? "The dialog render failed on the server.")
+            errorAlert = ErrorAlert(
+                title: "Render Error",
+                message: info.result ?? "The dialog render failed on the server.")
         default:
             break
         }
@@ -249,20 +246,17 @@ struct DialogRenderPanel: View {
                 switch animationResult {
                 case .success(let animation):
                     if animation.metadata.soundFile.isEmpty {
-                        presentError("This animation doesn't have a sound file to share.")
+                        errorAlert = ErrorAlert(
+                            title: "Render Error",
+                            message: "This animation doesn't have a sound file to share.")
                     } else {
                         renderedSoundToShare = animation.metadata.soundFile
                     }
                 case .failure(let error):
-                    presentError(ServerError.detailedMessage(from: error))
+                    errorAlert = ErrorAlert(title: "Render Error", error: error)
                 }
             }
         }
-    }
-
-    private func presentError(_ message: String) {
-        errorMessage = message
-        showError = true
     }
 
     private func formatDuration(_ seconds: Double) -> String {
