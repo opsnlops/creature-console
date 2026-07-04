@@ -166,6 +166,8 @@
 		11B0488A2EB842B3001B73C5 /* LipSyncUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B048872EB842B3001B73C5 /* LipSyncUtilities.swift */; };
 		11B0488D2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B0488B2EB8430E001B73C5 /* ProcessingOverlayView.swift */; };
 		11B0488E2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B0488B2EB8430E001B73C5 /* ProcessingOverlayView.swift */; };
+		FEA1A1E70000000000000002 /* ErrorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000001 /* ErrorAlert.swift */; };
+		FEA1A1E70000000000000003 /* ErrorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000001 /* ErrorAlert.swift */; };
 		11BC3BAC2E98B4E5002A568C /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = 11BC3BAB2E98B4E5002A568C /* SimpleKeychain */; };
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11BF13972E42D32E00728799 /* CreatePlaylistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF13952E42D32E00728799 /* CreatePlaylistView.swift */; };
@@ -393,6 +395,7 @@
 		11AFC3182BE9ED7700602604 /* CreatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureManager.swift; sourceTree = "<group>"; };
 		11B048872EB842B3001B73C5 /* LipSyncUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LipSyncUtilities.swift; sourceTree = "<group>"; };
 		11B0488B2EB8430E001B73C5 /* ProcessingOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessingOverlayView.swift; sourceTree = "<group>"; };
+		FEA1A1E70000000000000001 /* ErrorAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorAlert.swift; sourceTree = "<group>"; };
 		11B9F1A72A0DDC5800F6C00A /* Creature_Console.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Creature_Console.entitlements; sourceTree = "<group>"; };
 		11BC3C392A0DF62300410F63 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		11BF13952E42D32E00728799 /* CreatePlaylistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePlaylistView.swift; sourceTree = "<group>"; };
@@ -1053,6 +1056,7 @@
 			isa = PBXGroup;
 			children = (
 				11B0488B2EB8430E001B73C5 /* ProcessingOverlayView.swift */,
+				FEA1A1E70000000000000001 /* ErrorAlert.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -1678,6 +1682,7 @@
 				110C412C2E516F270079CA75 /* EmergencyStopMessageProcessor.swift in Sources */,
 				1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */,
 				11B0488D2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */,
+				FEA1A1E70000000000000002 /* ErrorAlert.swift in Sources */,
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */,
@@ -1773,6 +1778,7 @@
 				11C54A4B2E91A1E0003CD966 /* StatusLightsState+UI.swift in Sources */,
 				11E53CD02E88A0C400C17F16 /* AppBootstrapper.swift in Sources */,
 				11B0488E2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */,
+				FEA1A1E70000000000000003 /* ErrorAlert.swift in Sources */,
 				117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */,
 				117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */,
 				11C7F0AA2F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift in Sources */,
@@ -2039,7 +2045,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.34.2;
+				MARKETING_VERSION = 2.34.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2093,7 +2099,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.34.2;
+				MARKETING_VERSION = 2.34.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2177,7 +2183,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.34.2;
+				MARKETING_VERSION = 2.34.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2209,7 +2215,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.34.2;
+				MARKETING_VERSION = 2.34.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

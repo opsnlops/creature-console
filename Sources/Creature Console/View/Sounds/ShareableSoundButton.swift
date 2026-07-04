@@ -24,8 +24,7 @@ import UniformTypeIdentifiers
         @State private var exportData: Data? = nil
         @State private var exportFilename = "sound.ogg"
         @State private var showExporter = false
-        @State private var showError = false
-        @State private var errorMessage = ""
+        @State private var errorAlert: ErrorAlert?
 
         func body(content: Content) -> some View {
             content
@@ -43,16 +42,14 @@ import UniformTypeIdentifiers
                     case .success(let url):
                         logger.info("saved shareable sound to \(url.path)")
                     case .failure(let error):
-                        presentError("Export failed: \(error.localizedDescription)")
+                        errorAlert = ErrorAlert(
+                            title: "Sharing Failed",
+                            message: "Export failed: \(error.localizedDescription)")
                     }
                     exportData = nil
                     fileName = nil
                 }
-                .alert("Sharing Failed", isPresented: $showError) {
-                    Button("OK") { fileName = nil }
-                } message: {
-                    Text(errorMessage)
-                }
+                .errorAlert($errorAlert) { fileName = nil }
         }
 
         private func download(_ name: String) {
@@ -68,15 +65,10 @@ import UniformTypeIdentifiers
                         exportFilename = shareable.suggestedFilename
                         showExporter = true
                     case .failure(let error):
-                        presentError(ServerError.detailedMessage(from: error))
+                        errorAlert = ErrorAlert(title: "Sharing Failed", error: error)
                     }
                 }
             }
-        }
-
-        private func presentError(_ message: String) {
-            errorMessage = message
-            showError = true
         }
     }
 

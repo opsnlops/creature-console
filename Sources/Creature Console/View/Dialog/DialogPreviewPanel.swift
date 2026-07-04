@@ -33,8 +33,7 @@ struct DialogPreviewPanel: View {
     @State private var meta: DialogPreviewMetaDTO? = nil
     @State private var takes: [DialogPreviewLookupDTO.Generation] = []
 
-    @State private var showError = false
-    @State private var errorMessage = ""
+    @State private var errorAlert: ErrorAlert?
 
     // Export state (cross-platform via .fileExporter)
     @State private var exportData: Data? = nil
@@ -145,11 +144,7 @@ struct DialogPreviewPanel: View {
             takes = []
             statusMessage = nil
         }
-        .alert("Preview Error", isPresented: $showError) {
-            Button("OK") {}
-        } message: {
-            Text(errorMessage)
-        }
+        .errorAlert($errorAlert)
         .fileExporter(
             isPresented: $showExporter,
             document: AudioFileDocument(data: exportData ?? Data()),
@@ -458,8 +453,7 @@ struct DialogPreviewPanel: View {
     }
 
     private func presentError(_ message: String) {
-        errorMessage = message
-        showError = true
+        errorAlert = ErrorAlert(title: "Preview Error", message: message)
         statusMessage = nil
     }
 
