@@ -46,6 +46,7 @@ let package = Package(
                 "Model/Creature/CreatureHealthTests.swift",
                 "Model/Creature/CreatureImporterTests.swift",
                 "Model/Creature/CreatureModelTests.swift",
+                "Model/Jobs/JobStatusStoreTests.swift",
                 "Model/Playlist/PlaylistImporterTests.swift",
                 "Model/Playlist/PlaylistModelTests.swift",
                 "Model/Server/LogItemTests.swift",
