@@ -47,7 +47,6 @@ struct AnimationTable: View {
     @State private var activeAnimationLipSyncJob:
         (animationId: AnimationIdentifier, jobId: String)? = nil
     @State private var observedJobInfo: JobStatusStore.JobInfo? = nil
-    @State private var jobEventsTask: Task<Void, Never>? = nil
     @State private var pendingDeleteAnimation: AnimationIdentifier? = nil
     @State private var showDeleteConfirmation = false
     @State private var deleteAnimationTask: Task<Void, Never>? = nil
@@ -225,13 +224,11 @@ struct AnimationTable: View {
                 playAnimationTask?.cancel()
                 interruptAnimationTask?.cancel()
                 generateLipSyncTask?.cancel()
-                jobEventsTask?.cancel()
                 deleteAnimationTask?.cancel()
                 renameAnimationTask?.cancel()
                 loadScriptTask?.cancel()
                 loadScriptTask = nil
                 generateLipSyncTask = nil
-                jobEventsTask = nil
                 deleteAnimationTask = nil
                 renameAnimationTask = nil
                 filmingFlowTask?.cancel()
@@ -355,29 +352,17 @@ struct AnimationTable: View {
                 value: activeAnimationLipSyncJob != nil || generatingLipSyncForAnimation != nil
                     || isDeletingAnimation || isRenamingAnimation
             )
-            .task(id: activeAnimationLipSyncJob?.jobId) {
-                jobEventsTask?.cancel()
-                observedJobInfo = nil
-
-                guard let job = activeAnimationLipSyncJob else { return }
-                jobEventsTask = Task {
-                    for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
-                        switch event {
-                        case .updated(let info):
-                            await MainActor.run { observedJobInfo = info }
-                        case .terminal(let info):
-                            await MainActor.run {
-                                observedJobInfo = info
-                                handleAnimationJobCompletion(
-                                    info: info, animationId: job.animationId)
-                            }
-                        case .removed:
-                            await MainActor.run {
-                                finalizeAnimationJob()
-                            }
-                        }
-                    }
+            .watchJob(activeAnimationLipSyncJob?.jobId) { info in
+                observedJobInfo = info
+            } onTerminal: { info in
+                observedJobInfo = info
+                if let animationId = activeAnimationLipSyncJob?.animationId {
+                    handleAnimationJobCompletion(info: info, animationId: animationId)
+                } else {
+                    finalizeAnimationJob()
                 }
+            } onRemoved: {
+                finalizeAnimationJob()
             }
         }  // NavigationStack
     }  // body
@@ -701,7 +686,6 @@ struct AnimationTable: View {
         generatingLipSyncForAnimation = nil
         activeAnimationLipSyncJob = nil
         observedJobInfo = nil
-        jobEventsTask = nil
     }
 
     func loadAnimationForEditing(animationId: AnimationIdentifier) {

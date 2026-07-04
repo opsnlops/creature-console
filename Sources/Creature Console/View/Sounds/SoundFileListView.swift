@@ -29,7 +29,6 @@ struct SoundFileListView: View {
     @State private var pendingRegenerateSound: SoundIdentifier? = nil
     @State private var showRegenerateConfirmation = false
     @State private var observedJobInfo: JobStatusStore.JobInfo?
-    @State private var jobEventsTask: Task<Void, Never>?
     @State private var soundToShare: String? = nil
     @State private var identifiedProvenance: IdentifiedProvenance? = nil
     @State private var loadingProvenanceFor: String? = nil
@@ -185,32 +184,13 @@ struct SoundFileListView: View {
                 }
             }
             .animation(.default, value: generatingLipSyncFor != nil || preparingFile != nil)
-            .task(id: activeLipSyncJob?.jobId) {
-                jobEventsTask?.cancel()
-                observedJobInfo = nil
-
-                guard let job = activeLipSyncJob else { return }
-                jobEventsTask = Task {
-                    for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
-                        switch event {
-                        case .updated(let info):
-                            await MainActor.run { observedJobInfo = info }
-                        case .terminal(let info):
-                            await MainActor.run {
-                                observedJobInfo = info
-                                handleJobCompletion(info: info, soundId: job.soundId)
-                            }
-                        case .removed:
-                            await MainActor.run {
-                                finalizeActiveJob()
-                            }
-                        }
-                    }
-                }
-            }
-            .onDisappear {
-                jobEventsTask?.cancel()
-                jobEventsTask = nil
+            .watchJob(activeLipSyncJob?.jobId) { info in
+                observedJobInfo = info
+            } onTerminal: { info in
+                observedJobInfo = info
+                handleJobCompletion(info: info, soundId: activeLipSyncJob?.soundId ?? "")
+            } onRemoved: {
+                finalizeActiveJob()
             }
             .confirmationDialog(
                 "Regenerate Lip Sync?",
@@ -319,7 +299,6 @@ struct SoundFileListView: View {
         generatingLipSyncFor = nil
         activeLipSyncJob = nil
         observedJobInfo = nil
-        jobEventsTask = nil
     }
 
     private func startLipSyncGeneration(

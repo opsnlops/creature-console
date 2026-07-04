@@ -1,3 +1,13 @@
+creature-cli (2.34.7) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which finishes the DRY audit (issue #8): a shared `.watchJob(_:onUpdate:
+    onTerminal:onRemoved:)` view modifier replaces the copy-pasted job-observation
+    dispatch in four views, and a `rebuildAfterDialogRender()` helper replaces the
+    animation+sound cache-rebuild pair at the two dialog-render sites.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.34.6) unstable; urgency=medium
 
   * Internal refactor (no behavior change): the ~50 REST methods that each

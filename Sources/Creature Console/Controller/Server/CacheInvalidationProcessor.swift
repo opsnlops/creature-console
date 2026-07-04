@@ -253,6 +253,14 @@ struct CacheInvalidationProcessor {
         }
     }
 
+    /// A permanent dialog render writes to both the animation and sound collections, so the
+    /// render + re-render surfaces refresh both once the job completes (rather than waiting on
+    /// the websocket invalidation). One call so those sites don't drift apart.
+    static func rebuildAfterDialogRender() {
+        rebuildAnimationCache(deleteStaleEntries: true)
+        rebuildSoundListCache(deleteStaleEntries: true)
+    }
+
 
     // Async version that can be awaited for sequential execution
     private static func rebuildFixtureCacheAsync(deleteStaleEntries: Bool = false) async {
