@@ -29,7 +29,6 @@ struct DialogRenderPanel: View {
 
     @State private var activeJobId: String? = nil
     @State private var observedJob: JobStatusStore.JobInfo? = nil
-    @State private var jobEventsTask: Task<Void, Never>? = nil
     @State private var isSubmitting = false
 
     @State private var completedResult: DialogJobResult? = nil
@@ -109,28 +108,12 @@ struct DialogRenderPanel: View {
         }
         .shareableSoundFlow(fileName: $renderedSoundToShare)
         .errorAlert($errorAlert)
-        .task(id: activeJobId) {
-            jobEventsTask?.cancel()
-            guard let jobId = activeJobId else { return }
-            jobEventsTask = Task {
-                for await event in await JobStatusStore.shared.events(forJob: jobId) {
-                    switch event {
-                    case .updated(let info):
-                        await MainActor.run { observedJob = info }
-                    case .terminal(let info):
-                        await MainActor.run {
-                            observedJob = info
-                            handleTerminal(info)
-                        }
-                    case .removed:
-                        break
-                    }
-                }
-            }
-        }
-        .onDisappear {
-            jobEventsTask?.cancel()
-            jobEventsTask = nil
+        .watchJob(activeJobId) { info in
+            observedJob = info
+        } onTerminal: { info in
+            observedJob = info
+            handleTerminal(info)
+        } onRemoved: {
         }
     }
 
@@ -220,10 +203,7 @@ struct DialogRenderPanel: View {
         switch info.status {
         case .completed:
             completedResult = info.dialogResult
-            // A permanent render writes to the main animation + sound collections; refresh both
-            // so the new animation shows up without waiting on the websocket invalidation.
-            CacheInvalidationProcessor.rebuildAnimationCache(deleteStaleEntries: true)
-            CacheInvalidationProcessor.rebuildSoundListCache(deleteStaleEntries: true)
+            CacheInvalidationProcessor.rebuildAfterDialogRender()
         case .failed:
             errorAlert = ErrorAlert(
                 title: "Render Error",

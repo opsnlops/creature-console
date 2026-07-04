@@ -27,7 +27,6 @@ struct DialogRerenderButton: View {
 
     @State private var jobId: String? = nil
     @State private var progress: Double? = nil
-    @State private var jobTask: Task<Void, Never>? = nil
     @State private var isRendering = false
     @State private var successMessage: String? = nil
     @State private var errorMessage: String? = nil
@@ -76,25 +75,11 @@ struct DialogRerenderButton: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
-        .task(id: jobId) {
-            jobTask?.cancel()
-            guard let jobId else { return }
-            jobTask = Task {
-                for await event in await JobStatusStore.shared.events(forJob: jobId) {
-                    switch event {
-                    case .updated(let info):
-                        await MainActor.run { progress = info.progress }
-                    case .terminal(let info):
-                        await MainActor.run { handleTerminal(info) }
-                    case .removed:
-                        break
-                    }
-                }
-            }
-        }
-        .onDisappear {
-            jobTask?.cancel()
-            jobTask = nil
+        .watchJob(jobId) { info in
+            progress = info.progress
+        } onTerminal: { info in
+            handleTerminal(info)
+        } onRemoved: {
         }
     }
 
@@ -130,8 +115,7 @@ struct DialogRerenderButton: View {
         switch info.status {
         case .completed:
             successMessage = "Re-rendered in place — same animation ID, updated audio & tracks."
-            CacheInvalidationProcessor.rebuildAnimationCache(deleteStaleEntries: true)
-            CacheInvalidationProcessor.rebuildSoundListCache(deleteStaleEntries: true)
+            CacheInvalidationProcessor.rebuildAfterDialogRender()
             if let result = info.dialogResult {
                 onCompleted?(result)
             }
