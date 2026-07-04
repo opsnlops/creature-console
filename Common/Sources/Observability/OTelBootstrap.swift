@@ -35,12 +35,20 @@ private func bootstrapLoggingOnce(_ factory: @escaping @Sendable (String) -> any
 /// When `OTEL_EXPORTER_OTLP_ENDPOINT` is not set, OTel OTLP export is skipped entirely
 /// to avoid slow startup from connection timeouts to localhost:4318. Console logging
 /// still works normally via `StreamLogHandler`.
-package func bootstrapObservability(serviceName: String) throws -> [any Service] {
+///
+/// `exportOTLP: false` forces the console-only path even when an endpoint is set. The
+/// short-lived `creature-cli` uses this: swift-otel 1.4.0's batch exporters abort the
+/// process with a Swift task-allocator LIFO violation ("freed pointer was not the last
+/// allocation") when a real export races the command's teardown (issue #14). Console
+/// logging is unaffected; long-lived services keep OTLP export.
+package func bootstrapObservability(serviceName: String, exportOTLP: Bool = true) throws
+    -> [any Service]
+{
     let hasEndpoint =
         ProcessInfo.processInfo.environment["OTEL_EXPORTER_OTLP_ENDPOINT"] != nil
 
-    guard hasEndpoint else {
-        // No endpoint configured — just set up console logging and return no services.
+    guard exportOTLP, hasEndpoint else {
+        // No OTLP export — just set up console logging and return no services.
         bootstrapLoggingOnce { label in
             StreamLogHandler.standardError(label: label)
         }

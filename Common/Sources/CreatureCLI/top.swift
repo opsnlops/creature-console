@@ -35,7 +35,7 @@ struct CreatureCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "A utility for interacting with the Creature Server",
         discussion: "A tool for interacting and testing the Creature Server from the command line",
-        version: "2.34.0",
+        version: "2.34.1",
         subcommands: [
             Animations.self, Creatures.self, Debug.self, Dialog.self, Fixtures.self, Metrics.self,
             Network.self, Playlists.self, Sounds.self, Storyboards.self, Util.self, Voice.self,
@@ -78,7 +78,10 @@ func tracedRun(
     config: GlobalOptions,
     body: @escaping @Sendable () async throws -> Void
 ) async throws {
-    let otelServices = try bootstrapObservability(serviceName: "creature-cli")
+    // OTLP export is disabled for the CLI: swift-otel 1.4.0's batch exporters abort the
+    // process with a task-allocator LIFO violation when an export races the short-lived
+    // command's teardown (issue #14). Console logging still works.
+    let otelServices = try bootstrapObservability(serviceName: "creature-cli", exportOTLP: false)
 
     if otelServices.isEmpty {
         try await body()

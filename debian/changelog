@@ -1,3 +1,14 @@
+creature-cli (2.34.1) unstable; urgency=medium
+
+  * Fix an intermittent crash on exit ("freed pointer was not the last
+    allocation") when OTLP export was configured: swift-otel 1.4.0's batch
+    exporters trip a Swift task-allocator LIFO violation when an export races
+    the short-lived command's teardown. OTLP export is now disabled for the CLI
+    (console logging is unaffected); long-lived services keep telemetry. See
+    issue #14.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
 creature-cli (2.34.0) unstable; urgency=medium
 
   * 'sounds provenance <name>' now prints the embedded lip-sync: per-creature
