@@ -1,3 +1,72 @@
+creature-cli (2.34.2) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which fixes the dialog render Title field (it now pre-fills with and uses
+    the scene name instead of showing it only as an ignored placeholder).
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
+creature-cli (2.34.1) unstable; urgency=medium
+
+  * Fix an intermittent crash on exit ("freed pointer was not the last
+    allocation") when OTLP export was configured: swift-otel 1.4.0's batch
+    exporters trip a Swift task-allocator LIFO violation when an export races
+    the short-lived command's teardown. OTLP export is now disabled for the CLI
+    (console logging is unaffected); long-lived services keep telemetry. See
+    issue #14.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
+creature-cli (2.34.0) unstable; urgency=medium
+
+  * 'sounds provenance <name>' now prints the embedded lip-sync: per-creature
+    mouth cues (shape@time) derived from the ElevenLabs alignment. The console's
+    provenance sheet shows a per-creature cue summary too.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
+creature-cli (2.33.0) unstable; urgency=medium
+
+  * 'sounds list' "Has Lip Sync" now reflects lip-sync embedded in a dialog
+    render's iXML (mouth cues derived from the ElevenLabs alignment), not just a
+    sidecar Rhubarb .json (creature-server 3.26.0+).
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
+creature-cli (2.32.0) unstable; urgency=medium
+
+  * 'sounds list' is richer: shows the embedded scene title instead of a bare
+    UUID for dialog renders, and its "Has Text" column now reflects embedded
+    (iXML) script text, not just a sidecar transcript (creature-server 3.25.0+).
+  * Editor exports now embed the scene title in provenance, and dialog WAVs
+    carry a complete per-channel iXML track list so tools like Wave Agent show
+    the creature names.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
+creature-cli (2.31.0) unstable; urgency=medium
+
+  * New 'sounds provenance <name>' command: prints the script provenance
+    embedded in a dialog render (creature-server 3.24.0+) — the source
+    script id, generations used, the creature/channel layout, and the full
+    rendered script text. This is how you tell what an otherwise anonymous
+    dialog/<uuid>.wav actually says. The Console app gains a matching
+    "View Script Provenance…" action on dialog sounds.
+
+ -- April White <april@creature.engineering>  Fri, 03 Jul 2026 00:00:00 +0000
+
+creature-cli (2.30.0) unstable; urgency=medium
+
+  * New 'sounds share' command: downloads a shareable Ogg/Opus version of
+    any sound file (creature-server 3.20.0+). The server finds the file in
+    the permanent or ad-hoc store, downmixes multi-channel WAVs to mono,
+    and encodes at 96 kbps — Telegram-sized instead of WAV-sized. Supports
+    the same --output/--overwrite options as 'sounds download'. The Console
+    app gains matching "Generate Shareable Version" buttons everywhere
+    sounds appear.
+
+ -- April White <april@creature.engineering>  Thu, 02 Jul 2026 00:00:00 +0000
+
 creature-cli (2.29.2) unstable; urgency=medium
 
   * No CLI-visible changes; version kept in sync with the Console app.

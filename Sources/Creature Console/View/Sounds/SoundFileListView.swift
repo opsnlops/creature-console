@@ -30,6 +30,10 @@ struct SoundFileListView: View {
     @State private var showRegenerateConfirmation = false
     @State private var observedJobInfo: JobStatusStore.JobInfo?
     @State private var jobEventsTask: Task<Void, Never>?
+    @State private var soundToShare: String? = nil
+    @State private var identifiedProvenance: IdentifiedProvenance? = nil
+    @State private var loadingProvenanceFor: String? = nil
+    @State private var provenanceTask: Task<Void, Never>? = nil
 
     var body: some View {
         NavigationStack {
@@ -37,7 +41,18 @@ struct SoundFileListView: View {
                 if !sounds.isEmpty {
                     Table(sounds, selection: $selection) {
                         TableColumn("File Name") { s in
-                            Text(s.id)
+                            if s.title.isEmpty {
+                                Text(s.id)
+                            } else {
+                                // A dialog render: lead with its embedded title, keep the
+                                // (UUID) file name as a quiet subtitle.
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(s.title)
+                                    Text(s.id)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                         .width(min: 300, ideal: 500)
 
@@ -47,12 +62,14 @@ struct SoundFileListView: View {
                         .width(min: 120)
 
                         TableColumn("Text?") { s in
-                            Text(s.transcript.isEmpty ? "" : "✅")
+                            // ✅ for a sidecar transcript OR embedded (iXML) script text.
+                            Text(s.transcript.isEmpty && !s.hasEmbeddedScript ? "" : "✅")
                         }
                         .width(100)
 
                         TableColumn("Lip Sync?") { s in
-                            Text(s.lipsync.isEmpty ? "" : "✅")
+                            // ✅ for a sidecar Rhubarb file OR embedded (iXML) mouth cues.
+                            Text(s.lipsync.isEmpty && !s.hasEmbeddedLipsync ? "" : "✅")
                         }
                         .width(110)
 
@@ -87,6 +104,17 @@ struct SoundFileListView: View {
                             .disabled(sound.transcript.isEmpty)
 
                             if isWavFile {
+                                Button {
+                                    showProvenance(for: sound.id)
+                                } label: {
+                                    Label(
+                                        "View Script Provenance…",
+                                        systemImage: "doc.text.magnifyingglass")
+                                }
+                                .disabled(loadingProvenanceFor != nil)
+
+                                ShareableSoundButton(fileName: sound.id, trigger: $soundToShare)
+
                                 if sound.lipsync.isEmpty {
                                     Button {
                                         startLipSyncGeneration(for: sound.id, allowOverwrite: false)
@@ -108,6 +136,11 @@ struct SoundFileListView: View {
                                 }
                             }
                         }
+                    }
+                    .shareableSoundFlow(fileName: $soundToShare)
+                    .sheet(item: $identifiedProvenance) { identified in
+                        DialogProvenanceView(
+                            fileName: identified.fileName, provenance: identified.provenance)
                     }
                 } else {
                     ContentUnavailableView {
@@ -147,6 +180,8 @@ struct SoundFileListView: View {
                     )
                 } else if let name = preparingFile {
                     ProcessingOverlayView(message: "Preparing \(name)…", progress: nil)
+                } else if let name = loadingProvenanceFor {
+                    ProcessingOverlayView(message: "Reading provenance for \(name)…", progress: nil)
                 }
             }
             .animation(.default, value: generatingLipSyncFor != nil || preparingFile != nil)
@@ -339,6 +374,28 @@ struct SoundFileListView: View {
 
         await MainActor.run {
             lipSyncTask = nil
+        }
+    }
+
+    private func showProvenance(for fileName: String) {
+        guard loadingProvenanceFor == nil else { return }
+        loadingProvenanceFor = fileName
+        provenanceTask?.cancel()
+        provenanceTask = Task {
+            let result = await server.fetchDialogProvenance(fileName: fileName)
+            await MainActor.run {
+                loadingProvenanceFor = nil
+                provenanceTask = nil
+                switch result {
+                case .success(let provenance):
+                    identifiedProvenance = IdentifiedProvenance(
+                        fileName: fileName, provenance: provenance)
+                case .failure(let error):
+                    alertTitle = "No Script Provenance"
+                    alertMessage = ServerError.detailedMessage(from: error)
+                    showAlert = true
+                }
+            }
         }
     }
 

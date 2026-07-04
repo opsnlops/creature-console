@@ -35,6 +35,7 @@ struct DialogRenderPanel: View {
     @State private var completedResult: DialogJobResult? = nil
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var renderedSoundToShare: String? = nil
 
     private var turnsAreReady: Bool {
         !turns.isEmpty
@@ -102,6 +103,12 @@ struct DialogRenderPanel: View {
         }
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .onAppear {
+            // Pre-fill the title with the suggested scene name so it's a real, editable
+            // value that's actually used — not just a grey placeholder that gets ignored.
+            if titleText.isEmpty { titleText = defaultTitle }
+        }
+        .shareableSoundFlow(fileName: $renderedSoundToShare)
         .alert("Render Error", isPresented: $showError) {
             Button("OK") {}
         } message: {
@@ -155,6 +162,15 @@ struct DialogRenderPanel: View {
             Text("The rendered animation is now in your Animations list.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Button {
+                shareRenderedSound(result)
+            } label: {
+                Label(
+                    "Generate Shareable Version of Sound…",
+                    systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
@@ -169,8 +185,12 @@ struct DialogRenderPanel: View {
         observedJob = nil
         completedResult = nil
 
+        // Fall back to the suggested title (the script/scene name) when the field is
+        // left blank, so a dialog render is never saved as "Dialog <uuid>".
         let trimmedTitle = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let title = trimmedTitle.isEmpty ? nil : trimmedTitle
+        let fallback = defaultTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let effectiveTitle = trimmedTitle.isEmpty ? fallback : trimmedTitle
+        let title = effectiveTitle.isEmpty ? nil : effectiveTitle
 
         let request: DialogRequest
         if let scriptId {
@@ -215,6 +235,29 @@ struct DialogRenderPanel: View {
             break
         }
         activeJobId = nil
+    }
+
+    /// The dialog result carries the animation id, not the sound file — look the
+    /// animation up (in the store matching its persistence) to find what to share.
+    private func shareRenderedSound(_ result: DialogJobResult) {
+        Task {
+            let animationResult =
+                result.persistence == "adhoc"
+                ? await server.getAdHocAnimation(animationId: result.animationId)
+                : await server.getAnimation(animationId: result.animationId)
+            await MainActor.run {
+                switch animationResult {
+                case .success(let animation):
+                    if animation.metadata.soundFile.isEmpty {
+                        presentError("This animation doesn't have a sound file to share.")
+                    } else {
+                        renderedSoundToShare = animation.metadata.soundFile
+                    }
+                case .failure(let error):
+                    presentError(ServerError.detailedMessage(from: error))
+                }
+            }
+        }
     }
 
     private func presentError(_ message: String) {

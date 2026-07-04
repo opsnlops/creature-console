@@ -29,6 +29,8 @@ struct SoundsCommandTests {
         private(set) var adHocListCallCount = 0
         private(set) var adHocURLRequests: [String] = []
         private(set) var soundURLRequests: [String] = []
+        private(set) var shareableURLRequests: [String] = []
+        private(set) var provenanceRequests: [String] = []
         private(set) var uploadCalls: [UploadCall] = []
 
         var listResult: Result<[Sound], ServerError>
@@ -38,6 +40,8 @@ struct SoundsCommandTests {
         var adHocListResult: Result<[AdHocSoundEntry], ServerError>
         var adHocURLResult: Result<URL, ServerError>
         var soundURLResult: Result<URL, ServerError>
+        var shareableURLResult: Result<URL, ServerError>
+        var provenanceResult: Result<DialogProvenance, ServerError>
 
         init(
             listResult: Result<[Sound], ServerError> = .success([]),
@@ -52,7 +56,14 @@ struct SoundsCommandTests {
             adHocURLResult: Result<URL, ServerError> = .success(
                 URL(string: "https://example.com/sound.wav")!),
             soundURLResult: Result<URL, ServerError> = .success(
-                URL(string: "https://example.com/download.wav")!)
+                URL(string: "https://example.com/download.wav")!),
+            shareableURLResult: Result<URL, ServerError> = .success(
+                URL(string: "https://example.com/shareable.ogg")!),
+            provenanceResult: Result<DialogProvenance, ServerError> = .success(
+                DialogProvenance(
+                    sourceScriptId: "script-1", title: "Test Scene", generationIds: ["gen-1"],
+                    scriptText: "Beaky: hello",
+                    tracks: [DialogProvenance.Track(channel: 1, name: "Beaky")]))
         ) {
             self.listResult = listResult
             self.playResult = playResult
@@ -61,6 +72,8 @@ struct SoundsCommandTests {
             self.adHocListResult = adHocListResult
             self.adHocURLResult = adHocURLResult
             self.soundURLResult = soundURLResult
+            self.shareableURLResult = shareableURLResult
+            self.provenanceResult = provenanceResult
         }
 
         func listSounds() async -> Result<[Sound], ServerError> {
@@ -103,6 +116,17 @@ struct SoundsCommandTests {
             return soundURLResult
         }
 
+        func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError> {
+            shareableURLRequests.append(fileName)
+            return shareableURLResult
+        }
+
+        func fetchDialogProvenance(fileName: String) async -> Result<DialogProvenance, ServerError>
+        {
+            provenanceRequests.append(fileName)
+            return provenanceResult
+        }
+
         func recordedGenerateCalls() async -> [GenerateCall] {
             generateCalls
         }
@@ -125,6 +149,14 @@ struct SoundsCommandTests {
 
         func recordedSoundURLRequests() async -> [String] {
             soundURLRequests
+        }
+
+        func recordedShareableURLRequests() async -> [String] {
+            shareableURLRequests
+        }
+
+        func recordedProvenanceRequests() async -> [String] {
+            provenanceRequests
         }
 
         func recordedUploadCalls() async -> [UploadCall] {
@@ -162,6 +194,24 @@ struct SoundsCommandTests {
         command.fileName = fileName
         command.output = output
         command.overwrite = overwrite
+        command.globalOptions = GlobalOptions()
+        return command
+    }
+
+    private func makeShareCommand(
+        fileName: String, output: String? = nil, overwrite: Bool = false
+    ) -> CreatureCLI.Sounds.Share {
+        var command = CreatureCLI.Sounds.Share()
+        command.fileName = fileName
+        command.output = output
+        command.overwrite = overwrite
+        command.globalOptions = GlobalOptions()
+        return command
+    }
+
+    private func makeProvenanceCommand(fileName: String) -> CreatureCLI.Sounds.Provenance {
+        var command = CreatureCLI.Sounds.Provenance()
+        command.fileName = fileName
         command.globalOptions = GlobalOptions()
         return command
     }
@@ -377,6 +427,54 @@ struct SoundsCommandTests {
         await CreatureCLI.Sounds.resetServerFactory()
     }
 
+    @Test("share command asks for the shareable URL and saves as .ogg")
+    func shareCommandUsesShareableURLAndOggName() async throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(
+            UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let remoteURL = URL(string: "https://example.com/sound/shareable/tone.wav")!
+        let stub = StubSoundServer(shareableURLResult: .success(remoteURL))
+        await CreatureCLI.Sounds.useServerFactory { _ in stub }
+
+        await SoundDownloadHandlerStore.shared.updateHandler { _, destination in
+            try Data("tiny opus".utf8).write(to: destination)
+            return destination
+        }
+
+        // Point at the directory so the command picks the default (.ogg) file name.
+        let command = makeShareCommand(fileName: "tone.wav", output: tempDir.path)
+        try await command.run()
+
+        let requests = await stub.recordedShareableURLRequests()
+        #expect(requests == ["tone.wav"])
+
+        let expectedDestination = tempDir.appendingPathComponent("tone.ogg")
+        let contents = try Data(contentsOf: expectedDestination)
+        #expect(String(decoding: contents, as: UTF8.self) == "tiny opus")
+
+        await SoundDownloadHandlerStore.shared.resetHandler()
+        try? FileManager.default.removeItem(at: tempDir)
+        await CreatureCLI.Sounds.resetServerFactory()
+    }
+
+    @Test("share command surfaces server errors")
+    func shareCommandSurfacesServerErrors() async {
+        let stub = StubSoundServer(shareableURLResult: .failure(.serverError("nope")))
+        await CreatureCLI.Sounds.useServerFactory { _ in stub }
+
+        let command = makeShareCommand(fileName: "tone.wav")
+        let thrown = await #expect(throws: ExitCode.self) {
+            try await command.run()
+        }
+        #expect(thrown == .failure)
+
+        let requests = await stub.recordedShareableURLRequests()
+        #expect(requests == ["tone.wav"])
+
+        await CreatureCLI.Sounds.resetServerFactory()
+    }
+
     @Test("ad-hoc list command delegates to server")
     func adHocListCommandDelegatesToServer() async throws {
         let entry = AdHocSoundEntry(
@@ -466,6 +564,36 @@ struct SoundsCommandTests {
 
         await SoundDownloadHandlerStore.shared.resetHandler()
         try? FileManager.default.removeItem(at: tempDir)
+        await CreatureCLI.Sounds.resetServerFactory()
+    }
+
+    @Test("provenance command fetches for the requested file")
+    func fetchesProvenance() async throws {
+        let stub = StubSoundServer()
+        await CreatureCLI.Sounds.useServerFactory { _ in stub }
+
+        let command = makeProvenanceCommand(fileName: "abc123.wav")
+        try await command.run()
+
+        let requests = await stub.recordedProvenanceRequests()
+        #expect(requests == ["abc123.wav"])
+
+        await CreatureCLI.Sounds.resetServerFactory()
+    }
+
+    @Test("provenance command surfaces a missing-provenance failure")
+    func provenanceFailureSurfaces() async {
+        let stub = StubSoundServer(
+            provenanceResult: .failure(
+                .serverError("Sound 'abc123.wav' has no embedded provenance")))
+        await CreatureCLI.Sounds.useServerFactory { _ in stub }
+
+        let command = makeProvenanceCommand(fileName: "abc123.wav")
+        let thrown = await #expect(throws: ExitCode.self) {
+            try await command.run()
+        }
+        #expect(thrown == .failure)
+
         await CreatureCLI.Sounds.resetServerFactory()
     }
 }

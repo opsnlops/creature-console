@@ -370,6 +370,7 @@ struct AdHocSoundListView: View {
     @State private var alertTitle: String = ""
     @State private var alertMessage: String = ""
     @State private var showAlert: Bool = false
+    @State private var soundToShare: String? = nil
 
     var body: some View {
         List {
@@ -389,10 +390,13 @@ struct AdHocSoundListView: View {
                         ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
                     }
                 ) { entry in
-                    AdHocSoundRow(entry: entry) { playLocally(entry: $0) }
+                    AdHocSoundRow(entry: entry, shareTrigger: $soundToShare) {
+                        playLocally(entry: $0)
+                    }
                 }
             }
         }
+        .shareableSoundFlow(fileName: $soundToShare)
         #if os(macOS)
             .listStyle(.inset)
         #elseif os(tvOS)
@@ -490,6 +494,7 @@ struct AdHocSoundListView: View {
 
 private struct AdHocSoundRow: View {
     let entry: AdHocSoundEntry
+    @Binding var shareTrigger: String?
     let playAction: (AdHocSoundEntry) -> Void
 
     var body: some View {
@@ -542,6 +547,7 @@ private struct AdHocSoundRow: View {
             } label: {
                 Label("Play Locally", systemImage: "music.quarternote.3")
             }
+            ShareableSoundButton(fileName: entry.sound.fileName, trigger: $shareTrigger)
         }
     }
 }

@@ -330,10 +330,21 @@ extension CreatureCLI {
                     let request = try await buildPreviewRequest(
                         server: server, scriptId: scriptId, turnsFile: turnsFile,
                         generationId: generationId)
-                    let metaResult = await server.dialogPreviewMeta(request)
-                    guard case .success(let meta) = metaResult,
-                        let url = server.makeAbsoluteURL(fromRelativePath: meta.audioUrl)
-                    else {
+                    let meta: DialogPreviewMetaDTO
+                    switch await server.dialogPreviewMeta(request) {
+                    case .success(.meta(let dto)):
+                        meta = dto
+                    case .success(.queued(let job)):
+                        // Fresh generation runs as a job now (server 3.23.0+) — poll it.
+                        meta = try await waitForJobResult(
+                            server: server, jobId: job.jobId, label: "Generating voices",
+                            resultType: DialogPreviewMetaDTO.self)
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Could not resolve the preview: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
+                    guard let url = server.makeAbsoluteURL(fromRelativePath: meta.audioUrl) else {
                         throw failWithMessage("Could not resolve the mono preview audio URL.")
                     }
                     let dataResult = await server.downloadRawData(from: url)
@@ -382,11 +393,26 @@ extension CreatureCLI {
                     let request = try await buildPreviewRequest(
                         server: server, scriptId: scriptId, turnsFile: turnsFile,
                         generationId: generationId)
-                    let result = await server.dialogPreviewMultichannel(request)
-                    switch result {
-                    case .success(let data):
-                        try writeWav(data, to: output)
-                        print("✅ Wrote 17-channel WAV (\(data.count) bytes) to \(output)")
+                    // Always a job now (server 3.23.0) — the assembled WAV lands in the
+                    // ad-hoc sound bucket and we download it from there.
+                    switch await server.dialogPreviewMultichannel(request) {
+                    case .success(let job):
+                        let export = try await waitForJobResult(
+                            server: server, jobId: job.jobId, label: "Assembling 17-channel WAV",
+                            resultType: DialogPreviewExportResult.self)
+                        guard case .success(let url) = server.getAdHocSoundURL(export.fileName)
+                        else {
+                            throw failWithMessage("Could not build the exported WAV's URL.")
+                        }
+                        switch await server.downloadRawData(from: url) {
+                        case .success(let data):
+                            try writeWav(data, to: output)
+                            print("✅ Wrote 17-channel WAV (\(data.count) bytes) to \(output)")
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Multichannel download failed: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
                     case .failure(let error):
                         throw failWithMessage(
                             "Multichannel export failed: \(ServerError.detailedMessage(from: error))"

@@ -35,11 +35,14 @@ extension CreatureServerClient {
     }
 
     /**
-     Ask the server to make a new speech sound file for a given creature
+     Ask the server to make a new speech sound file for a given creature.
+    
+     Server 3.23.0+: async job (long text can take minutes). The job's completion
+     result is a `CreatureSpeechResponseDTO`.
      */
     public func createCreatureSpeechSoundFile(
         creatureId: CreatureIdentifier, title: String, text: String
-    ) async -> Result<CreatureSpeechResponseDTO, ServerError> {
+    ) async -> Result<JobCreatedResponse, ServerError> {
 
         logger.debug("asking the server to request a new creature speech sound file")
 
@@ -51,7 +54,7 @@ extension CreatureServerClient {
         let requestBody = MakeSoundFileRequestDTO(creature_id: creatureId, title: title, text: text)
 
         return await sendData(
-            url, method: "POST", body: requestBody, returnType: CreatureSpeechResponseDTO.self)
+            url, method: "POST", body: requestBody, returnType: JobCreatedResponse.self)
     }
 
 

@@ -39,9 +39,18 @@ protocol AdHocSoundListing: Sendable {
     func soundURL(for fileName: String) async -> Result<URL, ServerError>
 }
 
+@preconcurrency protocol ShareableSoundURLProviding: Sendable {
+    func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError>
+}
+
+protocol DialogProvenanceFetching: Sendable {
+    func fetchDialogProvenance(fileName: String) async -> Result<DialogProvenance, ServerError>
+}
+
 typealias SoundCommandClient = SoundListing & SoundPlaying & LipSyncGenerating
     & LipSyncUploadGenerating
     & AdHocSoundListing & AdHocSoundURLProviding & SoundURLProviding
+    & ShareableSoundURLProviding & DialogProvenanceFetching
 
 extension CreatureServerClient: SoundListing {}
 extension CreatureServerClient: SoundPlaying {}
@@ -60,9 +69,15 @@ extension CreatureServerClient: AdHocSoundURLProviding {
         getAdHocSoundURL(fileName)
     }
 }
+extension CreatureServerClient: DialogProvenanceFetching {}
 extension CreatureServerClient: SoundURLProviding {
     public func soundURL(for fileName: String) async -> Result<URL, ServerError> {
         getSoundURL(fileName)
+    }
+}
+extension CreatureServerClient: ShareableSoundURLProviding {
+    public func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError> {
+        getShareableSoundURL(fileName)
     }
 }
 
@@ -132,6 +147,8 @@ extension CreatureCLI {
                 GenerateLipSync.self,
                 GenerateLipSyncFromFile.self,
                 Download.self,
+                Share.self,
+                Provenance.self,
                 AdHoc.self,
             ]
         )
@@ -176,7 +193,9 @@ extension CreatureCLI {
                         printTable(
                             sounds,
                             columns: [
-                                TableColumn(title: "Name", valueProvider: { $0.fileName }),
+                                // Lead with the embedded title when there is one, so dialog
+                                // renders aren't just UUIDs.
+                                TableColumn(title: "Name", valueProvider: { $0.displayName }),
                                 TableColumn(
                                     title: "File Size",
                                     valueProvider: {
@@ -184,12 +203,12 @@ extension CreatureCLI {
                                     }
                                 ),
                                 TableColumn(
-                                    title: "Has Transcript",
-                                    valueProvider: { $0.transcript.isEmpty ? "" : "✅" }
+                                    title: "Has Text",
+                                    valueProvider: { $0.hasText ? "✅" : "" }
                                 ),
                                 TableColumn(
                                     title: "Has Lip Sync",
-                                    valueProvider: { $0.lipsync.isEmpty ? "" : "✅" }
+                                    valueProvider: { $0.hasLipsync ? "✅" : "" }
                                 ),
                             ])
 
@@ -453,6 +472,136 @@ extension CreatureCLI {
                         globalOptions: globalOptions
                     ) { server in
                         await server.soundURL(for: fileName)
+                    }
+                }
+            }
+        }
+
+        struct Share: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Download a shareable Ogg/Opus version of a sound file",
+                discussion:
+                    "The server finds the file (permanent store first, then ad-hoc), downmixes "
+                    + "multi-channel WAVs to mono, and encodes at 96 kbps — perfect for Telegram "
+                    + "and Slack instead of a giant WAV."
+            )
+
+            @Argument(help: "Name of the sound file to share (e.g. goofy.wav)")
+            var fileName: String
+
+            @Option(
+                name: .shortAndLong,
+                help:
+                    "Destination file or directory. Defaults to the current directory with the .ogg file name."
+            )
+            var output: String?
+
+            @Flag(
+                name: .customLong("overwrite"),
+                help: "Replace the destination file if it already exists."
+            )
+            var overwrite = false
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let oggName: String
+                if let dotIndex = fileName.lastIndex(of: ".") {
+                    oggName = String(fileName[..<dotIndex]) + ".ogg"
+                } else {
+                    oggName = fileName + ".ogg"
+                }
+                try await tracedRun("sounds.share", config: globalOptions) {
+                    try await Sounds.performDownload(
+                        requestedName: fileName,
+                        defaultFileName: oggName,
+                        output: output,
+                        overwrite: overwrite,
+                        globalOptions: globalOptions
+                    ) { server in
+                        await server.shareableSoundURL(for: fileName)
+                    }
+                }
+            }
+        }
+
+        struct Provenance: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Show the embedded script provenance of a dialog sound file",
+                discussion:
+                    "Permanent dialog renders carry an iXML chunk linking them back to their source "
+                    + "script — the script id, the generations used, which creature is on which channel, "
+                    + "and the full rendered script text. This is what tells you what an otherwise "
+                    + "anonymous dialog/<uuid>.wav actually says."
+            )
+
+            @Argument(help: "The sound file name (e.g. a dialog render's <uuid>.wav)")
+            var fileName: String
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                try await tracedRun("sounds.provenance", config: globalOptions) {
+                    let server = await Sounds.makeServer(for: globalOptions)
+                    let result = await server.fetchDialogProvenance(fileName: fileName)
+
+                    switch result {
+                    case .success(let provenance):
+                        print("\nProvenance for \(fileName):\n")
+                        if !provenance.title.isEmpty {
+                            print("  Title:       \(provenance.title)")
+                        }
+                        if !provenance.sourceScriptId.isEmpty {
+                            print("  Script ID:   \(provenance.sourceScriptId)")
+                        }
+                        if !provenance.generationIds.isEmpty {
+                            print(
+                                "  Generations: \(provenance.generationIds.joined(separator: ", "))"
+                            )
+                        }
+
+                        if !provenance.tracks.isEmpty {
+                            print("\n  Channels:")
+                            for track in provenance.tracks {
+                                print("    \(String(format: "%2d", track.channel))  \(track.name)")
+                            }
+                        }
+
+                        if !provenance.scriptLines.isEmpty {
+                            print("\n  Script:")
+                            for line in provenance.scriptLines {
+                                print("    \(line)")
+                            }
+                        }
+
+                        if !provenance.lipsync.isEmpty {
+                            print("\n  Lip Sync (mouth cues, from the ElevenLabs alignment):")
+                            for track in provenance.lipsync {
+                                let span =
+                                    (track.cues.first.map { String(format: "%.2f", $0.start) }
+                                        ?? "?")
+                                    + "–"
+                                    + (track.cues.last.map { String(format: "%.2f", $0.end) } ?? "?")
+                                    + "s"
+                                print(
+                                    "    \(track.name) (channel \(track.channel)) — \(track.cues.count) cues, \(span)"
+                                )
+                                // Compact stream of shape@start, wrapped by the terminal.
+                                let stream = track.cues.map {
+                                    "\($0.shape)@\(String(format: "%.2f", $0.start))"
+                                }.joined(separator: " ")
+                                if !stream.isEmpty {
+                                    print("      \(stream)")
+                                }
+                            }
+                        }
+                        print("")
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "No provenance for \(fileName): \(ServerError.detailedMessage(from: error))"
+                        )
                     }
                 }
             }

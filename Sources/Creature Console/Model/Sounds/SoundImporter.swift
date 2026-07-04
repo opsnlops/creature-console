@@ -23,6 +23,12 @@ actor SoundImporter {
                     existing.size = dto.size
                     existing.transcript = dto.transcript
                     existing.lipsync = dto.lipsync
+                    existing.title = dto.title
+                    existing.sourceScriptId = dto.sourceScriptId
+                    existing.script = dto.script
+                    existing.generationIds = dto.generationIds
+                    existing.hasEmbeddedScript = dto.hasEmbeddedScript
+                    existing.hasEmbeddedLipsync = dto.hasEmbeddedLipsync
                 } else {
                     // Insert new
                     modelContext.insert(SoundModel(dto: dto))
