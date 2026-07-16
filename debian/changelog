@@ -1,3 +1,13 @@
+creature-cli (2.37.0) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which now flags animations whose sound file no longer exists on the
+    server (issue #30): a warning icon next to the animation's name (with
+    the missing file named in the tooltip) and an orange Audio entry, so
+    broken references are visible at a glance instead of failing mid-show.
+
+ -- April White <april@creature.engineering>  Wed, 15 Jul 2026 00:00:00 +0000
+
 creature-cli (2.36.0) unstable; urgency=medium
 
   * No CLI changes — version bump to stay in lockstep with the Console app,
