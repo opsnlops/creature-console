@@ -43,16 +43,66 @@ class AudioManager: ObservableObject {
 
     private let volume: Float = 1.0
 
-    // This is private to make it impossible to make more than one
-    private init() {
+    #if os(iOS) || os(tvOS)
+        /// Whether we activated the shared audio session, so we only deactivate what we activated.
+        private var audioSessionActive = false
+    #endif
 
-        #if os(iOS)
+    /// Monotonic tokens so completion callbacks from a superseded playback can be ignored.
+    /// One per playback path, since different paths can legitimately overlap (e.g. the
+    /// filming alignment cue playing while a preview is armed).
+    private var playerGeneration = 0
+    private var bundledSoundGeneration = 0
+    private var previewGeneration = 0
+
+    /// Notification observers watching for the current AVPlayer item to finish.
+    private var playerEndObservers: [NSObjectProtocol] = []
+
+    /// Strong reference to the bundled-sound delegate (AVAudioPlayer holds its delegate weakly).
+    private var bundledSoundDelegate: AudioPlayerFinishDelegate?
+
+    // This is private to make it impossible to make more than one
+    private init() {}
+
+    /// Activate the audio session right before playback starts. Activating a non-mixable
+    /// `.playback` session is what interrupts other apps' audio, so this must never happen
+    /// at launch — only when we actually have something to play.
+    private func activateAudioSession() {
+        #if os(iOS) || os(tvOS)
+            guard !audioSessionActive else { return }
             do {
-                try AVAudioSession.sharedInstance().setCategory(
-                    .playback, mode: .default, options: [])
-                try AVAudioSession.sharedInstance().setActive(true)
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playback, mode: .default, options: [])
+                try session.setActive(true)
+                audioSessionActive = true
             } catch {
-                print("Failed to set audio session category.")
+                logger.error(
+                    "Failed to activate audio session: \(error.localizedDescription)")
+            }
+        #endif
+    }
+
+    /// Deactivate the audio session, but only if nothing is still playing. Called from
+    /// completion callbacks so a sound finishing doesn't cut off another one that's mid-play
+    /// (e.g. the filming alignment cue finishing while a preview is armed).
+    private func releaseAudioSessionIfIdle() {
+        let bundledSoundPlaying = audioPlayer?.isPlaying ?? false
+        guard player == nil, !bundledSoundPlaying, previewPlayer == nil else { return }
+        deactivateAudioSession()
+    }
+
+    /// Deactivate the audio session once playback is done, letting whatever we interrupted
+    /// (Music, podcasts, etc.) resume.
+    private func deactivateAudioSession() {
+        #if os(iOS) || os(tvOS)
+            guard audioSessionActive else { return }
+            do {
+                try AVAudioSession.sharedInstance().setActive(
+                    false, options: [.notifyOthersOnDeactivation])
+                audioSessionActive = false
+            } catch {
+                logger.error(
+                    "Failed to deactivate audio session: \(error.localizedDescription)")
             }
         #endif
     }
@@ -60,10 +110,28 @@ class AudioManager: ObservableObject {
 
     func playURL(_ url: URL) -> Result<String, AudioError> {
 
+        activateAudioSession()
+
         logger.debug("Attempting to play \(url)")
 
         let asset = AVURLAsset(url: url)
         let playerItem = AVPlayerItem(asset: asset)
+
+        playerGeneration += 1
+        let generation = playerGeneration
+        clearPlayerEndObservers()
+        let endNotifications: [Notification.Name] = [
+            AVPlayerItem.didPlayToEndTimeNotification,
+            AVPlayerItem.failedToPlayToEndTimeNotification,
+        ]
+        for name in endNotifications {
+            playerEndObservers.append(
+                NotificationCenter.default.addObserver(
+                    forName: name, object: playerItem, queue: .main
+                ) { [weak self] _ in
+                    Task { @MainActor in self?.playerDidFinish(generation: generation) }
+                })
+        }
 
         self.player = AVPlayer(playerItem: playerItem)
         self.player?.volume = volume
@@ -71,6 +139,22 @@ class AudioManager: ObservableObject {
 
         return .success("Played \(url)")
 
+    }
+
+    /// Called when the current AVPlayer item plays to its end (or fails), so the audio
+    /// session can be released and interrupted apps can resume.
+    private func playerDidFinish(generation: Int) {
+        guard generation == playerGeneration else { return }
+        clearPlayerEndObservers()
+        self.player = nil
+        releaseAudioSessionIfIdle()
+    }
+
+    private func clearPlayerEndObservers() {
+        for token in playerEndObservers {
+            NotificationCenter.default.removeObserver(token)
+        }
+        playerEndObservers.removeAll()
     }
 
 
@@ -83,7 +167,17 @@ class AudioManager: ObservableObject {
         }
 
         do {
+            activateAudioSession()
             self.audioPlayer = try AVAudioPlayer(contentsOf: url)
+
+            bundledSoundGeneration += 1
+            let generation = bundledSoundGeneration
+            let delegate = AudioPlayerFinishDelegate { [weak self] in
+                Task { @MainActor in self?.bundledSoundDidFinish(generation: generation) }
+            }
+            self.bundledSoundDelegate = delegate
+            self.audioPlayer?.delegate = delegate
+
             self.audioPlayer?.volume = volume
             self.audioPlayer?.play()
 
@@ -95,6 +189,15 @@ class AudioManager: ObservableObject {
             reportError(err)
             return .failure(err)
         }
+    }
+
+    /// Called when a bundled sound finishes playing (or fails to decode), so the audio
+    /// session can be released and interrupted apps can resume.
+    private func bundledSoundDidFinish(generation: Int) {
+        guard generation == bundledSoundGeneration else { return }
+        self.audioPlayer = nil
+        self.bundledSoundDelegate = nil
+        releaseAudioSessionIfIdle()
     }
 
     /// Prepare a mono preview file by downloading a remote WAV and downmixing all channels to mono.
@@ -215,8 +318,10 @@ class AudioManager: ObservableObject {
     /// Call `startArmedPreview(in:)` to begin playback at a precise time.
     func armPreviewPlayback(fileURL: URL) -> Result<String, AudioError> {
         do {
-            // Stop any existing armed preview first
-            stopArmedPreview()
+            // Stop any existing armed preview first, keeping the session active since
+            // we're about to start playback again
+            tearDownPreviewEngine()
+            activateAudioSession()
 
             let engine = AVAudioEngine()
             let playerNode = AVAudioPlayerNode()
@@ -230,8 +335,16 @@ class AudioManager: ObservableObject {
 
             try engine.start()
 
-            // Schedule the file; actual start will be triggered via play(at:)
-            playerNode.scheduleFile(file, at: nil, completionHandler: nil)
+            previewGeneration += 1
+            let generation = previewGeneration
+
+            // Schedule the file; actual start will be triggered via play(at:).
+            // The completion callback fires once the audio has actually played out
+            // (or the node is stopped), letting us release the session afterwards.
+            playerNode.scheduleFile(file, at: nil, completionCallbackType: .dataPlayedBack) {
+                [weak self] _ in
+                Task { @MainActor in self?.previewDidFinish(generation: generation) }
+            }
 
             self.previewEngine = engine
             self.previewPlayer = playerNode
@@ -265,8 +378,21 @@ class AudioManager: ObservableObject {
         return .success(startHost)
     }
 
+    /// Called when the armed preview finishes playing out naturally, so the audio
+    /// session can be released and interrupted apps can resume.
+    private func previewDidFinish(generation: Int) {
+        guard generation == previewGeneration else { return }
+        tearDownPreviewEngine()
+        releaseAudioSessionIfIdle()
+    }
+
     /// Stop and tear down any armed preview engine/player.
     func stopArmedPreview() {
+        tearDownPreviewEngine()
+        releaseAudioSessionIfIdle()
+    }
+
+    private func tearDownPreviewEngine() {
         if let player = self.previewPlayer {
             player.stop()
         }
@@ -612,5 +738,29 @@ class AudioManager: ObservableObject {
         logger.info("pausing audio")
         self.audioPlayer?.pause()
         self.player?.pause()
+
+        // Paused players don't need the session; release it unless a preview is mid-play.
+        if previewPlayer == nil {
+            deactivateAudioSession()
+        }
+    }
+}
+
+/// Bridges `AVAudioPlayerDelegate` completion callbacks (which can arrive on any thread)
+/// back to the main actor. `AVAudioPlayer` holds its delegate weakly, so `AudioManager`
+/// keeps a strong reference for the lifetime of the playback.
+private final class AudioPlayerFinishDelegate: NSObject, AVAudioPlayerDelegate {
+    private let onFinish: @Sendable () -> Void
+
+    init(onFinish: @escaping @Sendable () -> Void) {
+        self.onFinish = onFinish
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        onFinish()
+    }
+
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: (any Error)?) {
+        onFinish()
     }
 }
