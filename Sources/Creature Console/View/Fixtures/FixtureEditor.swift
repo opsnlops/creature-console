@@ -145,7 +145,7 @@ struct FixtureEditor: View {
                     .font(.title3)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(.thinMaterial, in: .capsule)
+                    .glassEffect(.regular, in: .capsule)
                     .padding(.top, 12)
                     .transition(.opacity)
             }
@@ -181,7 +181,7 @@ struct FixtureEditor: View {
             }
         }
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     private var wiringSection: some View {
@@ -218,7 +218,7 @@ struct FixtureEditor: View {
             .foregroundStyle(.secondary)
         }
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     private var universeSection: some View {
@@ -260,7 +260,7 @@ struct FixtureEditor: View {
             .foregroundStyle(.secondary)
         }
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     // MARK: - Derived

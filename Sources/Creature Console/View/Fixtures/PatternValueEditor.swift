@@ -19,6 +19,11 @@ struct PatternValueEditor: View {
     @Binding var fixture: Common.DmxFixture
     let patternIndex: Int
 
+    /// The color picker's own state — seeded from the pattern values once, then one-way into
+    /// them. Echoing reconstructed 8-bit channel values back through the binding makes the
+    /// picker's HSB sliders wiggle while dragging (see `LiveControlPanel`).
+    @State private var pickedColor: Color = .black
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if showColorPicker {
@@ -27,6 +32,7 @@ struct PatternValueEditor: View {
             }
             channelSlidersSection
         }
+        .onAppear { pickedColor = currentColor() }
     }
 
     // MARK: - Color picker (light fixtures)
@@ -44,10 +50,13 @@ struct PatternValueEditor: View {
     private var colorSection: some View {
         HStack(spacing: 12) {
             ColorPicker(
-                "Color shortcut — writes RGB channels",
+                "Color shortcut — writes all color channels (RGB + white/lime/amber)",
                 selection: Binding<Color>(
-                    get: { currentColor() },
-                    set: { newColor in writeColorIntoValues(newColor) }
+                    get: { pickedColor },
+                    set: { newColor in
+                        pickedColor = newColor
+                        writeColorIntoValues(newColor)
+                    }
                 ),
                 supportsOpacity: false
             )
@@ -76,46 +85,16 @@ struct PatternValueEditor: View {
             }
 
             ForEach(fixture.channels, id: \.name) { channel in
-                HStack(alignment: .center, spacing: 8) {
-                    Text(channel.name)
-                        .frame(width: 100, alignment: .leading)
-                        .font(.system(.body, design: .monospaced))
-                    sliderRow(channelName: channel.name)
-                }
+                // Reads the current value from the pattern's values array (0 if not present)
+                // and writes back through the binding, creating a new `FixturePatternValue`
+                // entry on first write.
+                FixtureChannelSliderRow(
+                    channel: channel,
+                    value: Binding(
+                        get: { currentValue(for: channel.name) },
+                        set: { setValue($0, for: channel.name) }
+                    ))
             }
-        }
-    }
-
-    /// Slider + numeric field for one channel. Reads the current value from the
-    /// pattern's values array (defaults to 0 if not present) and writes back through
-    /// the binding, creating a new `FixturePatternValue` entry on first write.
-    private func sliderRow(channelName: String) -> some View {
-        let value = currentValue(for: channelName)
-        return HStack(spacing: 8) {
-            Slider(
-                value: Binding<Double>(
-                    get: { Double(currentValue(for: channelName)) },
-                    set: { setValue(UInt8(clamping: Int($0.rounded())), for: channelName) }
-                ),
-                in: 0...255,
-                step: 1
-            )
-
-            TextField(
-                "0",
-                value: Binding<Int>(
-                    get: { Int(currentValue(for: channelName)) },
-                    set: { setValue(UInt8(clamping: max(0, min(255, $0))), for: channelName) }
-                ),
-                format: .number
-            )
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 60)
-
-            Text("0x\(String(value, radix: 16, uppercase: true))")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 50, alignment: .leading)
         }
     }
 

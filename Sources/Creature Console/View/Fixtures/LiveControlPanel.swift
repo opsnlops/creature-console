@@ -44,11 +44,12 @@ struct LiveControlPanel: View {
     @State private var values: [String: UInt8] = [:]
     @State private var lastSendAt: Date = .distantPast
     @State private var pendingSend: Task<Void, Never>? = nil
-    @State private var inFlightSend: Task<Void, Never>? = nil
 
     @State private var statusMessage: String = "Idle — move a slider to start a live session."
     @State private var lastError: String? = nil
     @State private var isSessionActive: Bool = false
+    /// The color picker's own state — seeded from the channels once, then one-way into them.
+    @State private var pickedColor: Color = .black
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -98,11 +99,13 @@ struct LiveControlPanel: View {
             channelSlidersSection
         }
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .onAppear { seedValuesIfNeeded() }
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .onAppear {
+            seedValuesIfNeeded()
+            pickedColor = currentColor()
+        }
         .onDisappear {
             pendingSend?.cancel()
-            inFlightSend?.cancel()
             onLiveActiveUntil(nil)
         }
     }
@@ -117,16 +120,23 @@ struct LiveControlPanel: View {
     @ViewBuilder
     private var colorSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Color (writes red / green / blue channels live)")
+            Text("Color (writes all color channels live — red/green/blue plus white/lime/amber)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             HStack {
+                // The picker owns its color; channel writes are one-way. Echoing the
+                // reconstructed channel state back through the binding's `get` re-derives the
+                // picker's HSB sliders from 8-bit-quantized RGB, which makes them wiggle as
+                // you drag. The hex label below stays the truth from the channels.
                 ColorPicker(
                     "Color",
                     selection: Binding<Color>(
-                        get: { currentColor() },
-                        set: { newColor in writeColor(newColor) }
+                        get: { pickedColor },
+                        set: { newColor in
+                            pickedColor = newColor
+                            writeColor(newColor)
+                        }
                     ),
                     supportsOpacity: false
                 )
@@ -157,43 +167,13 @@ struct LiveControlPanel: View {
             }
 
             ForEach(fixture.channels, id: \.name) { channel in
-                HStack(alignment: .center, spacing: 8) {
-                    Text(channel.name)
-                        .frame(width: 100, alignment: .leading)
-                        .font(.system(.body, design: .monospaced))
-                    sliderRow(channelName: channel.name)
-                }
+                FixtureChannelSliderRow(
+                    channel: channel,
+                    value: Binding(
+                        get: { currentValue(for: channel.name) },
+                        set: { setValue($0, for: channel.name) }
+                    ))
             }
-        }
-    }
-
-    private func sliderRow(channelName: String) -> some View {
-        let value = currentValue(for: channelName)
-        return HStack(spacing: 8) {
-            Slider(
-                value: Binding<Double>(
-                    get: { Double(currentValue(for: channelName)) },
-                    set: { setValue(UInt8(clamping: Int($0.rounded())), for: channelName) }
-                ),
-                in: 0...255,
-                step: 1
-            )
-
-            TextField(
-                "0",
-                value: Binding<Int>(
-                    get: { Int(currentValue(for: channelName)) },
-                    set: { setValue(UInt8(clamping: max(0, min(255, $0))), for: channelName) }
-                ),
-                format: .number
-            )
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 60)
-
-            Text("0x\(String(value, radix: 16, uppercase: true))")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 50, alignment: .leading)
         }
     }
 
@@ -243,24 +223,11 @@ struct LiveControlPanel: View {
     }
 
     private func writeColor(_ color: Color) {
-        let cg = color.cgColor ?? platformCGColor(for: color)
-        guard let components = cg?.components, components.count >= 3 else { return }
-        let r = UInt8(clamping: Int((components[0] * 255).rounded()))
-        let g = UInt8(clamping: Int((components[1] * 255).rounded()))
-        let b = UInt8(clamping: Int((components[2] * 255).rounded()))
-        if let red = redChannel { setValue(r, for: red.name) }
-        if let green = greenChannel { setValue(g, for: green.name) }
-        if let blue = blueChannel { setValue(b, for: blue.name) }
-    }
-
-    private func platformCGColor(for color: Color) -> CGColor? {
-        #if canImport(AppKit)
-            return NSColor(color).cgColor
-        #elseif canImport(UIKit)
-            return UIColor(color).cgColor
-        #else
-            return nil
-        #endif
+        // Single source of truth for the color → channel mapping (FixtureColorMixer via
+        // FixtureControlService) — drives white/lime/amber emitters too, not just RGB.
+        for patternValue in FixtureControlService.colorValues(color, channels: fixture.channels) {
+            setValue(patternValue.value, for: patternValue.channel)
+        }
     }
 
     // MARK: - Throttled send
@@ -293,6 +260,10 @@ struct LiveControlPanel: View {
 
         let result = await server.setFixtureLive(
             id: id, values: snapshot, timeoutMs: liveTimeoutMs)
+        // If this send was superseded mid-flight (a newer slider value cancelled us) or the
+        // view is tearing down, the transport reports "cancelled" — that's the throttle
+        // working as designed, not an error the user can act on. Say nothing.
+        guard !Task.isCancelled else { return }
         switch result {
         case .success(let updated):
             logger.debug("live ok on \(updated.id)")
