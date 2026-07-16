@@ -28,6 +28,8 @@ struct StoryboardTable: View {
     let server = CreatureServerClient.shared
 
     @State private var selection: StoryboardIdentifier? = nil
+    /// Programmatic push into the editor for row activation (double-click / tap).
+    @State private var boardToEdit: StoryboardModel? = nil
     /// We track only the *id* to perform — never a captured `Storyboard` value. The DTO is resolved
     /// fresh from the live `@Query` at presentation time, so an edit made just before performing is
     /// always reflected. (Capturing the value inside the context-menu closure snapshots stale data.)
@@ -61,22 +63,22 @@ struct StoryboardTable: View {
             }
             .width(min: 160, ideal: 200)
         }
-        #if os(macOS)
-            .contextMenu(forSelectionType: StoryboardIdentifier.self) {
-                (items: Set<StoryboardIdentifier>) in
-                if let id = items.first ?? selection,
-                    let board = storyboards.first(where: { $0.id == id })
-                {
-                    storyboardContextMenu(for: board)
-                }
+        // One unified modifier for both platforms: right-click/long-press menu, plus native
+        // row activation (double-click on macOS, tap on iOS) via primaryAction. Editing is the
+        // primary action; Perform stays an explicit menu choice so a stray double-click never
+        // starts a show surface.
+        .contextMenu(forSelectionType: StoryboardIdentifier.self) {
+            (items: Set<StoryboardIdentifier>) in
+            if let id = items.first ?? selection,
+                let board = storyboards.first(where: { $0.id == id })
+            {
+                storyboardContextMenu(for: board)
             }
-        #else
-            .contextMenu {
-                if let id = selection, let board = storyboards.first(where: { $0.id == id }) {
-                    storyboardContextMenu(for: board)
-                }
+        } primaryAction: { items in
+            if let id = items.first ?? selection {
+                boardToEdit = storyboards.first(where: { $0.id == id })
             }
-        #endif
+        }
     }
 
     @ViewBuilder
@@ -141,12 +143,8 @@ struct StoryboardTable: View {
             #if os(macOS)
                 .navigationSubtitle("Number of Storyboards: \(storyboards.count)")
             #endif
-            .navigationDestination(for: StoryboardIdentifier.self) { id in
-                if let board = storyboards.first(where: { $0.id == id }) {
-                    StoryboardEditor(existing: board.toDTO())
-                } else {
-                    Text("Storyboard not found")
-                }
+            .navigationDestination(item: $boardToEdit) { board in
+                StoryboardEditor(existing: board.toDTO())
             }
             // Full-screen on iOS; macOS has no fullScreenCover, so present a large sheet.
             // The DTO is resolved here, in the parent body, from the live `@Query` — so it's the

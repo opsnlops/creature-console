@@ -36,13 +36,10 @@ struct PlaylistsTable: View {
 
     private var playlistTable: some View {
         Table(playlists, selection: $selection) {
+            // No tap gestures on cell content — they defeat native single-click row
+            // selection on macOS. Double-click/tap is the contextMenu's primaryAction.
             TableColumn("Name") { playlistModel in
                 Text(playlistModel.name)
-                    #if os(macOS)
-                        .onTapGesture(count: 2) {
-                            editPlaylist(playlistModel.toDTO())
-                        }
-                    #endif
             }
             .width(min: 300, ideal: 500)
 
@@ -58,24 +55,23 @@ struct PlaylistsTable: View {
             .width(min: 100)
 
         }
-        #if os(macOS)
-            .contextMenu(forSelectionType: PlaylistIdentifier.self) {
-                (items: Set<PlaylistIdentifier>) in
-                if let playlistId = items.first ?? selection,
-                    let playlistModel = playlists.first(where: { $0.id == playlistId })
-                {
-                    playlistContextMenu(for: playlistModel.toDTO())
-                }
+        // One unified modifier for both platforms: right-click/long-press menu, plus native
+        // row activation (double-click on macOS, tap on iOS) via primaryAction. Single-click
+        // on macOS selects natively — no gestures involved.
+        .contextMenu(forSelectionType: PlaylistIdentifier.self) {
+            (items: Set<PlaylistIdentifier>) in
+            if let playlistId = items.first ?? selection,
+                let playlistModel = playlists.first(where: { $0.id == playlistId })
+            {
+                playlistContextMenu(for: playlistModel.toDTO())
             }
-        #else
-            .contextMenu {
-                if let playlistId = selection,
-                    let playlistModel = playlists.first(where: { $0.id == playlistId })
-                {
-                    playlistContextMenu(for: playlistModel.toDTO())
-                }
+        } primaryAction: { items in
+            if let playlistId = items.first ?? selection,
+                let playlistModel = playlists.first(where: { $0.id == playlistId })
+            {
+                editPlaylist(playlistModel.toDTO())
             }
-        #endif
+        }
     }
 
     private func playlistContextMenu(for playlist: Common.Playlist) -> some View {

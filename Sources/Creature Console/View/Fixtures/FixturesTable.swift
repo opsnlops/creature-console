@@ -20,6 +20,8 @@ struct FixturesTable: View {
     let server = CreatureServerClient.shared
 
     @State private var selection: DmxFixtureIdentifier? = nil
+    /// Programmatic push into the editor for row activation (double-click / tap).
+    @State private var fixtureToEdit: DmxFixtureModel? = nil
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
     @State private var showSuccessAlert = false
@@ -29,14 +31,11 @@ struct FixturesTable: View {
 
     private var fixtureTable: some View {
         Table(fixtures, selection: $selection) {
+            // No tap gestures on cell content — even a no-op recognizer swallows mouse-downs
+            // and defeats native single-click row selection on macOS. Double-click/tap is the
+            // contextMenu's primaryAction.
             TableColumn("Name") { fixture in
                 Text(fixture.name)
-                    #if os(macOS)
-                        .onTapGesture(count: 2) {
-                            // Navigation handled via the surrounding NavigationLink in macOS
-                            // sidebar flow; double-click here is a no-op for now.
-                        }
-                    #endif
             }
             .width(min: 200, ideal: 300)
 
@@ -74,24 +73,20 @@ struct FixturesTable: View {
             }
             .width(min: 80, ideal: 100)
         }
-        #if os(macOS)
-            .contextMenu(forSelectionType: DmxFixtureIdentifier.self) {
-                (items: Set<DmxFixtureIdentifier>) in
-                if let fixtureId = items.first ?? selection,
-                    let fixture = fixtures.first(where: { $0.id == fixtureId })
-                {
-                    fixtureContextMenu(for: fixture)
-                }
+        // One unified modifier for both platforms: right-click/long-press menu, plus native
+        // row activation (double-click on macOS, tap on iOS) via primaryAction.
+        .contextMenu(forSelectionType: DmxFixtureIdentifier.self) {
+            (items: Set<DmxFixtureIdentifier>) in
+            if let fixtureId = items.first ?? selection,
+                let fixture = fixtures.first(where: { $0.id == fixtureId })
+            {
+                fixtureContextMenu(for: fixture)
             }
-        #else
-            .contextMenu {
-                if let fixtureId = selection,
-                    let fixture = fixtures.first(where: { $0.id == fixtureId })
-                {
-                    fixtureContextMenu(for: fixture)
-                }
+        } primaryAction: { items in
+            if let fixtureId = items.first ?? selection {
+                fixtureToEdit = fixtures.first(where: { $0.id == fixtureId })
             }
-        #endif
+        }
     }
 
     @ViewBuilder
@@ -150,12 +145,8 @@ struct FixturesTable: View {
             #if os(macOS)
                 .navigationSubtitle("Number of Fixtures: \(fixtures.count)")
             #endif
-            .navigationDestination(for: DmxFixtureIdentifier.self) { fixtureId in
-                if let fixture = fixtures.first(where: { $0.id == fixtureId }) {
-                    FixtureEditor(existing: fixture.toDTO())
-                } else {
-                    Text("Fixture not found")
-                }
+            .navigationDestination(item: $fixtureToEdit) { fixture in
+                FixtureEditor(existing: fixture.toDTO())
             }
             .toolbar(id: "fixturesList") {
                 #if os(iOS)
