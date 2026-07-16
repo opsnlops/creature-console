@@ -28,6 +28,10 @@ struct AnimationTable: View {
     @Query(sort: \AnimationMetadataModel.title, order: .forward)
     private var animations: [AnimationMetadataModel]
 
+    /// The cached sound list, used to flag animations whose sound file no longer exists on
+    /// the server — silent bombs otherwise discovered only when playback fails mid-show.
+    @Query private var sounds: [SoundModel]
+
     @State private var showErrorAlert = false
     @State private var alertTitle = "Unable to load Animations"
     @State private var alertMessage = ""
@@ -71,6 +75,9 @@ struct AnimationTable: View {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
 
     var body: some View {
+        // Computed once per render, not per row — the row check is then O(1).
+        let knownSoundFiles = Set(sounds.map(\.id))
+
         NavigationStack {
             VStack {
                 if !animations.isEmpty {
@@ -80,7 +87,16 @@ struct AnimationTable: View {
                         // Row activation (double-click / tap) is the contextMenu's
                         // primaryAction below.
                         TableColumn("Name") { a in
-                            Text(a.title)
+                            HStack(spacing: 6) {
+                                if let missing = missingSoundFile(for: a, known: knownSoundFiles) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundStyle(.orange)
+                                        .help(
+                                            "References missing sound file “\(missing)” — playing this animation will fail."
+                                        )
+                                }
+                                Text(a.title)
+                            }
                         }
                         .width(min: 120, ideal: 250)
                         TableColumn("Frames") { a in
@@ -93,6 +109,9 @@ struct AnimationTable: View {
                         .width(55)
                         TableColumn("Audio") { a in
                             Text(a.soundFile)
+                                .foregroundStyle(
+                                    missingSoundFile(for: a, known: knownSoundFiles) != nil
+                                        ? Color.orange : Color.primary)
                         }
                         TableColumn("Time (ms)") { a in
                             Text(a.numberOfFrames * a.millisecondsPerFrame, format: .number)
@@ -796,6 +815,23 @@ struct AnimationTable: View {
             await performFilmingCountdownFlow(
                 animationId: animationId, countdownSeconds: countdownSeconds)
         }
+    }
+
+    /// The animation's referenced-but-missing sound file, or `nil` when it's fine. An empty
+    /// `soundFile` means "no audio" (fine), and an empty sound cache means we can't judge —
+    /// absence of the cache isn't evidence a file is missing, so nothing gets flagged.
+    ///
+    /// Membership is judged on the **basename**: the server's sound list emits basenames even
+    /// for files in subdirectories (dialog renders live under `dialog/` but list as
+    /// `<uuid>.wav`), and its resolver plays them back by basename too — so an animation
+    /// referencing `dialog/<uuid>.wav` is fine when `<uuid>.wav` is in the store.
+    private func missingSoundFile(for animation: AnimationMetadataModel, known: Set<String>)
+        -> String?
+    {
+        guard !animation.soundFile.isEmpty, !known.isEmpty else { return nil }
+        let basename = animation.soundFile.split(separator: "/").last.map(String.init) ?? ""
+        guard !basename.isEmpty, !known.contains(basename) else { return nil }
+        return animation.soundFile
     }
 
     @MainActor
