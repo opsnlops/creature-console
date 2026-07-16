@@ -278,7 +278,13 @@ struct StoryboardTileInspector: View {
                 }
                 return ""
             },
-            set: { tile.action = .renderDialog(scriptId: UUID(uuidString: $0) ?? UUID()) })
+            set: { newValue in
+                // Keep the current selection on a parse failure — never substitute a random UUID
+                // (which would silently 404 at perform time).
+                if let id = UUID(uuidString: newValue) {
+                    tile.action = .renderDialog(scriptId: id)
+                }
+            })
     }
 
     private var fixtureIdBinding: Binding<String> {
@@ -422,8 +428,11 @@ enum ActionKind: String, CaseIterable, Identifiable {
     func defaultAction(sounds: [SoundModel], dialogs: [DialogScriptModel]) -> StoryboardAction {
         switch self {
         case .playAnimation:
+            // New tiles default to interrupt: on a show surface a playlist is usually running, and
+            // "play this NOW" is nearly always the intent. (The wire decode default stays false so
+            // older saved boards keep their behavior.)
             return .playAnimation(
-                animationId: "", universe: nil, interrupt: false, resumePlaylist: true)
+                animationId: "", universe: nil, interrupt: true, resumePlaylist: true)
         case .adHocSpeech: return .adHocSpeech(creatureId: "", resumePlaylist: true)
         case .liveControl: return .liveControl(creatureId: "", universe: nil)
         case .startPlaylist: return .startPlaylist(playlistId: "", universe: nil)

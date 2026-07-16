@@ -78,6 +78,13 @@ struct StoryboardEditor: View {
         if board.tiles.contains(where: { $0.label.count > StoryboardLimits.maxTileLabel }) {
             return "A tile label is too long (max \(StoryboardLimits.maxTileLabel) characters)."
         }
+        // A tile that would fail at perform time (empty animation/creature/… id) must not save —
+        // mid-show is the worst moment to find out a button does nothing.
+        for tile in board.tiles {
+            if let problem = tile.action.configurationProblem {
+                return "Tile “\(tile.label)” \(problem)."
+            }
+        }
         return nil
     }
 
@@ -344,8 +351,12 @@ struct StoryboardEditor: View {
         // rather than a generic square. (The inspector keeps the symbol in sync as the type changes,
         // unless the author types a custom one.)
         let kind = ActionKind.playSound
+        // Cascade placement so consecutive adds don't stack invisibly on one spot.
+        let index = board.tiles.count
         let tile = StoryboardTile(
-            x: 0.38, y: 0.40, width: 0.24, height: 0.20,
+            x: 0.08 + Double(index % 3) * 0.30,
+            y: 0.08 + Double((index / 3) % 3) * 0.28,
+            width: 0.24, height: 0.20,
             label: "New", sfSymbol: kind.defaultSymbol, tintColorHex: "#0A84FF",
             action: kind.defaultAction(sounds: sounds, dialogs: dialogs))
         board.tiles.append(tile)

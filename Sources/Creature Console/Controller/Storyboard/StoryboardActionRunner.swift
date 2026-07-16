@@ -48,9 +48,11 @@ final class StoryboardActionRunner {
                 await server.createAdHocSpeechAnimation(
                     creatureId: creatureId, text: text, resumePlaylist: resumePlaylist))
 
-        case .liveControl(let creatureId, _):
-            // Shared facade — same per-creature toggle the creature detail screen uses.
-            let live = await CreatureManager.shared.toggleStreaming(to: creatureId)
+        case .liveControl(let creatureId, let universe):
+            // Shared facade — same per-creature toggle the creature detail screen uses. The tile's
+            // universe override (if any) rides along; nil follows the active universe.
+            let live = await CreatureManager.shared.toggleStreaming(
+                to: creatureId, universe: universe)
             return .success(live == nil ? "Live control stopped" : "Live control on")
 
         case .startPlaylist(let playlistId, let universe):

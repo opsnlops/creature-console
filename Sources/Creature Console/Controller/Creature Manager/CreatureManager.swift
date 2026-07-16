@@ -18,6 +18,9 @@ actor CreatureManager {
     }
 
     private var streamingCreature: CreatureIdentifier?
+    /// Universe override for the current streaming session (e.g. from a storyboard tile).
+    /// `nil` follows the active universe.
+    private var streamingUniverse: UniverseIdentifier?
     private var isRecording: Bool = false
 
     // Create a buffer to use for recording
@@ -33,6 +36,7 @@ actor CreatureManager {
         logger.info("startStreamingToCreature called - creatureId: \(creatureId)")
 
         self.streamingCreature = creatureId
+        self.streamingUniverse = nil
 
         logger.info("Streaming started successfully")
 
@@ -45,6 +49,7 @@ actor CreatureManager {
         logger.info("stopStreaming called")
 
         self.streamingCreature = nil
+        self.streamingUniverse = nil
 
         logger.info("Streaming stopped successfully")
 
@@ -61,16 +66,22 @@ actor CreatureManager {
     /// picks up the new `streamingCreature` on the next tick. Returns the now-live creature, or
     /// `nil` if streaming stopped.
     @discardableResult
-    func toggleStreaming(to creatureId: CreatureIdentifier) async -> CreatureIdentifier? {
+    func toggleStreaming(to creatureId: CreatureIdentifier, universe: UniverseIdentifier? = nil)
+        async -> CreatureIdentifier?
+    {
         if streamingCreature == creatureId {
             streamingCreature = nil
+            streamingUniverse = nil
             await AppState.shared.setCurrentActivity(.idle)
             logger.info("toggleStreaming: stopped live control (was \(creatureId))")
             return nil
         } else {
             streamingCreature = creatureId
+            streamingUniverse = universe
             await AppState.shared.setCurrentActivity(.streaming)
-            logger.info("toggleStreaming: now streaming to \(creatureId)")
+            logger.info(
+                "toggleStreaming: now streaming to \(creatureId) on universe \(universe.map(String.init) ?? "active")"
+            )
             return creatureId
         }
     }
@@ -82,7 +93,8 @@ actor CreatureManager {
             let joystickValues = await JoystickManager.shared.getValues()
             let motionData = Data(joystickValues).base64EncodedString()
             let streamFrameData = StreamFrameData(
-                ceatureId: creatureId, universe: activeUniverse, data: motionData)
+                ceatureId: creatureId, universe: streamingUniverse ?? activeUniverse,
+                data: motionData)
             let streamResult = await server.streamFrame(streamFrameData: streamFrameData)
             switch streamResult {
             case .success:
