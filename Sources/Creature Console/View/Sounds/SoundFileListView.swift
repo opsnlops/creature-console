@@ -135,6 +135,12 @@ struct SoundFileListView: View {
                                 }
                             }
                         }
+                    } primaryAction: { items in
+                        // Row activation (double-click on macOS, tap on iOS): preview the
+                        // sound locally, like Finder.
+                        if let soundId = items.first ?? selection {
+                            playLocally(fileName: soundId)
+                        }
                     }
                     .shareableSoundFlow(fileName: $soundToShare)
                     .sheet(item: $identifiedProvenance) { identified in

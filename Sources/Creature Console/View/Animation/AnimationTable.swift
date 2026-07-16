@@ -61,6 +61,13 @@ struct AnimationTable: View {
     @State private var filmingFlowTask: Task<Void, Never>? = nil
     @State private var alignmentSoundDurationCache: TimeInterval? = nil
 
+    /// Transient confirmation for scheduling actions. The server returns a detailed message
+    /// ("Animation scheduled from frame X to Y") — showing it (with the universe) makes a
+    /// successful-but-invisible schedule, like playing to a universe nothing listens on,
+    /// immediately diagnosable instead of silent.
+    @State private var scheduleBanner: String? = nil
+    @State private var scheduleBannerGeneration = 0
+
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
 
     var body: some View {
@@ -68,11 +75,12 @@ struct AnimationTable: View {
             VStack {
                 if !animations.isEmpty {
                     Table(animations, selection: $selection) {
+                        // No tap gestures on cell content — a gesture recognizer swallows
+                        // mouse-downs and defeats the Table's native single-click selection.
+                        // Row activation (double-click / tap) is the contextMenu's
+                        // primaryAction below.
                         TableColumn("Name") { a in
                             Text(a.title)
-                                .onTapGesture(count: 2) {
-                                    loadAnimationForEditing(animationId: a.id)
-                                }
                         }
                         .width(min: 120, ideal: 250)
                         TableColumn("Frames") { a in
@@ -97,10 +105,14 @@ struct AnimationTable: View {
                         // Determine if we have a selected ID (right-click updates selection automatically)
                         let hasSelection = targetId != nil
 
+                        // The universe in the label makes the target visible *before* clicking —
+                        // scheduling onto a universe nothing listens to succeeds silently on the
+                        // server, and that mismatch has burned us (issue #28 testing).
                         Button {
                             playStoredAnimation(animationId: targetId)
                         } label: {
-                            Label("Play on Server", systemImage: "play")
+                            Label(
+                                "Play on Server (Universe \(activeUniverse))", systemImage: "play")
                         }
                         .disabled(!hasSelection)
 
@@ -114,7 +126,9 @@ struct AnimationTable: View {
                         Button {
                             interruptWithAnimation(animationId: targetId)
                         } label: {
-                            Label("Interrupt & Play", systemImage: "bolt.fill")
+                            Label(
+                                "Interrupt & Play (Universe \(activeUniverse))",
+                                systemImage: "bolt.fill")
                         }
                         .disabled(!hasSelection)
 
@@ -212,6 +226,11 @@ struct AnimationTable: View {
                             Label("Delete Animation", systemImage: "trash")
                         }
                         .disabled(targetId == nil || isDeletingAnimation || isRenamingAnimation)
+                    } primaryAction: { items in
+                        // Row activation: double-click on macOS, tap on iOS.
+                        if let id = items.first ?? selection {
+                            loadAnimationForEditing(animationId: id)
+                        }
                     }
                     .shareableSoundFlow(fileName: $animationSoundToShare)
                 } else {
@@ -255,6 +274,17 @@ struct AnimationTable: View {
             .overlay {
                 if let phase = filmingPhase {
                     FilmingCountdownOverlay(phase: phase, onCancel: cancelFilmingFlow)
+                        .transition(.opacity)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let banner = scheduleBanner {
+                    Label(banner, systemImage: "checkmark.circle.fill")
+                        .font(.callout)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .glassEffect(.regular.tint(.green.opacity(0.4)), in: .capsule)
+                        .padding(.bottom, 24)
                         .transition(.opacity)
                 }
             }
@@ -736,6 +766,9 @@ struct AnimationTable: View {
             switch result {
             case .success(let message):
                 logger.debug("Animation Scheduled: \(message)")
+                await MainActor.run {
+                    showScheduleBanner("Universe \(universe): \(message)")
+                }
             case .failure(let error):
                 let message = ServerError.detailedMessage(from: error)
                 logger.warning("Unable to schedule animation: \(message)")
@@ -762,6 +795,18 @@ struct AnimationTable: View {
         filmingFlowTask = Task {
             await performFilmingCountdownFlow(
                 animationId: animationId, countdownSeconds: countdownSeconds)
+        }
+    }
+
+    @MainActor
+    private func showScheduleBanner(_ message: String) {
+        scheduleBannerGeneration += 1
+        let generation = scheduleBannerGeneration
+        withAnimation { scheduleBanner = message }
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            guard generation == scheduleBannerGeneration else { return }
+            withAnimation { scheduleBanner = nil }
         }
     }
 
@@ -912,6 +957,9 @@ struct AnimationTable: View {
             switch result {
             case .success(let message):
                 logger.debug("Animation Interrupt Scheduled: \(message)")
+                await MainActor.run {
+                    showScheduleBanner("Universe \(universe): \(message)")
+                }
             case .failure(let error):
                 let message = ServerError.detailedMessage(from: error)
                 logger.warning("Unable to schedule animation interrupt: \(message)")

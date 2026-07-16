@@ -23,6 +23,8 @@ struct DialogScriptTable: View {
     let server = CreatureServerClient.shared
 
     @State private var selection: DialogScriptIdentifier? = nil
+    /// Programmatic push into the editor for row activation (double-click / tap).
+    @State private var scriptToEdit: DialogScriptModel? = nil
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
     @State private var showSuccessAlert = false
@@ -52,24 +54,20 @@ struct DialogScriptTable: View {
             }
             .width(min: 160, ideal: 200)
         }
-        #if os(macOS)
-            .contextMenu(forSelectionType: DialogScriptIdentifier.self) {
-                (items: Set<DialogScriptIdentifier>) in
-                if let scriptId = items.first ?? selection,
-                    let script = scripts.first(where: { $0.id == scriptId })
-                {
-                    scriptContextMenu(for: script)
-                }
+        // One unified modifier for both platforms: right-click/long-press menu, plus native
+        // row activation (double-click on macOS, tap on iOS) via primaryAction.
+        .contextMenu(forSelectionType: DialogScriptIdentifier.self) {
+            (items: Set<DialogScriptIdentifier>) in
+            if let scriptId = items.first ?? selection,
+                let script = scripts.first(where: { $0.id == scriptId })
+            {
+                scriptContextMenu(for: script)
             }
-        #else
-            .contextMenu {
-                if let scriptId = selection,
-                    let script = scripts.first(where: { $0.id == scriptId })
-                {
-                    scriptContextMenu(for: script)
-                }
+        } primaryAction: { items in
+            if let scriptId = items.first ?? selection {
+                scriptToEdit = scripts.first(where: { $0.id == scriptId })
             }
-        #endif
+        }
     }
 
     @ViewBuilder
@@ -128,12 +126,8 @@ struct DialogScriptTable: View {
             #if os(macOS)
                 .navigationSubtitle("Number of Dialogs: \(scripts.count)")
             #endif
-            .navigationDestination(for: DialogScriptIdentifier.self) { scriptId in
-                if let script = scripts.first(where: { $0.id == scriptId }) {
-                    DialogScriptEditor(existing: script.toDTO())
-                } else {
-                    Text("Dialog script not found")
-                }
+            .navigationDestination(item: $scriptToEdit) { script in
+                DialogScriptEditor(existing: script.toDTO())
             }
             .toolbar(id: "dialogList") {
                 #if os(iOS)

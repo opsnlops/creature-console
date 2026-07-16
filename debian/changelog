@@ -1,3 +1,17 @@
+creature-cli (2.36.0) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which makes every data table behave like a native macOS table (issue #28):
+    single-click selects, double-click opens, and long-press/tap work
+    naturally on iOS. Cell-level tap gestures that swallowed clicks are gone;
+    all six tables use one cross-platform contextMenu(forSelectionType:
+    primaryAction:) instead of duplicated per-platform menus. Animation play
+    menu items now show the target universe, and scheduling shows the
+    server's response in a banner — playing to a universe nothing listens on
+    is no longer silent (see also creature-server#54).
+
+ -- April White <april@creature.engineering>  Wed, 15 Jul 2026 00:00:00 +0000
+
 creature-cli (2.35.0) unstable; urgency=medium
 
   * RGBL fixture support (issue #26): new 'color_lime' channel kind for lights
