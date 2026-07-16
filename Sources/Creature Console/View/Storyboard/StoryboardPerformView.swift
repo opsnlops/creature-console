@@ -22,12 +22,15 @@ struct StoryboardPerformView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Query private var fixtures: [DmxFixtureModel]
+    @Query private var creatures: [CreatureModel]
 
     @State private var runner = StoryboardActionRunner()
     @State private var liveCreatureId: CreatureIdentifier?
     @State private var flash: [UUID: Bool] = [:]
     @State private var flashError: [UUID: Bool] = [:]
+    @State private var flashGeneration: [UUID: Int] = [:]
     @State private var toast: String?
+    @State private var toastGeneration = 0
     @State private var pendingPrompt: PendingPrompt?
     @State private var fixtureSheet: FixtureSheetItem?
 
@@ -49,9 +52,6 @@ struct StoryboardPerformView: View {
         }
         .statusBarHiddenIfAvailable()
         .task {
-            runner.fixtureLookup = { id in
-                fixtures.first(where: { $0.id == id })?.toDTO()
-            }
             liveCreatureId = await CreatureManager.shared.currentStreamingCreature()
             for await _ in await AppState.shared.stateUpdates {
                 liveCreatureId = await CreatureManager.shared.currentStreamingCreature()
@@ -150,6 +150,12 @@ struct StoryboardPerformView: View {
     private func fire(_ action: StoryboardAction, on tileID: UUID, promptText: String? = nil) async
     {
         impact()
+        // Bind the fixture lookup per fire, not once at appear: a closure captures the view value
+        // it was created in, so a lookup bound in `.task` would keep searching the fixture list as
+        // it stood when the view appeared — missing anything imported since.
+        runner.fixtureLookup = { id in
+            fixtures.first(where: { $0.id == id })?.toDTO()
+        }
         let outcome = await runner.run(action, promptText: promptText)
         switch outcome {
         case .success:
@@ -168,24 +174,30 @@ struct StoryboardPerformView: View {
     }
 
     private func creatureName(_ id: CreatureIdentifier) -> String {
-        // The perform view doesn't query creatures; fall back to the id (the prompt is brief).
-        id
+        creatures.first(where: { $0.id == id })?.name ?? id
     }
 
     @MainActor
     private func showFlash(_ id: UUID, error: Bool) async {
+        // Generation token so a rapid second tap's flash isn't cut short by the first one's timer.
+        let generation = (flashGeneration[id] ?? 0) + 1
+        flashGeneration[id] = generation
         flash[id] = true
         flashError[id] = error
         try? await Task.sleep(for: .milliseconds(400))
+        guard flashGeneration[id] == generation else { return }
         flash[id] = false
         flashError[id] = false
     }
 
     private func showToast(_ message: String) {
+        toastGeneration += 1
+        let generation = toastGeneration
         withAnimation { toast = message }
         Task {
             try? await Task.sleep(for: .seconds(4))
-            await MainActor.run { withAnimation { toast = nil } }
+            guard generation == toastGeneration else { return }
+            withAnimation { toast = nil }
         }
     }
 
