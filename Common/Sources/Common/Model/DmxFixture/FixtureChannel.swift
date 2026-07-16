@@ -46,6 +46,9 @@ public enum FixtureChannelKind {
     public static let colorBlue = "color_blue"
     public static let colorWhite = "color_white"
     public static let colorAmber = "color_amber"
+    /// Lime (~560 nm, yellow-green) — the "L" in RGBL fixtures. Boosts lumen output and
+    /// color rendering in the yellow-green band the RGB emitters cover poorly.
+    public static let colorLime = "color_lime"
     public static let colorUV = "color_uv"
     public static let masterDimmer = "master_dimmer"
     public static let strobe = "strobe"
@@ -55,7 +58,7 @@ public enum FixtureChannelKind {
     public static let generic = "generic"
 
     public static let all: [String] = [
-        colorRed, colorGreen, colorBlue, colorWhite, colorAmber, colorUV,
+        colorRed, colorGreen, colorBlue, colorWhite, colorAmber, colorLime, colorUV,
         masterDimmer, strobe, pan, tilt, gobo, generic,
     ]
 }

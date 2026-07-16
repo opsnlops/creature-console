@@ -44,7 +44,7 @@ struct ChannelListEditor: View {
             }
         }
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     private func channelRow(at index: Int) -> some View {
@@ -84,7 +84,16 @@ struct ChannelListEditor: View {
                 )
             ) {
                 ForEach(FixtureChannelKind.all, id: \.self) { kind in
-                    Text(kind).tag(kind)
+                    HStack(spacing: 6) {
+                        ChannelKindSwatch(kind: kind)
+                        Text(FixtureChannelKindUI.displayName(for: kind))
+                    }
+                    .tag(kind)
+                }
+                // A kind we don't recognize (e.g. from a newer client) still shows and keeps
+                // its value instead of blanking the picker.
+                if !FixtureChannelKind.all.contains(fixture.channels[index].kind) {
+                    Text(fixture.channels[index].kind).tag(fixture.channels[index].kind)
                 }
             }
             .labelsHidden()

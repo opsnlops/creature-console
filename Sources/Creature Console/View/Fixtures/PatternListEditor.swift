@@ -45,7 +45,7 @@ struct PatternListEditor: View {
             }
         }
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     @ViewBuilder

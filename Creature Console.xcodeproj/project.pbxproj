@@ -248,6 +248,7 @@
 		786C4469BE761562C02CD8CA /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
 		7DB638E818B72A9D9F481B7F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
 		9DE68FE4120C11C5EC98D74C /* LiveControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */; };
+		11AB0000000000000000C002 /* FixtureChannelKindUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000C001 /* FixtureChannelKindUI.swift */; };
 		A93D4886BE8CC2A68D8DA3E4 /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
 		B0A5226481B86C3BEFB8D1CE /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
 		B0EB4DDC9872D02FBC869667 /* StoryboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54614CD9A93C664522211643 /* StoryboardModel.swift */; };
@@ -507,6 +508,7 @@
 		AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptTable.swift; path = "Sources/Creature Console/View/Dialog/DialogScriptTable.swift"; sourceTree = SOURCE_ROOT; };
 		AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardImporter.swift; path = "Sources/Creature Console/Model/Storyboard/StoryboardImporter.swift"; sourceTree = SOURCE_ROOT; };
 		B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlPanel.swift; sourceTree = "<group>"; };
+		11AB0000000000000000C001 /* FixtureChannelKindUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureChannelKindUI.swift; sourceTree = "<group>"; };
 		B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternListEditor.swift; sourceTree = "<group>"; };
 		BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixturesTable.swift; sourceTree = "<group>"; };
 		C211450B80E5BBFE2141677F /* AudioFileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioFileDocument.swift; path = "Sources/Creature Console/View/Dialog/AudioFileDocument.swift"; sourceTree = SOURCE_ROOT; };
@@ -1337,6 +1339,7 @@
 				B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */,
 				37787523823136F6AC32A769 /* FixtureEditor.swift */,
 				5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */,
+				11AB0000000000000000C001 /* FixtureChannelKindUI.swift */,
 				B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */,
 				1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */,
 				F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */,
@@ -1598,6 +1601,7 @@
 			isa = PBXSourcesBuildPhase;
 			files = (
 				9DE68FE4120C11C5EC98D74C /* LiveControlPanel.swift in Sources */,
+				11AB0000000000000000C002 /* FixtureChannelKindUI.swift in Sources */,
 				7DB638E818B72A9D9F481B7F /* DmxFixtureModel.swift in Sources */,
 				2470F7BEF21E3FF180C260A8 /* DmxFixtureImporter.swift in Sources */,
 				3C7DBB0033DA4971E5C9E4EC /* FixturesTable.swift in Sources */,
@@ -2051,7 +2055,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.34.9;
+				MARKETING_VERSION = 2.35.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2105,7 +2109,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.34.9;
+				MARKETING_VERSION = 2.35.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2189,7 +2193,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.34.9;
+				MARKETING_VERSION = 2.35.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2221,7 +2225,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.34.9;
+				MARKETING_VERSION = 2.35.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
