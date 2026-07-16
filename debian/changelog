@@ -1,3 +1,13 @@
+creature-cli (2.34.8) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which fixes the iOS/tvOS audio session handling (issue #21): the session
+    is now activated lazily when playback starts (launching the app no longer
+    stops other apps' music) and released with .notifyOthersOnDeactivation
+    when playback finishes, so interrupted audio resumes.
+
+ -- April White <april@creature.engineering>  Wed, 15 Jul 2026 00:00:00 +0000
+
 creature-cli (2.34.7) unstable; urgency=medium
 
   * No CLI changes — version bump to stay in lockstep with the Console app,
