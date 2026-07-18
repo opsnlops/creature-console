@@ -48,6 +48,33 @@ public struct DialogProvenance: Sendable, Equatable {
         }
     }
 
+    /// One word and the span over which it's spoken (from the ElevenLabs word alignment).
+    public struct WordTiming: Sendable, Equatable {
+        public let start: Double
+        public let end: Double
+        public let word: String
+
+        public init(start: Double, end: Double, word: String) {
+            self.start = start
+            self.end = end
+            self.word = word
+        }
+    }
+
+    /// The word-level alignment for one creature's lane: which word is spoken when.
+    public struct WordTrack: Sendable, Equatable, Identifiable {
+        public let channel: Int
+        public let name: String
+        public let words: [WordTiming]
+        public var id: Int { channel }
+
+        public init(channel: Int, name: String, words: [WordTiming]) {
+            self.channel = channel
+            self.name = name
+            self.words = words
+        }
+    }
+
     public let sourceScriptId: String
     public let title: String
     public let generationIds: [String]
@@ -56,10 +83,12 @@ public struct DialogProvenance: Sendable, Equatable {
     public let tracks: [Track]
     /// Per-creature mouth cues embedded in the file (#53); empty if none.
     public let lipsync: [LipsyncTrack]
+    /// Per-creature word-level alignment embedded in the file (#56); empty for older renders.
+    public let words: [WordTrack]
 
     public init(
         sourceScriptId: String, title: String, generationIds: [String], scriptText: String,
-        tracks: [Track], lipsync: [LipsyncTrack] = []
+        tracks: [Track], lipsync: [LipsyncTrack] = [], words: [WordTrack] = []
     ) {
         self.sourceScriptId = sourceScriptId
         self.title = title
@@ -67,6 +96,7 @@ public struct DialogProvenance: Sendable, Equatable {
         self.scriptText = scriptText
         self.tracks = tracks
         self.lipsync = lipsync
+        self.words = words
     }
 
     /// The script split into individual turn lines (empty if there's no script).
@@ -77,7 +107,7 @@ public struct DialogProvenance: Sendable, Equatable {
     /// True when there's anything worth showing.
     public var hasContent: Bool {
         !sourceScriptId.isEmpty || !title.isEmpty || !scriptText.isEmpty || !tracks.isEmpty
-            || !lipsync.isEmpty
+            || !lipsync.isEmpty || !words.isEmpty
     }
 
     /// Parse the iXML document the server embeds. Returns nil if the string isn't
@@ -91,7 +121,8 @@ public struct DialogProvenance: Sendable, Equatable {
                 .split(separator: ",").map(String.init),
             scriptText: DialogProvenance.field("DIALOG_SCRIPT", in: iXML) ?? "",
             tracks: DialogProvenance.parseTracks(in: iXML),
-            lipsync: DialogProvenance.parseLipsync(in: iXML)
+            lipsync: DialogProvenance.parseLipsync(in: iXML),
+            words: DialogProvenance.parseWordAlignment(in: iXML)
         )
     }
 
@@ -165,6 +196,38 @@ public struct DialogProvenance: Sendable, Equatable {
             let f = part.split(separator: " ")
             guard f.count == 3, let start = Double(f[0]), let end = Double(f[1]) else { return nil }
             return MouthCue(start: start, end: end, shape: String(f[2]))
+        }
+    }
+
+    /// Parse the `<WORD_ALIGNMENT>` block into per-creature word tracks. Scoped to that block
+    /// first because `<TRACK>` also appears in TRACK_LIST and LIPSYNC.
+    static func parseWordAlignment(in xml: String) -> [WordTrack] {
+        guard let block = rawField("WORD_ALIGNMENT", in: xml) else { return [] }
+        var result: [WordTrack] = []
+        var searchStart = block.startIndex
+        while let start = block.range(of: "<TRACK>", range: searchStart..<block.endIndex),
+            let end = block.range(of: "</TRACK>", range: start.upperBound..<block.endIndex)
+        {
+            let entry = String(block[start.upperBound..<end.lowerBound])
+            if let channelString = field("CHANNEL_INDEX", in: entry),
+                let channel = Int(channelString)
+            {
+                let name = field("NAME", in: entry) ?? ""
+                let words = parseWords(field("WORDS", in: entry) ?? "")
+                result.append(WordTrack(channel: channel, name: name, words: words))
+            }
+            searchStart = end.upperBound
+        }
+        return result
+    }
+
+    /// Unpack the compact `"start end word;start end word;…"` word encoding. The word is the
+    /// remainder after the two timestamps (`maxSplits: 2`), so a word containing a space survives.
+    static func parseWords(_ packed: String) -> [WordTiming] {
+        packed.split(separator: ";").compactMap { part in
+            let f = part.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)
+            guard f.count == 3, let start = Double(f[0]), let end = Double(f[1]) else { return nil }
+            return WordTiming(start: start, end: end, word: String(f[2]))
         }
     }
 

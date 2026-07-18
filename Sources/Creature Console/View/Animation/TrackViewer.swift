@@ -14,6 +14,15 @@ struct TrackViewer: View {
 
     var height: CGFloat = 50.0
 
+    /// Dialog provenance for this creature's lane, when the animation was rendered from a dialog.
+    /// Drives the mouth-activity ribbon + script panel; nil for hand-made animations.
+    var lipsync: DialogProvenance.LipsyncTrack? = nil
+    /// Word-level alignment for this lane (#56); nil for older renders (readout falls back to the
+    /// mouth shape).
+    var wordTrack: DialogProvenance.WordTrack? = nil
+    var scriptLines: [DialogProvenance.ScriptLine] = []
+    var millisecondsPerFrame: UInt32 = 20
+
     @State private var showErrorAlert = false
     @State private var alertMessage = ""
 
@@ -50,6 +59,16 @@ struct TrackViewer: View {
                 }
                 Text("Number of Frames: \(track.frames.count)")
                     .font(.footnote)
+
+                if let lipsync {
+                    TrackDialogSection(
+                        lipsync: lipsync,
+                        wordTrack: wordTrack,
+                        scriptLines: scriptLines,
+                        millisecondsPerFrame: millisecondsPerFrame,
+                        frameCount: track.frames.count,
+                        color: chartColor)
+                }
             case .failure(let error):
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")

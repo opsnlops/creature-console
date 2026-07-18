@@ -74,9 +74,33 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
     public convenience init() {
         self.init { request in
-            try await URLSession.shared.data(for: request)
+            #if canImport(FoundationNetworking)
+                try await URLSession.shared.data(for: request)
+            #else
+                try await CreatureServerClient.cachingSession.data(for: request)
+            #endif
         }
     }
+
+    #if !canImport(FoundationNetworking)
+        /// The session backing the real client (`.shared`). Its configuration owns a cache large
+        /// enough to actually store immutable sound renditions — `URLCache` refuses to keep a
+        /// single response larger than ~5% of capacity, and the default cache is far too small for
+        /// multi-MB MP3/Ogg. Owning our own session (rather than mutating the process-global
+        /// `URLCache.shared`) avoids the ordering trap where a session created before the swap
+        /// would have captured the old, tiny cache. Per-request `cachePolicy` still governs each
+        /// call, so mutable list reads bypass the cache via `.reloadIgnoringLocalCacheData`.
+        ///
+        /// Apple platforms only: swift-corelibs-Foundation (Linux CLI tools) lacks the
+        /// `URLCache(memoryCapacity:diskCapacity:)` initializer, and the one-shot CLI has no use
+        /// for a sized cache anyway.
+        private static let cachingSession: URLSession = {
+            let configuration = URLSessionConfiguration.default
+            configuration.urlCache = URLCache(
+                memoryCapacity: 32 * 1024 * 1024, diskCapacity: 256 * 1024 * 1024)
+            return URLSession(configuration: configuration)
+        }()
+    #endif
 
     init(httpDataLoader: @escaping HTTPDataLoader) {
         var logger = Logging.Logger(label: "io.opsnlops.creature-controller.common")
@@ -99,7 +123,7 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
     /**
      Returns the URL to our server
-    
+
      @param type Which type of URL to make (http or websocket)
      */
     public func makeBaseURL(_ type: UrlType) -> String {
@@ -162,10 +186,10 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
     /**
      Creates a configured URLRequest with proper headers for proxy support
-    
+
      This method ensures all HTTP requests to the server include the necessary headers
      for proxy authentication and routing, regardless of where in the app they originate.
-    
+
      - Parameter url: The URL to create the request for
      - Returns: A URLRequest configured with API key and Host headers as needed
      */
@@ -254,12 +278,14 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         return await fetchData(url, returnType: returnType)
     }
 
-    func fetchDataResponse(path: String) async -> Result<HTTPResponseData, ServerError> {
+    func fetchDataResponse(
+        path: String, cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalCacheData
+    ) async -> Result<HTTPResponseData, ServerError> {
         guard let url = makeURL(path) else {
             return .failure(.serverError("unable to make base URL"))
         }
         logger.debug("Using URL: \(url)")
-        return await fetchDataResponse(url)
+        return await fetchDataResponse(url, cachePolicy: cachePolicy)
     }
 
     func sendData<T: Decodable, U: Encodable>(
@@ -294,15 +320,19 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         return await sendRawJson(url, method: method, rawJson: rawJson, returnType: returnType)
     }
 
-    func fetchDataResponse(_ url: URL) async -> Result<HTTPResponseData, ServerError> {
+    func fetchDataResponse(
+        _ url: URL, cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalCacheData
+    ) async -> Result<HTTPResponseData, ServerError> {
         var request = createConfiguredURLRequest(for: url)
-        // Never serve these REST reads from the URL cache. The server doesn't send
-        // cache-control headers, so CFNetwork heuristically caches 200s and can hand a
-        // stale list back to a cache rebuild right after a save — leaving SwiftData behind
-        // (e.g. a newly-added tile missing in perform mode). Our SwiftData layer *is* the
-        // cache, refreshed via the websocket invalidation model; the HTTP layer must always
-        // hit the origin.
-        request.cachePolicy = .reloadIgnoringLocalCacheData
+        // Default: never serve a REST read from the URL cache. Mutable list endpoints send no
+        // cache-control, so CFNetwork would heuristically cache 200s and could hand a stale list
+        // back to a cache rebuild right after a save (e.g. a newly-added tile missing in perform
+        // mode). Our SwiftData layer *is* the cache, refreshed via websocket invalidation.
+        //
+        // Callers pass `.useProtocolCachePolicy` for provably-immutable resources (sound
+        // renditions, which the server marks `Cache-Control: immutable`) so replays are served
+        // from cache instead of re-fetched/re-encoded.
+        request.cachePolicy = cachePolicy
 
         return await performRequest(
             request,

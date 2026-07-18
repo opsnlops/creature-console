@@ -734,15 +734,20 @@ class AudioManager: ObservableObject {
         }
     }
 
-    func pause() {
-        logger.info("pausing audio")
-        self.audioPlayer?.pause()
-        self.player?.pause()
-
-        // Paused players don't need the session; release it unless a preview is mid-play.
-        if previewPlayer == nil {
-            deactivateAudioSession()
-        }
+    /// Stop `playURL`-based playback and release the audio session if nothing else is playing.
+    ///
+    /// This fully tears the AVPlayer down — nils `player`, clears its end observers, and bumps the
+    /// generation so a late completion callback is a no-op — because `releaseAudioSessionIfIdle`
+    /// guards on `player == nil`; merely *pausing* would leave a non-nil player that blocks the
+    /// session from ever being released (so interrupted music would never resume). Deliberately
+    /// leaves any armed preview / bundled sound alone, releasing the session only when idle.
+    func stopURLPlayback() {
+        logger.info("stopping URL playback")
+        playerGeneration += 1  // invalidate any pending end-of-item callback
+        clearPlayerEndObservers()
+        player?.pause()
+        player = nil
+        releaseAudioSessionIfIdle()
     }
 }
 

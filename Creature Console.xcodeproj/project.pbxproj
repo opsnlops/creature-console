@@ -158,6 +158,7 @@
 		11A4F2112EBAEEEF001A7670 /* animationAlignmentSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 11A4F2102EBAEEEF001A7670 /* animationAlignmentSound.flac */; };
 		11A61AA02BFAEAC6000A1B48 /* InputTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */; };
 		11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61AA22BFC3739000A1B48 /* TrackViewer.swift */; };
+		11AB0000000000000000D002 /* TrackDialogSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000D001 /* TrackDialogSection.swift */; };
 		11AB0000000000000000A002 /* JobStatusStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000A001 /* JobStatusStoreTests.swift */; };
 		11AB0000000000000000B002 /* ShareableSoundButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000B001 /* ShareableSoundButton.swift */; };
 		11AB0000000000000000B003 /* ShareableSoundButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000B001 /* ShareableSoundButton.swift */; };
@@ -392,6 +393,7 @@
 		11A4F2102EBAEEEF001A7670 /* animationAlignmentSound.flac */ = {isa = PBXFileReference; lastKnownFileType = file; path = animationAlignmentSound.flac; sourceTree = "<group>"; };
 		11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputTable.swift; sourceTree = "<group>"; };
 		11A61AA22BFC3739000A1B48 /* TrackViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackViewer.swift; sourceTree = "<group>"; };
+		11AB0000000000000000D001 /* TrackDialogSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackDialogSection.swift; sourceTree = "<group>"; };
 		11AB0000000000000000A001 /* JobStatusStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobStatusStoreTests.swift; sourceTree = "<group>"; };
 		11AB0000000000000000B001 /* ShareableSoundButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableSoundButton.swift; sourceTree = "<group>"; };
 		11AB0000000000000000B011 /* DialogProvenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogProvenanceView.swift; sourceTree = "<group>"; };
@@ -1041,6 +1043,7 @@
 				114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */,
 				118BF8722A255F5300D80AE6 /* AnimationTable.swift */,
 				11A61AA22BFC3739000A1B48 /* TrackViewer.swift */,
+				11AB0000000000000000D001 /* TrackDialogSection.swift */,
 				114147912C0145270046601D /* TrackListingView.swift */,
 				1156EBCA2E76640500CBC202 /* ButtonGate.swift */,
 				11AF090E2E864F2400E0BE28 /* AnimationEditorViewModel.swift */,
@@ -1681,6 +1684,7 @@
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
 				1199D6C62BF5D588004E0D64 /* SystemCountersItemProcessor.swift in Sources */,
 				11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */,
+				11AB0000000000000000D002 /* TrackDialogSection.swift in Sources */,
 				11A10A5E29F242B7000EB835 /* RecordTrack.swift in Sources */,
 				119A016329EE297800D3DA12 /* BarChart.swift in Sources */,
 				11C54A4A2E91A1E0003CD966 /* StatusLightsState+UI.swift in Sources */,
@@ -2055,7 +2059,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.37.0;
+				MARKETING_VERSION = 2.38.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2109,7 +2113,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.37.0;
+				MARKETING_VERSION = 2.38.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2193,7 +2197,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.37.0;
+				MARKETING_VERSION = 2.38.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2225,7 +2229,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.37.0;
+				MARKETING_VERSION = 2.38.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

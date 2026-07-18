@@ -9,11 +9,12 @@ extension UTType {
 
 /// A trivial `FileDocument` wrapper around raw audio bytes so any panel can use SwiftUI's
 /// cross-platform `.fileExporter` to save server-produced audio — mono / 17-channel WAVs
-/// for Audacity, Ogg/Opus shareable versions, and whatever comes next.
+/// for Audacity, MP3 shareable versions (the GUI's share format), Ogg/Opus, and whatever
+/// comes next.
 struct AudioFileDocument: FileDocument {
 
-    static var readableContentTypes: [UTType] { [.wav, .oggAudio] }
-    static var writableContentTypes: [UTType] { [.wav, .oggAudio] }
+    static var readableContentTypes: [UTType] { [.wav, .mp3, .oggAudio] }
+    static var writableContentTypes: [UTType] { [.wav, .mp3, .oggAudio] }
 
     var data: Data
 

@@ -21,6 +21,7 @@ struct AnimationDialogProvenanceView: View {
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "AnimationDialogProvenanceView")
     private let server = CreatureServerClient.shared
+    private let audioManager = AudioManager.shared
 
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
@@ -29,6 +30,10 @@ struct AnimationDialogProvenanceView: View {
     @State private var scriptToOpen: DialogScript? = nil
     @State private var showSnapshot = false
     @State private var statusMessage: String? = nil
+
+    /// Plays the animation's *already-rendered* audio directly, so "hear what's there" doesn't go
+    /// through the turns-based preview (which regenerates a fresh take when nothing's cached).
+    @State private var audioStatus: String? = nil
 
     /// Take chosen in the embedded preview panel (drives preview/export of the snapshot turns).
     @State private var selectedGenerationId: DialogGenerationIdentifier? = nil
@@ -43,6 +48,10 @@ struct AnimationDialogProvenanceView: View {
         GlassEffectContainer(spacing: 16) {
             VStack(alignment: .leading, spacing: 16) {
                 provenanceCard
+
+                if !metadata.soundFile.isEmpty {
+                    renderedAudioCard
+                }
 
                 if let scriptId = metadata.sourceScriptIdentifier {
                     DialogRerenderButton(
@@ -75,6 +84,61 @@ struct AnimationDialogProvenanceView: View {
             #if os(macOS)
                 .frame(minWidth: 760, minHeight: 640)
             #endif
+        }
+    }
+
+    /// Plays the animation's actual rendered audio (`metadata.soundFile`) via the server's small
+    /// MP3 downmix — distinct from the "Listen & Export" panel below, which auditions turns-based
+    /// *preview takes* and regenerates when none is cached. MP3 streams natively through AVPlayer,
+    /// so playback starts immediately without pulling the hundreds-of-MB 17-channel source (which
+    /// isn't meaningfully playable on 2-channel hardware anyway). Needs creature-server#57.
+    private var renderedAudioCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Rendered Audio", systemImage: "waveform").font(.headline)
+                Spacer()
+            }
+            Text("Play the audio embedded in this animation — no re-rendering.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                Button {
+                    playRenderedAudio()
+                } label: {
+                    Label("Play This Animation's Audio", systemImage: "play.circle")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    audioManager.stopURLPlayback()
+                    audioStatus = nil
+                } label: {
+                    Label("Stop", systemImage: "stop.circle")
+                }
+            }
+            if let audioStatus {
+                Text(audioStatus).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+    }
+
+    private func playRenderedAudio() {
+        let fileName = metadata.soundFile
+        guard !fileName.isEmpty else { return }
+        // The MP3 route's URL ends in `.mp3` (creature-server#57), so AVPlayer detects the format
+        // and streams it — the ~5 MB mono downmix plays in about a second, no full download.
+        switch server.getSoundRenditionURL(fileName, as: .mp3) {
+        case .success(let url):
+            audioStatus = "Playing…"
+            if case .failure(let error) = audioManager.playURL(url) {
+                audioStatus = "Playback failed: \(error.message)"
+            }
+        case .failure(let error):
+            audioStatus =
+                "Couldn't build the audio URL: \(ServerError.detailedMessage(from: error))"
         }
     }
 
