@@ -176,26 +176,35 @@ extension CreatureServerClient {
     }
 
     /**
-     Returns the URL of the shareable Ogg/Opus rendition of a sound file (the server
-     searches the permanent store, then the ad-hoc store).
+     Returns the URL of a downmixed rendition of a stored sound (the server searches the
+     permanent store, then the ad-hoc store, and downmixes multi-channel WAVs to mono).
+
+     The rendition format is a parameter — one path, one method — not a method per format. See
+     `SoundRendition`: MP3 (`GET /sound/mp3/…`, plays in AVFoundation + Slack — the GUI's format)
+     or Ogg/Opus (`GET /sound/shareable/…` — smaller; kept for the CLI). Requires
+     creature-server#57 for the MP3 rendition.
      */
-    public func getShareableSoundURL(_ fileName: String) -> Result<URL, ServerError> {
+    public func getSoundRenditionURL(_ fileName: String, as rendition: SoundRendition) -> Result<
+        URL, ServerError
+    > {
 
-        logger.debug("attempting to get shareable sound URL for \(fileName)")
+        logger.debug("attempting to get \(rendition.rawValue) sound URL for \(fileName)")
 
-        guard let encodedName = urlEncode(soundBasename(fileName)),
-            let url = URL(string: makeBaseURL(.http) + "/sound/shareable/" + encodedName)
+        let requestName = rendition.renditionFilename(forSourceBasename: soundBasename(fileName))
+        guard let encodedName = urlEncode(requestName),
+            let url = URL(
+                string: makeBaseURL(.http) + "/sound/\(rendition.pathSegment)/" + encodedName)
         else {
             return .failure(.serverError("unable to make base URL"))
         }
 
-        logger.debug("Shareable sound URL: \(url)")
+        logger.debug("\(rendition.rawValue) sound URL: \(url)")
         return .success(url)
     }
 
     /**
      Fetch the embedded provenance of a dialog sound file.
-    
+
      Dialog renders carry an iXML chunk describing the source script and channel
      layout (server issue #47). Returns the parsed `DialogProvenance`, or a failure
      (404) when the sound carries no embedded provenance.
@@ -229,31 +238,33 @@ extension CreatureServerClient {
     }
 
     /**
-     Download a shareable Ogg/Opus rendition of a sound file.
-    
-     The server looks in the permanent sound store first, then the ad-hoc store,
-     downmixes multi-channel WAVs to mono, and encodes to Ogg/Opus.
-     */
-    public func downloadShareableSound(fileName: String) async -> Result<
-        ShareableSound, ServerError
-    > {
+     Download a downmixed rendition of a stored sound, ready to write to disk.
 
-        logger.debug("attempting to download a shareable version of \(fileName)")
+     The server looks in the permanent sound store first, then the ad-hoc store, downmixes
+     multi-channel WAVs to mono, and encodes to the requested `SoundRendition` (MP3 for the GUI,
+     Ogg/Opus for the CLI). One method, format as a parameter.
+     */
+    public func downloadSoundRendition(fileName: String, as rendition: SoundRendition) async
+        -> Result<ShareableSound, ServerError>
+    {
+
+        logger.debug("attempting to download the \(rendition.rawValue) version of \(fileName)")
 
         let name = soundBasename(fileName)
-        guard let encodedName = urlEncode(name) else {
+        let requestName = rendition.renditionFilename(forSourceBasename: name)
+        guard let encodedName = urlEncode(requestName) else {
             return .failure(.serverError("unable to make base URL"))
         }
 
-        return await fetchDataResponse(path: "/sound/shareable/" + encodedName).map { response in
-            let fallback: String
-            if let dotIndex = name.lastIndex(of: ".") {
-                fallback = String(name[..<dotIndex]) + ".ogg"
-            } else {
-                fallback = name + ".ogg"
-            }
+        // Renditions are immutable (the server marks them `Cache-Control: immutable`), so honor
+        // the cache rather than force-reloading — a re-download of the same rendition is served
+        // from URLCache.
+        return await fetchDataResponse(
+            path: "/sound/\(rendition.pathSegment)/" + encodedName,
+            cachePolicy: .useProtocolCachePolicy
+        ).map { response in
             let suggested =
-                parseFilenameFromContentDisposition(response.contentDisposition) ?? fallback
+                parseFilenameFromContentDisposition(response.contentDisposition) ?? requestName
             return ShareableSound(data: response.data, suggestedFilename: suggested)
         }
     }

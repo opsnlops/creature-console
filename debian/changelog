@@ -1,3 +1,32 @@
+creature-cli (2.38.0) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which enriches the animation editor with per-track dialog data (issue #32):
+    for dialog-rendered animations, each creature's track gains a mouth-activity
+    ribbon (its embedded mouth cues baked into servo openness via the shared
+    Rhubarb mapping and drawn like the servo waveforms, so silence shows as
+    gaps), a hover/scrub timecode + mouth-shape readout, and a panel of that
+    creature's spoken lines. Tracks are matched to their dialog lane by audio
+    channel (stable across creature renames). When the render carries word-level
+    alignment (creature-server#56), the scrub readout shows the exact word being
+    spoken at the cursor; older renders fall back to the mouth shape. 'sounds
+    provenance' prints the per-creature word timings too. Reuses the old client-side mouth logic
+    (SoundData.MouthCue → shared MouthShape) now that rendering runs
+    server-side. Also adds a "Play This Animation's Audio" button that plays the
+    rendered audio directly (via a small server-side MP3 downmix, streamed) so
+    hearing what's there no longer re-runs the turns-based preview generator.
+  * The GUI's "Generate Shareable Version" and dialog-preview exports now
+    produce MP3 instead of Ogg/Opus — MP3 plays inline in Slack and natively in
+    AVFoundation, where Ogg does neither. The Ogg rendition stays available in
+    the CLI: 'sounds share' gains a --format ogg|mp3 flag (default ogg). Sound
+    rendition URLs are unified behind a single SoundRendition-parameterized API
+    rather than a method per format. Renditions are immutable, so downloads now
+    honor the server's Cache-Control (a re-download is served from a right-sized
+    URLCache) instead of always hitting the origin; mutable list reads still
+    bypass the cache as before.
+
+ -- April White <april@creature.engineering>  Wed, 15 Jul 2026 00:00:00 +0000
+
 creature-cli (2.37.0) unstable; urgency=medium
 
   * No CLI changes — version bump to stay in lockstep with the Console app,

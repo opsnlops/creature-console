@@ -6,12 +6,13 @@ import UniformTypeIdentifiers
 #if os(iOS) || os(macOS)
 
     /// The one shared implementation of the "Generate Shareable Version" flow: download
-    /// the Ogg/Opus rendition from the server, then prompt to save it to disk.
+    /// the MP3 rendition from the server, then prompt to save it to disk.
     ///
-    /// Attach `.shareableSoundFlow(fileName:)` once to a *stable* ancestor view and set
-    /// the binding to a sound file name to kick things off. (Context-menu content is
-    /// transient and can't present sheets, which is why the flow lives on the ancestor
-    /// and menu items just set the binding — use `ShareableSoundButton` for those.)
+    /// The GUI shares MP3 (plays natively in AVFoundation and Slack); the Ogg/Opus rendition is
+    /// CLI-only now. Attach `.shareableSoundFlow(fileName:)` once to a *stable* ancestor view and
+    /// set the binding to a sound file name to kick things off. (Context-menu content is transient
+    /// and can't present sheets, which is why the flow lives on the ancestor and menu items just
+    /// set the binding — use `ShareableSoundButton` for those.)
     private struct ShareableSoundFlow: ViewModifier {
 
         @Binding var fileName: String?
@@ -22,7 +23,7 @@ import UniformTypeIdentifiers
 
         @State private var isWorking = false
         @State private var exportData: Data? = nil
-        @State private var exportFilename = "sound.ogg"
+        @State private var exportFilename = "sound.mp3"
         @State private var showExporter = false
         @State private var errorAlert: ErrorAlert?
 
@@ -35,12 +36,12 @@ import UniformTypeIdentifiers
                 .fileExporter(
                     isPresented: $showExporter,
                     document: AudioFileDocument(data: exportData ?? Data()),
-                    contentType: .oggAudio,
+                    contentType: .mp3,
                     defaultFilename: exportFilename
                 ) { result in
                     switch result {
                     case .success(let url):
-                        logger.info("saved shareable sound to \(url.path)")
+                        logger.info("saved shareable MP3 to \(url.path)")
                     case .failure(let error):
                         errorAlert = ErrorAlert(
                             title: "Sharing Failed",
@@ -56,7 +57,7 @@ import UniformTypeIdentifiers
             guard !isWorking else { return }
             isWorking = true
             Task {
-                let result = await server.downloadShareableSound(fileName: name)
+                let result = await server.downloadSoundRendition(fileName: name, as: .mp3)
                 await MainActor.run {
                     isWorking = false
                     switch result {

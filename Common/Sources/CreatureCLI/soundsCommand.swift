@@ -39,8 +39,10 @@ protocol AdHocSoundListing: Sendable {
     func soundURL(for fileName: String) async -> Result<URL, ServerError>
 }
 
-@preconcurrency protocol ShareableSoundURLProviding: Sendable {
-    func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError>
+@preconcurrency protocol SoundRenditionURLProviding: Sendable {
+    func soundRenditionURL(for fileName: String, as rendition: SoundRendition) async -> Result<
+        URL, ServerError
+    >
 }
 
 protocol DialogProvenanceFetching: Sendable {
@@ -50,7 +52,7 @@ protocol DialogProvenanceFetching: Sendable {
 typealias SoundCommandClient = SoundListing & SoundPlaying & LipSyncGenerating
     & LipSyncUploadGenerating
     & AdHocSoundListing & AdHocSoundURLProviding & SoundURLProviding
-    & ShareableSoundURLProviding & DialogProvenanceFetching
+    & SoundRenditionURLProviding & DialogProvenanceFetching
 
 extension CreatureServerClient: SoundListing {}
 extension CreatureServerClient: SoundPlaying {}
@@ -75,11 +77,16 @@ extension CreatureServerClient: SoundURLProviding {
         getSoundURL(fileName)
     }
 }
-extension CreatureServerClient: ShareableSoundURLProviding {
-    public func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError> {
-        getShareableSoundURL(fileName)
+extension CreatureServerClient: SoundRenditionURLProviding {
+    public func soundRenditionURL(for fileName: String, as rendition: SoundRendition) async
+        -> Result<URL, ServerError>
+    {
+        getSoundRenditionURL(fileName, as: rendition)
     }
 }
+
+/// `SoundRendition` lives in Common; make it usable as a `--format` value here.
+extension SoundRendition: ExpressibleByArgument {}
 
 actor SoundDownloadHandlerStore {
     typealias Handler = @Sendable (URLRequest, URL) async throws -> URL
@@ -479,11 +486,12 @@ extension CreatureCLI {
 
         struct Share: AsyncParsableCommand {
             static let configuration = CommandConfiguration(
-                abstract: "Download a shareable Ogg/Opus version of a sound file",
+                abstract: "Download a shareable Ogg/Opus or MP3 version of a sound file",
                 discussion:
                     "The server finds the file (permanent store first, then ad-hoc), downmixes "
-                    + "multi-channel WAVs to mono, and encodes at 96 kbps — perfect for Telegram "
-                    + "and Slack instead of a giant WAV."
+                    + "multi-channel WAVs to mono, and encodes it — perfect for Telegram and Slack "
+                    + "instead of a giant WAV. Ogg/Opus is smaller; MP3 plays everywhere (Slack "
+                    + "inline, browsers, AVFoundation). Use --format to choose."
             )
 
             @Argument(help: "Name of the sound file to share (e.g. goofy.wav)")
@@ -492,9 +500,15 @@ extension CreatureCLI {
             @Option(
                 name: .shortAndLong,
                 help:
-                    "Destination file or directory. Defaults to the current directory with the .ogg file name."
+                    "Destination file or directory. Defaults to the current directory with the rendition's file name."
             )
             var output: String?
+
+            @Option(
+                name: .shortAndLong,
+                help: "Rendition format: ogg or mp3."
+            )
+            var format: SoundRendition = .ogg
 
             @Flag(
                 name: .customLong("overwrite"),
@@ -506,21 +520,18 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let oggName: String
-                if let dotIndex = fileName.lastIndex(of: ".") {
-                    oggName = String(fileName[..<dotIndex]) + ".ogg"
-                } else {
-                    oggName = fileName + ".ogg"
-                }
+                // Same stem→filename rule the request URL uses, so the saved name matches what
+                // was fetched (see SoundRendition.renditionFilename).
+                let defaultName = format.renditionFilename(forSourceBasename: fileName)
                 try await tracedRun("sounds.share", config: globalOptions) {
                     try await Sounds.performDownload(
                         requestedName: fileName,
-                        defaultFileName: oggName,
+                        defaultFileName: defaultName,
                         output: output,
                         overwrite: overwrite,
                         globalOptions: globalOptions
                     ) { server in
-                        await server.shareableSoundURL(for: fileName)
+                        await server.soundRenditionURL(for: fileName, as: format)
                     }
                 }
             }
@@ -594,6 +605,28 @@ extension CreatureCLI {
                                 }.joined(separator: " ")
                                 if !stream.isEmpty {
                                     print("      \(stream)")
+                                }
+                            }
+                        }
+
+                        if !provenance.words.isEmpty {
+                            print(
+                                "\n  Word Alignment (per-word timings, from the ElevenLabs alignment):"
+                            )
+                            for track in provenance.words {
+                                let span =
+                                    (track.words.first.map { String(format: "%.2f", $0.start) }
+                                        ?? "?")
+                                    + "–"
+                                    + (track.words.last.map { String(format: "%.2f", $0.end) }
+                                        ?? "?")
+                                    + "s"
+                                print(
+                                    "    \(track.name) (channel \(track.channel)) — \(track.words.count) words, \(span)"
+                                )
+                                let text = track.words.map(\.word).joined(separator: " ")
+                                if !text.isEmpty {
+                                    print("      \(text)")
                                 }
                             }
                         }

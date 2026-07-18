@@ -38,12 +38,14 @@ extension CreatureServerClient {
         return .success(url)
     }
 
-    /// Direct URL to the shareable Ogg/Opus rendition of a specific cached preview take
-    /// (mono, 96 kbps — the server encodes the cached PCM on demand).
-    public func dialogPreviewShareableURL(
-        cacheKey: String, generationId: DialogGenerationIdentifier
+    /// Direct URL to a rendition of a specific cached preview take (mono — the server encodes the
+    /// cached PCM on demand). Format is a parameter (`SoundRendition`): MP3 for the GUI (plays in
+    /// AVFoundation + Slack), Ogg/Opus otherwise. The MP3 variant requires creature-server#58
+    /// (`…/preview/share/{key}/{id}.mp3`).
+    public func dialogPreviewRenditionURL(
+        cacheKey: String, generationId: DialogGenerationIdentifier, as rendition: SoundRendition
     ) -> Result<URL, ServerError> {
-        let filename = generationId.uuidString.lowercased() + ".ogg"
+        let filename = generationId.uuidString.lowercased() + "." + rendition.fileExtension
         guard
             let url = URL(
                 string: makeBaseURL(.http)

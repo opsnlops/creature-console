@@ -40,6 +40,10 @@ struct AnimationEditor: View {
 
     @State private var selectedCreatureForRecording: Creature? = nil
 
+    /// Dialog provenance (script + per-creature mouth cues) for this animation's rendered sound,
+    /// fetched lazily. Nil for hand-made animations or when the sound carries none.
+    @State private var provenance: DialogProvenance? = nil
+
 
     // Initializers
     init() {
@@ -76,6 +80,11 @@ struct AnimationEditor: View {
             }
             .onAppear {
                 model.syncFromAnimation()
+            }
+            // Load the dialog provenance for the mouth-activity ribbons + per-track script. Keyed
+            // on the sound file so an in-place re-render (which can swap the file) refetches.
+            .task(id: model.animation.metadata.soundFile) {
+                await loadProvenance()
             }
             .navigationTitle(createNew ? "Record New Animation" : "Animation Editor")
             #if os(macOS)
@@ -167,6 +176,32 @@ struct AnimationEditor: View {
                         )
                     }
                 }
+            }
+        }
+    }
+
+
+    /// Fetch the dialog provenance for the current sound file, if any. Driven by the **sound file's
+    /// embedded iXML**, not the animation metadata's script pointer — a dialog render carries the
+    /// lipsync/word alignment in the WAV even when `source_script_id` was never stamped on the
+    /// animation (as happens for some renders). A 404 (no embedded provenance — e.g. a hand-made
+    /// animation) is expected and simply clears the ribbons.
+    private func loadProvenance() async {
+        let soundFile = model.animation.metadata.soundFile
+        guard !soundFile.isEmpty else {
+            provenance = nil
+            return
+        }
+        let result = await server.fetchDialogProvenance(fileName: soundFile)
+        // If this fetch was superseded (the sound file changed and SwiftUI cancelled us) don't
+        // clobber the newer fetch's result with this stale one.
+        guard !Task.isCancelled, soundFile == model.animation.metadata.soundFile else { return }
+        await MainActor.run {
+            switch result {
+            case .success(let fetched):
+                provenance = fetched
+            case .failure:
+                provenance = nil
             }
         }
     }
@@ -288,6 +323,7 @@ struct AnimationEditor: View {
                 .padding()
             }
         }
+        .bottomToolbarInset()
     }
 
     private var existingAnimationEditingView: some View {
@@ -299,7 +335,7 @@ struct AnimationEditor: View {
                         metadata: model.animation.metadata,
                         onRerendered: { updated in model.reload(with: updated) }
                     )
-                    TrackListingView(animation: model.animation)
+                    TrackListingView(animation: model.animation, provenance: provenance)
                         .id(model.tracksVersion)
                     Spacer(minLength: 0)
                 }
@@ -307,6 +343,7 @@ struct AnimationEditor: View {
                 .padding()
             }
         }
+        .bottomToolbarInset()
     }
 
 

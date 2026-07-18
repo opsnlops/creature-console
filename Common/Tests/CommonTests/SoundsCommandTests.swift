@@ -29,7 +29,7 @@ struct SoundsCommandTests {
         private(set) var adHocListCallCount = 0
         private(set) var adHocURLRequests: [String] = []
         private(set) var soundURLRequests: [String] = []
-        private(set) var shareableURLRequests: [String] = []
+        private(set) var renditionURLRequests: [(fileName: String, rendition: SoundRendition)] = []
         private(set) var provenanceRequests: [String] = []
         private(set) var uploadCalls: [UploadCall] = []
 
@@ -40,7 +40,7 @@ struct SoundsCommandTests {
         var adHocListResult: Result<[AdHocSoundEntry], ServerError>
         var adHocURLResult: Result<URL, ServerError>
         var soundURLResult: Result<URL, ServerError>
-        var shareableURLResult: Result<URL, ServerError>
+        var renditionURLResult: Result<URL, ServerError>
         var provenanceResult: Result<DialogProvenance, ServerError>
 
         init(
@@ -57,7 +57,7 @@ struct SoundsCommandTests {
                 URL(string: "https://example.com/sound.wav")!),
             soundURLResult: Result<URL, ServerError> = .success(
                 URL(string: "https://example.com/download.wav")!),
-            shareableURLResult: Result<URL, ServerError> = .success(
+            renditionURLResult: Result<URL, ServerError> = .success(
                 URL(string: "https://example.com/shareable.ogg")!),
             provenanceResult: Result<DialogProvenance, ServerError> = .success(
                 DialogProvenance(
@@ -72,7 +72,7 @@ struct SoundsCommandTests {
             self.adHocListResult = adHocListResult
             self.adHocURLResult = adHocURLResult
             self.soundURLResult = soundURLResult
-            self.shareableURLResult = shareableURLResult
+            self.renditionURLResult = renditionURLResult
             self.provenanceResult = provenanceResult
         }
 
@@ -116,9 +116,11 @@ struct SoundsCommandTests {
             return soundURLResult
         }
 
-        func shareableSoundURL(for fileName: String) async -> Result<URL, ServerError> {
-            shareableURLRequests.append(fileName)
-            return shareableURLResult
+        func soundRenditionURL(for fileName: String, as rendition: SoundRendition) async -> Result<
+            URL, ServerError
+        > {
+            renditionURLRequests.append((fileName, rendition))
+            return renditionURLResult
         }
 
         func fetchDialogProvenance(fileName: String) async -> Result<DialogProvenance, ServerError>
@@ -151,8 +153,9 @@ struct SoundsCommandTests {
             soundURLRequests
         }
 
-        func recordedShareableURLRequests() async -> [String] {
-            shareableURLRequests
+        func recordedRenditionURLRequests() async -> [(fileName: String, rendition: SoundRendition)]
+        {
+            renditionURLRequests
         }
 
         func recordedProvenanceRequests() async -> [String] {
@@ -199,12 +202,14 @@ struct SoundsCommandTests {
     }
 
     private func makeShareCommand(
-        fileName: String, output: String? = nil, overwrite: Bool = false
+        fileName: String, output: String? = nil, overwrite: Bool = false,
+        format: SoundRendition = .ogg
     ) -> CreatureCLI.Sounds.Share {
         var command = CreatureCLI.Sounds.Share()
         command.fileName = fileName
         command.output = output
         command.overwrite = overwrite
+        command.format = format
         command.globalOptions = GlobalOptions()
         return command
     }
@@ -434,7 +439,7 @@ struct SoundsCommandTests {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         let remoteURL = URL(string: "https://example.com/sound/shareable/tone.wav")!
-        let stub = StubSoundServer(shareableURLResult: .success(remoteURL))
+        let stub = StubSoundServer(renditionURLResult: .success(remoteURL))
         await CreatureCLI.Sounds.useServerFactory { _ in stub }
 
         await SoundDownloadHandlerStore.shared.updateHandler { _, destination in
@@ -446,8 +451,9 @@ struct SoundsCommandTests {
         let command = makeShareCommand(fileName: "tone.wav", output: tempDir.path)
         try await command.run()
 
-        let requests = await stub.recordedShareableURLRequests()
-        #expect(requests == ["tone.wav"])
+        let requests = await stub.recordedRenditionURLRequests()
+        #expect(requests.map(\.fileName) == ["tone.wav"])
+        #expect(requests.map(\.rendition) == [.ogg])  // default format
 
         let expectedDestination = tempDir.appendingPathComponent("tone.ogg")
         let contents = try Data(contentsOf: expectedDestination)
@@ -458,9 +464,41 @@ struct SoundsCommandTests {
         await CreatureCLI.Sounds.resetServerFactory()
     }
 
+    @Test("share --format mp3 requests the mp3 rendition and saves as .mp3")
+    func shareCommandMp3FormatSavesMp3() async throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(
+            UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let remoteURL = URL(string: "https://example.com/sound/mp3/tone.mp3")!
+        let stub = StubSoundServer(renditionURLResult: .success(remoteURL))
+        await CreatureCLI.Sounds.useServerFactory { _ in stub }
+
+        await SoundDownloadHandlerStore.shared.updateHandler { _, destination in
+            try Data("tiny mp3".utf8).write(to: destination)
+            return destination
+        }
+
+        let command = makeShareCommand(fileName: "tone.wav", output: tempDir.path, format: .mp3)
+        try await command.run()
+
+        // The mp3 rendition was actually requested (not silently defaulting to ogg).
+        let requests = await stub.recordedRenditionURLRequests()
+        #expect(requests.map(\.rendition) == [.mp3])
+
+        // Saved under the .mp3 default name.
+        let expectedDestination = tempDir.appendingPathComponent("tone.mp3")
+        let contents = try Data(contentsOf: expectedDestination)
+        #expect(String(decoding: contents, as: UTF8.self) == "tiny mp3")
+
+        await SoundDownloadHandlerStore.shared.resetHandler()
+        try? FileManager.default.removeItem(at: tempDir)
+        await CreatureCLI.Sounds.resetServerFactory()
+    }
+
     @Test("share command surfaces server errors")
     func shareCommandSurfacesServerErrors() async {
-        let stub = StubSoundServer(shareableURLResult: .failure(.serverError("nope")))
+        let stub = StubSoundServer(renditionURLResult: .failure(.serverError("nope")))
         await CreatureCLI.Sounds.useServerFactory { _ in stub }
 
         let command = makeShareCommand(fileName: "tone.wav")
@@ -469,8 +507,8 @@ struct SoundsCommandTests {
         }
         #expect(thrown == .failure)
 
-        let requests = await stub.recordedShareableURLRequests()
-        #expect(requests == ["tone.wav"])
+        let requests = await stub.recordedRenditionURLRequests()
+        #expect(requests.map(\.fileName) == ["tone.wav"])
 
         await CreatureCLI.Sounds.resetServerFactory()
     }

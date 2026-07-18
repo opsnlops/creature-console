@@ -129,7 +129,7 @@ struct DialogPreviewPanel: View {
                     Button {
                         exportShareable()
                     } label: {
-                        Label("Export Shareable Ogg", systemImage: "square.and.arrow.up")
+                        Label("Export Shareable MP3", systemImage: "square.and.arrow.up")
                     }
                     .disabled(isWorking)
                 }
@@ -343,17 +343,18 @@ struct DialogPreviewPanel: View {
     }
 
     private func exportShareable() {
-        // Resolve meta for the current selection so we have the cache key + take id,
-        // then let the server encode that take's cached PCM to Ogg/Opus.
+        // Resolve meta for the current selection so we have the cache key + take id, then let the
+        // server encode that take's cached PCM to MP3 (the GUI's share format — plays in Slack and
+        // AVFoundation, unlike the Ogg the CLI still offers).
         isWorking = true
-        statusMessage = "Encoding shareable Ogg…"
+        statusMessage = "Encoding shareable MP3…"
         let request = DialogPreviewRequest.fromTurns(
             turns, generationId: selectedGenerationId, title: title)
         Task {
             let metaResult = await resolveMeta(request)
             guard case .success(let dto) = metaResult,
-                case .success(let url) = server.dialogPreviewShareableURL(
-                    cacheKey: dto.cacheKey, generationId: dto.generationId)
+                case .success(let url) = server.dialogPreviewRenditionURL(
+                    cacheKey: dto.cacheKey, generationId: dto.generationId, as: .mp3)
             else {
                 await MainActor.run {
                     isWorking = false
@@ -368,10 +369,10 @@ struct DialogPreviewPanel: View {
                 case .success(let data):
                     exportData = data
                     exportFilename =
-                        "dialog-preview-\(dto.generationId.uuidString.lowercased().prefix(8)).ogg"
-                    exportContentType = .oggAudio
+                        "dialog-preview-\(dto.generationId.uuidString.lowercased().prefix(8)).mp3"
+                    exportContentType = .mp3
                     showExporter = true
-                    statusMessage = "Ready to save shareable Ogg"
+                    statusMessage = "Ready to save shareable MP3"
                 case .failure(let error):
                     presentError(ServerError.detailedMessage(from: error))
                 }

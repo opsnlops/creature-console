@@ -49,23 +49,12 @@ public class SoundDataProcessor {
             "Rhubarb JSON duration: \(soundData.metadata.duration * 1000)ms, animationMsPerFrame: \(millisecondsPerFrame), targetFrameCount: \(targetFrameCount)"
         )
 
-        var byteData = [UInt8](repeating: 0, count: targetFrameCount)
-
-        // Map each cue's time range to frame indices, clamped to the target frame count
-        for cue in soundData.mouthCues {
-            let startFrame = max(
-                0, min(targetFrameCount, Int((cue.start * 1000.0) / Double(millisecondsPerFrame))))
-            let endFrame = max(
-                startFrame,
-                min(targetFrameCount, Int((cue.end * 1000.0) / Double(millisecondsPerFrame))))
-            if endFrame > startFrame {
-                let count = endFrame - startFrame
-                byteData.replaceSubrange(
-                    startFrame..<endFrame, with: repeatElement(cue.intValue, count: count))
-            }
+        // Shared bake path — see MouthShape.bakeFrames (also drives the dialog-provenance ribbon).
+        let cues = soundData.mouthCues.map {
+            TimedMouthValue(start: $0.start, end: $0.end, openness: $0.intValue)
         }
-
-        return byteData
+        return MouthShape.bakeFrames(
+            cues, millisecondsPerFrame: millisecondsPerFrame, frameCount: targetFrameCount)
     }
 
 }
