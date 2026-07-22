@@ -50,6 +50,15 @@ extension CreatureServerClient {
     public func connectWebsocket(processor: MessageProcessor) async {
         self.processor = processor
 
+        // Tear down any existing client first so this is safe to call as a "reconnect".
+        // Without this, the old client leaks *live*: its socket and pipeline task keep the
+        // actor alive, its own auto-reconnect keeps it online, and both clients feed the
+        // processor — every server message gets handled twice (issue #45).
+        if let existing = webSocketClient {
+            await existing.disconnect()
+            webSocketClient = nil
+        }
+
         // Notify state change to connecting
         await WebSocketStateManager.shared.setState(.connecting)
 
@@ -94,6 +103,7 @@ extension CreatureServerClient {
         }
 
         await ws.disconnect()
+        webSocketClient = nil
         logger.debug("disconnected from the websocket")
         return .success("Disconnected from the websocket")
 
@@ -524,6 +534,10 @@ extension CreatureServerClient {
                 request.setValue(value, forHTTPHeaderField: key)
             }
 
+            // Never leave a previous task alive behind a new one: an undead twin keeps the
+            // TCP connection open and the server broadcasting to a socket nobody reads
+            // (issue #45).
+            task?.cancel(with: .goingAway, reason: nil)
             task = session.webSocketTask(with: request)
             task?.resume()
             // DO NOT set isConnected = true here - wait for first message to confirm connection
