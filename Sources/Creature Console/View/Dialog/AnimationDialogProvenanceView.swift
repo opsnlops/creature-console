@@ -107,7 +107,7 @@ struct AnimationDialogProvenanceView: View {
                 } label: {
                     Label("Play This Animation's Audio", systemImage: "play.circle")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
 
                 Button {
                     audioManager.stopURLPlayback()
@@ -159,7 +159,7 @@ struct AnimationDialogProvenanceView: View {
                 } label: {
                     Label("Open Dialog Script", systemImage: "arrow.up.forward.square")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .disabled(isLoading)
             } else {
                 Text("Rendered from an inline dialog — there's no saved script to open.")

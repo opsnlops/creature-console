@@ -154,7 +154,7 @@ struct SoundFileListView: View {
                         Button("Import from Server") {
                             Task { await importFromServerIfNeeded(force: true) }
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                     }
                 }
             }

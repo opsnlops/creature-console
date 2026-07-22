@@ -62,7 +62,7 @@ struct LiveControlPanel: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(Color.red, in: .capsule)
+                        .glassEffect(.regular.tint(.red), in: .capsule)
                 }
                 Button {
                     blackout()

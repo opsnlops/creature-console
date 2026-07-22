@@ -196,8 +196,14 @@ struct StoryboardEditor: View {
                 GeometryReader { geo in
                     let size = geo.size
                     ZStack(alignment: .topLeading) {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.black.opacity(0.85))
+                        // Liquid Glass: a dark-tinted glass stage. Kept deliberately dark — the
+                        // tinted tiles need the contrast — but it now reads as glass instead of a
+                        // flat black fill. Corner radius matches the old backdrop.
+                        Color.clear
+                            .glassEffect(
+                                .regular.tint(.black.opacity(0.6)), in: .rect(cornerRadius: 16)
+                            )
+                            .contentShape(.rect(cornerRadius: 16))
                             .onTapGesture { selectedTileID = nil }
 
                         StoryboardTileLayer(canvasSize: size) {
@@ -250,9 +256,10 @@ struct StoryboardEditor: View {
     private func resizeHandle(tile: Binding<StoryboardTile>, canvasSize: CGSize) -> some View {
         Image(systemName: "arrow.up.left.and.arrow.down.right")
             .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(.black)
+            .foregroundStyle(.white)
             .padding(6)
-            .background(.white, in: Circle())
+            // Interactive glass chip, matching StoryboardPerformView's exit button idiom.
+            .glassEffect(.regular.interactive(), in: .circle)
             .offset(x: 6, y: 6)
             .gesture(
                 DragGesture(

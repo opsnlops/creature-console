@@ -77,7 +77,7 @@ struct SoundModelTests {
     func persistsInSwiftDataContext() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let model = SoundModel(
@@ -103,7 +103,7 @@ struct SoundModelTests {
     func enforcesUniqueID() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let model1 = SoundModel(
@@ -151,7 +151,7 @@ struct SoundModelTests {
     func queriesByIDEfficiently() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         // Insert multiple sounds

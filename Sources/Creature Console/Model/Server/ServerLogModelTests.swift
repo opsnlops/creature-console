@@ -96,7 +96,7 @@ struct ServerLogModelTests {
     func persistsInSwiftDataContext() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let timestamp = Date()
@@ -125,7 +125,7 @@ struct ServerLogModelTests {
     func storesMultipleLogEntries() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let baseTime = Date()
@@ -168,7 +168,7 @@ struct ServerLogModelTests {
     func queriesByLogLevel() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let baseTime = Date()
@@ -214,7 +214,7 @@ struct ServerLogModelTests {
     func queriesByTimestampRange() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let baseTime = Date()

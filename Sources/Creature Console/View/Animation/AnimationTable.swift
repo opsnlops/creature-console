@@ -941,7 +941,7 @@ private struct FilmingCountdownOverlay: View {
                 } label: {
                     Label("Cancel", systemImage: "xmark.circle.fill")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .controlSize(.large)
                 .tint(.red)
             }
@@ -986,7 +986,7 @@ private struct RenameAnimationSheet: View {
                 Button("Save") {
                     onSave()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .disabled(!canSave)
             }
         }

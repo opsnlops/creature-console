@@ -57,6 +57,7 @@
 		114B7E3D2E90BE3100F5D1EC /* ServerLogModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E392E90BE3100F5D1EC /* ServerLogModel.swift */; };
 		114B7E5E2E90CF5D00F5D1EC /* SensorDataLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A44CD2E88D6E70053B250 /* SensorDataLogic.swift */; };
 		114B7E622E90D14C00F5D1EC /* SwiftDataStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E612E90D14C00F5D1EC /* SwiftDataStoreTests.swift */; };
+		FEA1A1E70000000000000032 /* TestModelContainerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000031 /* TestModelContainerFactory.swift */; };
 		114B7E642E90D16000F5D1EC /* AnimationMetadataModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E632E90D16000F5D1EC /* AnimationMetadataModelTests.swift */; };
 		114B7E662E90D16F00F5D1EC /* PlaylistModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E652E90D16F00F5D1EC /* PlaylistModelTests.swift */; };
 		114B7E692E90D19F00F5D1EC /* SoundModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E682E90D19F00F5D1EC /* SoundModelTests.swift */; };
@@ -266,6 +267,8 @@
 		F0078779AA60B7D1EA3CE06F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
 		F539487A8A5CBD435D46567A /* DialogScriptEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B58446690618A288BDE246C /* DialogScriptEditor.swift */; };
 		FEA1A1E70000000000000002 /* ErrorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000001 /* ErrorAlert.swift */; };
+		FEA1A1E70000000000000042 /* TestRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000041 /* TestRun.swift */; };
+		FEA1A1E70000000000000043 /* TestRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000041 /* TestRun.swift */; };
 		FEA1A1E70000000000000003 /* ErrorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000001 /* ErrorAlert.swift */; };
 		FEA1A1E70000000000000012 /* Pasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000011 /* Pasteboard.swift */; };
 		FEA1A1E70000000000000013 /* Pasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000011 /* Pasteboard.swift */; };
@@ -333,6 +336,7 @@
 		114B7E382E90BE3100F5D1EC /* ServerLogImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogImporter.swift; sourceTree = "<group>"; };
 		114B7E392E90BE3100F5D1EC /* ServerLogModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogModel.swift; sourceTree = "<group>"; };
 		114B7E612E90D14C00F5D1EC /* SwiftDataStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataStoreTests.swift; sourceTree = "<group>"; };
+		FEA1A1E70000000000000031 /* TestModelContainerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestModelContainerFactory.swift; sourceTree = "<group>"; };
 		114B7E632E90D16000F5D1EC /* AnimationMetadataModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataModelTests.swift; sourceTree = "<group>"; };
 		114B7E652E90D16F00F5D1EC /* PlaylistModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistModelTests.swift; sourceTree = "<group>"; };
 		114B7E682E90D19F00F5D1EC /* SoundModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundModelTests.swift; sourceTree = "<group>"; };
@@ -525,6 +529,7 @@
 		F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogRerenderButton.swift; path = "Sources/Creature Console/View/Dialog/DialogRerenderButton.swift"; sourceTree = SOURCE_ROOT; };
 		F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingListEditor.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000001 /* ErrorAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorAlert.swift; sourceTree = "<group>"; };
+		FEA1A1E70000000000000041 /* TestRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRun.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000011 /* Pasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pasteboard.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000021 /* StatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBanner.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000004 /* JobWatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobWatching.swift; sourceTree = "<group>"; };
@@ -726,6 +731,7 @@
 			children = (
 				112AABF62EA894D9000F4BC2 /* Jobs */,
 				114B7E612E90D14C00F5D1EC /* SwiftDataStoreTests.swift */,
+				FEA1A1E70000000000000031 /* TestModelContainerFactory.swift */,
 				114B7E312E90B8B000F5D1EC /* Playlist */,
 				114B7E292E90B88300F5D1EC /* Animation */,
 				114B7E1D2E90B83900F5D1EC /* SwiftDataStore.swift */,
@@ -1152,6 +1158,7 @@
 				11C2E0DE29ECF6BC00B8A4F5 /* Events */,
 				11B048882EB842B3001B73C5 /* Utilities */,
 				1122A7B62A24440100D60464 /* AppState.swift */,
+				FEA1A1E70000000000000041 /* TestRun.swift */,
 				11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */,
 			);
 			path = Controller;
@@ -1701,6 +1708,7 @@
 				1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */,
 				11B0488D2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */,
 				FEA1A1E70000000000000002 /* ErrorAlert.swift in Sources */,
+				FEA1A1E70000000000000042 /* TestRun.swift in Sources */,
 				FEA1A1E70000000000000012 /* Pasteboard.swift in Sources */,
 				FEA1A1E70000000000000022 /* StatusBanner.swift in Sources */,
 				FEA1A1E70000000000000005 /* JobWatching.swift in Sources */,
@@ -1777,6 +1785,7 @@
 				11AB0000000000000000A002 /* JobStatusStoreTests.swift in Sources */,
 				11AF09122E8651C500E0BE28 /* TrackViewerTests.swift in Sources */,
 				114B7E622E90D14C00F5D1EC /* SwiftDataStoreTests.swift in Sources */,
+				FEA1A1E70000000000000032 /* TestModelContainerFactory.swift in Sources */,
 			);
 		};
 		117C86FA2CA0CC81007B5682 /* Sources */ = {
@@ -1798,6 +1807,7 @@
 				117C873A2CA0CEB1007B5682 /* CreatureManager.swift in Sources */,
 				11C54A4B2E91A1E0003CD966 /* StatusLightsState+UI.swift in Sources */,
 				11E53CD02E88A0C400C17F16 /* AppBootstrapper.swift in Sources */,
+				FEA1A1E70000000000000043 /* TestRun.swift in Sources */,
 				11B0488E2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */,
 				FEA1A1E70000000000000003 /* ErrorAlert.swift in Sources */,
 				FEA1A1E70000000000000013 /* Pasteboard.swift in Sources */,
@@ -2069,7 +2079,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.39.2;
+				MARKETING_VERSION = 2.40.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2123,7 +2133,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.39.2;
+				MARKETING_VERSION = 2.40.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2207,7 +2217,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.39.2;
+				MARKETING_VERSION = 2.40.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2239,7 +2249,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.39.2;
+				MARKETING_VERSION = 2.40.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

@@ -8,8 +8,6 @@ struct JoystickSettingsView: View {
 
     var body: some View {
         ZStack {
-            LiquidGlass()
-                .ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .center, spacing: 12) {

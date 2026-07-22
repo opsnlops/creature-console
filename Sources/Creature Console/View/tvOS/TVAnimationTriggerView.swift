@@ -35,9 +35,11 @@
                         .padding(.horizontal, 80)
                         .padding(.top, 120)
                 } else {
-                    LazyVGrid(columns: gridColumns, spacing: 36) {
-                        ForEach(animations) { animation in
-                            animationCard(for: animation)
+                    GlassEffectContainer(spacing: 36) {
+                        LazyVGrid(columns: gridColumns, spacing: 36) {
+                            ForEach(animations) { animation in
+                                animationCard(for: animation)
+                            }
                         }
                     }
                     .padding(.horizontal, 80)
@@ -69,10 +71,7 @@
                         .font(.title2)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 24)
-                        .background(
-                            .ultraThinMaterial,
-                            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        )
+                        .glassEffect(.regular, in: .rect(cornerRadius: 28))
                 }
             }
             .animation(.easeInOut(duration: 0.35), value: isRefreshing)
@@ -148,7 +147,7 @@
                             Label("Play", systemImage: "play.fill")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
 
                         Button {
                             triggerInterrupt(animation)
@@ -156,7 +155,7 @@
                             Label("Interrupt", systemImage: "bolt.fill")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.glass)
                     }
 
                     Toggle(
@@ -169,16 +168,16 @@
             .padding(.horizontal, 32)
             .padding(.vertical, 28)
             .frame(maxWidth: .infinity, minHeight: 260, alignment: .leading)
-            .background(
+            .glassEffect(
+                .regular.tint(.purple.opacity(0.2)).interactive(),
+                in: .rect(cornerRadius: 32)
+            )
+            .overlay(
                 RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 32, style: .continuous)
-                            .stroke(
-                                pendingAction?.id == animation.id
-                                    ? Color.purple.opacity(0.9) : Color.white.opacity(0.25),
-                                lineWidth: pendingAction?.id == animation.id ? 3 : 1
-                            )
+                    .stroke(
+                        pendingAction?.id == animation.id
+                            ? Color.purple.opacity(0.9) : Color.white.opacity(0.25),
+                        lineWidth: pendingAction?.id == animation.id ? 3 : 1
                     )
             )
         }
@@ -200,14 +199,9 @@
                 } label: {
                     Label("Import Animations", systemImage: "arrow.clockwise")
                         .font(.headline)
-                        .padding(.horizontal, 36)
-                        .padding(.vertical, 18)
-                        .background(
-                            Capsule()
-                                .fill(.purple.opacity(0.75))
-                        )
-                        .foregroundStyle(.white)
                 }
+                .buttonStyle(.glassProminent)
+                .tint(.purple)
                 .disabled(isRefreshing)
             }
         }

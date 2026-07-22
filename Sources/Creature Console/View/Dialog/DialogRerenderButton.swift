@@ -46,7 +46,7 @@ struct DialogRerenderButton: View {
                 } label: {
                     Label("Re-render in Place", systemImage: "arrow.triangle.2.circlepath")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .disabled(isRendering || disabled)
 
                 if isRendering { ProgressView().controlSize(.small) }
@@ -74,7 +74,7 @@ struct DialogRerenderButton: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
         .watchJob(jobId) { info in
             progress = info.progress
         } onTerminal: { info in

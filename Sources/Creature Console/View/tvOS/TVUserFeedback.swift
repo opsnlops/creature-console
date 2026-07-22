@@ -13,25 +13,29 @@
         let message: String
     }
 
+    /// tvOS toast styled to match the StatusBanner convention: a tinted glass capsule
+    /// floating over the content, with a green/red/blue tint keyed to the toast kind.
     struct TVStatusToastView: View {
         let toast: TVStatusToast
 
         var body: some View {
-            Text(toast.message)
+            Label(toast.message, systemImage: systemImage)
                 .font(.headline.weight(.semibold))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)
                 .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                .stroke(tintColor.opacity(0.7), lineWidth: 1.5)
-                        )
-                        .shadow(color: tintColor.opacity(0.5), radius: 18, y: 6)
-                )
-                .foregroundStyle(tintColor)
+                .glassEffect(.regular.tint(tintColor.opacity(0.4)), in: .capsule)
+        }
+
+        private var systemImage: String {
+            switch toast.kind {
+            case .success:
+                return "checkmark.circle.fill"
+            case .error:
+                return "exclamationmark.triangle.fill"
+            case .info:
+                return "info.circle.fill"
+            }
         }
 
         private var tintColor: Color {

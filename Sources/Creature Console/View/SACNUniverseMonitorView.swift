@@ -443,7 +443,7 @@ struct SACNUniverseMonitorView: View {
             #else
                 header
                     .padding(12)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
             #endif
 
             grid
@@ -704,7 +704,7 @@ struct SACNUniverseMonitorView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     private var statusText: String {

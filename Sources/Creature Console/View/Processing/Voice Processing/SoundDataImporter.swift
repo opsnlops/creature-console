@@ -46,7 +46,7 @@ struct SoundDataImport: View {
                             "Import Mouth Data to Axis \(selectedAxis)",
                             systemImage: "arrow.down.doc")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                     .controlSize(.large)
                     .tint(.accentColor)
                     Spacer()

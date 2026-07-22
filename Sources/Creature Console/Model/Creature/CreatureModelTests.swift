@@ -159,7 +159,7 @@ struct CreatureModelTests {
     func creaturePersistsInputs() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let creature = CreatureModel(
@@ -195,7 +195,7 @@ struct CreatureModelTests {
     func creatureEnforcesUniqueID() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let creature1 = CreatureModel(

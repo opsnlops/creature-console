@@ -252,8 +252,7 @@ private struct LiveMagicJobCardView: View {
                 Button("Dismiss") {
                     dismissAction()
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.secondary)
+                .buttonStyle(.glass)
             }
         }
         .padding()
@@ -308,7 +307,7 @@ private struct PreparedCueRow: View {
                 } label: {
                     Label("Discard", systemImage: "trash")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
                 .tint(.red)
 
                 Spacer()
@@ -319,7 +318,7 @@ private struct PreparedCueRow: View {
                     Label("Play Cue", systemImage: "play.fill")
                         .font(.headline)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
             }
         }
         .padding()

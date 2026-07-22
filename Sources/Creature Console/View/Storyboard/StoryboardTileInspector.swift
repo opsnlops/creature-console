@@ -61,7 +61,7 @@ struct StoryboardTileInspector: View {
             }
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 
     // MARK: - Action
@@ -77,7 +77,7 @@ struct StoryboardTileInspector: View {
             actionParams
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 
     private var kindBinding: Binding<ActionKind> {

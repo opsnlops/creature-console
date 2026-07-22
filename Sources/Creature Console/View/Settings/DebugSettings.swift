@@ -45,8 +45,6 @@ struct DebugSettingsView: View {
 
     var body: some View {
         ZStack {
-            LiquidGlass()
-                .ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {

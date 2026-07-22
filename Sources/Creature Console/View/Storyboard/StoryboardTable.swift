@@ -123,7 +123,7 @@ struct StoryboardTable: View {
                         } label: {
                             Label("New Storyboard", systemImage: "plus")
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                     }
                 }
             }

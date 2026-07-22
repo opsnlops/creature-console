@@ -141,7 +141,7 @@ struct AnimationMetadataModelTests {
     func persistsInSwiftDataContext() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let model = AnimationMetadataModel(
@@ -170,7 +170,7 @@ struct AnimationMetadataModelTests {
     func enforcesUniqueID() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let model1 = AnimationMetadataModel(

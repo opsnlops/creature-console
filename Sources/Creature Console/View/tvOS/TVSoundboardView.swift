@@ -32,9 +32,11 @@
                         .padding(.horizontal, 80)
                         .padding(.top, 120)
                 } else {
-                    LazyVGrid(columns: gridColumns, spacing: 36) {
-                        ForEach(sounds) { sound in
-                            soundButton(for: sound)
+                    GlassEffectContainer(spacing: 36) {
+                        LazyVGrid(columns: gridColumns, spacing: 36) {
+                            ForEach(sounds) { sound in
+                                soundButton(for: sound)
+                            }
                         }
                     }
                     .padding(.horizontal, 80)
@@ -66,9 +68,7 @@
                         .font(.title2)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 24)
-                        .background(
-                            .ultraThinMaterial,
-                            in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        .glassEffect(.regular, in: .rect(cornerRadius: 28))
                 }
             }
             .animation(.easeInOut(duration: 0.35), value: isRefreshing)
@@ -137,16 +137,16 @@
                 .padding(.horizontal, 32)
                 .padding(.vertical, 28)
                 .frame(maxWidth: .infinity, minHeight: 220, alignment: .leading)
-                .background(
+                .glassEffect(
+                    .regular.tint(.blue.opacity(0.2)).interactive(),
+                    in: .rect(cornerRadius: 32)
+                )
+                .overlay(
                     RoundedRectangle(cornerRadius: 32, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                                .stroke(
-                                    pendingSoundId == sound.id
-                                        ? Color.blue.opacity(0.9) : Color.white.opacity(0.25),
-                                    lineWidth: pendingSoundId == sound.id ? 3 : 1
-                                )
+                        .stroke(
+                            pendingSoundId == sound.id
+                                ? Color.blue.opacity(0.9) : Color.white.opacity(0.25),
+                            lineWidth: pendingSoundId == sound.id ? 3 : 1
                         )
                 )
             }
@@ -171,14 +171,9 @@
                 } label: {
                     Label("Import from Server", systemImage: "arrow.clockwise")
                         .font(.headline)
-                        .padding(.horizontal, 36)
-                        .padding(.vertical, 18)
-                        .background(
-                            Capsule()
-                                .fill(.blue.opacity(0.7))
-                        )
-                        .foregroundStyle(.white)
                 }
+                .buttonStyle(.glassProminent)
+                .tint(.blue)
                 .disabled(isRefreshing)
             }
         }

@@ -107,7 +107,7 @@ struct RecordTrack: View {
                                 ) {
                                     Label("Close Without Saving", systemImage: "nosign")
                                 }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(.glass)
                                 .controlSize(.large)
                                 .tint(.red.opacity(0.6))
                                 .keyboardShortcut(.cancelAction)
@@ -120,7 +120,7 @@ struct RecordTrack: View {
                                 }) {
                                     Label("Save Track", systemImage: "square.and.arrow.down")
                                 }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.glassProminent)
                                 .controlSize(.large)
                                 .tint(.green)
                             }
