@@ -437,22 +437,19 @@ struct EditPlaylistSheet: View {
                                     .glassEffect(
                                         .regular.interactive(), in: .rect(cornerRadius: 12))
                                 }
-
-                                Spacer(minLength: 50)
                             }
                             .padding()
                         }
                     }
                     .navigationTitle("Edit Playlist")
                     .safeAreaInset(edge: .bottom) {
-                        // Floating glass capsule bar, same idiom as BottomToolBarView
-                        HStack {
+                        // Compact floating glass capsule, trailing like a standard sheet's
+                        // action buttons — not an edge-to-edge bar.
+                        HStack(spacing: 12) {
                             Button("Cancel") {
                                 onCancel()
                             }
                             .buttonStyle(.glass)
-
-                            Spacer()
 
                             Button("Save") {
                                 if let playlist = editablePlaylist {
@@ -461,10 +458,12 @@ struct EditPlaylistSheet: View {
                             }
                             .buttonStyle(.glassProminent)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
                         .glassEffect(.regular.interactive(), in: .capsule)
-                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.horizontal)
+                        .padding(.bottom, 10)
                     }
                     .sheet(isPresented: $showingAddAnimation) {
                         AddAnimationToEditPlaylistSheet(
