@@ -159,6 +159,8 @@ struct LogView: View {
                         scrollView.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
+                // Keep the last rows scrollable above the floating bottom toolbar (issue #42)
+                .bottomToolbarInset()
             }
             .frame(minWidth: 500, minHeight: 300)
             .padding()

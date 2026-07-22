@@ -128,30 +128,27 @@ struct TrackViewer: View {
         return .success(byteStreams)
     }
 
-    func getInputView(for axis: Int) -> AnyView {
+    @ViewBuilder
+    func getInputView(for axis: Int) -> some View {
         if let input = inputs.first(where: { $0.joystickAxis == axis }) {
-            return AnyView(
-                VStack(alignment: .leading) {
-                    Text(formatInputName(input.name))
-                    Text("Axis: \(input.joystickAxis)")
+            VStack(alignment: .leading) {
+                Text(formatInputName(input.name))
+                Text("Axis: \(input.joystickAxis)")
+                    .font(.caption)
+                // Only show the Slot if it differs from the axis
+                if input.slot != input.joystickAxis {
+                    Text("Slot: \(input.slot)")
                         .font(.caption)
-                    // Only show the Slot if it differs from the axis
-                    if input.slot != input.joystickAxis {
-                        Text("Slot: \(input.slot)")
-                            .font(.caption)
-                    }
-                    // Width is almost always 1, so don't show it unless it's weird
-                    if input.width != 1 {
-                        Text("Width: \(input.width)")
-                            .font(.caption)
-                    }
                 }
-            )
+                // Width is almost always 1, so don't show it unless it's weird
+                if input.width != 1 {
+                    Text("Width: \(input.width)")
+                        .font(.caption)
+                }
+            }
         } else {
-            return AnyView(
-                Text("Axis \(axis)")
-                    .font(.headline)
-            )
+            Text("Axis \(axis)")
+                .font(.headline)
         }
     }
 

@@ -39,10 +39,11 @@ struct TrackListingView: View {
     }
 
 
+    @ViewBuilder
     func prepareTrackView(
         for track: Track, linesBySpeaker: [String: [DialogProvenance.ScriptLine]]
     ) -> some View {
-        logger.debug("preparing a track view!")
+        let _ = logger.debug("preparing a track view!")
 
         if let creature = creatures.first(where: { $0.id == track.creatureId }) {
             let creatureDTO = creature.toDTO()
@@ -65,30 +66,26 @@ struct TrackListingView: View {
                 }
             let speakerName = lipsync?.name ?? creatureDTO.name
             let lines = linesBySpeaker[speakerName.lowercased()] ?? []
-            return AnyView(
-                TrackViewer(
-                    track: track,
-                    creature: creatureDTO,
-                    inputs: inputs,
-                    chartColor: colorForTrack(track),
-                    lipsync: lipsync,
-                    wordTrack: wordTrack,
-                    scriptLines: lines,
-                    millisecondsPerFrame: animation?.metadata.millisecondsPerFrame ?? 20
-                )
+            TrackViewer(
+                track: track,
+                creature: creatureDTO,
+                inputs: inputs,
+                chartColor: colorForTrack(track),
+                lipsync: lipsync,
+                wordTrack: wordTrack,
+                scriptLines: lines,
+                millisecondsPerFrame: animation?.metadata.millisecondsPerFrame ?? 20
             )
         } else {
-            return AnyView(
-                VStack(alignment: .leading, spacing: 6) {
-                    Label("Missing creature for track", systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.yellow)
-                    Text("Creature id \(track.creatureId) not found in cache.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
-            )
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Missing creature for track", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.yellow)
+                Text("Creature id \(track.creatureId) not found in cache.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
         }
     }
 

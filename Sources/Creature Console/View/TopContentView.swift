@@ -375,12 +375,14 @@ extension TopContentView {
 
     /**
      Show either the CreatureDetail view, or a blank one.
+
+     Shared by both `navigationDestination(for: CreatureIdentifier.self)` registrations
+     (sidebar and detail stack) so the two destinations can't drift.
      */
-    func creatureDetailView(for id: CreatureIdentifier) -> some View {
+    @ViewBuilder
+    private func creatureDetailView(for id: CreatureIdentifier) -> some View {
         if let creature = creatures.first(where: { $0.id == id }) {
-            return AnyView(CreatureDetail(creature: creature.toDTO()))
-        } else {
-            return AnyView(EmptyView())
+            CreatureDetail(creature: creature.toDTO())
         }
     }
 
