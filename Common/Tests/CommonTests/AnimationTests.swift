@@ -37,7 +37,7 @@ struct AnimationTests {
     // MARK: Frame count maintenance
     @Test("recalculateNumberOfFrames computes max across tracks")
     func recalculateNumberOfFrames() throws {
-        let animation = Animation.mock()
+        var animation = Animation.mock()
         // Intentionally set an incorrect value then recompute
         animation.metadata.numberOfFrames = UInt32.max
         let expected = animation.tracks.map { UInt32($0.frames.count) }.max() ?? 0
@@ -47,7 +47,7 @@ struct AnimationTests {
 
     @Test("tracks didSet updates numberOfFrames")
     func didSetUpdatesNumberOfFrames() throws {
-        let animation = Animation.mock()
+        var animation = Animation.mock()
         let expected = animation.tracks.map { UInt32($0.frames.count) }.max() ?? 0
         animation.metadata.numberOfFrames = 0
         // Trigger didSet with a new array instance (even if same contents)
@@ -57,7 +57,7 @@ struct AnimationTests {
 
     @Test("edge cases: empty tracks yield 0 frames; mixed sizes pick max")
     func edgeCaseFrameCounts() throws {
-        let a = Animation()
+        var a = Animation()
         #expect(a.metadata.numberOfFrames == 0)
 
         // Build tracks with varying frame counts

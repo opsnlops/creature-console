@@ -149,7 +149,7 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let mockAnimation = Common.Animation.mock()
+                var mockAnimation = Common.Animation.mock()
 
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = .prettyPrinted
@@ -178,12 +178,13 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let mockAnimation = Common.Animation.mock()
-
-                // Make it obvious this is a fake one in the system
-                mockAnimation.id = UUID().uuidString
-                mockAnimation.metadata.title =
+                // Build the fully-configured value first so the Sendable closure below
+                // captures an immutable copy.
+                var fake = Common.Animation.mock()
+                fake.id = UUID().uuidString
+                fake.metadata.title =
                     "Fake animation created by CreatureCLI at \(Date())"
+                let mockAnimation = fake
 
                 try await tracedRun("animations.test-saving", config: globalOptions) { server in
                     let result = await server.saveAnimation(animation: mockAnimation)

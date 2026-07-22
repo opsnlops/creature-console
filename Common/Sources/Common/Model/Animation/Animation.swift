@@ -1,6 +1,6 @@
 import Foundation
 
-public final class Animation: Hashable, Equatable, Identifiable, Codable, @unchecked Sendable {
+public struct Animation: Hashable, Identifiable, Codable, Sendable {
 
     public var id: AnimationIdentifier
     public var metadata: AnimationMetadata
@@ -38,21 +38,11 @@ public final class Animation: Hashable, Equatable, Identifiable, Codable, @unche
         self.metadata.id = self.id
     }
 
-    public static func == (lhs: Animation, rhs: Animation) -> Bool {
-        lhs.id == rhs.id && lhs.metadata == rhs.metadata && lhs.tracks == rhs.tracks
-    }
-
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-        hasher.combine(metadata)
-        hasher.combine(tracks)
-    }
-
     enum CodingKeys: String, CodingKey {
         case id, metadata, tracks
     }
 
-    public required init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(AnimationIdentifier.self, forKey: .id)
         metadata = try container.decode(AnimationMetadata.self, forKey: .metadata)
@@ -66,12 +56,12 @@ public final class Animation: Hashable, Equatable, Identifiable, Codable, @unche
         try container.encode(tracks, forKey: .tracks)
     }
 
-    private func updateNumberOfFrames() {
+    private mutating func updateNumberOfFrames() {
         // Update the numberOfFrames in metadata to the highest frame count among tracks
         metadata.numberOfFrames = tracks.map { UInt32($0.frames.count) }.max() ?? UInt32(0)
     }
-    
-    public func recalculateNumberOfFrames() {
+
+    public mutating func recalculateNumberOfFrames() {
         // Recompute to the highest frame count among tracks
         metadata.numberOfFrames = tracks.map { UInt32($0.frames.count) }.max() ?? 0
     }

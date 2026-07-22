@@ -1,10 +1,8 @@
 import Foundation
-import Logging
 
 /// **IMPORTANT**: This DTO must stay in sync with `PlaylistItemModel` in the GUI package.
 /// Any changes to fields here must be reflected in PlaylistItemModel.swift and vice versa.
-public class PlaylistItem: Identifiable, Hashable, Equatable, Codable {
-    private let logger = Logger(label: "io.opsnlops.CreatureConsole.PlaylistItem")
+public struct PlaylistItem: Identifiable, Hashable, Codable, Sendable {
     public var animationId: AnimationIdentifier
     public var weight: UInt32
 
@@ -18,28 +16,9 @@ public class PlaylistItem: Identifiable, Hashable, Equatable, Codable {
         case weight
     }
 
-    public required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        animationId = try container.decode(AnimationIdentifier.self, forKey: .animationId)
-        weight = try container.decode(UInt32.self, forKey: .weight)
-        logger.debug("Created a new PlaylistItem from init(from:)")
-    }
-
     public init(animationId: AnimationIdentifier, weight: UInt32) {
         self.animationId = animationId
         self.weight = weight
-        logger.debug("Created a new PlaylistItem from init()")
-    }
-
-    // hash(into:) function
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(animationId)
-        hasher.combine(weight)
-    }
-
-    // The == operator
-    public static func == (lhs: PlaylistItem, rhs: PlaylistItem) -> Bool {
-        return lhs.animationId == rhs.animationId && lhs.weight == rhs.weight
     }
 }
 
