@@ -59,9 +59,6 @@ let package = Package(
                 "View/ActivityTintTests.swift",
                 "View/Animation/TrackViewerTests.swift",
                 "View/Creatures/SensorDataTests.swift",
-                // Source files that don't build outside the Xcode app target
-                "View/Animation/RecordTrackForSession.swift",
-                "View/Animation/AnimationRecordingCoordinator.swift",
             ]
         )
     ]
