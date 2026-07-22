@@ -172,6 +172,7 @@ struct CreatureConsole: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(ConsoleStore.shared)
         }
         .modelContainer(modelContainer)
         #if os(macOS) || os(iOS)
@@ -203,17 +204,23 @@ struct CreatureConsole: App {
 
         #if os(macOS)
             DebugJoystickScene()
+                .environment(ConsoleStore.shared)
             LogViewScene()
+                .environment(ConsoleStore.shared)
             AppStateInspectorScene()
+                .environment(ConsoleStore.shared)
             SACNUniverseMonitorScene()
                 .modelContainer(modelContainer)
+                .environment(ConsoleStore.shared)
 
             Settings {
                 SettingsView()
+                    .environment(ConsoleStore.shared)
             }
 
             MenuBarExtra("Creature Control", systemImage: "bird.fill") {
                 MenuBarConsoleView()
+                    .environment(ConsoleStore.shared)
             }
             .menuBarExtraStyle(.window)
             .modelContainer(modelContainer)
@@ -222,6 +229,7 @@ struct CreatureConsole: App {
         #if os(iOS)
             SACNUniverseMonitorScene()
                 .modelContainer(modelContainer)
+                .environment(ConsoleStore.shared)
         #endif
 
     }

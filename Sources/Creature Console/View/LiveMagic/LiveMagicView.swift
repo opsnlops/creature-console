@@ -6,7 +6,7 @@ import SwiftUI
 struct LiveMagicView: View {
 
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var viewModel = LiveMagicViewModel()
+    @State private var viewModel = LiveMagicViewModel()
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
 

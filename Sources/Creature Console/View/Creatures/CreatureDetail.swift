@@ -14,12 +14,13 @@ struct CreatureDetail: View {
 
     let server = CreatureServerClient.shared
 
+    @Environment(ConsoleStore.self) private var console
+
     @State private var errorAlert: ErrorAlert?
     @State private var streamingTask: Task<Void, Never>? = nil
-    @State private var currentActivity: Activity = .idle
     @State private var idleEnabled: Bool? = nil
     @State private var idleToggleInFlight: Bool = false
-    @ObservedObject private var systemCountersStore = SystemCountersStore.shared
+    private let systemCountersStore = SystemCountersStore.shared
     @State private var runtimeLastReceived: Date? = nil
 
     var creature: Creature
@@ -73,13 +74,13 @@ struct CreatureDetail: View {
                                 toggleStreaming()
                             }) {
                                 Image(
-                                    systemName: (currentActivity == .streaming)
+                                    systemName: (console.currentActivity == .streaming)
                                         ? "gamecontroller.fill" : "gamecontroller"
                                 )
                                 .padding(8)
                             }
                             .glassEffect(
-                                (currentActivity == .streaming)
+                                (console.currentActivity == .streaming)
                                     ? .regular.tint(Activity.streaming.tintColor).interactive()
                                     : .regular.interactive(),
                                 in: .capsule
@@ -103,7 +104,7 @@ struct CreatureDetail: View {
                             .padding(.leading, 6)
                             .glassEffectUnion(id: "toolbar", namespace: glassNamespace)
                         }
-                        .animation(.easeInOut, value: currentActivity)
+                        .animation(.easeInOut, value: console.currentActivity)
                     }
                 }
             #else
@@ -120,19 +121,19 @@ struct CreatureDetail: View {
                     }) {
                         Label(
                             "Toggle Streaming",
-                            systemImage: (currentActivity == .streaming)
+                            systemImage: (console.currentActivity == .streaming)
                                 ? "gamecontroller.fill" : "gamecontroller"
                         )
                         .labelStyle(.iconOnly)
                         .padding(8)
                     }
                     .glassEffect(
-                        (currentActivity == .streaming)
+                        (console.currentActivity == .streaming)
                             ? .regular.tint(Activity.streaming.tintColor).interactive()
                             : .regular.interactive(),
                         in: .capsule
                     )
-                    .animation(.easeInOut, value: currentActivity)
+                    .animation(.easeInOut, value: console.currentActivity)
                     .help("Toggle Streaming")
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -177,15 +178,6 @@ struct CreatureDetail: View {
         }
         .onAppear {
             logger.debug("CreatureDetail appeared for \(creature.id)")
-            Task {
-                currentActivity = await AppState.shared.getCurrentActivity
-            }
-        }
-        .task {
-            // Keep local currentActivity in sync with global AppState
-            for await state in await AppState.shared.stateUpdates {
-                currentActivity = state.currentActivity
-            }
         }
         .task(id: creature.id) {
             await refreshIdleState()
@@ -197,7 +189,9 @@ struct CreatureDetail: View {
             guard state.creatureId == creature.id else { return }
             idleEnabled = state.idleEnabled
         }
-        .onReceive(systemCountersStore.$runtimeStates) { states in
+        // `initial: true` mirrors the old `$runtimeStates` publisher's replay-on-subscribe, so
+        // runtime data that arrived before this view appeared still stamps a timestamp.
+        .onChange(of: systemCountersStore.runtimeStates, initial: true) { _, states in
             guard states.contains(where: { $0.creatureId == creature.id }) else { return }
             runtimeLastReceived = Date()
         }
@@ -252,9 +246,9 @@ struct CreatureDetail: View {
         Task {
             // Single source of truth: CreatureManager owns the streamingCreature + AppState
             // transition (shared with Storyboards). Per-creature toggle — stops if this creature
-            // is already live, otherwise starts/switches to it.
-            let nowLive = await CreatureManager.shared.toggleStreaming(to: creature.id)
-            currentActivity = (nowLive == nil) ? .idle : .streaming
+            // is already live, otherwise starts/switches to it. The activity change flows back
+            // to the UI through ConsoleStore, so there's nothing to mirror locally.
+            _ = await CreatureManager.shared.toggleStreaming(to: creature.id)
         }
     }
 
@@ -521,4 +515,5 @@ private struct CreatureRuntimeSummary: View {
 
 #Preview {
     CreatureDetail(creature: .mock())
+        .environment(ConsoleStore.shared)
 }

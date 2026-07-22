@@ -10,7 +10,7 @@
 
     struct MenuBarConsoleView: View {
 
-        @StateObject private var viewModel = MenuBarConsoleViewModel()
+        @State private var viewModel = MenuBarConsoleViewModel()
         @AppStorage("menubarSelectedCreatureId") private var storedCreatureId: CreatureIdentifier =
             ""
         @AppStorage("activeUniverse") private var activeUniverse: Int = 1

@@ -5,13 +5,7 @@ import SwiftUI
 
 struct AppStateInspectorView: View {
 
-    @State private var appState = AppStateData(
-        currentActivity: .idle,
-        currentAnimation: nil,
-        selectedTrack: nil,
-        showSystemAlert: false,
-        systemAlertMessage: ""
-    )
+    @Environment(ConsoleStore.self) private var console
 
     @Environment(\.modelContext) private var modelContext
 
@@ -24,7 +18,7 @@ struct AppStateInspectorView: View {
         VStack {
 
             Section("Activity") {
-                Text(appState.currentActivity.description)
+                Text(console.currentActivity.description)
             }
 
             Section("Caches") {
@@ -34,12 +28,6 @@ struct AppStateInspectorView: View {
 
             Spacer()
         }
-        .task {
-            // Subscribe to AppState updates
-            for await state in await AppState.shared.stateUpdates {
-                appState = state
-            }
-        }
 
     }
 }
@@ -47,4 +35,5 @@ struct AppStateInspectorView: View {
 
 #Preview {
     AppStateInspectorView()
+        .environment(ConsoleStore.shared)
 }

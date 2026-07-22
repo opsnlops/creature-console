@@ -52,6 +52,12 @@ struct StoryboardPerformView: View {
         .statusBanner($toast, systemImage: "exclamationmark.triangle.fill", tint: .red)
         .statusBarHiddenIfAvailable()
         .task {
+            // Deliberately NOT migrated to ConsoleStore: the data consumed here is
+            // CreatureManager's streaming creature (not carried by the store) — the AppState
+            // stream is only the change trigger. It must fire on *every* emission, including
+            // same-activity ones (switching live control from creature A to B stays
+            // `.streaming`), which an equality-keyed `.onChange(of: console.currentActivity)`
+            // would miss.
             liveCreatureId = await CreatureManager.shared.currentStreamingCreature()
             for await _ in await AppState.shared.stateUpdates {
                 liveCreatureId = await CreatureManager.shared.currentStreamingCreature()

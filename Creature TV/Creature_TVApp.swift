@@ -145,6 +145,7 @@ struct Creature_TVApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(ConsoleStore.shared)
         }
         .modelContainer(modelContainer)
     }

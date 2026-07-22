@@ -10,8 +10,11 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "RootView")
     @Environment(\.openURL) private var openURL
+    @Environment(ConsoleStore.self) private var console
+    // Local mirror of the server's system-alert flag: `.alert(isPresented:)` needs a mutable
+    // Binding it can flip to false immediately on dismissal, before the round trip through
+    // AppState (setSystemAlert → stream → ConsoleStore) lands.
     @State private var showingSystemAlert = false
-    @State private var systemAlertMessage = ""
     @State private var websocketErrorMessage: String? = nil
 
     @ViewBuilder
@@ -31,12 +34,9 @@ struct RootView: View {
                     }
                 }
             }
-            .task {
-                let updates = await AppState.shared.stateUpdates
-                for await state in updates {
-                    showingSystemAlert = state.showSystemAlert
-                    systemAlertMessage = state.systemAlertMessage
-                }
+            // `initial: true` picks up an alert that was already raised before this view appeared.
+            .onChange(of: console.appState.showSystemAlert, initial: true) { _, showAlert in
+                showingSystemAlert = showAlert
             }
             .task {
                 let name = Notification.Name("WebSocketDidEncounterError")
@@ -50,7 +50,7 @@ struct RootView: View {
                     Task { await AppState.shared.setSystemAlert(show: false) }
                 }
             } message: {
-                Text(systemAlertMessage)
+                Text(console.appState.systemAlertMessage)
             }
             .alert(
                 "Connection Issue",

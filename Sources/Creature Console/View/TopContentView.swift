@@ -9,7 +9,6 @@ import SwiftUI
 
 struct TopContentView: View {
 
-    let appState = AppState.shared
     let eventLoop = EventLoop.shared
     let server = CreatureServerClient.shared
     let messageProcessor = SwiftMessageProcessor.shared
@@ -297,16 +296,7 @@ struct TopContentView: View {
 
 #if os(iOS)
     struct iOSStatusLightsView: View {
-        @State private var statusLightsState = StatusLightsState(
-            running: false, dmx: false, streaming: false, animationPlaying: false)
-        @State private var appState = AppStateData(
-            currentActivity: .idle,
-            currentAnimation: nil,
-            selectedTrack: nil,
-            showSystemAlert: false,
-            systemAlertMessage: ""
-        )
-        @State private var websocketState: WebSocketConnectionState = .disconnected
+        @Environment(ConsoleStore.self) private var console
         @Namespace private var glassNamespace
 
         var body: some View {
@@ -316,16 +306,16 @@ struct TopContentView: View {
                 HStack(spacing: 8) {
                     // Activity indicator
                     HStack(spacing: 4) {
-                        Image(systemName: appState.currentActivity.symbolName)
+                        Image(systemName: console.currentActivity.symbolName)
                             .font(.system(size: 10, weight: .semibold))
-                        Text(appState.currentActivity.description)
+                        Text(console.currentActivity.description)
                             .font(.caption2)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .glassEffect(
                         .regular
-                            .tint(appState.currentActivity.tintColor.opacity(0.35))
+                            .tint(console.currentActivity.tintColor.opacity(0.35))
                             .interactive(),
                         in: .capsule
                     )
@@ -333,16 +323,16 @@ struct TopContentView: View {
 
                     // WebSocket indicator
                     HStack(spacing: 4) {
-                        Image(systemName: websocketState.symbolName)
+                        Image(systemName: console.websocketState.symbolName)
                             .font(.system(size: 10, weight: .semibold))
-                        Text(websocketState.description)
+                        Text(console.websocketState.description)
                             .font(.caption2)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .glassEffect(
                         .regular
-                            .tint(websocketState.tintColor.opacity(0.35))
+                            .tint(console.websocketState.tintColor.opacity(0.35))
                             .interactive(),
                         in: .capsule
                     )
@@ -356,52 +346,24 @@ struct TopContentView: View {
                             Image(systemName: light.symbolName)
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(
-                                    light.isActive(in: statusLightsState) ? .white : .secondary
+                                    light.isActive(in: console.statusLights) ? .white : .secondary
                                 )
                                 .padding(6)
                                 .glassEffect(
                                     .regular
                                         .tint(
                                             light.tintColor.opacity(
-                                                light.isActive(in: statusLightsState) ? 0.85 : 0.25)
+                                                light.isActive(in: console.statusLights)
+                                                    ? 0.85 : 0.25)
                                         )
                                         .interactive(),
                                     in: .circle
                                 )
                                 .glassEffectUnion(id: "statusLights", namespace: glassNamespace)
-                                .scaleEffect(light.isActive(in: statusLightsState) ? 1.06 : 1.0)
-                                .opacity(light.isActive(in: statusLightsState) ? 1.0 : 0.8)
+                                .scaleEffect(light.isActive(in: console.statusLights) ? 1.06 : 1.0)
+                                .opacity(light.isActive(in: console.statusLights) ? 1.0 : 0.8)
                         }
                     }
-                }
-            }
-            .task {
-                for await state in await StatusLightsManager.shared.stateUpdates {
-                    statusLightsState = state
-                }
-            }
-            .task { @MainActor in
-                let initialActivity = await AppState.shared.getCurrentActivity
-                appState = AppStateData(
-                    currentActivity: initialActivity,
-                    currentAnimation: appState.currentAnimation,
-                    selectedTrack: appState.selectedTrack,
-                    showSystemAlert: appState.showSystemAlert,
-                    systemAlertMessage: appState.systemAlertMessage
-                )
-
-                let updates = await AppState.shared.stateUpdates
-                for await state in updates {
-                    appState = state
-                }
-            }
-            .task { @MainActor in
-                let initialWebSocketState = await WebSocketStateManager.shared.getCurrentState
-                websocketState = initialWebSocketState
-
-                for await state in await WebSocketStateManager.shared.stateUpdates {
-                    guard !Task.isCancelled else { break }
-                    websocketState = state
                 }
             }
         }

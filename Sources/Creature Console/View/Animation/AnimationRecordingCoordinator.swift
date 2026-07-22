@@ -17,19 +17,11 @@ struct AnimationRecordingCoordinator: View {
     let creatureManager = CreatureManager.shared
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(ConsoleStore.self) private var console
 
     // Lazily fetched by SwiftData
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
-
-    // State management
-    @State private var appState = AppStateData(
-        currentActivity: .idle,
-        currentAnimation: nil,
-        selectedTrack: nil,
-        showSystemAlert: false,
-        systemAlertMessage: ""
-    )
 
     // Recording session state
     @State private var recordingSession: AnimationRecordingSession?
@@ -72,12 +64,11 @@ struct AnimationRecordingCoordinator: View {
                 }
             }
         }
-        .task {
-            // Subscribe to state updates
-            for await state in await AppState.shared.stateUpdates {
-                appState = state
-                handleAppStateChange(state)
-            }
+        // ConsoleStore mirrors AppState's snapshot stream, so reacting to its
+        // `currentAnimation` (with `initial: true` matching the stream's seeded first value)
+        // replaces the old per-view `for await` mirror loop.
+        .onChange(of: console.appState.currentAnimation, initial: true) { _, animation in
+            handleCurrentAnimationChange(animation)
         }
         .errorAlert($errorAlert)
         .overlay {
@@ -136,9 +127,9 @@ struct AnimationRecordingCoordinator: View {
         logger.debug("Created new recording session for animation: \(newAnimation.id)")
     }
 
-    private func handleAppStateChange(_ state: AppStateData) {
+    private func handleCurrentAnimationChange(_ animation: Common.Animation?) {
         // React to state changes if needed
-        if let animation = state.currentAnimation {
+        if let animation {
             currentWorkingAnimation = animation
             recordingSession?.updateAnimation(animation)
         }
@@ -186,14 +177,15 @@ struct AnimationRecordingCoordinator: View {
 
 /// Manages the state of a recording session for an animation
 @MainActor
-class AnimationRecordingSession: ObservableObject {
+@Observable
+final class AnimationRecordingSession {
     let id = UUID()
 
-    @Published var animation: Common.Animation
-    @Published var availableCreatures: [Creature]
-    @Published var recordedTracks: [CreatureIdentifier: Track] = [:]
-    @Published var currentRecordingCreature: CreatureIdentifier?
-    @Published var sessionState: RecordingSessionState = .setup
+    var animation: Common.Animation
+    var availableCreatures: [Creature]
+    var recordedTracks: [CreatureIdentifier: Track] = [:]
+    var currentRecordingCreature: CreatureIdentifier?
+    var sessionState: RecordingSessionState = .setup
 
     enum RecordingSessionState {
         case setup
@@ -235,7 +227,7 @@ class AnimationRecordingSession: ObservableObject {
 // MARK: - Recording Session View
 
 struct AnimationRecordingSessionView: View {
-    @ObservedObject var session: AnimationRecordingSession
+    let session: AnimationRecordingSession
 
     let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "AnimationRecordingSessionView")
@@ -327,7 +319,7 @@ struct AnimationMetadataCard: View {
 }
 
 struct RecordingControlsView: View {
-    @ObservedObject var session: AnimationRecordingSession
+    let session: AnimationRecordingSession
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -413,7 +405,7 @@ struct CreatureRecordingCard: View {
 }
 
 struct TracksOverviewView: View {
-    @ObservedObject var session: AnimationRecordingSession
+    let session: AnimationRecordingSession
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -496,4 +488,5 @@ struct AnimationMetadataEditorSheet: View {
 
 #Preview {
     AnimationRecordingCoordinator()
+        .environment(ConsoleStore.shared)
 }

@@ -4,7 +4,7 @@ import OSLog
 import PlaylistRuntime
 
 /// The Swift version of our `MessageProcessor`
-final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
+final class SwiftMessageProcessor: MessageProcessor {
 
     // Yes! It singletons!
     static let shared = SwiftMessageProcessor()

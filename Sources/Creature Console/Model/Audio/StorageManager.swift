@@ -3,7 +3,7 @@ import Common
 import Foundation
 import OSLog
 
-class StorageManager: ObservableObject {
+class StorageManager {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "StorageManager")
 
