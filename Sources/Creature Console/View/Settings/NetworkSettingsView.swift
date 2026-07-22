@@ -310,8 +310,6 @@ struct NetworkSettingsView: View {
     }
 }
 
-struct NetworkSettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        NetworkSettingsView()
-    }
+#Preview {
+    NetworkSettingsView()
 }

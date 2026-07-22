@@ -23,8 +23,7 @@ struct TrackViewer: View {
     var scriptLines: [DialogProvenance.ScriptLine] = []
     var millisecondsPerFrame: UInt32 = 20
 
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert?
 
     @State private var cachedStreams: [[UInt8]] = []
     @State private var cacheKey: String = ""
@@ -81,19 +80,13 @@ struct TrackViewer: View {
                 .padding(.vertical, 8)
             }
         }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("Unable to Show Frame Data"),
-                message: Text(alertMessage),
-                dismissButton: .default(Text("Oh no!"))
-            )
-        }
+        .errorAlert($errorAlert, dismissLabel: "Oh no!")
         .task(id: makeCacheKey(frames: track.frames)) {
             // Validate data and show alert if needed
             let result = extractByteStreams(from: track.frames)
             if case .failure(let error) = result {
-                alertMessage = error.localizedDescription
-                showErrorAlert = true
+                errorAlert = ErrorAlert(
+                    title: "Unable to Show Frame Data", message: error.localizedDescription)
             }
 
             // Update memoized cache

@@ -15,8 +15,6 @@ struct PlaylistDetail: View {
     @State private var showingAddAnimation = false
     @State private var selectedAnimationId: AnimationIdentifier? = nil
     @State private var newWeight: String = "1"
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
 
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "PlaylistDetail")
@@ -125,11 +123,6 @@ struct PlaylistDetail: View {
                     addAnimation(animationId: animationId, weight: weight)
                 }
             )
-        }
-        .alert("Error", isPresented: $showErrorAlert) {
-            Button("OK") {}
-        } message: {
-            Text(alertMessage)
         }
     }
 
@@ -336,7 +329,7 @@ struct AddAnimationToPlaylistView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Weight")

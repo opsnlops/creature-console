@@ -16,8 +16,7 @@ struct BottomToolBarView: View {
         systemAlertMessage: ""
     )
     @State private var websocketState: WebSocketConnectionState = .disconnected
-    @State private var showingSystemAlert = false
-    @State private var systemAlertMessage = ""
+    @State private var systemAlert: ErrorAlert?
     @Namespace private var glassNamespace
 
     var body: some View {
@@ -95,16 +94,10 @@ struct BottomToolBarView: View {
 
         }
         .padding()
-        .alert(isPresented: $showingSystemAlert) {
-            Alert(
-                title: Text("Server Message"),
-                message: Text("The server wants us to know: \(systemAlertMessage)"),
-                dismissButton: .default(Text("Okay 😅")) {
-                    Task {
-                        await AppState.shared.setSystemAlert(show: false)
-                    }
-                }
-            )
+        .errorAlert($systemAlert, dismissLabel: "Okay 😅") {
+            Task {
+                await AppState.shared.setSystemAlert(show: false)
+            }
         }
         .task {
             // Update frameSpareTime from EventLoop actor
@@ -115,9 +108,7 @@ struct BottomToolBarView: View {
         }
         .task {
             for await state in await StatusLightsManager.shared.stateUpdates {
-                await MainActor.run {
-                    statusLightsState = state
-                }
+                statusLightsState = state
             }
         }
         .task { @MainActor in
@@ -135,8 +126,12 @@ struct BottomToolBarView: View {
             let updates = await AppState.shared.stateUpdates
             for await state in updates {
                 appState = state
-                showingSystemAlert = state.showSystemAlert
-                systemAlertMessage = state.systemAlertMessage
+                systemAlert =
+                    state.showSystemAlert
+                    ? ErrorAlert(
+                        title: "Server Message",
+                        message: "The server wants us to know: \(state.systemAlertMessage)")
+                    : nil
             }
         }
         .task { @MainActor in

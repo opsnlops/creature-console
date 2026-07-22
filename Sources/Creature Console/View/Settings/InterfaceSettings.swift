@@ -261,10 +261,8 @@ struct InterfaceSettings: View {
     }
 }
 
-struct InterfaceSettings_Previews: PreviewProvider {
-    static var previews: some View {
-        InterfaceSettings()
-    }
+#Preview {
+    InterfaceSettings()
 }
 
 struct LiquidGlass: View {

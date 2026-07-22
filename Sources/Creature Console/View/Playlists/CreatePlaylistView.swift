@@ -5,8 +5,7 @@ struct CreatePlaylistView: View {
     let onCreate: (Common.Playlist) -> Void
 
     @State private var playlistName: String = ""
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -66,19 +65,14 @@ struct CreatePlaylistView: View {
                 .background(.thinMaterial)
             }
         }
-        .alert("Error", isPresented: $showErrorAlert) {
-            Button("OK") {}
-        } message: {
-            Text(alertMessage)
-        }
+        .errorAlert($errorAlert)
     }
 
     private func createPlaylist() {
         let trimmedName = playlistName.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedName.isEmpty else {
-            alertMessage = "Playlist name cannot be empty"
-            showErrorAlert = true
+            errorAlert = ErrorAlert(message: "Playlist name cannot be empty")
             return
         }
 

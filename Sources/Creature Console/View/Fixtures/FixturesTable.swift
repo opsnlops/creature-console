@@ -4,10 +4,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
-
 struct FixturesTable: View {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "FixturesTable")
@@ -22,10 +18,8 @@ struct FixturesTable: View {
     @State private var selection: DmxFixtureIdentifier? = nil
     /// Programmatic push into the editor for row activation (double-click / tap).
     @State private var fixtureToEdit: DmxFixtureModel? = nil
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
-    @State private var showSuccessAlert = false
-    @State private var successMessage = ""
+    @State private var errorAlert: ErrorAlert?
+    @State private var successBanner: String?
     @State private var fixtureToDelete: DmxFixtureModel? = nil
     @State private var showDeleteConfirm = false
 
@@ -98,13 +92,7 @@ struct FixturesTable: View {
         }
 
         Button {
-            #if os(macOS)
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(fixture.id, forType: .string)
-            #else
-                UIPasteboard.general.string = fixture.id
-            #endif
+            Pasteboard.copy(fixture.id)
         } label: {
             Label("Copy Fixture ID", systemImage: "doc.on.clipboard")
         }
@@ -184,16 +172,8 @@ struct FixturesTable: View {
                     }
                 #endif
             }
-            .alert("Error", isPresented: $showErrorAlert) {
-                Button("OK") {}
-            } message: {
-                Text(alertMessage)
-            }
-            .alert("Success", isPresented: $showSuccessAlert) {
-                Button("OK") {}
-            } message: {
-                Text(successMessage)
-            }
+            .errorAlert($errorAlert)
+            .statusBanner($successBanner)
             .confirmationDialog(
                 "Delete fixture '\(fixtureToDelete?.name ?? "")'?",
                 isPresented: $showDeleteConfirm,
@@ -225,8 +205,7 @@ struct FixturesTable: View {
                 switch result {
                 case .success(let message):
                     logger.info("delete succeeded: \(message)")
-                    successMessage = message
-                    showSuccessAlert = true
+                    successBanner = message
                     fixtureToDelete = nil
                     // Cache will be refreshed by the websocket invalidation broadcast;
                     // optimistically trigger a refresh anyway in case that lags.
@@ -234,8 +213,8 @@ struct FixturesTable: View {
                 case .failure(let error):
                     let detailed = ServerError.detailedMessage(from: error)
                     logger.warning("delete failed: \(detailed)")
-                    alertMessage = "Failed to delete fixture '\(name)': \(detailed)"
-                    showErrorAlert = true
+                    errorAlert = ErrorAlert(
+                        message: "Failed to delete fixture '\(name)': \(detailed)")
                     fixtureToDelete = nil
                 }
             }

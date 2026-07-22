@@ -10,8 +10,8 @@ extension View {
     /// every job panel copied. `.task(id:)` owns cancellation — on `jobId` change and on
     /// disappear — so callers no longer track the observing task themselves (issue #8, #7).
     ///
-    /// The `.task` operation runs off the MainActor, so each callback is hopped onto it, matching
-    /// the per-site `await MainActor.run { … }` the call sites used to write by hand.
+    /// `.task` inherits the view's MainActor isolation, so the `@MainActor` callbacks are
+    /// called directly — no per-event hop.
     func watchJob(
         _ jobId: String?,
         onUpdate: @escaping @MainActor (JobStatusStore.JobInfo) -> Void = { _ in },
@@ -22,9 +22,9 @@ extension View {
             guard let jobId else { return }
             for await event in await JobStatusStore.shared.events(forJob: jobId) {
                 switch event {
-                case .updated(let info): await MainActor.run { onUpdate(info) }
-                case .terminal(let info): await MainActor.run { onTerminal(info) }
-                case .removed: await MainActor.run { onRemoved() }
+                case .updated(let info): onUpdate(info)
+                case .terminal(let info): onTerminal(info)
+                case .removed: onRemoved()
                 }
             }
         }

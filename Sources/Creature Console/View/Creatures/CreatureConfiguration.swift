@@ -21,7 +21,7 @@ struct CreatureConfiguration: View {
                 Text("Creature ID:")
                     .fontWeight(.medium)
                 Text(creature.id)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Spacer()
             }
 
@@ -29,7 +29,7 @@ struct CreatureConfiguration: View {
                 Text("Channel Offset:")
                     .fontWeight(.medium)
                 Text(String(creature.channelOffset))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Spacer()
             }
 
@@ -37,7 +37,7 @@ struct CreatureConfiguration: View {
                 Text("Mouth Slot:")
                     .fontWeight(.medium)
                 Text(String(creature.mouthSlot))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Spacer()
             }
 
@@ -46,20 +46,18 @@ struct CreatureConfiguration: View {
                     Text("Input Channels:")
                         .fontWeight(.medium)
                     Text("\(creature.inputs.count) configured")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Spacer()
                 }
             }
         }
         .padding()
         .background(Color.secondary.opacity(0.1))
-        .cornerRadius(8)
+        .clipShape(.rect(cornerRadius: 8))
     }
 }
 
 
-struct CreatureConfiguration_Previews: PreviewProvider {
-    static var previews: some View {
-        CreatureConfiguration(creature: Creature.mock())
-    }
+#Preview {
+    CreatureConfiguration(creature: Creature.mock())
 }

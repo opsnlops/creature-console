@@ -46,8 +46,6 @@ struct JoystickSettingsView: View {
     }
 }
 
-struct JoystickSettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        JoystickSettingsView()
-    }
+#Preview {
+    JoystickSettingsView()
 }

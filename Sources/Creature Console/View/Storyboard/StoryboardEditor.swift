@@ -24,10 +24,8 @@ struct StoryboardEditor: View {
 
     @State private var isSaving = false
     @State private var savingMessage = ""
-    @State private var savedBanner = false
-    @State private var showErrorAlert = false
-    @State private var alertTitle = "Error"
-    @State private var alertMessage = ""
+    @State private var savedBanner: String? = nil
+    @State private var errorAlert: ErrorAlert? = nil
 
     // Drag/resize anchors captured at gesture start (fractions).
     @State private var dragStart: [UUID: CGPoint] = [:]
@@ -117,12 +115,9 @@ struct StoryboardEditor: View {
                     }
                 }
             }
-            .alert(alertTitle, isPresented: $showErrorAlert) {
-                Button("OK") {}
-            } message: {
-                Text(alertMessage)
-            }
+            .errorAlert($errorAlert)
             .overlay(alignment: .top) { banner }
+            .statusBanner($savedBanner, duration: .seconds(2), alignment: .top)
     }
 
     @ViewBuilder
@@ -322,6 +317,7 @@ struct StoryboardEditor: View {
         }
     }
 
+    /// The in-flight "Saving…" capsule. The saved confirmation is the shared `.statusBanner`.
     @ViewBuilder
     private var banner: some View {
         if isSaving {
@@ -329,12 +325,6 @@ struct StoryboardEditor: View {
                 .font(.title3)
                 .padding(.horizontal, 16).padding(.vertical, 8)
                 .glassEffect(.regular, in: .capsule)
-                .padding(.top, 12)
-        } else if savedBanner {
-            Label("Saved", systemImage: "checkmark.circle.fill")
-                .font(.title3)
-                .padding(.horizontal, 16).padding(.vertical, 8)
-                .glassEffect(.regular.tint(.green.opacity(0.4)), in: .capsule)
                 .padding(.top, 12)
         }
     }
@@ -387,18 +377,16 @@ struct StoryboardEditor: View {
                 createNew
                 ? await server.createStoryboard(toSave)
                 : await server.updateStoryboard(toSave)
-            await MainActor.run {
-                isSaving = false
-                switch result {
-                case .success(let saved):
-                    original = saved
-                    board = saved
-                    createNew = false
-                    CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
-                    flashSavedBanner()
-                case .failure(let error):
-                    showError("Save Failed", ServerError.detailedMessage(from: error))
-                }
+            isSaving = false
+            switch result {
+            case .success(let saved):
+                original = saved
+                board = saved
+                createNew = false
+                CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
+                savedBanner = "Saved"
+            case .failure(let error):
+                showError("Save Failed", ServerError.detailedMessage(from: error))
             }
         }
     }
@@ -409,30 +397,18 @@ struct StoryboardEditor: View {
         savingMessage = "Deleting storyboard…"
         Task {
             let result = await server.deleteStoryboard(id: id)
-            await MainActor.run {
-                isSaving = false
-                switch result {
-                case .success:
-                    CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
-                    dismiss()
-                case .failure(let error):
-                    showError("Delete Failed", ServerError.detailedMessage(from: error))
-                }
+            isSaving = false
+            switch result {
+            case .success:
+                CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
+                dismiss()
+            case .failure(let error):
+                showError("Delete Failed", ServerError.detailedMessage(from: error))
             }
         }
     }
 
-    private func flashSavedBanner() {
-        withAnimation { savedBanner = true }
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            await MainActor.run { withAnimation { savedBanner = false } }
-        }
-    }
-
     private func showError(_ title: String, _ message: String) {
-        alertTitle = title
-        alertMessage = message
-        showErrorAlert = true
+        errorAlert = ErrorAlert(title: title, message: message)
     }
 }

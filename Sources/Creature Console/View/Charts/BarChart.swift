@@ -83,18 +83,15 @@ struct BarChart: View {
     }
 }
 
-struct BarChart_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            BarChartPreviewWrapper()
-                .previewDisplayName("Default Bar Chart with Random Data")
-
-            BarChartPreviewWrapper(barSpacing: 4.0)
-                .previewDisplayName("Custom Bar Chart with Random Data and Spacing")
-        }
-    }
+#Preview("Default Bar Chart with Random Data") {
+    BarChartPreviewWrapper()
 }
 
+#Preview("Custom Bar Chart with Random Data and Spacing") {
+    BarChartPreviewWrapper(barSpacing: 4.0)
+}
+
+/// Wrapper so the previews can hand `BarChart` the `Binding` it requires.
 struct BarChartPreviewWrapper: View {
     @State private var randomData: [UInt8] = (0..<6).map { _ in UInt8.random(in: 0...255) }
     var barSpacing: CGFloat = 2.0
@@ -102,7 +99,6 @@ struct BarChartPreviewWrapper: View {
     var body: some View {
         BarChart(data: $randomData, barSpacing: barSpacing)
             .frame(height: 200)
-            .previewLayout(.sizeThatFits)
             .padding()
     }
 }

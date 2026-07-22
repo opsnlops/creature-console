@@ -46,10 +46,7 @@ struct ChooseCreatureSheet: View {
     }
 }
 
-struct ChooseCreatureSheet_Previews: PreviewProvider {
-    @State static var selectedCreature: Creature? = nil
-
-    static var previews: some View {
-        ChooseCreatureSheet(selectedCreature: $selectedCreature)
-    }
+#Preview {
+    @Previewable @State var selectedCreature: Creature? = nil
+    ChooseCreatureSheet(selectedCreature: $selectedCreature)
 }

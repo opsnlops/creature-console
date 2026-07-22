@@ -38,11 +38,16 @@ extension View {
     /// clearing it back to `nil` on dismiss. Uses the modern
     /// `alert(_:isPresented:presenting:)` API rather than the deprecated `Alert` type.
     ///
-    /// - Parameter onDismiss: optional side effect to run when the alert is dismissed
-    ///   (e.g. resetting a trigger binding so the same action can fire again).
-    func errorAlert(_ error: Binding<ErrorAlert?>, onDismiss: @escaping () -> Void = {})
-        -> some View
-    {
+    /// - Parameters:
+    ///   - dismissLabel: the dismiss button's label. Defaults to "OK", but this app has
+    ///     personality — sites migrating from a hand-rolled alert may keep their own.
+    ///   - onDismiss: optional side effect to run when the alert is dismissed
+    ///     (e.g. resetting a trigger binding so the same action can fire again).
+    func errorAlert(
+        _ error: Binding<ErrorAlert?>,
+        dismissLabel: String = "OK",
+        onDismiss: @escaping () -> Void = {}
+    ) -> some View {
         alert(
             error.wrappedValue?.title ?? "Error",
             isPresented: Binding(
@@ -51,7 +56,7 @@ extension View {
             ),
             presenting: error.wrappedValue
         ) { _ in
-            Button("OK", role: .cancel) { onDismiss() }
+            Button(dismissLabel, role: .cancel) { onDismiss() }
         } message: { alert in
             Text(alert.message)
         }

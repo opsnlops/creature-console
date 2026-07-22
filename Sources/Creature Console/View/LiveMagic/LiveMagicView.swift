@@ -3,12 +3,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if canImport(UIKit)
-    import UIKit
-#elseif canImport(AppKit)
-    import AppKit
-#endif
-
 struct LiveMagicView: View {
 
     @Environment(\.modelContext) private var modelContext
@@ -60,13 +54,16 @@ struct LiveMagicView: View {
                 }
             )
         }
-        .alert(item: $viewModel.alert) { descriptor in
-            Alert(
-                title: Text(descriptor.title),
-                message: Text(descriptor.message),
-                dismissButton: .default(Text("OK"))
+        // The view model owns its own AlertDescriptor type; bridge it into the shared
+        // ErrorAlert facade so presentation goes through the modern alert API.
+        .errorAlert(
+            Binding(
+                get: {
+                    viewModel.alert.map { ErrorAlert(title: $0.title, message: $0.message) }
+                },
+                set: { if $0 == nil { viewModel.alert = nil } }
             )
-        }
+        )
         .task {
             await importCreaturesIfNeeded()
         }

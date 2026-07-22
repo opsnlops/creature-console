@@ -29,11 +29,9 @@ struct AnimationWaveformEditor: View {
 
 }
 
-struct AnimationWaveformEditor_Previews: PreviewProvider {
-    static var previews: some View {
-        AnimationWaveformEditor(
-            animation: .mock(),
-            creature: .mock()
-        )
-    }
+#Preview {
+    AnimationWaveformEditor(
+        animation: .mock(),
+        creature: .mock()
+    )
 }

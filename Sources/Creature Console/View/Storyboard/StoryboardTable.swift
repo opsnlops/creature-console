@@ -4,10 +4,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
-
 /// Identifies which storyboard to perform. Carries only the (stable) id — the DTO is looked up
 /// fresh at presentation, never captured.
 private struct PerformRequest: Identifiable {
@@ -34,10 +30,8 @@ struct StoryboardTable: View {
     /// fresh from the live `@Query` at presentation time, so an edit made just before performing is
     /// always reflected. (Capturing the value inside the context-menu closure snapshots stale data.)
     @State private var performRequest: PerformRequest? = nil
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
-    @State private var showSuccessAlert = false
-    @State private var successMessage = ""
+    @State private var errorAlert: ErrorAlert? = nil
+    @State private var successBanner: String? = nil
     @State private var boardToDelete: StoryboardModel? = nil
     @State private var showDeleteConfirm = false
 
@@ -96,13 +90,7 @@ struct StoryboardTable: View {
         }
 
         Button {
-            #if os(macOS)
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(board.id.uuidString.lowercased(), forType: .string)
-            #else
-                UIPasteboard.general.string = board.id.uuidString.lowercased()
-            #endif
+            Pasteboard.copy(board.id.uuidString.lowercased())
         } label: {
             Label("Copy Storyboard ID", systemImage: "doc.on.clipboard")
         }
@@ -192,16 +180,8 @@ struct StoryboardTable: View {
                     }
                 #endif
             }
-            .alert("Error", isPresented: $showErrorAlert) {
-                Button("OK") {}
-            } message: {
-                Text(alertMessage)
-            }
-            .alert("Success", isPresented: $showSuccessAlert) {
-                Button("OK") {}
-            } message: {
-                Text(successMessage)
-            }
+            .errorAlert($errorAlert)
+            .statusBanner($successBanner)
             .confirmationDialog(
                 "Delete storyboard '\(boardToDelete?.title ?? "")'?",
                 isPresented: $showDeleteConfirm,
@@ -238,19 +218,16 @@ struct StoryboardTable: View {
         logger.debug("deleting storyboard \(title) (\(id))")
         Task {
             let result = await server.deleteStoryboard(id: id)
-            await MainActor.run {
-                switch result {
-                case .success(let message):
-                    successMessage = message
-                    showSuccessAlert = true
-                    boardToDelete = nil
-                    CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
-                case .failure(let error):
-                    alertMessage =
-                        "Failed to delete '\(title)': \(ServerError.detailedMessage(from: error))"
-                    showErrorAlert = true
-                    boardToDelete = nil
-                }
+            switch result {
+            case .success(let message):
+                successBanner = message
+                boardToDelete = nil
+                CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
+            case .failure(let error):
+                errorAlert = ErrorAlert(
+                    message:
+                        "Failed to delete '\(title)': \(ServerError.detailedMessage(from: error))")
+                boardToDelete = nil
             }
         }
     }

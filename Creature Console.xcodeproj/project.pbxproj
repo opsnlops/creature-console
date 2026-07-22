@@ -267,6 +267,10 @@
 		F539487A8A5CBD435D46567A /* DialogScriptEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B58446690618A288BDE246C /* DialogScriptEditor.swift */; };
 		FEA1A1E70000000000000002 /* ErrorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000001 /* ErrorAlert.swift */; };
 		FEA1A1E70000000000000003 /* ErrorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000001 /* ErrorAlert.swift */; };
+		FEA1A1E70000000000000012 /* Pasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000011 /* Pasteboard.swift */; };
+		FEA1A1E70000000000000013 /* Pasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000011 /* Pasteboard.swift */; };
+		FEA1A1E70000000000000022 /* StatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000021 /* StatusBanner.swift */; };
+		FEA1A1E70000000000000023 /* StatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000021 /* StatusBanner.swift */; };
 		FEA1A1E70000000000000005 /* JobWatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000004 /* JobWatching.swift */; };
 		FEA1A1E70000000000000006 /* JobWatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000004 /* JobWatching.swift */; };
 /* End PBXBuildFile section */
@@ -521,6 +525,8 @@
 		F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogRerenderButton.swift; path = "Sources/Creature Console/View/Dialog/DialogRerenderButton.swift"; sourceTree = SOURCE_ROOT; };
 		F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingListEditor.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000001 /* ErrorAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorAlert.swift; sourceTree = "<group>"; };
+		FEA1A1E70000000000000011 /* Pasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pasteboard.swift; sourceTree = "<group>"; };
+		FEA1A1E70000000000000021 /* StatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBanner.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000004 /* JobWatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobWatching.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1064,6 +1070,8 @@
 			children = (
 				11B0488B2EB8430E001B73C5 /* ProcessingOverlayView.swift */,
 				FEA1A1E70000000000000001 /* ErrorAlert.swift */,
+				FEA1A1E70000000000000011 /* Pasteboard.swift */,
+				FEA1A1E70000000000000021 /* StatusBanner.swift */,
 				FEA1A1E70000000000000004 /* JobWatching.swift */,
 			);
 			path = Shared;
@@ -1693,6 +1701,8 @@
 				1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */,
 				11B0488D2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */,
 				FEA1A1E70000000000000002 /* ErrorAlert.swift in Sources */,
+				FEA1A1E70000000000000012 /* Pasteboard.swift in Sources */,
+				FEA1A1E70000000000000022 /* StatusBanner.swift in Sources */,
 				FEA1A1E70000000000000005 /* JobWatching.swift in Sources */,
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
@@ -1790,6 +1800,8 @@
 				11E53CD02E88A0C400C17F16 /* AppBootstrapper.swift in Sources */,
 				11B0488E2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */,
 				FEA1A1E70000000000000003 /* ErrorAlert.swift in Sources */,
+				FEA1A1E70000000000000013 /* Pasteboard.swift in Sources */,
+				FEA1A1E70000000000000023 /* StatusBanner.swift in Sources */,
 				FEA1A1E70000000000000006 /* JobWatching.swift in Sources */,
 				117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */,
 				117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */,
@@ -2057,7 +2069,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.39.1;
+				MARKETING_VERSION = 2.39.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2111,7 +2123,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.39.1;
+				MARKETING_VERSION = 2.39.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2195,7 +2207,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.39.1;
+				MARKETING_VERSION = 2.39.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2227,7 +2239,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.39.1;
+				MARKETING_VERSION = 2.39.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

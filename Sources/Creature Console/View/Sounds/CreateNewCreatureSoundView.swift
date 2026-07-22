@@ -4,10 +4,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
-
 struct CreateNewCreatureSoundView: View {
 
     let logger = Logger(
@@ -21,8 +17,7 @@ struct CreateNewCreatureSoundView: View {
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
 
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert?
 
 
     @State var title: String = ""
@@ -128,13 +123,7 @@ struct CreateNewCreatureSoundView: View {
             .padding()
 
         }  // Navigation Stack
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("Unable to the list of sound files"),
-                message: Text(alertMessage),
-                dismissButton: .default(Text("No Music for Us"))
-            )
-        }
+        .errorAlert($errorAlert, dismissLabel: "No Music for Us")
         .onDisappear {
 
             // Clean up if either of these is still running
@@ -180,26 +169,23 @@ struct CreateNewCreatureSoundView: View {
                                     logger.debug("Success!")
                                     soundFileName = response.soundFileName
                                 } else {
-                                    alertMessage =
+                                    presentError(
                                         info.result
-                                        ?? "The sound file job failed on the server."
-                                    showErrorAlert = true
+                                            ?? "The sound file job failed on the server.")
                                 }
                             }
                         case .removed:
                             await MainActor.run {
-                                alertMessage = "The sound file job was removed before finishing."
-                                showErrorAlert = true
+                                presentError("The sound file job was removed before finishing.")
                             }
                         }
                     }
 
                 case .failure(let error):
-                    alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                    presentError("Error: \(String(describing: error.localizedDescription))")
                     logger.warning(
                         "Unable to create new sound file: \(String(describing: error.localizedDescription))"
                     )
-                    showErrorAlert = true
 
                 }
 
@@ -225,13 +211,12 @@ struct CreateNewCreatureSoundView: View {
                 let result = await server.playSound(sound)
                 switch result {
                 case .success(let message):
-                    print(message)
+                    logger.info("\(message)")
                 case .failure(let error):
-                    alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                    presentError("Error: \(String(describing: error.localizedDescription))")
                     logger.warning(
                         "Unable to play a sound file: \(String(describing: error.localizedDescription))"
                     )
-                    showErrorAlert = true
 
                 }
             }
@@ -240,19 +225,17 @@ struct CreateNewCreatureSoundView: View {
     }  // func playSoundOnServer
 
     func copySoundFileToClipboard() {
-        #if os(iOS)
-            if let soundFileName = soundFileName {
-                UIPasteboard.general.string = soundFileName
-            }
-        #elseif os(macOS)
-            if let soundFileName = soundFileName {
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(soundFileName, forType: .string)
-            }
-        #endif
+        if let soundFileName = soundFileName {
+            Pasteboard.copy(soundFileName)
+        }
 
         logger.debug("Copied filename to clipboard")
+    }
+
+    /// The alert kept its original (slightly broken) title and joke dismiss label from the
+    /// hand-rolled `Alert` days — personality is a feature here.
+    private func presentError(_ message: String) {
+        errorAlert = ErrorAlert(title: "Unable to the list of sound files", message: message)
     }
 }
 

@@ -28,13 +28,10 @@ struct FixtureEditor: View {
     @State private var fixture: Common.DmxFixture
     @State private var universeText: String
 
-    @State private var showErrorAlert = false
-    @State private var alertTitle = "Error"
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert?
 
-    @State private var showInfoAlert = false
-    @State private var infoTitle = ""
-    @State private var infoMessage = ""
+    /// Informational (non-error) alerts: validation results, "Created", universe changes.
+    @State private var infoAlert: ErrorAlert?
 
     @State private var isSaving = false
     @State private var savingMessage = ""
@@ -129,16 +126,8 @@ struct FixtureEditor: View {
                 }
             }
         }
-        .alert(alertTitle, isPresented: $showErrorAlert) {
-            Button("OK") {}
-        } message: {
-            Text(alertMessage)
-        }
-        .alert(infoTitle, isPresented: $showInfoAlert) {
-            Button("OK") {}
-        } message: {
-            Text(infoMessage)
-        }
+        .errorAlert($errorAlert)
+        .errorAlert($infoAlert)
         .overlay(alignment: .top) {
             if isSaving {
                 Text(savingMessage)
@@ -300,35 +289,33 @@ struct FixtureEditor: View {
         savingMessage = "Validating with server…"
         Task {
             let result = await server.validateFixture(rawJson: rawJson)
-            await MainActor.run {
-                isSaving = false
-                switch result {
-                case .success(let payload):
-                    var lines: [String] = []
-                    if payload.valid {
-                        lines.append("Fixture is valid.")
-                    } else {
-                        lines.append("Fixture is INVALID.")
-                    }
-                    if !payload.missingCreatureIds.isEmpty {
-                        lines.append(
-                            "Warning — bindings reference missing creature IDs:\n"
-                                + payload.missingCreatureIds.map { "  • \($0)" }
-                                .joined(separator: "\n"))
-                    }
-                    if !payload.errorMessages.isEmpty {
-                        lines.append(
-                            "Errors:\n"
-                                + payload.errorMessages.map { "  • \($0)" }.joined(separator: "\n"))
-                    }
-                    infoTitle = payload.valid ? "Valid" : "Invalid"
-                    infoMessage = lines.joined(separator: "\n\n")
-                    showInfoAlert = true
-                case .failure(let error):
-                    showError(
-                        title: "Validation Failed",
-                        message: ServerError.detailedMessage(from: error))
+            isSaving = false
+            switch result {
+            case .success(let payload):
+                var lines: [String] = []
+                if payload.valid {
+                    lines.append("Fixture is valid.")
+                } else {
+                    lines.append("Fixture is INVALID.")
                 }
+                if !payload.missingCreatureIds.isEmpty {
+                    lines.append(
+                        "Warning — bindings reference missing creature IDs:\n"
+                            + payload.missingCreatureIds.map { "  • \($0)" }
+                            .joined(separator: "\n"))
+                }
+                if !payload.errorMessages.isEmpty {
+                    lines.append(
+                        "Errors:\n"
+                            + payload.errorMessages.map { "  • \($0)" }.joined(separator: "\n"))
+                }
+                infoAlert = ErrorAlert(
+                    title: payload.valid ? "Valid" : "Invalid",
+                    message: lines.joined(separator: "\n\n"))
+            case .failure(let error):
+                showError(
+                    title: "Validation Failed",
+                    message: ServerError.detailedMessage(from: error))
             }
         }
     }
@@ -349,36 +336,35 @@ struct FixtureEditor: View {
         savingMessage = createNew ? "Creating fixture…" : "Saving fixture…"
         Task {
             let result = await server.upsertFixture(fixture)
-            await MainActor.run {
-                isSaving = false
-                switch result {
-                case .success(let saved):
-                    logger.info("upserted fixture \(saved.id)")
-                    // Trigger a cache refresh; the websocket invalidation will arrive
-                    // shortly after but the optimistic refresh helps the table update
-                    // immediately for the user.
-                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
-                    original = saved
-                    if createNew {
-                        // Flip into edit-existing mode in-place so the user can keep
-                        // working — assign a universe, fire patterns to test, open the
-                        // live control panel — without bouncing back through the
-                        // fixtures table to re-open this same record.
-                        createNew = false
-                        infoTitle = "Created"
-                        infoMessage =
+            isSaving = false
+            switch result {
+            case .success(let saved):
+                logger.info("upserted fixture \(saved.id)")
+                // Trigger a cache refresh; the websocket invalidation will arrive
+                // shortly after but the optimistic refresh helps the table update
+                // immediately for the user.
+                CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
+                original = saved
+                if createNew {
+                    // Flip into edit-existing mode in-place so the user can keep
+                    // working — assign a universe, fire patterns to test, open the
+                    // live control panel — without bouncing back through the
+                    // fixtures table to re-open this same record.
+                    createNew = false
+                    infoAlert = ErrorAlert(
+                        title: "Created",
+                        message:
                             "Fixture '\(saved.name)' was created on the server. Assign a universe next so you can fire patterns and use live control."
-                        showInfoAlert = true
-                    } else {
-                        // Pop back to the table on update; the editor is no longer the
-                        // source of truth.
-                        dismiss()
-                    }
-                case .failure(let error):
-                    showError(
-                        title: "Save Failed",
-                        message: ServerError.detailedMessage(from: error))
+                    )
+                } else {
+                    // Pop back to the table on update; the editor is no longer the
+                    // source of truth.
+                    dismiss()
                 }
+            case .failure(let error):
+                showError(
+                    title: "Save Failed",
+                    message: ServerError.detailedMessage(from: error))
             }
         }
     }
@@ -400,23 +386,20 @@ struct FixtureEditor: View {
         savingMessage = "Assigning universe \(value)…"
         Task {
             let result = await server.setFixtureUniverse(id: fixture.id, universe: value)
-            await MainActor.run {
-                isSaving = false
-                switch result {
-                case .success(let updated):
-                    logger.info("universe assigned to \(value) on \(updated.id)")
-                    fixture.assignedUniverse = updated.assignedUniverse
-                    original = updated
-                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
-                    infoTitle = "Universe Assigned"
-                    infoMessage =
-                        "Fixture '\(updated.name)' is now assigned to universe \(value)."
-                    showInfoAlert = true
-                case .failure(let error):
-                    showError(
-                        title: "Universe Assignment Failed",
-                        message: ServerError.detailedMessage(from: error))
-                }
+            isSaving = false
+            switch result {
+            case .success(let updated):
+                logger.info("universe assigned to \(value) on \(updated.id)")
+                fixture.assignedUniverse = updated.assignedUniverse
+                original = updated
+                CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
+                infoAlert = ErrorAlert(
+                    title: "Universe Assigned",
+                    message: "Fixture '\(updated.name)' is now assigned to universe \(value).")
+            case .failure(let error):
+                showError(
+                    title: "Universe Assignment Failed",
+                    message: ServerError.detailedMessage(from: error))
             }
         }
     }
@@ -426,24 +409,21 @@ struct FixtureEditor: View {
         savingMessage = "Clearing universe…"
         Task {
             let result = await server.clearFixtureUniverse(id: fixture.id)
-            await MainActor.run {
-                isSaving = false
-                switch result {
-                case .success(let updated):
-                    logger.info("universe cleared on \(updated.id)")
-                    fixture.assignedUniverse = updated.assignedUniverse  // server says nil
-                    universeText = ""
-                    original = updated
-                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
-                    infoTitle = "Universe Cleared"
-                    infoMessage =
-                        "Fixture '\(updated.name)' is no longer driving DMX."
-                    showInfoAlert = true
-                case .failure(let error):
-                    showError(
-                        title: "Failed to Clear Universe",
-                        message: ServerError.detailedMessage(from: error))
-                }
+            isSaving = false
+            switch result {
+            case .success(let updated):
+                logger.info("universe cleared on \(updated.id)")
+                fixture.assignedUniverse = updated.assignedUniverse  // server says nil
+                universeText = ""
+                original = updated
+                CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
+                infoAlert = ErrorAlert(
+                    title: "Universe Cleared",
+                    message: "Fixture '\(updated.name)' is no longer driving DMX.")
+            case .failure(let error):
+                showError(
+                    title: "Failed to Clear Universe",
+                    message: ServerError.detailedMessage(from: error))
             }
         }
     }
@@ -454,26 +434,22 @@ struct FixtureEditor: View {
         savingMessage = "Deleting fixture…"
         Task {
             let result = await server.deleteFixture(id: id)
-            await MainActor.run {
-                isSaving = false
-                switch result {
-                case .success(let message):
-                    logger.info("fixture deleted: \(message)")
-                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
-                    dismiss()
-                case .failure(let error):
-                    showError(
-                        title: "Delete Failed",
-                        message: ServerError.detailedMessage(from: error))
-                }
+            isSaving = false
+            switch result {
+            case .success(let message):
+                logger.info("fixture deleted: \(message)")
+                CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
+                dismiss()
+            case .failure(let error):
+                showError(
+                    title: "Delete Failed",
+                    message: ServerError.detailedMessage(from: error))
             }
         }
     }
 
     private func showError(title: String, message: String) {
-        alertTitle = title
-        alertMessage = message
-        showErrorAlert = true
+        errorAlert = ErrorAlert(title: title, message: message)
     }
 
     private func encodeFixtureAsJsonString() -> String? {

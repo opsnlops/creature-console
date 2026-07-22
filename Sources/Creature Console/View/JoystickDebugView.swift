@@ -125,40 +125,24 @@ struct JoystickDebugView: View {
         .task {
             // Update button states from AsyncStream
             for await state in await JoystickManager.shared.stateUpdates {
-                await MainActor.run {
-                    joystickState = state
-                }
+                joystickState = state
 
                 // Update button symbols when joystick state changes
-                let aSymbol = await JoystickManager.shared.getAButtonSymbol()
-                let bSymbol = await JoystickManager.shared.getBButtonSymbol()
-                let xSymbol = await JoystickManager.shared.getXButtonSymbol()
-                let ySymbol = await JoystickManager.shared.getYButtonSymbol()
-                await MainActor.run {
-                    aButtonSymbol = aSymbol
-                    bButtonSymbol = bSymbol
-                    xButtonSymbol = xSymbol
-                    yButtonSymbol = ySymbol
-                }
+                aButtonSymbol = JoystickManager.shared.getAButtonSymbol()
+                bButtonSymbol = JoystickManager.shared.getBButtonSymbol()
+                xButtonSymbol = JoystickManager.shared.getXButtonSymbol()
+                yButtonSymbol = JoystickManager.shared.getYButtonSymbol()
             }
         }
         .task {
             // Periodically update values and metadata from the JoystickManager actor
             while !Task.isCancelled {
                 let manager = JoystickManager.shared
-                let values = await manager.getValues()
-                let isConnected = await manager.isConnected
-                let mfg = await manager.getManufacturer ?? "Unknown manufacturer"
-                let sn = await manager.getSerialNumber ?? "Unknown SN"
-                let version = await manager.getVersionNumber ?? 0
-
-                await MainActor.run {
-                    joystickValues = values
-                    connected = isConnected
-                    manufacturer = mfg
-                    serialNumber = sn
-                    versionNumber = version
-                }
+                joystickValues = await manager.getValues()
+                connected = await manager.isConnected
+                manufacturer = await manager.getManufacturer ?? "Unknown manufacturer"
+                serialNumber = await manager.getSerialNumber ?? "Unknown SN"
+                versionNumber = await manager.getVersionNumber ?? 0
 
                 try? await Task.sleep(for: .milliseconds(50))  // 20fps update rate for real-time debugging
             }
@@ -167,10 +151,8 @@ struct JoystickDebugView: View {
 }
 
 
-struct JoystickDebugView_Previews: PreviewProvider {
-    static var previews: some View {
-        JoystickDebugView()
-    }
+#Preview {
+    JoystickDebugView()
 }
 
 

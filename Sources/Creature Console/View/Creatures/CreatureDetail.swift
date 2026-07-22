@@ -14,8 +14,7 @@ struct CreatureDetail: View {
 
     let server = CreatureServerClient.shared
 
-    @State private var showErrorAlert: Bool = false
-    @State private var errorMessage: String = ""
+    @State private var errorAlert: ErrorAlert?
     @State private var streamingTask: Task<Void, Never>? = nil
     @State private var currentActivity: Activity = .idle
     @State private var idleEnabled: Bool? = nil
@@ -179,18 +178,13 @@ struct CreatureDetail: View {
         .onAppear {
             logger.debug("CreatureDetail appeared for \(creature.id)")
             Task {
-                let appStateActivity = await AppState.shared.getCurrentActivity
-                await MainActor.run {
-                    currentActivity = appStateActivity
-                }
+                currentActivity = await AppState.shared.getCurrentActivity
             }
         }
         .task {
             // Keep local currentActivity in sync with global AppState
             for await state in await AppState.shared.stateUpdates {
-                await MainActor.run {
-                    currentActivity = state.currentActivity
-                }
+                currentActivity = state.currentActivity
             }
         }
         .task(id: creature.id) {
@@ -207,13 +201,7 @@ struct CreatureDetail: View {
             guard states.contains(where: { $0.creatureId == creature.id }) else { return }
             runtimeLastReceived = Date()
         }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("Server Error"),
-                message: Text(errorMessage),
-                dismissButton: .default(Text("OK"))
-            )
-        }
+        .errorAlert($errorAlert)
         .navigationTitle(creature.name)
         #if os(tvOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -246,8 +234,9 @@ struct CreatureDetail: View {
             switch result {
             case .failure(let value):
                 isDoingServerStuff = false
-                errorMessage = "Unable to stop playlist playback: \(value)"
-                showErrorAlert = true
+                errorAlert = ErrorAlert(
+                    title: "Server Error",
+                    message: "Unable to stop playlist playback: \(value)")
             case .success(let value):
                 logger.debug("stopped! \(value)")
                 serverMessage = value
@@ -265,9 +254,7 @@ struct CreatureDetail: View {
             // transition (shared with Storyboards). Per-creature toggle — stops if this creature
             // is already live, otherwise starts/switches to it.
             let nowLive = await CreatureManager.shared.toggleStreaming(to: creature.id)
-            await MainActor.run {
-                currentActivity = (nowLive == nil) ? .idle : .streaming
-            }
+            currentActivity = (nowLive == nil) ? .idle : .streaming
         }
     }
 
@@ -281,23 +268,19 @@ struct CreatureDetail: View {
                 logger.debug(
                     "Idle refresh for \(creature.id): runtime=\(remoteCreature.runtime != nil ? "yes" : "no") idle=\(serverIdleEnabled.map { "\($0)" } ?? "nil")"
                 )
-                await MainActor.run {
-                    idleEnabled = serverIdleEnabled
-                }
+                idleEnabled = serverIdleEnabled
             case .failure(let error):
                 logger.warning(
                     "Idle refresh failed for \(creature.id): \(error.localizedDescription)")
-                await MainActor.run {
-                    errorMessage = "Unable to load idle state: \(error)"
-                    showErrorAlert = true
-                }
+                errorAlert = ErrorAlert(
+                    title: "Server Error",
+                    message: "Unable to load idle state: \(error)")
             }
         } catch {
             logger.error("Idle refresh threw for \(creature.id): \(error.localizedDescription)")
-            await MainActor.run {
-                errorMessage = "Unable to load idle state: \(error.localizedDescription)"
-                showErrorAlert = true
-            }
+            errorAlert = ErrorAlert(
+                title: "Server Error",
+                message: "Unable to load idle state: \(error.localizedDescription)")
         }
     }
 
@@ -309,16 +292,15 @@ struct CreatureDetail: View {
 
         Task {
             let result = await server.setIdleEnabled(creatureId: creature.id, enabled: enabled)
-            await MainActor.run {
-                idleToggleInFlight = false
-                switch result {
-                case .success(let updatedCreature):
-                    idleEnabled = updatedCreature.runtime?.idleEnabled ?? enabled
-                case .failure(let error):
-                    idleEnabled = previousValue
-                    errorMessage = "Unable to update idle loop: \(error)"
-                    showErrorAlert = true
-                }
+            idleToggleInFlight = false
+            switch result {
+            case .success(let updatedCreature):
+                idleEnabled = updatedCreature.runtime?.idleEnabled ?? enabled
+            case .failure(let error):
+                idleEnabled = previousValue
+                errorAlert = ErrorAlert(
+                    title: "Server Error",
+                    message: "Unable to update idle loop: \(error)")
             }
         }
     }
@@ -350,7 +332,7 @@ private struct CreatureRuntimeSummary: View {
                 if let lastUpdated {
                     Text("Last updated: \(dateFormatter.string(from: lastUpdated))")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
             if let runtime {

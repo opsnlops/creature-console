@@ -15,8 +15,7 @@ struct CreatureDetail: View {
     let creatureManager = CreatureManager.shared
 
 
-    @State private var showErrorAlert: Bool = false
-    @State private var errorMessage: String = ""
+    @State private var errorAlert: ErrorAlert?
     @State private var streamingTask: Task<Void, Never>? = nil
     @State private var currentActivity: Activity = .idle
 
@@ -42,12 +41,12 @@ struct CreatureDetail: View {
             }
             .task {
                 // Seed initial activity and subscribe to updates
-                let initial = await AppState.shared.getCurrentActivity
-                await MainActor.run { currentActivity = initial }
+                currentActivity = await AppState.shared.getCurrentActivity
                 for await state in await AppState.shared.stateUpdates {
-                    await MainActor.run { currentActivity = state.currentActivity }
+                    currentActivity = state.currentActivity
                 }
             }
+            .errorAlert($errorAlert)
         #else
             VStack {
                 SensorData(creature: creature)
@@ -61,7 +60,7 @@ struct CreatureDetail: View {
                             systemName: (currentActivity == .streaming)
                                 ? "gamecontroller.fill" : "gamecontroller"
                         )
-                        .foregroundColor((currentActivity == .streaming) ? .green : .primary)
+                        .foregroundStyle((currentActivity == .streaming) ? .green : .primary)
                     }
                 }
             }
@@ -74,7 +73,7 @@ struct CreatureDetail: View {
                         .font(.title)
                         .padding()
                         .background(Color.green.opacity(0.4))
-                        .cornerRadius(10)
+                        .clipShape(.rect(cornerRadius: 10))
                 }
             }
             .onDisappear {
@@ -86,12 +85,12 @@ struct CreatureDetail: View {
             #endif
             .task {
                 // Seed initial activity and subscribe to updates
-                let initial = await AppState.shared.getCurrentActivity
-                await MainActor.run { currentActivity = initial }
+                currentActivity = await AppState.shared.getCurrentActivity
                 for await state in await AppState.shared.stateUpdates {
-                    await MainActor.run { currentActivity = state.currentActivity }
+                    currentActivity = state.currentActivity
                 }
             }
+            .errorAlert($errorAlert)
         #endif
     }
 
@@ -114,8 +113,9 @@ struct CreatureDetail: View {
             switch result {
             case .failure(let value):
                 isDoingServerStuff = false
-                errorMessage = "Unable to stop playlist playback: \(value)"
-                showErrorAlert = true
+                errorAlert = ErrorAlert(
+                    title: "Server Error",
+                    message: "Unable to stop playlist playback: \(value)")
             case .success(let value):
                 logger.info("stopped! \(value)")
                 serverMessage = value
@@ -140,7 +140,7 @@ struct CreatureDetail: View {
                 case .success:
                     logger.debug("Successfully stopped streaming")
                     await AppState.shared.setCurrentActivity(.idle)
-                    await MainActor.run { currentActivity = .idle }
+                    currentActivity = .idle
                 case .failure(let error):
                     logger.warning("Unable to stop streaming: \(error)")
                 }
@@ -151,19 +151,19 @@ struct CreatureDetail: View {
                 switch result {
                 case .success(let message):
                     logger.info("Streaming started: \(message)")
-                    await MainActor.run { currentActivity = .streaming }
+                    currentActivity = .streaming
                 case .failure(let error):
                     logger.warning("Unable to start streaming: \(error)")
                     // Revert state on failure
                     await AppState.shared.setCurrentActivity(.idle)
-                    await MainActor.run { currentActivity = .idle }
+                    currentActivity = .idle
                 }
             } else {
-                await MainActor.run {
-                    errorMessage =
+                errorAlert = ErrorAlert(
+                    title: "Server Error",
+                    message:
                         "Unable to start streaming while in the \(appStateActivity.description) state"
-                    showErrorAlert = true
-                }
+                )
             }
         }
     }
