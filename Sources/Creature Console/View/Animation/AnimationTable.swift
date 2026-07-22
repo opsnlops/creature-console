@@ -333,6 +333,7 @@ struct AnimationTable: View {
                             Label("Add Track", systemImage: "plus")
                         }
                     )
+                    .help("Create a new animation")
                 }
             }
             .overlay {
@@ -897,104 +898,4 @@ struct AnimationTable: View {
 
 #Preview {
     AnimationTable(creature: .mock())
-}
-
-private enum FilmingPhase: Equatable {
-    case countdown(secondsRemaining: Int)
-    case playingCue
-}
-
-private struct FilmingCountdownOverlay: View {
-    let phase: FilmingPhase
-    let onCancel: () -> Void
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-
-            VStack(spacing: 24) {
-                switch phase {
-                case .countdown(let secondsRemaining):
-                    Text("\(secondsRemaining)")
-                        .font(.system(size: 160, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
-                        .shadow(radius: 8)
-                    Text(
-                        secondsRemaining == 0
-                            ? "Alignment starting" : "Starting in \(secondsRemaining)"
-                    )
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.9))
-                case .playingCue:
-                    Image(systemName: "speaker.wave.3.fill")
-                        .font(.system(size: 120, weight: .bold))
-                        .foregroundStyle(.white)
-                        .shadow(radius: 8)
-                    Text("Playing Alignment Sound")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.9))
-                }
-
-                Button(role: .cancel) {
-                    onCancel()
-                } label: {
-                    Label("Cancel", systemImage: "xmark.circle.fill")
-                }
-                .buttonStyle(.glassProminent)
-                .controlSize(.large)
-                .tint(.red)
-            }
-            .padding(40)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 24))
-            .shadow(radius: 24)
-        }
-    }
-}
-
-private struct RenameAnimationSheet: View {
-    @Binding var title: String
-    let originalTitle: String
-    let onCancel: () -> Void
-    let onSave: () -> Void
-
-    private var trimmedTitle: String {
-        title.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Rename Animation")
-                .font(.title2.bold())
-
-            Text("Update the animation name. This change is saved to the server immediately.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            TextField("Animation Name", text: $title)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit {
-                    guard canSave else { return }
-                    onSave()
-                }
-
-            Spacer(minLength: 0)
-
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel, action: onCancel)
-                Button("Save") {
-                    onSave()
-                }
-                .buttonStyle(.glassProminent)
-                .disabled(!canSave)
-            }
-        }
-        .padding(24)
-        .frame(minWidth: 360)
-    }
-
-    private var canSave: Bool {
-        !trimmedTitle.isEmpty && trimmedTitle != originalTitle
-    }
 }

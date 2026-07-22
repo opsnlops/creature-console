@@ -32,13 +32,21 @@
 		113D00552EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004F2EAF0C9B00155515 /* LiveMagicViewModel.swift */; };
 		113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D004E2EAF0C9B00155515 /* LiveMagicView.swift */; };
 		113D00A12EB12D3E00155515 /* AdHocAssetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */; };
+		FEA1B1E70000000000000076 /* AdHocSoundViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000075 /* AdHocSoundViews.swift */; };
+		FEA1B1E70000000000000073 /* AdHocAnimationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */; };
 		113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */; };
+		FEA1B1E70000000000000077 /* AdHocSoundViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000075 /* AdHocSoundViews.swift */; };
+		FEA1B1E70000000000000074 /* AdHocAnimationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */; };
 		113F327E2F07983500783156 /* SACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */; };
+		FEA1B1E70000000000000068 /* SACNUniverseGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000067 /* SACNUniverseGridView.swift */; };
+		FEA1B1E70000000000000065 /* SACNRemoteReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000064 /* SACNRemoteReceiver.swift */; };
+		FEA1B1E70000000000000062 /* SACNUniverseMonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000061 /* SACNUniverseMonitorViewModel.swift */; };
 		113F327F2F07983500783156 /* DiagnosticsCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327B2F07983500783156 /* DiagnosticsCommands.swift */; };
 		113F32802F07983500783156 /* SACNUniverseMonitorScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327C2F07983500783156 /* SACNUniverseMonitorScene.swift */; };
 		114147922C0145270046601D /* TrackListingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147912C0145270046601D /* TrackListingView.swift */; };
 		114147942C017E640046601D /* ChooseCreatureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114147932C017E640046601D /* ChooseCreatureSheet.swift */; };
 		1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1142E66129DFB22300B795F0 /* CreatureDetail.swift */; };
+		FEA1B1E7000000000000007C /* CreatureRuntimeSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */; };
 		114B7E1E2E90B83900F5D1EC /* SwiftDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E1D2E90B83900F5D1EC /* SwiftDataStore.swift */; };
 		114B7E1F2E90B83900F5D1EC /* SwiftDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E1D2E90B83900F5D1EC /* SwiftDataStore.swift */; };
 		114B7E2A2E90B88300F5D1EC /* AnimationMetadataImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114B7E272E90B88300F5D1EC /* AnimationMetadataImporter.swift */; };
@@ -125,6 +133,7 @@
 		117C87772CA0D727007B5682 /* BarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119A016229EE297800D3DA12 /* BarChart.swift */; };
 		117C87812CA0D8C6007B5682 /* CreatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */; };
 		117C87832CA0DA3F007B5682 /* SensorData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE812C9FEA9D00749F94 /* SensorData.swift */; };
+		FEA1B1E70000000000000079 /* SensorDataTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000078 /* SensorDataTables.swift */; };
 		117C87842CA0E0EB007B5682 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11703D8F29DD198000EF7E3D /* Assets.xcassets */; };
 		117E5C4B2CA1271C00431420 /* TopContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11703D8D29DD197F00EF7E3D /* TopContentView.swift */; };
 		1183318D2C00577D0017DC2A /* AnimationMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183318C2C00577D0017DC2A /* AnimationMetadataTests.swift */; };
@@ -134,8 +143,11 @@
 		1183319C2C006CF10017DC2A /* NoticeMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1183319B2C006CF10017DC2A /* NoticeMessageProcessor.swift */; };
 		118A738429EBB2CF00EF8CDB /* InterfaceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */; };
 		118AE3622C439D8000346C0E /* PlaylistsTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118AE3612C439D8000346C0E /* PlaylistsTable.swift */; };
+		FEA1B1E7000000000000006F /* PlaylistEditSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E7000000000000006E /* PlaylistEditSheets.swift */; };
 		118BF8712A253F1000D80AE6 /* recordingCountdownSound.flac in Resources */ = {isa = PBXBuildFile; fileRef = 118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */; };
 		118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118BF8722A255F5300D80AE6 /* AnimationTable.swift */; };
+		FEA1B1E7000000000000006D /* FilmingCountdownOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E7000000000000006C /* FilmingCountdownOverlay.swift */; };
+		FEA1B1E7000000000000006B /* RenameAnimationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E7000000000000006A /* RenameAnimationSheet.swift */; };
 		1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */; };
 		1199D6B72BF5BF53004E0D64 /* ConsoleAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1199D6B62BF5BF53004E0D64 /* ConsoleAppDelegate.swift */; };
 		1199D6BA2BF5C3A3004E0D64 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 1199D6B92BF5C3A3004E0D64 /* Logging */; };
@@ -176,6 +188,7 @@
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11BF13972E42D32E00728799 /* CreatePlaylistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF13952E42D32E00728799 /* CreatePlaylistView.swift */; };
 		11BF13982E42D32E00728799 /* PlaylistDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF13962E42D32E00728799 /* PlaylistDetail.swift */; };
+		FEA1B1E70000000000000071 /* PlaylistDetailComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000070 /* PlaylistDetailComponents.swift */; };
 		11C03AD029E3C346002E6720 /* CreatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */; };
 		11C03AD429E3CDF4002E6720 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */; };
 		11C288622BF70E8E00F7ACD8 /* JoystickManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */; };
@@ -191,6 +204,9 @@
 		11C7F0A22F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C7F0A12F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift */; };
 		11C7F0A32F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C7F0A12F2A6D2C009A1B2C /* TVSACNUniverseMonitorView.swift */; };
 		11C7F0A42F2A6D2C009A1B2C /* SACNUniverseMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */; };
+		FEA1B1E70000000000000069 /* SACNUniverseGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000067 /* SACNUniverseGridView.swift */; };
+		FEA1B1E70000000000000066 /* SACNRemoteReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000064 /* SACNRemoteReceiver.swift */; };
+		FEA1B1E70000000000000063 /* SACNUniverseMonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000061 /* SACNUniverseMonitorViewModel.swift */; };
 		11C7F0A92F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C7F0A82F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift */; };
 		11C7F0AA2F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C7F0A82F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift */; };
 		11D713122E84B85E00F7FC9A /* Activity+Tint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D713112E84B85E00F7FC9A /* Activity+Tint.swift */; };
@@ -210,6 +226,7 @@
 		11E5CE7A2C9FDC5500749F94 /* MotorSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */; };
 		11E5CE802C9FE1C600749F94 /* CreatureHealthCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */; };
 		11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E5CE812C9FEA9D00749F94 /* SensorData.swift */; };
+		FEA1B1E7000000000000007A /* SensorDataTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000078 /* SensorDataTables.swift */; };
 		11F0E4992E9089970085918D /* SoundModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E4982E9089970085918D /* SoundModel.swift */; };
 		11F0E49A2E9089970085918D /* SoundModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E4982E9089970085918D /* SoundModel.swift */; };
 		11F0E49C2E90899C0085918D /* SoundImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F0E49B2E90899C0085918D /* SoundImporter.swift */; };
@@ -323,12 +340,18 @@
 		113D004E2EAF0C9B00155515 /* LiveMagicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMagicView.swift; sourceTree = "<group>"; };
 		113D004F2EAF0C9B00155515 /* LiveMagicViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMagicViewModel.swift; sourceTree = "<group>"; };
 		113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocAssetsView.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000075 /* AdHocSoundViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocSoundViews.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocAnimationViews.swift; sourceTree = "<group>"; };
 		113F327B2F07983500783156 /* DiagnosticsCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsCommands.swift; sourceTree = "<group>"; };
 		113F327C2F07983500783156 /* SACNUniverseMonitorScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNUniverseMonitorScene.swift; sourceTree = "<group>"; };
 		113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNUniverseMonitorView.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000067 /* SACNUniverseGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNUniverseGridView.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000064 /* SACNRemoteReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNRemoteReceiver.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000061 /* SACNUniverseMonitorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNUniverseMonitorViewModel.swift; sourceTree = "<group>"; };
 		114147912C0145270046601D /* TrackListingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackListingView.swift; sourceTree = "<group>"; };
 		114147932C017E640046601D /* ChooseCreatureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseCreatureSheet.swift; sourceTree = "<group>"; };
 		1142E66129DFB22300B795F0 /* CreatureDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureDetail.swift; sourceTree = "<group>"; };
+		FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureRuntimeSummary.swift; sourceTree = "<group>"; };
 		114B7E1D2E90B83900F5D1EC /* SwiftDataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataStore.swift; sourceTree = "<group>"; };
 		114B7E272E90B88300F5D1EC /* AnimationMetadataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataImporter.swift; sourceTree = "<group>"; };
 		114B7E282E90B88300F5D1EC /* AnimationMetadataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataModel.swift; sourceTree = "<group>"; };
@@ -382,8 +405,11 @@
 		118A738129EB780A00EF8CDB /* LogViewScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewScene.swift; sourceTree = "<group>"; };
 		118A738329EBB2CF00EF8CDB /* InterfaceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceSettings.swift; sourceTree = "<group>"; };
 		118AE3612C439D8000346C0E /* PlaylistsTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistsTable.swift; sourceTree = "<group>"; };
+		FEA1B1E7000000000000006E /* PlaylistEditSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistEditSheets.swift; sourceTree = "<group>"; };
 		118BF8702A253F1000D80AE6 /* recordingCountdownSound.flac */ = {isa = PBXFileReference; lastKnownFileType = file; path = recordingCountdownSound.flac; sourceTree = "<group>"; };
 		118BF8722A255F5300D80AE6 /* AnimationTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationTable.swift; sourceTree = "<group>"; };
+		FEA1B1E7000000000000006C /* FilmingCountdownOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilmingCountdownOverlay.swift; sourceTree = "<group>"; };
+		FEA1B1E7000000000000006A /* RenameAnimationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameAnimationSheet.swift; sourceTree = "<group>"; };
 		1199D6B42BF5BA93004E0D64 /* SwiftMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftMessageProcessor.swift; sourceTree = "<group>"; };
 		1199D6B62BF5BF53004E0D64 /* ConsoleAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleAppDelegate.swift; sourceTree = "<group>"; };
 		1199D6BE2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogItemProcessor.swift; sourceTree = "<group>"; };
@@ -416,6 +442,7 @@
 		11BC3C392A0DF62300410F63 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		11BF13952E42D32E00728799 /* CreatePlaylistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePlaylistView.swift; sourceTree = "<group>"; };
 		11BF13962E42D32E00728799 /* PlaylistDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistDetail.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000070 /* PlaylistDetailComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistDetailComponents.swift; sourceTree = "<group>"; };
 		11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureConfiguration.swift; sourceTree = "<group>"; };
 		11C03AD329E3CDF4002E6720 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
 		11C288612BF70E8E00F7ACD8 /* JoystickManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickManager.swift; sourceTree = "<group>"; };
@@ -439,6 +466,7 @@
 		11E5CE792C9FDC4700749F94 /* MotorSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorSensorReportProcessor.swift; sourceTree = "<group>"; };
 		11E5CE7F2C9FE1C100749F94 /* CreatureHealthCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureHealthCache.swift; sourceTree = "<group>"; };
 		11E5CE812C9FEA9D00749F94 /* SensorData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorData.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000078 /* SensorDataTables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorDataTables.swift; sourceTree = "<group>"; };
 		11F0E4982E9089970085918D /* SoundModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundModel.swift; sourceTree = "<group>"; };
 		11F0E49B2E90899C0085918D /* SoundImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundImporter.swift; sourceTree = "<group>"; };
 		11F0E49E2E9089AD0085918D /* SoundFileListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundFileListView.swift; sourceTree = "<group>"; };
@@ -655,7 +683,9 @@
 			isa = PBXGroup;
 			children = (
 				11E5CE812C9FEA9D00749F94 /* SensorData.swift */,
+				FEA1B1E70000000000000078 /* SensorDataTables.swift */,
 				1142E66129DFB22300B795F0 /* CreatureDetail.swift */,
+				FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */,
 				11C03ACF29E3C346002E6720 /* CreatureConfiguration.swift */,
 				11A61A9F2BFAEAC6000A1B48 /* InputTable.swift */,
 				114147932C017E640046601D /* ChooseCreatureSheet.swift */,
@@ -722,6 +752,8 @@
 			isa = PBXGroup;
 			children = (
 				113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */,
+				FEA1B1E70000000000000075 /* AdHocSoundViews.swift */,
+				FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */,
 				113D004D2EAF0C9B00155515 /* LiveMagicPromptSheet.swift */,
 				113D004E2EAF0C9B00155515 /* LiveMagicView.swift */,
 				113D004F2EAF0C9B00155515 /* LiveMagicViewModel.swift */,
@@ -756,6 +788,9 @@
 				11C7F0A82F2A6D2C009A1B2C /* HideBottomToolbarPreferenceKey.swift */,
 				113F327C2F07983500783156 /* SACNUniverseMonitorScene.swift */,
 				113F327D2F07983500783156 /* SACNUniverseMonitorView.swift */,
+				FEA1B1E70000000000000067 /* SACNUniverseGridView.swift */,
+				FEA1B1E70000000000000064 /* SACNRemoteReceiver.swift */,
+				FEA1B1E70000000000000061 /* SACNUniverseMonitorViewModel.swift */,
 				1167F9D72EE00B590088E1F1 /* MenuBar */,
 				11B0488C2EB8430E001B73C5 /* Shared */,
 				113D00502EAF0C9B00155515 /* LiveMagic */,
@@ -966,7 +1001,9 @@
 			children = (
 				11BF13952E42D32E00728799 /* CreatePlaylistView.swift */,
 				11BF13962E42D32E00728799 /* PlaylistDetail.swift */,
+				FEA1B1E70000000000000070 /* PlaylistDetailComponents.swift */,
 				118AE3612C439D8000346C0E /* PlaylistsTable.swift */,
+				FEA1B1E7000000000000006E /* PlaylistEditSheets.swift */,
 			);
 			path = Playlists;
 			sourceTree = "<group>";
@@ -1056,6 +1093,8 @@
 				113896B42A0768860055BA70 /* AnimationEditor.swift */,
 				114C9AB12A117A620025D40B /* AnimationWaveformEditor.swift */,
 				118BF8722A255F5300D80AE6 /* AnimationTable.swift */,
+				FEA1B1E7000000000000006C /* FilmingCountdownOverlay.swift */,
+				FEA1B1E7000000000000006A /* RenameAnimationSheet.swift */,
 				11A61AA22BFC3739000A1B48 /* TrackViewer.swift */,
 				11AB0000000000000000D001 /* TrackDialogSection.swift */,
 				114147912C0145270046601D /* TrackListingView.swift */,
@@ -1645,6 +1684,9 @@
 				1168DC972B4F98B800A9895A /* AprilsCreatureWorkshopJoystick.swift in Sources */,
 				1168DC9D2B4FB58800A9895A /* ACWDebugJoystickScene.swift in Sources */,
 				113F327E2F07983500783156 /* SACNUniverseMonitorView.swift in Sources */,
+				FEA1B1E70000000000000068 /* SACNUniverseGridView.swift in Sources */,
+				FEA1B1E70000000000000065 /* SACNRemoteReceiver.swift in Sources */,
+				FEA1B1E70000000000000062 /* SACNUniverseMonitorViewModel.swift in Sources */,
 				113F327F2F07983500783156 /* DiagnosticsCommands.swift in Sources */,
 				113F32802F07983500783156 /* SACNUniverseMonitorScene.swift in Sources */,
 				11C522392BF850320009A53E /* VirtualStatusLightsProcessor.swift in Sources */,
@@ -1671,6 +1713,7 @@
 				111D522A2C014158002CC23B /* AppStateInspectorScene.swift in Sources */,
 				11BF13972E42D32E00728799 /* CreatePlaylistView.swift in Sources */,
 				11BF13982E42D32E00728799 /* PlaylistDetail.swift in Sources */,
+				FEA1B1E70000000000000071 /* PlaylistDetailComponents.swift in Sources */,
 				11E5CE802C9FE1C600749F94 /* CreatureHealthCache.swift in Sources */,
 				11F4BA5729EA7DF300078790 /* SettingsView.swift in Sources */,
 				1168DC9B2B4FB2BE00A9895A /* JoystickDebugView.swift in Sources */,
@@ -1686,6 +1729,8 @@
 				113D00522EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */,
 				113D00532EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
 				113D00A12EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
+				FEA1B1E70000000000000076 /* AdHocSoundViews.swift in Sources */,
+				FEA1B1E70000000000000073 /* AdHocAnimationViews.swift in Sources */,
 				11F9A0112F0C123400123456 /* TVSoundboardView.swift in Sources */,
 				11F9A0132F0C123400123456 /* TVAnimationTriggerView.swift in Sources */,
 				11F9A0152F0C123400123456 /* TVUserFeedback.swift in Sources */,
@@ -1696,6 +1741,7 @@
 				11D713142E84BCC900F7FC9A /* BottomStatusToolbarContent.swift in Sources */,
 				113896B52A0768860055BA70 /* AnimationEditor.swift in Sources */,
 				11E5CE822C9FEAA500749F94 /* SensorData.swift in Sources */,
+				FEA1B1E7000000000000007A /* SensorDataTables.swift in Sources */,
 				119A44CE2E88D6E70053B250 /* SensorDataLogic.swift in Sources */,
 				11F4BA5B29EA7EA200078790 /* JoystickSettingsView.swift in Sources */,
 				115DADA129DF95890021C4E0 /* JoystickHandler.swift in Sources */,
@@ -1707,6 +1753,7 @@
 				11C54A4A2E91A1E0003CD966 /* StatusLightsState+UI.swift in Sources */,
 				11754B672C002940001A6C83 /* CacheMethods.swift in Sources */,
 				118AE3622C439D8000346C0E /* PlaylistsTable.swift in Sources */,
+				FEA1B1E7000000000000006F /* PlaylistEditSheets.swift in Sources */,
 				11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */,
 				110C412C2E516F270079CA75 /* EmergencyStopMessageProcessor.swift in Sources */,
 				1199D6BF2BF5C4EA004E0D64 /* ServerLogItemProcessor.swift in Sources */,
@@ -1719,6 +1766,7 @@
 				FEA1A1E70000000000000005 /* JobWatching.swift in Sources */,
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
+				FEA1B1E7000000000000007C /* CreatureRuntimeSummary.swift in Sources */,
 				11703D8C29DD197F00EF7E3D /* CreatureConsole.swift in Sources */,
 				11C03AD029E3C346002E6720 /* CreatureConfiguration.swift in Sources */,
 				1156EBCB2E76640500CBC202 /* ButtonGate.swift in Sources */,
@@ -1733,6 +1781,8 @@
 				11C5B8492C0D57F40037E70A /* CreateNewCreatureSoundView.swift in Sources */,
 				1199D6B52BF5BA93004E0D64 /* SwiftMessageProcessor.swift in Sources */,
 				118BF8732A255F5300D80AE6 /* AnimationTable.swift in Sources */,
+				FEA1B1E7000000000000006D /* FilmingCountdownOverlay.swift in Sources */,
+				FEA1B1E7000000000000006B /* RenameAnimationSheet.swift in Sources */,
 				11C2E0E029ECF6D500B8A4F5 /* EventLoop.swift in Sources */,
 				1167F9D82EE00B590088E1F1 /* MenuBarConsoleViewModel.swift in Sources */,
 				1167F9D92EE00B590088E1F1 /* MenuBarConsoleView.swift in Sources */,
@@ -1805,6 +1855,7 @@
 				117E5C4B2CA1271C00431420 /* TopContentView.swift in Sources */,
 				117C873C2CA0CEBE007B5682 /* AppState.swift in Sources */,
 				117C87832CA0DA3F007B5682 /* SensorData.swift in Sources */,
+				FEA1B1E70000000000000079 /* SensorDataTables.swift in Sources */,
 				11F0E4992E9089970085918D /* SoundModel.swift in Sources */,
 				119D07492E90F67700C6AFEE /* WebSocketConnectionState+UI.swift in Sources */,
 				117C873F2CA0CEBE007B5682 /* EventLoop.swift in Sources */,
@@ -1844,9 +1895,14 @@
 				113D00552EAF0C9B00155515 /* LiveMagicViewModel.swift in Sources */,
 				113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
 				113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
+				FEA1B1E70000000000000077 /* AdHocSoundViews.swift in Sources */,
+				FEA1B1E70000000000000074 /* AdHocAnimationViews.swift in Sources */,
 				11AB0000000000000000B003 /* ShareableSoundButton.swift in Sources */,
 				11AB0000000000000000B013 /* DialogProvenanceView.swift in Sources */,
 				11C7F0A42F2A6D2C009A1B2C /* SACNUniverseMonitorView.swift in Sources */,
+				FEA1B1E70000000000000069 /* SACNUniverseGridView.swift in Sources */,
+				FEA1B1E70000000000000066 /* SACNRemoteReceiver.swift in Sources */,
+				FEA1B1E70000000000000063 /* SACNUniverseMonitorViewModel.swift in Sources */,
 				11F9A0122F0C123400123456 /* TVSoundboardView.swift in Sources */,
 				11F9A0142F0C123400123456 /* TVAnimationTriggerView.swift in Sources */,
 				11F9A0162F0C123400123456 /* TVUserFeedback.swift in Sources */,
@@ -2085,7 +2141,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.41.0;
+				MARKETING_VERSION = 2.41.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2139,7 +2195,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.41.0;
+				MARKETING_VERSION = 2.41.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2223,7 +2279,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.41.0;
+				MARKETING_VERSION = 2.41.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2255,7 +2311,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.41.0;
+				MARKETING_VERSION = 2.41.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

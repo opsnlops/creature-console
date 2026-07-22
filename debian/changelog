@@ -1,3 +1,15 @@
+creature-cli (2.41.1) unstable; urgency=medium
+
+  * No CLI changes — lockstep bump with the Console app's Phase 5 structure
+    pass (issue #35): the 1,486-line sACN monitor file split into view /
+    view model / canvas renderer / networking, AnimationTable and the
+    Playlists/LiveMagic/Creatures monoliths decomposed one-type-per-file,
+    AnyView dispatch replaced with @ViewBuilder, help text added to
+    icon-only buttons, and the Server Logs view's last rows no longer hide
+    beneath the floating status bar (issue #42).
+
+ -- April White <april@creature.engineering>  Wed, 22 Jul 2026 10:05:00 -0700
+
 creature-cli (2.41.0) unstable; urgency=medium
 
   * No CLI changes — lockstep bump with the Console app's Observation
