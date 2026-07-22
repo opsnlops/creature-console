@@ -21,8 +21,6 @@ extension Activity {
             return "record.circle.fill"
         case .preparingToRecord:
             return "timer"
-        case .playingAnimation:
-            return "figure.socialdance"
         case .connectingToServer:
             return "arrow.triangle.2.circlepath.circle"
         case .countingDownForFilming:
@@ -42,8 +40,6 @@ extension Activity {
             return .red
         case .preparingToRecord:
             return .yellow
-        case .playingAnimation:
-            return .purple
         case .connectingToServer:
             return .pink
         case .countingDownForFilming:
@@ -64,7 +60,6 @@ extension Activity {
                     case .streaming: return .systemGreen
                     case .recording: return .systemRed
                     case .preparingToRecord: return .systemYellow
-                    case .playingAnimation: return .systemPurple
                     case .connectingToServer: return .systemPink
                     case .countingDownForFilming: return .systemOrange
                     }
@@ -84,7 +79,6 @@ extension Activity {
                     case .streaming: return .systemGreen
                     case .recording: return .systemRed
                     case .preparingToRecord: return .systemYellow
-                    case .playingAnimation: return .systemPurple
                     case .connectingToServer: return .systemPink
                     case .countingDownForFilming: return .systemOrange
                     }
@@ -106,8 +100,6 @@ extension Activity {
                 return GCColor(red: 1.0, green: 0.231, blue: 0.188)  // systemRed approx
             case .preparingToRecord:
                 return GCColor(red: 1.0, green: 0.8, blue: 0.0)  // systemYellow approx
-            case .playingAnimation:
-                return GCColor(red: 0.686, green: 0.321, blue: 0.870)  // systemPurple approx
             case .connectingToServer:
                 return GCColor(red: 1.0, green: 0.176, blue: 0.333)  // systemPink approx
             case .countingDownForFilming:

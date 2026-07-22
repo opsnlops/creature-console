@@ -7,7 +7,6 @@ enum Activity: CustomStringConvertible, Sendable {
     case streaming
     case recording
     case preparingToRecord
-    case playingAnimation
     case connectingToServer
     case countingDownForFilming
 
@@ -21,8 +20,6 @@ enum Activity: CustomStringConvertible, Sendable {
             return "Recording"
         case .preparingToRecord:
             return "Preparing to Record"
-        case .playingAnimation:
-            return "Playing Animation"
         case .connectingToServer:
             return "Connecting to Server"
         case .countingDownForFilming:

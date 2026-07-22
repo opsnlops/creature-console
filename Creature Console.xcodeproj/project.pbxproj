@@ -472,7 +472,6 @@
 		11FF7C372BF0334E00BF5A09 /* StatusDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusDTO.swift; sourceTree = "<group>"; };
 		11FF7C382BF0334E00BF5A09 /* SystemCountersDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCountersDTO.swift; sourceTree = "<group>"; };
 		11FF7C392BF0334E00BF5A09 /* WebSocketMessageDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketMessageDTO.swift; sourceTree = "<group>"; };
-		11FF7C3B2BF0334E00BF5A09 /* AnimationErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationErrors.swift; sourceTree = "<group>"; };
 		11FF7C3C2BF0334E00BF5A09 /* AudioError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioError.swift; sourceTree = "<group>"; };
 		11FF7C3D2BF0334E00BF5A09 /* PlaylistErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistErrors.swift; sourceTree = "<group>"; };
 		11FF7C3E2BF0334E00BF5A09 /* ServerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerError.swift; sourceTree = "<group>"; };
@@ -1245,7 +1244,6 @@
 		11FF7C3F2BF0334E00BF5A09 /* Error */ = {
 			isa = PBXGroup;
 			children = (
-				11FF7C3B2BF0334E00BF5A09 /* AnimationErrors.swift */,
 				11FF7C3C2BF0334E00BF5A09 /* AudioError.swift */,
 				11FF7C3D2BF0334E00BF5A09 /* PlaylistErrors.swift */,
 				11FF7C3E2BF0334E00BF5A09 /* ServerError.swift */,
@@ -2059,7 +2057,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.38.0;
+				MARKETING_VERSION = 2.39.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2113,7 +2111,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.38.0;
+				MARKETING_VERSION = 2.39.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2197,7 +2195,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.38.0;
+				MARKETING_VERSION = 2.39.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2229,7 +2227,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.38.0;
+				MARKETING_VERSION = 2.39.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;

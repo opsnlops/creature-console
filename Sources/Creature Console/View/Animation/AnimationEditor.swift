@@ -35,8 +35,11 @@ struct AnimationEditor: View {
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
 
-    @State private var isSaving: Bool = false
-    @State private var savingMessage: String = ""
+    @State private var showStatusOverlay: Bool = false
+    @State private var statusMessage: String = ""
+    @State private var statusOverlayGeneration = 0
+
+    @State private var playAnimationTask: Task<Void, Never>? = nil
 
     @State private var selectedCreatureForRecording: Creature? = nil
 
@@ -103,10 +106,14 @@ struct AnimationEditor: View {
                 }
                 ToolbarItem(id: "play", placement: .secondaryAction) {
                     Button(action: {
-                        _ = playAnimation()
+                        playAnimationOnServer()
                     }) {
                         Image(systemName: "play.fill")
                     }
+                    // A brand-new animation doesn't exist on the server until it's saved,
+                    // and the server is the only place animations play.
+                    .disabled(createNew)
+                    .help("Play on Server (Universe \(activeUniverse))")
                 }
 
                 if !readOnly {
@@ -144,6 +151,10 @@ struct AnimationEditor: View {
             .onAppear {
                 availableCreatures = creatures.map { $0.toDTO() }
             }
+            .onDisappear {
+                playAnimationTask?.cancel()
+                playAnimationTask = nil
+            }
             .alert(
                 "Oooooh Shit", isPresented: $showErrorAlert,
                 actions: {
@@ -154,8 +165,8 @@ struct AnimationEditor: View {
                 }
             )
             .overlay {
-                if isSaving {
-                    Text(savingMessage)
+                if showStatusOverlay {
+                    Text(statusMessage)
                         .font(.title3)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
@@ -207,41 +218,73 @@ struct AnimationEditor: View {
     }
 
 
-    func playAnimation() -> Result<String, AnimationError> {
+    /// Schedule this animation for playback on the server. Animations only ever play on the
+    /// server, so this plays the animation as last saved there — unsaved edits in the editor
+    /// aren't reflected until the next save.
+    func playAnimationOnServer() {
+        let animationId = model.animation.id
+        let universe = activeUniverse
 
-        logger.debug("play button pressed!")
+        playAnimationTask?.cancel()
+        playAnimationTask = Task {
+            let result = await CreatureManager.shared.playStoredAnimationOnServer(
+                animationId: animationId, universe: universe)
 
-        return .success("Queued up animation to play")
+            await MainActor.run {
+                switch result {
+                case .success(let message):
+                    logger.debug("Animation scheduled: \(message)")
+                    showStatusBanner("Universe \(universe): \(message)")
+
+                case .failure(let error):
+                    let message = ServerError.detailedMessage(from: error)
+                    logger.warning("Unable to schedule animation: \(message)")
+                    errorMessage = message
+                    showErrorAlert = true
+                }
+            }
+        }
     }
 
 
     func saveAnimationToServer() {
         let animation = model.animation
 
-        savingMessage = "Saving animation to server..."
-        isSaving = true
+        statusMessage = "Saving animation to server..."
+        showStatusOverlay = true
         Task {
             let result = await server.saveAnimation(animation: animation)
 
             await MainActor.run {
                 switch result {
                 case .success(let data):
-                    savingMessage = data
                     logger.debug("success!")
+                    showStatusBanner(data)
 
                 case .failure(let error):
-                    errorMessage = "Error: \(error.localizedDescription)"
+                    let message = ServerError.detailedMessage(from: error)
+                    showStatusOverlay = false
+                    errorMessage = message
                     showErrorAlert = true
-                    logger.error(
-                        "Unable to save animation to server: \(error.localizedDescription)")
+                    logger.error("Unable to save animation to server: \(message)")
                 }
             }
+        }
+    }
 
-            try? await Task.sleep(for: .seconds(2))
-
-            await MainActor.run {
-                isSaving = false
-            }
+    /// Show a transient status message in the glass overlay, auto-dismissing after a few
+    /// seconds. The generation counter keeps an earlier banner's dismissal from cutting a
+    /// newer one short.
+    @MainActor
+    private func showStatusBanner(_ message: String) {
+        statusOverlayGeneration += 1
+        let generation = statusOverlayGeneration
+        statusMessage = message
+        showStatusOverlay = true
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            guard generation == statusOverlayGeneration else { return }
+            showStatusOverlay = false
         }
     }
 

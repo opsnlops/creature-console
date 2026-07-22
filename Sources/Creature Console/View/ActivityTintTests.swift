@@ -17,7 +17,6 @@ struct ActivityTintTests {
             .streaming,
             .recording,
             .preparingToRecord,
-            .playingAnimation,
             .connectingToServer,
             .countingDownForFilming,
         ]
@@ -49,11 +48,6 @@ struct ActivityTintTests {
         #expect(Activity.preparingToRecord.tintColor == .yellow)
     }
 
-    @Test("playing animation is purple")
-    func playingAnimationIsPurple() {
-        #expect(Activity.playingAnimation.tintColor == .purple)
-    }
-
     @Test("countdown for filming is orange")
     func countdownForFilmingIsOrange() {
         #expect(Activity.countingDownForFilming.tintColor == .orange)
@@ -72,7 +66,6 @@ struct ActivityTintTests {
                 .streaming,
                 .recording,
                 .preparingToRecord,
-                .playingAnimation,
                 .connectingToServer,
                 .countingDownForFilming,
             ]
@@ -125,7 +118,6 @@ struct ActivityTintTests {
                 .streaming,
                 .recording,
                 .preparingToRecord,
-                .playingAnimation,
                 .connectingToServer,
                 .countingDownForFilming,
             ]

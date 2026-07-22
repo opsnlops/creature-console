@@ -1,3 +1,17 @@
+creature-cli (2.39.0) unstable; urgency=medium
+
+  * No CLI changes — version bump to stay in lockstep with the Console app,
+    which removes the dead "play animation locally" feature (issue #34).
+    Animations only ever play on the server: the animation editor's toolbar
+    play button, previously a do-nothing stub from before the server-side
+    animation story existed, now schedules the saved animation on the server
+    (disabled for a brand-new animation that hasn't been saved yet). The
+    never-called CreatureManager.playAnimationLocally, the AnimationError
+    enum in Common (referenced only by the stub), and the never-set
+    .playingAnimation app activity are all gone.
+
+ -- April White <april@creature.engineering>  Tue, 21 Jul 2026 22:18:28 -0700
+
 creature-cli (2.38.0) unstable; urgency=medium
 
   * No CLI changes — version bump to stay in lockstep with the Console app,

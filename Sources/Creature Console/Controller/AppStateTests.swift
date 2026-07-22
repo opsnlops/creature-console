@@ -82,7 +82,6 @@ struct AppStateTests {
         #expect(Activity.streaming.description == "Streaming")
         #expect(Activity.recording.description == "Recording")
         #expect(Activity.preparingToRecord.description == "Preparing to Record")
-        #expect(Activity.playingAnimation.description == "Playing Animation")
         #expect(Activity.connectingToServer.description == "Connecting to Server")
         #expect(Activity.countingDownForFilming.description == "Countdown for Filming")
     }

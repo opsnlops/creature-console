@@ -259,14 +259,4 @@ actor CreatureManager {
             return .failure(error)
         }
     }
-
-    /// Play an animation locally
-    ///
-    /// This requires a full [Animation] object, because we might not have saved it to the server. The idea is to be able
-    /// to play it before we save it.
-    func playAnimationLocally(animation: Common.Animation, universe: UniverseIdentifier) async
-        -> Result<String, ServerError>
-    {
-        return .failure(.notImplemented("This hasn't been implemented yet"))
-    }
 }
