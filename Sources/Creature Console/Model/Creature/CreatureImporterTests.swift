@@ -12,7 +12,7 @@ struct CreatureImporterTests {
     func upsertBatchInsertsNew() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = CreatureImporter(modelContainer: container)
 
@@ -66,7 +66,7 @@ struct CreatureImporterTests {
     func upsertBatchUpdatesExisting() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = CreatureImporter(modelContainer: container)
 
@@ -120,7 +120,7 @@ struct CreatureImporterTests {
     func upsertBatchDeletesOldInputs() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = CreatureImporter(modelContainer: container)
 
@@ -177,7 +177,7 @@ struct CreatureImporterTests {
     func upsertBatchHandlesEmpty() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = CreatureImporter(modelContainer: container)
 
@@ -194,7 +194,7 @@ struct CreatureImporterTests {
     func deleteAllExceptRemovesOthers() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = CreatureImporter(modelContainer: container)
 
@@ -232,7 +232,7 @@ struct CreatureImporterTests {
     func deleteAllExceptHandlesEmpty() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = CreatureImporter(modelContainer: container)
 
@@ -250,7 +250,7 @@ struct CreatureImporterTests {
     func upsertBatchWithEmptyInputs() async throws {
         let schema = Schema([CreatureModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = CreatureImporter(modelContainer: container)
 

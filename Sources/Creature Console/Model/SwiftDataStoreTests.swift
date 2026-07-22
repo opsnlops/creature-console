@@ -11,7 +11,7 @@ struct SwiftDataStoreTests {
     func storesAndRetrievesContainer() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let store = SwiftDataStore()
         await store.setContainer(container)

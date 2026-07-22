@@ -125,7 +125,7 @@ struct PlaylistModelTests {
     func playlistPersistsWithCascadeDelete() async throws {
         let schema = Schema([PlaylistModel.self, PlaylistItemModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let items = [
@@ -161,7 +161,7 @@ struct PlaylistModelTests {
     func playlistEnforcesUniqueID() async throws {
         let schema = Schema([PlaylistModel.self, PlaylistItemModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let playlist1 = PlaylistModel(id: "playlist_unique", name: "First", items: [])
@@ -184,7 +184,7 @@ struct PlaylistModelTests {
     func playlistItemMaintainsInverseRelationship() async throws {
         let schema = Schema([PlaylistModel.self, PlaylistItemModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
         let context = ModelContext(container)
 
         let items = [

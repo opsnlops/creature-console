@@ -12,7 +12,7 @@ struct AnimationMetadataImporterTests {
     func upsertBatchInsertsNew() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = AnimationMetadataImporter(modelContainer: container)
 
@@ -54,7 +54,7 @@ struct AnimationMetadataImporterTests {
     func upsertBatchUpdatesExisting() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = AnimationMetadataImporter(modelContainer: container)
 
@@ -102,7 +102,7 @@ struct AnimationMetadataImporterTests {
     func upsertBatchHandlesEmpty() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = AnimationMetadataImporter(modelContainer: container)
 
@@ -119,7 +119,7 @@ struct AnimationMetadataImporterTests {
     func deleteAllExceptRemovesOthers() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = AnimationMetadataImporter(modelContainer: container)
 
@@ -175,7 +175,7 @@ struct AnimationMetadataImporterTests {
     func deleteAllExceptHandlesEmpty() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = AnimationMetadataImporter(modelContainer: container)
 
@@ -193,7 +193,7 @@ struct AnimationMetadataImporterTests {
     func upsertBatchMixedData() async throws {
         let schema = Schema([AnimationMetadataModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = AnimationMetadataImporter(modelContainer: container)
 

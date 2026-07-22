@@ -56,19 +56,22 @@ struct CreatureConsole: App {
         // Clean up any stale/partial mono preview cache files on launch
         AudioManager.cleanupMonoPreviewCacheOnLaunch()
 
-        // Initialize async components
-        Task {
-            // Make sure the appState is good
-            await AppState.shared.setCurrentActivity(.idle)
+        // Initialize async components — but not under the test runner, where the host app
+        // must stay quiet (issue #38; AppBootstrapper is gated the same way).
+        if !TestRun.isActive {
+            Task {
+                // Make sure the appState is good
+                await AppState.shared.setCurrentActivity(.idle)
 
-            // Init the joystick
-            await registerJoystickHandlers()
+                // Init the joystick
+                await registerJoystickHandlers()
 
-            // Removed the connectingToServer state set here as bootstrapper handles it
-        }
+                // Removed the connectingToServer state set here as bootstrapper handles it
+            }
 
-        Task { @MainActor in
-            MetricKitManager.shared.start()
+            Task { @MainActor in
+                MetricKitManager.shared.start()
+            }
         }
 
         // Connect to the server

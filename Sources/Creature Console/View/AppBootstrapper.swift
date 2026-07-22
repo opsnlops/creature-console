@@ -13,6 +13,14 @@ actor AppBootstrapper {
         guard !hasStarted else { return }
         hasStarted = true
 
+        // Under the test runner the host app must stay quiet: the websocket pipeline would
+        // stream server logs into the real SwiftData store while suites create containers
+        // in parallel, corrupting CoreData's model cache (issue #38).
+        guard !TestRun.isActive else {
+            logger.info("test run detected — skipping app bootstrap")
+            return
+        }
+
         await AppState.shared.setCurrentActivity(.connectingToServer)
 
         // Connect websocket immediately so health data starts flowing

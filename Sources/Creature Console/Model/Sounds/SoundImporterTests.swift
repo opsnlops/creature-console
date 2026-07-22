@@ -12,7 +12,7 @@ struct SoundImporterTests {
     func upsertBatchInsertsNew() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = SoundImporter(modelContainer: container)
 
@@ -53,7 +53,7 @@ struct SoundImporterTests {
     func upsertBatchUpdatesExisting() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = SoundImporter(modelContainer: container)
 
@@ -90,7 +90,7 @@ struct SoundImporterTests {
     func upsertBatchHandlesEmpty() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = SoundImporter(modelContainer: container)
 
@@ -107,7 +107,7 @@ struct SoundImporterTests {
     func deleteAllExceptRemovesOthers() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = SoundImporter(modelContainer: container)
 
@@ -151,7 +151,7 @@ struct SoundImporterTests {
     func deleteAllExceptHandlesEmpty() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = SoundImporter(modelContainer: container)
 
@@ -169,7 +169,7 @@ struct SoundImporterTests {
     func upsertBatchMixedData() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = SoundImporter(modelContainer: container)
 
@@ -219,7 +219,7 @@ struct SoundImporterTests {
     func upsertBatchWithEmptyTranscript() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = SoundImporter(modelContainer: container)
 
@@ -244,7 +244,7 @@ struct SoundImporterTests {
     func upsertBatchPreservesExtensions() async throws {
         let schema = Schema([SoundModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = SoundImporter(modelContainer: container)
 

@@ -12,7 +12,7 @@ struct ServerLogImporterTests {
     func addLogInsertsNew() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = ServerLogImporter(modelContainer: container)
 
@@ -41,7 +41,7 @@ struct ServerLogImporterTests {
     func addLogTrimsOldLogs() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = ServerLogImporter(modelContainer: container)
 
@@ -79,7 +79,7 @@ struct ServerLogImporterTests {
     func clearAllLogsRemovesAll() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = ServerLogImporter(modelContainer: container)
 
@@ -112,7 +112,7 @@ struct ServerLogImporterTests {
     func clearAllLogsHandlesEmpty() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = ServerLogImporter(modelContainer: container)
 
@@ -130,7 +130,7 @@ struct ServerLogImporterTests {
     func addLogMaintainsOrder() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = ServerLogImporter(modelContainer: container)
 
@@ -170,7 +170,7 @@ struct ServerLogImporterTests {
     func addLogHandlesDifferentLevels() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = ServerLogImporter(modelContainer: container)
 
@@ -201,7 +201,7 @@ struct ServerLogImporterTests {
     func trimmingAffectsOnlyOldLogs() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
 
         let importer = ServerLogImporter(modelContainer: container)
 
