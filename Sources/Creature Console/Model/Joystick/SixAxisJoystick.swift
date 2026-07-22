@@ -1,4 +1,3 @@
-import Combine
 import Common
 import CoreHaptics
 import Foundation
@@ -6,10 +5,12 @@ import GameController
 import OSLog
 import SwiftUI
 
-class Axis: ObservableObject, CustomStringConvertible {
-    var axisType: AxisType = .gamepad
-    @Published var name: String = ""
-    @Published var value: UInt8 = 127
+/// One axis of a gamepad. Confined to the main actor along with the joystick that owns it.
+@MainActor
+final class Axis: @MainActor CustomStringConvertible {
+    var axisType: AxisType
+    var name: String = ""
+    var value: UInt8
 
     var rawValue: Float = 0 {
         didSet {
@@ -27,6 +28,11 @@ class Axis: ObservableObject, CustomStringConvertible {
 
             value = UInt8(round(mappedvalue))
         }
+    }
+
+    nonisolated init(axisType: AxisType = .gamepad, value: UInt8 = 127) {
+        self.axisType = axisType
+        self.value = value
     }
 
     var description: String {
@@ -49,25 +55,28 @@ class Axis: ObservableObject, CustomStringConvertible {
 }
 
 
-class SixAxisJoystick: ObservableObject, Joystick {
+/// The system (GameController) joystick. Main-actor isolated: GameController posts its
+/// notifications on the main queue, and the controller's light and haptics engines are
+/// main-thread-affine.
+@MainActor
+final class SixAxisJoystick: Joystick {
 
-    @Published var axises: [Axis]
-    @Published var aButtonPressed = false
-    @Published var bButtonPressed = false
-    @Published var xButtonPressed = false
-    @Published var yButtonPressed = false
+    var axises: [Axis]
+    var aButtonPressed = false
+    var bButtonPressed = false
+    var xButtonPressed = false
+    var yButtonPressed = false
 
-    // Note: AppState access removed for Swift 6 actor compatibility
     var controller: GCController?
-    let objectWillChange = ObservableObjectPublisher()
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SixAxisJoystick")
 
     @AppStorage("logJoystickPollEvents") var logJoystickPollEvents: Bool = false
 
-    private var cancellables: Set<AnyCancellable> = []
-
     // Retain a controller haptics engine for countdown pulses so it isn't deallocated between calls
     private var countdownHapticsEngine: CHHapticEngine?
+
+    /// Task used to coordinate and cancel any in-flight countdown sequence.
+    private var recordingCountdownTask: Task<Void, Never>? = nil
 
     #if os(iOS)
         var virtualJoysick = VirtualJoystick()
@@ -86,34 +95,16 @@ class SixAxisJoystick: ObservableObject, Joystick {
         return "Unknown S/N"
     }
 
-    init() {
-        self.axises = []
-
-        for _ in 0...5 {
-            self.axises.append(Axis())
-        }
-
-        // Axies 4 and 5 are triggers
-        self.axises[4].axisType = .trigger
-        self.axises[5].axisType = .trigger
-        self.axises[4].value = 0
-        self.axises[5].value = 0
+    nonisolated init() {
+        // Axes 4 and 5 are triggers
+        self.axises = [
+            Axis(), Axis(), Axis(), Axis(),
+            Axis(axisType: .trigger, value: 0),
+            Axis(axisType: .trigger, value: 0),
+        ]
 
         // Pay attention to the joystick, even when in the background
         GCController.shouldMonitorBackgroundEvents = true
-
-        // Note: Joystick light updates now handled by JoystickManager for Swift 6 compatibility
-
-    }
-
-    deinit {
-        for cancellable in cancellables {
-            cancellable.cancel()
-        }
-    }
-
-    var changesPublisher: AnyPublisher<Void, Never> {
-        objectWillChange.eraseToAnyPublisher()
     }
 
     func getValues() -> [UInt8] {
@@ -146,11 +137,10 @@ class SixAxisJoystick: ObservableObject, Joystick {
             return
         }
         let color = activity.controllerLightColor
-        logger.info(
+        logger.debug(
             "SixAxisJoystick: Setting joystick light to RGB(\(color.red),\(color.green),\(color.blue)) for activity: \(activity.description)"
         )
         controller.light?.color = color
-        logger.info("SixAxisJoystick: Light color set successfully")
     }
 
     func showVirtualJoystickIfNeeded() {
@@ -181,66 +171,49 @@ class SixAxisJoystick: ObservableObject, Joystick {
 
         if let joystick = controller?.extendedGamepad {
 
-            var didChange = false
-
             if axises[0].rawValue != joystick.leftThumbstick.xAxis.value {
                 axises[0].rawValue = joystick.leftThumbstick.xAxis.value
-                didChange = true
             }
 
             if axises[1].rawValue != joystick.leftThumbstick.yAxis.value {
                 axises[1].rawValue = joystick.leftThumbstick.yAxis.value
-                didChange = true
             }
 
             if axises[2].rawValue != joystick.rightThumbstick.xAxis.value {
                 axises[2].rawValue = joystick.rightThumbstick.xAxis.value
-                didChange = true
             }
 
             if axises[3].rawValue != joystick.rightThumbstick.yAxis.value {
                 axises[3].rawValue = joystick.rightThumbstick.yAxis.value
-                didChange = true
             }
 
             if axises[4].rawValue != joystick.leftTrigger.value {
                 axises[4].rawValue = joystick.leftTrigger.value
-                didChange = true
             }
 
             if axises[5].rawValue != joystick.rightTrigger.value {
                 axises[5].rawValue = joystick.rightTrigger.value
-                didChange = true
             }
 
             if joystick.buttonA.isPressed != self.aButtonPressed {
                 self.aButtonPressed = joystick.buttonA.isPressed
-                didChange = true
             }
 
             if joystick.buttonB.isPressed != self.bButtonPressed {
                 self.bButtonPressed = joystick.buttonB.isPressed
-                didChange = true
             }
 
             if joystick.buttonX.isPressed != self.xButtonPressed {
                 self.xButtonPressed = joystick.buttonX.isPressed
-                didChange = true
             }
 
             if joystick.buttonY.isPressed != self.yButtonPressed {
                 self.yButtonPressed = joystick.buttonY.isPressed
-                didChange = true
             }
 
             // This is noisy! Make it optional
             if logJoystickPollEvents {
                 logger.debug("joystick polling done")
-            }
-
-            // If there's a change to be propogated out, send immediately since we're now inside an actor
-            if didChange {
-                self.objectWillChange.send()
             }
         } else {
             logger.info("skipping polling because not extended gamepad")
@@ -250,22 +223,13 @@ class SixAxisJoystick: ObservableObject, Joystick {
 
 }
 
-// SixAxisJoystick is used across actor boundaries only to schedule @MainActor haptic work.
-// Marking it @unchecked Sendable is safe in this context because all mutable state that
-// interacts with system frameworks (GameController/CoreHaptics) is accessed on the main actor.
-extension SixAxisJoystick: @unchecked Sendable {}
-
-@MainActor
 extension SixAxisJoystick {
-    /// Task used to coordinate and cancel any in-flight countdown sequence.
-    private static var recordingCountdownTask: Task<Void, Never>? = nil
-
     /// Plays a short countdown rumble sequence at 2.0s, 2.5s, 3.0s and a heavy pulse at 3.5s.
     /// Call this at the same moment you start the countdown audio.
     func playRecordingCountdownHaptics() {
         // Cancel any existing sequence first
-        SixAxisJoystick.recordingCountdownTask?.cancel()
-        SixAxisJoystick.recordingCountdownTask = Task { @MainActor in
+        recordingCountdownTask?.cancel()
+        recordingCountdownTask = Task {
             await self.playCountdown(times: [
                 (seconds: 2.0, intensity: 0.45, sharpness: 0.4, duration: 0.06),
                 (seconds: 2.5, intensity: 0.65, sharpness: 0.4, duration: 0.06),
@@ -277,26 +241,18 @@ extension SixAxisJoystick {
 
     /// Cancel any pending countdown pulses (e.g., user backs out).
     func cancelRecordingCountdownHaptics() {
-        SixAxisJoystick.recordingCountdownTask?.cancel()
-        SixAxisJoystick.recordingCountdownTask = nil
-        Task { @MainActor in
+        recordingCountdownTask?.cancel()
+        recordingCountdownTask = nil
+        let engine = countdownHapticsEngine
+        countdownHapticsEngine = nil
+        Task {
             do {
-                try await countdownHapticsEngine?.stop()
+                try await engine?.stop()
             } catch {
                 logger.debug(
                     "Failed to stop haptics engine on cancel: \(String(describing: error))")
             }
         }
-        countdownHapticsEngine = nil
-    }
-
-    /// Convenience methods to safely trigger/cancel the countdown from any actor context.
-    nonisolated func playRecordingCountdownHapticsFromAnyActor() async {
-        await MainActor.run { self.playRecordingCountdownHaptics() }
-    }
-
-    nonisolated func cancelRecordingCountdownHapticsFromAnyActor() async {
-        await MainActor.run { self.cancelRecordingCountdownHaptics() }
     }
 
     // MARK: - Private helpers

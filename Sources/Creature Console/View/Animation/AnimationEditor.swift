@@ -70,122 +70,123 @@ struct AnimationEditor: View {
     }
 
 
+    // No NavigationStack of its own: this editor is always *pushed* onto (or linked from) an
+    // existing stack — AnimationTable, TopContentView, and the ad-hoc asset browser all own
+    // one — and nesting a second stack inside a push breaks toolbar/title placement.
     var body: some View {
-        NavigationStack {
-            VStack {
-                if createNew {
-                    // New animation workflow - show comprehensive setup
-                    newAnimationWorkflowView
-                } else {
-                    // Existing animation editing
-                    existingAnimationEditingView
-                }
+        VStack {
+            if createNew {
+                // New animation workflow - show comprehensive setup
+                newAnimationWorkflowView
+            } else {
+                // Existing animation editing
+                existingAnimationEditingView
             }
-            .onAppear {
-                model.syncFromAnimation()
-            }
-            // Load the dialog provenance for the mouth-activity ribbons + per-track script. Keyed
-            // on the sound file so an in-place re-render (which can swap the file) refetches.
-            .task(id: model.animation.metadata.soundFile) {
-                await loadProvenance()
-            }
-            .navigationTitle(createNew ? "Record New Animation" : "Animation Editor")
-            #if os(macOS)
-                .navigationSubtitle("Active Universe: \(activeUniverse)")
-            #endif
-            .toolbar(id: "animationEditor") {
-                if !readOnly {
-                    ToolbarItem(id: "save", placement: .secondaryAction) {
-                        Button(action: {
-                            saveAnimationToServer()
-                        }) {
-                            Image(systemName: "square.and.arrow.down")
-                                .symbolRenderingMode(.palette)
-                        }
-                    }
-                }
-                ToolbarItem(id: "play", placement: .secondaryAction) {
+        }
+        .onAppear {
+            model.syncFromAnimation()
+        }
+        // Load the dialog provenance for the mouth-activity ribbons + per-track script. Keyed
+        // on the sound file so an in-place re-render (which can swap the file) refetches.
+        .task(id: model.animation.metadata.soundFile) {
+            await loadProvenance()
+        }
+        .navigationTitle(createNew ? "Record New Animation" : "Animation Editor")
+        #if os(macOS)
+            .navigationSubtitle("Active Universe: \(activeUniverse)")
+        #endif
+        .toolbar(id: "animationEditor") {
+            if !readOnly {
+                ToolbarItem(id: "save", placement: .secondaryAction) {
                     Button(action: {
-                        playAnimationOnServer()
+                        saveAnimationToServer()
                     }) {
-                        Image(systemName: "play.fill")
+                        Image(systemName: "square.and.arrow.down")
+                            .symbolRenderingMode(.palette)
                     }
-                    // A brand-new animation doesn't exist on the server until it's saved,
-                    // and the server is the only place animations play.
-                    .disabled(createNew)
-                    .help("Play on Server (Universe \(activeUniverse))")
                 }
+            }
+            ToolbarItem(id: "play", placement: .secondaryAction) {
+                Button(action: {
+                    playAnimationOnServer()
+                }) {
+                    Image(systemName: "play.fill")
+                }
+                // A brand-new animation doesn't exist on the server until it's saved,
+                // and the server is the only place animations play.
+                .disabled(createNew)
+                .help("Play on Server (Universe \(activeUniverse))")
+            }
 
-                if !readOnly {
-                    ToolbarItem(id: "newTrack", placement: .primaryAction) {
-                        Menu {
-                            if availableCreatures.isEmpty {
-                                Label(
-                                    "No creatures available",
-                                    systemImage: "exclamationmark.triangle"
-                                )
-                                .foregroundStyle(.secondary)
-                                .disabled(true)
-                            } else {
-                                ForEach(availableCreatures) { creature in
-                                    Button {
-                                        selectedCreatureForRecording = creature
-                                    } label: {
-                                        Label(creature.name, systemImage: "record.circle")
-                                    }
+            if !readOnly {
+                ToolbarItem(id: "newTrack", placement: .primaryAction) {
+                    Menu {
+                        if availableCreatures.isEmpty {
+                            Label(
+                                "No creatures available",
+                                systemImage: "exclamationmark.triangle"
+                            )
+                            .foregroundStyle(.secondary)
+                            .disabled(true)
+                        } else {
+                            ForEach(availableCreatures) { creature in
+                                Button {
+                                    selectedCreatureForRecording = creature
+                                } label: {
+                                    Label(creature.name, systemImage: "record.circle")
                                 }
                             }
-                        } label: {
-                            Label("Add Track", systemImage: "waveform.path.badge.plus")
-                                .symbolRenderingMode(.multicolor)
                         }
-                        .disabled(
-                            model.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    } label: {
+                        Label("Add Track", systemImage: "waveform.path.badge.plus")
+                            .symbolRenderingMode(.multicolor)
                     }
+                    .disabled(
+                        model.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .onChange(of: creatures) { _, newCreatures in
-                availableCreatures = newCreatures.map { $0.toDTO() }
-                logger.debug("Loaded \(availableCreatures.count) creatures from SwiftData")
+        }
+        .onChange(of: creatures) { _, newCreatures in
+            availableCreatures = newCreatures.map { $0.toDTO() }
+            logger.debug("Loaded \(availableCreatures.count) creatures from SwiftData")
+        }
+        .onAppear {
+            availableCreatures = creatures.map { $0.toDTO() }
+        }
+        .onDisappear {
+            playAnimationTask?.cancel()
+            playAnimationTask = nil
+        }
+        .alert(
+            "Oooooh Shit", isPresented: $showErrorAlert,
+            actions: {
+                Button("Fuck", role: .cancel) {}
+            },
+            message: {
+                Text(errorMessage)
             }
-            .onAppear {
-                availableCreatures = creatures.map { $0.toDTO() }
+        )
+        .overlay {
+            if showStatusOverlay {
+                Text(statusMessage)
+                    .font(.title3)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassEffect(.regular.tint(.green), in: .capsule)
             }
-            .onDisappear {
-                playAnimationTask?.cancel()
-                playAnimationTask = nil
+        }
+        .navigationDestination(item: $selectedCreatureForRecording) { creature in
+            RecordTrack(creature: creature, localAnimation: model.animation) { track in
+                model.appendTrack(track)
+                model.syncFromAnimation()
             }
-            .alert(
-                "Oooooh Shit", isPresented: $showErrorAlert,
-                actions: {
-                    Button("Fuck", role: .cancel) {}
-                },
-                message: {
-                    Text(errorMessage)
-                }
-            )
-            .overlay {
-                if showStatusOverlay {
-                    Text(statusMessage)
-                        .font(.title3)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .glassEffect(.regular.tint(.green), in: .capsule)
-                }
-            }
-            .navigationDestination(item: $selectedCreatureForRecording) { creature in
-                RecordTrack(creature: creature, localAnimation: model.animation) { track in
-                    model.appendTrack(track)
-                    model.syncFromAnimation()
-                }
-                .task {
-                    // Align event loop/recording cadence with the animation's frame period
-                    await MainActor.run {
-                        UserDefaults.standard.set(
-                            Int(model.millisecondsPerFrame),
-                            forKey: "eventLoopMillisecondsPerFrame"
-                        )
-                    }
+            .task {
+                // Align event loop/recording cadence with the animation's frame period
+                await MainActor.run {
+                    UserDefaults.standard.set(
+                        Int(model.millisecondsPerFrame),
+                        forKey: "eventLoopMillisecondsPerFrame"
+                    )
                 }
             }
         }

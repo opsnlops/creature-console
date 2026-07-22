@@ -24,7 +24,7 @@ final class SwiftMessageProcessor: MessageProcessor, ObservableObject {
     }
 
     func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) async {
-        CacheInvalidationProcessor.processCacheInvalidation(cacheInvalidation)
+        CacheInvalidationProcessor.process(cacheInvalidation)
     }
 
     func processEmergencyStop(_ emergencyStop: EmergencyStop) async {

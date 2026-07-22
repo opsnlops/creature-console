@@ -357,7 +357,7 @@ struct FixtureEditor: View {
                     // Trigger a cache refresh; the websocket invalidation will arrive
                     // shortly after but the optimistic refresh helps the table update
                     // immediately for the user.
-                    CacheInvalidationProcessor.rebuildFixtureCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
                     original = saved
                     if createNew {
                         // Flip into edit-existing mode in-place so the user can keep
@@ -407,7 +407,7 @@ struct FixtureEditor: View {
                     logger.info("universe assigned to \(value) on \(updated.id)")
                     fixture.assignedUniverse = updated.assignedUniverse
                     original = updated
-                    CacheInvalidationProcessor.rebuildFixtureCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
                     infoTitle = "Universe Assigned"
                     infoMessage =
                         "Fixture '\(updated.name)' is now assigned to universe \(value)."
@@ -434,7 +434,7 @@ struct FixtureEditor: View {
                     fixture.assignedUniverse = updated.assignedUniverse  // server says nil
                     universeText = ""
                     original = updated
-                    CacheInvalidationProcessor.rebuildFixtureCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
                     infoTitle = "Universe Cleared"
                     infoMessage =
                         "Fixture '\(updated.name)' is no longer driving DMX."
@@ -459,7 +459,7 @@ struct FixtureEditor: View {
                 switch result {
                 case .success(let message):
                     logger.info("fixture deleted: \(message)")
-                    CacheInvalidationProcessor.rebuildFixtureCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
                     dismiss()
                 case .failure(let error):
                     showError(

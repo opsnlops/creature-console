@@ -106,12 +106,9 @@ actor AppState {
     }
 
     func setCurrentActivity(_ activity: Activity) {
-        self.logger.info(
-            "AppState: Setting activity to \(activity.description) (from: \(Thread.callStackSymbols.first ?? "unknown"))"
-        )
+        self.logger.info("AppState: Setting activity to \(activity.description)")
         self.currentActivity = activity
         self.publishState()
-        self.logger.info("AppState: Published state with activity \(activity.description)")
     }
 
     func setCurrentAnimation(_ animation: Common.Animation?) {
@@ -131,11 +128,7 @@ actor AppState {
     }
 
     // Getters for actor access
-    var getCurrentActivity: Activity {
-        self.logger.debug(
-            "AppState: getCurrentActivity called - returning \(self.currentActivity.description)")
-        return self.currentActivity
-    }
+    var getCurrentActivity: Activity { self.currentActivity }
     var getCurrentAnimation: Common.Animation? { self.currentAnimation }
     var getSelectedTrack: CreatureIdentifier? { self.selectedTrack }
     var getShowSystemAlert: Bool { self.showSystemAlert }

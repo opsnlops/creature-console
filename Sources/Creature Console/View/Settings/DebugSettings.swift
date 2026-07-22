@@ -15,31 +15,31 @@ struct DebugSettingsView: View {
     private let cacheActions: [(title: String, icon: String, action: () -> Void)] = [
         (
             "Creatures", "bird",
-            { CacheInvalidationProcessor.rebuildCreatureCache(deleteStaleEntries: true) }
+            { CacheInvalidationProcessor.rebuild(.creature, deleteStaleEntries: true) }
         ),
         (
             "Animations", "figure.dance",
-            { CacheInvalidationProcessor.rebuildAnimationCache(deleteStaleEntries: true) }
+            { CacheInvalidationProcessor.rebuild(.animation, deleteStaleEntries: true) }
         ),
         (
             "Playlists", "list.bullet",
-            { CacheInvalidationProcessor.rebuildPlaylistCache(deleteStaleEntries: true) }
+            { CacheInvalidationProcessor.rebuild(.playlist, deleteStaleEntries: true) }
         ),
         (
             "Sound List", "speaker.wave.2",
-            { CacheInvalidationProcessor.rebuildSoundListCache(deleteStaleEntries: true) }
+            { CacheInvalidationProcessor.rebuild(.soundList, deleteStaleEntries: true) }
         ),
         (
             "Fixtures", "lightbulb",
-            { CacheInvalidationProcessor.rebuildFixtureCache(deleteStaleEntries: true) }
+            { CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true) }
         ),
         (
             "Dialog Scripts", "text.bubble",
-            { CacheInvalidationProcessor.rebuildDialogScriptCache(deleteStaleEntries: true) }
+            { CacheInvalidationProcessor.rebuild(.dialogScript, deleteStaleEntries: true) }
         ),
         (
             "Storyboards", "rectangle.grid.2x2",
-            { CacheInvalidationProcessor.rebuildStoryboardCache(deleteStaleEntries: true) }
+            { CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true) }
         ),
     ]
 

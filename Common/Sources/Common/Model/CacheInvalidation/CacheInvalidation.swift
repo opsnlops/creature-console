@@ -1,4 +1,4 @@
-public enum CacheType: String, CustomStringConvertible, Codable {
+public enum CacheType: String, CustomStringConvertible, Codable, Sendable {
     case animation = "animation"
     case creature = "creature"
     case playlist = "playlist"
@@ -15,8 +15,8 @@ public enum CacheType: String, CustomStringConvertible, Codable {
     }
 }
 
-public class CacheInvalidation: Hashable, Equatable, Codable, Identifiable {
-    public var cacheType: CacheType
+public struct CacheInvalidation: Hashable, Codable, Sendable {
+    public let cacheType: CacheType
 
     public init() {
         self.cacheType = .unknown
@@ -26,26 +26,8 @@ public class CacheInvalidation: Hashable, Equatable, Codable, Identifiable {
         self.cacheType = cacheType
     }
 
-    public static func == (lhs: CacheInvalidation, rhs: CacheInvalidation) -> Bool {
-        lhs.cacheType == rhs.cacheType
-    }
-
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(cacheType)
-    }
-
     enum CodingKeys: String, CodingKey {
         case cacheType = "cache_type"
-    }
-
-    public required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        cacheType = try container.decode(CacheType.self, forKey: .cacheType)
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(cacheType, forKey: .cacheType)
     }
 }
 

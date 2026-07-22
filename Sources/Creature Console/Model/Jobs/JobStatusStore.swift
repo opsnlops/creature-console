@@ -57,9 +57,12 @@ actor JobStatusStore {
     private init() {}
 
     func events() -> AsyncStream<Event> {
-        AsyncStream { continuation in
-            Task { self.register(continuation: continuation) }
-        }
+        // makeStream lets registration happen synchronously on the actor — with the old
+        // `AsyncStream { Task { register(...) } }` shape, any event broadcast between stream
+        // creation and that deferred hop was silently missed by the new subscriber.
+        let (stream, continuation) = AsyncStream<Event>.makeStream()
+        register(continuation: continuation)
+        return stream
     }
 
     /// Watch a single job — the one shared implementation of the subscribe/filter/finish

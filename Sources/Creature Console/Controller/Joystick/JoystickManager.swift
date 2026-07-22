@@ -2,9 +2,8 @@ import Common
 import Foundation
 import GameController
 import OSLog
-import SwiftUI
 
-enum SelectedJoystick: Sendable {
+enum SelectedJoystick: Sendable, Equatable {
     case sixAxis
     case acw
     case none
@@ -29,15 +28,17 @@ struct JoystickManagerState: Sendable {
     let selectedJoystick: SelectedJoystick
 }
 
-/// A singleton that reflects the current state of the joystick
+/// A singleton that reflects the current state of the joystick.
+///
+/// The hardware joysticks themselves are `@MainActor` (IOKit and GameController both deliver
+/// on the main run loop); this actor mirrors their state once per event-loop tick via a single
+/// main-actor hop and fans it out to subscribers off the main thread.
 actor JoystickManager {
     static let shared = JoystickManager()
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "JoystickManager")
 
-    @AppStorage("useOurJoystick") var useOurJoystick: Bool = false
-
-    /// Current state of all joystick inputs
+    /// Current state of all joystick inputs, mirrored from the active joystick each poll
     var aButtonPressed = false
     var bButtonPressed = false
     var xButtonPressed = false
@@ -48,6 +49,7 @@ actor JoystickManager {
     var serialNumber: String?
     var versionNumber: Int?
     var manufacturer: String?
+    private var selectedJoystick: SelectedJoystick = .sixAxis
 
     private var continuations: [UUID: AsyncStream<JoystickManagerState>.Continuation] = [:]
 
@@ -64,10 +66,11 @@ actor JoystickManager {
     }
 
 
-    // Behold, the two genders
-    var sixAxisJoystick: SixAxisJoystick
+    // Behold, the two genders. Immutable references to @MainActor objects, so both the actor
+    // and main-actor sides of this type can reach them.
+    let sixAxisJoystick: SixAxisJoystick
     #if os(macOS)
-        var acwJoystick: AprilsCreatureWorkshopJoystick
+        let acwJoystick: AprilsCreatureWorkshopJoystick
     #endif
 
 
@@ -85,113 +88,110 @@ actor JoystickManager {
             await self.updateJoystickLightFromCurrentAppState()
 
             for await appState in await AppState.shared.stateUpdates {
-                logger.info(
-                    "JoystickManager: Received AppState update, activity: \(appState.currentActivity.description)"
-                )
                 await self.updateJoystickLight(activity: appState.currentActivity)
             }
             logger.warning("JoystickManager: AppState AsyncStream ended unexpectedly")
         }
     }
 
-
-    /// Called from the EventManager when it's time for us to poll the joystick and update any changed values
-    func poll() {
-
-        // AppState changes are handled by the stateUpdates subscription in startListeningForAppStateChanges()
-        // No need to poll AppState here since we already have a reactive subscription
-
-        // Which joystick should we use for this pass?
-        let joystick = getActiveJoystick()
-
-
-        // If we have a joystick, poll it
-        if joystick.isConnected() {
-
-            // Tell the joystick to poll itself
-            joystick.poll()
-
-
-            //
-            // Now look at each value and only update things if there's a change. This saves
-            // sending a bunch of Published events when nothing actually changes. (It also limits
-            // them to running at our EventLoop speed.)
-            //
-            var stateChanged = false
-
-            if joystick.aButtonPressed != self.aButtonPressed {
-                self.aButtonPressed = joystick.aButtonPressed
-                stateChanged = true
-            }
-
-            if joystick.bButtonPressed != self.bButtonPressed {
-                self.bButtonPressed = joystick.bButtonPressed
-                stateChanged = true
-            }
-
-            if joystick.xButtonPressed != self.xButtonPressed {
-                self.xButtonPressed = joystick.xButtonPressed
-                stateChanged = true
-            }
-
-            if joystick.yButtonPressed != self.yButtonPressed {
-                self.yButtonPressed = joystick.yButtonPressed
-                stateChanged = true
-            }
-
-            if joystick.getValues() != self.values {
-                self.values = joystick.getValues()
-                stateChanged = true
-            }
-
-            if stateChanged {
-                publishState()
-            }
-
-            if joystick.isConnected() != self.connected {
-                self.connected = joystick.isConnected()
-            }
-
-            if joystick.serialNumber != self.serialNumber {
-                self.serialNumber = joystick.serialNumber
-            }
-
-            if joystick.versionNumber != self.versionNumber {
-                self.versionNumber = joystick.versionNumber
-            }
-
-            if joystick.manufacturer != self.manufacturer {
-                self.manufacturer = joystick.manufacturer
-            }
-
-        }
+    /// Everything `poll()` needs from the active joystick, read in one main-actor hop.
+    private struct JoystickSnapshot: Sendable {
+        let selected: SelectedJoystick
+        let connected: Bool
+        let values: [UInt8]
+        let aButtonPressed: Bool
+        let bButtonPressed: Bool
+        let xButtonPressed: Bool
+        let yButtonPressed: Bool
+        let serialNumber: String?
+        let versionNumber: Int?
+        let manufacturer: String?
     }
 
-
-    /// Return whatever the joystick is we should use for an operation
-    func getActiveJoystick() -> Joystick {
-
-        var joystick: Joystick
-
-        /**
-         On macOS we could our joystick, or the system one.
-         */
+    /// Return whatever joystick we should use for an operation.
+    ///
+    /// On macOS this could be our own hardware or the system one; on iOS/tvOS IOKit doesn't
+    /// exist, so it's always the system joystick.
+    @MainActor
+    private var activeJoystick: (joystick: Joystick, selected: SelectedJoystick) {
         #if os(macOS)
-            if acwJoystick.connected && useOurJoystick {
-                joystick = acwJoystick
-            } else {
-                joystick = sixAxisJoystick
+            if acwJoystick.connected
+                && UserDefaults.standard.bool(forKey: "useOurJoystick")
+            {
+                return (acwJoystick, .acw)
             }
         #endif
+        return (sixAxisJoystick, .sixAxis)
+    }
 
-        /**
-         On iOS we don't have a choice. IOKit does not exist there.
-         */
-        #if os(iOS) || os(tvOS)
-            joystick = sixAxisJoystick
-        #endif
+    @MainActor
+    private func pollActiveJoystick() -> JoystickSnapshot {
+        let (joystick, selected) = activeJoystick
 
-        return joystick
+        if joystick.isConnected() {
+            joystick.poll()
+        }
+
+        return JoystickSnapshot(
+            selected: selected,
+            connected: joystick.isConnected(),
+            values: joystick.getValues(),
+            aButtonPressed: joystick.aButtonPressed,
+            bButtonPressed: joystick.bButtonPressed,
+            xButtonPressed: joystick.xButtonPressed,
+            yButtonPressed: joystick.yButtonPressed,
+            serialNumber: joystick.serialNumber,
+            versionNumber: joystick.versionNumber,
+            manufacturer: joystick.manufacturer
+        )
+    }
+
+    /// Called from the EventLoop when it's time for us to poll the joystick and mirror any
+    /// changed values. Only publishes when something actually changed, which limits UI updates
+    /// to the event-loop rate.
+    func poll() async {
+        let snapshot = await pollActiveJoystick()
+
+        var stateChanged = false
+
+        if snapshot.selected != self.selectedJoystick {
+            self.selectedJoystick = snapshot.selected
+            stateChanged = true
+        }
+
+        if snapshot.aButtonPressed != self.aButtonPressed {
+            self.aButtonPressed = snapshot.aButtonPressed
+            stateChanged = true
+        }
+
+        if snapshot.bButtonPressed != self.bButtonPressed {
+            self.bButtonPressed = snapshot.bButtonPressed
+            stateChanged = true
+        }
+
+        if snapshot.xButtonPressed != self.xButtonPressed {
+            self.xButtonPressed = snapshot.xButtonPressed
+            stateChanged = true
+        }
+
+        if snapshot.yButtonPressed != self.yButtonPressed {
+            self.yButtonPressed = snapshot.yButtonPressed
+            stateChanged = true
+        }
+
+        if snapshot.values != self.values {
+            self.values = snapshot.values
+            stateChanged = true
+        }
+
+        if stateChanged {
+            publishState()
+        }
+
+        self.connected = snapshot.connected
+        self.serialNumber = snapshot.serialNumber
+        self.versionNumber = snapshot.versionNumber
+        self.manufacturer = snapshot.manufacturer
     }
 
     func getValues() -> [UInt8] {
@@ -204,17 +204,7 @@ actor JoystickManager {
     var getVersionNumber: Int? { versionNumber }
 
     private func currentSnapshot() -> JoystickManagerState {
-        let selectedJoystick: SelectedJoystick
-        #if os(macOS)
-            if acwJoystick.connected && useOurJoystick {
-                selectedJoystick = .acw
-            } else {
-                selectedJoystick = .sixAxis
-            }
-        #else
-            selectedJoystick = .sixAxis
-        #endif
-        return JoystickManagerState(
+        JoystickManagerState(
             aButtonPressed: aButtonPressed,
             bButtonPressed: bButtonPressed,
             xButtonPressed: xButtonPressed,
@@ -237,52 +227,48 @@ actor JoystickManager {
 
     private func publishState() {
         let snapshot = currentSnapshot()
-        logger.debug(
-            "JoystickManager: Broadcasting state (A: \(self.aButtonPressed), B: \(self.bButtonPressed), X: \(self.xButtonPressed), Y: \(self.yButtonPressed), selected: \(String(describing: snapshot.selectedJoystick)))"
-        )
         for continuation in continuations.values {
             continuation.yield(snapshot)
         }
     }
 
+    @MainActor
     func updateJoystickLight(activity: Activity) {
-        logger.info(
-            "JoystickManager: Updating joystick light for activity: \(activity.description)")
-        let joystick = getActiveJoystick()
-        joystick.updateJoystickLight(activity: activity)
+        activeJoystick.joystick.updateJoystickLight(activity: activity)
     }
 
     func updateJoystickLightFromCurrentAppState() async {
         let currentActivity = await AppState.shared.getCurrentActivity
-        logger.info(
-            "JoystickManager: Updating joystick light from current AppState: \(currentActivity.description)"
-        )
-        let joystick = getActiveJoystick()
-        joystick.updateJoystickLight(activity: currentActivity)
+        await updateJoystickLight(activity: currentActivity)
     }
 
+    @MainActor
     func getBButtonSymbol() -> String {
-        let joystick = getActiveJoystick()
-        return joystick.getBButtonSymbol()
+        activeJoystick.joystick.getBButtonSymbol()
     }
 
+    @MainActor
     func getAButtonSymbol() -> String {
-        let joystick = getActiveJoystick()
-        return joystick.getAButtonSymbol()
+        activeJoystick.joystick.getAButtonSymbol()
     }
 
+    @MainActor
     func getXButtonSymbol() -> String {
-        let joystick = getActiveJoystick()
-        return joystick.getXButtonSymbol()
+        activeJoystick.joystick.getXButtonSymbol()
     }
 
+    @MainActor
     func getYButtonSymbol() -> String {
-        let joystick = getActiveJoystick()
-        return joystick.getYButtonSymbol()
+        activeJoystick.joystick.getYButtonSymbol()
     }
 
-    func setSixAxisController(_ controller: SendableGCController?) {
-        sixAxisJoystick.controller = controller?.controller
+    /// Re-scan the connected GameController devices and adopt the first extended gamepad.
+    /// Called on connect/disconnect notifications; scanning here (instead of passing the
+    /// controller in) keeps the non-Sendable `GCController` from ever crossing isolation.
+    @MainActor
+    func refreshSixAxisController() {
+        let controller = GCController.controllers().first(where: { $0.extendedGamepad != nil })
+        sixAxisJoystick.controller = controller
 
         // Update light when controller connects based on current AppState
         if controller != nil {
@@ -292,6 +278,7 @@ actor JoystickManager {
         }
     }
 
+    @MainActor
     func configureACWJoystick() {
         #if os(macOS)
             acwJoystick.setMatchingCriteria()
@@ -302,14 +289,11 @@ actor JoystickManager {
     }
 
     func playRecordingCountdownHaptics() async {
-        // Capture the reference on this actor to satisfy isolation
-        let joystick = self.sixAxisJoystick
-        await joystick.playRecordingCountdownHapticsFromAnyActor()
+        await sixAxisJoystick.playRecordingCountdownHaptics()
     }
 
     func cancelRecordingCountdownHaptics() async {
-        let joystick = self.sixAxisJoystick
-        await joystick.cancelRecordingCountdownHapticsFromAnyActor()
+        await sixAxisJoystick.cancelRecordingCountdownHaptics()
     }
 }
 

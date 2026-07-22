@@ -1,31 +1,27 @@
 import Common
 import Foundation
 import OSLog
-import SwiftUI
 
-/// This EventLoop runs on a background thread!
+/// The 50 Hz heartbeat of the console.
 ///
-/// This means that updates to the UI need to be dispatched to the main thread. This can be done like this:
-///
-/// DispatchQueue.main.async {
-///    doAThing();
-/// }
+/// A structured `ContinuousClock` loop owned by this actor: each tick polls the joystick and
+/// then runs the creature manager's tick **in order** (streaming frames always see the freshest
+/// joystick values), and back-pressure is real — if a tick overruns its frame budget the loop
+/// simply starts the next one late instead of piling up unstructured Tasks.
 actor EventLoop {
 
     // Make a singleton out of this
     static let shared = EventLoop()
 
-    private var timer: DispatchSourceTimer?
+    private var loopTask: Task<Void, Never>?
     private(set) var number_of_frames: Int64 = 0
-
-    // Access other actors as needed - no stored references to avoid isolation issues
 
     /**
      Keep track of how much spare time we have in each frame. I have nothing but very fast Macs, so this should rarely be
      an issue, but if it is, I'd like for it to be shown to the status bar
      */
 
-    var frameSpareTime: Double = 0  // Updated value (no longer @Published since actors can't have @Published)
+    var frameSpareTime: Double = 0
     var localFrameSpareTime: Double = 0  // Updated every loop
 
     private var millisecondPerFrame: Int
@@ -44,10 +40,13 @@ actor EventLoop {
 
         // Read configuration once at startup
         let defaults = UserDefaults.standard
-        self.millisecondPerFrame = (defaults.object(forKey: "eventLoopMillisecondsPerFrame") as? Int) ?? 20
-        self.logSpareTimeFrameInterval = (defaults.object(forKey: "logSpareTimeFrameInterval") as? Int) ?? 1000
+        self.millisecondPerFrame =
+            (defaults.object(forKey: "eventLoopMillisecondsPerFrame") as? Int) ?? 20
+        self.logSpareTimeFrameInterval =
+            (defaults.object(forKey: "logSpareTimeFrameInterval") as? Int) ?? 1000
         self.logSpareTime = (defaults.object(forKey: "logSpareTime") as? Bool) ?? false
-        self.updateSpareTimeStatusInterval = (defaults.object(forKey: "updateSpareTimeStatusInterval") as? Int) ?? 20
+        self.updateSpareTimeStatusInterval =
+            (defaults.object(forKey: "updateSpareTimeStatusInterval") as? Int) ?? 20
 
         // Configure the number formatter
         numberFormatter.numberStyle = .decimal
@@ -55,48 +54,38 @@ actor EventLoop {
         numberFormatter.minimumFractionDigits = 2
 
         Task {
-            await startTimer()
+            await startLoop()
         }
 
         logger.info("event loop started")
     }
 
     deinit {
-        timer?.cancel()
-        timer = nil
+        loopTask?.cancel()
         logger.info("event loop stopped")
     }
 
 
-    /// Main Event Loop
-    private func update() {
+    /// One frame of the event loop
+    private func tick() async {
 
-        // Keep metrics on how long the the loop takes
-        let startTime = DispatchTime.now()
-
+        let clock = ContinuousClock()
+        let startTime = clock.now
 
         // Update our metrics
         number_of_frames += 1
 
-        // Tell the `JoystickManager` it's time to poll
-        Task {
-            await JoystickManager.shared.poll()
-        }
-
-        // Tell the creature manager we've set everything up for it
-        Task {
-            await CreatureManager.shared.onEventLoopTick()
-        }
-
-
-        // Update metrics
-        let endTime = DispatchTime.now()
-        let elapsedTime = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
+        // Poll the joystick first, then let the creature manager consume the fresh values
+        await JoystickManager.shared.poll()
+        await CreatureManager.shared.onEventLoopTick()
 
         // Figure out our spare time this cycle
-        let elapsedTimeInMilliseconds = Double(elapsedTime) / 1_000_000.0
-        let frameTimeInNanoseconds = Double(millisecondPerFrame) * 1_000_000.0
-        localFrameSpareTime = (1 - (Double(elapsedTime) / frameTimeInNanoseconds)) * 100.0
+        let elapsed = clock.now - startTime
+        let elapsedTimeInMilliseconds =
+            Double(elapsed.components.seconds) * 1_000.0
+            + Double(elapsed.components.attoseconds) / 1e15
+        localFrameSpareTime =
+            (1 - (elapsedTimeInMilliseconds / Double(millisecondPerFrame))) * 100.0
 
         // If it's time to print out a logging message with our info, do it now
         if self.logSpareTime && number_of_frames % Int64(logSpareTimeFrameInterval) == 1 {
@@ -114,29 +103,30 @@ actor EventLoop {
             self.frameSpareTime = self.localFrameSpareTime
         }
 
-
     }
 
 
-    private func startTimer() {
+    private func startLoop() {
         logger.info("Starting event loop at \(self.millisecondPerFrame)ms per frame")
 
-        timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
-        timer?.setEventHandler { [weak self] in
-            guard let self = self else { return }
-            Task {
-                await self.update()
+        let period = Duration.milliseconds(millisecondPerFrame)
+        loopTask?.cancel()
+        loopTask = Task { [weak self] in
+            let clock = ContinuousClock()
+            var nextTick = clock.now
+            while !Task.isCancelled {
+                nextTick = nextTick.advanced(by: period)
+                // Re-bind weakly each frame so a discarded (mock) event loop can deinit
+                guard let self else { return }
+                await self.tick()
+                try? await clock.sleep(until: nextTick)
             }
         }
-        timer?.schedule(
-            deadline: .now(), repeating: .milliseconds(millisecondPerFrame), leeway: .nanoseconds(0)
-        )
-        timer?.resume()
     }
 
-    private func stopTimer() {
-        timer?.cancel()
-        timer = nil
+    private func stopLoop() {
+        loopTask?.cancel()
+        loopTask = nil
     }
 
     // Setter methods for mock setup
@@ -165,4 +155,3 @@ extension EventLoop {
         return mockEventLoop
     }
 }
-

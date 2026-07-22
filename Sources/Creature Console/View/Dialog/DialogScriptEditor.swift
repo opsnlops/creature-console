@@ -451,7 +451,7 @@ struct DialogScriptEditor: View {
                     original = saved
                     script = saved
                     createNew = false
-                    CacheInvalidationProcessor.rebuildDialogScriptCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.dialogScript, deleteStaleEntries: true)
                     flashSavedBanner()
                 case .failure(let error):
                     showError(
@@ -472,7 +472,7 @@ struct DialogScriptEditor: View {
                 switch result {
                 case .success(let message):
                     logger.info("dialog script deleted: \(message)")
-                    CacheInvalidationProcessor.rebuildDialogScriptCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.dialogScript, deleteStaleEntries: true)
                     dismiss()
                 case .failure(let error):
                     showError(

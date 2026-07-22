@@ -394,7 +394,7 @@ struct StoryboardEditor: View {
                     original = saved
                     board = saved
                     createNew = false
-                    CacheInvalidationProcessor.rebuildStoryboardCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
                     flashSavedBanner()
                 case .failure(let error):
                     showError("Save Failed", ServerError.detailedMessage(from: error))
@@ -413,7 +413,7 @@ struct StoryboardEditor: View {
                 isSaving = false
                 switch result {
                 case .success:
-                    CacheInvalidationProcessor.rebuildStoryboardCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
                     dismiss()
                 case .failure(let error):
                     showError("Delete Failed", ServerError.detailedMessage(from: error))

@@ -2,448 +2,124 @@ import Common
 import Foundation
 import OSLog
 import SwiftData
-import SwiftUI
 
-struct CacheInvalidationProcessor {
+/// Rebuilds the local SwiftData caches when the server invalidates them (or the user asks).
+///
+/// An actor: invalidations arrive on the websocket pipeline and can overlap with user-triggered
+/// rebuilds (Debug settings) and the cancel-everything path in `rebuildAll()`, so the per-cache
+/// task handles need real isolation. Rebuilds of the *same* cache supersede each other; rebuilds
+/// of different caches run independently.
+actor CacheInvalidationProcessor {
 
-    static let logger = Logger(
+    static let shared = CacheInvalidationProcessor()
+
+    private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "CacheInvalidationProcessor")
 
-    // TODO: Learn more about Swift 6 😅
-    static nonisolated(unsafe) private var loadCeaturesTask: Task<Void, Never>? = nil
-    static nonisolated(unsafe) private var loadAnimationsTask: Task<Void, Never>? = nil
-    static nonisolated(unsafe) private var loadPlaylistsTask: Task<Void, Never>? = nil
-    static nonisolated(unsafe) private var loadSoundListsTask: Task<Void, Never>? = nil
-    static nonisolated(unsafe) private var loadFixturesTask: Task<Void, Never>? = nil
-    static nonisolated(unsafe) private var loadDialogScriptsTask: Task<Void, Never>? = nil
-    static nonisolated(unsafe) private var loadStoryboardsTask: Task<Void, Never>? = nil
+    /// The caches this processor knows how to rebuild, in the order `rebuildAll()` runs them.
+    enum Cache: CaseIterable, Sendable {
+        case creature
+        case animation
+        case playlist
+        case soundList
+        case fixture
+        case dialogScript
+        case storyboard
 
-
-    static func processCacheInvalidation(_ request: CacheInvalidation) {
-        switch request.cacheType {
-        case .creature:
-            rebuildCreatureCache(deleteStaleEntries: true)
-        case .animation:
-            rebuildAnimationCache(deleteStaleEntries: true)
-        case .playlist:
-            rebuildPlaylistCache(deleteStaleEntries: true)
-        case .soundList:
-            rebuildSoundListCache(deleteStaleEntries: true)
-        case .fixture:
-            rebuildFixtureCache(deleteStaleEntries: true)
-        case .dialogScriptList:
-            rebuildDialogScriptCache(deleteStaleEntries: true)
-        case .storyboardList:
-            rebuildStoryboardCache(deleteStaleEntries: true)
-        case .adHocAnimationList:
-            logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
-        case .adHocSoundList:
-            logger.info("ad-hoc sound cache invalidation received - refresh handler pending")
-        default:
-            return
-
-        }
-    }
-
-
-    // Async version that can be awaited for sequential execution
-    private static func rebuildCreatureCacheAsync(deleteStaleEntries: Bool = false) async {
-        logger.debug("calling out to the server now...")
-        let server = CreatureServerClient.shared
-        let result = await server.getAllCreatures()
-        switch result {
-        case .success(let creatures):
-            do {
-                let container = await SwiftDataStore.shared.container()
-                let importer = CreatureImporter(modelContainer: container)
-
-                // Optionally delete entries not in the server response
-                if deleteStaleEntries {
-                    let ids = Set(creatures.map { $0.id })
-                    try await importer.deleteAllExcept(ids: ids)
-                    logger.debug("deleted stale creature entries not in server response")
-                }
-
-                try await importer.upsertBatch(creatures)
-                logger.info(
-                    "(re)built the creature cache in SwiftData: imported \(creatures.count) creatures"
-                )
-            } catch {
-                logger.warning(
-                    "unable to import creatures into SwiftData: \(error.localizedDescription)")
-                await AppState.shared.setSystemAlert(
-                    show: true,
-                    message:
-                        "Unable to reload the creature cache after getting an invalidation message: \(error.localizedDescription)"
-                )
+        var noun: String {
+            switch self {
+            case .creature: return "creature"
+            case .animation: return "animation"
+            case .playlist: return "playlist"
+            case .soundList: return "sound list"
+            case .fixture: return "fixture"
+            case .dialogScript: return "dialog script"
+            case .storyboard: return "storyboard"
             }
-        case .failure(let error):
-            logger.warning(
-                "unable to fetch creatures from server: \(error.localizedDescription)")
-            await AppState.shared.setSystemAlert(
-                show: true,
-                message:
-                    "Unable to fetch creatures after invalidation: \(error.localizedDescription)"
-            )
         }
     }
 
-    static func rebuildCreatureCache(deleteStaleEntries: Bool = false) {
-        logger.info("attempting to rebuild the creature cache (SwiftData import)")
+    private var rebuildTasks: [Cache: Task<Void, Never>] = [:]
 
-        loadCeaturesTask?.cancel()
+    private init() {}
 
-        loadCeaturesTask = Task {
-            await rebuildCreatureCacheAsync(deleteStaleEntries: deleteStaleEntries)
-        }
+
+    // MARK: - Fire-and-forget conveniences for synchronous call sites
+
+    static func process(_ request: CacheInvalidation) {
+        Task { await shared.process(request) }
     }
 
-    // Async version that can be awaited for sequential execution
-    private static func rebuildAnimationCacheAsync(deleteStaleEntries: Bool = false) async {
-        logger.debug("calling out to the server now...")
-        let server = CreatureServerClient.shared
-        let result = await server.listAnimations()
-        switch result {
-        case .success(let animations):
-            do {
-                let container = await SwiftDataStore.shared.container()
-                let importer = AnimationMetadataImporter(modelContainer: container)
-
-                // Optionally delete entries not in the server response
-                if deleteStaleEntries {
-                    let ids = Set(animations.map { $0.id })
-                    try await importer.deleteAllExcept(ids: ids)
-                    logger.debug("deleted stale animation entries not in server response")
-                }
-
-                try await importer.upsertBatch(animations)
-                logger.info(
-                    "(re)built the animation cache in SwiftData: imported \(animations.count) animations"
-                )
-            } catch {
-                logger.warning(
-                    "unable to import animations into SwiftData: \(error.localizedDescription)")
-                await AppState.shared.setSystemAlert(
-                    show: true,
-                    message:
-                        "Unable to reload the animation cache after getting an invalidation message: \(error.localizedDescription)"
-                )
-            }
-        case .failure(let error):
-            logger.warning(
-                "unable to fetch animations from server: \(error.localizedDescription)")
-            await AppState.shared.setSystemAlert(
-                show: true,
-                message:
-                    "Unable to fetch animations after invalidation: \(error.localizedDescription)"
-            )
-        }
-    }
-
-    static func rebuildAnimationCache(deleteStaleEntries: Bool = false) {
-        logger.info("attempting to rebuild the animation cache (SwiftData import)")
-
-        loadAnimationsTask?.cancel()
-
-        loadAnimationsTask = Task {
-            await rebuildAnimationCacheAsync(deleteStaleEntries: deleteStaleEntries)
-        }
-    }
-
-    // Async version that can be awaited for sequential execution
-    private static func rebuildPlaylistCacheAsync(deleteStaleEntries: Bool = false) async {
-        logger.debug("calling out to the server now...")
-        let server = CreatureServerClient.shared
-        let result = await server.getAllPlaylists()
-        switch result {
-        case .success(let playlists):
-            do {
-                let container = await SwiftDataStore.shared.container()
-                let importer = PlaylistImporter(modelContainer: container)
-
-                // Optionally delete entries not in the server response
-                if deleteStaleEntries {
-                    let ids = Set(playlists.map { $0.id })
-                    try await importer.deleteAllExcept(ids: ids)
-                    logger.debug("deleted stale playlist entries not in server response")
-                }
-
-                try await importer.upsertBatch(playlists)
-                logger.info(
-                    "(re)built the playlist cache in SwiftData: imported \(playlists.count) playlists"
-                )
-            } catch {
-                logger.warning(
-                    "unable to import playlists into SwiftData: \(error.localizedDescription)")
-                await AppState.shared.setSystemAlert(
-                    show: true,
-                    message:
-                        "Unable to reload the playlist cache after getting an invalidation message: \(error.localizedDescription)"
-                )
-            }
-        case .failure(let error):
-            logger.warning(
-                "unable to fetch playlists from server: \(error.localizedDescription)")
-            await AppState.shared.setSystemAlert(
-                show: true,
-                message:
-                    "Unable to fetch playlists after invalidation: \(error.localizedDescription)"
-            )
-        }
-    }
-
-    static func rebuildPlaylistCache(deleteStaleEntries: Bool = false) {
-        logger.info("attempting to rebuild the playlist cache (SwiftData import)")
-
-        loadPlaylistsTask?.cancel()
-
-        loadPlaylistsTask = Task {
-            await rebuildPlaylistCacheAsync(deleteStaleEntries: deleteStaleEntries)
-        }
-    }
-
-
-    // Async version that can be awaited for sequential execution
-    private static func rebuildSoundListCacheAsync(deleteStaleEntries: Bool = false) async {
-        logger.debug("calling out to the server now...")
-        let server = CreatureServerClient.shared
-        let result = await server.listSounds()
-        switch result {
-        case .success(let sounds):
-            do {
-                let container = await SwiftDataStore.shared.container()
-                let importer = SoundImporter(modelContainer: container)
-
-                // Optionally delete entries not in the server response
-                if deleteStaleEntries {
-                    let ids = Set(sounds.map { $0.id })
-                    try await importer.deleteAllExcept(ids: ids)
-                    logger.debug("deleted stale sound entries not in server response")
-                }
-
-                try await importer.upsertBatch(sounds)
-                logger.info(
-                    "(re)built the sound list in SwiftData: imported \(sounds.count) sounds")
-            } catch {
-                logger.warning(
-                    "unable to import sounds into SwiftData: \(error.localizedDescription)")
-                await AppState.shared.setSystemAlert(
-                    show: true,
-                    message:
-                        "Unable to reload the sound list after getting an invalidation message: \(error.localizedDescription)"
-                )
-            }
-        case .failure(let error):
-            logger.warning("unable to fetch sounds from server: \(error.localizedDescription)")
-            await AppState.shared.setSystemAlert(
-                show: true,
-                message:
-                    "Unable to fetch sounds after invalidation: \(error.localizedDescription)"
-            )
-        }
-    }
-
-    static func rebuildSoundListCache(deleteStaleEntries: Bool = false) {
-        logger.info("attempting to rebuild the sound list (SwiftData import)")
-
-        loadSoundListsTask?.cancel()
-
-        loadSoundListsTask = Task {
-            await rebuildSoundListCacheAsync(deleteStaleEntries: deleteStaleEntries)
-        }
+    static func rebuild(_ cache: Cache, deleteStaleEntries: Bool = false) {
+        Task { await shared.rebuild(cache, deleteStaleEntries: deleteStaleEntries) }
     }
 
     /// A permanent dialog render writes to both the animation and sound collections, so the
     /// render + re-render surfaces refresh both once the job completes (rather than waiting on
     /// the websocket invalidation). One call so those sites don't drift apart.
     static func rebuildAfterDialogRender() {
-        rebuildAnimationCache(deleteStaleEntries: true)
-        rebuildSoundListCache(deleteStaleEntries: true)
-    }
-
-
-    // Async version that can be awaited for sequential execution
-    private static func rebuildFixtureCacheAsync(deleteStaleEntries: Bool = false) async {
-        logger.debug("calling out to the server now...")
-        let server = CreatureServerClient.shared
-        let result = await server.getAllFixtures()
-        switch result {
-        case .success(let fixtures):
-            do {
-                let container = await SwiftDataStore.shared.container()
-                let importer = DmxFixtureImporter(modelContainer: container)
-
-                if deleteStaleEntries {
-                    let ids = Set(fixtures.map { $0.id })
-                    try await importer.deleteAllExcept(ids: ids)
-                    logger.debug("deleted stale fixture entries not in server response")
-                }
-
-                try await importer.upsertBatch(fixtures)
-                logger.info(
-                    "(re)built the fixture cache in SwiftData: imported \(fixtures.count) fixtures"
-                )
-            } catch {
-                logger.warning(
-                    "unable to import fixtures into SwiftData: \(error.localizedDescription)")
-                await AppState.shared.setSystemAlert(
-                    show: true,
-                    message:
-                        "Unable to reload the fixture cache after getting an invalidation message: \(error.localizedDescription)"
-                )
-            }
-        case .failure(let error):
-            logger.warning(
-                "unable to fetch fixtures from server: \(error.localizedDescription)")
-            await AppState.shared.setSystemAlert(
-                show: true,
-                message:
-                    "Unable to fetch fixtures after invalidation: \(error.localizedDescription)"
-            )
-        }
-    }
-
-    static func rebuildFixtureCache(deleteStaleEntries: Bool = false) {
-        logger.info("attempting to rebuild the fixture cache (SwiftData import)")
-
-        loadFixturesTask?.cancel()
-
-        loadFixturesTask = Task {
-            await rebuildFixtureCacheAsync(deleteStaleEntries: deleteStaleEntries)
-        }
-    }
-
-    // Async version that can be awaited for sequential execution
-    private static func rebuildDialogScriptCacheAsync(deleteStaleEntries: Bool = false) async {
-        logger.debug("calling out to the server now...")
-        let server = CreatureServerClient.shared
-        let result = await server.listDialogScripts()
-        switch result {
-        case .success(let scripts):
-            do {
-                let container = await SwiftDataStore.shared.container()
-                let importer = DialogScriptImporter(modelContainer: container)
-
-                if deleteStaleEntries {
-                    let ids = Set(scripts.map { $0.id })
-                    try await importer.deleteAllExcept(ids: ids)
-                    logger.debug("deleted stale dialog script entries not in server response")
-                }
-
-                try await importer.upsertBatch(scripts)
-                logger.info(
-                    "(re)built the dialog script cache in SwiftData: imported \(scripts.count) scripts"
-                )
-            } catch {
-                logger.warning(
-                    "unable to import dialog scripts into SwiftData: \(error.localizedDescription)")
-                await AppState.shared.setSystemAlert(
-                    show: true,
-                    message:
-                        "Unable to reload the dialog script cache after getting an invalidation message: \(error.localizedDescription)"
-                )
-            }
-        case .failure(let error):
-            logger.warning(
-                "unable to fetch dialog scripts from server: \(error.localizedDescription)")
-            await AppState.shared.setSystemAlert(
-                show: true,
-                message:
-                    "Unable to fetch dialog scripts after invalidation: \(error.localizedDescription)"
-            )
-        }
-    }
-
-    static func rebuildDialogScriptCache(deleteStaleEntries: Bool = false) {
-        logger.info("attempting to rebuild the dialog script cache (SwiftData import)")
-
-        loadDialogScriptsTask?.cancel()
-
-        loadDialogScriptsTask = Task {
-            await rebuildDialogScriptCacheAsync(deleteStaleEntries: deleteStaleEntries)
-        }
-    }
-
-    // Async version that can be awaited for sequential execution
-    private static func rebuildStoryboardCacheAsync(deleteStaleEntries: Bool = false) async {
-        logger.debug("calling out to the server now...")
-        let server = CreatureServerClient.shared
-        let result = await server.listStoryboards()
-        switch result {
-        case .success(let storyboards):
-            do {
-                let container = await SwiftDataStore.shared.container()
-                let importer = StoryboardImporter(modelContainer: container)
-
-                if deleteStaleEntries {
-                    let ids = Set(storyboards.map { $0.id })
-                    try await importer.deleteAllExcept(ids: ids)
-                    logger.debug("deleted stale storyboard entries not in server response")
-                }
-
-                try await importer.upsertBatch(storyboards)
-                logger.info(
-                    "(re)built the storyboard cache in SwiftData: imported \(storyboards.count) storyboards"
-                )
-            } catch {
-                logger.warning(
-                    "unable to import storyboards into SwiftData: \(error.localizedDescription)")
-                await AppState.shared.setSystemAlert(
-                    show: true,
-                    message:
-                        "Unable to reload the storyboard cache after getting an invalidation message: \(error.localizedDescription)"
-                )
-            }
-        case .failure(let error):
-            logger.warning(
-                "unable to fetch storyboards from server: \(error.localizedDescription)")
-            await AppState.shared.setSystemAlert(
-                show: true,
-                message:
-                    "Unable to fetch storyboards after invalidation: \(error.localizedDescription)"
-            )
-        }
-    }
-
-    static func rebuildStoryboardCache(deleteStaleEntries: Bool = false) {
-        logger.info("attempting to rebuild the storyboard cache (SwiftData import)")
-
-        loadStoryboardsTask?.cancel()
-
-        loadStoryboardsTask = Task {
-            await rebuildStoryboardCacheAsync(deleteStaleEntries: deleteStaleEntries)
-        }
+        rebuild(.animation, deleteStaleEntries: true)
+        rebuild(.soundList, deleteStaleEntries: true)
     }
 
     static func rebuildAllCaches() {
-        Task {
-            await rebuildAllCachesAsync()
+        Task { await shared.rebuildAll() }
+    }
+
+    static func resetLocalStoreAndResync() async throws {
+        try await shared.resetAndResync()
+    }
+
+
+    // MARK: - Actor-isolated implementation
+
+    func process(_ request: CacheInvalidation) {
+        switch request.cacheType {
+        case .creature:
+            rebuild(.creature, deleteStaleEntries: true)
+        case .animation:
+            rebuild(.animation, deleteStaleEntries: true)
+        case .playlist:
+            rebuild(.playlist, deleteStaleEntries: true)
+        case .soundList:
+            rebuild(.soundList, deleteStaleEntries: true)
+        case .fixture:
+            rebuild(.fixture, deleteStaleEntries: true)
+        case .dialogScriptList:
+            rebuild(.dialogScript, deleteStaleEntries: true)
+        case .storyboardList:
+            rebuild(.storyboard, deleteStaleEntries: true)
+        case .adHocAnimationList:
+            logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
+        case .adHocSoundList:
+            logger.info("ad-hoc sound cache invalidation received - refresh handler pending")
+        default:
+            return
         }
     }
 
-    // Awaitable variant so callers (like the Debug settings reset flow) can report
-    // completion to the user.
-    static func rebuildAllCachesAsync() async {
+    func rebuild(_ cache: Cache, deleteStaleEntries: Bool = false) {
+        logger.info("attempting to rebuild the \(cache.noun) cache (SwiftData import)")
+        rebuildTasks[cache]?.cancel()
+        rebuildTasks[cache] = Task {
+            await self.rebuildNow(cache, deleteStaleEntries: deleteStaleEntries)
+        }
+    }
+
+    /// Awaitable full rebuild so callers (like the Debug settings reset flow) can report
+    /// completion to the user. Runs the caches **sequentially** — parallel rebuilds contend on
+    /// SwiftData and have crashed in the past.
+    func rebuildAll() async {
         logger.info("rebuilding all SwiftData caches (with stale entry deletion)")
 
-        // Cancel any existing rebuild tasks first
-        loadCeaturesTask?.cancel()
-        loadAnimationsTask?.cancel()
-        loadPlaylistsTask?.cancel()
-        loadSoundListsTask?.cancel()
-        loadFixturesTask?.cancel()
-        loadDialogScriptsTask?.cancel()
-        loadStoryboardsTask?.cancel()
+        for task in rebuildTasks.values {
+            task.cancel()
+        }
+        rebuildTasks.removeAll()
 
-        // Run cache rebuilds sequentially to avoid concurrent SwiftData access —
-        // running them in parallel causes race conditions and crashes
-        await rebuildCreatureCacheAsync(deleteStaleEntries: true)
-        await rebuildAnimationCacheAsync(deleteStaleEntries: true)
-        await rebuildPlaylistCacheAsync(deleteStaleEntries: true)
-        await rebuildSoundListCacheAsync(deleteStaleEntries: true)
-        await rebuildFixtureCacheAsync(deleteStaleEntries: true)
-        await rebuildDialogScriptCacheAsync(deleteStaleEntries: true)
-        await rebuildStoryboardCacheAsync(deleteStaleEntries: true)
+        for cache in Cache.allCases {
+            await rebuildNow(cache, deleteStaleEntries: true)
+        }
 
         logger.info("completed rebuild of all caches with stale entry deletion")
     }
@@ -451,7 +127,7 @@ struct CacheInvalidationProcessor {
     /// Wipe every record from the local SwiftData store and pull a fresh copy of
     /// everything from the server. This is the heavy hammer for when the local cache
     /// has drifted from reality (e.g. items deleted on the server still showing up).
-    static func resetLocalStoreAndResync() async throws {
+    func resetAndResync() async throws {
         logger.info("resetting the local SwiftData store")
 
         let container = await SwiftDataStore.shared.container()
@@ -459,6 +135,97 @@ struct CacheInvalidationProcessor {
         try await wiper.wipeAll()
         logger.info("local SwiftData store wiped, re-syncing from the server")
 
-        await rebuildAllCachesAsync()
+        await rebuildAll()
+    }
+
+
+    // MARK: - The one sync pipeline every cache goes through
+
+    private func rebuildNow(_ cache: Cache, deleteStaleEntries: Bool) async {
+        let server = CreatureServerClient.shared
+        let container = await SwiftDataStore.shared.container()
+
+        switch cache {
+        case .creature:
+            let importer = CreatureImporter(modelContainer: container)
+            await sync(
+                cache, deleteStaleEntries, fetch: { await server.getAllCreatures() },
+                ids: { Set($0.map(\.id)) },
+                deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
+        case .animation:
+            let importer = AnimationMetadataImporter(modelContainer: container)
+            await sync(
+                cache, deleteStaleEntries, fetch: { await server.listAnimations() },
+                ids: { Set($0.map(\.id)) },
+                deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
+        case .playlist:
+            let importer = PlaylistImporter(modelContainer: container)
+            await sync(
+                cache, deleteStaleEntries, fetch: { await server.getAllPlaylists() },
+                ids: { Set($0.map(\.id)) },
+                deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
+        case .soundList:
+            let importer = SoundImporter(modelContainer: container)
+            await sync(
+                cache, deleteStaleEntries, fetch: { await server.listSounds() },
+                ids: { Set($0.map(\.id)) },
+                deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
+        case .fixture:
+            let importer = DmxFixtureImporter(modelContainer: container)
+            await sync(
+                cache, deleteStaleEntries, fetch: { await server.getAllFixtures() },
+                ids: { Set($0.map(\.id)) },
+                deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
+        case .dialogScript:
+            let importer = DialogScriptImporter(modelContainer: container)
+            await sync(
+                cache, deleteStaleEntries, fetch: { await server.listDialogScripts() },
+                ids: { Set($0.map(\.id)) },
+                deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
+        case .storyboard:
+            let importer = StoryboardImporter(modelContainer: container)
+            await sync(
+                cache, deleteStaleEntries, fetch: { await server.listStoryboards() },
+                ids: { Set($0.map(\.id)) },
+                deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
+        }
+    }
+
+    private func sync<Item: Sendable, ID: Hashable & Sendable>(
+        _ cache: Cache,
+        _ deleteStaleEntries: Bool,
+        fetch: () async -> Result<[Item], ServerError>,
+        ids: ([Item]) -> Set<ID>,
+        deleteAllExcept: (Set<ID>) async throws -> Void,
+        upsert: ([Item]) async throws -> Void
+    ) async {
+        logger.debug("fetching the \(cache.noun) list from the server...")
+
+        switch await fetch() {
+        case .success(let items):
+            do {
+                if deleteStaleEntries {
+                    try await deleteAllExcept(ids(items))
+                    logger.debug("deleted stale \(cache.noun) entries not in server response")
+                }
+                try await upsert(items)
+                logger.info(
+                    "(re)built the \(cache.noun) cache in SwiftData: imported \(items.count) items"
+                )
+            } catch {
+                await reportFailure(
+                    "Unable to reload the \(cache.noun) cache after getting an invalidation message: \(error.localizedDescription)"
+                )
+            }
+        case .failure(let error):
+            await reportFailure(
+                "Unable to fetch the \(cache.noun) list after invalidation: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func reportFailure(_ message: String) async {
+        logger.warning("\(message)")
+        await AppState.shared.setSystemAlert(show: true, message: message)
     }
 }

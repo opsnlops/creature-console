@@ -177,16 +177,16 @@ struct CreatureConsole: App {
                 #if os(macOS)
                     CommandMenu("Caches") {
                         Button("Invalidate Animation Cache...") {
-                            CacheInvalidationProcessor.rebuildAnimationCache()
+                            CacheInvalidationProcessor.rebuild(.animation)
                         }
                         Button("Invalidate Creature Cache...") {
-                            CacheInvalidationProcessor.rebuildCreatureCache()
+                            CacheInvalidationProcessor.rebuild(.creature)
                         }
                         Button("Invalidate Playlist Cache...") {
-                            CacheInvalidationProcessor.rebuildPlaylistCache()
+                            CacheInvalidationProcessor.rebuild(.playlist)
                         }
                         Button("Invalidate Sound List Cache...") {
-                            CacheInvalidationProcessor.rebuildSoundListCache()
+                            CacheInvalidationProcessor.rebuild(.soundList)
                         }
                     }
                     CommandMenu("Utilities") {
