@@ -244,7 +244,7 @@ struct StoryboardTable: View {
                     successMessage = message
                     showSuccessAlert = true
                     boardToDelete = nil
-                    CacheInvalidationProcessor.rebuildStoryboardCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true)
                 case .failure(let error):
                     alertMessage =
                         "Failed to delete '\(title)': \(ServerError.detailedMessage(from: error))"

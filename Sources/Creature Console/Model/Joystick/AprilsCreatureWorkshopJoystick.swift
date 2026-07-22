@@ -1,4 +1,3 @@
-import Combine
 import Common
 import Foundation
 import OSLog
@@ -22,15 +21,49 @@ struct JoystickState: Sendable {
 
     import IOKit
 
+    /// The Sendable facts about a connected HID device, extracted from the non-Sendable
+    /// `IOHIDDevice` before crossing into the main actor.
+    struct ACWDeviceInfo: Sendable {
+        let serialNumber: String?
+        let versionNumber: Int?
+        let manufacturer: String?
+        let description: String
+    }
+
+    /// One parsed HID input event — the Sendable projection of an `IOHIDValue`.
+    struct ACWInputReport: Sendable {
+        let usagePage: UInt32
+        let usage: UInt32
+        let integerValue: Int
+    }
+
     // Global C-Function Pointers
+    //
+    // IOKit invokes these on the main run loop (`scheduleWithRunLoop` registers with
+    // `CFRunLoopGetMain()`), so hopping onto the main actor here is an assertion of an
+    // existing fact, not a new requirement. The CF values themselves are not Sendable, so
+    // each callback reduces them to a Sendable value first and only that crosses over.
     func deviceConnectedCallback(
         context: UnsafeMutableRawPointer?, result: IOReturn, sender: UnsafeMutableRawPointer?,
         device: IOHIDDevice?
     ) {
         guard let context = context else { return }
-        let mySelf = Unmanaged<AprilsCreatureWorkshopJoystick>.fromOpaque(context)
+        let joystick = Unmanaged<AprilsCreatureWorkshopJoystick>.fromOpaque(context)
             .takeUnretainedValue()
-        mySelf.handleDeviceConnected(device)
+        let info = device.map { device in
+            ACWDeviceInfo(
+                serialNumber: IOHIDDeviceGetProperty(device, kIOHIDSerialNumberKey as CFString)
+                    as? String,
+                versionNumber: IOHIDDeviceGetProperty(device, kIOHIDVersionNumberKey as CFString)
+                    as? Int,
+                manufacturer: IOHIDDeviceGetProperty(device, kIOHIDManufacturerKey as CFString)
+                    as? String,
+                description: String(describing: device)
+            )
+        }
+        MainActor.assumeIsolated {
+            joystick.handleDeviceConnected(info)
+        }
     }
 
     func deviceDisconnectedCallback(
@@ -38,35 +71,44 @@ struct JoystickState: Sendable {
         device: IOHIDDevice?
     ) {
         guard let context = context else { return }
-        let mySelf = Unmanaged<AprilsCreatureWorkshopJoystick>.fromOpaque(context)
+        let joystick = Unmanaged<AprilsCreatureWorkshopJoystick>.fromOpaque(context)
             .takeUnretainedValue()
-        mySelf.handleDeviceDisconnected(device)
+        let description = String(describing: device)
+        MainActor.assumeIsolated {
+            joystick.handleDeviceDisconnected(description)
+        }
     }
 
     func inputReportCallback(
         context: UnsafeMutableRawPointer?, result: IOReturn, sender: UnsafeMutableRawPointer?,
         value: IOHIDValue?
     ) {
-        guard let context = context else { return }
-        let mySelf = Unmanaged<AprilsCreatureWorkshopJoystick>.fromOpaque(context)
+        guard let context = context, let value = value else { return }
+        let joystick = Unmanaged<AprilsCreatureWorkshopJoystick>.fromOpaque(context)
             .takeUnretainedValue()
-        mySelf.handleInputReport(value)
+        let element = IOHIDValueGetElement(value)
+        let report = ACWInputReport(
+            usagePage: IOHIDElementGetUsagePage(element),
+            usage: IOHIDElementGetUsage(element),
+            integerValue: IOHIDValueGetIntegerValue(value)
+        )
+        MainActor.assumeIsolated {
+            joystick.handleInputReport(report)
+        }
     }
 
 
-    class AprilsCreatureWorkshopJoystick: Joystick {
+    @MainActor
+    final class AprilsCreatureWorkshopJoystick: Joystick {
 
         let logger = Logger(
             subsystem: "io.opsnlops.CreatureConsole", category: "AprilsCreatureWorkshopJoystick")
 
-        // Use our singleton - synchronous access (no MainActor hop)
-        nonisolated var appState: AppState {
-            AppState.shared
-        }
-
         var vendorID: Int
         var productID: Int
 
+        // Created lazily on the main actor: a nonisolated init may only seed isolated
+        // storage with Sendable values, and IOHIDManager isn't one.
         private var manager: IOHIDManager?
 
         var connected: Bool = false
@@ -84,28 +126,32 @@ struct JoystickState: Sendable {
                 subscribers[id] = continuation
 
                 // Send current state immediately to new subscriber
-                let currentState = JoystickState(
-                    connected: connected,
-                    values: values,
-                    aButtonPressed: aButtonPressed,
-                    bButtonPressed: bButtonPressed,
-                    xButtonPressed: xButtonPressed,
-                    yButtonPressed: yButtonPressed,
-                    serialNumber: serialNumber,
-                    versionNumber: versionNumber,
-                    manufacturer: manufacturer
-                )
-                continuation.yield(currentState)
+                continuation.yield(currentState())
 
                 continuation.onTermination = { @Sendable _ in
-                    // Note: Cannot safely access self in Swift 6 Sendable closure
-                    // Subscriber cleanup will happen naturally when references are released
+                    Task { @MainActor in
+                        self.removeSubscriber(id)
+                    }
                 }
             }
         }
 
         private func removeSubscriber(_ id: UUID) {
             subscribers.removeValue(forKey: id)
+        }
+
+        private func currentState() -> JoystickState {
+            JoystickState(
+                connected: connected,
+                values: values,
+                aButtonPressed: aButtonPressed,
+                bButtonPressed: bButtonPressed,
+                xButtonPressed: xButtonPressed,
+                yButtonPressed: yButtonPressed,
+                serialNumber: serialNumber,
+                versionNumber: versionNumber,
+                manufacturer: manufacturer
+            )
         }
 
         private func publishState(_ state: JoystickState) {
@@ -125,17 +171,25 @@ struct JoystickState: Sendable {
         var yButtonPressed = false
 
 
-        init(vendorID: Int, productID: Int) {
+        nonisolated init(vendorID: Int, productID: Int) {
             self.vendorID = vendorID
             self.productID = productID
-            self.manager = IOHIDManagerCreate(
-                kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
             self.serialNumber = "--"
             self.versionNumber = -1
             self.manufacturer = "unknown"
 
             logger.info(
                 "AprilsCreatureWorkshopJoystick created for VID \(vendorID) and PID \(productID)")
+        }
+
+        private func hidManager() -> IOHIDManager {
+            if let manager {
+                return manager
+            }
+            let created = IOHIDManagerCreate(
+                kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+            manager = created
+            return created
         }
 
         /* Joystick Protocol Stuff */
@@ -149,11 +203,6 @@ struct JoystickState: Sendable {
 
         func isConnected() -> Bool {
             return connected
-        }
-
-        var changesPublisher: AnyPublisher<Void, Never> {
-            // Convert AsyncStream to Publisher for compatibility
-            Just(()).eraseToAnyPublisher()  // Simplified for now
         }
 
         func getAButtonSymbol() -> String {
@@ -178,109 +227,65 @@ struct JoystickState: Sendable {
                 String(kIOHIDProductIDKey): self.productID,
             ]
 
-            if let manager = self.manager {
-                IOHIDManagerSetDeviceMatching(manager, matchingCriteria as CFDictionary)
-                logger.debug("IOHIDManagerSetDeviceMatching created")
-            }
+            IOHIDManagerSetDeviceMatching(hidManager(), matchingCriteria as CFDictionary)
+            logger.debug("IOHIDManagerSetDeviceMatching created")
         }
 
         func openManager() {
-            if let manager = self.manager {
-                IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
-            }
+            IOHIDManagerOpen(hidManager(), IOOptionBits(kIOHIDOptionsTypeNone))
         }
 
         func registerCallbacks() {
-            if let manager = self.manager {
-                let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-                IOHIDManagerRegisterDeviceMatchingCallback(
-                    manager, deviceConnectedCallback, context)
-                IOHIDManagerRegisterDeviceRemovalCallback(
-                    manager, deviceDisconnectedCallback, context)
-                IOHIDManagerRegisterInputValueCallback(manager, inputReportCallback, context)
-            }
+            let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+            let manager = hidManager()
+            IOHIDManagerRegisterDeviceMatchingCallback(
+                manager, deviceConnectedCallback, context)
+            IOHIDManagerRegisterDeviceRemovalCallback(
+                manager, deviceDisconnectedCallback, context)
+            IOHIDManagerRegisterInputValueCallback(manager, inputReportCallback, context)
         }
 
         func scheduleWithRunLoop() {
-            if let manager = self.manager {
-                IOHIDManagerScheduleWithRunLoop(
-                    manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
-            }
+            IOHIDManagerScheduleWithRunLoop(
+                hidManager(), CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
         }
 
 
-        func handleDeviceConnected(_ device: IOHIDDevice?) {
+        func handleDeviceConnected(_ info: ACWDeviceInfo?) {
 
             // Update the serial number
-            if let device = device {
+            if let info = info {
 
-                self.serialNumber = getSerialNumber(of: device) ?? "--"
-                self.versionNumber = getVersion(of: device) ?? -1
-                self.manufacturer = getManufacturer(of: device) ?? "unknown"
+                self.serialNumber = info.serialNumber ?? "--"
+                self.versionNumber = info.versionNumber ?? -1
+                self.manufacturer = info.manufacturer ?? "unknown"
 
             }
 
             connected = true
             logger.info(
-                "Device connected: \(String(describing: device)) \(device.debugDescription), S/N: \(self.serialNumber)"
+                "Device connected: \(info?.description ?? "unknown"), S/N: \(self.serialNumber)"
             )
 
         }
 
-        func handleDeviceDisconnected(_ device: IOHIDDevice?) {
+        func handleDeviceDisconnected(_ description: String) {
             connected = false
-            logger.info("Device disconnected: \(String(describing: device))")
-        }
-
-        private func getSerialNumber(of device: IOHIDDevice) -> String? {
-            let key = kIOHIDSerialNumberKey as CFString
-            guard let serialNumber = IOHIDDeviceGetProperty(device, key) as? String else {
-                logger.error("Failed to retrieve serial number")
-                return nil
-            }
-            return serialNumber
-        }
-
-        private func getVersion(of device: IOHIDDevice) -> Int? {
-            let key = kIOHIDVersionNumberKey as CFString
-            guard let versionNumberValue = IOHIDDeviceGetProperty(device, key) else {
-                logger.error("Failed to retrieve version number")
-                return nil
-            }
-
-            if let versionNumber = versionNumberValue as? Int {
-                return versionNumber
-            } else {
-                logger.error("Version number is not an integer")
-                return nil
-            }
-        }
-
-        private func getManufacturer(of device: IOHIDDevice) -> String? {
-            let key = kIOHIDManufacturerKey as CFString
-            guard let manufacturer = IOHIDDeviceGetProperty(device, key) as? String else {
-                logger.error("Failed to retrieve manufacturer")
-                return nil
-            }
-            return manufacturer
+            logger.info("Device disconnected: \(description)")
         }
 
 
-        func handleInputReport(_ value: IOHIDValue?) {
+        func handleInputReport(_ report: ACWInputReport) {
 
-            //logger.trace("Input value received")
-
-            // Don't be in here if we don't have a value
-            guard let value = value else { return }
-
-            let element = IOHIDValueGetElement(value)
-            let usagePage = IOHIDElementGetUsagePage(element)
-            let usage = IOHIDElementGetUsage(element)
+            let usagePage = report.usagePage
+            let usage = report.usage
             let valueInt = UInt8(
-                clamping: IOHIDValueGetIntegerValue(value) + Int((UInt8.max / 2)) + 1)
+                clamping: report.integerValue + Int((UInt8.max / 2)) + 1)
 
             /**
-         We've gotta be careful of CPU use here. Joysticks can send out a LOT of events, and we don't want the UI needlessly trying to redraw some of our elements on the screen. Instead let's use an ObservableObjectPublisher to only send up updates when we really mean it.
+         We've gotta be careful of CPU use here. Joysticks can send out a LOT of events, and we
+         don't want the UI needlessly trying to redraw some of our elements on the screen.
+         Only publish when a value actually changed.
          */
 
             var didChange = false
@@ -326,36 +331,24 @@ struct JoystickState: Sendable {
                     didChange = true
                 }
             case (UInt32(kHIDPage_Button), 1):
-                let buttonPressed = (IOHIDValueGetIntegerValue(value) != 0)
+                let buttonPressed = (report.integerValue != 0)
                 if self.aButtonPressed != buttonPressed {
                     self.aButtonPressed = buttonPressed
                     didChange = true
                 }
             case (UInt32(kHIDPage_Button), 2):
-                let buttonPressed = (IOHIDValueGetIntegerValue(value) != 0)
+                let buttonPressed = (report.integerValue != 0)
                 if self.bButtonPressed != buttonPressed {
                     self.bButtonPressed = buttonPressed
                     didChange = true
                 }
             default:
                 didChange = false
-                break
             }
 
             // If something changed, publish the new state
             if didChange {
-                let newState = JoystickState(
-                    connected: self.connected,
-                    values: self.values,
-                    aButtonPressed: self.aButtonPressed,
-                    bButtonPressed: self.bButtonPressed,
-                    xButtonPressed: self.xButtonPressed,
-                    yButtonPressed: self.yButtonPressed,
-                    serialNumber: self.serialNumber,
-                    versionNumber: self.versionNumber,
-                    manufacturer: self.manufacturer
-                )
-                publishState(newState)
+                publishState(currentState())
             }
 
         }

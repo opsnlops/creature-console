@@ -171,7 +171,7 @@ The CLI tools ship as Debian packages built **on Linux** by CI (`.github/workflo
 
 ## Design Principles
 - **SwiftUI First**: Use only modern SwiftUI best practices. Avoid UIKit or AppKit unless absolutely necessary
-- **Swift 6 Ready**: Write all code to be compatible with Swift 6 Strict Concurrency mode (even though not currently enabled)
+- **Swift 6 Strict Concurrency**: The app builds with `SWIFT_STRICT_CONCURRENCY = complete` on Swift 6 — write fully concurrency-safe code; never silence the checker with `@unchecked Sendable` or `nonisolated(unsafe)` when a structured design (actor, `@MainActor`, message passing) can do the job
 - **Modern Swift**: Heavy use of modern Swift patterns and language features
 - **No Legacy Dependencies**: Avoid Objective-C where possible
 - **Shared Architecture**: Common model/controller code between GUI and CLI via Swift Package Manager

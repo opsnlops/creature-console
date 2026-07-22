@@ -245,19 +245,17 @@ struct CreatureDetail: View {
 
             switch result {
             case .failure(let value):
-                await MainActor.run {
-                    errorMessage = "Unable to stop playlist playback: \(value)"
-                    showErrorAlert = true
-                }
+                isDoingServerStuff = false
+                errorMessage = "Unable to stop playlist playback: \(value)"
+                showErrorAlert = true
             case .success(let value):
                 logger.debug("stopped! \(value)")
                 serverMessage = value
+                // Deliberate display, not a wait: leave the server's confirmation up
+                // briefly before dropping the overlay.
+                try? await Task.sleep(for: .seconds(4))
+                isDoingServerStuff = false
             }
-
-            do {
-                try await Task.sleep(nanoseconds: 4_000_000_000)
-            } catch {}
-            isDoingServerStuff = false
         }
     }
 

@@ -230,7 +230,7 @@ struct FixturesTable: View {
                     fixtureToDelete = nil
                     // Cache will be refreshed by the websocket invalidation broadcast;
                     // optimistically trigger a refresh anyway in case that lags.
-                    CacheInvalidationProcessor.rebuildFixtureCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.fixture, deleteStaleEntries: true)
                 case .failure(let error):
                     let detailed = ServerError.detailedMessage(from: error)
                     logger.warning("delete failed: \(detailed)")

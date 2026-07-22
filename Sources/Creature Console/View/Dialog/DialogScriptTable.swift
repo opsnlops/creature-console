@@ -211,7 +211,7 @@ struct DialogScriptTable: View {
                     scriptToDelete = nil
                     // The websocket invalidation will refresh the cache shortly; trigger an
                     // optimistic refresh too in case that lags.
-                    CacheInvalidationProcessor.rebuildDialogScriptCache(deleteStaleEntries: true)
+                    CacheInvalidationProcessor.rebuild(.dialogScript, deleteStaleEntries: true)
                 case .failure(let error):
                     let detailed = ServerError.detailedMessage(from: error)
                     logger.warning("delete failed: \(detailed)")

@@ -155,9 +155,7 @@ struct CreateNewCreatureSoundView: View {
 
             createSoundTask = Task {
 
-                DispatchQueue.main.async {
-                    currentAction = "saving"
-                }
+                currentAction = "saving"
 
                 // Server 3.23.0+: sound creation is an async job (long text takes a
                 // while). Watch it via the shared per-job stream.
@@ -205,9 +203,7 @@ struct CreateNewCreatureSoundView: View {
 
                 }
 
-                DispatchQueue.main.async {
-                    currentAction = "idle"
-                }
+                currentAction = "idle"
             }
         } else {
             logger.warning(
@@ -231,13 +227,11 @@ struct CreateNewCreatureSoundView: View {
                 case .success(let message):
                     print(message)
                 case .failure(let error):
-                    DispatchQueue.main.async {
-                        alertMessage = "Error: \(String(describing: error.localizedDescription))"
-                        logger.warning(
-                            "Unable to play a sound file: \(String(describing: error.localizedDescription))"
-                        )
-                        showErrorAlert = true
-                    }
+                    alertMessage = "Error: \(String(describing: error.localizedDescription))"
+                    logger.warning(
+                        "Unable to play a sound file: \(String(describing: error.localizedDescription))"
+                    )
+                    showErrorAlert = true
 
                 }
             }

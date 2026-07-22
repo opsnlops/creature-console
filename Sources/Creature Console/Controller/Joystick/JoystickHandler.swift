@@ -7,14 +7,13 @@ import OSLog
     import IOKit
 #endif
 
-struct SendableGCController: @unchecked Sendable {
-    let controller: GCController
-}
-
 func registerJoystickHandlers() async {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "JoystickHandler")
 
+    // These observers are registered on the main queue, so the closures run on the main
+    // thread; `assumeIsolated` states that fact to the compiler, which lets the (main-actor
+    // affine) GCController flow into the manager without a Sendable wrapper.
     NotificationCenter.default.addObserver(
         forName: .GCControllerDidConnect, object: nil, queue: .main
     ) { notification in
@@ -25,9 +24,8 @@ func registerJoystickHandlers() async {
 
             if (controller.extendedGamepad) != nil {
                 logger.debug("extended joystick connected, woot")
-                let sendableController = SendableGCController(controller: controller)
-                Task { [sendableController] in
-                    await JoystickManager.shared.setSixAxisController(sendableController)
+                MainActor.assumeIsolated {
+                    JoystickManager.shared.refreshSixAxisController()
                 }
             }
         }
@@ -37,8 +35,8 @@ func registerJoystickHandlers() async {
         forName: .GCControllerDidDisconnect, object: nil, queue: .main
     ) { notification in
         logger.info("Controller disconnected")
-        Task {
-            await JoystickManager.shared.setSixAxisController(nil)
+        MainActor.assumeIsolated {
+            JoystickManager.shared.refreshSixAxisController()
         }
     }
 

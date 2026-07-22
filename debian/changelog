@@ -1,3 +1,17 @@
+creature-cli (2.39.1) unstable; urgency=medium
+
+  * No CLI behavior changes — lockstep bump with the Console app's Phase 0
+    concurrency-correctness pass (issue #35): CacheInvalidationProcessor is now
+    an actor (fixing a real data race on its rebuild task handles, and its seven
+    copy-pasted rebuild paths collapsed into one generic sync pipeline), the
+    joystick stack is @MainActor with the ACW subscriber leak fixed, the event
+    loop is a structured ContinuousClock loop that awaits its work in order, and
+    AppState no longer symbolicates the call stack on every activity change.
+    Common's CacheInvalidation DTO is now an immutable Sendable struct (was a
+    mutable class).
+
+ -- April White <april@creature.engineering>  Tue, 21 Jul 2026 23:59:00 -0700
+
 creature-cli (2.39.0) unstable; urgency=medium
 
   * No CLI changes — version bump to stay in lockstep with the Console app,

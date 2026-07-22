@@ -132,9 +132,8 @@ struct NetworkSettingsView: View {
                                             activeUniverseString = String(clamped)
                                             if clamped != value {
                                                 showUniverseClampHint = true
-                                                DispatchQueue.main.asyncAfter(
-                                                    deadline: .now() + 1.2
-                                                ) {
+                                                Task {
+                                                    try? await Task.sleep(for: .seconds(1.2))
                                                     withAnimation(.easeInOut(duration: 0.2)) {
                                                         showUniverseClampHint = false
                                                     }

@@ -1,7 +1,11 @@
-import Combine
 import Common
 import Foundation
 
+/// The hardware joysticks live on the main actor: IOKit delivers ACW input on the main run
+/// loop, GameController posts its connect/disconnect notifications on the main queue, and
+/// controller lights and haptics are main-thread-affine. Isolating the protocol here makes
+/// that contract compiler-enforced instead of hoped-for.
+@MainActor
 protocol Joystick {
 
     /**
@@ -41,11 +45,6 @@ protocol Joystick {
     func getBButtonSymbol() -> String
     func getXButtonSymbol() -> String
     func getYButtonSymbol() -> String
-
-    /**
-     Since this is a protocol, we can't be observed directly. Require implementors to be able to signal when their values change.
-     */
-    var changesPublisher: AnyPublisher<Void, Never> { get }
 
     /**
      Update joystick light based on activity state
