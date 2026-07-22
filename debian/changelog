@@ -1,3 +1,14 @@
+creature-cli (2.41.4) unstable; urgency=medium
+
+  * Common's Animation, Playlist, and PlaylistItem DTOs are now immutable-
+    by-default Sendable structs instead of mutable classes hiding behind
+    @unchecked Sendable (issue #44) — closing the last unsound Sendable
+    escape hatch in the codebase. Their per-instance swift-log loggers and
+    hand-written Equatable/Hashable boilerplate are gone. The CLI's
+    test-saving command adapts to value semantics.
+
+ -- April White <april@creature.engineering>  Wed, 22 Jul 2026 10:55:00 -0700
+
 creature-cli (2.41.3) unstable; urgency=medium
 
   * No CLI changes — lockstep bump with the Console app: deleted ~900 lines

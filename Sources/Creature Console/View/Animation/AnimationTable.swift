@@ -477,7 +477,7 @@ struct AnimationTable: View {
         let fetchResult = await server.getAnimation(animationId: animationId)
 
         switch fetchResult {
-        case .success(let fetchedAnimation):
+        case .success(var fetchedAnimation):
             fetchedAnimation.metadata.title = newTitle
             let saveResult = await server.saveAnimation(animation: fetchedAnimation)
             switch saveResult {

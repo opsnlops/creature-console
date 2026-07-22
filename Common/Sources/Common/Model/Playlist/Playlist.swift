@@ -1,10 +1,8 @@
 import Foundation
-import Logging
 
 /// **IMPORTANT**: This DTO must stay in sync with `PlaylistModel` in the GUI package.
 /// Any changes to fields here must be reflected in PlaylistModel.swift and vice versa.
-public final class Playlist: Identifiable, Hashable, Equatable, Codable, @unchecked Sendable {
-    private let logger = Logger(label: "io.opsnlops.CreatureConsole.Playlist")
+public struct Playlist: Identifiable, Hashable, Codable, Sendable {
     public var id: PlaylistIdentifier
     public var name: String
     public var items: [PlaylistItem]
@@ -20,13 +18,13 @@ public final class Playlist: Identifiable, Hashable, Equatable, Codable, @unchec
         case numberOfItems = "number_of_items"
     }
 
-    public required init(from decoder: Decoder) throws {
+    // Custom Codable: `numberOfItems` is computed (encoded for the server's benefit,
+    // never decoded), so synthesis can't be used.
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(PlaylistIdentifier.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         items = try container.decode([PlaylistItem].self, forKey: .items)
-        // numberOfItems is computed, no need to decode
-        logger.debug("Created a new Playlist from init(from:)")
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -41,19 +39,6 @@ public final class Playlist: Identifiable, Hashable, Equatable, Codable, @unchec
         self.id = id
         self.name = name
         self.items = items
-        logger.debug("Created a new Playlist from init()")
-    }
-
-    // hash(into:) function
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-        hasher.combine(name)
-        hasher.combine(items)
-    }
-
-    // The == operator
-    public static func == (lhs: Playlist, rhs: Playlist) -> Bool {
-        return lhs.id == rhs.id && lhs.name == rhs.name && lhs.items == rhs.items
     }
 }
 
