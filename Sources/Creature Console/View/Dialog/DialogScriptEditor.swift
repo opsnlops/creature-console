@@ -273,7 +273,7 @@ struct DialogScriptEditor: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(16)
-        .background(.background.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+        .glassEffect(.regular, in: .rect(cornerRadius: 10))
     }
 
     private func creaturePicker(selection: Binding<CreatureIdentifier>) -> some View {

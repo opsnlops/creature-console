@@ -103,7 +103,7 @@ struct PlaylistsTable: View {
                         }) {
                             Label("New Playlist", systemImage: "plus")
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                     }
                 }
             }  // VStack
@@ -347,101 +347,110 @@ struct EditPlaylistSheet: View {
             if let currentPlaylist = editablePlaylist {
                 NavigationStack {
                     ScrollView {
-                        VStack(spacing: 20) {
-                            // Header with editable name
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    TextField(
-                                        "Playlist Name",
-                                        text: Binding(
-                                            get: { editablePlaylist?.name ?? "" },
-                                            set: { newName in
-                                                editablePlaylist?.name = newName
-                                            }
+                        // Sibling glass cards share one container so they blend as a cluster
+                        GlassEffectContainer(spacing: 20) {
+                            VStack(spacing: 20) {
+                                // Header with editable name
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        TextField(
+                                            "Playlist Name",
+                                            text: Binding(
+                                                get: { editablePlaylist?.name ?? "" },
+                                                set: { newName in
+                                                    editablePlaylist?.name = newName
+                                                }
+                                            )
                                         )
+                                        .textFieldStyle(.roundedBorder)
+                                        .font(.title2)
+
+                                        Spacer()
+
+                                        Text(
+                                            "Total Weight: \(totalWeight(for: editablePlaylist ?? currentPlaylist))"
+                                        )
+                                        .foregroundStyle(.secondary)
+                                        .font(.caption)
+                                    }
+
+                                    Text(
+                                        "Items: \((editablePlaylist ?? currentPlaylist).items.count)"
                                     )
-                                    .textFieldStyle(.roundedBorder)
-                                    .font(.title2)
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption)
+                                }
+                                .id(refreshID)  // Refresh when playlist changes
+                                .padding()
+                                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+
+                                // Add Animation Button
+                                HStack {
+                                    Text("Animations")
+                                        .font(.headline)
 
                                     Spacer()
 
-                                    Text(
-                                        "Total Weight: \(totalWeight(for: editablePlaylist ?? currentPlaylist))"
-                                    )
-                                    .foregroundStyle(.secondary)
-                                    .font(.caption)
-                                }
-
-                                Text("Items: \((editablePlaylist ?? currentPlaylist).items.count)")
-                                    .foregroundStyle(.secondary)
-                                    .font(.caption)
-                            }
-                            .id(refreshID)  // Refresh when playlist changes
-                            .padding()
-                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-
-                            // Add Animation Button
-                            HStack {
-                                Text("Animations")
-                                    .font(.headline)
-
-                                Spacer()
-
-                                Button("Add Animation") {
-                                    showingAddAnimation = true
-                                }
-                                .buttonStyle(.borderedProminent)
-                            }
-
-                            // Animation List
-                            if currentPlaylist.items.isEmpty {
-                                ContentUnavailableView {
-                                    Label("No Animations", systemImage: "music.note.list")
-                                } description: {
-                                    Text("Add animations to create your playlist")
-                                } actions: {
                                     Button("Add Animation") {
                                         showingAddAnimation = true
                                     }
-                                    .buttonStyle(.borderedProminent)
+                                    .buttonStyle(.glassProminent)
                                 }
-                            } else {
-                                LazyVStack(spacing: 8) {
-                                    ForEach(
-                                        Array((editablePlaylist?.items ?? []).enumerated()),
-                                        id: \.offset
-                                    ) { index, item in
-                                        EditablePlaylistItemRow(
-                                            item: item,
-                                            animationName: animationName(for: item.animationId),
-                                            currentPlaylist: editablePlaylist ?? currentPlaylist,
-                                            onWeightChanged: { newWeight in
-                                                editablePlaylist?.items[index].weight = newWeight
-                                                refreshID = UUID()  // Trigger UI refresh
-                                            },
-                                            onDelete: {
-                                                editablePlaylist?.items.remove(at: index)
-                                                refreshID = UUID()  // Trigger UI refresh
-                                            }
-                                        )
-                                    }
-                                }
-                                .id(refreshID)  // Force refresh when refreshID changes
-                                .padding()
-                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                            }
 
-                            Spacer(minLength: 50)
+                                // Animation List
+                                if currentPlaylist.items.isEmpty {
+                                    ContentUnavailableView {
+                                        Label("No Animations", systemImage: "music.note.list")
+                                    } description: {
+                                        Text("Add animations to create your playlist")
+                                    } actions: {
+                                        Button("Add Animation") {
+                                            showingAddAnimation = true
+                                        }
+                                        .buttonStyle(.glassProminent)
+                                    }
+                                } else {
+                                    LazyVStack(spacing: 8) {
+                                        ForEach(
+                                            Array((editablePlaylist?.items ?? []).enumerated()),
+                                            id: \.offset
+                                        ) { index, item in
+                                            EditablePlaylistItemRow(
+                                                item: item,
+                                                animationName: animationName(for: item.animationId),
+                                                currentPlaylist: editablePlaylist
+                                                    ?? currentPlaylist,
+                                                onWeightChanged: { newWeight in
+                                                    editablePlaylist?.items[index].weight =
+                                                        newWeight
+                                                    refreshID = UUID()  // Trigger UI refresh
+                                                },
+                                                onDelete: {
+                                                    editablePlaylist?.items.remove(at: index)
+                                                    refreshID = UUID()  // Trigger UI refresh
+                                                }
+                                            )
+                                        }
+                                    }
+                                    .id(refreshID)  // Force refresh when refreshID changes
+                                    .padding()
+                                    .glassEffect(
+                                        .regular.interactive(), in: .rect(cornerRadius: 12))
+                                }
+
+                                Spacer(minLength: 50)
+                            }
+                            .padding()
                         }
-                        .padding()
                     }
                     .navigationTitle("Edit Playlist")
                     .safeAreaInset(edge: .bottom) {
+                        // Floating glass capsule bar, same idiom as BottomToolBarView
                         HStack {
                             Button("Cancel") {
                                 onCancel()
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.glass)
 
                             Spacer()
 
@@ -450,10 +459,12 @@ struct EditPlaylistSheet: View {
                                     onSave(playlist)
                                 }
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.glassProminent)
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .glassEffect(.regular.interactive(), in: .capsule)
                         .padding()
-                        .background(.thinMaterial)
                     }
                     .sheet(isPresented: $showingAddAnimation) {
                         AddAnimationToEditPlaylistSheet(
@@ -633,7 +644,7 @@ struct AddAnimationToEditPlaylistSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding()
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Select Animation")

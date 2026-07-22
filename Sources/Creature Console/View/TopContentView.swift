@@ -310,64 +310,68 @@ struct TopContentView: View {
         @Namespace private var glassNamespace
 
         var body: some View {
-            HStack(spacing: 8) {
-                // Activity indicator
-                HStack(spacing: 4) {
-                    Image(systemName: appState.currentActivity.symbolName)
-                        .font(.system(size: 10, weight: .semibold))
-                    Text(appState.currentActivity.description)
-                        .font(.caption2)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .glassEffect(
-                    .regular
-                        .tint(appState.currentActivity.tintColor.opacity(0.35))
-                        .interactive(),
-                    in: .capsule
-                )
-                .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
+            // GlassEffectContainer lets the tinted chips and status dots morph/blend as a single
+            // cluster, matching the macOS idiom in BottomStatusToolbarContent.
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    // Activity indicator
+                    HStack(spacing: 4) {
+                        Image(systemName: appState.currentActivity.symbolName)
+                            .font(.system(size: 10, weight: .semibold))
+                        Text(appState.currentActivity.description)
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .glassEffect(
+                        .regular
+                            .tint(appState.currentActivity.tintColor.opacity(0.35))
+                            .interactive(),
+                        in: .capsule
+                    )
+                    .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
 
-                // WebSocket indicator
-                HStack(spacing: 4) {
-                    Image(systemName: websocketState.symbolName)
-                        .font(.system(size: 10, weight: .semibold))
-                    Text(websocketState.description)
-                        .font(.caption2)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .glassEffect(
-                    .regular
-                        .tint(websocketState.tintColor.opacity(0.35))
-                        .interactive(),
-                    in: .capsule
-                )
-                .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
+                    // WebSocket indicator
+                    HStack(spacing: 4) {
+                        Image(systemName: websocketState.symbolName)
+                            .font(.system(size: 10, weight: .semibold))
+                        Text(websocketState.description)
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .glassEffect(
+                        .regular
+                            .tint(websocketState.tintColor.opacity(0.35))
+                            .interactive(),
+                        in: .capsule
+                    )
+                    .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
 
-                Spacer()
+                    Spacer()
 
-                // Status lights
-                HStack(spacing: 6) {
-                    ForEach(StatusLightsState.allLights, id: \.self) { light in
-                        Image(systemName: light.symbolName)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(
-                                light.isActive(in: statusLightsState) ? .white : .secondary
-                            )
-                            .padding(6)
-                            .glassEffect(
-                                .regular
-                                    .tint(
-                                        light.tintColor.opacity(
-                                            light.isActive(in: statusLightsState) ? 0.85 : 0.25)
-                                    )
-                                    .interactive(),
-                                in: .circle
-                            )
-                            .glassEffectUnion(id: "statusLights", namespace: glassNamespace)
-                            .scaleEffect(light.isActive(in: statusLightsState) ? 1.06 : 1.0)
-                            .opacity(light.isActive(in: statusLightsState) ? 1.0 : 0.8)
+                    // Status lights
+                    HStack(spacing: 6) {
+                        ForEach(StatusLightsState.allLights, id: \.self) { light in
+                            Image(systemName: light.symbolName)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(
+                                    light.isActive(in: statusLightsState) ? .white : .secondary
+                                )
+                                .padding(6)
+                                .glassEffect(
+                                    .regular
+                                        .tint(
+                                            light.tintColor.opacity(
+                                                light.isActive(in: statusLightsState) ? 0.85 : 0.25)
+                                        )
+                                        .interactive(),
+                                    in: .circle
+                                )
+                                .glassEffectUnion(id: "statusLights", namespace: glassNamespace)
+                                .scaleEffect(light.isActive(in: statusLightsState) ? 1.06 : 1.0)
+                                .opacity(light.isActive(in: statusLightsState) ? 1.0 : 0.8)
+                        }
                     }
                 }
             }

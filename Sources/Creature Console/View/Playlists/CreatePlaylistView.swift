@@ -36,7 +36,7 @@ struct CreatePlaylistView: View {
                         .font(.body)
                 }
                 .padding(20)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
 
                 Spacer()
             }
@@ -47,22 +47,25 @@ struct CreatePlaylistView: View {
                 .navigationBarTitleDisplayMode(.inline)
             #endif
             .safeAreaInset(edge: .bottom) {
+                // Floating glass capsule bar, same idiom as BottomToolBarView
                 HStack(spacing: 12) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.glass)
 
                     Spacer()
 
                     Button("Create") {
                         createPlaylist()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                     .disabled(playlistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .glassEffect(.regular.interactive(), in: .capsule)
                 .padding()
-                .background(.thinMaterial)
             }
         }
         .errorAlert($errorAlert)

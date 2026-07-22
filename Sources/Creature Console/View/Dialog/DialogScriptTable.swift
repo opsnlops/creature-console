@@ -106,7 +106,7 @@ struct DialogScriptTable: View {
                         } label: {
                             Label("New Dialog", systemImage: "plus")
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                     }
                 }
             }

@@ -1,3 +1,15 @@
+creature-cli (2.40.0) unstable; urgency=medium
+
+  * No CLI changes — lockstep bump with the Console app's Liquid Glass
+    completion pass (issue #35): Playlists, the entire tvOS surface, the sACN
+    monitor, the recording coordinator, and the menu-bar extra move off
+    thinMaterial/flat fills onto real tinted interactive glass; the iOS
+    status-light cluster gains its GlassEffectContainer so it morphs like the
+    macOS one; primary in-content CTAs adopt glassProminent; and the legacy
+    fake "LiquidGlass" imitation view is deleted outright.
+
+ -- April White <april@creature.engineering>  Wed, 22 Jul 2026 00:10:00 -0700
+
 creature-cli (2.39.2) unstable; urgency=medium
 
   * No CLI changes — lockstep bump with the Console app's Phases 1-2

@@ -78,7 +78,7 @@ struct DialogRenderPanel: View {
                 } label: {
                     Label("Render Dialog", systemImage: "film")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .disabled(!turnsAreReady || isRendering)
 
                 if isRendering {
@@ -147,7 +147,7 @@ struct DialogRenderPanel: View {
                     "Generate Shareable Version of Sound…",
                     systemImage: "square.and.arrow.up")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             .controlSize(.small)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -170,7 +170,7 @@ struct FixtureEditor: View {
             }
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 
     private var wiringSection: some View {
@@ -207,7 +207,7 @@ struct FixtureEditor: View {
             .foregroundStyle(.secondary)
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 
     private var universeSection: some View {
@@ -249,7 +249,7 @@ struct FixtureEditor: View {
             .foregroundStyle(.secondary)
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 
     // MARK: - Derived

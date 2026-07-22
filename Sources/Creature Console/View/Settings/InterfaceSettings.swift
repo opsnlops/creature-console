@@ -33,250 +33,230 @@ struct InterfaceSettings: View {
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "InterfaceSettings")
 
     var body: some View {
-        ZStack {
-            // Liquid Glass background
-            LiquidGlass()
-                .ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: "paintpalette")
-                        .font(.system(size: 16, weight: .semibold))
-                        .padding(8)
-                        .glassEffect(
-                            .regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 8))
-                    Text("Interface Settings")
-                        .font(.largeTitle.bold())
-                }
-                .padding(.bottom, 8)
-
-                GlassEffectContainer(spacing: 24) {
-                    // Card 1: Mouth Import Defaults
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Mouth Import", systemImage: "waveform.path")
-                            .font(.headline)
-                        #if os(tvOS)
-                            HStack {
-                                Text("Default Axis")
-                                Spacer()
-                                TextField("0–15", text: $tvDefaultMouthAxisText)
-                                    .multilineTextAlignment(.trailing)
-                                    .frame(maxWidth: 120)
-                                    .submitLabel(.done)
-                                    .onSubmit {
-                                        let val = Int(tvDefaultMouthAxisText) ?? defaultMouthAxis
-                                        let clamped = min(15, max(0, val))
-                                        defaultMouthAxis = clamped
-                                        tvDefaultMouthAxisText = String(clamped)
-                                    }
-                            }
-                            .padding(12)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                        #else
-                            HStack {
-                                Text("Default Axis")
-                                Spacer()
-                                Stepper(
-                                    value: Binding<Double>(
-                                        get: { Double(defaultMouthAxis) },
-                                        set: { defaultMouthAxis = Int($0) }
-                                    ), in: 0...15, step: 1
-                                ) {
-                                    Text("Axis \(defaultMouthAxis)")
-                                }
-                                .frame(maxWidth: 180)
-                            }
-                            .padding(12)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                        #endif
-                    }
-
-                    // Card 2: Server Logs
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Server Logs", systemImage: "text.alignleft")
-                            .font(.headline)
-                        #if os(tvOS)
-                            HStack {
-                                Text("Scrollback Lines")
-                                Spacer()
-                                TextField(
-                                    "\(minScrollbackLines)–\(maxScrollbackLines)",
-                                    text: $tvServerLogsScrollbackText
-                                )
-                                .multilineTextAlignment(.trailing)
-                                .frame(maxWidth: 120)
-                                .submitLabel(.done)
-                                .onSubmit {
-                                    let val =
-                                        Int(tvServerLogsScrollbackText)
-                                        ?? serverLogsScrollBackLines
-                                    let clamped = min(
-                                        maxScrollbackLines, max(minScrollbackLines, val))
-                                    let snapped =
-                                        Int(
-                                            (Double(clamped) / Double(scrollbackLineStep)).rounded()
-                                        )
-                                        * scrollbackLineStep
-                                    serverLogsScrollBackLines = snapped
-                                    tvServerLogsScrollbackText = String(snapped)
-                                }
-                            }
-                            .padding(12)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                        #else
-                            HStack {
-                                Text("Scrollback Lines")
-                                Spacer()
-                                Slider(
-                                    value: Binding<Double>(
-                                        get: { Double(serverLogsScrollBackLines) },
-                                        set: { serverLogsScrollBackLines = Int($0) }
-                                    ),
-                                    in: Double(minScrollbackLines)...Double(maxScrollbackLines),
-                                    step: Double(scrollbackLineStep)
-                                )
-                                .frame(maxWidth: 280)
-                                Text("\(serverLogsScrollBackLines)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(12)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                        #endif
-                    }
-                }
-                GlassEffectContainer(spacing: 24) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Filming Mode", systemImage: "clapperboard")
-                            .font(.headline)
-                        #if os(tvOS)
-                            HStack {
-                                Text("Countdown Seconds")
-                                Spacer()
-                                TextField(
-                                    "\(filmingCountdownRange.lowerBound)–\(filmingCountdownRange.upperBound)",
-                                    text: $tvFilmingCountdownText
-                                )
-                                .multilineTextAlignment(.trailing)
-                                .frame(maxWidth: 120)
-                                .submitLabel(.done)
-                                .onSubmit {
-                                    let value =
-                                        Int(tvFilmingCountdownText)
-                                        ?? filmingCountdownSeconds
-                                    let clamped = max(
-                                        filmingCountdownRange.lowerBound,
-                                        min(filmingCountdownRange.upperBound, value))
-                                    filmingCountdownSeconds = clamped
-                                    tvFilmingCountdownText = String(clamped)
-                                }
-                            }
-                            .padding(12)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                        #else
-                            HStack {
-                                Text("Countdown Seconds")
-                                Spacer()
-                                Stepper(
-                                    value: Binding<Double>(
-                                        get: { Double(filmingCountdownSeconds) },
-                                        set: { filmingCountdownSeconds = Int($0) }
-                                    ),
-                                    in: filmingCountdownRangeDouble,
-                                    step: 1
-                                ) {
-                                    Text("\(filmingCountdownSeconds)s")
-                                }
-                                .frame(maxWidth: 180)
-                            }
-                            .padding(12)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                        #endif
-                    }
-
-                    // Card: DMX live control hold duration. Controls how long the server
-                    // keeps each live update before blacking out — longer values keep the
-                    // light on through scrub-pause-scrub patterns without it flickering
-                    // dark while the user thinks.
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("DMX Live Control", systemImage: "lightbulb.led")
-                            .font(.headline)
-                        #if os(tvOS)
-                            HStack {
-                                Text("Hold Seconds")
-                                Spacer()
-                                TextField(
-                                    "\(dmxLiveHoldRange.lowerBound)–\(dmxLiveHoldRange.upperBound)",
-                                    text: $tvDmxLiveHoldText
-                                )
-                                .multilineTextAlignment(.trailing)
-                                .frame(maxWidth: 120)
-                                .submitLabel(.done)
-                                .onSubmit {
-                                    let value =
-                                        Int(tvDmxLiveHoldText) ?? dmxLiveHoldSeconds
-                                    let clamped = max(
-                                        dmxLiveHoldRange.lowerBound,
-                                        min(dmxLiveHoldRange.upperBound, value))
-                                    dmxLiveHoldSeconds = clamped
-                                    tvDmxLiveHoldText = String(clamped)
-                                }
-                            }
-                            .padding(12)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                        #else
-                            HStack {
-                                Text("Hold Seconds")
-                                Spacer()
-                                Stepper(
-                                    value: Binding<Double>(
-                                        get: { Double(dmxLiveHoldSeconds) },
-                                        set: { dmxLiveHoldSeconds = Int($0) }
-                                    ),
-                                    in: dmxLiveHoldRangeDouble,
-                                    step: 1
-                                ) {
-                                    Text("\(dmxLiveHoldSeconds)s")
-                                }
-                                .frame(maxWidth: 180)
-                            }
-                            .padding(12)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                        #endif
-                    }
-                }
-
-                Spacer(minLength: 0)
+        // No fake backdrop here: real glass belongs on the cards (chrome), not edge-to-edge
+        // behind them — the standard window background is the correct canvas for glass to sit on.
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "paintpalette")
+                    .font(.system(size: 16, weight: .semibold))
+                    .padding(8)
+                    .glassEffect(
+                        .regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 8))
+                Text("Interface Settings")
+                    .font(.largeTitle.bold())
             }
-            .padding(24)
-            #if os(tvOS)
-                .onAppear {
-                    tvDefaultMouthAxisText = String(defaultMouthAxis)
-                    tvServerLogsScrollbackText = String(serverLogsScrollBackLines)
-                    tvFilmingCountdownText = String(filmingCountdownSeconds)
-                    tvDmxLiveHoldText = String(dmxLiveHoldSeconds)
+            .padding(.bottom, 8)
+
+            GlassEffectContainer(spacing: 24) {
+                // Card 1: Mouth Import Defaults
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Mouth Import", systemImage: "waveform.path")
+                        .font(.headline)
+                    #if os(tvOS)
+                        HStack {
+                            Text("Default Axis")
+                            Spacer()
+                            TextField("0–15", text: $tvDefaultMouthAxisText)
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: 120)
+                                .submitLabel(.done)
+                                .onSubmit {
+                                    let val = Int(tvDefaultMouthAxisText) ?? defaultMouthAxis
+                                    let clamped = min(15, max(0, val))
+                                    defaultMouthAxis = clamped
+                                    tvDefaultMouthAxisText = String(clamped)
+                                }
+                        }
+                        .padding(12)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                    #else
+                        HStack {
+                            Text("Default Axis")
+                            Spacer()
+                            Stepper(
+                                value: Binding<Double>(
+                                    get: { Double(defaultMouthAxis) },
+                                    set: { defaultMouthAxis = Int($0) }
+                                ), in: 0...15, step: 1
+                            ) {
+                                Text("Axis \(defaultMouthAxis)")
+                            }
+                            .frame(maxWidth: 180)
+                        }
+                        .padding(12)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                    #endif
                 }
-            #endif
+
+                // Card 2: Server Logs
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Server Logs", systemImage: "text.alignleft")
+                        .font(.headline)
+                    #if os(tvOS)
+                        HStack {
+                            Text("Scrollback Lines")
+                            Spacer()
+                            TextField(
+                                "\(minScrollbackLines)–\(maxScrollbackLines)",
+                                text: $tvServerLogsScrollbackText
+                            )
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 120)
+                            .submitLabel(.done)
+                            .onSubmit {
+                                let val =
+                                    Int(tvServerLogsScrollbackText)
+                                    ?? serverLogsScrollBackLines
+                                let clamped = min(
+                                    maxScrollbackLines, max(minScrollbackLines, val))
+                                let snapped =
+                                    Int(
+                                        (Double(clamped) / Double(scrollbackLineStep)).rounded()
+                                    )
+                                    * scrollbackLineStep
+                                serverLogsScrollBackLines = snapped
+                                tvServerLogsScrollbackText = String(snapped)
+                            }
+                        }
+                        .padding(12)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                    #else
+                        HStack {
+                            Text("Scrollback Lines")
+                            Spacer()
+                            Slider(
+                                value: Binding<Double>(
+                                    get: { Double(serverLogsScrollBackLines) },
+                                    set: { serverLogsScrollBackLines = Int($0) }
+                                ),
+                                in: Double(minScrollbackLines)...Double(maxScrollbackLines),
+                                step: Double(scrollbackLineStep)
+                            )
+                            .frame(maxWidth: 280)
+                            Text("\(serverLogsScrollBackLines)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(12)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                    #endif
+                }
+            }
+            GlassEffectContainer(spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Filming Mode", systemImage: "clapperboard")
+                        .font(.headline)
+                    #if os(tvOS)
+                        HStack {
+                            Text("Countdown Seconds")
+                            Spacer()
+                            TextField(
+                                "\(filmingCountdownRange.lowerBound)–\(filmingCountdownRange.upperBound)",
+                                text: $tvFilmingCountdownText
+                            )
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 120)
+                            .submitLabel(.done)
+                            .onSubmit {
+                                let value =
+                                    Int(tvFilmingCountdownText)
+                                    ?? filmingCountdownSeconds
+                                let clamped = max(
+                                    filmingCountdownRange.lowerBound,
+                                    min(filmingCountdownRange.upperBound, value))
+                                filmingCountdownSeconds = clamped
+                                tvFilmingCountdownText = String(clamped)
+                            }
+                        }
+                        .padding(12)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                    #else
+                        HStack {
+                            Text("Countdown Seconds")
+                            Spacer()
+                            Stepper(
+                                value: Binding<Double>(
+                                    get: { Double(filmingCountdownSeconds) },
+                                    set: { filmingCountdownSeconds = Int($0) }
+                                ),
+                                in: filmingCountdownRangeDouble,
+                                step: 1
+                            ) {
+                                Text("\(filmingCountdownSeconds)s")
+                            }
+                            .frame(maxWidth: 180)
+                        }
+                        .padding(12)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                    #endif
+                }
+
+                // Card: DMX live control hold duration. Controls how long the server
+                // keeps each live update before blacking out — longer values keep the
+                // light on through scrub-pause-scrub patterns without it flickering
+                // dark while the user thinks.
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("DMX Live Control", systemImage: "lightbulb.led")
+                        .font(.headline)
+                    #if os(tvOS)
+                        HStack {
+                            Text("Hold Seconds")
+                            Spacer()
+                            TextField(
+                                "\(dmxLiveHoldRange.lowerBound)–\(dmxLiveHoldRange.upperBound)",
+                                text: $tvDmxLiveHoldText
+                            )
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 120)
+                            .submitLabel(.done)
+                            .onSubmit {
+                                let value =
+                                    Int(tvDmxLiveHoldText) ?? dmxLiveHoldSeconds
+                                let clamped = max(
+                                    dmxLiveHoldRange.lowerBound,
+                                    min(dmxLiveHoldRange.upperBound, value))
+                                dmxLiveHoldSeconds = clamped
+                                tvDmxLiveHoldText = String(clamped)
+                            }
+                        }
+                        .padding(12)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                    #else
+                        HStack {
+                            Text("Hold Seconds")
+                            Spacer()
+                            Stepper(
+                                value: Binding<Double>(
+                                    get: { Double(dmxLiveHoldSeconds) },
+                                    set: { dmxLiveHoldSeconds = Int($0) }
+                                ),
+                                in: dmxLiveHoldRangeDouble,
+                                step: 1
+                            ) {
+                                Text("\(dmxLiveHoldSeconds)s")
+                            }
+                            .frame(maxWidth: 180)
+                        }
+                        .padding(12)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                    #endif
+                }
+            }
+
+            Spacer(minLength: 0)
         }
+        .padding(24)
+        #if os(tvOS)
+            .onAppear {
+                tvDefaultMouthAxisText = String(defaultMouthAxis)
+                tvServerLogsScrollbackText = String(serverLogsScrollBackLines)
+                tvFilmingCountdownText = String(filmingCountdownSeconds)
+                tvDmxLiveHoldText = String(dmxLiveHoldSeconds)
+            }
+        #endif
     }
 }
 
 #Preview {
     InterfaceSettings()
-}
-
-struct LiquidGlass: View {
-    var body: some View {
-        Rectangle()
-            .fill(.thinMaterial)
-            .overlay(
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.08), Color.clear],
-                            startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                    .blendMode(.screen)
-            )
-    }
 }

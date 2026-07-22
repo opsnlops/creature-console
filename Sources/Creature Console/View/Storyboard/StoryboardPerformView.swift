@@ -255,7 +255,7 @@ private struct FixtureControlSheet: View {
                         } label: {
                             Label("On", systemImage: "lightbulb.fill")
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                         Button(role: .destructive) {
                             run { await FixtureControlService.turnOff(fixture, server: server) }
                         } label: {

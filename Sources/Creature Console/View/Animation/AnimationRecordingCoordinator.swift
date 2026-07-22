@@ -244,21 +244,25 @@ struct AnimationRecordingSessionView: View {
     @State private var selectedCreatureForRecording: Creature?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Animation metadata section
-            AnimationMetadataCard(animation: session.animation) {
-                showingMetadataEditor = true
+        // GlassEffectContainer clusters the sibling glass cards so they blend/morph together —
+        // this UI is front and center while capturing, so it gets the flagship treatment.
+        GlassEffectContainer(spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Animation metadata section
+                AnimationMetadataCard(animation: session.animation) {
+                    showingMetadataEditor = true
+                }
+
+                // Recording section
+                RecordingControlsView(session: session)
+
+                // Tracks overview
+                if !session.recordedTracks.isEmpty {
+                    TracksOverviewView(session: session)
+                }
+
+                Spacer()
             }
-
-            // Recording section
-            RecordingControlsView(session: session)
-
-            // Tracks overview
-            if !session.recordedTracks.isEmpty {
-                TracksOverviewView(session: session)
-            }
-
-            Spacer()
         }
         .padding()
         .sheet(isPresented: $showingMetadataEditor) {
@@ -318,8 +322,7 @@ struct AnimationMetadataCard: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
-        .clipShape(.rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 }
 
@@ -401,12 +404,11 @@ struct CreatureRecordingCard: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(hasTrack ? Color.green : Color(.systemGray4), lineWidth: hasTrack ? 2 : 1)
         )
-        .clipShape(.rect(cornerRadius: 8))
     }
 }
 
@@ -441,8 +443,7 @@ struct TracksOverviewView: View {
                             .clipShape(.rect(cornerRadius: 4))
                     }
                     .padding()
-                    .background(Color(.systemGray6))
-                    .clipShape(.rect(cornerRadius: 8))
+                    .glassEffect(.regular, in: .rect(cornerRadius: 8))
                 }
             }
         }

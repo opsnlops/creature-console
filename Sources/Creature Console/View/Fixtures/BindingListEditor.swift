@@ -39,7 +39,7 @@ struct BindingListEditor: View {
             }
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 
     private func bindingRow(at index: Int) -> some View {
@@ -131,7 +131,7 @@ struct BindingListEditor: View {
             }
         }
         .padding()
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .glassEffect(.regular, in: .rect(cornerRadius: 8))
     }
 
     private func addBinding() {

@@ -125,7 +125,7 @@ struct LogView: View {
                                 }
                             }
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                         .padding()
                     }
                 }

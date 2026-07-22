@@ -8,9 +8,6 @@ struct SettingsView: View {
     }
     var body: some View {
         ZStack {
-            // Liquid Glass background behind the entire settings container
-            LiquidGlass()
-                .ignoresSafeArea()
 
             #if os(tvOS)
                 NetworkSettingsView()

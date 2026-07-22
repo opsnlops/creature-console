@@ -44,7 +44,7 @@ struct ChannelListEditor: View {
             }
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
     }
 
     private func channelRow(at index: Int) -> some View {

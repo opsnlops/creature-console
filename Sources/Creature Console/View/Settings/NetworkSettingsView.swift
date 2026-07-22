@@ -50,8 +50,6 @@ struct NetworkSettingsView: View {
     var body: some View {
         ZStack {
             // Background glass layer
-            LiquidGlass()
-                .ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {

@@ -28,25 +28,25 @@ struct CreatureDetail: View {
 
     var body: some View {
         #if os(tvOS)
-            ZStack {
-                // Full-screen liquid glass effect
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .ignoresSafeArea()
-                SensorData(creature: creature, showTitle: false)
-                    .padding(.top, 24)
-                    .padding(.horizontal, 36)
-                    .padding(.bottom, 36)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            }
-            .task {
-                // Seed initial activity and subscribe to updates
-                currentActivity = await AppState.shared.getCurrentActivity
-                for await state in await AppState.shared.stateUpdates {
-                    currentActivity = state.currentActivity
+            // Sensor data floats on a tinted Liquid Glass card over the tvOS background
+            SensorData(creature: creature, showTitle: false)
+                .padding(32)
+                .glassEffect(
+                    .regular.tint(.blue.opacity(0.15)),
+                    in: .rect(cornerRadius: 32)
+                )
+                .padding(.top, 24)
+                .padding(.horizontal, 36)
+                .padding(.bottom, 36)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .task {
+                    // Seed initial activity and subscribe to updates
+                    currentActivity = await AppState.shared.getCurrentActivity
+                    for await state in await AppState.shared.stateUpdates {
+                        currentActivity = state.currentActivity
+                    }
                 }
-            }
-            .errorAlert($errorAlert)
+                .errorAlert($errorAlert)
         #else
             VStack {
                 SensorData(creature: creature)

@@ -92,13 +92,13 @@ struct RecordTrackForSession: View {
                         Button("Discard") {
                             discardRecording()
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.glass)
                         .foregroundStyle(.red)
 
                         Button("Save Track") {
                             saveTrackToSession()
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                     }
                     .padding()
                 }

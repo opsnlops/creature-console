@@ -25,40 +25,46 @@ struct PlaylistDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Playlist Header
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    TextField("Playlist Name", text: $editingName)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.title2)
-                        .onSubmit {
-                            updatePlaylistName()
+            // The header and weight-distribution cards are siblings in one glass
+            // container so the adjacent surfaces blend and morph together.
+            GlassEffectContainer(spacing: 20) {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Playlist Header
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            TextField("Playlist Name", text: $editingName)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.title2)
+                                .onSubmit {
+                                    updatePlaylistName()
+                                }
+
+                            Spacer()
+
+                            Text("Total Weight: \(totalWeight)")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
                         }
 
-                    Spacer()
+                        Text("Items: \(playlist.items.count)")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    .padding()
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
 
-                    Text("Total Weight: \(totalWeight)")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
+                    // Weight Distribution Visualization
+                    if !playlist.items.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Weight Distribution")
+                                .font(.headline)
+
+                            WeightDistributionView(items: playlist.items, animations: animations)
+                        }
+                        .padding()
+                        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                    }
                 }
-
-                Text("Items: \(playlist.items.count)")
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-            }
-            .padding()
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-
-            // Weight Distribution Visualization
-            if !playlist.items.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Weight Distribution")
-                        .font(.headline)
-
-                    WeightDistributionView(items: playlist.items, animations: animations)
-                }
-                .padding()
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
 
             // Playlist Items
@@ -72,7 +78,7 @@ struct PlaylistDetail: View {
                     Button("Add Animation") {
                         showingAddAnimation = true
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                 }
 
                 if playlist.items.isEmpty {
@@ -84,7 +90,7 @@ struct PlaylistDetail: View {
                         Button("Add Animation") {
                             showingAddAnimation = true
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                     }
                 } else {
                     List {
@@ -107,7 +113,7 @@ struct PlaylistDetail: View {
                 }
             }
             .padding()
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
 
             Spacer()
         }
@@ -343,7 +349,7 @@ struct AddAnimationToPlaylistView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding()
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Select Animation")

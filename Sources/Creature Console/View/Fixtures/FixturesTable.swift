@@ -125,7 +125,7 @@ struct FixturesTable: View {
                         } label: {
                             Label("New Fixture", systemImage: "plus")
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                     }
                 }
             }

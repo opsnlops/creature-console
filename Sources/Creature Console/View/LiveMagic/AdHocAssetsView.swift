@@ -166,7 +166,7 @@ private struct AdHocAnimationRow: View {
                                 .labelStyle(.titleAndIcon)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                     .controlSize(.small)
                     .disabled(isPlaying)
                     .help("Play this ad-hoc animation on the connected creature")

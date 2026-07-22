@@ -169,7 +169,7 @@ struct LiveMagicPromptSheet: View {
                 Text("Close")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             .disabled(isSubmitting)
 
             Button(action: submit) {
@@ -181,7 +181,7 @@ struct LiveMagicPromptSheet: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .disabled(isSubmitDisabled)
         }
     }

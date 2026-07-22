@@ -39,7 +39,7 @@ struct ChooseCreatureSheet: View {
                     dismiss()
                 }
                 .padding()
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
             }
         }
         .padding()
