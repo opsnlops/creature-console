@@ -3,7 +3,7 @@ import Foundation
 import Logging
 
 /// This combines all of the sensors a creature has into one object that can be cached
-public class CreatureHealth: ObservableObject, Identifiable, Hashable, Equatable {
+public class CreatureHealth: Identifiable, Hashable, Equatable {
     private var logger = Logger(label: "io.opsnlops.CreatureConsole.CreatureHealth")
 
     public let id: CreatureIdentifier

@@ -5,30 +5,33 @@ import AudioToolbox
 import Common
 import Foundation
 import OSLog
+import Observation
 
 #if os(iOS)
     import UIKit
 #endif
 
 @MainActor
-class AudioManager: ObservableObject {
+@Observable
+class AudioManager {
 
     // Only one of these can / should exist, so let's use the Singleton pattern
     static let shared = AudioManager()
 
-    let server = CreatureServerClient.shared
+    @ObservationIgnored let server = CreatureServerClient.shared
 
-    private var player: AVPlayer?
-    private var audioPlayer: AVAudioPlayer?
-    private var previewEngine: AVAudioEngine?
-    private var previewPlayer: AVAudioPlayerNode?
-    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager")
+    @ObservationIgnored private var player: AVPlayer?
+    @ObservationIgnored private var audioPlayer: AVAudioPlayer?
+    @ObservationIgnored private var previewEngine: AVAudioEngine?
+    @ObservationIgnored private var previewPlayer: AVAudioPlayerNode?
+    @ObservationIgnored let logger = Logger(
+        subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager")
 
     /// The most recent error emitted by the audio manager. Observe this in the UI to present errors.
-    @Published var lastError: AudioError?
+    var lastError: AudioError?
 
     /// Keep a strong reference to the armed preview file so it remains valid during playback.
-    private var previewFile: AVAudioFile?
+    @ObservationIgnored private var previewFile: AVAudioFile?
 
     /// Report an error by logging it and publishing to the UI via `lastError`.
     private func reportError(
@@ -45,21 +48,21 @@ class AudioManager: ObservableObject {
 
     #if os(iOS) || os(tvOS)
         /// Whether we activated the shared audio session, so we only deactivate what we activated.
-        private var audioSessionActive = false
+        @ObservationIgnored private var audioSessionActive = false
     #endif
 
     /// Monotonic tokens so completion callbacks from a superseded playback can be ignored.
     /// One per playback path, since different paths can legitimately overlap (e.g. the
     /// filming alignment cue playing while a preview is armed).
-    private var playerGeneration = 0
-    private var bundledSoundGeneration = 0
-    private var previewGeneration = 0
+    @ObservationIgnored private var playerGeneration = 0
+    @ObservationIgnored private var bundledSoundGeneration = 0
+    @ObservationIgnored private var previewGeneration = 0
 
     /// Notification observers watching for the current AVPlayer item to finish.
-    private var playerEndObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var playerEndObservers: [NSObjectProtocol] = []
 
     /// Strong reference to the bundled-sound delegate (AVAudioPlayer holds its delegate weakly).
-    private var bundledSoundDelegate: AudioPlayerFinishDelegate?
+    @ObservationIgnored private var bundledSoundDelegate: AudioPlayerFinishDelegate?
 
     // This is private to make it impossible to make more than one
     private init() {}

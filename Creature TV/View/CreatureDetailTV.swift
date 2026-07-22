@@ -11,13 +11,12 @@ struct CreatureDetail: View {
 
     let server = CreatureServerClient.shared
     let eventLoop = EventLoop.shared
-    // Removed @ObservedObject var appState = AppState.shared
     let creatureManager = CreatureManager.shared
 
+    @Environment(ConsoleStore.self) private var console
 
     @State private var errorAlert: ErrorAlert?
     @State private var streamingTask: Task<Void, Never>? = nil
-    @State private var currentActivity: Activity = .idle
 
     var creature: Creature
 
@@ -39,13 +38,6 @@ struct CreatureDetail: View {
                 .padding(.horizontal, 36)
                 .padding(.bottom, 36)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .task {
-                    // Seed initial activity and subscribe to updates
-                    currentActivity = await AppState.shared.getCurrentActivity
-                    for await state in await AppState.shared.stateUpdates {
-                        currentActivity = state.currentActivity
-                    }
-                }
                 .errorAlert($errorAlert)
         #else
             VStack {
@@ -57,10 +49,11 @@ struct CreatureDetail: View {
                         toggleStreaming()
                     }) {
                         Image(
-                            systemName: (currentActivity == .streaming)
+                            systemName: (console.currentActivity == .streaming)
                                 ? "gamecontroller.fill" : "gamecontroller"
                         )
-                        .foregroundStyle((currentActivity == .streaming) ? .green : .primary)
+                        .foregroundStyle(
+                            (console.currentActivity == .streaming) ? .green : .primary)
                     }
                 }
             }
@@ -83,13 +76,6 @@ struct CreatureDetail: View {
             #if os(macOS)
                 .navigationSubtitle(generateStatusString())
             #endif
-            .task {
-                // Seed initial activity and subscribe to updates
-                currentActivity = await AppState.shared.getCurrentActivity
-                for await state in await AppState.shared.stateUpdates {
-                    currentActivity = state.currentActivity
-                }
-            }
             .errorAlert($errorAlert)
         #endif
     }
@@ -133,6 +119,8 @@ struct CreatureDetail: View {
             let appStateActivity = await AppState.shared.getCurrentActivity
             logger.info("Toggling streaming - current activity: \(appStateActivity.description)")
 
+            // The AppState transitions below flow back to the UI through ConsoleStore, so
+            // there's no local activity state to mirror.
             if appStateActivity == .streaming {
                 // Stop streaming
                 let result = await creatureManager.stopStreaming()
@@ -140,7 +128,6 @@ struct CreatureDetail: View {
                 case .success:
                     logger.debug("Successfully stopped streaming")
                     await AppState.shared.setCurrentActivity(.idle)
-                    currentActivity = .idle
                 case .failure(let error):
                     logger.warning("Unable to stop streaming: \(error)")
                 }
@@ -151,12 +138,10 @@ struct CreatureDetail: View {
                 switch result {
                 case .success(let message):
                     logger.info("Streaming started: \(message)")
-                    currentActivity = .streaming
                 case .failure(let error):
                     logger.warning("Unable to start streaming: \(error)")
                     // Revert state on failure
                     await AppState.shared.setCurrentActivity(.idle)
-                    currentActivity = .idle
                 }
             } else {
                 errorAlert = ErrorAlert(
@@ -172,4 +157,5 @@ struct CreatureDetail: View {
 
 #Preview {
     CreatureDetail(creature: .mock())
+        .environment(ConsoleStore.shared)
 }

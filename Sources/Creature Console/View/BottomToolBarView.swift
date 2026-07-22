@@ -4,18 +4,9 @@ import SwiftUI
 
 struct BottomToolBarView: View {
 
+    @Environment(ConsoleStore.self) private var console
     @State private var frameSpareTime: Double = 0.0
-    @ObservedObject var serverCounters = SystemCountersStore.shared
-    @State private var statusLightsState = StatusLightsState(
-        running: false, dmx: false, streaming: false, animationPlaying: false)
-    @State private var appState = AppStateData(
-        currentActivity: .idle,
-        currentAnimation: nil,
-        selectedTrack: nil,
-        showSystemAlert: false,
-        systemAlertMessage: ""
-    )
-    @State private var websocketState: WebSocketConnectionState = .disconnected
+    private let serverCounters = SystemCountersStore.shared
     @State private var systemAlert: ErrorAlert?
     @Namespace private var glassNamespace
 
@@ -31,40 +22,40 @@ struct BottomToolBarView: View {
                 }
                 HStack(spacing: 8) {
                     HStack(spacing: 6) {
-                        Image(systemName: appState.currentActivity.symbolName)
+                        Image(systemName: console.currentActivity.symbolName)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.95))
-                        Text(appState.currentActivity.description)
+                        Text(console.currentActivity.description)
                             .font(.footnote)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .glassEffect(
                         .regular
-                            .tint(appState.currentActivity.tintColor.opacity(0.35))
+                            .tint(console.currentActivity.tintColor.opacity(0.35))
                             .interactive(),
                         in: .capsule
                     )
                     .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
-                    .animation(.easeInOut(duration: 0.25), value: appState.currentActivity)
+                    .animation(.easeInOut(duration: 0.25), value: console.currentActivity)
 
                     HStack(spacing: 6) {
-                        Image(systemName: websocketState.symbolName)
+                        Image(systemName: console.websocketState.symbolName)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.95))
-                        Text(websocketState.description)
+                        Text(console.websocketState.description)
                             .font(.footnote)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .glassEffect(
                         .regular
-                            .tint(websocketState.tintColor.opacity(0.35))
+                            .tint(console.websocketState.tintColor.opacity(0.35))
                             .interactive(),
                         in: .capsule
                     )
                     .glassEffectUnion(id: "statusCluster", namespace: glassNamespace)
-                    .animation(.easeInOut(duration: 0.25), value: websocketState)
+                    .animation(.easeInOut(duration: 0.25), value: console.websocketState)
                 }
             }
             .padding(.horizontal, 16)
@@ -79,7 +70,7 @@ struct BottomToolBarView: View {
                     ForEach(StatusLightsState.allLights, id: \.self) { light in
                         StatusIndicator(
                             systemName: light.symbolName,
-                            isActive: light.isActive(in: statusLightsState),
+                            isActive: light.isActive(in: console.statusLights),
                             help: light.helpText,
                             tint: light.tintColor,
                             namespace: glassNamespace,
@@ -99,50 +90,22 @@ struct BottomToolBarView: View {
                 await AppState.shared.setSystemAlert(show: false)
             }
         }
+        // Present (or clear) the server's system alert whenever the flag flips; `initial: true`
+        // covers an alert that was already raised before this view appeared.
+        .onChange(of: console.appState.showSystemAlert, initial: true) { _, showAlert in
+            systemAlert =
+                showAlert
+                ? ErrorAlert(
+                    title: "Server Message",
+                    message:
+                        "The server wants us to know: \(console.appState.systemAlertMessage)")
+                : nil
+        }
         .task {
             // Update frameSpareTime from EventLoop actor
             while !Task.isCancelled {
                 frameSpareTime = await EventLoop.shared.frameSpareTime
                 try? await Task.sleep(for: .seconds(1))  // Update once per second
-            }
-        }
-        .task {
-            for await state in await StatusLightsManager.shared.stateUpdates {
-                statusLightsState = state
-            }
-        }
-        .task { @MainActor in
-            // Seed with the current activity so the UI reflects the latest state immediately
-            let initialActivity = await AppState.shared.getCurrentActivity
-            appState = AppStateData(
-                currentActivity: initialActivity,
-                currentAnimation: appState.currentAnimation,
-                selectedTrack: appState.selectedTrack,
-                showSystemAlert: appState.showSystemAlert,
-                systemAlertMessage: appState.systemAlertMessage
-            )
-
-            // Capture the async sequence once, then iterate on the main actor to avoid dropping updates
-            let updates = await AppState.shared.stateUpdates
-            for await state in updates {
-                appState = state
-                systemAlert =
-                    state.showSystemAlert
-                    ? ErrorAlert(
-                        title: "Server Message",
-                        message: "The server wants us to know: \(state.systemAlertMessage)")
-                    : nil
-            }
-        }
-        .task { @MainActor in
-            // Get initial websocket state
-            let initialWebSocketState = await WebSocketStateManager.shared.getCurrentState
-            websocketState = initialWebSocketState
-
-            // Subscribe to websocket state updates
-            for await state in await WebSocketStateManager.shared.stateUpdates {
-                guard !Task.isCancelled else { break }
-                websocketState = state
             }
         }
 

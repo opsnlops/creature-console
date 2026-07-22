@@ -24,37 +24,38 @@ enum MonitorSource: String, CaseIterable, Identifiable {
 }
 
 @MainActor
-final class SACNUniverseMonitorViewModel: ObservableObject {
-    @Published var interfaces: [SACNInterface] = []
-    @Published var selectedInterfaceID: String?
-    @Published var universe: Int = 1
-    @Published var isRunning: Bool = false
-    @Published var source: MonitorSource = .local {
+@Observable
+final class SACNUniverseMonitorViewModel {
+    var interfaces: [SACNInterface] = []
+    var selectedInterfaceID: String?
+    var universe: Int = 1
+    var isRunning: Bool = false
+    var source: MonitorSource = .local {
         didSet {
             if oldValue != source, isRunning {
                 restartReceiver()
             }
         }
     }
-    @Published var remoteHost: String = "" {
+    var remoteHost: String = "" {
         didSet {
             if oldValue != remoteHost, source == .remote, isRunning {
                 restartReceiver()
             }
         }
     }
-    @Published var remotePort: Int = 1963 {
+    var remotePort: Int = 1963 {
         didSet {
             if oldValue != remotePort, source == .remote, isRunning {
                 restartReceiver()
             }
         }
     }
-    @Published var slots: [UInt8] = Array(repeating: 0, count: 512)
-    @Published var status: MonitorStatus = .idle
-    @Published var lastPacketDate: Date?
-    @Published var lastSequence: UInt8?
-    @Published var packetCount: Int = 0
+    var slots: [UInt8] = Array(repeating: 0, count: 512)
+    var status: MonitorStatus = .idle
+    var lastPacketDate: Date?
+    var lastSequence: UInt8?
+    var packetCount: Int = 0
 
     enum MonitorStatus: Equatable {
         case idle
@@ -66,16 +67,18 @@ final class SACNUniverseMonitorViewModel: ObservableObject {
         case failed(String)
     }
 
-    private let receiver = SACNReceiver()
-    private let remoteReceiver = SACNRemoteReceiver()
-    private let pathMonitor = NWPathMonitor()
-    private let pathQueue = DispatchQueue(label: "io.opsnlops.CreatureConsole.SACNPathMonitor")
-    private let framePublishInterval: UInt64 = 20_000_000
-    private var pendingSlots: [UInt8] = Array(repeating: 0, count: 512)
-    private var pendingSequence: UInt8?
-    private var pendingPacketCount: Int = 0
-    private var pendingLastPacketDate: Date?
-    private var isFlushScheduled = false
+    // Non-UI plumbing and frame-coalescing scratch state — observation is meaningless here.
+    @ObservationIgnored private let receiver = SACNReceiver()
+    @ObservationIgnored private let remoteReceiver = SACNRemoteReceiver()
+    @ObservationIgnored private let pathMonitor = NWPathMonitor()
+    @ObservationIgnored private let pathQueue = DispatchQueue(
+        label: "io.opsnlops.CreatureConsole.SACNPathMonitor")
+    @ObservationIgnored private let framePublishInterval: UInt64 = 20_000_000
+    @ObservationIgnored private var pendingSlots: [UInt8] = Array(repeating: 0, count: 512)
+    @ObservationIgnored private var pendingSequence: UInt8?
+    @ObservationIgnored private var pendingPacketCount: Int = 0
+    @ObservationIgnored private var pendingLastPacketDate: Date?
+    @ObservationIgnored private var isFlushScheduled = false
 
     init() {
         pathMonitor.pathUpdateHandler = { [weak self] path in
@@ -345,7 +348,7 @@ struct SACNUniverseMonitorView: View {
     @AppStorage("sacnRemoteHost") private var storedRemoteHost: String = ""
     @AppStorage("sacnRemotePort") private var storedRemotePort: Int = 1963
     @Query(sort: \CreatureModel.name) private var creatures: [CreatureModel]
-    @StateObject private var viewModel = SACNUniverseMonitorViewModel()
+    @State private var viewModel = SACNUniverseMonitorViewModel()
     @State private var universeString: String = ""
     @State private var remotePortString: String = ""
     @State private var slotOwners: [Int: [SlotOwner]] = [:]

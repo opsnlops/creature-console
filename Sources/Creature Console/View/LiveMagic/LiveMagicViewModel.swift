@@ -3,7 +3,8 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class LiveMagicViewModel: ObservableObject {
+@Observable
+final class LiveMagicViewModel {
 
     enum PromptMode: Equatable {
         case instant
@@ -79,18 +80,18 @@ final class LiveMagicViewModel: ObservableObject {
         let createdAt: Date
     }
 
-    @Published var isPresentingPrompt: Bool = false
-    @Published private(set) var promptMode: PromptMode = .instant
-    @Published private(set) var jobCards: [JobCard] = []
-    @Published private(set) var preparedCues: [PreparedCue] = []
-    @Published private(set) var isSubmittingPrompt: Bool = false
-    @Published var alert: AlertDescriptor?
+    var isPresentingPrompt: Bool = false
+    private(set) var promptMode: PromptMode = .instant
+    private(set) var jobCards: [JobCard] = []
+    private(set) var preparedCues: [PreparedCue] = []
+    private(set) var isSubmittingPrompt: Bool = false
+    var alert: AlertDescriptor?
 
-    private let server: CreatureServerClient
-    private var submissionContexts: [String: SubmissionContext] = [:]
-    private var jobInfos: [String: JobStatusStore.JobInfo] = [:]
-    private var jobEventsTask: Task<Void, Never>?
-    private var hiddenJobIds: Set<String> = []
+    @ObservationIgnored private let server: CreatureServerClient
+    @ObservationIgnored private var submissionContexts: [String: SubmissionContext] = [:]
+    @ObservationIgnored private var jobInfos: [String: JobStatusStore.JobInfo] = [:]
+    @ObservationIgnored private var jobEventsTask: Task<Void, Never>?
+    @ObservationIgnored private var hiddenJobIds: Set<String> = []
 
     init(server: CreatureServerClient = .shared) {
         self.server = server

@@ -10,11 +10,9 @@ import SwiftUI
 
 struct JoystickDebugView: View {
 
+    @Environment(ConsoleStore.self) private var console
     @State private var joystickValues: [UInt8] = Array(repeating: 0, count: 8)
     @State private var connected: Bool = false
-    @State private var joystickState = JoystickManagerState(
-        aButtonPressed: false, bButtonPressed: false, xButtonPressed: false, yButtonPressed: false,
-        selectedJoystick: .none)
     @State private var aButtonSymbol: String = "a.circle"
     @State private var bButtonSymbol: String = "b.circle"
     @State private var xButtonSymbol: String = "x.circle"
@@ -64,55 +62,67 @@ struct JoystickDebugView: View {
                             // Button chips
                             Image(systemName: xButtonSymbol)
                                 .font(.system(size: 36, weight: .semibold))
-                                .foregroundStyle(joystickState.xButtonPressed ? .white : .primary)
+                                .foregroundStyle(
+                                    console.joystick.xButtonPressed ? .white : .primary
+                                )
                                 .padding(8)
                                 .glassEffect(
-                                    joystickState.xButtonPressed
+                                    console.joystick.xButtonPressed
                                         ? .regular.tint(.blue.opacity(0.35)).interactive()
                                         : .regular.interactive(),
                                     in: .circle
                                 )
                                 .animation(
-                                    .easeInOut(duration: 0.2), value: joystickState.xButtonPressed)
+                                    .easeInOut(duration: 0.2),
+                                    value: console.joystick.xButtonPressed)
 
                             Image(systemName: aButtonSymbol)
                                 .font(.system(size: 36, weight: .semibold))
-                                .foregroundStyle(joystickState.aButtonPressed ? .white : .primary)
+                                .foregroundStyle(
+                                    console.joystick.aButtonPressed ? .white : .primary
+                                )
                                 .padding(8)
                                 .glassEffect(
-                                    joystickState.aButtonPressed
+                                    console.joystick.aButtonPressed
                                         ? .regular.tint(.green.opacity(0.35)).interactive()
                                         : .regular.interactive(),
                                     in: .circle
                                 )
                                 .animation(
-                                    .easeInOut(duration: 0.2), value: joystickState.aButtonPressed)
+                                    .easeInOut(duration: 0.2),
+                                    value: console.joystick.aButtonPressed)
 
                             Image(systemName: bButtonSymbol)
                                 .font(.system(size: 36, weight: .semibold))
-                                .foregroundStyle(joystickState.bButtonPressed ? .white : .primary)
+                                .foregroundStyle(
+                                    console.joystick.bButtonPressed ? .white : .primary
+                                )
                                 .padding(8)
                                 .glassEffect(
-                                    joystickState.bButtonPressed
+                                    console.joystick.bButtonPressed
                                         ? .regular.tint(.red.opacity(0.35)).interactive()
                                         : .regular.interactive(),
                                     in: .circle
                                 )
                                 .animation(
-                                    .easeInOut(duration: 0.2), value: joystickState.bButtonPressed)
+                                    .easeInOut(duration: 0.2),
+                                    value: console.joystick.bButtonPressed)
 
                             Image(systemName: yButtonSymbol)
                                 .font(.system(size: 36, weight: .semibold))
-                                .foregroundStyle(joystickState.yButtonPressed ? .white : .primary)
+                                .foregroundStyle(
+                                    console.joystick.yButtonPressed ? .white : .primary
+                                )
                                 .padding(8)
                                 .glassEffect(
-                                    joystickState.yButtonPressed
+                                    console.joystick.yButtonPressed
                                         ? .regular.tint(.yellow.opacity(0.35)).interactive()
                                         : .regular.interactive(),
                                     in: .circle
                                 )
                                 .animation(
-                                    .easeInOut(duration: 0.2), value: joystickState.yButtonPressed)
+                                    .easeInOut(duration: 0.2),
+                                    value: console.joystick.yButtonPressed)
                         }
                         .frame(minWidth: 120)
                     }
@@ -123,11 +133,10 @@ struct JoystickDebugView: View {
             }
         }
         .task {
-            // Update button states from AsyncStream
-            for await state in await JoystickManager.shared.stateUpdates {
-                joystickState = state
-
-                // Update button symbols when joystick state changes
+            // Button *state* now comes from ConsoleStore, but the SF Symbol names depend on which
+            // physical joystick is active — data the store doesn't carry — so keep a subscription
+            // just to refresh the symbols whenever the joystick state changes.
+            for await _ in await JoystickManager.shared.stateUpdates {
                 aButtonSymbol = JoystickManager.shared.getAButtonSymbol()
                 bButtonSymbol = JoystickManager.shared.getBButtonSymbol()
                 xButtonSymbol = JoystickManager.shared.getXButtonSymbol()
@@ -153,6 +162,7 @@ struct JoystickDebugView: View {
 
 #Preview {
     JoystickDebugView()
+        .environment(ConsoleStore.shared)
 }
 
 

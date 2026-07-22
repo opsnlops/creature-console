@@ -1,27 +1,35 @@
 import Common
 import Foundation
 import OSLog
+import Observation
 
 @MainActor
-final class MenuBarConsoleViewModel: ObservableObject {
+@Observable
+final class MenuBarConsoleViewModel {
 
-    @Published private(set) var connectionState: WebSocketConnectionState = .disconnected
-    @Published private(set) var preparedAnimations: [AdHocAnimationSummary] = []
-    @Published private(set) var playlists: [Playlist] = []
-    @Published private(set) var jobInfos: [JobStatusStore.JobInfo] = []
-    @Published private(set) var latestMotorInPower: Double?
-    @Published private(set) var latestMotorInVoltage: Double?
-    @Published private(set) var lastUpdated: Date?
-    @Published var inputText: String = ""
-    @Published var errorMessage: String?
+    /// Connection state comes straight from the shared store — `ConsoleStore` is itself
+    /// `@Observable`, so reading through it keeps SwiftUI observation intact without a
+    /// dedicated mirror loop here.
+    var connectionState: WebSocketConnectionState { console.websocketState }
 
-    private let server: CreatureServerClient
-    private let jobStore: JobStatusStore
-    private let healthCache: CreatureHealthCache
-    private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "MenuBar")
-    private var observers: [Task<Void, Never>] = []
-    private var hasStarted = false
-    private var selectedCreatureId: CreatureIdentifier = ""
+    private(set) var preparedAnimations: [AdHocAnimationSummary] = []
+    private(set) var playlists: [Playlist] = []
+    private(set) var jobInfos: [JobStatusStore.JobInfo] = []
+    private(set) var latestMotorInPower: Double?
+    private(set) var latestMotorInVoltage: Double?
+    private(set) var lastUpdated: Date?
+    var inputText: String = ""
+    var errorMessage: String?
+
+    @ObservationIgnored private let console = ConsoleStore.shared
+    @ObservationIgnored private let server: CreatureServerClient
+    @ObservationIgnored private let jobStore: JobStatusStore
+    @ObservationIgnored private let healthCache: CreatureHealthCache
+    @ObservationIgnored private let logger = Logger(
+        subsystem: "io.opsnlops.CreatureConsole", category: "MenuBar")
+    @ObservationIgnored private var observers: [Task<Void, Never>] = []
+    @ObservationIgnored private var hasStarted = false
+    @ObservationIgnored private var selectedCreatureId: CreatureIdentifier = ""
 
     init(
         server: CreatureServerClient = .shared,
@@ -44,18 +52,6 @@ final class MenuBarConsoleViewModel: ObservableObject {
         }
         hasStarted = true
         self.selectedCreatureId = selectedCreatureId
-
-        observers.append(
-            Task { [weak self] in
-                guard let self else { return }
-                let stream = await WebSocketStateManager.shared.stateUpdates
-                for await state in stream {
-                    await MainActor.run {
-                        self.connectionState = state
-                    }
-                }
-            }
-        )
 
         observers.append(
             Task { [weak self] in

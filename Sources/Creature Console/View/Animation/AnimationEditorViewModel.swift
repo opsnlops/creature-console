@@ -4,21 +4,22 @@ import OSLog
 import SwiftUI
 
 @MainActor
-final class AnimationEditorViewModel: ObservableObject {
-    private let logger = Logger(
+@Observable
+final class AnimationEditorViewModel {
+    @ObservationIgnored private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "AnimationEditorViewModel")
 
-    @Published var animation: Common.Animation
+    var animation: Common.Animation
 
     // Editable metadata fields mirrored for SwiftUI bindings
-    @Published var title: String = ""
-    @Published var soundFile: String = ""
-    @Published var note: String = ""
-    @Published var multitrackAudio: Bool = false
-    @Published var millisecondsPerFrame: UInt32 = 20
+    var title: String = ""
+    var soundFile: String = ""
+    var note: String = ""
+    var multitrackAudio: Bool = false
+    var millisecondsPerFrame: UInt32 = 20
 
     // Force TrackListingView rebuilds when tracks change
-    @Published var tracksVersion: Int = 0
+    var tracksVersion: Int = 0
 
     init(animation: Common.Animation) {
         self.animation = animation

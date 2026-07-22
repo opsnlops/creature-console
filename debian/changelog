@@ -1,3 +1,17 @@
+creature-cli (2.41.0) unstable; urgency=medium
+
+  * No CLI changes — lockstep bump with the Console app's Observation
+    migration (issue #35): a single @MainActor @Observable ConsoleStore now
+    bridges the AppState / status-lights / WebSocket / joystick actor streams
+    once, replacing the per-view "for await" mirror loops that were
+    copy-pasted across the chrome; every view model moved from
+    ObservableObject/@Published to the @Observable macro, and the remaining
+    vestigial ObservableObject conformances were deleted. Event-semantic
+    streams (B-button edge detection, job events, per-creature health) stay
+    on their unbounded AsyncStreams by design.
+
+ -- April White <april@creature.engineering>  Wed, 22 Jul 2026 09:45:00 -0700
+
 creature-cli (2.40.0) unstable; urgency=medium
 
   * No CLI changes — lockstep bump with the Console app's Liquid Glass

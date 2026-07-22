@@ -23,7 +23,7 @@ struct AnimationEditor: View {
     @State var createNew: Bool = false
 
     // Local animation state
-    @StateObject private var model: AnimationEditorViewModel
+    @State private var model: AnimationEditorViewModel
 
     @State private var availableCreatures: [Creature] = []
 
@@ -48,21 +48,21 @@ struct AnimationEditor: View {
     init() {
         self.createNew = false
         self.readOnly = false
-        self._model = StateObject(
-            wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
+        self._model = State(
+            initialValue: AnimationEditorViewModel(animation: Common.Animation()))
     }
 
     init(createNew: Bool) {
         self.createNew = createNew
         self.readOnly = false
-        self._model = StateObject(
-            wrappedValue: AnimationEditorViewModel(animation: Common.Animation()))
+        self._model = State(
+            initialValue: AnimationEditorViewModel(animation: Common.Animation()))
     }
 
     init(animation: Common.Animation, readOnly: Bool = false) {
         self.createNew = false
         self.readOnly = readOnly
-        self._model = StateObject(wrappedValue: AnimationEditorViewModel(animation: animation))
+        self._model = State(initialValue: AnimationEditorViewModel(animation: animation))
     }
 
 

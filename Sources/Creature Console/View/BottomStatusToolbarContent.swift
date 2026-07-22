@@ -3,10 +3,7 @@ import SwiftUI
 
 struct BottomStatusToolbarContent: View {
     @Environment(\.horizontalSizeClass) private var hSize
-    @State private var statusLightsState = StatusLightsState(
-        running: false, dmx: false, streaming: false, animationPlaying: false)
-    @State private var currentActivity: Activity = .idle
-    @State private var websocketState: WebSocketConnectionState = .disconnected
+    @Environment(ConsoleStore.self) private var console
     @Namespace private var glassNamespace
 
     var body: some View {
@@ -14,18 +11,18 @@ struct BottomStatusToolbarContent: View {
             HStack(spacing: 12) {
                 // Current activity indicator
                 ToolbarStatusDot(
-                    systemName: currentActivity.symbolName,
-                    active: currentActivity != .idle,
-                    tint: currentActivity.tintColor,
+                    systemName: console.currentActivity.symbolName,
+                    active: console.currentActivity != .idle,
+                    tint: console.currentActivity.tintColor,
                     namespace: glassNamespace,
                     unionID: "activityStatus"
                 )
 
                 // WebSocket status indicator
                 ToolbarStatusDot(
-                    systemName: websocketState.symbolName,
-                    active: websocketState == .connected,
-                    tint: websocketState.tintColor,
+                    systemName: console.websocketState.symbolName,
+                    active: console.websocketState == .connected,
+                    tint: console.websocketState.tintColor,
                     namespace: glassNamespace,
                     unionID: "websocketStatus"
                 )
@@ -35,7 +32,7 @@ struct BottomStatusToolbarContent: View {
                     ForEach(StatusLightsState.allLights, id: \.self) { light in
                         ToolbarStatusDot(
                             systemName: light.symbolName,
-                            active: light.isActive(in: statusLightsState),
+                            active: light.isActive(in: console.statusLights),
                             tint: light.tintColor,
                             namespace: glassNamespace,
                             unionID: "statusLights"
@@ -47,37 +44,6 @@ struct BottomStatusToolbarContent: View {
             .padding(.vertical, 8)
         }
         .glassEffect(.regular.interactive(), in: .capsule)
-        .task {
-            // Listen for status light updates
-            for await state in await StatusLightsManager.shared.stateUpdates {
-                guard !Task.isCancelled else { break }
-                await MainActor.run {
-                    statusLightsState = state
-                }
-            }
-        }
-        .task { @MainActor in
-            // Get initial state immediately
-            let initialActivity = await AppState.shared.getCurrentActivity
-            currentActivity = initialActivity
-
-            // Then subscribe to updates with proper cancellation checking
-            for await state in await AppState.shared.stateUpdates {
-                guard !Task.isCancelled else { break }
-                currentActivity = state.currentActivity
-            }
-        }
-        .task { @MainActor in
-            // Get initial websocket state
-            let initialWebSocketState = await WebSocketStateManager.shared.getCurrentState
-            websocketState = initialWebSocketState
-
-            // Subscribe to websocket state updates
-            for await state in await WebSocketStateManager.shared.stateUpdates {
-                guard !Task.isCancelled else { break }
-                websocketState = state
-            }
-        }
     }
 }
 
