@@ -4,12 +4,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if os(macOS)
-    import AppKit
-#elseif os(iOS)
-    import UIKit
-#endif
-
 // Legacy InputTable for backwards compatibility
 struct InputTable: View {
     var creature: Creature
@@ -33,7 +27,7 @@ struct InputTable: View {
                             Text("Axis: \(input.joystickAxis)")
                         }
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     }
                 }
             #else
@@ -80,7 +74,7 @@ struct CreatureConfigDisplay: View {
                         "These values are read-only and managed by the Controller. The Creature's JSON file is the source of truth."
                     )
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .padding(.bottom, 8)
                 }
 
@@ -96,7 +90,7 @@ struct CreatureConfigDisplay: View {
                 }
                 .padding()
                 .background(Color.secondary.opacity(0.1))
-                .cornerRadius(12)
+                .clipShape(.rect(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Loops")
@@ -126,20 +120,20 @@ struct CreatureConfigDisplay: View {
                 }
                 .padding()
                 .background(Color.secondary.opacity(0.1))
-                .cornerRadius(12)
+                .clipShape(.rect(cornerRadius: 12))
 
                 if creature.inputs.isEmpty {
                     // Empty state
                     VStack(spacing: 16) {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 48))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text("No Input Channels Configured")
                             .font(.title3)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text("This creature doesn't have any input channels defined.")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(32)
@@ -156,7 +150,7 @@ struct CreatureConfigDisplay: View {
                                     VStack(alignment: .leading) {
                                         Text("Slot")
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                         Text("\(input.slot)")
                                             .font(.body)
                                     }
@@ -164,7 +158,7 @@ struct CreatureConfigDisplay: View {
                                     VStack(alignment: .leading) {
                                         Text("Width")
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                         Text("\(input.width)")
                                             .font(.body)
                                     }
@@ -172,7 +166,7 @@ struct CreatureConfigDisplay: View {
                                     VStack(alignment: .leading) {
                                         Text("Joystick Axis")
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                         Text("\(input.joystickAxis)")
                                             .font(.body)
                                     }
@@ -221,7 +215,7 @@ struct CreatureConfigDisplay: View {
                         #if !os(tvOS)
                             Button(action: {
                                 if let creatureJSON {
-                                    copyToClipboard(creatureJSON)
+                                    Pasteboard.copy(creatureJSON)
                                 }
                             }) {
                                 Image(systemName: "doc.on.doc")
@@ -234,13 +228,13 @@ struct CreatureConfigDisplay: View {
                     ScrollView(.vertical) {
                         Text(creatureJSON ?? "Unable to encode creature JSON.")
                             .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(12)
                     }
                     .frame(minHeight: 220)
                     .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(12)
+                    .clipShape(.rect(cornerRadius: 12))
                 }
             }
             .padding()
@@ -259,7 +253,7 @@ struct CreatureConfigDisplay: View {
                 .fontWeight(.medium)
             Spacer()
             Text(value)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -270,12 +264,12 @@ struct CreatureConfigDisplay: View {
                 .fontWeight(.medium)
             Spacer()
             Text(creature.id)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
             #if !os(tvOS)
                 Button(action: {
-                    copyToClipboard(creature.id)
+                    Pasteboard.copy(creature.id)
                 }) {
                     Image(systemName: "doc.on.doc")
                 }
@@ -290,11 +284,11 @@ struct CreatureConfigDisplay: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             ForEach(values, id: \.self) { value in
                 Text(resolvedAnimationLabel(for: value))
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -312,16 +306,6 @@ struct CreatureConfigDisplay: View {
         }
         return "Unknown Animation (\(id))"
     }
-
-    private func copyToClipboard(_ value: String) {
-        #if os(macOS)
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(value, forType: .string)
-        #elseif os(iOS)
-            UIPasteboard.general.string = value
-        #endif
-    }
 }
 
 // Wrapper for older call sites
@@ -338,7 +322,7 @@ struct InputTableView: View {
 }
 
 #Preview("Input Table View") {
-    NavigationView {
+    NavigationStack {
         CreatureConfigDisplay(creature: Creature.mock())
     }
 }

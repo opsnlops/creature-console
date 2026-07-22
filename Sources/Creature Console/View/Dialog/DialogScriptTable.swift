@@ -4,10 +4,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
-
 /// Lists the saved dialog scripts (newest-edited first), mirroring `FixturesTable`. Backed by
 /// SwiftData (`DialogScriptModel`), which is kept in sync from the server via the
 /// `dialog-script-list` cache invalidation path.
@@ -25,10 +21,8 @@ struct DialogScriptTable: View {
     @State private var selection: DialogScriptIdentifier? = nil
     /// Programmatic push into the editor for row activation (double-click / tap).
     @State private var scriptToEdit: DialogScriptModel? = nil
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
-    @State private var showSuccessAlert = false
-    @State private var successMessage = ""
+    @State private var errorAlert: ErrorAlert?
+    @State private var successBanner: String?
     @State private var scriptToDelete: DialogScriptModel? = nil
     @State private var showDeleteConfirm = false
 
@@ -79,13 +73,7 @@ struct DialogScriptTable: View {
         }
 
         Button {
-            #if os(macOS)
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(script.id.uuidString.lowercased(), forType: .string)
-            #else
-                UIPasteboard.general.string = script.id.uuidString.lowercased()
-            #endif
+            Pasteboard.copy(script.id.uuidString.lowercased())
         } label: {
             Label("Copy Script ID", systemImage: "doc.on.clipboard")
         }
@@ -165,16 +153,8 @@ struct DialogScriptTable: View {
                     }
                 #endif
             }
-            .alert("Error", isPresented: $showErrorAlert) {
-                Button("OK") {}
-            } message: {
-                Text(alertMessage)
-            }
-            .alert("Success", isPresented: $showSuccessAlert) {
-                Button("OK") {}
-            } message: {
-                Text(successMessage)
-            }
+            .errorAlert($errorAlert)
+            .statusBanner($successBanner)
             .confirmationDialog(
                 "Delete dialog '\(scriptToDelete?.title ?? "")'?",
                 isPresented: $showDeleteConfirm,
@@ -206,8 +186,7 @@ struct DialogScriptTable: View {
                 switch result {
                 case .success(let message):
                     logger.info("delete succeeded: \(message)")
-                    successMessage = message
-                    showSuccessAlert = true
+                    successBanner = message
                     scriptToDelete = nil
                     // The websocket invalidation will refresh the cache shortly; trigger an
                     // optimistic refresh too in case that lags.
@@ -215,8 +194,8 @@ struct DialogScriptTable: View {
                 case .failure(let error):
                     let detailed = ServerError.detailedMessage(from: error)
                     logger.warning("delete failed: \(detailed)")
-                    alertMessage = "Failed to delete dialog '\(title)': \(detailed)"
-                    showErrorAlert = true
+                    errorAlert = ErrorAlert(
+                        message: "Failed to delete dialog '\(title)': \(detailed)")
                     scriptToDelete = nil
                 }
             }

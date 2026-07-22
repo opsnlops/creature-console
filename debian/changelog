@@ -1,3 +1,18 @@
+creature-cli (2.39.2) unstable; urgency=medium
+
+  * No CLI changes — lockstep bump with the Console app's Phases 1-2
+    modernization sweep (issue #35): deprecated SwiftUI APIs retired app-wide
+    (Alert value type, NavigationView, PreviewProvider, foregroundColor,
+    cornerRadius), ~90 redundant MainActor hops removed, and the shared
+    facades finished — every view now uses the one errorAlert, statusBanner,
+    ProcessingOverlayView, and Pasteboard implementation instead of
+    copy-pasted variants. Success confirmations moved from modal alerts to
+    transient glass banners. Also fixes tvOS errors that were silently never
+    presented and a batch of escaped string interpolations that rendered
+    literally in the recording UI.
+
+ -- April White <april@creature.engineering>  Tue, 21 Jul 2026 23:30:00 -0700
+
 creature-cli (2.39.1) unstable; urgency=medium
 
   * No CLI behavior changes — lockstep bump with the Console app's Phase 0

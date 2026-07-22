@@ -179,8 +179,6 @@ struct AdvancedSettingsView: View {
     }
 }
 
-struct AdvancedSettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        AdvancedSettingsView()
-    }
+#Preview {
+    AdvancedSettingsView()
 }

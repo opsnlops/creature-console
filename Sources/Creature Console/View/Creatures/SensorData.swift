@@ -73,7 +73,7 @@ struct SensorData: View {
                             if let lastUpdated {
                                 Text("Last updated: \(dateFormatter.string(from: lastUpdated))")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -100,7 +100,7 @@ struct SensorData: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                            .foregroundColor(.accentColor)
+                            .foregroundStyle(.tint)
 
                             if showingHistoricalData {
                                 historicalDataTable(reports)
@@ -122,9 +122,7 @@ struct SensorData: View {
             // Subscribe to cache updates (current state is sent immediately by the broadcaster)
             subscriptionTask = Task {
                 for await state in await CreatureHealthCache.shared.stateUpdates {
-                    await MainActor.run {
-                        healthCacheState = state
-                    }
+                    healthCacheState = state
                 }
             }
         }
@@ -232,7 +230,7 @@ struct SensorData: View {
         }
         .padding()
         .background(Color.secondary.opacity(0.05))
-        .cornerRadius(12)
+        .clipShape(.rect(cornerRadius: 12))
     }
 
     @ViewBuilder
@@ -263,7 +261,7 @@ struct SensorData: View {
                     Text("Board Temperature")
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text(String(format: "%.1f", report.boardTemperature))
-                        .foregroundColor(temperatureColor(report.boardTemperature))
+                        .foregroundStyle(temperatureColor(report.boardTemperature))
                         .frame(width: 80, alignment: .trailing)
                     Text("°F")
                         .frame(width: 60, alignment: .leading)
@@ -282,7 +280,7 @@ struct SensorData: View {
                             Text("\(sensor.name) - Voltage")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(String(format: "%.2f", sensor.voltage))
-                                .foregroundColor(
+                                .foregroundStyle(
                                     sensor.name.lowercased().contains("motor")
                                         ? motorVoltageColor(sensor.voltage)
                                         : sensor.name.lowercased().contains("3v3")
@@ -317,7 +315,7 @@ struct SensorData: View {
                     .background(Color.secondary.opacity(0.1))
                 }
             }
-            .cornerRadius(8)
+            .clipShape(.rect(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
@@ -360,14 +358,14 @@ struct SensorData: View {
                         Text("\(motor.dxlId)")
                             .frame(width: 70, alignment: .leading)
                         Text("\(String(format: "%.1f", motor.temperatureF)) °F")
-                            .foregroundColor(temperatureColor(motor.temperatureF))
+                            .foregroundStyle(temperatureColor(motor.temperatureF))
                             .frame(maxWidth: .infinity, alignment: .trailing)
                         Text("\(motor.presentLoad)")
-                            .foregroundColor(loadColor(motor.presentLoad))
+                            .foregroundStyle(loadColor(motor.presentLoad))
                             .frame(maxWidth: .infinity, alignment: .trailing)
                         // Older controller firmware omits present_position; show "—" then.
                         Text(motor.presentPosition.map(String.init) ?? "—")
-                            .foregroundColor(motor.presentPosition == nil ? .secondary : .primary)
+                            .foregroundStyle(motor.presentPosition == nil ? .secondary : .primary)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                         Text("\(String(format: "%.2f", motor.voltageV)) V")
                             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -377,7 +375,7 @@ struct SensorData: View {
                     .background(Color.secondary.opacity(0.1))
                 }
             }
-            .cornerRadius(8)
+            .clipShape(.rect(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
@@ -416,7 +414,7 @@ struct SensorData: View {
                                 .frame(width: 100, alignment: .leading)
                             Text(String(format: "%.1f", report.boardTemperature))
                                 .font(.caption)
-                                .foregroundColor(temperatureColor(report.boardTemperature))
+                                .foregroundStyle(temperatureColor(report.boardTemperature))
                                 .frame(width: 80, alignment: .trailing)
                             VStack(alignment: .leading, spacing: 2) {
                                 let sensors = filteredPowerSensors(report.powerReports)
@@ -426,7 +424,7 @@ struct SensorData: View {
                                         "\(sensor.name): \(String(format: "%.2f", sensor.voltage))V"
                                     )
                                     .font(.caption2)
-                                    .foregroundColor(
+                                    .foregroundStyle(
                                         sensor.name.lowercased().contains("motor")
                                             ? motorVoltageColor(sensor.voltage)
                                             : sensor.name.lowercased().contains("3v3")
@@ -444,7 +442,7 @@ struct SensorData: View {
                 }
             }
             .frame(maxHeight: 300)
-            .cornerRadius(8)
+            .clipShape(.rect(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
@@ -457,13 +455,13 @@ struct SensorData: View {
         VStack(spacing: 16) {
             Image(systemName: "sensor.fill")
                 .font(.system(size: 48))
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             Text("\(creature.name) has not sent sensor data yet")
                 .font(.title3)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             Text("Sensor data will appear here once the creature starts reporting")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding(32)

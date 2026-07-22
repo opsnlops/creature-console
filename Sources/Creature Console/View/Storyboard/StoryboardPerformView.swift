@@ -30,7 +30,6 @@ struct StoryboardPerformView: View {
     @State private var flashError: [UUID: Bool] = [:]
     @State private var flashGeneration: [UUID: Int] = [:]
     @State private var toast: String?
-    @State private var toastGeneration = 0
     @State private var pendingPrompt: PendingPrompt?
     @State private var fixtureSheet: FixtureSheetItem?
 
@@ -48,8 +47,9 @@ struct StoryboardPerformView: View {
             .padding(20)
 
             exitControl
-            if let toast { toastBanner(toast) }
         }
+        // Action-failure toast — red, so a mid-show miss registers at a glance.
+        .statusBanner($toast, systemImage: "exclamationmark.triangle.fill", tint: .red)
         .statusBarHiddenIfAvailable()
         .task {
             liveCreatureId = await CreatureManager.shared.currentStreamingCreature()
@@ -127,19 +127,6 @@ struct StoryboardPerformView: View {
         #endif
     }
 
-    private func toastBanner(_ message: String) -> some View {
-        VStack {
-            Spacer()
-            Text(message)
-                .font(.callout)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .glassEffect(.regular.tint(.red.opacity(0.6)), in: .capsule)
-                .padding(.bottom, 40)
-        }
-        .transition(.opacity)
-    }
-
     private func isLive(_ tile: StoryboardTile) -> Bool {
         if case .liveControl(let creatureId, _) = tile.action {
             return creatureId == liveCreatureId
@@ -163,7 +150,7 @@ struct StoryboardPerformView: View {
             liveCreatureId = await CreatureManager.shared.currentStreamingCreature()
         case .failure(let message):
             await showFlash(tileID, error: true)
-            showToast(message)
+            toast = message
         case .needsPrompt(let creatureId):
             pendingPrompt = PendingPrompt(
                 tileID: tileID, action: action,
@@ -188,17 +175,6 @@ struct StoryboardPerformView: View {
         guard flashGeneration[id] == generation else { return }
         flash[id] = false
         flashError[id] = false
-    }
-
-    private func showToast(_ message: String) {
-        toastGeneration += 1
-        let generation = toastGeneration
-        withAnimation { toast = message }
-        Task {
-            try? await Task.sleep(for: .seconds(4))
-            guard generation == toastGeneration else { return }
-            withAnimation { toast = nil }
-        }
     }
 
     private func impact() {
@@ -334,12 +310,10 @@ private struct FixtureControlSheet: View {
     private func run(_ operation: @escaping () async -> Result<DmxFixture, ServerError>) {
         Task {
             let result = await operation()
-            await MainActor.run {
-                if case .failure(let error) = result {
-                    status = ServerError.detailedMessage(from: error)
-                } else {
-                    status = nil
-                }
+            if case .failure(let error) = result {
+                status = ServerError.detailedMessage(from: error)
+            } else {
+                status = nil
             }
         }
     }

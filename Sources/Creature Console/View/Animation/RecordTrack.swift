@@ -23,8 +23,7 @@ struct RecordTrack: View {
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondsPerFrame = 20
 
-    @State private var errorMessage = ""
-    @State private var showErrorMessage = false
+    @State private var errorAlert: ErrorAlert?
 
     @State private var currentTrack: Track?
 
@@ -150,26 +149,10 @@ struct RecordTrack: View {
             recordingTask?.cancel()
 
         }
-        .alert(isPresented: $showErrorMessage) {
-            Alert(
-                title: Text("Error"),
-                message: Text(errorMessage),
-                dismissButton: .default(Text("WTF?"))
-            )
-        }
+        .errorAlert($errorAlert, dismissLabel: "WTF?")
         .overlay {
             if let name = preparingSound {
-                ZStack {
-                    Color.black.opacity(0.15).ignoresSafeArea()
-                    VStack(spacing: 10) {
-                        ProgressView()
-                        Text("Preparing \(name)…")
-                            .font(.callout)
-                    }
-                    .padding(16)
-                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                }
-                .transition(.opacity)
+                ProcessingOverlayView(message: "Preparing \(name)…", progress: nil)
             }
         }
         .animation(.default, value: preparingSound != nil)
@@ -182,14 +165,9 @@ struct RecordTrack: View {
                 showSystemAlert: await AppState.shared.getShowSystemAlert,
                 systemAlertMessage: await AppState.shared.getSystemAlertMessage
             )
-            await MainActor.run {
-                appState = initialAppState
-            }
+            appState = initialAppState
 
-            let initialButtonSymbol = await JoystickManager.shared.getBButtonSymbol()
-            await MainActor.run {
-                bButtonSymbol = initialButtonSymbol
-            }
+            bButtonSymbol = JoystickManager.shared.getBButtonSymbol()
 
             logger.debug(
                 "RecordTrack: Initial state loaded - activity: \(initialAppState.currentActivity.description)"
@@ -199,36 +177,27 @@ struct RecordTrack: View {
             }
 
             for await state in await AppState.shared.stateUpdates {
-                await MainActor.run {
-                    appState = state
-                }
+                appState = state
             }
         }
         .task {
             for await state in await JoystickManager.shared.stateUpdates {
-                await MainActor.run {
-                    joystickState = state
-                }
+                joystickState = state
 
                 // Update button symbol when joystick state changes
-                let buttonSymbol = await JoystickManager.shared.getBButtonSymbol()
-                await MainActor.run {
-                    bButtonSymbol = buttonSymbol
-                }
+                bButtonSymbol = JoystickManager.shared.getBButtonSymbol()
 
                 // Rising-edge detection for B button (no gate)
                 let newB = state.bButtonPressed
                 let wasB = previousBPressed
                 previousBPressed = newB
                 if newB && !wasB {
-                    await MainActor.run {
-                        if isRecordingLocal {
-                            // Do not toggle isRecordingLocal here; stopRecording will set it when done.
-                            stopRecording()
-                        } else {
-                            startRecording()
-                            isRecordingLocal = true
-                        }
+                    if isRecordingLocal {
+                        // Do not toggle isRecordingLocal here; stopRecording will set it when done.
+                        stopRecording()
+                    } else {
+                        startRecording()
+                        isRecordingLocal = true
                     }
                 }
             }
@@ -268,8 +237,7 @@ struct RecordTrack: View {
             case .failure(let error):
                 logger.warning(
                     "unable to stream during a recording: \(error.localizedDescription)")
-                errorMessage = error.localizedDescription
-                showErrorMessage = true
+                errorAlert = ErrorAlert(message: error.localizedDescription)
             }
         }
 
@@ -294,19 +262,16 @@ struct RecordTrack: View {
             let soundFile = animation.metadata.soundFile
             if !soundFile.isEmpty {
                 logger.debug("Preparing sound file: \(soundFile)")
-                await MainActor.run { preparingSound = soundFile }
+                preparingSound = soundFile
                 let prepResult = await creatureManager.prepareSoundForRecording(
                     soundFile: soundFile)
-                await MainActor.run { preparingSound = nil }
+                preparingSound = nil
                 switch prepResult {
                 case .success:
                     logger.debug("Sound file prepared successfully")
                 case .failure(let error):
                     logger.error("Failed to prepare sound: \(String(describing: error))")
-                    await MainActor.run {
-                        errorMessage = error.localizedDescription
-                        showErrorMessage = true
-                    }
+                    errorAlert = ErrorAlert(message: error.localizedDescription)
                     await AppState.shared.setCurrentActivity(.idle)
                     return
                 }
@@ -319,7 +284,7 @@ struct RecordTrack: View {
             do {
                 logger.debug("Playing warning tone...")
                 await JoystickManager.shared.playRecordingCountdownHaptics()
-                await MainActor.run { playWarningTone() }
+                playWarningTone()
                 logger.debug("Sleeping for 3.5 seconds...")
                 try await Task.sleep(nanoseconds: UInt64(3.5 * 1_000_000_000))
                 logger.debug("Sleep completed")
@@ -355,25 +320,20 @@ struct RecordTrack: View {
             case .failure(let error):
                 logger.warning(
                     "unable to stop streaming while recording: \(error.localizedDescription)")
-                errorMessage = error.localizedDescription
-                showErrorMessage = true
+                errorAlert = ErrorAlert(message: error.localizedDescription)
             }
             streamingTask?.cancel()
 
             // If everything went well, we have a track!
             if let animation = currentAnimation {
                 let motionBuffer = await creatureManager.drainMotionBuffer()
-                await MainActor.run {
-                    currentTrack = Track(
-                        id: UUID(),
-                        creatureId: creature.id,
-                        animationId: animation.id,
-                        frames: motionBuffer)
-                }
+                currentTrack = Track(
+                    id: UUID(),
+                    creatureId: creature.id,
+                    animationId: animation.id,
+                    frames: motionBuffer)
 
-                await MainActor.run {
-                    isRecordingLocal = false
-                }
+                isRecordingLocal = false
                 await AppState.shared.setCurrentActivity(.idle)
             }
         }
@@ -404,8 +364,6 @@ struct RecordTrack: View {
 }
 
 
-struct RecordTrack_Previews: PreviewProvider {
-    static var previews: some View {
-        RecordTrack(creature: .mock())
-    }
+#Preview {
+    RecordTrack(creature: .mock())
 }

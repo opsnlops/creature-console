@@ -16,9 +16,7 @@ struct SoundFileListView: View {
     let server = CreatureServerClient.shared
     let audioManager = AudioManager.shared
 
-    @State private var showAlert = false
-    @State private var alertTitle = ""
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert?
 
     @State private var selection: SoundIdentifier? = nil
     @State private var playSoundTask: Task<Void, Never>? = nil
@@ -160,13 +158,7 @@ struct SoundFileListView: View {
                     }
                 }
             }
-            .alert(isPresented: $showAlert) {
-                Alert(
-                    title: Text(alertTitle),
-                    message: Text(alertMessage),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
+            .errorAlert($errorAlert)
             .navigationTitle("Sound Files")
             .bottomToolbarInset()
             #if os(macOS)
@@ -232,18 +224,11 @@ struct SoundFileListView: View {
                 logger.debug("Imported \(list.count) sounds into SwiftData")
                 didImport = true
             case .failure(let error):
-                await MainActor.run {
-                    alertTitle = "Error"
-                    alertMessage = ServerError.detailedMessage(from: error)
-                    showAlert = true
-                }
+                errorAlert = ErrorAlert(error: error)
             }
         } catch {
-            await MainActor.run {
-                alertTitle = "Error"
-                alertMessage = "Error importing sounds: \(error.localizedDescription)"
-                showAlert = true
-            }
+            errorAlert = ErrorAlert(
+                message: "Error importing sounds: \(error.localizedDescription)")
         }
         return didImport
     }
@@ -282,17 +267,14 @@ struct SoundFileListView: View {
         switch info.status {
         case .completed:
             let name = info.lipSyncDetails?.soundFile ?? soundId
-            alertTitle = "Lip Sync Ready"
-            alertMessage = "Lip sync data for \(name) is available."
-            showAlert = true
+            errorAlert = ErrorAlert(
+                title: "Lip Sync Ready", message: "Lip sync data for \(name) is available.")
         case .failed:
             let message =
                 info.result?.isEmpty == false
                 ? info.result!
                 : "The server was unable to generate lip sync for \(soundId)."
-            alertTitle = "Lip Sync Failed"
-            alertMessage = message
-            showAlert = true
+            errorAlert = ErrorAlert(title: "Lip Sync Failed", message: message)
         default:
             break
         }
@@ -328,11 +310,9 @@ struct SoundFileListView: View {
         let result = await server.generateLipSync(for: soundId, allowOverwrite: allowOverwrite)
 
         if Task.isCancelled {
-            await MainActor.run {
-                generatingLipSyncFor = nil
-                activeLipSyncJob = nil
-                lipSyncTask = nil
-            }
+            generatingLipSyncFor = nil
+            activeLipSyncJob = nil
+            lipSyncTask = nil
             return
         }
 
@@ -342,24 +322,16 @@ struct SoundFileListView: View {
             await JobStatusStore.shared.seedQueued(
                 job, details: LipSyncJobDetails(soundFile: soundId, allowOverwrite: allowOverwrite))
 
-            await MainActor.run {
-                activeLipSyncJob = (soundId, job.jobId)
-                generatingLipSyncFor = soundId
-                observedJobInfo = nil
-            }
+            activeLipSyncJob = (soundId, job.jobId)
+            generatingLipSyncFor = soundId
+            observedJobInfo = nil
         case .failure(let error):
-            await MainActor.run {
-                alertTitle = "Error"
-                alertMessage = ServerError.detailedMessage(from: error)
-                showAlert = true
-                generatingLipSyncFor = nil
-                activeLipSyncJob = nil
-            }
+            errorAlert = ErrorAlert(error: error)
+            generatingLipSyncFor = nil
+            activeLipSyncJob = nil
         }
 
-        await MainActor.run {
-            lipSyncTask = nil
-        }
+        lipSyncTask = nil
     }
 
     private func showProvenance(for fileName: String) {
@@ -368,18 +340,14 @@ struct SoundFileListView: View {
         provenanceTask?.cancel()
         provenanceTask = Task {
             let result = await server.fetchDialogProvenance(fileName: fileName)
-            await MainActor.run {
-                loadingProvenanceFor = nil
-                provenanceTask = nil
-                switch result {
-                case .success(let provenance):
-                    identifiedProvenance = IdentifiedProvenance(
-                        fileName: fileName, provenance: provenance)
-                case .failure(let error):
-                    alertTitle = "No Script Provenance"
-                    alertMessage = ServerError.detailedMessage(from: error)
-                    showAlert = true
-                }
+            loadingProvenanceFor = nil
+            provenanceTask = nil
+            switch result {
+            case .success(let provenance):
+                identifiedProvenance = IdentifiedProvenance(
+                    fileName: fileName, provenance: provenance)
+            case .failure(let error):
+                errorAlert = ErrorAlert(title: "No Script Provenance", error: error)
             }
         }
     }
@@ -392,11 +360,7 @@ struct SoundFileListView: View {
             case .success:
                 break
             case .failure(let error):
-                await MainActor.run {
-                    alertTitle = "Error"
-                    alertMessage = ServerError.detailedMessage(from: error)
-                    showAlert = true
-                }
+                errorAlert = ErrorAlert(error: error)
             }
         }
     }
@@ -404,7 +368,7 @@ struct SoundFileListView: View {
     private func playLocally(fileName: String) {
         playSoundTask?.cancel()
         playSoundTask = Task {
-            await MainActor.run { preparingFile = fileName }
+            preparingFile = fileName
             let urlRequest = server.getSoundURL(fileName)
             switch urlRequest {
             case .success(let url):
@@ -417,34 +381,22 @@ struct SoundFileListView: View {
                         switch armResult {
                         case .success:
                             _ = audioManager.startArmedPreview(in: 0.1)
-                            await MainActor.run { preparingFile = nil }
+                            preparingFile = nil
                         case .failure(let err):
-                            await MainActor.run {
-                                alertTitle = "Error"
-                                alertMessage = "Error: \(err)"
-                                showAlert = true
-                                preparingFile = nil
-                            }
-                        }
-                    case .failure(let err):
-                        await MainActor.run {
-                            alertTitle = "Error"
-                            alertMessage = "Error: \(err)"
-                            showAlert = true
+                            errorAlert = ErrorAlert(message: "Error: \(err)")
                             preparingFile = nil
                         }
+                    case .failure(let err):
+                        errorAlert = ErrorAlert(message: "Error: \(err)")
+                        preparingFile = nil
                     }
                 } else {
                     _ = audioManager.playURL(url)
-                    await MainActor.run { preparingFile = nil }
-                }
-            case .failure(let error):
-                await MainActor.run {
-                    alertTitle = "Error"
-                    alertMessage = ServerError.detailedMessage(from: error)
-                    showAlert = true
                     preparingFile = nil
                 }
+            case .failure(let error):
+                errorAlert = ErrorAlert(error: error)
+                preparingFile = nil
             }
         }
     }

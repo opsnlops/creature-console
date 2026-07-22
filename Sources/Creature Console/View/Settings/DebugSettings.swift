@@ -177,8 +177,6 @@ struct DebugSettingsView: View {
     }
 }
 
-struct DebugSettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        DebugSettingsView()
-    }
+#Preview {
+    DebugSettingsView()
 }

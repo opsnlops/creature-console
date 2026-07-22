@@ -106,8 +106,6 @@ struct TrackListingView: View {
 }
 
 
-struct TrackListingView_Previews: PreviewProvider {
-    static var previews: some View {
-        TrackListingView(animation: .mock())
-    }
+#Preview {
+    TrackListingView(animation: .mock())
 }

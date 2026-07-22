@@ -43,8 +43,7 @@ struct AnimationRecordingCoordinator: View {
     @State private var currentRecordingCreature: Creature?
 
     // Error handling
-    @State private var showErrorAlert = false
-    @State private var errorMessage = ""
+    @State private var errorAlert: ErrorAlert?
 
     // Saving state
     @State private var isSaving = false
@@ -76,31 +75,14 @@ struct AnimationRecordingCoordinator: View {
         .task {
             // Subscribe to state updates
             for await state in await AppState.shared.stateUpdates {
-                await MainActor.run {
-                    appState = state
-                    handleAppStateChange(state)
-                }
+                appState = state
+                handleAppStateChange(state)
             }
         }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("Recording Error"),
-                message: Text(errorMessage),
-                dismissButton: .default(Text("OK"))
-            )
-        }
+        .errorAlert($errorAlert)
         .overlay {
             if isSaving {
-                VStack {
-                    ProgressView()
-                    Text(savingMessage)
-                        .font(.headline)
-                        .padding(.top, 8)
-                }
-                .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(12)
-                .shadow(radius: 10)
+                ProcessingOverlayView(message: savingMessage, progress: nil)
             }
         }
     }
@@ -109,7 +91,7 @@ struct AnimationRecordingCoordinator: View {
         VStack(spacing: 20) {
             Image(systemName: "waveform.path.badge.plus")
                 .font(.system(size: 60))
-                .foregroundColor(.accentColor)
+                .foregroundStyle(Color.accentColor)
 
             Text("Create New Animation")
                 .font(.largeTitle)
@@ -117,7 +99,7 @@ struct AnimationRecordingCoordinator: View {
 
             Text("Record creature movements and create synchronized animations")
                 .font(.body)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             Button(action: {
@@ -164,8 +146,7 @@ struct AnimationRecordingCoordinator: View {
 
     private func saveAnimationToServer() {
         guard let animation = currentWorkingAnimation else {
-            errorMessage = "No animation to save"
-            showErrorAlert = true
+            errorAlert = ErrorAlert(title: "Recording Error", message: "No animation to save")
             return
         }
 
@@ -177,19 +158,18 @@ struct AnimationRecordingCoordinator: View {
 
             let result = await server.saveAnimation(animation: animation)
 
-            await MainActor.run {
-                switch result {
-                case .success(let message):
-                    savingMessage = "Saved successfully!"
-                    logger.debug("Animation saved: \(message)")
+            switch result {
+            case .success(let message):
+                savingMessage = "Saved successfully!"
+                logger.debug("Animation saved: \(message)")
 
-                case .failure(let error):
-                    isSaving = false
-                    errorMessage = "Failed to save: \(error.localizedDescription)"
-                    showErrorAlert = true
-                    logger.error("Save failed: \(error.localizedDescription)")
-                    return
-                }
+            case .failure(let error):
+                isSaving = false
+                errorAlert = ErrorAlert(
+                    title: "Recording Error",
+                    message: "Failed to save: \(error.localizedDescription)")
+                logger.error("Save failed: \(error.localizedDescription)")
+                return
             }
 
             // Show success for 2 seconds
@@ -197,9 +177,7 @@ struct AnimationRecordingCoordinator: View {
                 try await Task.sleep(nanoseconds: 2_000_000_000)
             } catch {}
 
-            await MainActor.run {
-                isSaving = false
-            }
+            isSaving = false
         }
     }
 }
@@ -287,7 +265,7 @@ struct AnimationRecordingSessionView: View {
             AnimationMetadataEditorSheet(animation: session.animation)
         }
         .sheet(item: $selectedCreatureForRecording) { creature in
-            NavigationView {
+            NavigationStack {
                 RecordTrackForSession(creature: creature, session: session) {
                     selectedCreatureForRecording = nil
                 }
@@ -322,7 +300,7 @@ struct AnimationMetadataCard: View {
 
             if animation.metadata.title.isEmpty {
                 Text("Untitled Animation")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             } else {
                 Text(animation.metadata.title)
                     .font(.title2)
@@ -336,12 +314,12 @@ struct AnimationMetadataCard: View {
             if !animation.metadata.note.isEmpty {
                 Text(animation.metadata.note)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding()
         .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .clipShape(.rect(cornerRadius: 12))
     }
 }
 
@@ -355,7 +333,7 @@ struct RecordingControlsView: View {
 
             Text("Select creatures to record movement tracks for this animation:")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             LazyVGrid(
                 columns: [
@@ -393,13 +371,13 @@ struct CreatureRecordingCard: View {
                 Spacer()
                 if hasTrack {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundStyle(.green)
                 }
             }
 
             Text("Channel \(creature.channelOffset)")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             HStack {
                 if hasTrack {
@@ -412,7 +390,7 @@ struct CreatureRecordingCard: View {
                         onRemove()
                     }
                     .buttonStyle(.bordered)
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                 } else {
                     Button("Record Track") {
                         onRecord()
@@ -428,7 +406,7 @@ struct CreatureRecordingCard: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(hasTrack ? Color.green : Color(.systemGray4), lineWidth: hasTrack ? 2 : 1)
         )
-        .cornerRadius(8)
+        .clipShape(.rect(cornerRadius: 8))
     }
 }
 
@@ -451,7 +429,7 @@ struct TracksOverviewView: View {
                                 .font(.headline)
                             Text("\(track.frames.count) frames recorded")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         Spacer()
@@ -460,11 +438,11 @@ struct TracksOverviewView: View {
                         Rectangle()
                             .fill(Color.accentColor.opacity(0.3))
                             .frame(width: 60, height: 20)
-                            .cornerRadius(4)
+                            .clipShape(.rect(cornerRadius: 4))
                     }
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                    .clipShape(.rect(cornerRadius: 8))
                 }
             }
         }
@@ -476,7 +454,7 @@ struct AnimationMetadataEditorSheet: View {
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Basic Information") {
                     TextField("Animation Title", text: binding(for: \.metadata.title))

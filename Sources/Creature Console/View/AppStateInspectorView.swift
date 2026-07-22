@@ -37,9 +37,7 @@ struct AppStateInspectorView: View {
         .task {
             // Subscribe to AppState updates
             for await state in await AppState.shared.stateUpdates {
-                await MainActor.run {
-                    appState = state
-                }
+                appState = state
             }
         }
 
@@ -47,8 +45,6 @@ struct AppStateInspectorView: View {
 }
 
 
-struct AppStateInspectorView_Previews: PreviewProvider {
-    static var previews: some View {
-        AppStateInspectorView()
-    }
+#Preview {
+    AppStateInspectorView()
 }

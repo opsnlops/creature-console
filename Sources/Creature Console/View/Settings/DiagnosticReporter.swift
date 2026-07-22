@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SwiftUI
 
 #if canImport(UIKit)
@@ -6,6 +7,9 @@ import SwiftUI
 #endif
 
 enum DiagnosticReporter {
+    private static let logger = Logger(
+        subsystem: "io.opsnlops.CreatureConsole", category: "DiagnosticReporter")
+
     private static func isoTimestamp() -> String {
         let fmt = ISO8601DateFormatter()
         fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -114,9 +118,10 @@ enum DiagnosticReporter {
 
         #if os(tvOS)
             // Mail composer is not available on tvOS. Log file paths instead.
-            print("[DiagnosticReporter] Diagnostics prepared. Attachments:")
+            logger.info("Diagnostics prepared. Attachments:")
             for url in attachments {
-                print(" - \(url.path)")
+                // These paths were previously print()ed in full; keep them readable in the log.
+                logger.info(" - \(url.path, privacy: .public)")
             }
         #else
             MailComposer.present(subject: subject, body: body, to: [], attachments: attachments)

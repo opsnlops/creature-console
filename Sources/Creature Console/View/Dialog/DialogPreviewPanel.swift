@@ -204,7 +204,7 @@ struct DialogPreviewPanel: View {
                 switch event {
                 case .updated(let info):
                     let percent = Int((info.progress ?? 0) * 100)
-                    await MainActor.run { statusMessage = "Generating voices… \(percent)%" }
+                    statusMessage = "Generating voices… \(percent)%"
                 case .terminal(let info):
                     guard info.status == .completed else {
                         return .failure(
@@ -243,44 +243,36 @@ struct DialogPreviewPanel: View {
             let result = await resolveMeta(request)
             switch result {
             case .success(let dto):
-                await MainActor.run {
-                    meta = dto
-                    selectedGenerationId = dto.generationId
-                }
+                meta = dto
+                selectedGenerationId = dto.generationId
                 await playMeta(dto)
             case .failure(let error):
-                await MainActor.run {
-                    isWorking = false
-                    statusMessage = nil
-                    presentError(ServerError.detailedMessage(from: error))
-                }
+                isWorking = false
+                statusMessage = nil
+                presentError(ServerError.detailedMessage(from: error))
             }
         }
     }
 
     private func playMeta(_ dto: DialogPreviewMetaDTO) async {
         guard let url = server.makeAbsoluteURL(fromRelativePath: dto.audioUrl) else {
-            await MainActor.run {
-                isWorking = false
-                presentError("Could not build the preview audio URL.")
-            }
+            isWorking = false
+            presentError("Could not build the preview audio URL.")
             return
         }
         // Download with the configured request headers (proxy/API key/trace) to a local file,
         // then play locally — more robust than streaming the URL straight into AVPlayer.
         let prep = await audioManager.prepareMonoPreview(
             for: url, cacheKey: "\(dto.cacheKey)-\(dto.generationId.uuidString.lowercased()).wav")
-        await MainActor.run {
-            isWorking = false
-            switch prep {
-            case .success(let localURL):
-                statusMessage = "Playing preview…"
-                if case .failure(let audioError) = audioManager.playURL(localURL) {
-                    presentError("Playback failed: \(audioError.localizedDescription)")
-                }
-            case .failure(let audioError):
-                presentError("Could not load preview audio: \(audioError.localizedDescription)")
+        isWorking = false
+        switch prep {
+        case .success(let localURL):
+            statusMessage = "Playing preview…"
+            if case .failure(let audioError) = audioManager.playURL(localURL) {
+                presentError("Playback failed: \(audioError.localizedDescription)")
             }
+        case .failure(let audioError):
+            presentError("Could not load preview audio: \(audioError.localizedDescription)")
         }
     }
 
@@ -290,21 +282,19 @@ struct DialogPreviewPanel: View {
         statusMessage = "Looking up cached takes…"
         Task {
             let result = await server.dialogPreviewLookup(.fromTurns(turns))
-            await MainActor.run {
-                isWorking = false
-                switch result {
-                case .success(let dto):
-                    takes = dto.generations
-                    if selectedGenerationId == nil {
-                        selectedGenerationId = dto.latestGenerationId
-                    }
-                    statusMessage = "\(dto.generations.count) cached take(s)"
-                case .failure(.notFound):
-                    takes = []
-                    statusMessage = "No cached takes yet — Preview to generate one."
-                case .failure(let error):
-                    presentError(ServerError.detailedMessage(from: error))
+            isWorking = false
+            switch result {
+            case .success(let dto):
+                takes = dto.generations
+                if selectedGenerationId == nil {
+                    selectedGenerationId = dto.latestGenerationId
                 }
+                statusMessage = "\(dto.generations.count) cached take(s)"
+            case .failure(.notFound):
+                takes = []
+                statusMessage = "No cached takes yet — Preview to generate one."
+            case .failure(let error):
+                presentError(ServerError.detailedMessage(from: error))
             }
         }
     }
@@ -320,24 +310,20 @@ struct DialogPreviewPanel: View {
             guard case .success(let dto) = metaResult,
                 let url = server.makeAbsoluteURL(fromRelativePath: dto.audioUrl)
             else {
-                await MainActor.run {
-                    isWorking = false
-                    presentError("Could not resolve the mono audio for export.")
-                }
+                isWorking = false
+                presentError("Could not resolve the mono audio for export.")
                 return
             }
             let dataResult = await server.downloadRawData(from: url)
-            await MainActor.run {
-                isWorking = false
-                switch dataResult {
-                case .success(let data):
-                    exportData = data
-                    exportFilename = "dialog-mono-\(dto.generationId.uuidString.lowercased()).wav"
-                    exportContentType = .wav
-                    showExporter = true
-                case .failure(let error):
-                    presentError(ServerError.detailedMessage(from: error))
-                }
+            isWorking = false
+            switch dataResult {
+            case .success(let data):
+                exportData = data
+                exportFilename = "dialog-mono-\(dto.generationId.uuidString.lowercased()).wav"
+                exportContentType = .wav
+                showExporter = true
+            case .failure(let error):
+                presentError(ServerError.detailedMessage(from: error))
             }
         }
     }
@@ -356,26 +342,22 @@ struct DialogPreviewPanel: View {
                 case .success(let url) = server.dialogPreviewRenditionURL(
                     cacheKey: dto.cacheKey, generationId: dto.generationId, as: .mp3)
             else {
-                await MainActor.run {
-                    isWorking = false
-                    presentError("Could not resolve the shareable audio for export.")
-                }
+                isWorking = false
+                presentError("Could not resolve the shareable audio for export.")
                 return
             }
             let dataResult = await server.downloadRawData(from: url)
-            await MainActor.run {
-                isWorking = false
-                switch dataResult {
-                case .success(let data):
-                    exportData = data
-                    exportFilename =
-                        "dialog-preview-\(dto.generationId.uuidString.lowercased().prefix(8)).mp3"
-                    exportContentType = .mp3
-                    showExporter = true
-                    statusMessage = "Ready to save shareable MP3"
-                case .failure(let error):
-                    presentError(ServerError.detailedMessage(from: error))
-                }
+            isWorking = false
+            switch dataResult {
+            case .success(let data):
+                exportData = data
+                exportFilename =
+                    "dialog-preview-\(dto.generationId.uuidString.lowercased().prefix(8)).mp3"
+                exportContentType = .mp3
+                showExporter = true
+                statusMessage = "Ready to save shareable MP3"
+            case .failure(let error):
+                presentError(ServerError.detailedMessage(from: error))
             }
         }
     }
@@ -390,26 +372,20 @@ struct DialogPreviewPanel: View {
             // it, then download the assembled file from the ad-hoc sound bucket.
             switch await server.dialogPreviewMultichannel(request) {
             case .failure(let error):
-                await MainActor.run {
-                    isWorking = false
-                    presentError(ServerError.detailedMessage(from: error))
-                }
+                isWorking = false
+                presentError(ServerError.detailedMessage(from: error))
             case .success(let job):
                 await JobStatusStore.shared.seedQueued(job)
                 for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
                     switch event {
                     case .updated(let info):
                         let percent = Int((info.progress ?? 0) * 100)
-                        await MainActor.run {
-                            statusMessage = "Rendering 17-channel WAV… \(percent)%"
-                        }
+                        statusMessage = "Rendering 17-channel WAV… \(percent)%"
                     case .terminal(let info):
                         await finishMultichannelExport(info)
                     case .removed:
-                        await MainActor.run {
-                            isWorking = false
-                            presentError("The export job was removed before it finished.")
-                        }
+                        isWorking = false
+                        presentError("The export job was removed before it finished.")
                     }
                 }
             }
@@ -421,35 +397,29 @@ struct DialogPreviewPanel: View {
             let result = info.result, let data = result.data(using: .utf8),
             let export = try? JSONDecoder().decode(DialogPreviewExportResult.self, from: data)
         else {
-            await MainActor.run {
-                isWorking = false
-                presentError(
-                    info.status == .completed
-                        ? "The export finished but its result could not be decoded."
-                        : (info.result ?? "The 17-channel export failed on the server."))
-            }
+            isWorking = false
+            presentError(
+                info.status == .completed
+                    ? "The export finished but its result could not be decoded."
+                    : (info.result ?? "The 17-channel export failed on the server."))
             return
         }
         guard case .success(let url) = server.getAdHocSoundURL(export.fileName) else {
-            await MainActor.run {
-                isWorking = false
-                presentError("Could not build the download URL for the exported WAV.")
-            }
+            isWorking = false
+            presentError("Could not build the download URL for the exported WAV.")
             return
         }
         let dataResult = await server.downloadRawData(from: url)
-        await MainActor.run {
-            isWorking = false
-            switch dataResult {
-            case .success(let wavData):
-                exportData = wavData
-                exportFilename = export.fileName
-                exportContentType = .wav
-                showExporter = true
-                statusMessage = "Ready to save 17-channel WAV"
-            case .failure(let error):
-                presentError(ServerError.detailedMessage(from: error))
-            }
+        isWorking = false
+        switch dataResult {
+        case .success(let wavData):
+            exportData = wavData
+            exportFilename = export.fileName
+            exportContentType = .wav
+            showExporter = true
+            statusMessage = "Ready to save 17-channel WAV"
+        case .failure(let error):
+            presentError(ServerError.detailedMessage(from: error))
         }
     }
 

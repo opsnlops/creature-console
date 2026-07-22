@@ -18,7 +18,7 @@ struct ProcessingOverlayView: View {
                 if let progress {
                     Text(String(format: "%.0f%%", progress))
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(16)

@@ -41,11 +41,9 @@ struct DialogScriptEditor: View {
     @State private var isSaving = false
     @State private var savingMessage = ""
 
-    @State private var showErrorAlert = false
-    @State private var alertTitle = "Error"
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert?
 
-    @State private var savedBanner = false
+    @State private var savedBanner: String?
 
     /// Take chosen in the preview panel, reused by the render panel.
     @State private var selectedGenerationId: DialogGenerationIdentifier? = nil
@@ -145,11 +143,7 @@ struct DialogScriptEditor: View {
                 }
             }
         }
-        .alert(alertTitle, isPresented: $showErrorAlert) {
-            Button("OK") {}
-        } message: {
-            Text(alertMessage)
-        }
+        .errorAlert($errorAlert)
         .overlay(alignment: .top) {
             if isSaving {
                 Text(savingMessage)
@@ -159,16 +153,9 @@ struct DialogScriptEditor: View {
                     .glassEffect(.regular, in: .capsule)
                     .padding(.top, 12)
                     .transition(.opacity)
-            } else if savedBanner {
-                Label("Saved", systemImage: "checkmark.circle.fill")
-                    .font(.title3)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .glassEffect(.regular.tint(.green.opacity(0.4)), in: .capsule)
-                    .padding(.top, 12)
-                    .transition(.opacity)
             }
         }
+        .statusBanner($savedBanner, duration: .seconds(2), alignment: .top)
         .task { await runValidation(for: script) }
         .onChange(of: script) { _, newValue in
             scheduleValidation(for: newValue)
@@ -452,7 +439,7 @@ struct DialogScriptEditor: View {
                     script = saved
                     createNew = false
                     CacheInvalidationProcessor.rebuild(.dialogScript, deleteStaleEntries: true)
-                    flashSavedBanner()
+                    savedBanner = "Saved"
                 case .failure(let error):
                     showError(
                         title: "Save Failed", message: ServerError.detailedMessage(from: error))
@@ -482,17 +469,7 @@ struct DialogScriptEditor: View {
         }
     }
 
-    private func flashSavedBanner() {
-        withAnimation { savedBanner = true }
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            await MainActor.run { withAnimation { savedBanner = false } }
-        }
-    }
-
     private func showError(title: String, message: String) {
-        alertTitle = title
-        alertMessage = message
-        showErrorAlert = true
+        errorAlert = ErrorAlert(title: title, message: message)
     }
 }

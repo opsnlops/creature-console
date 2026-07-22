@@ -4,12 +4,6 @@ import SwiftUI
 
 private typealias CreatureAnimation = Common.Animation
 
-#if os(iOS) || os(visionOS)
-    import UIKit
-#elseif canImport(AppKit)
-    import AppKit
-#endif
-
 private func adHocRelativeString(_ date: Date) -> String {
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .short
@@ -20,18 +14,6 @@ private func adHocByteString(_ bytes: Int64) -> String {
     let formatter = ByteCountFormatter()
     formatter.countStyle = .file
     return formatter.string(fromByteCount: bytes)
-}
-
-private func copyToClipboard(_ text: String) {
-    #if os(iOS) || os(visionOS)
-        UIPasteboard.general.string = text
-    #elseif canImport(AppKit)
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
-    #else
-        _ = text
-    #endif
 }
 
 struct AdHocAnimationListView: View {
@@ -124,39 +106,33 @@ struct AdHocAnimationListView: View {
     }
 
     private func play(animationId: AnimationIdentifier) async {
-        await MainActor.run {
-            playingAnimationId = animationId
-        }
+        playingAnimationId = animationId
 
         let result = await PlaylistRuntimeActions.playPreparedAdHoc(animationId: animationId)
 
-        await MainActor.run {
-            if playingAnimationId == animationId {
-                playingAnimationId = nil
-            }
-            playTask = nil
-            switch result {
-            case .success:
-                errorAlert = nil
-            case .failure(let error):
-                errorAlert = ErrorAlert(title: "Unable to Load", error: error)
-            }
+        if playingAnimationId == animationId {
+            playingAnimationId = nil
+        }
+        playTask = nil
+        switch result {
+        case .success:
+            errorAlert = nil
+        case .failure(let error):
+            errorAlert = ErrorAlert(title: "Unable to Load", error: error)
         }
     }
 
     private func load(force: Bool = false) async {
         if isLoading && !force { return }
-        await MainActor.run { isLoading = true }
+        isLoading = true
         let result = await server.listAdHocAnimations()
-        await MainActor.run {
-            isLoading = false
-            switch result {
-            case .success(let list):
-                animations = list
-                errorAlert = nil
-            case .failure(let error):
-                errorAlert = ErrorAlert(title: "Unable to Load", error: error)
-            }
+        isLoading = false
+        switch result {
+        case .success(let list):
+            animations = list
+            errorAlert = nil
+        case .failure(let error):
+            errorAlert = ErrorAlert(title: "Unable to Load", error: error)
         }
     }
 }
@@ -280,7 +256,7 @@ private struct AdHocAnimationRow: View {
 
     private var copyIdButton: some View {
         Button {
-            copyToClipboard(animation.animationId)
+            Pasteboard.copy(animation.animationId)
         } label: {
             Label("Copy Animation ID", systemImage: "doc.on.doc")
         }
@@ -330,19 +306,15 @@ private struct AdHocAnimationDetailView: View {
     }
 
     private func load() async {
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
+        isLoading = true
+        errorMessage = nil
         let result = await CreatureServerClient.shared.getAdHocAnimation(animationId: animationId)
-        await MainActor.run {
-            isLoading = false
-            switch result {
-            case .success(let animation):
-                self.animation = animation
-            case .failure(let error):
-                errorMessage = ServerError.detailedMessage(from: error)
-            }
+        isLoading = false
+        switch result {
+        case .success(let animation):
+            self.animation = animation
+        case .failure(let error):
+            errorMessage = ServerError.detailedMessage(from: error)
         }
     }
 }
@@ -411,24 +383,22 @@ struct AdHocSoundListView: View {
 
     private func load(force: Bool = false) async {
         if isLoading && !force { return }
-        await MainActor.run { isLoading = true }
+        isLoading = true
         let result = await server.listAdHocSounds()
-        await MainActor.run {
-            isLoading = false
-            switch result {
-            case .success(let list):
-                sounds = list
-                errorAlert = nil
-            case .failure(let error):
-                errorAlert = ErrorAlert(title: "Unable to Load", error: error)
-            }
+        isLoading = false
+        switch result {
+        case .success(let list):
+            sounds = list
+            errorAlert = nil
+        case .failure(let error):
+            errorAlert = ErrorAlert(title: "Unable to Load", error: error)
         }
     }
 
     private func playLocally(entry: AdHocSoundEntry) {
         playTask?.cancel()
         playTask = Task {
-            await MainActor.run { preparingSound = entry.sound.fileName }
+            preparingSound = entry.sound.fileName
             let urlResult = server.getAdHocSoundURL(entry.sound.fileName)
             switch urlResult {
             case .success(let url):
@@ -441,29 +411,27 @@ struct AdHocSoundListView: View {
                         switch armResult {
                         case .success:
                             _ = audioManager.startArmedPreview(in: 0.1)
-                            await MainActor.run { preparingSound = nil }
+                            preparingSound = nil
                         case .failure(let error):
-                            await presentError("Playback Error", message: "\(error)")
+                            presentError("Playback Error", message: "\(error)")
                         }
                     case .failure(let error):
-                        await presentError("Preparation Error", message: "\(error)")
+                        presentError("Preparation Error", message: "\(error)")
                     }
                 } else {
                     _ = audioManager.playURL(url)
-                    await MainActor.run { preparingSound = nil }
+                    preparingSound = nil
                 }
             case .failure(let error):
-                await presentError(
+                presentError(
                     "Unable to Download", message: ServerError.detailedMessage(from: error))
             }
         }
     }
 
-    private func presentError(_ title: String, message: String) async {
-        await MainActor.run {
-            errorAlert = ErrorAlert(title: title, message: message)
-            preparingSound = nil
-        }
+    private func presentError(_ title: String, message: String) {
+        errorAlert = ErrorAlert(title: title, message: message)
+        preparingSound = nil
     }
 }
 
@@ -508,12 +476,12 @@ private struct AdHocSoundRow: View {
         .padding(.vertical, 6)
         .contextMenu {
             Button {
-                copyToClipboard(entry.soundFilePath)
+                Pasteboard.copy(entry.soundFilePath)
             } label: {
                 Label("Copy File Path", systemImage: "doc.on.doc")
             }
             Button {
-                copyToClipboard(entry.animationId)
+                Pasteboard.copy(entry.animationId)
             } label: {
                 Label("Copy Animation ID", systemImage: "rectangle.and.pencil.and.ellipsis")
             }

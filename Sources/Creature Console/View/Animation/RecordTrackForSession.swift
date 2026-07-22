@@ -29,8 +29,7 @@ struct RecordTrackForSession: View {
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1
     @AppStorage("eventLoopMillisecondsPerFrame") var millisecondsPerFrame = 20
 
-    @State private var errorMessage = ""
-    @State private var showErrorMessage = false
+    @State private var errorAlert: ErrorAlert?
     @State private var currentTrack: Track?
     @State private var streamingTask: Task<Void, Never>? = nil
     @State private var recordingTask: Task<Void, Never>? = nil
@@ -65,10 +64,10 @@ struct RecordTrackForSession: View {
                         VStack {
                             Text("Get Ready!")
                                 .font(.title)
-                                .foregroundColor(.orange)
+                                .foregroundStyle(.orange)
                             Text("Recording will start in a moment...")
                                 .font(.body)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .padding()
                     }
@@ -80,21 +79,21 @@ struct RecordTrackForSession: View {
                 VStack(spacing: 20) {
                     Text("Recording Complete!")
                         .font(.title2)
-                        .foregroundColor(.green)
+                        .foregroundStyle(.green)
 
                     TrackViewer(track: track, creature: creature, inputs: creature.inputs)
                         .padding()
 
-                    Text("\\(track.frames.count) frames recorded")
+                    Text("\(track.frames.count) frames recorded")
                         .font(.headline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     HStack(spacing: 20) {
                         Button("Discard") {
                             discardRecording()
                         }
                         .buttonStyle(.bordered)
-                        .foregroundColor(.red)
+                        .foregroundStyle(.red)
 
                         Button("Save Track") {
                             saveTrackToSession()
@@ -108,21 +107,21 @@ struct RecordTrackForSession: View {
                 VStack {
                     Image(systemName: "record.circle")
                         .font(.system(size: 60))
-                        .foregroundColor(.accentColor)
+                        .foregroundStyle(Color.accentColor)
 
                     Text("Ready to Record")
                         .font(.title2)
 
-                    Text("Recording track for \\(creature.name)")
+                    Text("Recording track for \(creature.name)")
                         .font(.body)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(40)
             }
 
             Spacer()
         }
-        .navigationTitle("Record \\(creature.name)")
+        .navigationTitle("Record \(creature.name)")
         .onDisappear {
             // Clean up tasks
             streamingTask?.cancel()
@@ -142,54 +141,25 @@ struct RecordTrackForSession: View {
                 showSystemAlert: await AppState.shared.getShowSystemAlert,
                 systemAlertMessage: await AppState.shared.getSystemAlertMessage
             )
-            await MainActor.run {
-                appState = initialAppState
-            }
+            appState = initialAppState
 
-            let initialButtonSymbol = await JoystickManager.shared.getBButtonSymbol()
-            await MainActor.run {
-                bButtonSymbol = initialButtonSymbol
-            }
+            bButtonSymbol = JoystickManager.shared.getBButtonSymbol()
 
             // Subscribe to state updates
             for await state in await AppState.shared.stateUpdates {
-                await MainActor.run {
-                    appState = state
-                }
+                appState = state
             }
         }
         .task {
             for await state in await JoystickManager.shared.stateUpdates {
-                await MainActor.run {
-                    joystickState = state
-                }
-
-                let buttonSymbol = await JoystickManager.shared.getBButtonSymbol()
-                await MainActor.run {
-                    bButtonSymbol = buttonSymbol
-                }
+                joystickState = state
+                bButtonSymbol = JoystickManager.shared.getBButtonSymbol()
             }
         }
-        .alert(isPresented: $showErrorMessage) {
-            Alert(
-                title: Text("Recording Error"),
-                message: Text(errorMessage),
-                dismissButton: .default(Text("OK"))
-            )
-        }
+        .errorAlert($errorAlert)
         .overlay {
             if let name = preparingSound {
-                ZStack {
-                    Color.black.opacity(0.15).ignoresSafeArea()
-                    VStack(spacing: 10) {
-                        ProgressView()
-                        Text("Preparing \(name)…")
-                            .font(.callout)
-                    }
-                    .padding(16)
-                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-                }
-                .transition(.opacity)
+                ProcessingOverlayView(message: "Preparing \(name)…", progress: nil)
             }
         }
         .animation(.default, value: preparingSound != nil)
@@ -200,41 +170,35 @@ struct RecordTrackForSession: View {
 
         Task {
             let currentActivity = await AppState.shared.getCurrentActivity
-            logger.debug("Current activity: \\(currentActivity.description)")
+            logger.debug("Current activity: \(currentActivity.description)")
 
             switch currentActivity {
             case .idle:
-                await MainActor.run {
-                    startRecording()
-                }
+                startRecording()
             case .recording:
-                await MainActor.run {
-                    stopRecording()
-                }
+                stopRecording()
             case .preparingToRecord:
                 logger.debug("Preparing to record - ignoring button press")
             default:
-                logger.debug("Setting activity to idle from state: \\(currentActivity.description)")
+                logger.debug("Setting activity to idle from state: \(currentActivity.description)")
                 await AppState.shared.setCurrentActivity(.idle)
             }
         }
     }
 
     private func startRecording() {
-        logger.debug("Starting recording for creature: \\(creature.name)")
+        logger.debug("Starting recording for creature: \(creature.name)")
 
         // Start streaming to the creature
         streamingTask = Task {
             let result = await creatureManager.startStreamingToCreature(creatureId: creature.id)
             switch result {
             case .success(let message):
-                logger.debug("Started streaming: \\(message)")
+                logger.debug("Started streaming: \(message)")
             case .failure(let error):
-                logger.warning("Unable to start streaming: \\(error.localizedDescription)")
-                await MainActor.run {
-                    errorMessage = error.localizedDescription
-                    showErrorMessage = true
-                }
+                logger.warning("Unable to start streaming: \(error.localizedDescription)")
+                errorAlert = ErrorAlert(
+                    title: "Recording Error", message: error.localizedDescription)
             }
         }
 
@@ -260,19 +224,17 @@ struct RecordTrackForSession: View {
             let soundFile = session.animation.metadata.soundFile
             if !soundFile.isEmpty {
                 logger.debug("Preparing sound file: \(soundFile)")
-                await MainActor.run { preparingSound = soundFile }
+                preparingSound = soundFile
                 let prepResult = await creatureManager.prepareSoundForRecording(
                     soundFile: soundFile)
-                await MainActor.run { preparingSound = nil }
+                preparingSound = nil
                 switch prepResult {
                 case .success:
                     logger.debug("Sound file prepared successfully")
                 case .failure(let error):
                     logger.error("Failed to prepare sound: \(String(describing: error))")
-                    await MainActor.run {
-                        errorMessage = error.localizedDescription
-                        showErrorMessage = true
-                    }
+                    errorAlert = ErrorAlert(
+                        title: "Recording Error", message: error.localizedDescription)
                     await AppState.shared.setCurrentActivity(.idle)
                     return
                 }
@@ -284,14 +246,12 @@ struct RecordTrackForSession: View {
             // Gives user time to prepare. Sound file is already downloaded and armed.
             do {
                 logger.debug("Playing warning tone...")
-                await MainActor.run {
-                    playWarningTone()
-                }
+                playWarningTone()
                 logger.debug("Sleeping for 3.5 seconds...")
                 try await Task.sleep(nanoseconds: UInt64(3.5 * 1_000_000_000))
                 logger.debug("Sleep completed")
             } catch {
-                logger.error("Couldn't sleep: \\(error)")
+                logger.error("Couldn't sleep: \(error)")
             }
 
             // ═══════════════════════════════════════════════════════════════════════
@@ -317,13 +277,11 @@ struct RecordTrackForSession: View {
             let streamResult = await creatureManager.stopStreaming()
             switch streamResult {
             case .success(let message):
-                logger.debug("Streaming stopped: \\(message)")
+                logger.debug("Streaming stopped: \(message)")
             case .failure(let error):
-                logger.warning("Unable to stop streaming: \\(error.localizedDescription)")
-                await MainActor.run {
-                    errorMessage = error.localizedDescription
-                    showErrorMessage = true
-                }
+                logger.warning("Unable to stop streaming: \(error.localizedDescription)")
+                errorAlert = ErrorAlert(
+                    title: "Recording Error", message: error.localizedDescription)
             }
             streamingTask?.cancel()
 
@@ -331,14 +289,12 @@ struct RecordTrackForSession: View {
 
             // Get recorded data
             let motionBuffer = await creatureManager.motionDataBuffer
-            await MainActor.run {
-                currentTrack = Track(
-                    id: UUID(),
-                    creatureId: creature.id,
-                    animationId: session.animation.id,
-                    frames: motionBuffer
-                )
-            }
+            currentTrack = Track(
+                id: UUID(),
+                creatureId: creature.id,
+                animationId: session.animation.id,
+                frames: motionBuffer
+            )
         }
     }
 
@@ -349,9 +305,9 @@ struct RecordTrackForSession: View {
             name: "recordingCountdownSound", extension: "flac")
         switch result {
         case .success(let data):
-            logger.debug("Warning tone playback result: \\(data.description)")
+            logger.debug("Warning tone playback result: \(data.description)")
         case .failure(let data):
-            logger.warning("Warning tone playback failed: \\(data.localizedDescription)")
+            logger.warning("Warning tone playback failed: \(data.localizedDescription)")
         }
     }
 
@@ -361,7 +317,7 @@ struct RecordTrackForSession: View {
             return
         }
 
-        logger.debug("Saving track to session for creature: \\(creature.name)")
+        logger.debug("Saving track to session for creature: \(creature.name)")
         session.addTrack(track, for: creature.id)
 
         // Update the AppState animation
@@ -387,7 +343,7 @@ struct RecordTrackForSession: View {
         )
 
         var body: some View {
-            NavigationView {
+            NavigationStack {
                 RecordTrackForSession(
                     creature: .mock(),
                     session: session,

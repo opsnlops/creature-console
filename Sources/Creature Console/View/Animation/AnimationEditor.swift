@@ -3,10 +3,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
-
 // This is the main animation editor for all of the Animations
 struct AnimationEditor: View {
 
@@ -32,12 +28,12 @@ struct AnimationEditor: View {
     @State private var availableCreatures: [Creature] = []
 
 
-    @State private var showErrorAlert: Bool = false
-    @State private var errorMessage: String = ""
+    @State private var errorAlert: ErrorAlert?
 
-    @State private var showStatusOverlay: Bool = false
-    @State private var statusMessage: String = ""
-    @State private var statusOverlayGeneration = 0
+    /// Transient confirmation for server results (schedule/save messages).
+    @State private var statusBanner: String? = nil
+    /// True while a save is in flight; drives the processing overlay.
+    @State private var isSaving = false
 
     @State private var playAnimationTask: Task<Void, Never>? = nil
 
@@ -157,22 +153,11 @@ struct AnimationEditor: View {
             playAnimationTask?.cancel()
             playAnimationTask = nil
         }
-        .alert(
-            "Oooooh Shit", isPresented: $showErrorAlert,
-            actions: {
-                Button("Fuck", role: .cancel) {}
-            },
-            message: {
-                Text(errorMessage)
-            }
-        )
+        .errorAlert($errorAlert, dismissLabel: "Fuck")
+        .statusBanner($statusBanner)
         .overlay {
-            if showStatusOverlay {
-                Text(statusMessage)
-                    .font(.title3)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .glassEffect(.regular.tint(.green), in: .capsule)
+            if isSaving {
+                ProcessingOverlayView(message: "Saving animation to server…", progress: nil)
             }
         }
         .navigationDestination(item: $selectedCreatureForRecording) { creature in
@@ -182,12 +167,10 @@ struct AnimationEditor: View {
             }
             .task {
                 // Align event loop/recording cadence with the animation's frame period
-                await MainActor.run {
-                    UserDefaults.standard.set(
-                        Int(model.millisecondsPerFrame),
-                        forKey: "eventLoopMillisecondsPerFrame"
-                    )
-                }
+                UserDefaults.standard.set(
+                    Int(model.millisecondsPerFrame),
+                    forKey: "eventLoopMillisecondsPerFrame"
+                )
             }
         }
     }
@@ -208,13 +191,11 @@ struct AnimationEditor: View {
         // If this fetch was superseded (the sound file changed and SwiftUI cancelled us) don't
         // clobber the newer fetch's result with this stale one.
         guard !Task.isCancelled, soundFile == model.animation.metadata.soundFile else { return }
-        await MainActor.run {
-            switch result {
-            case .success(let fetched):
-                provenance = fetched
-            case .failure:
-                provenance = nil
-            }
+        switch result {
+        case .success(let fetched):
+            provenance = fetched
+        case .failure:
+            provenance = nil
         }
     }
 
@@ -231,18 +212,15 @@ struct AnimationEditor: View {
             let result = await CreatureManager.shared.playStoredAnimationOnServer(
                 animationId: animationId, universe: universe)
 
-            await MainActor.run {
-                switch result {
-                case .success(let message):
-                    logger.debug("Animation scheduled: \(message)")
-                    showStatusBanner("Universe \(universe): \(message)")
+            switch result {
+            case .success(let message):
+                logger.debug("Animation scheduled: \(message)")
+                statusBanner = "Universe \(universe): \(message)"
 
-                case .failure(let error):
-                    let message = ServerError.detailedMessage(from: error)
-                    logger.warning("Unable to schedule animation: \(message)")
-                    errorMessage = message
-                    showErrorAlert = true
-                }
+            case .failure(let error):
+                let message = ServerError.detailedMessage(from: error)
+                logger.warning("Unable to schedule animation: \(message)")
+                errorAlert = ErrorAlert(title: "Oooooh Shit", message: message)
             }
         }
     }
@@ -251,41 +229,21 @@ struct AnimationEditor: View {
     func saveAnimationToServer() {
         let animation = model.animation
 
-        statusMessage = "Saving animation to server..."
-        showStatusOverlay = true
+        isSaving = true
         Task {
             let result = await server.saveAnimation(animation: animation)
 
-            await MainActor.run {
-                switch result {
-                case .success(let data):
-                    logger.debug("success!")
-                    showStatusBanner(data)
+            isSaving = false
+            switch result {
+            case .success(let data):
+                logger.debug("success!")
+                statusBanner = data
 
-                case .failure(let error):
-                    let message = ServerError.detailedMessage(from: error)
-                    showStatusOverlay = false
-                    errorMessage = message
-                    showErrorAlert = true
-                    logger.error("Unable to save animation to server: \(message)")
-                }
+            case .failure(let error):
+                let message = ServerError.detailedMessage(from: error)
+                errorAlert = ErrorAlert(title: "Oooooh Shit", message: message)
+                logger.error("Unable to save animation to server: \(message)")
             }
-        }
-    }
-
-    /// Show a transient status message in the glass overlay, auto-dismissing after a few
-    /// seconds. The generation counter keeps an earlier banner's dismissal from cutting a
-    /// newer one short.
-    @MainActor
-    private func showStatusBanner(_ message: String) {
-        statusOverlayGeneration += 1
-        let generation = statusOverlayGeneration
-        statusMessage = message
-        showStatusOverlay = true
-        Task {
-            try? await Task.sleep(for: .seconds(3))
-            guard generation == statusOverlayGeneration else { return }
-            showStatusOverlay = false
         }
     }
 
@@ -360,8 +318,6 @@ struct AnimationEditor: View {
                     // Show recorded tracks for the current animation
                     TrackListingView(animation: model.animation)
                         .id(model.tracksVersion)
-
-                    Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -381,7 +337,6 @@ struct AnimationEditor: View {
                     )
                     TrackListingView(animation: model.animation, provenance: provenance)
                         .id(model.tracksVersion)
-                    Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -400,8 +355,6 @@ struct AnimationEditor: View {
 
 }
 
-struct AnimationEditor_Previews: PreviewProvider {
-    static var previews: some View {
-        AnimationEditor()
-    }
+#Preview {
+    AnimationEditor()
 }

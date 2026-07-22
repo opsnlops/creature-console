@@ -9,11 +9,9 @@ struct SoundDataImport: View {
     @State private var jsonString: String = ""
     @State private var isFileImporterPresented: Bool = false
 
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert?
     @AppStorage("mouthImportDefaultAxis") private var selectedAxis: Int = 2
-    @State private var showSuccessBanner = false
-    @State private var successMessage = ""
+    @State private var successBanner: String?
 
     var soundDataProcessor = SoundDataProcessor()
     @Binding var track: Track
@@ -61,8 +59,7 @@ struct SoundDataImport: View {
                     switch result {
                     case .success(let urls):
                         guard let url = urls.first else {
-                            alertMessage = "No file selected."
-                            showErrorAlert = true
+                            presentError("No file selected.")
                             return
                         }
 
@@ -88,36 +85,30 @@ struct SoundDataImport: View {
                                     switch replaceResult {
                                     case .success(let updatedTrack):
                                         track = updatedTrack
-                                        successMessage =
+                                        successBanner =
                                             "Imported mouth data and replaced axis \(selectedAxis) (\(updatedTrack.frames.count) frames)."
-                                        showSuccessBanner = true
-                                        try? await Task.sleep(nanoseconds: 1_500_000_000)
-                                        await MainActor.run { showSuccessBanner = false }
                                     case .failure(let error):
                                         logger.warning(
                                             "Failed to update track: \(error.localizedDescription)")
-                                        alertMessage =
+                                        presentError(
                                             "Failed to update track: \(error.localizedDescription)"
-                                        showErrorAlert = true
+                                        )
                                     }
                                 }
                             } catch {
                                 logger.warning(
                                     "Failed to decode JSON: \(error.localizedDescription)")
-                                alertMessage =
-                                    "Failed to decode JSON: \(error.localizedDescription)"
-                                showErrorAlert = true
+                                presentError(
+                                    "Failed to decode JSON: \(error.localizedDescription)")
                             }
                         } catch {
                             logger.warning("Unable to open file: \(error.localizedDescription)")
-                            alertMessage = "Unable to open file: \(error.localizedDescription)"
-                            showErrorAlert = true
+                            presentError("Unable to open file: \(error.localizedDescription)")
                         }
 
                     case .failure(let error):
                         logger.warning("File import failed: \(error.localizedDescription)")
-                        alertMessage = "File import failed: \(error.localizedDescription)"
-                        showErrorAlert = true
+                        presentError("File import failed: \(error.localizedDescription)")
                     }
                 }
             }
@@ -131,22 +122,11 @@ struct SoundDataImport: View {
             let width = frameWidth
             if width > 0, selectedAxis >= width { selectedAxis = max(0, width - 1) }
         }
-        .overlay(alignment: .top) {
-            if showSuccessBanner {
-                Text(successMessage)
-                    .font(.caption)
-                    .padding(8)
-                    .glassEffect(.regular.tint(.green), in: .capsule)
-                    .padding(.top, 4)
-                    .transition(.opacity)
-            }
-        }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("Mouth Data Import"),
-                message: Text(alertMessage),
-                dismissButton: .default(Text("Dismiss"))
-            )
-        }
+        .statusBanner($successBanner, duration: .seconds(1.5), alignment: .top)
+        .errorAlert($errorAlert, dismissLabel: "Dismiss")
+    }
+
+    private func presentError(_ message: String) {
+        errorAlert = ErrorAlert(title: "Mouth Data Import", message: message)
     }
 }

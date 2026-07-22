@@ -4,10 +4,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
-
 struct PlaylistsTable: View {
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "PlaylistsTable")
@@ -20,10 +16,8 @@ struct PlaylistsTable: View {
     // Our Server
     let server = CreatureServerClient.shared
 
-    @State private var showErrorAlert = false
-    @State private var showSuccessAlert = false
-    @State private var alertMessage = ""
-    @State private var successMessage = ""
+    @State private var errorAlert: ErrorAlert? = nil
+    @State private var successBanner: String? = nil
 
     @State private var selection: PlaylistIdentifier? = nil
     @State private var editingPlaylist: Common.Playlist? = nil
@@ -116,16 +110,8 @@ struct PlaylistsTable: View {
             .onChange(of: selection) {
                 logger.debug("selection is now \(String(describing: selection))")
             }
-            .alert("Error", isPresented: $showErrorAlert) {
-                Button("Shit") {}
-            } message: {
-                Text(alertMessage)
-            }
-            .alert("Success", isPresented: $showSuccessAlert) {
-                Button("OK") {}
-            } message: {
-                Text(successMessage)
-            }
+            .errorAlert($errorAlert, dismissLabel: "Shit")
+            .statusBanner($successBanner)
             .toolbar(id: "playlistList") {
                 #if os(iOS)
                     ToolbarItem(id: "create", placement: .topBarTrailing) {
@@ -231,42 +217,21 @@ struct PlaylistsTable: View {
         logger.debug("savePlaylist called with playlist: \(playlist.name)")
         Task {
             let result = await server.updatePlaylist(playlist)
-            await MainActor.run {
-                switch result {
-                case .success(let message):
-                    logger.debug("Playlist updated successfully: \(message)")
-                    // Refresh from server
-                    Task {
-                        let container = await SwiftDataStore.shared.container()
-                        let importer = PlaylistImporter(modelContainer: container)
-                        let result = await server.getAllPlaylists()
-                        switch result {
-                        case .success(let list):
-                            do {
-                                try await importer.upsertBatch(list)
-                                logger.debug("Cache refresh successful")
-                            } catch {
-                                logger.warning(
-                                    "Cache refresh failed: \(error.localizedDescription)")
-                            }
-                        case .failure(let error):
-                            logger.warning(
-                                "Failed to fetch playlists: \(error.localizedDescription)")
-                        }
-                    }
-                    // Clean up and close dialog
-                    showingEditSheet = false
-                    editingPlaylist = nil
-                case .failure(let error):
-                    let detailedError = ServerError.detailedMessage(from: error)
-                    logger.error("Save failed with error: \(error)")
-                    logger.error("Error type: \(type(of: error))")
-                    alertMessage = "Failed to save playlist: \(detailedError)"
-                    showErrorAlert = true
-                    logger.error("Failed to save playlist: \(detailedError)")
-                    logger.error(
-                        "Playlist data: \(playlist.name) with \(playlist.items.count) items")
-                }
+            switch result {
+            case .success(let message):
+                logger.debug("Playlist updated successfully: \(message)")
+                refreshPlaylistCache()
+                // Clean up and close dialog
+                showingEditSheet = false
+                editingPlaylist = nil
+            case .failure(let error):
+                let detailedError = ServerError.detailedMessage(from: error)
+                logger.error("Save failed with error: \(error)")
+                logger.error("Error type: \(type(of: error))")
+                errorAlert = ErrorAlert(message: "Failed to save playlist: \(detailedError)")
+                logger.error("Failed to save playlist: \(detailedError)")
+                logger.error(
+                    "Playlist data: \(playlist.name) with \(playlist.items.count) items")
             }
         }
     }
@@ -274,36 +239,35 @@ struct PlaylistsTable: View {
     func createPlaylist(_ playlist: Common.Playlist) {
         Task {
             let result = await server.createPlaylist(playlist)
-            await MainActor.run {
-                switch result {
-                case .success:
-                    logger.debug("Playlist created successfully")
-                    // Refresh from server
-                    Task {
-                        let container = await SwiftDataStore.shared.container()
-                        let importer = PlaylistImporter(modelContainer: container)
-                        let result = await server.getAllPlaylists()
-                        switch result {
-                        case .success(let list):
-                            do {
-                                try await importer.upsertBatch(list)
-                                logger.debug("Cache refresh successful")
-                            } catch {
-                                logger.warning(
-                                    "Cache refresh failed: \(error.localizedDescription)")
-                            }
-                        case .failure(let error):
-                            logger.warning(
-                                "Failed to fetch playlists: \(error.localizedDescription)")
-                        }
-                    }
-                    showingCreateSheet = false
-                case .failure(let error):
-                    let detailedError = ServerError.detailedMessage(from: error)
-                    alertMessage = "Failed to create playlist: \(detailedError)"
-                    showErrorAlert = true
-                    logger.error("Failed to create playlist: \(detailedError)")
+            switch result {
+            case .success:
+                logger.debug("Playlist created successfully")
+                refreshPlaylistCache()
+                showingCreateSheet = false
+            case .failure(let error):
+                let detailedError = ServerError.detailedMessage(from: error)
+                errorAlert = ErrorAlert(message: "Failed to create playlist: \(detailedError)")
+                logger.error("Failed to create playlist: \(detailedError)")
+            }
+        }
+    }
+
+    /// Pull the authoritative playlist list from the server and upsert it into the local cache.
+    /// Shared by save and create so the two paths can't drift apart.
+    private func refreshPlaylistCache() {
+        Task {
+            let importer = PlaylistImporter(modelContainer: modelContext.container)
+            let result = await server.getAllPlaylists()
+            switch result {
+            case .success(let list):
+                do {
+                    try await importer.upsertBatch(list)
+                    logger.debug("Cache refresh successful")
+                } catch {
+                    logger.warning("Cache refresh failed: \(error.localizedDescription)")
                 }
+            case .failure(let error):
+                logger.warning("Failed to fetch playlists: \(error.localizedDescription)")
             }
         }
     }
@@ -331,18 +295,12 @@ struct PlaylistsTable: View {
                 universe: activeUniverse, playlistId: playlistId)
             switch result {
             case .success(let message):
-                await MainActor.run {
-                    successMessage = message
-                    showSuccessAlert = true
-                    logger.debug("Successfully started playlist: \(message)")
-                }
+                successBanner = message
+                logger.debug("Successfully started playlist: \(message)")
             case .failure(let error):
-                await MainActor.run {
-                    let detailedError = ServerError.detailedMessage(from: error)
-                    alertMessage = "Error starting playlist: \(detailedError)"
-                    logger.warning("Unable to start a playlist: \(detailedError)")
-                    showErrorAlert = true
-                }
+                let detailedError = ServerError.detailedMessage(from: error)
+                logger.warning("Unable to start a playlist: \(detailedError)")
+                errorAlert = ErrorAlert(message: "Error starting playlist: \(detailedError)")
             }
         }
     }
@@ -357,18 +315,12 @@ struct PlaylistsTable: View {
             let result = await server.stopPlayingPlaylist(universe: activeUniverse)
             switch result {
             case .success(let message):
-                await MainActor.run {
-                    successMessage = message
-                    showSuccessAlert = true
-                    logger.debug("Successfully stopped playlist playback: \(message)")
-                }
+                successBanner = message
+                logger.debug("Successfully stopped playlist playback: \(message)")
             case .failure(let error):
-                await MainActor.run {
-                    let detailedError = ServerError.detailedMessage(from: error)
-                    alertMessage = "Error stopping playlist: \(detailedError)"
-                    logger.warning("Unable to stop playlist playback: \(detailedError)")
-                    showErrorAlert = true
-                }
+                let detailedError = ServerError.detailedMessage(from: error)
+                logger.warning("Unable to stop playlist playback: \(detailedError)")
+                errorAlert = ErrorAlert(message: "Error stopping playlist: \(detailedError)")
             }
         }
     }
@@ -487,7 +439,6 @@ struct EditPlaylistSheet: View {
                     .safeAreaInset(edge: .bottom) {
                         HStack {
                             Button("Cancel") {
-                                print("DEBUG: Cancel button tapped in EditPlaylistSheet")
                                 onCancel()
                             }
                             .buttonStyle(.bordered)
@@ -495,11 +446,8 @@ struct EditPlaylistSheet: View {
                             Spacer()
 
                             Button("Save") {
-                                print("DEBUG: Save button tapped in EditPlaylistSheet")
                                 if let playlist = editablePlaylist {
                                     onSave(playlist)
-                                } else {
-                                    print("DEBUG: No editablePlaylist to save")
                                 }
                             }
                             .buttonStyle(.borderedProminent)

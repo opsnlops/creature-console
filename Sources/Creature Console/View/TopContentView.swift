@@ -20,8 +20,7 @@ struct TopContentView: View {
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
 
-    @State private var showErrorAlert: Bool = false
-    @State private var errorMessage: String = ""
+    @State private var errorAlert: ErrorAlert?
 
     @State var navigationPath = NavigationPath()
 
@@ -272,13 +271,7 @@ struct TopContentView: View {
             .task {
                 await importFromServerIfNeeded()
             }
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text("Oooooh Shit"),
-                    message: Text(errorMessage),
-                    dismissButton: .default(Text("Fuck"))
-                )
-            }
+            .errorAlert($errorAlert, dismissLabel: "Fuck")
         } detail: {
             NavigationStack(path: $navigationPath) {
                 Text("Using server: \(server.getHostname())")
@@ -380,9 +373,7 @@ struct TopContentView: View {
             }
             .task {
                 for await state in await StatusLightsManager.shared.stateUpdates {
-                    await MainActor.run {
-                        statusLightsState = state
-                    }
+                    statusLightsState = state
                 }
             }
             .task { @MainActor in
@@ -439,16 +430,12 @@ extension TopContentView {
                 try await importer.upsertBatch(list)
                 logger.debug("Imported \(list.count) creatures into SwiftData")
             case .failure(let error):
-                await MainActor.run {
-                    errorMessage = ServerError.detailedMessage(from: error)
-                    showErrorAlert = true
-                }
+                errorAlert = ErrorAlert(title: "Oooooh Shit", error: error)
             }
         } catch {
-            await MainActor.run {
-                errorMessage = "Error importing creatures: \(error.localizedDescription)"
-                showErrorAlert = true
-            }
+            errorAlert = ErrorAlert(
+                title: "Oooooh Shit",
+                message: "Error importing creatures: \(error.localizedDescription)")
         }
     }
 }

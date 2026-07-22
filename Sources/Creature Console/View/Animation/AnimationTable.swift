@@ -5,12 +5,6 @@ import OSLog
 import SwiftData
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#elseif canImport(AppKit)
-    import AppKit
-#endif
-
 struct AnimationTable: View {
     let eventLoop = EventLoop.shared
 
@@ -32,9 +26,7 @@ struct AnimationTable: View {
     /// the server — silent bombs otherwise discovered only when playback fails mid-show.
     @Query private var sounds: [SoundModel]
 
-    @State private var showErrorAlert = false
-    @State private var alertTitle = "Unable to load Animations"
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert?
     @State private var selection: AnimationIdentifier? = nil
     @State private var animationSoundToShare: String? = nil
 
@@ -65,12 +57,11 @@ struct AnimationTable: View {
     @State private var filmingFlowTask: Task<Void, Never>? = nil
     @State private var alignmentSoundDurationCache: TimeInterval? = nil
 
-    /// Transient confirmation for scheduling actions. The server returns a detailed message
-    /// ("Animation scheduled from frame X to Y") — showing it (with the universe) makes a
-    /// successful-but-invisible schedule, like playing to a universe nothing listens on,
-    /// immediately diagnosable instead of silent.
-    @State private var scheduleBanner: String? = nil
-    @State private var scheduleBannerGeneration = 0
+    /// Transient confirmation for successful actions (scheduling, rename, delete, lip sync).
+    /// The server returns a detailed message ("Animation scheduled from frame X to Y") —
+    /// showing it (with the universe) makes a successful-but-invisible schedule, like playing
+    /// to a universe nothing listens on, immediately diagnosable instead of silent.
+    @State private var statusBanner: String? = nil
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationTable")
 
@@ -183,21 +174,13 @@ struct AnimationTable: View {
                         }
                         .disabled(!hasSelection)
 
-                        // Sound file action (kept as a stub; disabled when no sound file)
+                        // The selected animation's sound file, for the share flow below.
                         let soundFileName: String = {
                             guard let id = targetId,
                                 let md = animations.first(where: { $0.id == id })
                             else { return "" }
                             return md.soundFile
                         }()
-                        let hasSound = !soundFileName.isEmpty
-                        Button {
-                            print("play sound file selected")
-                        } label: {
-                            Label("Play Sound File", systemImage: "music.quarternote.3")
-                        }
-                        .disabled(!hasSound)
-
                         ShareableSoundButton(
                             fileName: soundFileName,
                             title: "Generate Shareable Version of Sound…",
@@ -281,32 +264,14 @@ struct AnimationTable: View {
             .onChange(of: creature) {
                 logger.debug("onChange() in AnimationTable")
             }
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text(alertTitle),
-                    message: Text(alertMessage),
-                    dismissButton: .default(Text("Fiiiiiine")) {
-                        alertTitle = "Unable to load Animations"
-                    }
-                )
-            }
+            .errorAlert($errorAlert, dismissLabel: "Fiiiiiine")
             .overlay {
                 if let phase = filmingPhase {
                     FilmingCountdownOverlay(phase: phase, onCancel: cancelFilmingFlow)
                         .transition(.opacity)
                 }
             }
-            .overlay(alignment: .bottom) {
-                if let banner = scheduleBanner {
-                    Label(banner, systemImage: "checkmark.circle.fill")
-                        .font(.callout)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .glassEffect(.regular.tint(.green.opacity(0.4)), in: .capsule)
-                        .padding(.bottom, 24)
-                        .transition(.opacity)
-                }
-            }
+            .statusBanner($statusBanner)
             .confirmationDialog(
                 "Delete Animation?",
                 isPresented: $showDeleteConfirmation,
@@ -436,11 +401,9 @@ struct AnimationTable: View {
         let result = await server.generateLipSyncForAnimation(animationId: animationId)
 
         if Task.isCancelled {
-            await MainActor.run {
-                generatingLipSyncForAnimation = nil
-                activeAnimationLipSyncJob = nil
-                generateLipSyncTask = nil
-            }
+            generatingLipSyncForAnimation = nil
+            activeAnimationLipSyncJob = nil
+            generateLipSyncTask = nil
             logger.debug("Lip sync generation task for \(animationId) was cancelled")
             return
         }
@@ -453,26 +416,18 @@ struct AnimationTable: View {
             await JobStatusStore.shared.seedQueued(
                 job, details: AnimationLipSyncJobDetails(animationId: animationId))
 
-            await MainActor.run {
-                activeAnimationLipSyncJob = (animationId, job.jobId)
-                generatingLipSyncForAnimation = animationId
-                observedJobInfo = nil
-            }
+            activeAnimationLipSyncJob = (animationId, job.jobId)
+            generatingLipSyncForAnimation = animationId
+            observedJobInfo = nil
 
         case .failure(let error):
             logger.error("Failed to queue lip sync generation: \(error.localizedDescription)")
-            await MainActor.run {
-                alertTitle = "Lip Sync Generation Failed"
-                alertMessage = ServerError.detailedMessage(from: error)
-                showErrorAlert = true
-                generatingLipSyncForAnimation = nil
-                activeAnimationLipSyncJob = nil
-            }
+            errorAlert = ErrorAlert(title: "Lip Sync Generation Failed", error: error)
+            generatingLipSyncForAnimation = nil
+            activeAnimationLipSyncJob = nil
         }
 
-        await MainActor.run {
-            generateLipSyncTask = nil
-        }
+        generateLipSyncTask = nil
     }
 
     private func startAnimationRename(animationId: AnimationIdentifier) {
@@ -498,9 +453,8 @@ struct AnimationTable: View {
         let trimmed = renameAnimationTitle.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmed.isEmpty else {
-            alertTitle = "Invalid Name"
-            alertMessage = "Animation name cannot be empty."
-            showErrorAlert = true
+            errorAlert = ErrorAlert(
+                title: "Invalid Name", message: "Animation name cannot be empty.")
             return
         }
 
@@ -527,48 +481,34 @@ struct AnimationTable: View {
             let saveResult = await server.saveAnimation(animation: fetchedAnimation)
             switch saveResult {
             case .success:
-                await MainActor.run {
-                    if let model = animations.first(where: { $0.id == animationId }) {
-                        model.title = newTitle
-                        do {
-                            try modelContext.save()
-                        } catch {
-                            logger.warning(
-                                "Unable to persist renamed animation locally: \(error.localizedDescription)"
-                            )
-                        }
+                if let model = animations.first(where: { $0.id == animationId }) {
+                    model.title = newTitle
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        logger.warning(
+                            "Unable to persist renamed animation locally: \(error.localizedDescription)"
+                        )
                     }
-                    alertTitle = "Animation Renamed"
-                    alertMessage = "Renamed animation to \(newTitle)."
-                    showErrorAlert = true
                 }
+                statusBanner = "Renamed animation to \(newTitle)."
             case .failure(let error):
                 let message = ServerError.detailedMessage(from: error)
                 logger.warning("Unable to save renamed animation: \(message)")
-                await MainActor.run {
-                    alertTitle = "Unable to Rename Animation"
-                    alertMessage = message
-                    showErrorAlert = true
-                }
+                errorAlert = ErrorAlert(title: "Unable to Rename Animation", message: message)
             }
 
         case .failure(let error):
             let message = ServerError.detailedMessage(from: error)
             logger.warning("Unable to load animation before rename: \(message)")
-            await MainActor.run {
-                alertTitle = "Unable to Rename Animation"
-                alertMessage = message
-                showErrorAlert = true
-            }
+            errorAlert = ErrorAlert(title: "Unable to Rename Animation", message: message)
         }
 
-        await MainActor.run {
-            isRenamingAnimation = false
-            renameAnimationTask = nil
-            renameAnimationId = nil
-            renameAnimationTitle = ""
-            renameOriginalTitle = ""
-        }
+        isRenamingAnimation = false
+        renameAnimationTask = nil
+        renameAnimationId = nil
+        renameAnimationTitle = ""
+        renameOriginalTitle = ""
     }
 
     private func startAnimationDeletion(animationId: AnimationIdentifier) {
@@ -590,42 +530,33 @@ struct AnimationTable: View {
     private func performAnimationDeletion(animationId: AnimationIdentifier) async {
         let result = await server.deleteAnimation(animationId: animationId)
 
-        await MainActor.run {
-            isDeletingAnimation = false
-            showDeleteConfirmation = false
-        }
+        isDeletingAnimation = false
+        showDeleteConfirmation = false
 
         switch result {
         case .success:
-            await MainActor.run {
-                if let model = animations.first(where: { $0.id == animationId }) {
-                    modelContext.delete(model)
-                    do {
-                        try modelContext.save()
-                    } catch {
-                        logger.warning(
-                            "Unable to persist deletion locally: \(error.localizedDescription)")
-                    }
+            // Grab the title before the model leaves the cache, so the banner names the
+            // animation instead of falling back to its raw identifier.
+            let deletedTitle = animationTitle(for: animationId)
+            if let model = animations.first(where: { $0.id == animationId }) {
+                modelContext.delete(model)
+                do {
+                    try modelContext.save()
+                } catch {
+                    logger.warning(
+                        "Unable to persist deletion locally: \(error.localizedDescription)")
                 }
-                pendingDeleteAnimation = nil
-                alertTitle = "Animation Deleted"
-                alertMessage = "Deleted \(animationTitle(for: animationId))."
-                showErrorAlert = true
             }
+            pendingDeleteAnimation = nil
+            statusBanner = "Deleted \(deletedTitle)."
         case .failure(let error):
             let message = ServerError.detailedMessage(from: error)
             logger.warning("Unable to delete animation \(animationId): \(message)")
-            await MainActor.run {
-                pendingDeleteAnimation = nil
-                alertTitle = "Unable to Delete Animation"
-                alertMessage = message
-                showErrorAlert = true
-            }
+            pendingDeleteAnimation = nil
+            errorAlert = ErrorAlert(title: "Unable to Delete Animation", message: message)
         }
 
-        await MainActor.run {
-            deleteAnimationTask = nil
-        }
+        deleteAnimationTask = nil
     }
 
     private func animationOverlayMessage(
@@ -663,34 +594,24 @@ struct AnimationTable: View {
         loadScriptTask?.cancel()
         loadScriptTask = Task {
             let result = await server.getDialogScript(id: scriptId)
-            await MainActor.run {
-                switch result {
-                case .success(let script):
-                    scriptToEdit = script
-                case .failure(.notFound):
-                    alertTitle = "Dialog Script Not Found"
-                    alertMessage =
+            switch result {
+            case .success(let script):
+                scriptToEdit = script
+            case .failure(.notFound):
+                errorAlert = ErrorAlert(
+                    title: "Dialog Script Not Found",
+                    message:
                         "The source dialog script no longer exists — it may have been deleted. The animation still plays from its rendered snapshot."
-                    showErrorAlert = true
-                case .failure(let error):
-                    alertTitle = "Unable to Open Dialog Script"
-                    alertMessage = ServerError.detailedMessage(from: error)
-                    showErrorAlert = true
-                }
+                )
+            case .failure(let error):
+                errorAlert = ErrorAlert(title: "Unable to Open Dialog Script", error: error)
             }
         }
     }
 
     private func copyAnimationId(_ animationId: AnimationIdentifier?) {
         guard let animationId else { return }
-
-        #if os(iOS) || os(visionOS)
-            UIPasteboard.general.string = animationId
-        #elseif canImport(AppKit)
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(animationId, forType: .string)
-        #endif
+        Pasteboard.copy(animationId)
     }
 
     @MainActor
@@ -703,26 +624,22 @@ struct AnimationTable: View {
 
         switch info.status {
         case .completed:
-            alertTitle = "Lip Sync Ready"
             if let result = info.animationLipSyncResult {
                 let trackDescription =
                     result.updatedTracks == 1
                     ? "1 track"
                     : "\(result.updatedTracks) tracks"
-                alertMessage =
+                statusBanner =
                     "Lip sync data for \(displayName) finished processing. \(trackDescription) updated."
             } else {
-                alertMessage = "Lip sync data for \(displayName) finished processing."
+                statusBanner = "Lip sync data for \(displayName) finished processing."
             }
-            showErrorAlert = true
         case .failed:
             let message =
                 info.result?.isEmpty == false
                 ? info.result!
                 : "The server could not generate lip sync for \(displayName)."
-            alertTitle = "Lip Sync Failed"
-            alertMessage = message
-            showErrorAlert = true
+            errorAlert = ErrorAlert(title: "Lip Sync Failed", message: message)
         default:
             break
         }
@@ -744,18 +661,12 @@ struct AnimationTable: View {
             let result = await server.getAnimation(animationId: animationId)
             switch result {
             case .success(let animation):
-                await MainActor.run {
-                    animationToEdit = animation
-                    navigateToEditor = true
-                }
+                animationToEdit = animation
+                navigateToEditor = true
             case .failure(let error):
                 let message = "Error: \(error.localizedDescription)"
                 logger.warning("Unable to load animation for editing: \(message)")
-                await MainActor.run {
-                    alertTitle = "Unable to Load Animation"
-                    alertMessage = message
-                    showErrorAlert = true
-                }
+                errorAlert = ErrorAlert(title: "Unable to Load Animation", message: message)
             }
         }
     }
@@ -785,17 +696,11 @@ struct AnimationTable: View {
             switch result {
             case .success(let message):
                 logger.debug("Animation Scheduled: \(message)")
-                await MainActor.run {
-                    showScheduleBanner("Universe \(universe): \(message)")
-                }
+                statusBanner = "Universe \(universe): \(message)"
             case .failure(let error):
                 let message = ServerError.detailedMessage(from: error)
                 logger.warning("Unable to schedule animation: \(message)")
-                await MainActor.run {
-                    alertTitle = "Unable to Schedule Animation"
-                    alertMessage = message
-                    showErrorAlert = true
-                }
+                errorAlert = ErrorAlert(title: "Unable to Schedule Animation", message: message)
             }
         }
     }
@@ -835,22 +740,9 @@ struct AnimationTable: View {
     }
 
     @MainActor
-    private func showScheduleBanner(_ message: String) {
-        scheduleBannerGeneration += 1
-        let generation = scheduleBannerGeneration
-        withAnimation { scheduleBanner = message }
-        Task {
-            try? await Task.sleep(for: .seconds(4))
-            guard generation == scheduleBannerGeneration else { return }
-            withAnimation { scheduleBanner = nil }
-        }
-    }
-
-    @MainActor
     private func presentAudioPlaybackError(_ error: AudioError) {
-        alertTitle = "Unable to Play Alignment Sound"
-        alertMessage = audioErrorMessage(for: error)
-        showErrorAlert = true
+        errorAlert = ErrorAlert(
+            title: "Unable to Play Alignment Sound", message: audioErrorMessage(for: error))
     }
 
     private func audioErrorMessage(for error: AudioError) -> String {
@@ -993,26 +885,18 @@ struct AnimationTable: View {
             switch result {
             case .success(let message):
                 logger.debug("Animation Interrupt Scheduled: \(message)")
-                await MainActor.run {
-                    showScheduleBanner("Universe \(universe): \(message)")
-                }
+                statusBanner = "Universe \(universe): \(message)"
             case .failure(let error):
                 let message = ServerError.detailedMessage(from: error)
                 logger.warning("Unable to schedule animation interrupt: \(message)")
-                await MainActor.run {
-                    alertTitle = "Unable to Interrupt Animation"
-                    alertMessage = message
-                    showErrorAlert = true
-                }
+                errorAlert = ErrorAlert(title: "Unable to Interrupt Animation", message: message)
             }
         }
     }
 }
 
-struct AnimationTable_Previews: PreviewProvider {
-    static var previews: some View {
-        AnimationTable(creature: .mock())
-    }
+#Preview {
+    AnimationTable(creature: .mock())
 }
 
 private enum FilmingPhase: Equatable {

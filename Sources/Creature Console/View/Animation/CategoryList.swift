@@ -10,8 +10,7 @@ struct CategoryList: View {
     @State var animationMetas: [AnimationMetadata]?
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "AnimationCategory")
 
-    @State private var showErrorAlert = false
-    @State private var alertMessage = ""
+    @State private var errorAlert: ErrorAlert?
 
     @State private var loadDataTask: Task<Void, Never>? = nil
 
@@ -41,13 +40,7 @@ struct CategoryList: View {
             logger.debug("onChange() in AnimationCategory")
             loadData()
         }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("Unable to load Animations"),
-                message: Text(alertMessage),
-                dismissButton: .default(Text("Fuck"))
-            )
-        }
+        .errorAlert($errorAlert, dismissLabel: "Fuck")
     }
 
     func loadData() {
@@ -65,19 +58,19 @@ struct CategoryList: View {
                 logger.debug("success!")
                 self.animationMetas = data
             case .failure(let error):
-                alertMessage = "Error: \(String(describing: error.localizedDescription))"
                 logger.warning(
                     "Unable to load the animations for \(creature.name): \(String(describing: error.localizedDescription))"
                 )
-                showErrorAlert = true
+                errorAlert = ErrorAlert(
+                    title: "Unable to load Animations",
+                    message: "Error: \(String(describing: error.localizedDescription))"
+                )
             }
         }
     }
 }
 
 
-struct CategoryList_Previews: PreviewProvider {
-    static var previews: some View {
-        CategoryList(creature: .mock())
-    }
+#Preview {
+    CategoryList(creature: .mock())
 }
