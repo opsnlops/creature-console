@@ -1,3 +1,15 @@
+creature-cli (2.41.2) unstable; urgency=medium
+
+  * Fix duplicate message processing after websocket reconnect (issue #45):
+    connectWebsocket now tears down any existing client before creating a
+    new one. Previously the old client leaked alive — its own auto-reconnect
+    kept it online — so both clients fed the message processor and every
+    server message (logs, counters, status lights) was handled twice until
+    the app restarted. Affects all products that use the shared websocket
+    client.
+
+ -- April White <april@creature.engineering>  Wed, 22 Jul 2026 10:20:00 -0700
+
 creature-cli (2.41.1) unstable; urgency=medium
 
   * No CLI changes — lockstep bump with the Console app's Phase 5 structure
