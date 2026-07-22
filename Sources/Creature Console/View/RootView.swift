@@ -16,6 +16,9 @@ struct RootView: View {
     // AppState (setSystemAlert → stream → ConsoleStore) lands.
     @State private var showingSystemAlert = false
     @State private var websocketErrorMessage: String? = nil
+    #if os(macOS)
+        @State private var otherInstance: DuplicateInstanceGuard.OtherInstance? = nil
+    #endif
 
     @ViewBuilder
     private var contentView: some View {
@@ -38,6 +41,32 @@ struct RootView: View {
             .onChange(of: console.appState.showSystemAlert, initial: true) { _, showAlert in
                 showingSystemAlert = showAlert
             }
+            #if os(macOS)
+                // A second running copy double-imports every server message into the shared
+                // SwiftData store (issue #47) — surface it before the damage accumulates.
+                .onAppear {
+                    otherInstance = DuplicateInstanceGuard.findOtherInstance()
+                }
+                .alert(
+                    "Another Copy Is Running",
+                    isPresented: Binding(
+                        get: { otherInstance != nil },
+                        set: { presented in if !presented { otherInstance = nil } }
+                    ),
+                    presenting: otherInstance
+                ) { instance in
+                    Button("Quit Other Copy") {
+                        DuplicateInstanceGuard.quit(instance)
+                    }
+                    Button("Ignore", role: .cancel) {}
+                } message: { instance in
+                    Text(
+                        """
+                        \(instance.summary) is already running. Two copies both import \
+                        server data into the same local store, doubling everything.
+                        """)
+                }
+            #endif
             .task {
                 let name = Notification.Name("WebSocketDidEncounterError")
                 for await note in NotificationCenter.default.notifications(named: name, object: nil)

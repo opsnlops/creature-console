@@ -1,3 +1,14 @@
+creature-cli (2.41.3) unstable; urgency=medium
+
+  * No CLI changes — lockstep bump with the Console app: deleted ~900 lines
+    of dead recording code (AnimationRecordingCoordinator and the unreachable
+    RecordTrackForSession, issue #40), and added a launch-time guard that
+    detects a second running copy of the app and offers to quit it — two
+    instances silently double-import all server data into the shared local
+    store (issues #45/#47).
+
+ -- April White <april@creature.engineering>  Wed, 22 Jul 2026 10:35:00 -0700
+
 creature-cli (2.41.2) unstable; urgency=medium
 
   * Fix duplicate message processing after websocket reconnect (issue #45):
