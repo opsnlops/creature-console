@@ -1,3 +1,13 @@
+creature-cli (2.42.1) unstable; urgency=medium
+
+  * No CLI changes — lockstep bump with the Console app: fixed a crash while
+    live-controlling a fixture. The AppKit color wheel's continuous drag
+    stream can resolve to NaN color components, and the color→DMX byte
+    conversion trapped on them (issue #55). The conversion is now total
+    (NaN/infinite guarded, out-of-range clamped) and covered by tests.
+
+ -- April White <april@creature.engineering>  Fri, 25 Jul 2026 01:45:00 -0700
+
 creature-cli (2.42.0) unstable; urgency=medium
 
   * Dynamixel sensor reports now carry the controller's new per-servo
