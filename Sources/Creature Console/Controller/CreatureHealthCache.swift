@@ -1,6 +1,5 @@
 import Common
 import Foundation
-import OSLog
 
 enum CacheError: Error, CustomStringConvertible {
     case noDataForCreature
@@ -27,9 +26,6 @@ actor CreatureHealthCache {
     private var boardSensorCache: [CreatureIdentifier: [BoardSensorReport]] = [:]
 
     private let maxSensorCount = 1000
-
-    private let logger = Logger(
-        subsystem: "io.opsnlops.CreatureConsole", category: "CreatureHealthCache")
 
     // Broadcasting AsyncStream for UI updates
     private var subscribers: [UUID: AsyncStream<CreatureHealthCacheState>.Continuation] = [:]
@@ -110,10 +106,6 @@ actor CreatureHealthCache {
             dynamixelSensorCache: dynamixelSensorCache,
             boardSensorCache: boardSensorCache
         )
-        logger.debug(
-            "CreatureHealthCache: Publishing state update to \(self.subscribers.count) subscribers - board sensors for \(self.boardSensorCache.keys.count) creatures"
-        )
-
         // Broadcast to all active subscribers
         for continuation in subscribers.values {
             continuation.yield(currentState)
@@ -124,7 +116,6 @@ actor CreatureHealthCache {
     func addBoardSensorData(
         _ sensorData: BoardSensorReport, forCreature creatureId: CreatureIdentifier
     ) {
-        logger.debug("CreatureHealthCache: Adding board sensor data for creature \(creatureId)")
         var updatedCache = boardSensorCache[creatureId, default: []]
         updatedCache.append(sensorData)
 
