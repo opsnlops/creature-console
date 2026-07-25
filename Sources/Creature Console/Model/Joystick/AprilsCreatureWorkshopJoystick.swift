@@ -140,9 +140,12 @@ import OSLog
                 bButtonPressed: bButtonPressed,
                 xButtonPressed: xButtonPressed,
                 yButtonPressed: yButtonPressed,
-                serialNumber: serialNumber,
-                versionNumber: versionNumber,
-                manufacturer: manufacturer
+                // The stored properties keep "--"/-1/"unknown" placeholders for the
+                // protocol's non-optional getters; the published state uses nil so the
+                // UI can skip what the device didn't report.
+                serialNumber: serialNumber == "--" ? nil : serialNumber,
+                versionNumber: versionNumber == -1 ? nil : versionNumber,
+                manufacturer: manufacturer == "unknown" ? nil : manufacturer
             )
         }
 

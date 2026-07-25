@@ -10,6 +10,14 @@ extension SelectedJoystick {
         case .none: return "None"
         }
     }
+
+    fileprivate var chipSymbol: String {
+        switch self {
+        case .sixAxis: return "gamecontroller"
+        case .acw: return "arcade.stick.console"
+        case .none: return "questionmark.circle"
+        }
+    }
 }
 
 /// The joystick debugging surface: everything the hardware is reporting, live.
@@ -92,49 +100,57 @@ struct JoystickDebugView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            // Connection chip
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(.green)
-                    .frame(width: 8, height: 8)
-                Text("Connected")
-                    .font(.caption.weight(.medium))
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .glassEffect(.regular.tint(.green.opacity(0.2)), in: .capsule)
-
-            // Which joystick is active — the first thing to check when input looks wrong
-            HStack(spacing: 6) {
-                Image(systemName: state.selectedJoystick.getBButtonSymbol())
-                Text(state.selectedJoystick.displayName)
-                    .font(.caption.weight(.medium))
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .glassEffect(.regular, in: .capsule)
-
             VStack(alignment: .leading, spacing: 2) {
-                Text("🎮 \(state.manufacturer ?? "Unknown manufacturer")")
+                Text(state.manufacturer ?? "Unknown controller")
                     .font(.headline)
-                Text(deviceDetail)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                // Only when the device actually reported something — the system gamepad
+                // has no serial or firmware version, so it gets a clean single line.
+                if let detail = deviceDetail {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
+
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    // Which joystick is active — the first thing to check when input
+                    // looks wrong
+                    HStack(spacing: 6) {
+                        Image(systemName: state.selectedJoystick.chipSymbol)
+                        Text(state.selectedJoystick.displayName)
+                            .font(.caption.weight(.medium))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .glassEffect(.regular, in: .capsule)
+
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 8, height: 8)
+                        Text("Connected")
+                            .font(.caption.weight(.medium))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .glassEffect(.regular.tint(.green.opacity(0.2)), in: .capsule)
+                }
+            }
         }
     }
 
-    private var deviceDetail: String {
+    private var deviceDetail: String? {
         var parts: [String] = []
         if let serial = state.serialNumber {
             parts.append("S/N \(serial)")
         }
-        if let version = state.versionNumber, version > 0 {
+        if let version = state.versionNumber {
             parts.append("v\(version)")
         }
-        return parts.isEmpty ? "No device details reported" : parts.joined(separator: " · ")
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// Per-axis readout: decimal and hex, monospaced so values don't jitter as they change.
