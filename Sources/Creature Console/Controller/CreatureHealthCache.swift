@@ -1,5 +1,6 @@
 import Common
 import Foundation
+import OSLog
 
 enum CacheError: Error, CustomStringConvertible {
     case noDataForCreature
@@ -26,6 +27,17 @@ actor CreatureHealthCache {
     private var boardSensorCache: [CreatureIdentifier: [BoardSensorReport]] = [:]
 
     private let maxSensorCount = 1000
+
+    private let logger = Logger(
+        subsystem: "io.opsnlops.CreatureConsole", category: "CreatureHealthCache")
+
+    /// Sensor reports arrive at 5Hz per family, so logging each one drowns the console.
+    /// Instead, log every `logSampleInterval`th report per family (and the first, so it's
+    /// obvious when data starts flowing).
+    private let logSampleInterval = 100
+    private var motorReportCount = 0
+    private var dynamixelReportCount = 0
+    private var boardReportCount = 0
 
     // Broadcasting AsyncStream for UI updates
     private var subscribers: [UUID: AsyncStream<CreatureHealthCacheState>.Continuation] = [:]
@@ -72,6 +84,12 @@ actor CreatureHealthCache {
     func addMotorSensorData(
         _ sensorData: MotorSensorReport, forCreature creatureId: CreatureIdentifier
     ) {
+        motorReportCount += 1
+        if motorReportCount % logSampleInterval == 1 {
+            logger.debug(
+                "Motor sensor report #\(self.motorReportCount) (creature \(creatureId), logging 1 in \(self.logSampleInterval))"
+            )
+        }
         var updatedCache = motorSensorCache[creatureId, default: []]
         updatedCache.append(sensorData)
 
@@ -88,6 +106,12 @@ actor CreatureHealthCache {
     func addDynamixelSensorData(
         _ sensorData: DynamixelSensorReport, forCreature creatureId: CreatureIdentifier
     ) {
+        dynamixelReportCount += 1
+        if dynamixelReportCount % logSampleInterval == 1 {
+            logger.debug(
+                "Dynamixel sensor report #\(self.dynamixelReportCount) (creature \(creatureId), logging 1 in \(self.logSampleInterval))"
+            )
+        }
         var updatedCache = dynamixelSensorCache[creatureId, default: []]
         updatedCache.append(sensorData)
 
@@ -116,6 +140,12 @@ actor CreatureHealthCache {
     func addBoardSensorData(
         _ sensorData: BoardSensorReport, forCreature creatureId: CreatureIdentifier
     ) {
+        boardReportCount += 1
+        if boardReportCount % logSampleInterval == 1 {
+            logger.debug(
+                "Board sensor report #\(self.boardReportCount) (creature \(creatureId), logging 1 in \(self.logSampleInterval))"
+            )
+        }
         var updatedCache = boardSensorCache[creatureId, default: []]
         updatedCache.append(sensorData)
 
