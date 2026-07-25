@@ -149,7 +149,7 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                var mockAnimation = Common.Animation.mock()
+                let mockAnimation = Common.Animation.mock()
 
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = .prettyPrinted

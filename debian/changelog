@@ -1,3 +1,11 @@
+creature-cli (2.43.2) unstable; urgency=medium
+
+  * Fix the last compiler warning from the value-type DTO refactor: the
+    CLI's mock-animation helper held an immutable Animation struct in a
+    var. Builds are warning-clean again.
+
+ -- April White <april@creature.engineering>  Sat, 25 Jul 2026 12:00:00 -0700
+
 creature-cli (2.43.1) unstable; urgency=medium
 
   * Streaming-path bitrot cleanup (issue #50). streamFrame no longer
