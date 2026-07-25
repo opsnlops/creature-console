@@ -23,6 +23,12 @@ actor CreatureManager {
     private var streamingUniverse: UniverseIdentifier?
     private var isRecording: Bool = false
 
+    /// Consecutive stream-frame send failures. Frames go out at 50Hz, so a dead connection
+    /// would log 50 warnings a second — log the first failure, then every 250th (~5s), and
+    /// the recovery.
+    private var streamFailureCount = 0
+    private let streamFailureLogInterval = 250
+
     // Create a buffer to use for recording
     public private(set) var motionDataBuffer: [Data] = []
 
@@ -93,14 +99,23 @@ actor CreatureManager {
             let joystickValues = await JoystickManager.shared.getValues()
             let motionData = Data(joystickValues).base64EncodedString()
             let streamFrameData = StreamFrameData(
-                ceatureId: creatureId, universe: streamingUniverse ?? activeUniverse,
+                creatureId: creatureId, universe: streamingUniverse ?? activeUniverse,
                 data: motionData)
             let streamResult = await server.streamFrame(streamFrameData: streamFrameData)
             switch streamResult {
             case .success:
-                break
+                if streamFailureCount > 0 {
+                    logger.info(
+                        "Stream frames flowing again after \(self.streamFailureCount) failure(s)")
+                    streamFailureCount = 0
+                }
             case .failure(let error):
-                logger.warning("Failed to stream frame: \(error.localizedDescription)")
+                streamFailureCount += 1
+                if streamFailureCount % streamFailureLogInterval == 1 {
+                    logger.warning(
+                        "Failed to stream frame (\(self.streamFailureCount) consecutive): \(ServerError.detailedMessage(from: error))"
+                    )
+                }
             }
         }
 
