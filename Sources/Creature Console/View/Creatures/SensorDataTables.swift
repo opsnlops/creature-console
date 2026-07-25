@@ -217,6 +217,9 @@ struct DynamixelSensorTable: View {
                     Text("DXL ID")
                         .fontWeight(.medium)
                         .frame(width: 70, alignment: .leading)
+                    Text("Power")
+                        .fontWeight(.medium)
+                        .frame(width: 60, alignment: .center)
                     Text("Temp")
                         .fontWeight(.medium)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -239,18 +242,34 @@ struct DynamixelSensorTable: View {
                     HStack {
                         Text("\(motor.dxlId)")
                             .frame(width: 70, alignment: .leading)
-                        Text("\(String(format: "%.1f", motor.temperatureF)) °F")
-                            .foregroundStyle(temperatureColor(motor.temperatureF))
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                        Text("\(motor.presentLoad)")
-                            .foregroundStyle(loadColor(motor.presentLoad))
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                        // Older controller firmware omits present_position; show "—" then.
-                        Text(motor.presentPosition.map(String.init) ?? "—")
-                            .foregroundStyle(motor.presentPosition == nil ? .secondary : .primary)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                        Text("\(String(format: "%.2f", motor.voltageV)) V")
-                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        Image(systemName: motor.online ? "power.circle.fill" : "power.circle")
+                            .foregroundStyle(motor.online ? .green : .secondary)
+                            .accessibilityLabel(motor.online ? "Powered up" : "Powered down")
+                            .frame(width: 60, alignment: .center)
+                        // An offline servo reports zeros for everything, so show "—"
+                        // instead of pretending we have readings.
+                        if motor.online {
+                            Text("\(String(format: "%.1f", motor.temperatureF)) °F")
+                                .foregroundStyle(temperatureColor(motor.temperatureF))
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            Text("\(motor.presentLoad)")
+                                .foregroundStyle(loadColor(motor.presentLoad))
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            // Older controller firmware omits present_position; show "—" then.
+                            Text(motor.presentPosition.map(String.init) ?? "—")
+                                .foregroundStyle(
+                                    motor.presentPosition == nil ? .secondary : .primary
+                                )
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            Text("\(String(format: "%.2f", motor.voltageV)) V")
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                        } else {
+                            ForEach(0..<4) { _ in
+                                Text("—")
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                        }
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -356,11 +375,15 @@ private func voltageColor(_ voltage: Double) -> Color {
     }
 }
 
+/// The motor rail is nominally 5V (current servos) but some creatures still run a
+/// 2S pack (7.0–8.8V), so both bands are healthy. Red is reserved for a collapsed
+/// rail; the gaps between/above the bands are ambiguous enough to only warrant orange.
 private func motorVoltageColor(_ voltage: Double) -> Color {
     switch voltage {
-    case ..<7.0: return .red  // Below acceptable range
-    case 7.0...8.8: return .green  // Acceptable range (7.0V - 8.4V)
-    default: return .orange  // Above acceptable range
+    case ..<4.5: return .red  // Rail collapsed (or well under any nominal)
+    case 4.5...5.5: return .green  // 5V servo rail
+    case 7.0...8.8: return .green  // 2S pack range
+    default: return .orange  // Between or above the healthy bands
     }
 }
 

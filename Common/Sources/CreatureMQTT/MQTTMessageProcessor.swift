@@ -230,6 +230,7 @@ final class MQTTMessageProcessor: MessageProcessor {
         publishDate(dynamixelSensorReport.timestamp, components: base + ["timestamp"])
         for motor in dynamixelSensorReport.motors {
             let motorBase = base + ["\(motor.dxlId)"]
+            publishBool(motor.online, components: motorBase + ["online"])
             publishNumber(motor.temperatureF, components: motorBase + ["temperature_f"])
             publishNumber(motor.presentLoad, components: motorBase + ["present_load"])
             publishNumber(motor.voltageMv, components: motorBase + ["voltage_mv"])

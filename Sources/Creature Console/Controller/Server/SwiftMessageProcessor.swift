@@ -17,9 +17,6 @@ final class SwiftMessageProcessor: MessageProcessor {
     }
 
     func processBoardSensorReport(_ boardSensorReport: BoardSensorReport) async {
-        logger.debug(
-            "SwiftMessageProcessor: Processing board sensor report for creature \(boardSensorReport.creatureId)"
-        )
         await BoardSensorReportMessageProcessor.processBoardSensorReport(boardSensorReport)
     }
 

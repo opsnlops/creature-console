@@ -125,7 +125,9 @@ extension CreatureServerClient {
         let result = await ws.sendMessage(message)
         switch result {
         case (.success(let successMessage)):
-            logger.debug("message sent successfully: \(message)")
+            // Stream frames come through here at 50Hz, so a successful send is
+            // trace-level news (swift-log has a real trace level below debug).
+            logger.trace("message sent successfully: \(message)")
             return .success(successMessage)
         case (.failure(let error)):
             logger.warning("unable to send message: \(error.localizedDescription)")
@@ -788,14 +790,16 @@ extension CreatureServerClient {
         }
 
         private func decodeIncomingMessage(_ data: Data) async {
-            logger.debug("Attempting to decode an incoming message from the websocket")
+            // Sensor streams flow through here several times a second, so
+            // per-message decode narration is trace-level only.
+            logger.trace("Attempting to decode an incoming message from the websocket")
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
 
             do {
                 // Decode just to get the command first
                 let commandDTO = try decoder.decode(BasicCommandDTO.self, from: data)
-                logger.debug("Incoming command: \(commandDTO.command)")
+                logger.trace("Incoming command: \(commandDTO.command)")
                 let messageType = ServerMessageType(from: commandDTO.command)
 
                 // Now decode the full message based on the command

@@ -1,3 +1,16 @@
+creature-cli (2.42.0) unstable; urgency=medium
+
+  * Dynamixel sensor reports now carry the controller's new per-servo
+    "online" flag (is the motor powered up and answering on the bus?).
+    The CLI's [DYNAMIXEL_SENSORS] table gains a Power column and shows
+    "—" for an offline servo's readings (they're all zeros and mean
+    nothing), and creature-mqtt publishes .../dynamixel/<id>/online for
+    Home Assistant. Older controller firmware without the flag decodes
+    as online, matching its behavior of only reporting servos it heard
+    from. (issue #51)
+
+ -- April White <april@creature.engineering>  Fri, 25 Jul 2026 01:00:00 -0700
+
 creature-cli (2.41.4) unstable; urgency=medium
 
   * Common's Animation, Playlist, and PlaylistItem DTOs are now immutable-
