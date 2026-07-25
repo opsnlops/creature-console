@@ -375,11 +375,15 @@ private func voltageColor(_ voltage: Double) -> Color {
     }
 }
 
+/// The motor rail is nominally 5V (current servos) but some creatures still run a
+/// 2S pack (7.0–8.8V), so both bands are healthy. Red is reserved for a collapsed
+/// rail; the gaps between/above the bands are ambiguous enough to only warrant orange.
 private func motorVoltageColor(_ voltage: Double) -> Color {
     switch voltage {
-    case ..<7.0: return .red  // Below acceptable range
-    case 7.0...8.8: return .green  // Acceptable range (7.0V - 8.4V)
-    default: return .orange  // Above acceptable range
+    case ..<4.5: return .red  // Rail collapsed (or well under any nominal)
+    case 4.5...5.5: return .green  // 5V servo rail
+    case 7.0...8.8: return .green  // 2S pack range
+    default: return .orange  // Between or above the healthy bands
     }
 }
 
