@@ -26,6 +26,25 @@ struct JoystickManagerState: Sendable {
     let xButtonPressed: Bool
     let yButtonPressed: Bool
     let selectedJoystick: SelectedJoystick
+    let values: [UInt8]
+    let connected: Bool
+    let manufacturer: String?
+    let serialNumber: String?
+    let versionNumber: Int?
+
+    /// A resting, disconnected state — the value to seed UI with before the first update.
+    static let initial = JoystickManagerState(
+        aButtonPressed: false,
+        bButtonPressed: false,
+        xButtonPressed: false,
+        yButtonPressed: false,
+        selectedJoystick: .sixAxis,
+        values: [],
+        connected: false,
+        manufacturer: nil,
+        serialNumber: nil,
+        versionNumber: nil
+    )
 }
 
 /// A singleton that reflects the current state of the joystick.
@@ -164,14 +183,26 @@ actor JoystickManager {
             stateChanged = true
         }
 
+        // Connection state and device metadata are part of the published state too — a
+        // subscriber (like the debug view) needs to see connects and disconnects.
+        if snapshot.connected != self.connected {
+            self.connected = snapshot.connected
+            stateChanged = true
+        }
+
+        if snapshot.serialNumber != self.serialNumber
+            || snapshot.versionNumber != self.versionNumber
+            || snapshot.manufacturer != self.manufacturer
+        {
+            self.serialNumber = snapshot.serialNumber
+            self.versionNumber = snapshot.versionNumber
+            self.manufacturer = snapshot.manufacturer
+            stateChanged = true
+        }
+
         if stateChanged {
             publishState()
         }
-
-        self.connected = snapshot.connected
-        self.serialNumber = snapshot.serialNumber
-        self.versionNumber = snapshot.versionNumber
-        self.manufacturer = snapshot.manufacturer
     }
 
     func getValues() -> [UInt8] {
@@ -189,7 +220,12 @@ actor JoystickManager {
             bButtonPressed: bButtonPressed,
             xButtonPressed: xButtonPressed,
             yButtonPressed: yButtonPressed,
-            selectedJoystick: selectedJoystick
+            selectedJoystick: selectedJoystick,
+            values: values,
+            connected: connected,
+            manufacturer: manufacturer,
+            serialNumber: serialNumber,
+            versionNumber: versionNumber
         )
     }
 

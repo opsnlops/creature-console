@@ -15,9 +15,7 @@ struct RecordTrack: View {
     let server = CreatureServerClient.shared
 
     let creatureManager = CreatureManager.shared
-    @State private var joystickState = JoystickManagerState(
-        aButtonPressed: false, bButtonPressed: false, xButtonPressed: false, yButtonPressed: false,
-        selectedJoystick: .none)
+    @State private var joystickState = JoystickManagerState.initial
     @State private var bButtonSymbol: String = "b.circle"
 
     @AppStorage("activeUniverse") var activeUniverse: UniverseIdentifier = 1

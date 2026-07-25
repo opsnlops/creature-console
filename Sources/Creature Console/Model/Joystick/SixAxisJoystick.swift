@@ -256,9 +256,11 @@ final class SixAxisJoystick: Joystick {
             bButtonPressed: bButtonPressed,
             xButtonPressed: xButtonPressed,
             yButtonPressed: yButtonPressed,
-            serialNumber: serialNumber,
-            versionNumber: versionNumber,
-            manufacturer: manufacturer)
+            // GameController doesn't expose a serial or firmware version — publish nil
+            // rather than placeholder junk for the UI to awkwardly render.
+            serialNumber: nil,
+            versionNumber: nil,
+            manufacturer: controller?.vendorName)
     }
 
 }

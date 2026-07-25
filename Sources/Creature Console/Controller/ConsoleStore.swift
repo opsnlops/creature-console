@@ -32,9 +32,7 @@ final class ConsoleStore {
     private(set) var statusLights = StatusLightsState(
         running: false, dmx: false, streaming: false, animationPlaying: false)
     private(set) var websocketState: WebSocketConnectionState = .disconnected
-    private(set) var joystick = JoystickManagerState(
-        aButtonPressed: false, bButtonPressed: false, xButtonPressed: false,
-        yButtonPressed: false, selectedJoystick: .sixAxis)
+    private(set) var joystick = JoystickManagerState.initial
 
     /// Shorthand for the most commonly read field.
     var currentActivity: Activity { appState.currentActivity }
