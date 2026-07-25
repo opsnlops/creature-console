@@ -67,10 +67,22 @@ final class SixAxisJoystick: Joystick {
     var xButtonPressed = false
     var yButtonPressed = false
 
-    var controller: GCController?
-    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SixAxisJoystick")
+    /// Event-driven state mirror: GameController pushes value changes to us (via
+    /// `valueChangedHandler`), and every change is published here so the event loop can
+    /// sample without a main-actor hop (issue #56).
+    nonisolated let mirror = JoystickStateMirror(
+        initial: JoystickState(
+            connected: false,
+            // Axes 4 and 5 are triggers, which rest at 0 rather than center.
+            values: [127, 127, 127, 127, 0, 0],
+            aButtonPressed: false, bButtonPressed: false,
+            xButtonPressed: false, yButtonPressed: false,
+            serialNumber: nil, versionNumber: nil, manufacturer: nil))
 
-    @AppStorage("logJoystickPollEvents") var logJoystickPollEvents: Bool = false
+    var controller: GCController? {
+        didSet { registerValueChangedHandler() }
+    }
+    let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "SixAxisJoystick")
 
     // Retain a controller haptics engine for countdown pulses so it isn't deallocated between calls
     private var countdownHapticsEngine: CHHapticEngine?
@@ -167,58 +179,86 @@ final class SixAxisJoystick: Joystick {
     }
 
 
-    func poll() {
-
-        if let joystick = controller?.extendedGamepad {
-
-            if axises[0].rawValue != joystick.leftThumbstick.xAxis.value {
-                axises[0].rawValue = joystick.leftThumbstick.xAxis.value
-            }
-
-            if axises[1].rawValue != joystick.leftThumbstick.yAxis.value {
-                axises[1].rawValue = joystick.leftThumbstick.yAxis.value
-            }
-
-            if axises[2].rawValue != joystick.rightThumbstick.xAxis.value {
-                axises[2].rawValue = joystick.rightThumbstick.xAxis.value
-            }
-
-            if axises[3].rawValue != joystick.rightThumbstick.yAxis.value {
-                axises[3].rawValue = joystick.rightThumbstick.yAxis.value
-            }
-
-            if axises[4].rawValue != joystick.leftTrigger.value {
-                axises[4].rawValue = joystick.leftTrigger.value
-            }
-
-            if axises[5].rawValue != joystick.rightTrigger.value {
-                axises[5].rawValue = joystick.rightTrigger.value
-            }
-
-            if joystick.buttonA.isPressed != self.aButtonPressed {
-                self.aButtonPressed = joystick.buttonA.isPressed
-            }
-
-            if joystick.buttonB.isPressed != self.bButtonPressed {
-                self.bButtonPressed = joystick.buttonB.isPressed
-            }
-
-            if joystick.buttonX.isPressed != self.xButtonPressed {
-                self.xButtonPressed = joystick.buttonX.isPressed
-            }
-
-            if joystick.buttonY.isPressed != self.yButtonPressed {
-                self.yButtonPressed = joystick.buttonY.isPressed
-            }
-
-            // This is noisy! Make it optional
-            if logJoystickPollEvents {
-                logger.debug("joystick polling done")
-            }
-        } else {
-            logger.info("skipping polling because not extended gamepad")
+    /// Ask the OS to push value changes to us. GameController calls the handler on its
+    /// `handlerQueue` (the main queue by default), so `assumeIsolated` asserts an existing
+    /// fact — same pattern as the IOKit callbacks on the ACW joystick.
+    private func registerValueChangedHandler() {
+        guard let gamepad = controller?.extendedGamepad else {
+            // Controller went away (or isn't an extended gamepad) — publish disconnected.
+            mirror.update(currentState())
+            logger.info("no extended gamepad connected; joystick mirror marked disconnected")
+            return
         }
 
+        gamepad.valueChangedHandler = { [weak self] _, _ in
+            MainActor.assumeIsolated {
+                self?.refreshFromGamepad()
+            }
+        }
+
+        // Seed the mirror with the current hardware state right away rather than waiting
+        // for the first input event.
+        refreshFromGamepad()
+    }
+
+    private func refreshFromGamepad() {
+
+        guard let joystick = controller?.extendedGamepad else { return }
+
+        if axises[0].rawValue != joystick.leftThumbstick.xAxis.value {
+            axises[0].rawValue = joystick.leftThumbstick.xAxis.value
+        }
+
+        if axises[1].rawValue != joystick.leftThumbstick.yAxis.value {
+            axises[1].rawValue = joystick.leftThumbstick.yAxis.value
+        }
+
+        if axises[2].rawValue != joystick.rightThumbstick.xAxis.value {
+            axises[2].rawValue = joystick.rightThumbstick.xAxis.value
+        }
+
+        if axises[3].rawValue != joystick.rightThumbstick.yAxis.value {
+            axises[3].rawValue = joystick.rightThumbstick.yAxis.value
+        }
+
+        if axises[4].rawValue != joystick.leftTrigger.value {
+            axises[4].rawValue = joystick.leftTrigger.value
+        }
+
+        if axises[5].rawValue != joystick.rightTrigger.value {
+            axises[5].rawValue = joystick.rightTrigger.value
+        }
+
+        if joystick.buttonA.isPressed != self.aButtonPressed {
+            self.aButtonPressed = joystick.buttonA.isPressed
+        }
+
+        if joystick.buttonB.isPressed != self.bButtonPressed {
+            self.bButtonPressed = joystick.buttonB.isPressed
+        }
+
+        if joystick.buttonX.isPressed != self.xButtonPressed {
+            self.xButtonPressed = joystick.buttonX.isPressed
+        }
+
+        if joystick.buttonY.isPressed != self.yButtonPressed {
+            self.yButtonPressed = joystick.buttonY.isPressed
+        }
+
+        mirror.update(currentState())
+    }
+
+    private func currentState() -> JoystickState {
+        JoystickState(
+            connected: controller != nil,
+            values: getValues(),
+            aButtonPressed: aButtonPressed,
+            bButtonPressed: bButtonPressed,
+            xButtonPressed: xButtonPressed,
+            yButtonPressed: yButtonPressed,
+            serialNumber: serialNumber,
+            versionNumber: versionNumber,
+            manufacturer: manufacturer)
     }
 
 }

@@ -2,18 +2,6 @@ import Common
 import Foundation
 import OSLog
 
-struct JoystickState: Sendable {
-    let connected: Bool
-    let values: [UInt8]
-    let aButtonPressed: Bool
-    let bButtonPressed: Bool
-    let xButtonPressed: Bool
-    let yButtonPressed: Bool
-    let serialNumber: String?
-    let versionNumber: Int?
-    let manufacturer: String?
-}
-
 /**
  IOKit is macOS only. None of this will work on iOS.
  */
@@ -104,6 +92,10 @@ struct JoystickState: Sendable {
         let logger = Logger(
             subsystem: "io.opsnlops.CreatureConsole", category: "AprilsCreatureWorkshopJoystick")
 
+        /// Event-driven state mirror: IOKit pushes input reports to us, and every change is
+        /// published here so the event loop can sample without a main-actor hop (issue #56).
+        nonisolated let mirror = JoystickStateMirror(initial: .initial(axisCount: 8))
+
         var vendorID: Int
         var productID: Int
 
@@ -192,11 +184,6 @@ struct JoystickState: Sendable {
             return created
         }
 
-        /* Joystick Protocol Stuff */
-        func poll() {
-            // This is a no-op on this joystick, at least for now 😅
-        }
-
         func getValues() -> [UInt8] {
             return values
         }
@@ -263,6 +250,7 @@ struct JoystickState: Sendable {
             }
 
             connected = true
+            mirror.update(currentState())
             logger.info(
                 "Device connected: \(info?.description ?? "unknown"), S/N: \(self.serialNumber)"
             )
@@ -271,6 +259,7 @@ struct JoystickState: Sendable {
 
         func handleDeviceDisconnected(_ description: String) {
             connected = false
+            mirror.update(currentState())
             logger.info("Device disconnected: \(description)")
         }
 
@@ -348,7 +337,9 @@ struct JoystickState: Sendable {
 
             // If something changed, publish the new state
             if didChange {
-                publishState(currentState())
+                let state = currentState()
+                mirror.update(state)
+                publishState(state)
             }
 
         }

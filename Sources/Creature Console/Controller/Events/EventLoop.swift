@@ -79,13 +79,17 @@ actor EventLoop {
         await JoystickManager.shared.poll()
         await CreatureManager.shared.onEventLoopTick()
 
-        // Figure out our spare time this cycle
+        // Figure out our spare time this cycle. The very first tick pays for every lazy
+        // singleton's initialization (~900ms) — that's startup cost, not frame overrun, so
+        // don't let it seed the status bar with a terrifying negative number (issue #56).
         let elapsed = clock.now - startTime
         let elapsedTimeInMilliseconds =
             Double(elapsed.components.seconds) * 1_000.0
             + Double(elapsed.components.attoseconds) / 1e15
-        localFrameSpareTime =
-            (1 - (elapsedTimeInMilliseconds / Double(millisecondPerFrame))) * 100.0
+        if number_of_frames > 1 {
+            localFrameSpareTime =
+                (1 - (elapsedTimeInMilliseconds / Double(millisecondPerFrame))) * 100.0
+        }
 
         // If it's time to print out a logging message with our info, do it now
         if self.logSpareTime && number_of_frames % Int64(logSpareTimeFrameInterval) == 1 {
