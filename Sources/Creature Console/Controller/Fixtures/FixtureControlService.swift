@@ -84,8 +84,13 @@ enum FixtureControlService {
 
     // MARK: - Color extraction (cross-platform)
 
-    private static func byte(_ component: CGFloat) -> UInt8 {
-        UInt8(clamping: Int((component * 255).rounded()))
+    /// Total conversion from a color component to a DMX byte. The AppKit color panel's
+    /// continuous drag stream can resolve to NaN components (degenerate hue / extended-range
+    /// colors mid-conversion), and `Int(NaN)` traps — so guard non-finite input and clamp
+    /// into 0...1 before scaling (issue #55).
+    static func byte(_ component: CGFloat) -> UInt8 {
+        guard component.isFinite else { return 0 }
+        return UInt8((min(max(component, 0), 1) * 255).rounded())
     }
 
     private static func cgComponents(for color: Color) -> [CGFloat]? {

@@ -173,6 +173,7 @@
 		11A61AA32BFC3739000A1B48 /* TrackViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A61AA22BFC3739000A1B48 /* TrackViewer.swift */; };
 		11AB0000000000000000D002 /* TrackDialogSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000D001 /* TrackDialogSection.swift */; };
 		11AB0000000000000000A002 /* JobStatusStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000A001 /* JobStatusStoreTests.swift */; };
+		11AB0000000000000000A003 /* FixtureControlServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000A103 /* FixtureControlServiceTests.swift */; };
 		11AB0000000000000000B002 /* ShareableSoundButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000B001 /* ShareableSoundButton.swift */; };
 		11AB0000000000000000B003 /* ShareableSoundButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000B001 /* ShareableSoundButton.swift */; };
 		11AB0000000000000000B012 /* DialogProvenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB0000000000000000B011 /* DialogProvenanceView.swift */; };
@@ -531,6 +532,7 @@
 		1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternValueEditor.swift; sourceTree = "<group>"; };
 		2104407DB3CA7408D07766E3 /* DialogScriptImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptImporter.swift; path = "Sources/Creature Console/Model/Dialog/DialogScriptImporter.swift"; sourceTree = SOURCE_ROOT; };
 		34F645918F17837F963999E1 /* FixtureControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FixtureControlService.swift; path = "Sources/Creature Console/Controller/Fixtures/FixtureControlService.swift"; sourceTree = SOURCE_ROOT; };
+		11AB0000000000000000A103 /* FixtureControlServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FixtureControlServiceTests.swift; path = "Sources/Creature Console/Controller/Fixtures/FixtureControlServiceTests.swift"; sourceTree = SOURCE_ROOT; };
 		37787523823136F6AC32A769 /* FixtureEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureEditor.swift; sourceTree = "<group>"; };
 		39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptModel.swift; path = "Sources/Creature Console/Model/Dialog/DialogScriptModel.swift"; sourceTree = SOURCE_ROOT; };
 		5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureModel.swift; sourceTree = "<group>"; };
@@ -893,6 +895,7 @@
 				9B114574B9AE13711DA368FE /* StoryboardPerformView.swift */,
 				D37E45B9BCBD993ABC7B06C9 /* StoryboardActionRunner.swift */,
 				34F645918F17837F963999E1 /* FixtureControlService.swift */,
+				11AB0000000000000000A103 /* FixtureControlServiceTests.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1841,6 +1844,7 @@
 				1183318F2C0059490017DC2A /* TrackTests.swift in Sources */,
 				119A44D82E88D9240053B250 /* SystemCountersStoreTests.swift in Sources */,
 				114B7E7A2E90DBD900F5D1EC /* AppStateTests.swift in Sources */,
+				11AB0000000000000000A003 /* FixtureControlServiceTests.swift in Sources */,
 				11AB0000000000000000A002 /* JobStatusStoreTests.swift in Sources */,
 				11AF09122E8651C500E0BE28 /* TrackViewerTests.swift in Sources */,
 				114B7E622E90D14C00F5D1EC /* SwiftDataStoreTests.swift in Sources */,
@@ -2145,7 +2149,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.42.0;
+				MARKETING_VERSION = 2.42.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2199,7 +2203,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.42.0;
+				MARKETING_VERSION = 2.42.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2283,7 +2287,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.42.0;
+				MARKETING_VERSION = 2.42.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2315,7 +2319,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.42.0;
+				MARKETING_VERSION = 2.42.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
