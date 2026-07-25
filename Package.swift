@@ -41,6 +41,7 @@ let package = Package(
                 "Credits.rtfd",
                 // Colocated test files (Xcode test-target only)
                 "Controller/AppStateTests.swift",
+                "Controller/Fixtures/FixtureControlServiceTests.swift",
                 "Model/Animation/AnimationMetadataImporterTests.swift",
                 "Model/Animation/AnimationMetadataModelTests.swift",
                 "Model/Creature/CreatureHealthTests.swift",

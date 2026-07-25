@@ -1,3 +1,12 @@
+creature-cli (2.43.3) unstable; urgency=medium
+
+  * No CLI changes — fixes the "Swift" CI workflow, red since v2.42.1:
+    the co-located FixtureControlServiceTests.swift was missing from the
+    root Package.swift exclude list, so the workflow's bare `swift build`
+    tried to compile it without the app module.
+
+ -- April White <april@creature.engineering>  Sat, 25 Jul 2026 12:15:00 -0700
+
 creature-cli (2.43.2) unstable; urgency=medium
 
   * Fix the last compiler warning from the value-type DTO refactor: the
