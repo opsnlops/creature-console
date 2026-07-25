@@ -31,8 +31,10 @@ struct JoystickManagerState: Sendable {
 /// A singleton that reflects the current state of the joystick.
 ///
 /// The hardware joysticks themselves are `@MainActor` (IOKit and GameController both deliver
-/// on the main run loop); this actor mirrors their state once per event-loop tick via a single
-/// main-actor hop and fans it out to subscribers off the main thread.
+/// on the main run loop), but input is event-driven: the OS pushes changes into each
+/// joystick's lock-protected `mirror`, and this actor samples the mirror once per event-loop
+/// tick — no main-actor hop, so the control cadence can't be starved by UI work (issue #56) —
+/// and fans changes out to subscribers off the main thread.
 actor JoystickManager {
     static let shared = JoystickManager()
 
@@ -94,20 +96,6 @@ actor JoystickManager {
         }
     }
 
-    /// Everything `poll()` needs from the active joystick, read in one main-actor hop.
-    private struct JoystickSnapshot: Sendable {
-        let selected: SelectedJoystick
-        let connected: Bool
-        let values: [UInt8]
-        let aButtonPressed: Bool
-        let bButtonPressed: Bool
-        let xButtonPressed: Bool
-        let yButtonPressed: Bool
-        let serialNumber: String?
-        let versionNumber: Int?
-        let manufacturer: String?
-    }
-
     /// Return whatever joystick we should use for an operation.
     ///
     /// On macOS this could be our own hardware or the system one; on iOS/tvOS IOKit doesn't
@@ -124,38 +112,30 @@ actor JoystickManager {
         return (sixAxisJoystick, .sixAxis)
     }
 
-    @MainActor
-    private func pollActiveJoystick() -> JoystickSnapshot {
-        let (joystick, selected) = activeJoystick
-
-        if joystick.isConnected() {
-            joystick.poll()
-        }
-
-        return JoystickSnapshot(
-            selected: selected,
-            connected: joystick.isConnected(),
-            values: joystick.getValues(),
-            aButtonPressed: joystick.aButtonPressed,
-            bButtonPressed: joystick.bButtonPressed,
-            xButtonPressed: joystick.xButtonPressed,
-            yButtonPressed: joystick.yButtonPressed,
-            serialNumber: joystick.serialNumber,
-            versionNumber: joystick.versionNumber,
-            manufacturer: joystick.manufacturer
-        )
+    /// Sample the active joystick's state mirror. The OS pushes hardware events into the
+    /// mirrors as they happen (IOKit callbacks, GameController value-changed handlers), so
+    /// this is a lock-protected read — **no main-actor hop** — and the event loop's cadence
+    /// stays independent of main-thread health (issue #56). `UserDefaults` is thread-safe.
+    private func sampleActiveJoystick() -> (state: JoystickState, selected: SelectedJoystick) {
+        #if os(macOS)
+            let acwState = acwJoystick.mirror.current
+            if acwState.connected && UserDefaults.standard.bool(forKey: "useOurJoystick") {
+                return (acwState, .acw)
+            }
+        #endif
+        return (sixAxisJoystick.mirror.current, .sixAxis)
     }
 
-    /// Called from the EventLoop when it's time for us to poll the joystick and mirror any
+    /// Called from the EventLoop when it's time to sample the joystick and mirror any
     /// changed values. Only publishes when something actually changed, which limits UI updates
     /// to the event-loop rate.
-    func poll() async {
-        let snapshot = await pollActiveJoystick()
+    func poll() {
+        let (snapshot, selected) = sampleActiveJoystick()
 
         var stateChanged = false
 
-        if snapshot.selected != self.selectedJoystick {
-            self.selectedJoystick = snapshot.selected
+        if selected != self.selectedJoystick {
+            self.selectedJoystick = selected
             stateChanged = true
         }
 

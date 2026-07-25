@@ -1,3 +1,17 @@
+creature-cli (2.42.2) unstable; urgency=medium
+
+  * No CLI changes — lockstep bump with the Console app: joystick input is
+    now fully event-driven (issue #56). The OS pushes hardware changes
+    (IOKit HID callbacks, GameController value-changed handlers) into a
+    lock-protected state mirror, and the 50Hz event loop samples that
+    mirror directly — no more per-tick main-actor hop, so dragging a color
+    wheel (or any main-thread-heavy UI work) can no longer starve the
+    robot control cadence. Also stops the first startup tick's ~900ms
+    initialization cost from seeding the status bar with a huge negative
+    spare-time number.
+
+ -- April White <april@creature.engineering>  Fri, 25 Jul 2026 02:15:00 -0700
+
 creature-cli (2.42.1) unstable; urgency=medium
 
   * No CLI changes — lockstep bump with the Console app: fixed a crash while
