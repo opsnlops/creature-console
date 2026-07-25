@@ -1,3 +1,17 @@
+creature-cli (2.43.0) unstable; urgency=medium
+
+  * No CLI changes — lockstep bump with the Console app: the Joystick Debug
+    view is now a first-class debugging tool (issue #59). Fully
+    event-driven off a single state stream (the 20fps polling loop is
+    gone), and it now shows connection status, which joystick is active
+    (ACW vs system gamepad), manufacturer, serial number, firmware
+    version, and per-axis decimal + hex readouts, with a proper
+    disconnected state. JoystickManagerState carries values, connection,
+    and device metadata, and the manager publishes connect/disconnect
+    changes it previously swallowed.
+
+ -- April White <april@creature.engineering>  Fri, 25 Jul 2026 02:45:00 -0700
+
 creature-cli (2.42.2) unstable; urgency=medium
 
   * No CLI changes — lockstep bump with the Console app: joystick input is
