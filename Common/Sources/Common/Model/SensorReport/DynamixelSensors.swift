@@ -18,6 +18,10 @@ public final class DynamixelSensors: Codable, Hashable, Identifiable, Sendable {
     /// firmware omits `present_position`, so `nil` means "this servo didn't report it"
     /// rather than position zero.
     public let presentPosition: Int?
+    /// Whether the servo is powered up and answering on the bus. An offline servo
+    /// reports zeros for everything else, so those values are meaningless. Firmware
+    /// without this flag only reported servos it actually heard from, so absent means `true`.
+    public let online: Bool
 
     enum CodingKeys: String, CodingKey {
         case dxlId = "dxl_id"
@@ -26,11 +30,12 @@ public final class DynamixelSensors: Codable, Hashable, Identifiable, Sendable {
         case voltageMv = "voltage_mv"
         case voltageV = "voltage_v"
         case presentPosition = "present_position"
+        case online
     }
 
     public init(
         dxlId: DynamixelIdentifier, temperatureF: Double, presentLoad: Int, voltageMv: Int,
-        voltageV: Double, presentPosition: Int? = nil
+        voltageV: Double, presentPosition: Int? = nil, online: Bool = true
     ) {
         self.dxlId = dxlId
         self.temperatureF = temperatureF
@@ -38,6 +43,7 @@ public final class DynamixelSensors: Codable, Hashable, Identifiable, Sendable {
         self.voltageMv = voltageMv
         self.voltageV = voltageV
         self.presentPosition = presentPosition
+        self.online = online
     }
 
     required public init(from decoder: Decoder) throws {
@@ -48,6 +54,7 @@ public final class DynamixelSensors: Codable, Hashable, Identifiable, Sendable {
         voltageMv = try container.decode(Int.self, forKey: .voltageMv)
         voltageV = try container.decode(Double.self, forKey: .voltageV)
         presentPosition = try container.decodeIfPresent(Int.self, forKey: .presentPosition)
+        online = try container.decodeIfPresent(Bool.self, forKey: .online) ?? true
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -58,6 +65,7 @@ public final class DynamixelSensors: Codable, Hashable, Identifiable, Sendable {
         try container.encode(voltageMv, forKey: .voltageMv)
         try container.encode(voltageV, forKey: .voltageV)
         try container.encodeIfPresent(presentPosition, forKey: .presentPosition)
+        try container.encode(online, forKey: .online)
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -67,12 +75,14 @@ public final class DynamixelSensors: Codable, Hashable, Identifiable, Sendable {
         hasher.combine(voltageMv)
         hasher.combine(voltageV)
         hasher.combine(presentPosition)
+        hasher.combine(online)
     }
 
     public static func == (lhs: DynamixelSensors, rhs: DynamixelSensors) -> Bool {
         lhs.dxlId == rhs.dxlId && lhs.temperatureF == rhs.temperatureF
             && lhs.presentLoad == rhs.presentLoad && lhs.voltageMv == rhs.voltageMv
             && lhs.voltageV == rhs.voltageV && lhs.presentPosition == rhs.presentPosition
+            && lhs.online == rhs.online
     }
 }
 
@@ -84,7 +94,8 @@ extension DynamixelSensors {
             presentLoad: -10,
             voltageMv: 12000,
             voltageV: 12.0,
-            presentPosition: 2048
+            presentPosition: 2048,
+            online: true
         )
     }
 }

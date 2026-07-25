@@ -103,6 +103,52 @@ struct DynamixelSensorsTests {
         #expect(String(decoding: present, as: UTF8.self).contains("\"present_position\""))
     }
 
+    @Test("missing online flag decodes as true (older firmware only reported live servos)")
+    func missingOnlineDefaultsToTrue() throws {
+        let json = """
+            {
+                "dxl_id": 3,
+                "temperature_f": 98.6,
+                "present_load": 15,
+                "voltage_mv": 12000,
+                "voltage_v": 12.0
+            }
+            """
+        let sensor = try JSONDecoder().decode(DynamixelSensors.self, from: Data(json.utf8))
+        #expect(sensor.online)
+    }
+
+    @Test("decodes an offline servo")
+    func decodesOfflineServo() throws {
+        let json = """
+            {
+                "dxl_id": 3,
+                "temperature_f": 0.0,
+                "present_load": 0,
+                "voltage_mv": 0,
+                "voltage_v": 0.0,
+                "present_position": 0,
+                "online": false
+            }
+            """
+        let sensor = try JSONDecoder().decode(DynamixelSensors.self, from: Data(json.utf8))
+        #expect(!sensor.online)
+    }
+
+    @Test("online round-trips and participates in equality")
+    func onlineRoundTripsAndAffectsEquality() throws {
+        let offline = DynamixelSensors(
+            dxlId: 1, temperatureF: 0, presentLoad: 0, voltageMv: 0, voltageV: 0, online: false)
+        let online = DynamixelSensors(
+            dxlId: 1, temperatureF: 0, presentLoad: 0, voltageMv: 0, voltageV: 0, online: true)
+        #expect(offline != online)
+
+        let decoded = try JSONDecoder().decode(
+            DynamixelSensors.self, from: JSONEncoder().encode(offline))
+        #expect(decoded == offline)
+        #expect(!decoded.online)
+    }
+
     @Test("equality and hashing ignore identity, compare values")
     func equalityAndHashing() {
         let a = DynamixelSensors(
@@ -142,8 +188,9 @@ struct DynamixelSensorReportTests {
                 "creature_id": "creature_abc",
                 "creatureName": "Beaky",
                 "dynamixel_motors": [
-                    { "dxl_id": 1, "temperature_f": 95.0, "present_load": -10, "voltage_mv": 12000, "voltage_v": 12.0, "present_position": 2048 },
-                    { "dxl_id": 2, "temperature_f": 101.2, "present_load": 33, "voltage_mv": 11900, "voltage_v": 11.9 }
+                    { "dxl_id": 1, "temperature_f": 95.0, "present_load": -10, "voltage_mv": 12000, "voltage_v": 12.0, "present_position": 2048, "online": true },
+                    { "dxl_id": 2, "temperature_f": 101.2, "present_load": 33, "voltage_mv": 11900, "voltage_v": 11.9 },
+                    { "dxl_id": 3, "temperature_f": 0.0, "present_load": 0, "voltage_mv": 0, "voltage_v": 0.0, "present_position": 0, "online": false }
                 ]
             }
             """
@@ -151,12 +198,17 @@ struct DynamixelSensorReportTests {
         let report = try JSONDecoder().decode(DynamixelSensorReport.self, from: data)
         #expect(report.creatureId == "creature_abc")
         #expect(report.creatureName == "Beaky")
-        #expect(report.motors.count == 2)
+        #expect(report.motors.count == 3)
         #expect(report.motors[0].dxlId == 1)
         #expect(report.motors[1].presentLoad == 33)
         // Mixed firmware in one report: servo 1 reports position, servo 2 (older) doesn't.
         #expect(report.motors[0].presentPosition == 2048)
         #expect(report.motors[1].presentPosition == nil)
+        // Servo 2's older firmware also predates the online flag → defaults true;
+        // servo 3 is powered down and its zeros mean nothing.
+        #expect(report.motors[0].online)
+        #expect(report.motors[1].online)
+        #expect(!report.motors[2].online)
     }
 
     @Test("decodes when the optional creatureName is missing")

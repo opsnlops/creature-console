@@ -247,18 +247,28 @@ final class CLIMessageProcessor: MessageProcessor {
             .dynamixelSensors,
             "[DYNAMIXEL_SENSORS] Creature: \(dynamixelSensorReport.creatureId)")
 
-        let headers = ["DXL ID", "Temp (°F)", "Load", "Position", "Voltage (mV)", "Voltage (V)"]
+        let headers = [
+            "DXL ID", "Power", "Temp (°F)", "Load", "Position", "Voltage (mV)", "Voltage (V)",
+        ]
+        // An offline servo reports zeros for everything, so show "—" for its readings.
         printTable(
             dynamixelSensorReport.motors,
             columns: [
                 TableColumn(title: headers[0], valueProvider: { String($0.dxlId) }),
-                TableColumn(title: headers[1], valueProvider: { String($0.temperatureF) }),
-                TableColumn(title: headers[2], valueProvider: { String($0.presentLoad) }),
+                TableColumn(title: headers[1], valueProvider: { $0.online ? "on" : "off" }),
                 TableColumn(
-                    title: headers[3],
-                    valueProvider: { $0.presentPosition.map(String.init) ?? "—" }),
-                TableColumn(title: headers[4], valueProvider: { String($0.voltageMv) }),
-                TableColumn(title: headers[5], valueProvider: { String($0.voltageV) }),
+                    title: headers[2],
+                    valueProvider: { $0.online ? String($0.temperatureF) : "—" }),
+                TableColumn(
+                    title: headers[3], valueProvider: { $0.online ? String($0.presentLoad) : "—" }),
+                TableColumn(
+                    title: headers[4],
+                    valueProvider: { $0.online ? $0.presentPosition.map(String.init) ?? "—" : "—" }
+                ),
+                TableColumn(
+                    title: headers[5], valueProvider: { $0.online ? String($0.voltageMv) : "—" }),
+                TableColumn(
+                    title: headers[6], valueProvider: { $0.online ? String($0.voltageV) : "—" }),
             ],
             colorCode: colorCode(for: .dynamixelSensors)
         )
