@@ -138,7 +138,7 @@ extension CreatureCLI {
 
                         // Make a fake frame
                         let frame = StreamFrameData(
-                            ceatureId: creatureId, universe: universe, data: data)
+                            creatureId: creatureId, universe: universe, data: data)
 
                         counter += 1
                         print("Sending frame \(counter)...")

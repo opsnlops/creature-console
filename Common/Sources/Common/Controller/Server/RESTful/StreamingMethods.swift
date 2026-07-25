@@ -17,20 +17,16 @@ extension CreatureServerClient {
             let frameJSON = try WebSocketMessageBuilder.createMessage(
                 type: .streamFrame, payload: streamFrameData)
 
-            // Send the encoded JSON frame
-            let result = await self.sendMessage(frameJSON)
-
-            switch result {
+            // A failed send is the caller's business — swallowing it here left the
+            // console blind to streaming failures (issue #50).
+            switch await self.sendMessage(frameJSON) {
+            case .success:
+                return .success("Frame streamed")
             case .failure(let error):
-                print("Error sending frame: \(error.localizedDescription)")
-            default:
-                break
+                return .failure(error)
             }
-        } catch (let error) {
-            return .failure(.serverError("Unable to send frame: \(error.localizedDescription)"))
+        } catch {
+            return .failure(.serverError("Unable to encode frame: \(error.localizedDescription)"))
         }
-
-        return .success("Frame streamed")
-
     }
 }

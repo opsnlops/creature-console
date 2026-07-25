@@ -1,3 +1,18 @@
+creature-cli (2.43.1) unstable; urgency=medium
+
+  * Streaming-path bitrot cleanup (issue #50). streamFrame no longer
+    swallows websocket send failures — it returned success even when the
+    send failed (with a print() to stdout as the only trace), which left
+    the console blind to streaming failures. StreamFrameData loses its
+    per-frame Logger allocation and both fossilized typos (the
+    SteamFrameData.swift filename and the ceatureId: init label, fixed
+    across all callers including the CLI); the dead gRPC-era
+    StreamFrameDataResponse is deleted; and a dead connection during
+    streaming now logs one warning every ~5s with full server error
+    detail instead of 50 a second.
+
+ -- April White <april@creature.engineering>  Fri, 25 Jul 2026 03:10:00 -0700
+
 creature-cli (2.43.0) unstable; urgency=medium
 
   * No CLI changes — lockstep bump with the Console app: the Joystick Debug
