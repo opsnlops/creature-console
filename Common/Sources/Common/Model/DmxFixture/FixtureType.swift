@@ -13,4 +13,14 @@ public enum FixtureType: String, Codable, CaseIterable, Sendable {
         let raw = try container.decode(String.self)
         self = FixtureType(rawValue: raw) ?? .generic
     }
+
+    /// Human-readable name for the UI and the CLI — never show the raw wire string.
+    public var displayName: String {
+        switch self {
+        case .light: return "Light"
+        case .smokeMachine: return "Smoke Machine"
+        case .fogger: return "Fogger"
+        case .generic: return "Generic"
+        }
+    }
 }

@@ -2,15 +2,45 @@
 /// iOS/tvOS fast path with a cached grid-line image, and the per-slot cell view.
 /// Extracted from SACNUniverseMonitorView.swift (Phase 5 decomposition, issue #35).
 
+import Common
 import SwiftUI
 
 #if os(iOS) || os(tvOS)
     import UIKit
 #endif
 
+/// Turns the hues handed out by `SACNUniverseOverlayBuilder` into colors. Everything that
+/// draws overlay owners — grid cells and legend swatches alike — goes through here so a
+/// creature or fixture is the same color everywhere on screen.
+enum SACNOverlayPalette {
+    static func color(hue: Double) -> Color {
+        Color(hue: hue, saturation: 0.7, brightness: 0.9)
+    }
+}
+
+extension SACNSlotOwner {
+    var color: Color { SACNOverlayPalette.color(hue: hue) }
+}
+
+extension SACNOverlayLegendEntry {
+    var color: Color { SACNOverlayPalette.color(hue: hue) }
+}
+
+extension SACNSlotOwnerKind {
+    /// Corner radius as a fraction of the marker's size: creatures are drawn round, fixtures
+    /// square. Shape says *what kind* of thing owns the slot, color says *which one* — so a
+    /// slot reads correctly even before you look at the legend.
+    var markerCornerFraction: CGFloat {
+        switch self {
+        case .creature: return 0.5
+        case .fixture: return 0.15
+        }
+    }
+}
+
 struct SACNUniverseGridView: View {
     let slots: [UInt8]
-    let slotOwners: [Int: [SlotOwner]]
+    let slotOwners: [Int: [SACNSlotOwner]]
     private let columnsCount = 32
     private let rowsCount = 16
     private let gridPadding: CGFloat = 32
@@ -79,7 +109,7 @@ struct SACNUniverseGridView: View {
 #if os(iOS) || os(tvOS)
     private struct SACNUniverseCanvasGridView: View {
         let slots: [UInt8]
-        let slotOwners: [Int: [SlotOwner]]
+        let slotOwners: [Int: [SACNSlotOwner]]
         let columnsCount: Int
         let rowsCount: Int
         let gridPadding: CGFloat
@@ -163,7 +193,13 @@ struct SACNUniverseGridView: View {
                                             height: dotSize
                                         )
                                         context.fill(
-                                            Path(ellipseIn: dotRect), with: .color(owner.color))
+                                            Path(
+                                                roundedRect: dotRect,
+                                                cornerRadius: dotSize
+                                                    * owner.kind.markerCornerFraction
+                                            ),
+                                            with: .color(owner.color)
+                                        )
                                         dotX += dotSize + dotSpacing
                                     }
                                 }
@@ -343,7 +379,7 @@ private struct SACNSlotCellView: View {
     let rowsCount: Int
     let columnsCount: Int
     let value: UInt8
-    let owners: [SlotOwner]
+    let owners: [SACNSlotOwner]
     let size: CGSize
     @Environment(\.colorScheme) private var colorScheme
 
@@ -398,11 +434,12 @@ private struct SACNSlotCellView: View {
     }
 
     private var ownerDots: some View {
-        HStack(spacing: 1) {
+        let dotSize = minDimension / 3.5
+        return HStack(spacing: 1) {
             ForEach(owners.prefix(3)) { owner in
-                Circle()
+                RoundedRectangle(cornerRadius: dotSize * owner.kind.markerCornerFraction)
                     .fill(owner.color)
-                    .frame(width: minDimension / 3.5, height: minDimension / 3.5)
+                    .frame(width: dotSize, height: dotSize)
             }
         }
         .padding(1)
@@ -435,7 +472,7 @@ private struct SACNSlotCellView: View {
         }
         return
             owners
-            .map { "\($0.creatureName) · \($0.label)" }
+            .map { "\($0.ownerName) · \($0.label)" }
             .joined(separator: "\n")
     }
 

@@ -25,12 +25,15 @@ struct SACNUniverseMonitorView: View {
     @AppStorage("sacnRemoteHost") private var storedRemoteHost: String = ""
     @AppStorage("sacnRemotePort") private var storedRemotePort: Int = 1963
     @Query(sort: \CreatureModel.name) private var creatures: [CreatureModel]
+    @Query(sort: \DmxFixtureModel.name) private var fixtures: [DmxFixtureModel]
     @State private var viewModel = SACNUniverseMonitorViewModel()
     @State private var universeString: String = ""
     @State private var remotePortString: String = ""
-    @State private var slotOwners: [Int: [SlotOwner]] = [:]
-    @State private var creatureLegend: [CreatureLegendEntry] = []
-    @State private var creatureSnapshots: [CreatureOverlaySnapshot] = []
+    @State private var slotOwners: [Int: [SACNSlotOwner]] = [:]
+    @State private var creatureLegend: [SACNOverlayLegendEntry] = []
+    @State private var fixtureLegend: [SACNOverlayLegendEntry] = []
+    @State private var overlayCreatures: [Common.Creature] = []
+    @State private var overlayFixtures: [DmxFixture] = []
     @FocusState private var focusedField: FocusField?
     @Namespace private var headerFocusScope
     @Environment(\.dismiss) private var dismiss
@@ -45,7 +48,7 @@ struct SACNUniverseMonitorView: View {
                     viewModel.remoteHost = storedRemoteHost
                     viewModel.remotePort = storedRemotePort
                     viewModel.source = MonitorSource(rawValue: storedSource) ?? .local
-                    reloadCreatureSnapshots()
+                    reloadOverlaySources()
 
                     #if os(tvOS)
                         if viewModel.source == .remote {
@@ -82,7 +85,19 @@ struct SACNUniverseMonitorView: View {
             }
             .onChange(of: creatures) { _, _ in
                 Task { @MainActor in
-                    reloadCreatureSnapshots()
+                    reloadOverlaySources()
+                }
+            }
+            .onChange(of: fixtures) { _, _ in
+                Task { @MainActor in
+                    reloadOverlaySources()
+                }
+            }
+            .onChange(of: viewModel.universe) { _, _ in
+                // Fixtures are patched to a specific universe, so the overlay changes
+                // whenever we point the monitor somewhere else.
+                Task { @MainActor in
+                    rebuildOverlay()
                 }
             }
     }
@@ -353,38 +368,91 @@ struct SACNUniverseMonitorView: View {
     }
 
     private var legend: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Creature Overlay")
-                .font(.headline)
-            if creatureLegend.isEmpty {
-                Text("No creatures loaded.")
-                    .foregroundStyle(.secondary)
-            } else {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 180), spacing: 16)],
-                    alignment: .leading,
-                    spacing: 8
-                ) {
-                    ForEach(creatureLegend) { entry in
-                        HStack(spacing: 8) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(entry.color.opacity(0.7))
-                                .frame(width: 14, height: 14)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.name)
-                                    .font(.subheadline.weight(.semibold))
-                                Text(entry.detail)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
+        VStack(alignment: .leading, spacing: 16) {
+            legendSection(
+                title: "Creatures",
+                systemImage: "pawprint.fill",
+                entries: creatureLegend,
+                emptyMessage: "No creatures loaded."
+            )
+            legendSection(
+                title: "Fixtures",
+                systemImage: "lightbulb.fill",
+                entries: fixtureLegend,
+                emptyMessage: "No fixtures patched to universe \(viewModel.universe)."
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
+    }
+
+    @ViewBuilder
+    private func legendSection(
+        title: String,
+        systemImage: String,
+        entries: [SACNOverlayLegendEntry],
+        emptyMessage: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+            if entries.isEmpty {
+                Text(emptyMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 200), spacing: 16)],
+                    alignment: .leading,
+                    spacing: 8
+                ) {
+                    ForEach(entries) { entry in
+                        legendRow(entry)
+                    }
+                }
+            }
+        }
+    }
+
+    private func legendRow(_ entry: SACNOverlayLegendEntry) -> some View {
+        HStack(spacing: 8) {
+            // Same shape language as the grid markers: round for creatures, square for fixtures.
+            RoundedRectangle(cornerRadius: 14 * entry.kind.markerCornerFraction)
+                .fill(entry.color.opacity(0.7))
+                .frame(width: 14, height: 14)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.name)
+                    .font(.subheadline.weight(.semibold))
+                Text(legendDetail(for: entry))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func legendDetail(for entry: SACNOverlayLegendEntry) -> String {
+        var parts: [String] = []
+
+        if let fixtureType = entry.fixtureType {
+            parts.append(fixtureType.displayName)
+        }
+
+        if entry.kind == .fixture, entry.assignedUniverse == nil {
+            parts.append("No universe assigned")
+            return parts.joined(separator: " · ")
+        }
+
+        if let slotRange = entry.slotRange {
+            parts.append("Slots \(slotRange.lowerBound)–\(slotRange.upperBound)")
+            parts.append(
+                "\(entry.slotCount) \(entry.kind == .fixture ? "channels" : "inputs")"
+            )
+        } else {
+            parts.append("No slots mapped")
+        }
+
+        return parts.joined(separator: " · ")
     }
 
     private var statusText: String {
@@ -444,159 +512,47 @@ struct SACNUniverseMonitorView: View {
         }
     }
 
-    private func rebuildCreatureOverlay() {
-        var slotOwners: [Int: [SlotOwner]] = [:]
-        var legend: [CreatureLegendEntry] = []
-        let creatureColors = creatureColorMap(for: creatureSnapshots)
-
-        for creature in creatureSnapshots {
-            let color = creatureColors[creature.id] ?? .gray
-            var slotIndices: [Int] = []
-
-            for input in creature.inputs {
-                let slotIndex = creature.channelOffset + Int(input.slot)
-                guard (1...512).contains(slotIndex) else {
-                    continue
-                }
-                slotIndices.append(slotIndex)
-                slotOwners[slotIndex, default: []].append(
-                    SlotOwner(
-                        id: "\(creature.id):input:\(input.name):\(slotIndex)",
-                        creatureID: creature.id,
-                        creatureName: creature.name,
-                        label: input.name,
-                        color: color
-                    )
-                )
-            }
-
-            if creature.mouthSlot > 0 {
-                let mouthSlot = creature.channelOffset + creature.mouthSlot
-                if (1...512).contains(mouthSlot) {
-                    slotIndices.append(mouthSlot)
-                    slotOwners[mouthSlot, default: []].append(
-                        SlotOwner(
-                            id: "\(creature.id):mouth:\(mouthSlot)",
-                            creatureID: creature.id,
-                            creatureName: creature.name,
-                            label: "Mouth",
-                            color: color
-                        )
-                    )
-                }
-            }
-
-            let range = slotIndices.isEmpty ? nil : (slotIndices.min()!...slotIndices.max()!)
-            legend.append(
-                CreatureLegendEntry(
-                    id: creature.id,
-                    name: creature.name,
-                    color: color,
-                    slotRange: range,
-                    slotCount: slotIndices.count
-                )
-            )
-        }
-
-        self.slotOwners = slotOwners
-        creatureLegend = legend.sorted { $0.name < $1.name }
+    /// Recompute who owns which slot for the universe we're currently watching. Cheap enough
+    /// to redo on a universe change — it's a walk over the cached creatures and fixtures.
+    private func rebuildOverlay() {
+        let overlay = SACNUniverseOverlayBuilder.build(
+            creatures: overlayCreatures,
+            fixtures: overlayFixtures,
+            universe: UInt32(clamping: viewModel.universe)
+        )
+        slotOwners = overlay.slotOwners
+        creatureLegend = overlay.creatures
+        fixtureLegend = overlay.fixtures
     }
 
-    private func creatureColorMap(for creatures: [CreatureOverlaySnapshot]) -> [String: Color] {
-        let goldenRatio = 0.618033988749895
-        let saturation = 0.7
-        let brightness = 0.9
-        let orderedCreatures = creatures.sorted { $0.name < $1.name }
-        var currentHue = 0.0
-        var map: [String: Color] = [:]
-
-        for creature in orderedCreatures {
-            currentHue = fmod(currentHue + goldenRatio, 1.0)
-            map[creature.id] = Color(
-                hue: currentHue,
-                saturation: saturation,
-                brightness: brightness
-            )
-        }
-
-        return map
-    }
-
-    private func reloadCreatureSnapshots() {
+    /// Pull the creatures and fixtures out of SwiftData on a background context and hand the
+    /// value-type DTOs back to the main actor.
+    private func reloadOverlaySources() {
         Task {
             let container = await SwiftDataStore.shared.container()
             let context = ModelContext(container)
-            let descriptor = FetchDescriptor<CreatureModel>(
+            let creatureDescriptor = FetchDescriptor<CreatureModel>(
+                sortBy: [SortDescriptor(\.name, order: .forward)]
+            )
+            let fixtureDescriptor = FetchDescriptor<DmxFixtureModel>(
                 sortBy: [SortDescriptor(\.name, order: .forward)]
             )
             do {
-                let models = try context.fetch(descriptor)
-                let snapshots = models.map { creature in
-                    CreatureOverlaySnapshot(
-                        id: creature.id,
-                        name: creature.name,
-                        channelOffset: creature.channelOffset,
-                        mouthSlot: creature.mouthSlot,
-                        inputs: creature.inputs
-                            .sorted { $0.slot < $1.slot }
-                            .map { input in
-                                CreatureInputSnapshot(
-                                    name: input.name,
-                                    slot: Int(input.slot),
-                                    width: Int(input.width)
-                                )
-                            }
-                    )
-                }
+                let creatures = try context.fetch(creatureDescriptor).map { $0.toDTO() }
+                let fixtures = try context.fetch(fixtureDescriptor).map { $0.toDTO() }
                 await MainActor.run {
-                    creatureSnapshots = snapshots
-                    rebuildCreatureOverlay()
+                    overlayCreatures = creatures
+                    overlayFixtures = fixtures
+                    rebuildOverlay()
                 }
             } catch {
                 await MainActor.run {
-                    creatureSnapshots = []
-                    slotOwners = [:]
-                    creatureLegend = []
+                    overlayCreatures = []
+                    overlayFixtures = []
+                    rebuildOverlay()
                 }
             }
         }
-    }
-}
-
-private struct CreatureOverlaySnapshot: Identifiable {
-    let id: String
-    let name: String
-    let channelOffset: Int
-    let mouthSlot: Int
-    let inputs: [CreatureInputSnapshot]
-}
-
-private struct CreatureInputSnapshot {
-    let name: String
-    let slot: Int
-    let width: Int
-}
-
-struct SlotOwner: Identifiable {
-    let id: String
-    let creatureID: String
-    let creatureName: String
-    let label: String
-    let color: Color
-}
-
-private struct CreatureLegendEntry: Identifiable {
-    let id: String
-    let name: String
-    let color: Color
-    let slotRange: ClosedRange<Int>?
-    let slotCount: Int
-
-    var detail: String {
-        if let slotRange {
-            return "Slots \(slotRange.lowerBound)–\(slotRange.upperBound) · \(slotCount) inputs"
-        }
-        return "No slots mapped"
     }
 }
 

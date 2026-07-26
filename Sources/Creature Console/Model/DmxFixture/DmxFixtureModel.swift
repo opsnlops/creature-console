@@ -110,11 +110,6 @@ extension DmxFixtureModel {
     }
 
     var typeDisplay: String {
-        switch FixtureType(rawValue: typeRaw) ?? .generic {
-        case .light: return "Light"
-        case .smokeMachine: return "Smoke Machine"
-        case .fogger: return "Fogger"
-        case .generic: return "Generic"
-        }
+        (FixtureType(rawValue: typeRaw) ?? .generic).displayName
     }
 }
