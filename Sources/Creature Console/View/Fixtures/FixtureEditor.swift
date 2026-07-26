@@ -155,7 +155,7 @@ struct FixtureEditor: View {
                 Text("Type").frame(width: 100, alignment: .leading)
                 Picker("Type", selection: $fixture.type) {
                     ForEach(FixtureType.allCases, id: \.self) { type in
-                        Text(displayName(for: type)).tag(type)
+                        Text(type.displayName).tag(type)
                     }
                 }
                 .labelsHidden()
@@ -267,15 +267,6 @@ struct FixtureEditor: View {
     private var isLiveActive: Bool {
         guard let deadline = liveActiveUntil else { return false }
         return deadline > Date()
-    }
-
-    private func displayName(for type: FixtureType) -> String {
-        switch type {
-        case .light: return "Light"
-        case .smokeMachine: return "Smoke Machine"
-        case .fogger: return "Fogger"
-        case .generic: return "Generic"
-        }
     }
 
     // MARK: - Actions
