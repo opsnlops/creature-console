@@ -179,6 +179,7 @@ struct CreatureConsole: App {
             .commands {
                 DiagnosticsCommands()
                 #if os(macOS)
+                    SpatialStageCommands()
                     CommandMenu("Caches") {
                         Button("Invalidate Animation Cache...") {
                             CacheInvalidationProcessor.rebuild(.animation)
@@ -210,6 +211,9 @@ struct CreatureConsole: App {
             AppStateInspectorScene()
                 .environment(ConsoleStore.shared)
             SACNUniverseMonitorScene()
+                .modelContainer(modelContainer)
+                .environment(ConsoleStore.shared)
+            SpatialStageScene()
                 .modelContainer(modelContainer)
                 .environment(ConsoleStore.shared)
 

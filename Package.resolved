@@ -1,6 +1,15 @@
 {
-  "originHash" : "20f0ba000a1443158858e16ddb8d85d19d516b5cc93cc1fceb51dba520145576",
+  "originHash" : "9aaada6f6f40904384c6fe13fa3414751a62c8c93274133e0c15e28bcdc4cb8d",
   "pins" : [
+    {
+      "identity" : "opus-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ybrid/opus-swift.git",
+      "state" : {
+        "revision" : "92e76803ce7efc8e8903433cfd5f7f68938534ba",
+        "version" : "0.8.0"
+      }
+    },
     {
       "identity" : "simplekeychain",
       "kind" : "remoteSourceControl",

@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "CreatureConsole",
     platforms: [
-        .macOS(.v26), .iOS(.v26), .tvOS(.v26)
+        .macOS(.v26), .iOS(.v26), .tvOS(.v26),
     ],
     products: [
         .executable(
@@ -18,6 +18,10 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
         .package(url: "https://github.com/chrisaljoudi/swift-log-oslog.git", from: "0.2.2"),
         .package(url: "https://github.com/auth0/SimpleKeychain", from: "1.3.0"),
+        .package(
+            url: "https://github.com/ybrid/opus-swift.git",
+            exact: "0.8.0"
+        ),
     ],
     targets: [
         .executableTarget(
@@ -28,6 +32,11 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "LoggingOSLog", package: "swift-log-oslog"),
                 .product(name: "SimpleKeychain", package: "SimpleKeychain"),
+                .product(
+                    name: "YbridOpus",
+                    package: "opus-swift",
+                    condition: .when(platforms: [.macOS])
+                ),
             ],
             path: "Sources/Creature Console",
             // Test files are colocated with the app sources but belong to the Xcode test

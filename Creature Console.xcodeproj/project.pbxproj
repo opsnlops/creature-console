@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A0D100000000000000000001 /* YbridOpus in Frameworks */ = {isa = PBXBuildFile; productRef = A0D100000000000000000004 /* YbridOpus */; };
+		A0D100000000000000000006 /* SpatialPCMQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D100000000000000000005 /* SpatialPCMQueueTests.swift */; };
 		0930B7036CD140AB9A85D6AC /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DFE236913DA409FB1992756 /* DebugSettings.swift */; };
 		1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */; };
 		110C412B2E516F270079CA75 /* EmergencyStopMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */; };
@@ -324,6 +326,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A0D100000000000000000005 /* SpatialPCMQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPCMQueueTests.swift; sourceTree = "<group>"; };
 		1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidationProcessor.swift; sourceTree = "<group>"; };
 		110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyStopMessageProcessor.swift; sourceTree = "<group>"; };
 		110CABE72A959A00007769E4 /* SoundDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataImporter.swift; sourceTree = "<group>"; };
@@ -601,6 +604,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		A0D100000000000000000002 /* SpatialAudio */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SpatialAudio;
+			sourceTree = "<group>";
+		};
 		1120F1D92EB03A24000342A3 /* Lightweight Console */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Lightweight Console";
@@ -647,6 +655,7 @@
 		11703D8529DD197F00EF7E3D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				A0D100000000000000000001 /* YbridOpus in Frameworks */,
 				1199D6BA2BF5C3A3004E0D64 /* Logging in Frameworks */,
 				1168DC992B4F99E000A9895A /* IOKit.framework in Frameworks */,
 				1110E9652BF035E500FCE26D /* Common in Frameworks */,
@@ -914,6 +923,7 @@
 		11703D8A29DD197F00EF7E3D /* Creature Console */ = {
 			isa = PBXGroup;
 			children = (
+				A0D100000000000000000002 /* SpatialAudio */,
 				11703D8B29DD197F00EF7E3D /* CreatureConsole.swift */,
 				1199D6B62BF5BF53004E0D64 /* ConsoleAppDelegate.swift */,
 				11FDBF4B2BE0A60F008C5B3E /* Controller */,
@@ -951,6 +961,7 @@
 		11754B6E2C0050AF001A6C83 /* Creature Console Tests */ = {
 			isa = PBXGroup;
 			children = (
+				A0D100000000000000000005 /* SpatialPCMQueueTests.swift */,
 				118331922C005A5B0017DC2A /* Creature Console */,
 				1183318A2C0056DB0017DC2A /* Common */,
 			);
@@ -1436,10 +1447,12 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
+				A0D100000000000000000002 /* SpatialAudio */,
 				11E5CE7B2C9FDFB700749F94 /* Creature */,
 			);
 			name = "Creature Console";
 			packageProductDependencies = (
+				A0D100000000000000000004 /* YbridOpus */,
 				1110E9642BF035E500FCE26D /* Common */,
 				1199D6B92BF5C3A3004E0D64 /* Logging */,
 				1199D6BC2BF5C463004E0D64 /* LoggingOSLog */,
@@ -1576,6 +1589,7 @@
 			);
 			mainGroup = 11703D7F29DD197F00EF7E3D;
 			packageReferences = (
+				A0D100000000000000000003 /* XCRemoteSwiftPackageReference "opus-swift" */,
 				11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
 				1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */,
 				1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */,
@@ -1826,6 +1840,7 @@
 		11754B692C0050AF001A6C83 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				A0D100000000000000000006 /* SpatialPCMQueueTests.swift in Sources */,
 				114B7E6F2E90D57300F5D1EC /* AnimationMetadataImporterTests.swift in Sources */,
 				114B7E662E90D16F00F5D1EC /* PlaylistModelTests.swift in Sources */,
 				114B7E6B2E90D1B700F5D1EC /* ServerLogModelTests.swift in Sources */,
@@ -2467,6 +2482,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		A0D100000000000000000003 /* XCRemoteSwiftPackageReference "opus-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ybrid/opus-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.8.0;
+			};
+		};
 		118331982C005BD80017DC2A /* XCRemoteSwiftPackageReference "ViewInspector" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/nalexn/ViewInspector.git";
@@ -2510,6 +2533,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		A0D100000000000000000004 /* YbridOpus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A0D100000000000000000003 /* XCRemoteSwiftPackageReference "opus-swift" */;
+			productName = YbridOpus;
+		};
 		1110E9642BF035E500FCE26D /* Common */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Common;

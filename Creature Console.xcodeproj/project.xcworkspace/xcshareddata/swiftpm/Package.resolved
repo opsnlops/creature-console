@@ -1,5 +1,5 @@
 {
-  "originHash" : "01e5dba82fb5a771d36aa7a8ec44598a8987c8662c0e245ed09759564f7c20bf",
+  "originHash" : "2253617b2ae936c3f2daba2a8514ebc2b06d8f0df524553a8e9807d11b891798",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -44,6 +44,15 @@
       "state" : {
         "revision" : "91d357875eabd63c55eee40fc6b85bc1f00839ed",
         "version" : "2.13.0"
+      }
+    },
+    {
+      "identity" : "opus-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ybrid/opus-swift.git",
+      "state" : {
+        "revision" : "92e76803ce7efc8e8903433cfd5f7f68938534ba",
+        "version" : "0.8.0"
       }
     },
     {
