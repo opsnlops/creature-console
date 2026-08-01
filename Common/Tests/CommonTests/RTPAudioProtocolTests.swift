@@ -151,6 +151,140 @@ struct RTPAudioProtocolTests {
     }
 }
 
+@Suite("RTCP playout timing")
+struct RTCPPlayoutTimingTests {
+    @Test("planner maps RTP media time to a continuous enqueue deadline")
+    func plansContinuousDeadline() throws {
+        let baseInstant = ContinuousClock.now
+        let baseDate = Date(timeIntervalSince1970: 1_000)
+        let planner = RTCPPlayoutPlanner(
+            clockPair: RTCPClockPair(
+                systemDate: baseDate,
+                continuousInstant: baseInstant
+            ),
+            commonPlayoutDelay: .milliseconds(20),
+            outputLatency: .milliseconds(4)
+        )
+        let report = makeReport(rtpTimestamp: 10_000, unixSeconds: 1_000)
+
+        let plan = try #require(
+            planner.plan(report: report, rtpTimestamp: 10_000, queuedFrames: 480)
+        )
+
+        #expect(
+            abs(seconds(baseInstant.duration(to: plan.presentationDeadline)) - 0.020)
+                < 0.000_001
+        )
+        #expect(
+            abs(seconds(baseInstant.duration(to: plan.enqueueDeadline)) - 0.006)
+                < 0.000_001
+        )
+    }
+
+    @Test("plausibility guard compares RTCP and packet-arrival timelines")
+    func validatesPresentationPlausibility() throws {
+        let baseInstant = ContinuousClock.now
+        let planner = RTCPPlayoutPlanner(
+            clockPair: RTCPClockPair(
+                systemDate: Date(timeIntervalSince1970: 1_000),
+                continuousInstant: baseInstant
+            ),
+            commonPlayoutDelay: .milliseconds(20),
+            outputLatency: .zero
+        )
+        let plan = try #require(
+            planner.plan(
+                report: makeReport(rtpTimestamp: 10_000, unixSeconds: 1_000),
+                rtpTimestamp: 10_000,
+                queuedFrames: 0
+            )
+        )
+
+        #expect(
+            RTCPAudioTiming.presentationDeadlineIsPlausible(
+                plan,
+                packetArrival: baseInstant,
+                commonPlayoutDelay: .milliseconds(20)
+            )
+        )
+        #expect(
+            !RTCPAudioTiming.presentationDeadlineIsPlausible(
+                plan,
+                packetArrival: baseInstant.advanced(by: .milliseconds(11)),
+                commonPlayoutDelay: .milliseconds(20)
+            )
+        )
+    }
+
+    @Test("enqueue classification distinguishes early, ready, and missed")
+    func classifiesEnqueueDeadline() throws {
+        let baseInstant = ContinuousClock.now
+        let plan = RTCPPlayoutPlan(
+            mediaDate: Date(timeIntervalSince1970: 1_000),
+            presentationDeadline: baseInstant.advanced(by: .milliseconds(20)),
+            enqueueDeadline: baseInstant.advanced(by: .milliseconds(10))
+        )
+
+        #expect(
+            RTCPAudioTiming.classifyEnqueue(
+                plan,
+                now: baseInstant.advanced(by: .milliseconds(9))
+            ) == .wait
+        )
+        #expect(
+            RTCPAudioTiming.classifyEnqueue(
+                plan,
+                now: baseInstant.advanced(by: .milliseconds(11))
+            ) == .ready
+        )
+        #expect(
+            RTCPAudioTiming.classifyEnqueue(
+                plan,
+                now: baseInstant.advanced(by: .milliseconds(13))
+            ) == .missed
+        )
+    }
+
+    @Test("report cache is bounded and reports track freshness")
+    func cachesReportsBySynchronizationSource() {
+        let now = ContinuousClock.now
+        var cache = RTCPReportCache(capacity: 2)
+        cache.store(makeReport(synchronizationSource: 1), receivedAt: now)
+        cache.store(makeReport(synchronizationSource: 2), receivedAt: now)
+        cache.store(makeReport(synchronizationSource: 3), receivedAt: now)
+
+        #expect(cache.report(for: 1) == nil)
+        #expect(cache.report(for: 2)?.isFresh(at: now) == true)
+        #expect(
+            cache.report(for: 3)?.isFresh(
+                at: now.advanced(by: .milliseconds(2_501))
+            ) == false
+        )
+    }
+
+    private func makeReport(
+        synchronizationSource: UInt32 = 100,
+        rtpTimestamp: UInt32 = 10_000,
+        unixSeconds: UInt64 = 1_000
+    ) -> RTCPSenderReport {
+        let ntpEpochOffset: UInt64 = 2_208_988_800
+        return RTCPSenderReport(
+            synchronizationSource: synchronizationSource,
+            ntpTimestamp: (unixSeconds + ntpEpochOffset) << 32,
+            rtpTimestamp: rtpTimestamp,
+            packetCount: 12,
+            octetCount: 34,
+            canonicalName: "creature-server@test"
+        )
+    }
+
+    private func seconds(_ duration: Duration) -> Double {
+        let components = duration.components
+        return Double(components.seconds)
+            + Double(components.attoseconds) / 1_000_000_000_000_000_000
+    }
+}
+
 @Suite("RTP audio jitter buffer")
 struct RTPAudioJitterBufferTests {
     @Test("orders packets by RTP timestamp")

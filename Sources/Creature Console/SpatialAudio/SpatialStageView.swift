@@ -196,6 +196,14 @@
                     )
                     .disabled(viewModel.isActive)
 
+                    Stepper(
+                        "\(viewModel.layout.commonPlayoutDelayMilliseconds) ms RTCP playout",
+                        value: $model.layout.commonPlayoutDelayMilliseconds,
+                        in: 20...250,
+                        step: 10
+                    )
+                    .disabled(viewModel.isActive)
+
                     LabeledContent("BGM") {
                         Text("\(Int(viewModel.layout.backgroundMusicGain * 100))%")
                     }
@@ -435,10 +443,10 @@
                             + "\(Int(viewModel.diagnostics.outputLatencyMilliseconds.rounded())) ms"
                     )
                     if viewModel.inputMode == .live {
-                        Text(
-                            viewModel.diagnostics.rtcpClockValid
-                                ? "RTCP clocks aligned" : "Waiting for aligned RTCP"
-                        )
+                        Text(liveTimingDescription)
+                        if viewModel.diagnostics.outputUnderruns > 0 {
+                            Text("\(viewModel.diagnostics.outputUnderruns) output underruns")
+                        }
                     }
                 }
                 .foregroundStyle(.secondary)
@@ -447,6 +455,26 @@
             .padding(10)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .allowsHitTesting(false)
+        }
+
+        private var liveTimingDescription: String {
+            switch viewModel.diagnostics.liveTimingMode {
+            case .waiting:
+                return "Waiting for synchronized RTCP"
+            case .rtcp:
+                if let lateness = viewModel.diagnostics.rtcpStartLatenessMilliseconds,
+                    let delay = viewModel.diagnostics.rtcpPlayoutDelayMilliseconds
+                {
+                    return String(
+                        format: "RTCP synchronized (%+.1f ms, %.0f ms playout)",
+                        lateness,
+                        delay
+                    )
+                }
+                return "RTCP synchronized"
+            case .arrivalFallback:
+                return "Arrival-timed fallback"
+            }
         }
 
         private func creatureNode(_ placement: SpatialStagePlacement) -> some View {

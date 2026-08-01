@@ -35,7 +35,7 @@
     }
 
     struct SpatialStageLayout: Codable, Equatable, Sendable {
-        static let currentVersion = 2
+        static let currentVersion = 3
 
         var version = currentVersion
         var stageWidth: Float = 10
@@ -45,6 +45,7 @@
         var listenerZ: Float = 2
         var listenerYaw: Float = 0
         var monitoringDelayMilliseconds = 10
+        var commonPlayoutDelayMilliseconds = 20
         var backgroundMusicGain: Float = 0.7
         var reverbBlend: Float = 0.08
         var placements: [SpatialStagePlacement] = []
@@ -102,6 +103,7 @@
             case listenerZ
             case listenerYaw
             case monitoringDelayMilliseconds
+            case commonPlayoutDelayMilliseconds
             case backgroundMusicGain
             case reverbBlend
             case placements
@@ -122,6 +124,9 @@
             listenerYaw = try container.decodeIfPresent(Float.self, forKey: .listenerYaw) ?? 0
             monitoringDelayMilliseconds =
                 try container.decodeIfPresent(Int.self, forKey: .monitoringDelayMilliseconds) ?? 10
+            commonPlayoutDelayMilliseconds =
+                try container.decodeIfPresent(Int.self, forKey: .commonPlayoutDelayMilliseconds)
+                ?? 20
             backgroundMusicGain =
                 try container.decodeIfPresent(Float.self, forKey: .backgroundMusicGain) ?? 0.7
             reverbBlend =
@@ -182,6 +187,12 @@
         }
     }
 
+    enum SpatialLiveTimingMode: Equatable, Sendable {
+        case waiting
+        case rtcp
+        case arrivalFallback
+    }
+
     struct SpatialChannelDiagnostics: Equatable, Identifiable, Sendable {
         let channel: Int
         var packetsReceived: UInt64 = 0
@@ -198,8 +209,13 @@
         var state: SpatialStageConnectionState = .stopped
         var bufferedMilliseconds: Double = 0
         var outputLatencyMilliseconds: Double = 0
+        var outputUnderruns: UInt64 = 0
         var rtcpReportsReceived: UInt64 = 0
         var rtcpClockValid = false
+        var liveTimingMode: SpatialLiveTimingMode = .waiting
+        var rtcpStartLatenessMilliseconds: Double?
+        var rtcpPlayoutDelayMilliseconds: Double?
+        var rtcpLateFramesDropped: UInt64 = 0
         var channels: [SpatialChannelDiagnostics] = []
         var simulationPosition: TimeInterval = 0
         var simulationDuration: TimeInterval = 0

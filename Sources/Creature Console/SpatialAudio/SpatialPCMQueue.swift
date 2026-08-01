@@ -33,6 +33,15 @@
             underrunCount.load(ordering: .relaxed)
         }
 
+        func canWrite(frameCount: Int) -> Bool {
+            guard frameCount >= 0 else {
+                return false
+            }
+            let read = readPosition.load(ordering: .acquiring)
+            let write = max(writePosition.load(ordering: .acquiring), read)
+            return Int64(frameCount) <= capacity - (write - read)
+        }
+
         @discardableResult
         func write(_ samples: UnsafeBufferPointer<Float>) -> Bool {
             let read = readPosition.load(ordering: .acquiring)
@@ -60,6 +69,7 @@
             let primeCount = min(max(silenceFrames, 0), Int(capacity))
             fillWithZeros(fromAbsolutePosition: read, count: primeCount)
             writePosition.store(read + Int64(primeCount), ordering: .releasing)
+            underrunCount.store(0, ordering: .relaxed)
         }
 
         func read(into destination: UnsafeMutablePointer<Float>, frameCount: Int) -> Bool {

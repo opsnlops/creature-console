@@ -7,7 +7,7 @@
         var queuedFrames: Int { get }
         var outputPresentationLatency: TimeInterval { get }
 
-        func reset(leadFrames: Int, resumeAfterReset: Bool)
+        func reset(leadFrames: Int, resumeAfterReset: Bool) throws
         func enqueue(
             creatureSamples: [Int: [Float]],
             backgroundSamples: [Float],
@@ -18,8 +18,8 @@
     }
 
     extension SpatialSimulationAudioRendering {
-        func reset(leadFrames: Int) {
-            reset(leadFrames: leadFrames, resumeAfterReset: true)
+        func reset(leadFrames: Int) throws {
+            try reset(leadFrames: leadFrames, resumeAfterReset: true)
         }
     }
 
@@ -88,7 +88,13 @@
                 reachedEnd = false
                 completionPauseWorkItem?.cancel()
                 completionPauseWorkItem = nil
-                renderer.reset(leadFrames: Int(RTPAudioConstants.framesPerPacket) * 2)
+                do {
+                    try renderer.reset(leadFrames: Int(RTPAudioConstants.framesPerPacket) * 2)
+                } catch {
+                    diagnostics.state = .failed(error.localizedDescription)
+                    publishDiagnostics(force: true)
+                    return
+                }
                 diagnostics.state = .playing
                 publishDiagnostics(force: true)
 
@@ -160,10 +166,16 @@
                 reachedEnd = false
                 completionPauseWorkItem?.cancel()
                 completionPauseWorkItem = nil
-                renderer.reset(
-                    leadFrames: Int(RTPAudioConstants.framesPerPacket) * 2,
-                    resumeAfterReset: !isPaused
-                )
+                do {
+                    try renderer.reset(
+                        leadFrames: Int(RTPAudioConstants.framesPerPacket) * 2,
+                        resumeAfterReset: !isPaused
+                    )
+                } catch {
+                    timer?.cancel()
+                    timer = nil
+                    diagnostics.state = .failed(error.localizedDescription)
+                }
                 updatePosition()
                 publishDiagnostics(force: true)
             }
@@ -183,7 +195,7 @@
                     if isLooping {
                         file.framePosition = 0
                         reachedEnd = false
-                        renderer.reset(
+                        try renderer.reset(
                             leadFrames: Int(RTPAudioConstants.framesPerPacket) * 2
                         )
                     } else {

@@ -162,6 +162,8 @@
                         renderer: renderer,
                         channels: channels,
                         monitoringDelayMilliseconds: layout.monitoringDelayMilliseconds,
+                        commonPlayoutDelayMilliseconds: layout
+                            .commonPlayoutDelayMilliseconds,
                         onDiagnostics: diagnosticsHandler(for: token)
                     )
                     try source.start(interface: selectedInterface.nwInterface)

@@ -1,3 +1,13 @@
+creature-cli (2.45.0) unstable; urgency=medium
+
+  * Add Spatial Stage monitoring with live RTP and 17-channel WAV simulation,
+    positionable creature emitters, spatial rendering, and stage diagnostics.
+  * Synchronize live macOS playback to RTCP sender reports, compensate for
+    Core Audio and output-device latency, and retain an arrival-timed fallback.
+  * Keep creature-cli, creature-mqtt, and creature-agent versions aligned.
+
+ -- April White <april@creature.engineering>  Fri, 31 Jul 2026 17:38:04 -0700
+
 creature-cli (2.44.0) unstable; urgency=medium
 
   * No CLI changes yet — adds a shared SACNUniverseOverlayBuilder to Common

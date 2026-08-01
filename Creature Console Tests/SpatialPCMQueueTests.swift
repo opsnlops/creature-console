@@ -1,5 +1,6 @@
 import Common
 import Foundation
+import Network
 import Testing
 
 @testable import Creature_Console
@@ -37,12 +38,200 @@ struct SpatialPCMQueueTests {
         #expect(read(5, from: queue) == [4, 5, 6, 7, 8])
     }
 
+    @Test("a hardware render quantum can span two RTP packets without silence")
+    func renderQuantumSpansPackets() {
+        let queue = SpatialPCMQueue(capacity: 1_024)
+        #expect(queue.write([Float](repeating: 1, count: 480)))
+        #expect(queue.write([Float](repeating: 2, count: 480)))
+
+        let output = read(512, from: queue)
+
+        #expect(output.prefix(480).allSatisfy { $0 == 1 })
+        #expect(output.suffix(32).allSatisfy { $0 == 2 })
+        #expect(queue.availableFrames == 448)
+        #expect(queue.underruns == 0)
+    }
+
+    @Test("reset clears prior underrun diagnostics")
+    func resetClearsUnderrunDiagnostics() {
+        let queue = SpatialPCMQueue(capacity: 8)
+        _ = read(2, from: queue)
+        #expect(queue.underruns == 1)
+
+        queue.clearAndPrime(silenceFrames: 2)
+
+        #expect(queue.underruns == 0)
+    }
+
+    @Test("capacity preflight matches subsequent writes")
+    func capacityPreflightMatchesWrites() {
+        let queue = SpatialPCMQueue(capacity: 5)
+        #expect(queue.canWrite(frameCount: 5))
+        #expect(queue.write([1, 2, 3]))
+        #expect(queue.canWrite(frameCount: 2))
+        #expect(!queue.canWrite(frameCount: 3))
+
+        _ = read(2, from: queue)
+
+        #expect(queue.canWrite(frameCount: 4))
+        #expect(queue.write([4, 5, 6, 7]))
+    }
+
     private func read(_ count: Int, from queue: SpatialPCMQueue) -> [Float] {
         var output = [Float](repeating: -1, count: count)
         output.withUnsafeMutableBufferPointer { buffer in
             _ = queue.read(into: buffer.baseAddress!, frameCount: count)
         }
         return output
+    }
+}
+
+@Suite("Spatial RTCP scheduling")
+struct SpatialRTCPSchedulingTests {
+    @Test("playout delay accounts for outputs slower than the controller target")
+    func accountsForOutputLatencyFloor() {
+        #expect(
+            abs(
+                durationSeconds(
+                    SpatialRTCPDelayPolicy.effectivePlayoutDelay(
+                        configured: .milliseconds(20),
+                        outputLatency: 0.014
+                    )
+                ) - 0.024
+            ) < 0.000_001
+        )
+        #expect(
+            abs(
+                durationSeconds(
+                    SpatialRTCPDelayPolicy.effectivePlayoutDelay(
+                        configured: .milliseconds(20),
+                        outputLatency: 0.100
+                    )
+                ) - 0.110
+            ) < 0.000_001
+        )
+    }
+
+    @Test("pre-roll converts a future enqueue deadline to exact audio frames")
+    func convertsDeadlineToPrerollFrames() {
+        let now = ContinuousClock.now
+
+        #expect(
+            SpatialRTCPPreroll.frameCount(
+                until: now.advanced(by: .milliseconds(6)),
+                now: now
+            ) == 288
+        )
+        #expect(
+            SpatialRTCPPreroll.frameCount(
+                until: now.advanced(by: .milliseconds(-1)),
+                now: now
+            ) == 0
+        )
+    }
+
+    @Test("validation requires a fresh report for every active creature")
+    func requiresCompleteFreshReportSet() {
+        let now = ContinuousClock.now
+        let background = timedReport(source: 17, receivedAt: now)
+        let creature = timedReport(source: 1, receivedAt: now)
+
+        #expect(
+            SpatialRTCPReportValidation.reportsAreCompatible(
+                background: background,
+                creatures: [creature],
+                expectedCreatureCount: 1,
+                now: now
+            )
+        )
+        #expect(
+            !SpatialRTCPReportValidation.reportsAreCompatible(
+                background: background,
+                creatures: [creature],
+                expectedCreatureCount: 2,
+                now: now
+            )
+        )
+        #expect(
+            !SpatialRTCPReportValidation.reportsAreCompatible(
+                background: background,
+                creatures: [
+                    timedReport(
+                        source: 1,
+                        receivedAt: now.advanced(by: .milliseconds(-2_501))
+                    )
+                ],
+                expectedCreatureCount: 1,
+                now: now
+            )
+        )
+    }
+
+    @Test("validation rejects reports from a different clock")
+    func rejectsIncompatibleClockMapping() {
+        let now = ContinuousClock.now
+        let background = timedReport(source: 17, receivedAt: now)
+        let creature = timedReport(
+            source: 1,
+            canonicalName: "another-server",
+            receivedAt: now
+        )
+
+        #expect(
+            !SpatialRTCPReportValidation.reportsAreCompatible(
+                background: background,
+                creatures: [creature],
+                expectedCreatureCount: 1,
+                now: now
+            )
+        )
+    }
+
+    private func timedReport(
+        source: UInt32,
+        canonicalName: String = "creature-server@test",
+        receivedAt: ContinuousClock.Instant
+    ) -> TimedRTCPSenderReport {
+        TimedRTCPSenderReport(
+            report: RTCPSenderReport(
+                synchronizationSource: source,
+                ntpTimestamp: UInt64(2_208_988_800) << 32,
+                rtpTimestamp: 10_000,
+                packetCount: 1,
+                octetCount: 1,
+                canonicalName: canonicalName
+            ),
+            receivedAt: receivedAt
+        )
+    }
+
+    private func durationSeconds(_ duration: Duration) -> TimeInterval {
+        let components = duration.components
+        return Double(components.seconds)
+            + Double(components.attoseconds) / 1_000_000_000_000_000_000
+    }
+}
+
+@Suite("Spatial live buffering")
+struct SpatialLiveBufferPolicyTests {
+    @Test("queue target covers a hardware render quantum and one RTP packet")
+    func targetCoversRenderQuantum() {
+        let target = SpatialLiveBufferPolicy.targetQueuedFrames(
+            requestedDelayFrames: 480,
+            renderQuantumFrames: 512
+        )
+
+        #expect(target == 992)
+    }
+
+    @Test("a larger requested delay remains authoritative")
+    func preservesLargerRequestedDelay() {
+        let target = SpatialLiveBufferPolicy.targetQueuedFrames(
+            requestedDelayFrames: 3_840,
+            renderQuantumFrames: 512
+        )
+
+        #expect(target == 3_840)
     }
 }
 
@@ -62,6 +251,49 @@ struct SpatialAudioLevelTests {
         #expect(SpatialAudioLevel.meterLevel(for: .nan) == 0)
         #expect(SpatialAudioLevel.meterLevel(for: .infinity) == 0)
         #expect(SpatialAudioLevel.meterLevel(for: -.infinity) == 0)
+    }
+}
+
+@Suite("Spatial multicast receiver")
+struct SpatialMulticastReceiverTests {
+    @Test("combines selected channels and BGM into one subscription set per port")
+    func buildsSubscriptionsForOneListener() {
+        let subscriptions = SpatialMulticastReceiver.subscriptions(
+            channels: [3, 1, 3, 0, 18],
+            port: RTPAudioConstants.rtpPort
+        )
+
+        #expect(subscriptions.map(\.channel) == [1, 3, 17])
+        #expect(Set(subscriptions.map(\.endpoint)).count == 3)
+        #expect(
+            subscriptions.map(\.endpoint) == [
+                multicastEndpoint(address: "239.19.63.1", port: 5004),
+                multicastEndpoint(address: "239.19.63.3", port: 5004),
+                multicastEndpoint(address: "239.19.63.17", port: 5004),
+            ]
+        )
+    }
+
+    @Test("RTP and RTCP subscription sets use their respective ports")
+    func usesProtocolPortForEveryEndpoint() {
+        let rtp = SpatialMulticastReceiver.subscriptions(channels: [4], port: 5004)
+        let rtcp = SpatialMulticastReceiver.subscriptions(channels: [4], port: 5005)
+
+        #expect(rtp.map(\.channel) == rtcp.map(\.channel))
+        #expect(rtp.map(\.endpoint) != rtcp.map(\.endpoint))
+        #expect(
+            rtcp.map(\.endpoint) == [
+                multicastEndpoint(address: "239.19.63.4", port: 5005),
+                multicastEndpoint(address: "239.19.63.17", port: 5005),
+            ]
+        )
+    }
+
+    private func multicastEndpoint(address: String, port: UInt16) -> NWEndpoint {
+        .hostPort(
+            host: NWEndpoint.Host(address),
+            port: NWEndpoint.Port(rawValue: port)!
+        )
     }
 }
 
@@ -108,12 +340,14 @@ struct SpatialStageLayoutTests {
         #expect(layout.stageWidth == 12)
         #expect(layout.version == SpatialStageLayout.currentVersion)
         #expect(layout.monitoringDelayMilliseconds == 10)
+        #expect(layout.commonPlayoutDelayMilliseconds == 20)
         #expect(layout.excludedCreatureIDs.isEmpty)
     }
 
     @Test("new layouts use one RTP packet of monitoring delay")
     func newLayoutsUseOnePacketOfMonitoringDelay() {
         #expect(SpatialStageLayout().monitoringDelayMilliseconds == 10)
+        #expect(SpatialStageLayout().commonPlayoutDelayMilliseconds == 20)
     }
 }
 
@@ -219,7 +453,7 @@ private final class ImmediateDrainSpatialRenderer: SpatialSimulationAudioRenderi
     var queuedFrames: Int { 0 }
     var outputPresentationLatency: TimeInterval { 0 }
 
-    func reset(leadFrames _: Int, resumeAfterReset _: Bool) {}
+    func reset(leadFrames _: Int, resumeAfterReset _: Bool) throws {}
 
     func enqueue(
         creatureSamples _: [Int: [Float]],

@@ -2,9 +2,14 @@
     import AVFAudio
     import Common
     import Foundation
+    import Synchronization
 
     final class SpatialAudioRenderer: @unchecked Sendable {
         private static let queueCapacityFrames = Int(RTPAudioConstants.sampleRate) * 3
+
+        private final class RenderQuantumTracker: @unchecked Sendable {
+            let frames = Atomic<Int>(Int(RTPAudioConstants.framesPerPacket))
+        }
 
         private struct Emitter {
             let queue: SpatialPCMQueue
@@ -15,6 +20,7 @@
         private let environment = AVAudioEnvironmentNode()
         private let backgroundQueue = SpatialPCMQueue(capacity: queueCapacityFrames)
         private let backgroundNode: AVAudioSourceNode
+        private let renderQuantumTracker: RenderQuantumTracker
         private var emitters: [Int: Emitter] = [:]
         private let format: AVAudioFormat
 
@@ -29,10 +35,13 @@
             else {
                 throw SpatialAudioRendererError.cannotCreateFormat
             }
+            let renderQuantumTracker = RenderQuantumTracker()
             self.format = format
+            self.renderQuantumTracker = renderQuantumTracker
             self.backgroundNode = Self.makeSourceNode(
                 format: format,
-                queue: backgroundQueue
+                queue: backgroundQueue,
+                renderQuantumTracker: renderQuantumTracker
             )
 
             engine.attach(environment)
@@ -82,17 +91,28 @@
         }
 
         var outputPresentationLatency: TimeInterval {
-            environment.outputPresentationLatency
+            max(
+                environment.outputPresentationLatency,
+                engine.outputNode.presentationLatency
+            )
         }
 
-        func reset(leadFrames: Int, resumeAfterReset: Bool = true) {
+        var renderQuantumFrames: Int {
+            renderQuantumTracker.frames.load(ordering: .relaxed)
+        }
+
+        var outputUnderruns: UInt64 {
+            backgroundQueue.underruns
+        }
+
+        func reset(leadFrames: Int, resumeAfterReset: Bool = true) throws {
             engine.pause()
             backgroundQueue.clearAndPrime(silenceFrames: leadFrames)
             for emitter in emitters.values {
                 emitter.queue.clearAndPrime(silenceFrames: leadFrames)
             }
             if resumeAfterReset {
-                try? engine.start()
+                try engine.start()
             }
         }
 
@@ -102,21 +122,36 @@
             backgroundSamples: [Float],
             frameCount: Int
         ) -> Bool {
-            guard backgroundSamples.count == frameCount else {
+            guard
+                backgroundSamples.count == frameCount,
+                backgroundQueue.canWrite(frameCount: frameCount)
+            else {
                 return false
             }
 
-            var success = backgroundQueue.write(backgroundSamples)
             let silence = [Float](repeating: 0, count: frameCount)
             for (channel, emitter) in emitters {
                 let samples = creatureSamples[channel] ?? silence
-                guard samples.count == frameCount else {
-                    success = false
-                    continue
+                guard
+                    samples.count == frameCount,
+                    emitter.queue.canWrite(frameCount: frameCount)
+                else {
+                    return false
                 }
-                success = emitter.queue.write(samples) && success
             }
-            return success
+
+            // There is one producer, and the consumers only increase available capacity.
+            // Once every queue passes the preflight, the batch cannot partially fail.
+            guard backgroundQueue.write(backgroundSamples) else {
+                return false
+            }
+            for (channel, emitter) in emitters {
+                guard emitter.queue.write(creatureSamples[channel] ?? silence) else {
+                    assertionFailure("Spatial PCM queue capacity changed after preflight")
+                    return false
+                }
+            }
+            return true
         }
 
         func update(layout: SpatialStageLayout) {
@@ -163,9 +198,17 @@
 
         private static func makeSourceNode(
             format: AVAudioFormat,
-            queue: SpatialPCMQueue
+            queue: SpatialPCMQueue,
+            renderQuantumTracker: RenderQuantumTracker? = nil
         ) -> AVAudioSourceNode {
             AVAudioSourceNode(format: format) { isSilence, _, frameCount, outputData in
+                if let renderQuantumTracker {
+                    let observedFrames = Int(frameCount)
+                    let previousFrames = renderQuantumTracker.frames.load(ordering: .relaxed)
+                    if observedFrames > previousFrames {
+                        renderQuantumTracker.frames.store(observedFrames, ordering: .relaxed)
+                    }
+                }
                 let buffers = UnsafeMutableAudioBufferListPointer(outputData)
                 guard
                     let audioBuffer = buffers.first,
