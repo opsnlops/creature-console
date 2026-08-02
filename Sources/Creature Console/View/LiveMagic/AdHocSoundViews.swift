@@ -92,29 +92,11 @@ struct AdHocSoundListView: View {
         playTask?.cancel()
         playTask = Task {
             preparingSound = entry.sound.fileName
-            let urlResult = server.getAdHocSoundURL(entry.sound.fileName)
+            let urlResult = server.getSoundRenditionURL(entry.sound.fileName, as: .mp3)
             switch urlResult {
             case .success(let url):
-                if entry.sound.fileName.lowercased().hasSuffix(".wav") {
-                    let prepResult = await audioManager.prepareMonoPreview(
-                        for: url, cacheKey: entry.sound.fileName)
-                    switch prepResult {
-                    case .success(let monoURL):
-                        let armResult = audioManager.armPreviewPlayback(fileURL: monoURL)
-                        switch armResult {
-                        case .success:
-                            _ = audioManager.startArmedPreview(in: 0.1)
-                            preparingSound = nil
-                        case .failure(let error):
-                            presentError("Playback Error", message: "\(error)")
-                        }
-                    case .failure(let error):
-                        presentError("Preparation Error", message: "\(error)")
-                    }
-                } else {
-                    _ = audioManager.playURL(url)
-                    preparingSound = nil
-                }
+                _ = audioManager.playURL(url)
+                preparingSound = nil
             case .failure(let error):
                 presentError(
                     "Unable to Download", message: ServerError.detailedMessage(from: error))

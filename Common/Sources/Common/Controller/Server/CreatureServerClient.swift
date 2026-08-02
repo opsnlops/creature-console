@@ -15,6 +15,8 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         let data: Data
         let statusCode: Int
         let contentDisposition: String?
+        let responseURL: URL?
+        let responseDiagnostics: String
     }
 
     // WebSocket processing stuff
@@ -422,20 +424,45 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
             span.attributes["http.method"] = method
             span.attributes["http.url"] = url.absoluteString
 
+            var request = request
+            let requestID = UUID().uuidString.lowercased()
+            request.setValue(requestID, forHTTPHeaderField: "X-Creature-Client-Request-ID")
+            span.attributes["creature.client_request_id"] = requestID
+
+            let requestURLHost = url.host ?? "<none>"
+            let requestHostHeader = request.value(forHTTPHeaderField: "Host") ?? "<default>"
+            let logicalServer = "\(serverHostname):\(serverPort)"
+            let proxyState = serverProxyHost != nil && apiKey != nil ? "enabled" : "disabled"
+            let routingMessage =
+                "HTTP \(method) \(url.path) request_id=\(requestID) routing: URL host=\(requestURLHost), "
+                + "Host header=\(requestHostHeader), logical server=\(logicalServer), "
+                + "proxy=\(proxyState)"
+            logger.debug("\(routingMessage)")
+
             let responseResult = await executeRequest(request, url: url)
             switch responseResult {
             case .failure(let error):
                 span.recordError(error)
+                logger.error(
+                    "HTTP \(method) \(url.path) failed: \(error.localizedDescription)"
+                )
                 return .failure(error)
 
             case .success(let response):
                 span.attributes["http.status_code"] = response.statusCode
+                let responseURL = response.responseURL?.absoluteString ?? url.absoluteString
+                let responseMessage =
+                    "HTTP \(method) \(url.path) -> \(response.statusCode) (\(response.data.count) bytes); "
+                    + "final URL: \(responseURL); \(response.responseDiagnostics)"
+                logger.debug("\(responseMessage)")
 
                 guard successStatusCodes.contains(response.statusCode) else {
                     let error = serverError(for: response)
                     span.recordError(error)
-                    logger.error(
-                        "HTTP \(response.statusCode) from \(url): \(error.localizedDescription)")
+                    let errorMessage =
+                        "HTTP \(response.statusCode) from \(responseURL): \(error.localizedDescription); "
+                        + "\(response.responseDiagnostics); response body: \(responseBodyPreview(response.data))"
+                    logger.error("\(errorMessage)")
                     return .failure(error)
                 }
 
@@ -461,11 +488,12 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
                     data: data,
                     statusCode: httpResponse.statusCode,
                     contentDisposition: httpResponse.value(
-                        forHTTPHeaderField: "Content-Disposition")
+                        forHTTPHeaderField: "Content-Disposition"),
+                    responseURL: httpResponse.url,
+                    responseDiagnostics: responseDiagnostics(for: httpResponse)
                 )
             )
         } catch {
-            logger.error("Request error: \(error.localizedDescription)")
             return .failure(.communicationError("Request error: \(error.localizedDescription)"))
         }
     }
@@ -502,6 +530,35 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         default:
             return .serverError(message ?? "Unexpected status code \(response.statusCode)")
         }
+    }
+
+    /// Keep failed-response diagnostics useful without dumping arbitrarily large payloads into
+    /// the log. This intentionally excludes request headers (including API keys).
+    private func responseBodyPreview(_ data: Data) -> String {
+        guard !data.isEmpty else { return "<empty>" }
+        let limit = 2_048
+        guard let text = String(data: data.prefix(limit), encoding: .utf8) else {
+            return "<non-UTF8 body, \(data.count) bytes>"
+        }
+        let normalized = text.replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+        return data.count > limit ? "\(normalized)… [truncated]" : normalized
+    }
+
+    /// Capture only routing and correlation headers useful for diagnosing an intermediate
+    /// proxy or stale server instance. Authentication and cookie headers are intentionally
+    /// excluded.
+    private func responseDiagnostics(for response: HTTPURLResponse) -> String {
+        let names = [
+            "Date", "Server", "Via", "Location", "X-Request-ID", "X-Correlation-ID", "Trace-Id",
+            "traceparent",
+        ]
+        let values = names.compactMap { name -> String? in
+            guard let value = response.value(forHTTPHeaderField: name) else { return nil }
+            return "\(name)=\(value)"
+        }
+        return values.isEmpty
+            ? "response headers: <none>" : "response headers: \(values.joined(separator: ", "))"
     }
 
     func makeJSONDecoder() -> JSONDecoder {

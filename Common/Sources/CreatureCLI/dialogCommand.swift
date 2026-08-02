@@ -2,21 +2,272 @@ import ArgumentParser
 import Common
 import Foundation
 
+protocol DialogMusicCommandClient: JobPolling {
+    func getDialogScript(id: DialogScriptIdentifier) async -> Result<DialogScript, ServerError>
+    func dialogPreviewMeta(_ request: DialogPreviewRequest) async -> Result<
+        CreatureServerClient.DialogPreviewMetaOutcome, ServerError
+    >
+    func generateDialogMusic(_ request: DialogMusicRequest) async -> Result<
+        JobCreatedResponse, ServerError
+    >
+    func promoteDialogMusic(generationId: UUID) async -> Result<
+        DialogMusicPromotionResult, ServerError
+    >
+    func musicCandidateURL(generationId: UUID) async -> Result<URL, ServerError>
+    func downloadRawData(from url: URL) async -> Result<Data, ServerError>
+}
+
+extension CreatureServerClient: DialogMusicCommandClient {
+    func musicCandidateURL(generationId: UUID) async -> Result<URL, ServerError> {
+        guard let url = dialogMusicGenerationURL(generationId: generationId) else {
+            return .failure(.serverError("unable to make candidate URL"))
+        }
+        return .success(url)
+    }
+}
+
+actor DialogMusicCommandServerFactory {
+    static let shared = DialogMusicCommandServerFactory()
+
+    private var makeServer: @Sendable (GlobalOptions) -> any DialogMusicCommandClient = {
+        getServer(config: $0)
+    }
+
+    func server(for options: GlobalOptions) -> any DialogMusicCommandClient {
+        makeServer(options)
+    }
+
+    func updateFactory(
+        _ factory: @escaping @Sendable (GlobalOptions) -> any DialogMusicCommandClient
+    ) {
+        makeServer = factory
+    }
+
+    func resetFactory() {
+        makeServer = { getServer(config: $0) }
+    }
+}
+
+extension DialogMusicGenerationMode: ExpressibleByArgument {}
+
 extension CreatureCLI {
 
     struct Dialog: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Author and render multi-character dialog scenes",
             discussion:
-                "Manage saved DialogScripts (CRUD + validate), render them into multi-track animations, and export the mono / 17-channel preview WAVs for inspection in Audacity.",
+                "Manage saved DialogScripts (CRUD + validate), author background music, render multi-track animations, and export preview audio.",
             subcommands: [
                 List.self, Detail.self, Validate.self, Create.self, Update.self, Delete.self,
-                Render.self, ExportMono.self, ExportMultichannel.self,
+                Render.self, ExportMono.self, ExportMultichannel.self, Music.self,
             ]
         )
 
         @OptionGroup()
         var globalOptions: GlobalOptions
+
+        struct Music: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Generate, download, and accept dialog background music",
+                subcommands: [Generate.self, Download.self, Promote.self]
+            )
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            static func useServerFactory(
+                _ factory: @escaping @Sendable (GlobalOptions) -> any DialogMusicCommandClient
+            ) async {
+                await DialogMusicCommandServerFactory.shared.updateFactory(factory)
+            }
+
+            static func resetServerFactory() async {
+                await DialogMusicCommandServerFactory.shared.resetFactory()
+            }
+
+            static func makeServer(
+                for options: GlobalOptions
+            ) async -> any DialogMusicCommandClient {
+                await DialogMusicCommandServerFactory.shared.server(for: options)
+            }
+
+            struct Generate: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "Generate a temporary MP3 candidate from a full-dialog voice take",
+                    discussion:
+                        "The command resolves the saved script's complete voice preview, waits for music generation, and prints the temporary candidate ID. Use --output to download the MP3 immediately."
+                )
+
+                @Option(help: "Saved dialog script ID (UUID)")
+                var scriptId: String
+
+                @Option(
+                    help:
+                        "Specific cached full-dialog voice generation (UUID); defaults to the latest"
+                )
+                var dialogGenerationId: String?
+
+                @Option(help: "Music prompt describing mood, instruments, and pacing")
+                var prompt: String
+
+                @Option(help: "Music-only tail after the dialog, in milliseconds (0...60000)")
+                var durationExtensionMs: Int64 = 0
+
+                @Option(help: "Generation style: track, loop, or ambience")
+                var mode: DialogMusicGenerationMode = .track
+
+                @Option(name: .shortAndLong, help: "Optional MP3 output path")
+                var output: String?
+
+                @Flag(help: "Replace an existing output file")
+                var overwrite = false
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let scriptIdentifier = try parseUUIDArgument(scriptId, label: "script ID")
+                    let requestedGeneration = try dialogGenerationId.map {
+                        try parseUUIDArgument($0, label: "dialog generation ID")
+                    }
+                    let cleanPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !cleanPrompt.isEmpty else {
+                        throw failWithMessage("Music prompt cannot be empty.")
+                    }
+                    guard cleanPrompt.utf8.count <= DialogLimits.maxMusicPromptBytes else {
+                        throw failWithMessage(
+                            "Music prompt exceeds \(DialogLimits.maxMusicPromptBytes) UTF-8 bytes.")
+                    }
+                    guard (0...60_000).contains(durationExtensionMs) else {
+                        throw failWithMessage(
+                            "--duration-extension-ms must be between 0 and 60000.")
+                    }
+
+                    try await tracedRun("dialog.music.generate", config: globalOptions) {
+                        let server = await Music.makeServer(for: globalOptions)
+                        let script: DialogScript
+                        switch await server.getDialogScript(id: scriptIdentifier) {
+                        case .success(let value): script = value
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Could not load dialog: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
+
+                        let previewRequest = DialogPreviewRequest.fromTurns(
+                            script.turns, generationId: requestedGeneration, title: script.title)
+                        let meta: DialogPreviewMetaDTO
+                        switch await server.dialogPreviewMeta(previewRequest) {
+                        case .success(.meta(let value)):
+                            meta = value
+                        case .success(.queued(let job)):
+                            meta = try await waitForJobResult(
+                                server: server, jobId: job.jobId,
+                                label: "Generating full-dialog voice take",
+                                resultType: DialogPreviewMetaDTO.self)
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Could not resolve the full-dialog voice take: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
+
+                        let request = DialogMusicRequest(
+                            scriptId: scriptIdentifier,
+                            dialogCacheKey: meta.cacheKey,
+                            dialogGenerationId: meta.generationId,
+                            prompt: cleanPrompt,
+                            durationExtensionMilliseconds: durationExtensionMs,
+                            generationMode: mode)
+                        let job: JobCreatedResponse
+                        switch await server.generateDialogMusic(request) {
+                        case .success(let value): job = value
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Music generation failed: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
+
+                        let candidate = try await waitForJobResult(
+                            server: server, jobId: job.jobId, label: "Generating music",
+                            resultType: DialogMusicGenerationResult.self)
+                        print("✅ Music candidate ready")
+                        print(
+                            "   generation_id: \(candidate.musicGenerationId.uuidString.lowercased())"
+                        )
+                        print("   music: \(TimeHelper.formatDuration(candidate.durationSeconds))")
+                        print(
+                            "   final show: \(TimeHelper.formatDuration(candidate.finalShowDurationSeconds))"
+                        )
+                        print("   Candidate audio is temporary until promoted.")
+
+                        if let output {
+                            try await downloadMusicCandidate(
+                                server: server, generationId: candidate.musicGenerationId,
+                                output: output, overwrite: overwrite)
+                        }
+                    }
+                }
+            }
+
+            struct Download: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "Download a temporary dialog music candidate as MP3"
+                )
+
+                @Argument(help: "Music generation ID (UUID)")
+                var generationId: String
+
+                @Option(name: .shortAndLong, help: "MP3 output path")
+                var output: String
+
+                @Flag(help: "Replace an existing output file")
+                var overwrite = false
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let id = try parseUUIDArgument(generationId, label: "music generation ID")
+                    try await tracedRun("dialog.music.download", config: globalOptions) {
+                        let server = await Music.makeServer(for: globalOptions)
+                        try await downloadMusicCandidate(
+                            server: server, generationId: id, output: output,
+                            overwrite: overwrite)
+                    }
+                }
+            }
+
+            struct Promote: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "Accept a candidate for future final renders"
+                )
+
+                @Argument(help: "Music generation ID (UUID)")
+                var generationId: String
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let id = try parseUUIDArgument(generationId, label: "music generation ID")
+                    try await tracedRun("dialog.music.promote", config: globalOptions) {
+                        let server = await Music.makeServer(for: globalOptions)
+                        switch await server.promoteDialogMusic(generationId: id) {
+                        case .success(let promoted):
+                            print("✅ Accepted music for final rendering")
+                            print("   sound_file: \(promoted.soundFile)")
+                            print(
+                                "   generation_id: \(promoted.musicGenerationId.uuidString.lowercased())"
+                            )
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Could not accept music: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
         // MARK: list
 
@@ -44,6 +295,9 @@ extension CreatureCLI {
                                     title: "ID", valueProvider: { $0.id.uuidString.lowercased() }),
                                 TableColumn(
                                     title: "Turns", valueProvider: { String($0.turns.count) }),
+                                TableColumn(
+                                    title: "Music",
+                                    valueProvider: { $0.backgroundMusic == nil ? "" : "✅" }),
                                 TableColumn(
                                     title: "Updated",
                                     valueProvider: { TimeHelper.formatEpochMillis($0.updatedAt) }),
@@ -516,6 +770,41 @@ private func writeWav(_ data: Data, to path: String) throws {
     }
 }
 
+private func downloadMusicCandidate(
+    server: any DialogMusicCommandClient, generationId: UUID, output: String, overwrite: Bool
+) async throws {
+    guard output.lowercased().hasSuffix(".mp3") else {
+        throw failWithMessage("Dialog music candidates are MP3-only; --output must end in .mp3.")
+    }
+    let destination = URL(fileURLWithPath: output).standardizedFileURL
+    if FileManager.default.fileExists(atPath: destination.path), !overwrite {
+        throw failWithMessage(
+            "Destination \(destination.path) already exists. Use --overwrite to replace it.")
+    }
+    let url: URL
+    switch await server.musicCandidateURL(generationId: generationId) {
+    case .success(let value): url = value
+    case .failure(let error):
+        throw failWithMessage(
+            "Could not build the candidate URL: \(ServerError.detailedMessage(from: error))")
+    }
+    switch await server.downloadRawData(from: url) {
+    case .success(let data):
+        do {
+            try data.write(to: destination, options: .atomic)
+            print("✅ Wrote candidate MP3 (\(data.count) bytes) to \(destination.path)")
+        } catch {
+            throw failWithMessage(
+                "Unable to write MP3 to \(destination.path): \(error.localizedDescription)")
+        }
+    case .failure(.notFound):
+        throw failWithMessage("That temporary music candidate has expired. Generate it again.")
+    case .failure(let error):
+        throw failWithMessage(
+            "Candidate download failed: \(ServerError.detailedMessage(from: error))")
+    }
+}
+
 private func dialogScriptDetails(_ script: DialogScript) -> String {
     var lines: [String] = []
     lines.append("Title:    \(script.title)")
@@ -526,6 +815,10 @@ private func dialogScriptDetails(_ script: DialogScript) -> String {
     lines.append("Created:  \(TimeHelper.formatEpochMillis(script.createdAt))")
     lines.append("Updated:  \(TimeHelper.formatEpochMillis(script.updatedAt))")
     lines.append("Turns:    \(script.turns.count)")
+    if let music = script.backgroundMusic {
+        lines.append("Music:    \(music.soundFile)")
+        lines.append("Prompt:   \(music.prompt)")
+    }
     lines.append("")
     for (index, turn) in script.turns.enumerated() {
         lines.append("  [\(index + 1)] \(turn.creatureId)")

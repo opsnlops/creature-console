@@ -1,3 +1,13 @@
+creature-cli (2.46.0) unstable; urgency=medium
+
+  * Add dialog background-music generation, MP3 preview playback, take restoration,
+    music promotion/removal, and matching CLI music commands.
+  * Improve dialog cache invalidation, saved-take restoration, render provenance,
+    and background error notices without masking actionable failures.
+  * Keep creature-cli, creature-mqtt, and creature-agent versions aligned.
+
+ -- April White <april@creature.engineering>  Sat, 01 Aug 2026 17:30:00 -0700
+
 creature-cli (2.45.0) unstable; urgency=medium
 
   * Add Spatial Stage monitoring with live RTP and 17-channel WAV simulation,

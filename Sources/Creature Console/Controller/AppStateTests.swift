@@ -94,7 +94,8 @@ struct AppStateTests {
             currentAnimation: nil,
             selectedTrack: nil,
             showSystemAlert: false,
-            systemAlertMessage: ""
+            systemAlertMessage: "",
+            notice: nil
         )
 
         Task {
@@ -111,6 +112,21 @@ struct AppStateTests {
         Task {
             _ = activity
         }
+    }
+
+    @Test("postNotice publishes a consumable non-blocking notice")
+    func postNoticePublishesConsumableNotice() async {
+        let appState = AppState.shared
+
+        await appState.postNotice("Sound list refresh failed")
+        let notice = await appState.getNotice
+
+        #expect(notice?.message == "Sound list refresh failed")
+
+        if let notice {
+            await appState.clearNotice(id: notice.id)
+        }
+        #expect(await appState.getNotice == nil)
     }
 
     @Test("getCurrentActivity getter returns current activity")

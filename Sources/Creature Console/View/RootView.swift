@@ -16,6 +16,7 @@ struct RootView: View {
     // AppState (setSystemAlert → stream → ConsoleStore) lands.
     @State private var showingSystemAlert = false
     @State private var websocketErrorMessage: String? = nil
+    @State private var operationalWarning: String? = nil
     #if os(macOS)
         @State private var otherInstance: DuplicateInstanceGuard.OtherInstance? = nil
     #endif
@@ -41,6 +42,18 @@ struct RootView: View {
             .onChange(of: console.appState.showSystemAlert, initial: true) { _, showAlert in
                 showingSystemAlert = showAlert
             }
+            .onChange(of: console.appState.notice?.id, initial: true) { _, _ in
+                guard let notice = console.appState.notice else { return }
+                operationalWarning = notice.message
+                Task { await AppState.shared.clearNotice(id: notice.id) }
+            }
+            .statusBanner(
+                $operationalWarning,
+                systemImage: "exclamationmark.triangle.fill",
+                tint: .orange,
+                duration: .seconds(8),
+                alignment: .top
+            )
             #if os(macOS)
                 // A second running copy double-imports every server message into the shared
                 // SwiftData store (issue #47) — surface it before the damage accumulates.

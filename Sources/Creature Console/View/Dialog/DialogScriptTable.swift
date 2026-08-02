@@ -38,6 +38,18 @@ struct DialogScriptTable: View {
             }
             .width(min: 60, ideal: 80)
 
+            TableColumn("Music") { script in
+                if script.hasBackgroundMusic {
+                    Label("Accepted", systemImage: "music.note")
+                        .labelStyle(.iconOnly)
+                        .foregroundStyle(.green)
+                        .help("This dialog has accepted background music")
+                } else {
+                    Text("—").foregroundStyle(.tertiary)
+                }
+            }
+            .width(min: 55, ideal: 70)
+
             TableColumn("Last Updated") { script in
                 if let date = script.updatedAtDate {
                     Text(date, format: .dateTime.year().month().day().hour().minute())
@@ -188,9 +200,17 @@ struct DialogScriptTable: View {
                     logger.info("delete succeeded: \(message)")
                     successBanner = message
                     scriptToDelete = nil
-                    // The websocket invalidation will refresh the cache shortly; trigger an
-                    // optimistic refresh too in case that lags.
-                    CacheInvalidationProcessor.rebuild(.dialogScript, deleteStaleEntries: true)
+                    // Remove the row immediately. The server's cache invalidation will still
+                    // reconcile the store when its list endpoint is available, but a temporary
+                    // refresh failure must not make a successful delete look like it failed.
+                    modelContext.delete(script)
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        logger.error(
+                            "failed to persist deleted dialog locally: \(error.localizedDescription)"
+                        )
+                    }
                 case .failure(let error):
                     let detailed = ServerError.detailedMessage(from: error)
                     logger.warning("delete failed: \(detailed)")

@@ -46,6 +46,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
     public var title: String
     public var notes: String
     public var turns: [DialogScriptTurn]
+    public var backgroundMusic: DialogBackgroundMusic?
     public var createdAt: Int64?
     public var updatedAt: Int64?
 
@@ -54,6 +55,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         case title
         case notes
         case turns
+        case backgroundMusic = "background_music"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -63,6 +65,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         title: String,
         notes: String,
         turns: [DialogScriptTurn],
+        backgroundMusic: DialogBackgroundMusic? = nil,
         createdAt: Int64? = nil,
         updatedAt: Int64? = nil
     ) {
@@ -70,6 +73,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         self.title = title
         self.notes = notes
         self.turns = turns
+        self.backgroundMusic = backgroundMusic
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -80,6 +84,8 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         title = try container.decode(String.self, forKey: .title)
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
         turns = try container.decodeIfPresent([DialogScriptTurn].self, forKey: .turns) ?? []
+        backgroundMusic = try container.decodeIfPresent(
+            DialogBackgroundMusic.self, forKey: .backgroundMusic)
         createdAt = try container.decodeIfPresent(Int64.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(Int64.self, forKey: .updatedAt)
     }
@@ -92,6 +98,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         try container.encode(title, forKey: .title)
         try container.encode(notes, forKey: .notes)
         try container.encode(turns, forKey: .turns)
+        try container.encodeIfPresent(backgroundMusic, forKey: .backgroundMusic)
         try container.encodeIfPresent(createdAt, forKey: .createdAt)
         try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
     }

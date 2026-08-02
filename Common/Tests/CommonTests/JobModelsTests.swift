@@ -26,6 +26,10 @@ struct JobModelsTests {
         let staged = try decoder.decode(Wrapper.self, from: stagedData)
         #expect(staged.type == .adHocSpeechPrepare)
 
+        let musicData = #"{"type":"dialog-music"}"#.data(using: .utf8)!
+        let music = try decoder.decode(Wrapper.self, from: musicData)
+        #expect(music.type == .dialogMusic)
+
         let unknownData = #"{"type":"image-render"}"#.data(using: .utf8)!
         let unknown = try decoder.decode(Wrapper.self, from: unknownData)
         #expect(unknown.type == .unknown)

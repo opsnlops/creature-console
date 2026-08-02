@@ -2,11 +2,17 @@ import ArgumentParser
 import Common
 import Foundation
 
+protocol JobPolling: Sendable {
+    func getJob(jobId: String) async -> Result<JobStateSnapshot, ServerError>
+}
+
+extension CreatureServerClient: JobPolling {}
+
 /// Poll a background job until it reaches a terminal state, printing progress along the
 /// way. The app watches jobs over the WebSocket; the CLI's REST flows poll
 /// `GET /api/v1/job/{id}` instead (server 3.23.0+).
 func waitForJob(
-    server: CreatureServerClient,
+    server: some JobPolling,
     jobId: String,
     label: String,
     pollInterval: Duration = .seconds(1),
@@ -47,7 +53,7 @@ func waitForJob(
 /// Wait for a job and decode its completion result, failing with consistent messages on
 /// job failure or an undecodable result.
 func waitForJobResult<T: Decodable>(
-    server: CreatureServerClient,
+    server: some JobPolling,
     jobId: String,
     label: String,
     resultType: T.Type

@@ -146,4 +146,45 @@ struct JobStatusStoreTests {
 
         await store.remove(jobId: jobId)
     }
+
+    @Test("dialog music completion exposes its typed result")
+    func dialogMusicCompletionDecodesTypedResult() async throws {
+        let jobId = UUID().uuidString
+        let store = JobStatusStore.shared
+        let result = DialogMusicGenerationResult(
+            musicGenerationId: UUID(), mp3Url: "/candidate.mp3", durationSeconds: 8,
+            dialogDurationMilliseconds: 5_000, durationExtensionMilliseconds: 3_000,
+            requestedMusicLengthMilliseconds: 8_000, prompt: "Warm strings")
+        let encoded = String(decoding: try JSONEncoder().encode(result), as: UTF8.self)
+
+        await store.update(
+            with: JobCompletion(
+                jobId: jobId, jobType: .dialogMusic, status: .completed, result: encoded,
+                details: nil))
+
+        let info = await store.job(for: jobId)
+        #expect(info?.dialogMusicResult == result)
+        await store.remove(jobId: jobId)
+    }
+
+    @Test("dialog SwiftData model preserves accepted music")
+    func dialogModelPreservesAcceptedMusic() {
+        let music = DialogBackgroundMusic(
+            soundFile: "dialog/music/scene.wav", generationId: UUID(), prompt: "Warm strings",
+            acceptedAt: 1_748_579_999_000)
+        let dto = DialogScript(
+            id: UUID(), title: "Scene", notes: "",
+            turns: [DialogScriptTurn(creatureId: "beaky", text: "Hello")],
+            backgroundMusic: music)
+
+        let model = DialogScriptModel(dto: dto)
+        let roundTripped = model.toDTO()
+
+        #expect(model.hasBackgroundMusic)
+        #expect(roundTripped.id == dto.id)
+        #expect(roundTripped.title == dto.title)
+        #expect(roundTripped.turns.map(\.creatureId) == dto.turns.map(\.creatureId))
+        #expect(roundTripped.turns.map(\.text) == dto.turns.map(\.text))
+        #expect(roundTripped.backgroundMusic == music)
+    }
 }

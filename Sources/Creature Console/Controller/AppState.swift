@@ -28,12 +28,26 @@ enum Activity: CustomStringConvertible, Sendable {
     }
 }
 
+/// A one-shot, non-blocking message for operational feedback that should remain visible without
+/// interrupting the user's current task. The identifier lets the UI consume repeated messages
+/// independently, even when their text is identical.
+struct AppNotice: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let message: String
+
+    init(id: UUID = UUID(), message: String) {
+        self.id = id
+        self.message = message
+    }
+}
+
 struct AppStateData: Sendable {
     let currentActivity: Activity
     let currentAnimation: Common.Animation?
     let selectedTrack: CreatureIdentifier?
     let showSystemAlert: Bool
     let systemAlertMessage: String
+    let notice: AppNotice?
 }
 
 actor AppState {
@@ -46,6 +60,7 @@ actor AppState {
     private var selectedTrack: CreatureIdentifier?
     private var showSystemAlert: Bool = false
     private var systemAlertMessage: String = ""
+    private var notice: AppNotice?
 
     private var continuations: [UUID: AsyncStream<AppStateData>.Continuation] = [:]
 
@@ -82,7 +97,8 @@ actor AppState {
             currentAnimation: self.currentAnimation,
             selectedTrack: self.selectedTrack,
             showSystemAlert: self.showSystemAlert,
-            systemAlertMessage: self.systemAlertMessage
+            systemAlertMessage: self.systemAlertMessage,
+            notice: self.notice
         )
     }
 
@@ -127,10 +143,22 @@ actor AppState {
         self.publishState()
     }
 
+    func postNotice(_ message: String) {
+        self.notice = AppNotice(message: message)
+        self.publishState()
+    }
+
+    func clearNotice(id: UUID) {
+        guard self.notice?.id == id else { return }
+        self.notice = nil
+        self.publishState()
+    }
+
     // Getters for actor access
     var getCurrentActivity: Activity { self.currentActivity }
     var getCurrentAnimation: Common.Animation? { self.currentAnimation }
     var getSelectedTrack: CreatureIdentifier? { self.selectedTrack }
     var getShowSystemAlert: Bool { self.showSystemAlert }
     var getSystemAlertMessage: String { self.systemAlertMessage }
+    var getNotice: AppNotice? { self.notice }
 }

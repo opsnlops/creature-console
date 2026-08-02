@@ -24,6 +24,7 @@ final class DialogScriptModel: Identifiable {
     var title: String = ""
     var notes: String = ""
     var turnsJSON: Data = Data("[]".utf8)
+    var backgroundMusicJSON: Data? = nil
     var createdAtMillis: Int64? = nil
     var updatedAtMillis: Int64? = nil
 
@@ -32,6 +33,7 @@ final class DialogScriptModel: Identifiable {
         title: String,
         notes: String,
         turnsJSON: Data,
+        backgroundMusicJSON: Data?,
         createdAtMillis: Int64?,
         updatedAtMillis: Int64?
     ) {
@@ -39,6 +41,7 @@ final class DialogScriptModel: Identifiable {
         self.title = title
         self.notes = notes
         self.turnsJSON = turnsJSON
+        self.backgroundMusicJSON = backgroundMusicJSON
         self.createdAtMillis = createdAtMillis
         self.updatedAtMillis = updatedAtMillis
     }
@@ -47,30 +50,63 @@ final class DialogScriptModel: Identifiable {
 extension DialogScriptModel {
 
     convenience init(dto: Common.DialogScript) {
-        // Best-effort encode — failures fall back to an empty array so SwiftData persistence
-        // doesn't crash on a transiently malformed turn.
-        let turns = (try? JSONEncoder().encode(dto.turns)) ?? Data("[]".utf8)
+        // These DTOs are already validated Codable values. Encoding failures indicate a
+        // programming/schema error and should not silently turn a real script into an empty one.
+        var turns: Data
+        var backgroundMusic: Data?
+        do {
+            turns = try JSONEncoder().encode(dto.turns)
+            backgroundMusic = try dto.backgroundMusic.map { try JSONEncoder().encode($0) }
+        } catch {
+            Self.logger.fault(
+                "Could not encode dialog script \(dto.id): \(error.localizedDescription)")
+            turns = Data("[]".utf8)
+            backgroundMusic = nil
+        }
         self.init(
             id: dto.id,
             title: dto.title,
             notes: dto.notes,
             turnsJSON: turns,
+            backgroundMusicJSON: backgroundMusic,
             createdAtMillis: dto.createdAt,
             updatedAtMillis: dto.updatedAt
         )
     }
 
     /// Convert back to the Common DTO. Decoding the blob can in principle fail (e.g. if the
-    /// on-disk JSON predates a future model change); we surface an empty array rather than
-    /// crashing the UI.
+    /// on-disk JSON predates a future model change); log the corruption rather than silently
+    /// presenting an apparently valid but empty script.
     func toDTO() -> Common.DialogScript {
-        let turns =
-            (try? JSONDecoder().decode([DialogScriptTurn].self, from: turnsJSON)) ?? []
+        let turns: [DialogScriptTurn]
+        do {
+            turns = try JSONDecoder().decode([DialogScriptTurn].self, from: turnsJSON)
+        } catch {
+            Self.logger.error(
+                "Could not decode turns for dialog script \(self.id): \(error.localizedDescription)"
+            )
+            turns = []
+        }
+        let backgroundMusic: DialogBackgroundMusic?
+        if let backgroundMusicJSON {
+            do {
+                backgroundMusic = try JSONDecoder().decode(
+                    DialogBackgroundMusic.self, from: backgroundMusicJSON)
+            } catch {
+                Self.logger.error(
+                    "Could not decode background music for dialog script \(self.id): \(error.localizedDescription)"
+                )
+                backgroundMusic = nil
+            }
+        } else {
+            backgroundMusic = nil
+        }
         return Common.DialogScript(
             id: id,
             title: title,
             notes: notes,
             turns: turns,
+            backgroundMusic: backgroundMusic,
             createdAt: createdAtMillis,
             updatedAt: updatedAtMillis
         )
@@ -81,6 +117,8 @@ extension DialogScriptModel {
     var turnCount: Int {
         (try? JSONDecoder().decode([DialogScriptTurn].self, from: turnsJSON))?.count ?? 0
     }
+
+    var hasBackgroundMusic: Bool { backgroundMusicJSON != nil }
 
     var updatedAtDate: Date? {
         updatedAtMillis.map { Date(timeIntervalSince1970: Double($0) / 1000.0) }

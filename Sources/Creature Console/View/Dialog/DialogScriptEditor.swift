@@ -47,11 +47,19 @@ struct DialogScriptEditor: View {
 
     /// Take chosen in the preview panel, reused by the render panel.
     @State private var selectedGenerationId: DialogGenerationIdentifier? = nil
+    @State private var fullDialogMeta: DialogPreviewMetaDTO? = nil
+    @State private var previewScope: DialogPreviewScope = .full
+    @State private var collapsedTurnIds: Set<UUID> = []
+    @State private var outlineExpanded = true
 
     @Environment(\.dismiss) private var dismiss
 
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
+
+    @Query private var sounds: [SoundModel]
+
+    @Query private var animations: [AnimationMetadataModel]
 
     private let server = CreatureServerClient.shared
 
@@ -79,7 +87,64 @@ struct DialogScriptEditor: View {
         (!createNew && !isDirty) ? original.id : nil
     }
 
+    /// Turn ids are client-only SwiftUI identities and are freshly minted whenever the server
+    /// sends the canonical script back. Compare the wire content instead so refreshing a script
+    /// after accepting music does not discard the exact voice take selected for rendering.
+    private var turnContent: [String] {
+        script.turns.map { "\($0.creatureId)\u{0}\($0.text)" }
+    }
+
     private var canAddTurn: Bool { script.turns.count < DialogLimits.maxTurns }
+
+    /// Permanent dialog renders embed their ElevenLabs generation ids in the sound provenance.
+    /// Resolve the sound through the newest animation for this script first. A promoted music
+    /// file also carries the script id and a generation id, so scanning every sound directly can
+    /// accidentally use a music generation as the voice take.
+    private var existingRenderedGenerationId: DialogGenerationIdentifier? {
+        guard !createNew else { return nil }
+        let scriptID = original.id.uuidString.lowercased()
+        let acceptedMusicGenerationID = original.backgroundMusic?.generationId.uuidString
+            .lowercased()
+        let acceptedMusicFileName = original.backgroundMusic?.soundFile
+            .split(separator: "/")
+            .last
+            .map(String.init)?
+            .lowercased()
+        let sourceAnimations =
+            animations
+            .filter { $0.sourceScriptId?.lowercased() == scriptID && !$0.soundFile.isEmpty }
+            .sorted { ($0.lastUpdated ?? .distantPast) > ($1.lastUpdated ?? .distantPast) }
+        let renderedSoundIDs = sourceAnimations.map { $0.soundFile.lowercased() }
+        let sourceVoiceSounds = sounds.filter { sound in
+            guard sound.sourceScriptId.lowercased() == scriptID else { return false }
+            let soundID = sound.id.lowercased()
+            if soundID.contains("/music/")
+                || acceptedMusicFileName.map({ $0 == soundID }) == true
+            {
+                return false
+            }
+            let soundGenerationIDs = sound.generationIds
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+            return !soundGenerationIDs.contains(acceptedMusicGenerationID ?? "")
+        }
+        // Prefer the sound attached to the newest rendered animation. Some server versions
+        // normalize the animation's sound path differently from the sound-list id, so retain a
+        // provenance-based fallback rather than making an otherwise valid render disappear.
+        let exactVoiceSounds = sourceVoiceSounds.filter {
+            renderedSoundIDs.contains($0.id.lowercased())
+        }
+        let voiceSounds = exactVoiceSounds.isEmpty ? sourceVoiceSounds : exactVoiceSounds
+
+        for sound in voiceSounds {
+            for rawID in sound.generationIds.split(separator: ",") {
+                if let generationID = UUID(uuidString: rawID.trimmingCharacters(in: .whitespaces)) {
+                    return generationID
+                }
+            }
+        }
+        return nil
+    }
 
     var body: some View {
         ScrollView {
@@ -88,19 +153,55 @@ struct DialogScriptEditor: View {
                     detailsSection
                     turnsSection
                     validationBanner
-                    // Preview + render work on the in-memory turns, so they're available before the
-                    // first save (an unsaved scene renders inline). They appear once there's a turn.
+                    // Partial/full voice previews can use in-memory turns. Music and final render
+                    // stay downstream of a saved script and an exact full-dialog take.
                     if !script.turns.isEmpty {
                         DialogPreviewPanel(
                             turns: script.turns, title: script.title,
-                            selectedGenerationId: $selectedGenerationId)
+                            scope: $previewScope,
+                            fullDialogMeta: $fullDialogMeta,
+                            selectedGenerationId: $selectedGenerationId,
+                            restoreCachedTake: !createNew,
+                            preferredGenerationId: existingRenderedGenerationId)
+                        DialogMusicPanel(
+                            scriptId: renderScriptId,
+                            fullDialogMeta: fullDialogMeta,
+                            backgroundMusic: original.backgroundMusic,
+                            scriptUpdatedAt: original.updatedAt,
+                            hasUnsavedChanges: createNew || isDirty
+                        ) { canonical in
+                            // Music removal is a server-side field mutation. Merge only that
+                            // field so a response that arrives after a local edit cannot erase
+                            // title, notes, or turns that are still being authored.
+                            var updatedOriginal = original
+                            updatedOriginal.backgroundMusic = canonical.backgroundMusic
+                            updatedOriginal.createdAt = canonical.createdAt
+                            updatedOriginal.updatedAt = canonical.updatedAt
+                            original = updatedOriginal
+
+                            var updatedScript = script
+                            updatedScript.backgroundMusic = canonical.backgroundMusic
+                            updatedScript.createdAt = canonical.createdAt
+                            updatedScript.updatedAt = canonical.updatedAt
+                            script = updatedScript
+                            persistLocalScript(updatedScript)
+                        } onMusicUpdated: { music in
+                            var updated = original
+                            updated.backgroundMusic = music
+                            original = updated
+                            var localScript = script
+                            localScript.backgroundMusic = music
+                            script = localScript
+                            persistLocalScript(localScript)
+                        }
                         switch mode {
                         case .standalone:
                             DialogRenderPanel(
                                 scriptId: renderScriptId,
                                 turns: script.turns,
                                 selectedGenerationId: selectedGenerationId,
-                                defaultTitle: script.title)
+                                defaultTitle: script.title,
+                                backgroundMusic: original.backgroundMusic)
                         case .animationLinked:
                             // This script already has a rendered animation; offer an in-place
                             // re-render instead of a fresh one. Requires a saved (non-dirty) script
@@ -109,6 +210,7 @@ struct DialogScriptEditor: View {
                                 DialogRerenderButton(
                                     scriptId: original.id,
                                     title: script.title,
+                                    generationId: selectedGenerationId,
                                     disabled: isDirty,
                                     disabledHint: isDirty
                                         ? "Save your edits first so the re-render includes them."
@@ -160,11 +262,12 @@ struct DialogScriptEditor: View {
         .onChange(of: script) { _, newValue in
             scheduleValidation(for: newValue)
         }
-        .onChange(of: script.turns) {
+        .onChange(of: turnContent) { _, _ in
             // The server's preview cache key is sha256(turns), so any turn change (text,
             // creature, add/remove/reorder) orphans the selected take — asking for it under
             // the new key would 404. Fall back to "latest / server decides".
             selectedGenerationId = nil
+            fullDialogMeta = nil
         }
     }
 
@@ -172,7 +275,7 @@ struct DialogScriptEditor: View {
 
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Details").font(.title2.bold())
+            Text("1. Script").font(.title2.bold())
             HStack(alignment: .firstTextBaseline) {
                 Text("Title").font(.title3).frame(width: 80, alignment: .leading)
                 VStack(alignment: .trailing, spacing: 4) {
@@ -204,9 +307,45 @@ struct DialogScriptEditor: View {
             HStack {
                 Text("Turns").font(.title2.bold())
                 Spacer()
+                if !script.turns.isEmpty {
+                    Button(
+                        collapsedTurnIds.count == script.turns.count ? "Expand All" : "Collapse All"
+                    ) {
+                        if collapsedTurnIds.count == script.turns.count {
+                            collapsedTurnIds.removeAll()
+                        } else {
+                            collapsedTurnIds = Set(script.turns.map(\.id))
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                }
                 Text("\(script.turns.count)/\(DialogLimits.maxTurns)")
                     .font(.subheadline)
                     .foregroundStyle(script.turns.count > DialogLimits.maxTurns ? .red : .secondary)
+            }
+
+            if !script.turns.isEmpty {
+                DisclosureGroup("Scene Outline", isExpanded: $outlineExpanded) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(script.turns.enumerated()), id: \.element.id) { index, turn in
+                            HStack(alignment: .firstTextBaseline) {
+                                Text("\(index + 1)")
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.tertiary)
+                                    .frame(width: 24, alignment: .trailing)
+                                Text(creatureName(for: turn.creatureId))
+                                    .font(.caption.bold())
+                                    .frame(width: 110, alignment: .leading)
+                                Text(turn.text.isEmpty ? "Empty turn" : turn.text)
+                                    .font(.caption)
+                                    .foregroundStyle(turn.text.isEmpty ? .tertiary : .secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                .font(.headline)
             }
 
             if script.turns.isEmpty {
@@ -242,6 +381,23 @@ struct DialogScriptEditor: View {
                 Spacer()
                 creaturePicker(selection: turn.creatureId)
                 Button {
+                    previewScope = .turn(index)
+                } label: {
+                    Label("Preview This Turn", systemImage: "play.circle")
+                }
+                .buttonStyle(.borderless)
+                .help("Switch the voice panel to a partial preview of this turn")
+                Button {
+                    if collapsedTurnIds.contains(id) {
+                        collapsedTurnIds.remove(id)
+                    } else {
+                        collapsedTurnIds.insert(id)
+                    }
+                } label: {
+                    Image(systemName: collapsedTurnIds.contains(id) ? "chevron.down" : "chevron.up")
+                }
+                .buttonStyle(.borderless)
+                Button {
                     moveTurn(id: id, by: -1)
                 } label: {
                     Image(systemName: "arrow.up")
@@ -263,14 +419,21 @@ struct DialogScriptEditor: View {
                 .buttonStyle(.borderless)
             }
 
-            TextEditor(text: turn.text)
-                .font(.title3)
-                .frame(minHeight: 88)
-                .contentMargins(16, for: .scrollContent)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+            if collapsedTurnIds.contains(id) {
+                Text(turn.wrappedValue.text.isEmpty ? "Empty turn" : turn.wrappedValue.text)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            } else {
+                TextEditor(text: turn.text)
+                    .font(.title3)
+                    .frame(minHeight: 88)
+                    .contentMargins(16, for: .scrollContent)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
 
-            characterCount(turn.wrappedValue.text.count, limit: DialogLimits.maxTurnText)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                characterCount(turn.wrappedValue.text.count, limit: DialogLimits.maxTurnText)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
         .padding(16)
         .glassEffect(.regular, in: .rect(cornerRadius: 10))
@@ -292,6 +455,11 @@ struct DialogScriptEditor: View {
         }
         .labelsHidden()
         .frame(maxWidth: 220)
+    }
+
+    private func creatureName(for id: CreatureIdentifier) -> String {
+        creatures.first(where: { $0.id == id })?.name
+            ?? (id.isEmpty ? "No creature" : "Unknown")
     }
 
     @ViewBuilder
@@ -433,13 +601,25 @@ struct DialogScriptEditor: View {
                 switch result {
                 case .success(let saved):
                     logger.info("saved dialog script \(saved.id)")
-                    // Replace both copies with the server's canonical record so dirty detection
-                    // and render-by-id work; this also picks up server-stamped timestamps.
+                    // Keep a newer local edit if the author continued typing while the request
+                    // was in flight. The server response still becomes the saved baseline and
+                    // supplies the canonical id/timestamps/server-managed music field.
+                    let hasNewerLocalEdits = script != toSave
                     original = saved
-                    script = saved
                     createNew = false
-                    CacheInvalidationProcessor.rebuild(.dialogScript, deleteStaleEntries: true)
-                    savedBanner = "Saved"
+                    if hasNewerLocalEdits {
+                        var preserved = script
+                        preserved.id = saved.id
+                        preserved.createdAt = saved.createdAt
+                        preserved.updatedAt = saved.updatedAt
+                        preserved.backgroundMusic = saved.backgroundMusic
+                        script = preserved
+                        savedBanner = "Saved; newer edits remain unsaved"
+                    } else {
+                        script = saved
+                        savedBanner = "Saved"
+                    }
+                    persistLocalScript(saved)
                 case .failure(let error):
                     showError(
                         title: "Save Failed", message: ServerError.detailedMessage(from: error))
@@ -459,7 +639,6 @@ struct DialogScriptEditor: View {
                 switch result {
                 case .success(let message):
                     logger.info("dialog script deleted: \(message)")
-                    CacheInvalidationProcessor.rebuild(.dialogScript, deleteStaleEntries: true)
                     dismiss()
                 case .failure(let error):
                     showError(
@@ -471,5 +650,25 @@ struct DialogScriptEditor: View {
 
     private func showError(title: String, message: String) {
         errorAlert = ErrorAlert(title: title, message: message)
+    }
+
+    /// Keep the list view's SwiftData projection current immediately after a successful
+    /// mutation. The server websocket remains the authoritative invalidation path; this local
+    /// upsert only avoids making the editor wait for a redundant list GET to reflect its own
+    /// change.
+    private func persistLocalScript(_ script: DialogScript) {
+        Task {
+            do {
+                let container = await SwiftDataStore.shared.container()
+                let importer = DialogScriptImporter(modelContainer: container)
+                try await importer.upsertBatch([script])
+            } catch {
+                logger.error(
+                    "Could not update local dialog cache: \(error.localizedDescription)")
+                await AppState.shared.postNotice(
+                    "Dialog saved, but the local dialog list could not be updated: \(error.localizedDescription)"
+                )
+            }
+        }
     }
 }

@@ -9,7 +9,7 @@ struct RecordTrack: View {
 
     @State private var appState = AppStateData(
         currentActivity: .idle, currentAnimation: nil, selectedTrack: nil, showSystemAlert: false,
-        systemAlertMessage: "")
+        systemAlertMessage: "", notice: nil)
     let audioManager = AudioManager.shared
     let eventLoop = EventLoop.shared
     let server = CreatureServerClient.shared
@@ -161,7 +161,8 @@ struct RecordTrack: View {
                 currentAnimation: await AppState.shared.getCurrentAnimation,
                 selectedTrack: await AppState.shared.getSelectedTrack,
                 showSystemAlert: await AppState.shared.getShowSystemAlert,
-                systemAlertMessage: await AppState.shared.getSystemAlertMessage
+                systemAlertMessage: await AppState.shared.getSystemAlertMessage,
+                notice: await AppState.shared.getNotice
             )
             appState = initialAppState
 

@@ -15,4 +15,6 @@ public enum DialogLimits {
     public static let maxTitle = 256
     /// Maximum length, in characters, of a script's `notes`.
     public static let maxNotes = 16384
+    /// Maximum UTF-8 byte count for a background-music prompt.
+    public static let maxMusicPromptBytes = 4100
 }

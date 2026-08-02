@@ -24,11 +24,19 @@ class AudioManager {
     @ObservationIgnored private var audioPlayer: AVAudioPlayer?
     @ObservationIgnored private var previewEngine: AVAudioEngine?
     @ObservationIgnored private var previewPlayer: AVAudioPlayerNode?
+    @ObservationIgnored private var dialogAuditionEngine: AVAudioEngine?
+    @ObservationIgnored private var dialogVoicePlayer: AVAudioPlayerNode?
+    @ObservationIgnored private var dialogMusicPlayer: AVAudioPlayerNode?
+    @ObservationIgnored private var dialogAuditionFiles: [AVAudioFile] = []
     @ObservationIgnored let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "AudioManager")
 
     /// The most recent error emitted by the audio manager. Observe this in the UI to present errors.
     var lastError: AudioError?
+    private(set) var isDialogAuditionPlaying = false
+    var dialogMusicVolume: Float = 0.35 {
+        didSet { dialogMusicPlayer?.volume = dialogMusicVolume }
+    }
 
     /// Keep a strong reference to the armed preview file so it remains valid during playback.
     @ObservationIgnored private var previewFile: AVAudioFile?
@@ -57,6 +65,8 @@ class AudioManager {
     @ObservationIgnored private var playerGeneration = 0
     @ObservationIgnored private var bundledSoundGeneration = 0
     @ObservationIgnored private var previewGeneration = 0
+    @ObservationIgnored private var dialogAuditionGeneration = 0
+    @ObservationIgnored private var dialogAuditionCompletions = 0
 
     /// Notification observers watching for the current AVPlayer item to finish.
     @ObservationIgnored private var playerEndObservers: [NSObjectProtocol] = []
@@ -90,7 +100,9 @@ class AudioManager {
     /// (e.g. the filming alignment cue finishing while a preview is armed).
     private func releaseAudioSessionIfIdle() {
         let bundledSoundPlaying = audioPlayer?.isPlaying ?? false
-        guard player == nil, !bundledSoundPlaying, previewPlayer == nil else { return }
+        guard player == nil, !bundledSoundPlaying, previewPlayer == nil,
+            dialogAuditionEngine == nil
+        else { return }
         deactivateAudioSession()
     }
 
@@ -309,6 +321,115 @@ class AudioManager {
             reportError(err)
             return .failure(err)
         }
+    }
+
+    /// Persist already-authorized response data in the audio cache. Dialog music uses this
+    /// after downloading through `CreatureServerClient`, which preserves API/proxy headers and
+    /// lets the caller distinguish an expired candidate (404) from a playback failure.
+    func cacheAudioData(_ data: Data, cacheKey: String, fileExtension: String) -> Result<
+        URL, AudioError
+    > {
+        do {
+            let cachesDirectory = try FileManager.default.url(
+                for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let safeKey = cacheKey.replacingOccurrences(of: "/", with: "-")
+            let url =
+                cachesDirectory
+                .appendingPathComponent("dialog-audio-\(safeKey)")
+                .appendingPathExtension(fileExtension)
+            try data.write(to: url, options: .atomic)
+            return .success(url)
+        } catch {
+            let audioError = AudioError.systemError(
+                "Could not cache dialog audio: \(error.localizedDescription)")
+            reportError(audioError)
+            return .failure(audioError)
+        }
+    }
+
+    /// Play the dialog take and a candidate/accepted music file from the same host-time anchor.
+    /// Separate player nodes keep the music level adjustable without altering the voice mix.
+    func playDialogAudition(
+        voiceURL: URL, musicURL: URL, musicVolume: Float
+    ) -> Result<String, AudioError> {
+        do {
+            stopDialogAudition()
+            activateAudioSession()
+
+            let engine = AVAudioEngine()
+            let voicePlayer = AVAudioPlayerNode()
+            let musicPlayer = AVAudioPlayerNode()
+            let voiceFile = try AVAudioFile(forReading: voiceURL)
+            let musicFile = try AVAudioFile(forReading: musicURL)
+
+            engine.attach(voicePlayer)
+            engine.attach(musicPlayer)
+            engine.connect(
+                voicePlayer, to: engine.mainMixerNode, format: voiceFile.processingFormat)
+            engine.connect(
+                musicPlayer, to: engine.mainMixerNode, format: musicFile.processingFormat)
+
+            dialogAuditionGeneration += 1
+            dialogAuditionCompletions = 0
+            let generation = dialogAuditionGeneration
+            voicePlayer.scheduleFile(voiceFile, at: nil, completionCallbackType: .dataPlayedBack) {
+                [weak self] _ in
+                Task { @MainActor in self?.dialogAuditionDidFinish(generation: generation) }
+            }
+            musicPlayer.scheduleFile(musicFile, at: nil, completionCallbackType: .dataPlayedBack) {
+                [weak self] _ in
+                Task { @MainActor in self?.dialogAuditionDidFinish(generation: generation) }
+            }
+
+            self.dialogAuditionEngine = engine
+            self.dialogVoicePlayer = voicePlayer
+            self.dialogMusicPlayer = musicPlayer
+            self.dialogAuditionFiles = [voiceFile, musicFile]
+            self.dialogMusicVolume = musicVolume
+            voicePlayer.volume = 1
+            musicPlayer.volume = musicVolume
+
+            try engine.start()
+            let startTime = AVAudioTime(
+                hostTime: mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: 0.1))
+            voicePlayer.play(at: startTime)
+            musicPlayer.play(at: startTime)
+            isDialogAuditionPlaying = true
+            return .success("Playing dialog with music")
+        } catch {
+            tearDownDialogAudition()
+            let audioError = AudioError.systemError(
+                "Could not play the dialog and music together: \(error.localizedDescription)")
+            reportError(audioError)
+            releaseAudioSessionIfIdle()
+            return .failure(audioError)
+        }
+    }
+
+    func stopDialogAudition() {
+        dialogAuditionGeneration += 1
+        tearDownDialogAudition()
+        releaseAudioSessionIfIdle()
+    }
+
+    private func dialogAuditionDidFinish(generation: Int) {
+        guard generation == dialogAuditionGeneration else { return }
+        dialogAuditionCompletions += 1
+        guard dialogAuditionCompletions == 2 else { return }
+        tearDownDialogAudition()
+        releaseAudioSessionIfIdle()
+    }
+
+    private func tearDownDialogAudition() {
+        dialogVoicePlayer?.stop()
+        dialogMusicPlayer?.stop()
+        dialogAuditionEngine?.stop()
+        dialogVoicePlayer = nil
+        dialogMusicPlayer = nil
+        dialogAuditionEngine = nil
+        dialogAuditionFiles = []
+        dialogAuditionCompletions = 0
+        isDialogAuditionPlaying = false
     }
 
     /// Extract a path extension from a URL if present, otherwise nil.
@@ -649,14 +770,12 @@ class AudioManager {
     /// 1. **Prepare Phase**: Download and process the audio file (happens during countdown)
     /// 2. **Arm Phase**: Load into AVAudioEngine and schedule for precise playback
     ///
-    /// **WAV File Handling:**
-    /// Creature server uses 17-channel WAV files (one channel per motor). This method
-    /// automatically downmixes them to mono for preview playback using the same logic
-    /// as `SoundFileListView`. The downmix uses Accelerate framework for performance.
+    /// **Playback format:**
+    /// Always resolves the server's MP3 rendition, even when the source file is a 17-channel WAV.
+    /// The original WAV is reserved for server/rendering and explicit download workflows.
     ///
     /// **Caching:**
-    /// Both WAV (mono-downmixed) and other formats are cached to avoid re-downloading
-    /// and re-processing on subsequent uses.
+    /// The MP3 rendition is cached to avoid re-downloading on subsequent uses.
     ///
     /// **Error Propagation:**
     /// All errors are reported via `reportError()` which publishes to `AudioManager.lastError`
@@ -668,10 +787,10 @@ class AudioManager {
     /// - Note: After calling this, use `startArmedPreview(in:)` to begin playback at a
     ///         precise time using `mach_absolute_time()` for sample-accurate synchronization.
     func prepareAndArmSoundFile(fileName: String) async -> Result<Void, AudioError> {
-        let urlResult = server.getSoundURL(fileName)
+        let urlResult = server.getSoundRenditionURL(fileName, as: .mp3)
         switch urlResult {
         case .success(let remoteURL):
-            if fileName.lowercased().hasSuffix(".wav") {
+            if remoteURL.pathExtension.lowercased() == "wav" {
                 // WAV files require special handling: download → downmix 17ch to mono → arm
                 logger.debug("Preparing WAV file for recording: \(fileName)")
                 let prepResult = await prepareMonoPreview(for: remoteURL, cacheKey: fileName)
@@ -692,8 +811,8 @@ class AudioManager {
                     return .failure(err)
                 }
             } else {
-                // Other formats (MP3, FLAC): download → cache → arm directly
-                logger.debug("Preparing audio file for recording: \(fileName)")
+                // MP3 rendition: download → cache → arm directly
+                logger.debug("Preparing MP3 rendition for recording: \(fileName)")
                 do {
                     let request = server.createConfiguredURLRequest(for: remoteURL)
                     let (downloadedURL, _) = try await URLSession.shared.download(for: request)
@@ -703,7 +822,9 @@ class AudioManager {
                         for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil,
                         create: true
                     )
-                    let cachedURL = cachesDir.appendingPathComponent("audio-\(fileName)")
+                    let safeName = fileName.replacingOccurrences(of: "/", with: "-")
+                    let cachedURL =
+                        cachesDir.appendingPathComponent("audio-mp3-\(safeName).mp3")
 
                     // Remove existing cached file if present
                     if FileManager.default.fileExists(atPath: cachedURL.path) {
@@ -711,7 +832,7 @@ class AudioManager {
                     }
 
                     try FileManager.default.moveItem(at: downloadedURL, to: cachedURL)
-                    logger.debug("Audio file downloaded, arming for playback")
+                    logger.debug("MP3 rendition downloaded, arming for playback")
 
                     let armResult = armPreviewPlayback(fileURL: cachedURL)
                     switch armResult {
@@ -723,15 +844,16 @@ class AudioManager {
                     }
                 } catch {
                     let err: AudioError = .systemError(
-                        "Failed to download sound file: \(error.localizedDescription)")
-                    logger.error("Failed to download audio file: \(error.localizedDescription)")
+                        "Failed to download sound MP3: \(error.localizedDescription)")
+                    logger.error("Failed to download sound MP3: \(error.localizedDescription)")
                     reportError(err)
                     return .failure(err)
                 }
             }
-        case .failure:
-            let err: AudioError = .systemError("Failed to get sound URL for \(fileName)")
-            logger.error("Failed to get sound URL for \(fileName)")
+        case .failure(let serverError):
+            let err: AudioError = .systemError(
+                "Failed to get sound MP3 URL: \(ServerError.detailedMessage(from: serverError))")
+            logger.error("Failed to get sound MP3 URL for \(fileName)")
             reportError(err)
             return .failure(err)
         }

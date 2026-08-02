@@ -74,6 +74,7 @@ actor CacheInvalidationProcessor {
     // MARK: - Actor-isolated implementation
 
     func process(_ request: CacheInvalidation) {
+        logger.info("received server cache invalidation: \(request.cacheType.rawValue)")
         switch request.cacheType {
         case .creature:
             rebuild(.creature, deleteStaleEntries: true)
@@ -86,7 +87,7 @@ actor CacheInvalidationProcessor {
         case .fixture:
             rebuild(.fixture, deleteStaleEntries: true)
         case .dialogScriptList:
-            rebuild(.dialogScript, deleteStaleEntries: true)
+            refreshDialogScriptsByKnownIDs()
         case .storyboardList:
             rebuild(.storyboard, deleteStaleEntries: true)
         case .adHocAnimationList:
@@ -103,6 +104,62 @@ actor CacheInvalidationProcessor {
         rebuildTasks[cache]?.cancel()
         rebuildTasks[cache] = Task {
             await self.rebuildNow(cache, deleteStaleEntries: deleteStaleEntries)
+        }
+    }
+
+    /// Refresh saved scripts through the parameterized endpoint. The websocket invalidation only
+    /// says that the script collection changed; it does not carry a script id, and the deployed
+    /// server intentionally rejects the old collection GET. The local cache is our source of
+    /// known ids, while successful create/update responses already upsert their canonical script.
+    private func refreshDialogScriptsByKnownIDs() {
+        logger.info("refreshing dialog scripts by their locally known ids")
+        rebuildTasks[.dialogScript]?.cancel()
+        rebuildTasks[.dialogScript] = Task {
+            let server = CreatureServerClient.shared
+            let container = await SwiftDataStore.shared.container()
+            let importer = DialogScriptImporter(modelContainer: container)
+
+            do {
+                let ids = try await importer.allIDs()
+                guard !ids.isEmpty else {
+                    logger.debug("dialog-script invalidation has no locally known ids")
+                    return
+                }
+
+                var refreshed: [DialogScript] = []
+                var deletedIDs: [DialogScriptIdentifier] = []
+                var failures: [String] = []
+                for id in ids {
+                    guard !Task.isCancelled else { return }
+                    switch await server.getDialogScript(id: id) {
+                    case .success(let script):
+                        refreshed.append(script)
+                    case .failure(.notFound):
+                        deletedIDs.append(id)
+                    case .failure(let error):
+                        failures.append(
+                            "\(id.uuidString.lowercased()): \(error.localizedDescription)")
+                    }
+                }
+
+                try await importer.upsertBatch(refreshed)
+                for id in deletedIDs {
+                    try await importer.delete(id: id)
+                }
+                logger.info(
+                    "refreshed \(refreshed.count) dialog scripts by id; removed \(deletedIDs.count) stale entries"
+                )
+                if let failure = failures.first {
+                    await reportFailure(
+                        "Unable to refresh one or more dialog scripts after invalidation: \(failure)"
+                    )
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                await reportFailure(
+                    "Unable to refresh dialog scripts after invalidation: \(error.localizedDescription)"
+                )
+            }
         }
     }
 
@@ -213,19 +270,34 @@ actor CacheInvalidationProcessor {
                     "(re)built the \(cache.noun) cache in SwiftData: imported \(items.count) items"
                 )
             } catch {
+                // A newer invalidation intentionally supersedes this rebuild. URLSession reports
+                // that cancellation as a communication error, but it is not actionable and must
+                // not surface as an operational warning.
+                guard !Task.isCancelled else { return }
                 await reportFailure(
                     "Unable to reload the \(cache.noun) cache after getting an invalidation message: \(error.localizedDescription)"
                 )
             }
         case .failure(let error):
-            await reportFailure(
-                "Unable to fetch the \(cache.noun) list after invalidation: \(error.localizedDescription)"
-            )
+            guard !Task.isCancelled else { return }
+            await reportFailure(fetchFailureMessage(for: cache, error: error))
+        }
+    }
+
+    private func fetchFailureMessage(for cache: Cache, error: ServerError) -> String {
+        switch cache {
+        case .soundList:
+            return
+                "The legacy sound-library refresh failed in the background; your current work can continue. "
+                + "Details: \(error.localizedDescription)"
+        default:
+            return
+                "Unable to fetch the \(cache.noun) data after invalidation: \(error.localizedDescription)"
         }
     }
 
     private func reportFailure(_ message: String) async {
         logger.warning("\(message)")
-        await AppState.shared.setSystemAlert(show: true, message: message)
+        await AppState.shared.postNotice(message)
     }
 }

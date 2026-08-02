@@ -15,6 +15,10 @@ struct DialogRerenderButton: View {
 
     let scriptId: DialogScriptIdentifier
     let title: String
+    /// When the editor has already selected a full-dialog voice take, keep re-rendering tied to
+    /// that exact generation. Hosts that do not have a selection retain server-side latest-take
+    /// behavior.
+    var generationId: DialogGenerationIdentifier? = nil
     /// Disable the action (e.g. while the script has unsaved edits a re-render wouldn't include).
     var disabled: Bool = false
     var disabledHint: String? = nil
@@ -91,7 +95,8 @@ struct DialogRerenderButton: View {
         let title = title
         Task {
             let result = await server.renderDialog(
-                .fromScript(scriptId, persistence: .permanent, title: title))
+                .fromScript(
+                    scriptId, persistence: .permanent, title: title, generationId: generationId))
             await MainActor.run {
                 switch result {
                 case .success(let job):
@@ -115,7 +120,6 @@ struct DialogRerenderButton: View {
         switch info.status {
         case .completed:
             successMessage = "Re-rendered in place — same animation ID, updated audio & tracks."
-            CacheInvalidationProcessor.rebuildAfterDialogRender()
             if let result = info.dialogResult {
                 onCompleted?(result)
             }

@@ -369,31 +369,11 @@ struct SoundFileListView: View {
         playSoundTask?.cancel()
         playSoundTask = Task {
             preparingFile = fileName
-            let urlRequest = server.getSoundURL(fileName)
+            let urlRequest = server.getSoundRenditionURL(fileName, as: .mp3)
             switch urlRequest {
             case .success(let url):
-                if fileName.lowercased().hasSuffix(".wav") {
-                    let prepResult = await audioManager.prepareMonoPreview(
-                        for: url, cacheKey: fileName)
-                    switch prepResult {
-                    case .success(let monoURL):
-                        let armResult = audioManager.armPreviewPlayback(fileURL: monoURL)
-                        switch armResult {
-                        case .success:
-                            _ = audioManager.startArmedPreview(in: 0.1)
-                            preparingFile = nil
-                        case .failure(let err):
-                            errorAlert = ErrorAlert(message: "Error: \(err)")
-                            preparingFile = nil
-                        }
-                    case .failure(let err):
-                        errorAlert = ErrorAlert(message: "Error: \(err)")
-                        preparingFile = nil
-                    }
-                } else {
-                    _ = audioManager.playURL(url)
-                    preparingFile = nil
-                }
+                _ = audioManager.playURL(url)
+                preparingFile = nil
             case .failure(let error):
                 errorAlert = ErrorAlert(error: error)
                 preparingFile = nil

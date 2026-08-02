@@ -37,6 +37,8 @@ struct AnimationDialogProvenanceView: View {
 
     /// Take chosen in the embedded preview panel (drives preview/export of the snapshot turns).
     @State private var selectedGenerationId: DialogGenerationIdentifier? = nil
+    @State private var previewScope: DialogPreviewScope = .full
+    @State private var fullDialogMeta: DialogPreviewMetaDTO? = nil
 
     var body: some View {
         if metadata.hasDialogProvenance {
@@ -68,6 +70,8 @@ struct AnimationDialogProvenanceView: View {
                 if let turns = metadata.sourceScriptTurns, !turns.isEmpty {
                     DialogPreviewPanel(
                         turns: turns, title: metadata.title,
+                        scope: $previewScope,
+                        fullDialogMeta: $fullDialogMeta,
                         selectedGenerationId: $selectedGenerationId)
                 }
             }

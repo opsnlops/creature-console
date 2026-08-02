@@ -27,7 +27,8 @@ final class ConsoleStore {
         currentAnimation: nil,
         selectedTrack: nil,
         showSystemAlert: false,
-        systemAlertMessage: ""
+        systemAlertMessage: "",
+        notice: nil
     )
     private(set) var statusLights = StatusLightsState(
         running: false, dmx: false, streaming: false, animationPlaying: false)

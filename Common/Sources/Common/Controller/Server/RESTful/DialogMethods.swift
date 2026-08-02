@@ -3,6 +3,12 @@ import Logging
 
 private struct EmptyBody: Encodable {}
 
+/// The lookup endpoint deliberately accepts only `turns`. Keep this separate from
+/// `DialogPreviewRequest`, whose optional generation/title fields belong to `/preview/meta`.
+private struct DialogPreviewLookupBody: Encodable {
+    let turns: [DialogScriptTurn]
+}
+
 extension CreatureServerClient {
 
     // MARK: - URL helpers
@@ -105,6 +111,18 @@ extension CreatureServerClient {
             returnType: DialogScript.self)
     }
 
+    /// Clears the accepted background-music reference while retaining the permanent sound
+    /// asset. The server returns the canonical script after the mutation.
+    public func clearDialogMusic(scriptId: DialogScriptIdentifier) async -> Result<
+        DialogScript, ServerError
+    > {
+        logger.debug("attempting to clear accepted music from dialog script \(scriptId)")
+
+        return await sendData(
+            path: "/animation/dialog/script/\(scriptId.uuidString.lowercased())/music",
+            method: "DELETE", body: EmptyBody(), returnType: DialogScript.self)
+    }
+
     public func deleteDialogScript(id: DialogScriptIdentifier) async -> Result<String, ServerError>
     {
         logger.debug("attempting to delete dialog script \(id)")
@@ -154,6 +172,9 @@ extension CreatureServerClient {
     public func dialogPreviewMeta(_ request: DialogPreviewRequest) async -> Result<
         DialogPreviewMetaOutcome, ServerError
     > {
+        logger.debug(
+            "dialog preview meta request: turns=\(request.turns.count), generation_id=\(request.generationId?.uuidString.lowercased() ?? "<latest>"), regenerate=\(request.regenerate ?? false)"
+        )
         return await sendDataResponse(
             path: "/animation/dialog/preview/meta", method: "POST", body: request
         )
@@ -173,8 +194,35 @@ extension CreatureServerClient {
         DialogPreviewLookupDTO, ServerError
     > {
         return await sendData(
-            path: "/animation/dialog/preview/lookup", method: "POST", body: request,
+            path: "/animation/dialog/preview/lookup", method: "POST",
+            body: DialogPreviewLookupBody(turns: request.turns),
             returnType: DialogPreviewLookupDTO.self)
+    }
+
+    // MARK: - Background music
+
+    public func generateDialogMusic(_ request: DialogMusicRequest) async -> Result<
+        JobCreatedResponse, ServerError
+    > {
+        await sendData(
+            path: "/animation/dialog/music", method: "POST", body: request,
+            returnType: JobCreatedResponse.self)
+    }
+
+    public func promoteDialogMusic(generationId: UUID) async -> Result<
+        DialogMusicPromotionResult, ServerError
+    > {
+        await sendData(
+            path:
+                "/animation/dialog/music/generated/\(generationId.uuidString.lowercased())/promote",
+            method: "POST", body: EmptyBody(), returnType: DialogMusicPromotionResult.self)
+    }
+
+    public func dialogMusicGenerationURL(generationId: UUID) -> URL? {
+        makeAbsoluteURL(
+            fromRelativePath:
+                "/api/v1/animation/dialog/music/generated/\(generationId.uuidString.lowercased()).mp3"
+        )
     }
 
     /// Fetches the full 17-channel WAV bytes (S16 LE @ 48 kHz, each creature in its

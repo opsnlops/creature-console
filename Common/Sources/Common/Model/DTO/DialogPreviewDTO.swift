@@ -151,6 +151,11 @@ public struct DialogPreviewLookupDTO: Decodable, Sendable, Equatable {
         public var generationId: DialogGenerationIdentifier
         public var createdAt: String
 
+        public init(generationId: DialogGenerationIdentifier, createdAt: String) {
+            self.generationId = generationId
+            self.createdAt = createdAt
+        }
+
         public var id: DialogGenerationIdentifier { generationId }
 
         enum CodingKeys: String, CodingKey {

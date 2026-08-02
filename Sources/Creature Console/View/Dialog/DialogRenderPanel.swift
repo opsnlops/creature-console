@@ -7,10 +7,9 @@ import SwiftUI
 /// watches `JobStatusStore` (fed by the websocket `job-progress`/`job-complete` stream) for
 /// the matching `jobId`, showing live progress and a result summary.
 ///
-/// `scriptId` is passed only when the in-memory scene exactly matches the saved server copy —
-/// rendering by script id captures provenance (`source_script_id`) on the animation. When the
-/// scene is unsaved or has unsaved edits, the caller passes `nil` and we render the inline
-/// turns so the rendered audio always matches what the author sees.
+/// `scriptId` is passed only when the in-memory scene exactly matches the saved server copy.
+/// Final rendering requires that id and the exact full-dialog take the author auditioned, which
+/// preserves provenance and prevents a partial/unsaved preview from becoming a final animation.
 struct DialogRenderPanel: View {
 
     private let logger = Logger(
@@ -20,6 +19,7 @@ struct DialogRenderPanel: View {
     let turns: [DialogScriptTurn]
     let selectedGenerationId: DialogGenerationIdentifier?
     let defaultTitle: String
+    let backgroundMusic: DialogBackgroundMusic?
 
     private let server = CreatureServerClient.shared
 
@@ -51,6 +51,33 @@ struct DialogRenderPanel: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Render").font(.headline)
 
+            if let backgroundMusic {
+                Label(
+                    "Final render includes accepted music on channel 17: \(backgroundMusic.soundFile)",
+                    systemImage: "music.note"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                Label(
+                    "No background music is accepted; this render will contain dialog only.",
+                    systemImage: "info.circle"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            if scriptId == nil || selectedGenerationId == nil {
+                Label(
+                    scriptId == nil
+                        ? "Save the script before final rendering."
+                        : "Generate and select a full-dialog voice take before final rendering.",
+                    systemImage: "info.circle"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
             HStack {
                 Text("Storage").frame(width: 90, alignment: .leading)
                 Picker("Storage", selection: $persistence) {
@@ -79,7 +106,9 @@ struct DialogRenderPanel: View {
                     Label("Render Dialog", systemImage: "film")
                 }
                 .buttonStyle(.glassProminent)
-                .disabled(!turnsAreReady || isRendering)
+                .disabled(
+                    !turnsAreReady || isRendering || scriptId == nil
+                        || selectedGenerationId == nil)
 
                 if isRendering {
                     ProgressView().controlSize(.small)
@@ -140,6 +169,13 @@ struct DialogRenderPanel: View {
             Text("The rendered animation is now in your Animations list.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if backgroundMusic != nil {
+                Text(
+                    "The duration includes the full dialog and the accepted music. A music-only outro is preserved; it is not trimmed to the last spoken line."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
             Button {
                 shareRenderedSound(result)
             } label: {
@@ -158,7 +194,7 @@ struct DialogRenderPanel: View {
     // MARK: - Actions
 
     private func render() {
-        guard turnsAreReady else { return }
+        guard turnsAreReady, let scriptId, selectedGenerationId != nil else { return }
         isSubmitting = true
         observedJob = nil
         completedResult = nil
@@ -170,16 +206,9 @@ struct DialogRenderPanel: View {
         let effectiveTitle = trimmedTitle.isEmpty ? fallback : trimmedTitle
         let title = effectiveTitle.isEmpty ? nil : effectiveTitle
 
-        let request: DialogRequest
-        if let scriptId {
-            request = .fromScript(
-                scriptId, persistence: persistence, autoplay: autoplay, title: title,
-                generationId: selectedGenerationId)
-        } else {
-            request = .fromTurns(
-                turns, persistence: persistence, autoplay: autoplay, title: title,
-                generationId: selectedGenerationId)
-        }
+        let request = DialogRequest.fromScript(
+            scriptId, persistence: persistence, autoplay: autoplay, title: title,
+            generationId: selectedGenerationId)
 
         Task {
             let result = await server.renderDialog(request)
@@ -203,7 +232,6 @@ struct DialogRenderPanel: View {
         switch info.status {
         case .completed:
             completedResult = info.dialogResult
-            CacheInvalidationProcessor.rebuildAfterDialogRender()
         case .failed:
             errorAlert = ErrorAlert(
                 title: "Render Error",

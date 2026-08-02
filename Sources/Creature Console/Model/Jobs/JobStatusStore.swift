@@ -17,6 +17,7 @@ actor JobStatusStore {
         var animationLipSyncResult: AnimationLipSyncJobResult?
         var adHocResult: AdHocSpeechJobResult?
         var dialogResult: DialogJobResult?
+        var dialogMusicResult: DialogMusicGenerationResult?
         var lastUpdated: Date
 
         var id: String { jobId }
@@ -145,6 +146,7 @@ actor JobStatusStore {
                 animationLipSyncResult: nil,
                 adHocResult: nil,
                 dialogResult: nil,
+                dialogMusicResult: nil,
                 lastUpdated: Date()
             )
 
@@ -184,6 +186,8 @@ actor JobStatusStore {
                 animationLipSyncResult: completion.decodeResult(as: AnimationLipSyncJobResult.self),
                 adHocResult: completion.decodeResult(as: AdHocSpeechJobResult.self),
                 dialogResult: completion.decodeResult(as: DialogJobResult.self),
+                dialogMusicResult: completion.decodeResult(
+                    as: DialogMusicGenerationResult.self),
                 lastUpdated: Date()
             )
 
@@ -207,6 +211,9 @@ actor JobStatusStore {
         }
         if let dialogResult = completion.decodeResult(as: DialogJobResult.self) {
             info.dialogResult = dialogResult
+        }
+        if let musicResult = completion.decodeResult(as: DialogMusicGenerationResult.self) {
+            info.dialogMusicResult = musicResult
         }
         info.lastUpdated = Date()
 

@@ -9,6 +9,7 @@ public enum JobType: String, Codable, Sendable {
     case dialog = "dialog"
     case dialogPreview = "dialog-preview"
     case dialogPreviewExport = "dialog-preview-export"
+    case dialogMusic = "dialog-music"
     case voiceFile = "voice-file"
     case unknown
 

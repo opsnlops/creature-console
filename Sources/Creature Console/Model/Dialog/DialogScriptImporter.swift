@@ -19,12 +19,14 @@ actor DialogScriptImporter {
 
         try modelContext.transaction {
             for dto in dtos {
-                let encodedTurns = (try? JSONEncoder().encode(dto.turns)) ?? Data("[]".utf8)
+                let encodedTurns = try JSONEncoder().encode(dto.turns)
+                let encodedMusic = try dto.backgroundMusic.map { try JSONEncoder().encode($0) }
                 if let existing = existingByID[dto.id] {
                     // Update existing
                     existing.title = dto.title
                     existing.notes = dto.notes
                     existing.turnsJSON = encodedTurns
+                    existing.backgroundMusicJSON = encodedMusic
                     existing.createdAtMillis = dto.createdAt
                     existing.updatedAtMillis = dto.updatedAt
                 } else {
@@ -34,6 +36,26 @@ actor DialogScriptImporter {
             }
         }
         logger.debug("Upserted batch of \(dtos.count) dialog scripts into SwiftData")
+    }
+
+    /// Returns the ids currently known locally. The server's dialog-script invalidation is a
+    /// collection hint without an id, while the deployed API exposes parameterized reads. Keep
+    /// the ids from our local cache so an invalidation can still refresh the saved scripts without
+    /// issuing an invalid unparameterized collection request.
+    func allIDs() async throws -> [DialogScriptIdentifier] {
+        let descriptor = FetchDescriptor<DialogScriptModel>()
+        return try modelContext.fetch(descriptor).map(\.id)
+    }
+
+    /// Removes one locally cached script after its parameterized server read returns 404.
+    func delete(id: DialogScriptIdentifier) throws {
+        let descriptor = FetchDescriptor<DialogScriptModel>(
+            predicate: #Predicate { $0.id == id }
+        )
+        for model in try modelContext.fetch(descriptor) {
+            modelContext.delete(model)
+        }
+        try modelContext.save()
     }
 
     /// Remove scripts not present in the provided set of ids (used for full reloads).
