@@ -34,7 +34,9 @@ actor AppBootstrapper {
                 "Some data failed to load from server:\n"
                 + errors.map { "• \($0)" }.joined(separator: "\n")
                 + "\n\nThe app will use cached data if available."
-            await AppState.shared.setSystemAlert(show: true, message: message)
+            // Bootstrap runs while the root sheet hierarchy is still settling. Keep import
+            // failures visible without presenting an AppKit alert during launch.
+            await AppState.shared.postNotice(message)
         }
 
         // Now that caches are populated, set to idle
@@ -50,7 +52,7 @@ actor AppBootstrapper {
         if !errors.isEmpty {
             let message =
                 "Some data failed to refresh:\n" + errors.map { "• \($0)" }.joined(separator: "\n")
-            await AppState.shared.setSystemAlert(show: true, message: message)
+            await AppState.shared.postNotice(message)
         }
     }
 

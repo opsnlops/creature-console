@@ -7,7 +7,6 @@ struct BottomToolBarView: View {
     @Environment(ConsoleStore.self) private var console
     @State private var frameSpareTime: Double = 0.0
     private let serverCounters = SystemCountersStore.shared
-    @State private var systemAlert: ErrorAlert?
     @Namespace private var glassNamespace
 
     var body: some View {
@@ -85,22 +84,8 @@ struct BottomToolBarView: View {
 
         }
         .padding()
-        .errorAlert($systemAlert, dismissLabel: "Okay 😅") {
-            Task {
-                await AppState.shared.setSystemAlert(show: false)
-            }
-        }
-        // Present (or clear) the server's system alert whenever the flag flips; `initial: true`
-        // covers an alert that was already raised before this view appeared.
-        .onChange(of: console.appState.showSystemAlert, initial: true) { _, showAlert in
-            systemAlert =
-                showAlert
-                ? ErrorAlert(
-                    title: "Server Message",
-                    message:
-                        "The server wants us to know: \(console.appState.systemAlertMessage)")
-                : nil
-        }
+        // RootView owns the app-wide server alert. Keeping presentation at one level avoids
+        // two AppKit sheets racing to dismiss the same alert during a layout pass on macOS.
         .task {
             // Update frameSpareTime from EventLoop actor
             while !Task.isCancelled {
