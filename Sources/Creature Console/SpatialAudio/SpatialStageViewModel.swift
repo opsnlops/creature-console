@@ -22,12 +22,10 @@
                 simulationSource?.setLooping(isLooping)
             }
         }
-        var layout = SpatialStageLayoutStore.load() {
-            didSet {
-                SpatialStageLayoutStore.save(layout)
-                renderer?.update(layout: layout)
-            }
-        }
+        /// Owns the stages on the server and the working copy being edited. The renderer follows
+        /// every local edit so a drag is audible immediately, even though saving is deliberate.
+        let store = StageStore()
+
         private(set) var diagnostics = SpatialStageDiagnostics()
         private(set) var isPreparing = false
         var selectedCreatureID: String?
@@ -40,7 +38,7 @@
         @ObservationIgnored private var liveSource: SpatialLiveAudioSource?
         @ObservationIgnored private var simulationSource: SpatialSimulationAudioSource?
         @ObservationIgnored private var startToken = UUID()
-        @ObservationIgnored private var knownCreatures: [SpatialStageCreature] = []
+        @ObservationIgnored private var knownCreatures: [StageCreature] = []
 
         init() {
             pathMonitor.pathUpdateHandler = { [weak self] path in
@@ -50,6 +48,10 @@
                 }
             }
             pathMonitor.start(queue: pathQueue)
+
+            store.onStageChanged = { [weak self] stage in
+                self?.renderer?.update(stage: stage)
+            }
         }
 
         deinit {
@@ -71,71 +73,98 @@
             diagnostics.state == .paused
         }
 
-        var selectedPlacement: SpatialStagePlacement? {
-            layout.placements.first { $0.id == selectedCreatureID }
+        /// The stage being edited, or `nil` when the server has none yet.
+        var stage: Stage? { store.stage }
+
+        var placements: [StagePlacement] { store.stage?.placements ?? [] }
+
+        var selectedPlacement: StagePlacement? {
+            placements.first { $0.creatureID == selectedCreatureID }
         }
 
-        func reconcileCreatures(_ creatures: [SpatialStageCreature]) {
+        /// What to call a placed creature: the live name when the creature list has loaded, and the
+        /// name cached in the stage document otherwise. The cache exists so a stage renders before
+        /// (or without) that list; it is not the source of truth.
+        func displayName(for placement: StagePlacement) -> String {
+            if let live = knownCreatures.first(where: { $0.id == placement.creatureID })?.name,
+                !live.isEmpty
+            {
+                return live
+            }
+            return placement.creatureName.isEmpty ? placement.creatureID : placement.creatureName
+        }
+
+        /// Creatures with a usable audio lane that aren't on this stage yet.
+        var creaturesOffStage: [StageCreature] {
+            let placed = Set(placements.map(\.creatureID))
+            return knownCreatures.filter {
+                (1...16).contains($0.audioChannel) && !placed.contains($0.id)
+            }
+        }
+
+        func loadStages() async {
+            await store.load()
+            store.noteKnownCreatures(knownCreatures)
+            ensureSelection()
+        }
+
+        /// Track the creature list without touching the stage's geometry.
+        ///
+        /// Deliberately does not place newly-seen creatures: a stage is a server document whose
+        /// `updated_at` invalidates every animation rendered against it, so merely opening this
+        /// view must never dirty it. Off-stage creatures are offered explicitly instead.
+        func reconcileCreatures(_ creatures: [StageCreature]) {
             knownCreatures = creatures
-            var updated = layout
-            updated.reconcile(with: creatures)
-            guard updated != layout else {
+            store.noteKnownCreatures(creatures)
+            ensureSelection()
+        }
+
+        func addCreatureToStage(id: String) {
+            guard !isActive, !isPreparing else {
                 return
             }
-            layout = updated
-            if !updated.placements.contains(where: { $0.id == selectedCreatureID }) {
-                selectedCreatureID = updated.placements.first?.id
+            guard let creature = knownCreatures.first(where: { $0.id == id }) else {
+                return
             }
+            store.addCreature(creature)
+            selectedCreatureID = id
         }
 
         func removeCreatureFromStage(id: String) {
             guard !isActive, !isPreparing else {
                 return
             }
-            var updated = layout
-            updated.removeCreature(id: id)
-            guard updated != layout else {
-                return
-            }
-            layout = updated
+            store.removeCreature(id: id)
             if selectedCreatureID == id {
-                selectedCreatureID = updated.placements.first?.id
+                selectedCreatureID = placements.first?.creatureID
             }
-        }
-
-        func restoreCreatureToStage(id: String) {
-            guard !isActive, !isPreparing else {
-                return
-            }
-            var updated = layout
-            updated.restoreCreature(id: id, from: knownCreatures)
-            guard updated != layout else {
-                return
-            }
-            layout = updated
-            selectedCreatureID = id
         }
 
         func updatePlacement(
             id: String,
-            _ update: (inout SpatialStagePlacement) -> Void
+            _ update: (inout StagePlacement) -> Void
         ) {
-            guard let index = layout.placements.firstIndex(where: { $0.id == id }) else {
-                return
+            store.updatePlacement(creatureID: id, update)
+        }
+
+        private func ensureSelection() {
+            if !placements.contains(where: { $0.creatureID == selectedCreatureID }) {
+                selectedCreatureID = placements.first?.creatureID
             }
-            var updated = layout
-            update(&updated.placements[index])
-            layout = updated
         }
 
         func start(simulations: [SpatialSimulationSelection]) async {
             stop()
-            let channels = Set(layout.placements.map(\.audioChannel))
+            guard let stage = store.stage else {
+                fail("Choose or create a stage first.")
+                return
+            }
+            let channels = Set(stage.placements.map(\.audioChannel))
             guard !channels.isEmpty else {
                 fail("Assign audio channels 1–16 to at least one creature.")
                 return
             }
-            guard channels.count == layout.placements.count else {
+            guard channels.count == stage.placements.count else {
                 fail("Each staged creature needs a unique audio channel.")
                 return
             }
@@ -147,7 +176,7 @@
 
             do {
                 let renderer = try SpatialAudioRenderer(channels: channels)
-                renderer.update(layout: layout)
+                renderer.update(stage: stage)
 
                 switch inputMode {
                 case .live:
@@ -161,8 +190,8 @@
                     let source = try SpatialLiveAudioSource(
                         renderer: renderer,
                         channels: channels,
-                        monitoringDelayMilliseconds: layout.monitoringDelayMilliseconds,
-                        commonPlayoutDelayMilliseconds: layout
+                        monitoringDelayMilliseconds: stage.audio.monitoringDelayMilliseconds,
+                        commonPlayoutDelayMilliseconds: stage.audio
                             .commonPlayoutDelayMilliseconds,
                         onDiagnostics: diagnosticsHandler(for: token)
                     )

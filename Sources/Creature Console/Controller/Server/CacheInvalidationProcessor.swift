@@ -90,6 +90,9 @@ actor CacheInvalidationProcessor {
             refreshDialogScriptsByKnownIDs()
         case .storyboardList:
             rebuild(.storyboard, deleteStaleEntries: true)
+        case .stageList:
+            // Stages have no SwiftData cache yet; the stage store reads the server directly.
+            logger.info("stage cache invalidation received - local stage cache pending")
         case .adHocAnimationList:
             logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
         case .adHocSoundList:

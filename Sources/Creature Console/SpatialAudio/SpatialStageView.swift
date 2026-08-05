@@ -1,4 +1,5 @@
 #if os(macOS)
+    import Common
     import SwiftData
     import SwiftUI
 
@@ -8,9 +9,9 @@
         private var animations: [AnimationMetadataModel]
         @State private var viewModel = SpatialStageViewModel()
 
-        private var stageCreatures: [SpatialStageCreature] {
+        private var stageCreatures: [StageCreature] {
             creatures.map {
-                SpatialStageCreature(id: $0.id, name: $0.name, audioChannel: $0.audioChannel)
+                StageCreature(id: $0.id, name: $0.name, audioChannel: $0.audioChannel)
             }
         }
 
@@ -29,10 +30,6 @@
                 }
         }
 
-        private var removedStageCreatures: [SpatialStageCreature] {
-            stageCreatures.filter { viewModel.layout.excludedCreatureIDs.contains($0.id) }
-        }
-
         var body: some View {
             VStack(spacing: 0) {
                 transport
@@ -47,8 +44,9 @@
                 }
             }
             .navigationTitle("Spatial Stage")
-            .onAppear {
+            .task {
                 viewModel.reconcileCreatures(stageCreatures)
+                await viewModel.loadStages()
                 chooseDefaultSimulation()
             }
             .onChange(of: stageCreatures) { _, newValue in
@@ -167,115 +165,56 @@
             .padding()
         }
 
+        /// The listening window's inspector. Deliberately read-only about geometry — a stage is
+        /// authored in the Stages section of the sidebar, so there is exactly one editing surface
+        /// and the two can't disagree about what's saved.
         private var inspector: some View {
-            @Bindable var model = viewModel
-            return Form {
+            Form {
                 Section("Stage") {
-                    LabeledContent("Width") {
-                        Text("\(viewModel.layout.stageWidth, specifier: "%.1f") m")
-                    }
-                    Slider(
-                        value: $model.layout.stageWidth,
-                        in: 4...20
-                    )
-                    LabeledContent("Depth") {
-                        Text("\(viewModel.layout.stageDepth, specifier: "%.1f") m")
-                    }
-                    Slider(
-                        value: $model.layout.stageDepth,
-                        in: 3...15
-                    )
-                }
-
-                Section("Monitoring") {
-                    Stepper(
-                        "\(viewModel.layout.monitoringDelayMilliseconds) ms RTP buffer",
-                        value: $model.layout.monitoringDelayMilliseconds,
-                        in: 10...250,
-                        step: 10
-                    )
-                    .disabled(viewModel.isActive)
-
-                    Stepper(
-                        "\(viewModel.layout.commonPlayoutDelayMilliseconds) ms RTCP playout",
-                        value: $model.layout.commonPlayoutDelayMilliseconds,
-                        in: 20...250,
-                        step: 10
-                    )
-                    .disabled(viewModel.isActive)
-
-                    LabeledContent("BGM") {
-                        Text("\(Int(viewModel.layout.backgroundMusicGain * 100))%")
-                    }
-                    Slider(
-                        value: $model.layout.backgroundMusicGain,
-                        in: 0...1
-                    )
-                    LabeledContent("Room") {
-                        Text("\(Int(viewModel.layout.reverbBlend * 100))%")
-                    }
-                    Slider(
-                        value: $model.layout.reverbBlend,
-                        in: 0...0.5
-                    )
-                }
-
-                if let placement = viewModel.selectedPlacement {
-                    Section(placement.creatureName) {
-                        LabeledContent("Audio channel", value: "\(placement.audioChannel)")
-                        LabeledContent("Left / right") {
-                            Text("\(placement.x, specifier: "%.1f") m")
+                    Picker("Stage", selection: stageSelection) {
+                        Text("None").tag(StageIdentifier?.none)
+                        ForEach(viewModel.store.stages) { stage in
+                            Text(stage.title.isEmpty ? "(untitled)" : stage.title)
+                                .tag(Optional(stage.id))
                         }
-                        Slider(
-                            value: placementBinding(placement.id, \.x),
-                            in: (-viewModel.layout.stageWidth / 2)...(viewModel.layout.stageWidth
-                                / 2)
-                        )
-                        LabeledContent("Stage depth") {
-                            Text("\(-placement.z, specifier: "%.1f") m")
-                        }
-                        Slider(
-                            value: placementBinding(placement.id, \.z),
-                            in: -viewModel.layout.stageDepth...0
-                        )
-                        LabeledContent("Gain") {
-                            Text("\(Int(placement.gain * 100))%")
-                        }
-                        Slider(
-                            value: placementBinding(placement.id, \.gain),
-                            in: 0...1.5
-                        )
-                        Toggle(
-                            "Muted",
-                            isOn: Binding(
-                                get: { viewModel.selectedPlacement?.isMuted ?? false },
-                                set: { newValue in
-                                    viewModel.updatePlacement(id: placement.id) {
-                                        $0.isMuted = newValue
-                                    }
-                                }
-                            )
-                        )
                     }
-                } else {
-                    Section("Creature") {
-                        Text("Select a creature on the stage to tune its position and gain.")
+                    .disabled(viewModel.isActive || viewModel.isPreparing)
+
+                    if case .failed(let message) = viewModel.store.loadState {
+                        Label(message, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.caption)
+                    }
+
+                    if viewModel.stage == nil {
+                        Text("Create a stage under Stages in the main window to listen to one.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        LabeledContent("Creatures", value: "\(viewModel.placements.count)")
+                        Text("Positions and facings are edited under Stages in the main window.")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
 
-                if !removedStageCreatures.isEmpty {
-                    Section("Removed from Stage") {
-                        ForEach(removedStageCreatures) { creature in
-                            Button {
-                                viewModel.restoreCreatureToStage(id: creature.id)
-                            } label: {
-                                Label(
-                                    "Restore \(creature.name)",
-                                    systemImage: "plus.circle"
-                                )
-                            }
-                            .disabled(viewModel.isActive || viewModel.isPreparing)
+                if let placement = viewModel.selectedPlacement {
+                    Section(viewModel.displayName(for: placement)) {
+                        LabeledContent("Audio channel", value: "\(placement.audioChannel)")
+                        LabeledContent("Height") {
+                            Text("\(placement.y, specifier: "%+.2f") m").monospacedDigit()
+                        }
+                        LabeledContent("Left / right") {
+                            Text("\(placement.x, specifier: "%+.2f") m").monospacedDigit()
+                        }
+                        LabeledContent("Front / back") {
+                            Text("\(placement.z, specifier: "%+.2f") m").monospacedDigit()
+                        }
+                        LabeledContent("Facing") {
+                            Text("\(placement.yaw, specifier: "%+.0f")°").monospacedDigit()
+                        }
+                        LabeledContent("Gain") {
+                            Text(placement.isMuted ? "Muted" : "\(Int(placement.gain * 100))%")
                         }
                     }
                 }
@@ -291,6 +230,7 @@
             }
             .formStyle(.grouped)
         }
+
 
         private var statusColor: Color {
             switch viewModel.diagnostics.state {
@@ -322,101 +262,30 @@
             return String(format: "%d:%02d", seconds / 60, seconds % 60)
         }
 
-        private func placementBinding(
-            _ id: String,
-            _ keyPath: WritableKeyPath<SpatialStagePlacement, Float>
-        ) -> Binding<Float> {
+        private var stageSelection: Binding<StageIdentifier?> {
             Binding(
-                get: {
-                    viewModel.layout.placements.first(where: { $0.id == id })?[keyPath: keyPath]
-                        ?? 0
-                },
-                set: { value in
-                    viewModel.updatePlacement(id: id) {
-                        $0[keyPath: keyPath] = value
-                    }
-                }
+                get: { viewModel.stage?.id },
+                set: { viewModel.store.select($0) }
             )
         }
+
     }
 
+    /// The listening window's map: the shared stage canvas, read-only, with live audio meters
+    /// and the RTP diagnostics overlaid on top.
     private struct SpatialStageCanvas: View {
-        @Environment(\.colorScheme) private var colorScheme
         @Bindable var viewModel: SpatialStageViewModel
 
         var body: some View {
-            GeometryReader { proxy in
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.indigo.opacity(0.18),
-                                    Color.black.opacity(0.06),
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                    stageGrid
-                    stageDiagnostics
-                    listener
-
-                    ForEach(viewModel.layout.placements) { placement in
-                        creatureNode(placement)
-                            .position(position(for: placement, in: proxy.size))
-                            .simultaneousGesture(
-                                DragGesture(coordinateSpace: .named("spatialStage"))
-                                    .onChanged { value in
-                                        move(placement, to: value.location, in: proxy.size)
-                                    }
-                            )
-                    }
-                }
-                .overlay {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(
-                                Color.purple.opacity(0.5 * signalLevel(for: 17)),
-                                lineWidth: 1 + 2 * signalLevel(for: 17)
-                            )
-                            .blur(radius: 1 + 5 * signalLevel(for: 17))
-                    }
-                }
-                .coordinateSpace(name: "spatialStage")
-                .animation(.linear(duration: 0.1), value: signalLevel(for: 17))
-            }
-        }
-
-        private var stageGrid: some View {
-            Canvas { context, size in
-                var path = Path()
-                for index in 1..<5 {
-                    let x = size.width * CGFloat(index) / 5
-                    path.move(to: CGPoint(x: x, y: 0))
-                    path.addLine(to: CGPoint(x: x, y: size.height))
-                    let y = size.height * CGFloat(index) / 5
-                    path.move(to: CGPoint(x: 0, y: y))
-                    path.addLine(to: CGPoint(x: size.width, y: y))
-                }
-                context.stroke(path, with: .color(.secondary.opacity(0.16)), lineWidth: 1)
-            }
-            .padding(1)
-        }
-
-        private var listener: some View {
-            VStack(spacing: 3) {
-                Image(systemName: "headphones")
-                    .font(.title2)
-                Text("You")
-                    .font(.caption2)
-            }
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .padding(.bottom, 10)
-            .allowsHitTesting(false)
+            StageMapView(
+                placements: viewModel.placements,
+                selectedCreatureID: $viewModel.selectedCreatureID,
+                displayName: viewModel.displayName(for:),
+                // No onMove: geometry is authored under Stages, not while listening.
+                signalLevel: signalLevel(for:),
+                channelHelp: diagnosticsHelp(for:)
+            )
+            .overlay(alignment: .top) { stageDiagnostics }
         }
 
         private var stageDiagnostics: some View {
@@ -453,7 +322,6 @@
             }
             .font(.caption2)
             .padding(10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .allowsHitTesting(false)
         }
 
@@ -477,87 +345,6 @@
             }
         }
 
-        private func creatureNode(_ placement: SpatialStagePlacement) -> some View {
-            let level = signalLevel(for: placement.audioChannel)
-            return VStack(spacing: 2) {
-                Image(systemName: placement.isMuted ? "speaker.slash.fill" : "bird.fill")
-                Text(placement.creatureName)
-                    .lineLimit(1)
-                Text("CH \(placement.audioChannel)")
-                    .font(.caption2.monospacedDigit())
-                    .opacity(0.7)
-            }
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .foregroundStyle(
-                placement.isMuted ? Color.secondary : creatureForegroundColor
-            )
-            .background {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(creatureSurfaceColor)
-                    if viewModel.selectedCreatureID == placement.id {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.accentColor.opacity(0.32))
-                    }
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.green.opacity(0.3 * level))
-                }
-            }
-            .overlay {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(
-                            Color.green.opacity(0.65 * level),
-                            lineWidth: 1 + level
-                        )
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(
-                            viewModel.selectedCreatureID == placement.id
-                                ? Color.accentColor : Color.secondary.opacity(0.25),
-                            lineWidth: viewModel.selectedCreatureID == placement.id ? 2 : 1
-                        )
-                }
-            }
-            .contentShape(.rect)
-            .onTapGesture {
-                viewModel.selectedCreatureID = placement.id
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isButton)
-            .accessibilityAction {
-                viewModel.selectedCreatureID = placement.id
-            }
-            .shadow(
-                color: Color.green.opacity(0.5 * level),
-                radius: 4 + 10 * level
-            )
-            .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
-            .help(diagnosticsHelp(for: placement.audioChannel))
-            .contextMenu {
-                Button("Remove from Stage", systemImage: "minus.circle") {
-                    viewModel.removeCreatureFromStage(id: placement.id)
-                }
-                .disabled(viewModel.isActive || viewModel.isPreparing)
-            }
-        }
-
-        private var creatureSurfaceColor: Color {
-            switch colorScheme {
-            case .dark:
-                Color(red: 0.08, green: 0.08, blue: 0.09)
-            case .light:
-                Color(red: 0.96, green: 0.96, blue: 0.97)
-            @unknown default:
-                Color(red: 0.08, green: 0.08, blue: 0.09)
-            }
-        }
-
-        private var creatureForegroundColor: Color {
-            colorScheme == .dark ? .white : .black
-        }
-
         private func signalLevel(for channel: Int) -> Double {
             guard viewModel.diagnostics.state == .playing else {
                 return 0
@@ -578,37 +365,6 @@
             return
                 "Channel \(channel): \(diagnostics.packetsReceived) packets, "
                 + "\(diagnostics.concealedFrames) concealed, \(diagnostics.fecFrames) FEC"
-        }
-
-        private func position(
-            for placement: SpatialStagePlacement,
-            in size: CGSize
-        ) -> CGPoint {
-            let normalizedX =
-                CGFloat(placement.x / max(viewModel.layout.stageWidth, 0.1)) + 0.5
-            let normalizedZ =
-                1 + CGFloat(placement.z / max(viewModel.layout.stageDepth, 0.1))
-            return CGPoint(
-                x: min(max(normalizedX, 0.04), 0.96) * size.width,
-                y: min(max(normalizedZ, 0.06), 0.9) * size.height
-            )
-        }
-
-        private func move(
-            _ placement: SpatialStagePlacement,
-            to location: CGPoint,
-            in size: CGSize
-        ) {
-            guard size.width > 0, size.height > 0 else {
-                return
-            }
-            let clampedX = min(max(location.x / size.width, 0), 1)
-            let clampedY = min(max(location.y / size.height, 0), 1)
-            viewModel.updatePlacement(id: placement.id) {
-                $0.x = (Float(clampedX) - 0.5) * viewModel.layout.stageWidth
-                $0.z = (Float(clampedY) - 1) * viewModel.layout.stageDepth
-            }
-            viewModel.selectedCreatureID = placement.id
         }
     }
 #endif

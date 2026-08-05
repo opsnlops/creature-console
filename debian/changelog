@@ -1,3 +1,13 @@
+creature-cli (2.47.0) unstable; urgency=medium
+
+  * Add Stage support: where each creature sits and which way it faces, so the
+    server can aim heads at whoever is speaking during a rendered dialog scene.
+  * Add `creature-cli stages` for listing, creating, placing, copying, importing,
+    and deleting stages, plus a staleness report of animations rendered against one.
+  * Keep creature-cli, creature-mqtt, and creature-agent versions aligned.
+
+ -- April White <april@creature.engineering>  Tue, 04 Aug 2026 22:15:00 -0700
+
 creature-cli (2.46.0) unstable; urgency=medium
 
   * Add dialog background-music generation, MP3 preview playback, take restoration,

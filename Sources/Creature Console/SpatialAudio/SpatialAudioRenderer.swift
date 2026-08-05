@@ -50,7 +50,8 @@
             engine.connect(environment, to: engine.mainMixerNode, format: nil)
 
             environment.outputType = .auto
-            environment.listenerPosition = AVAudio3DPoint(x: 0, y: 1.6, z: 2)
+            // Stage coordinates are relative to the listener, so these ears sit at the origin.
+            environment.listenerPosition = AVAudio3DPoint(x: 0, y: 0, z: 0)
             environment.listenerAngularOrientation = AVAudio3DAngularOrientation(
                 yaw: 0,
                 pitch: 0,
@@ -154,20 +155,18 @@
             return true
         }
 
-        func update(layout: SpatialStageLayout) {
-            environment.listenerPosition = AVAudio3DPoint(
-                x: layout.listenerX,
-                y: layout.listenerY,
-                z: layout.listenerZ
-            )
+        func update(stage: Stage) {
+            // The stage frame puts the listener at the origin facing -Z, so there is nothing to
+            // position any more — the coordinates arrive already relative to these ears.
+            environment.listenerPosition = AVAudio3DPoint(x: 0, y: 0, z: 0)
             environment.listenerAngularOrientation = AVAudio3DAngularOrientation(
-                yaw: layout.listenerYaw,
+                yaw: 0,
                 pitch: 0,
                 roll: 0
             )
-            backgroundNode.volume = layout.backgroundMusicGain
+            backgroundNode.volume = stage.audio.backgroundMusicGain
 
-            for placement in layout.placements {
+            for placement in stage.placements {
                 guard let emitter = emitters[placement.audioChannel] else {
                     continue
                 }
@@ -177,7 +176,7 @@
                     z: placement.z
                 )
                 emitter.sourceNode.volume = placement.isMuted ? 0 : placement.gain
-                emitter.sourceNode.reverbBlend = layout.reverbBlend
+                emitter.sourceNode.reverbBlend = stage.audio.reverbBlend
             }
         }
 
