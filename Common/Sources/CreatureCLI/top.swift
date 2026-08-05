@@ -38,8 +38,8 @@ struct CreatureCLI: AsyncParsableCommand {
         version: "2.46.0",
         subcommands: [
             Animations.self, Creatures.self, Debug.self, Dialog.self, Fixtures.self, Metrics.self,
-            Network.self, Playlists.self, Sounds.self, Storyboards.self, Util.self, Voice.self,
-            Websocket.self,
+            Network.self, Playlists.self, Sounds.self, Stages.self, Storyboards.self, Util.self,
+            Voice.self, Websocket.self,
         ],
         helpNames: .shortAndLong
     )
