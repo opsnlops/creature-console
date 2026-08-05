@@ -8,6 +8,7 @@ public enum CacheType: String, CustomStringConvertible, Codable, Sendable {
     case fixture = "fixture"
     case dialogScriptList = "dialog-script-list"
     case storyboardList = "storyboard-list"
+    case stageList = "stage-list"
     case unknown = "unknown"
 
     public var description: String {

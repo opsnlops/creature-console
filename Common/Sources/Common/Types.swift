@@ -21,6 +21,8 @@ public typealias DialogScriptIdentifier = UUID
 public typealias DialogGenerationIdentifier = UUID
 /// A storyboard (HyperCard-style card of programmable tiles for live performance).
 public typealias StoryboardIdentifier = UUID
+/// A stage — where each creature physically sits and which way it faces.
+public typealias StageIdentifier = UUID
 
 public typealias FrameDataIndentifier = String
 public typealias TrackIdentifier = UUID
