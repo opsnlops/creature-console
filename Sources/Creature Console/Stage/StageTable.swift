@@ -1,5 +1,6 @@
 import Common
 import OSLog
+import SwiftData
 import SwiftUI
 
 /// Lists the stages saved on the server, newest-edited first.
@@ -16,6 +17,9 @@ struct StageTable: View {
 
     private let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "StageTable")
 
+    /// Backed by SwiftData and kept current by the `stage-list` cache invalidation, so a stage
+    /// created or renamed on another device appears here on its own.
+    @Query(sort: \StageModel.updatedAtMillis, order: .reverse) private var stageModels: [StageModel]
     @State private var store = StageStore()
     @State private var selection: StageIdentifier?
     @State private var stageToEdit: Stage?
@@ -127,6 +131,9 @@ struct StageTable: View {
                 StageEditor(stageID: stage.id)
             }
             .task { await store.load() }
+            .onChange(of: stageModels.map(\.updatedAtMillis)) { _, _ in
+                store.syncStages(from: stageModels.map { $0.toDTO() })
+            }
             // No live query behind this list, so re-fetch when the editor is dismissed; otherwise a
             // rename or a moved creature wouldn't show up on the way back.
             .onChange(of: stageToEdit) { _, newValue in

@@ -17,6 +17,9 @@ struct StageEditor: View {
     var createNew = false
 
     @Query(sort: \CreatureModel.name) private var creatures: [CreatureModel]
+    /// The local mirror the `stage-list` cache invalidation keeps current, so a stage saved on
+    /// another device shows up here without anything being polled.
+    @Query(sort: \StageModel.updatedAtMillis, order: .reverse) private var stageModels: [StageModel]
     @State private var store = StageStore()
     @State private var selectedCreatureID: CreatureIdentifier?
     @State private var isCreatingStage = false
@@ -77,6 +80,9 @@ struct StageEditor: View {
         }
         .onChange(of: stageCreatures) { _, newValue in
             store.noteKnownCreatures(newValue)
+        }
+        .onChange(of: stageModels.map(\.updatedAtMillis)) { _, _ in
+            store.syncStages(from: stageModels.map { $0.toDTO() })
         }
         .onChange(of: store.stage?.id) { _, _ in
             ensureSelection()
@@ -193,6 +199,12 @@ struct StageEditor: View {
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            }
+
+            if let notice = store.remoteChangeNotice {
+                Label(notice, systemImage: "arrow.triangle.2.circlepath")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
             }
 
             if store.hasUnsavedChanges {

@@ -10,6 +10,7 @@ enum AppSchema {
             SoundModel.self, CreatureModel.self, AnimationMetadataModel.self,
             PlaylistModel.self, PlaylistItemModel.self, ServerLogModel.self,
             DmxFixtureModel.self, DialogScriptModel.self, StoryboardModel.self,
+            StageModel.self,
         ]
     }
 }

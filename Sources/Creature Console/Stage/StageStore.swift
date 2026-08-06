@@ -33,6 +33,13 @@ final class StageStore {
     /// How many animations rendered against the selected stage are now out of date.
     private(set) var animationStaleness: StageAnimationsDTO?
 
+    /// Set when the stage being edited changed somewhere else while there are unsaved edits here.
+    /// Nil whenever the working copy is clean — a clean stage just adopts the incoming version.
+    private(set) var remoteChangeNotice: String?
+
+    /// The version that arrived from elsewhere, held until the operator chooses to take it.
+    @ObservationIgnored private var pendingRemoteStage: Stage?
+
     /// The stage being edited, including unsaved changes.
     var stage: Stage? {
         didSet {
@@ -85,6 +92,10 @@ final class StageStore {
             let target =
                 preferredID ?? stage?.id ?? Self.lastSelectedStageID() ?? loaded.first?.id
             select(target)
+            // Seed the SwiftData mirror. This costs a second fetch on open, but the mirror is what
+            // carries changes from other devices, and on a cold store (or right after a schema
+            // wipe) nothing else would populate it — leaving the live-update path silently dead.
+            CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true)
         case .failure(let error):
             let message = ServerError.detailedMessage(from: error)
             logger.warning("Could not load stages: \(message)")
@@ -97,11 +108,15 @@ final class StageStore {
             stage = nil
             savedStage = nil
             animationStaleness = nil
+            remoteChangeNotice = nil
+            pendingRemoteStage = nil
             return
         }
         stage = match
         savedStage = match
         animationStaleness = nil
+        remoteChangeNotice = nil
+        pendingRemoteStage = nil
         Self.rememberSelectedStageID(id)
         Task { await refreshStaleness(for: id) }
     }
@@ -121,9 +136,65 @@ final class StageStore {
     }
 
     /// Throw away local edits and go back to what the server last confirmed.
+    ///
+    /// If another device changed this stage while it was being edited, reverting takes *that*
+    /// version — discarding local edits to go back to a copy known to be stale would be a strange
+    /// thing to offer.
     func revert() {
-        stage = savedStage
         saveError = nil
+        if let pending = pendingRemoteStage {
+            adopt(pending)
+            return
+        }
+        stage = savedStage
+    }
+
+    // MARK: - Changes from elsewhere
+
+    /// Take the freshest list from the local SwiftData mirror, which the `stage-list` cache
+    /// invalidation keeps current across devices.
+    ///
+    /// The list itself is always safe to replace. The *working copy* is not: if this device has
+    /// unsaved edits, silently re-reading the document would throw away whatever was mid-drag —
+    /// worse than the stale display it fixes. So a clean stage adopts the incoming version, and a
+    /// dirty one keeps its edits and says the stage moved underneath it.
+    func syncStages(from incoming: [Stage]) {
+        stages = incoming
+        if loadState == .idle { loadState = .loaded }
+
+        guard let current = stage else { return }
+
+        guard let match = incoming.first(where: { $0.id == current.id }) else {
+            // Deleted elsewhere. Unsaved work is still worth more than a tidy picker, so it stays
+            // put and says so rather than vanishing mid-edit.
+            if hasUnsavedChanges {
+                remoteChangeNotice = "This stage was deleted on another device."
+                pendingRemoteStage = nil
+            } else {
+                select(incoming.first?.id)
+            }
+            return
+        }
+
+        // Unchanged since we last saw it — including our own save echoing back through the cache.
+        guard match != savedStage else { return }
+
+        if hasUnsavedChanges {
+            pendingRemoteStage = match
+            remoteChangeNotice =
+                "This stage changed on another device. Reverting will take their version and discard your unsaved edits."
+        } else {
+            adopt(match)
+        }
+    }
+
+    /// Replace the working copy with a version from elsewhere.
+    private func adopt(_ incoming: Stage) {
+        stage = incoming
+        savedStage = incoming
+        pendingRemoteStage = nil
+        remoteChangeNotice = nil
+        Task { await refreshStaleness(for: incoming.id) }
     }
 
     // MARK: - Saving
@@ -142,6 +213,7 @@ final class StageStore {
         switch await server.updateStage(working) {
         case .success(let saved):
             apply(saved)
+            CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true)
             // The save just bumped updated_at, so everything rendered against this stage is
             // now stale — re-read rather than showing the pre-save count.
             await refreshStaleness(for: saved.id)
@@ -161,6 +233,7 @@ final class StageStore {
         case .success(let created):
             stages.insert(created, at: 0)
             select(created.id)
+            CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true)
         case .failure(let error):
             saveError = ServerError.detailedMessage(from: error)
         }
@@ -184,6 +257,7 @@ final class StageStore {
             if stage?.id == id {
                 select(stages.first?.id)
             }
+            CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true)
         case .failure(let error):
             saveError = ServerError.detailedMessage(from: error)
         }
