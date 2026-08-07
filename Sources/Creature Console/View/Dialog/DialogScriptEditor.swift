@@ -221,7 +221,6 @@ struct DialogScriptEditor: View {
                             if !createNew {
                                 DialogRerenderButton(
                                     scriptId: original.id,
-                                    stageId: original.stageId,
                                     title: script.title,
                                     generationId: selectedGenerationId,
                                     disabled: isDirty,

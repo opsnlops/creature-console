@@ -249,13 +249,13 @@ struct DialogRenderPanel: View {
         let effectiveTitle = trimmedTitle.isEmpty ? fallback : trimmedTitle
         let title = effectiveTitle.isEmpty ? nil : effectiveTitle
 
-        // "Follow the script" is resolved to the script's actual stage id *here*, not left to
-        // the server: the deployed render path never consults the script's binding when the
-        // request omits stage_id (creature-server#128), and sending it explicitly is the more
-        // robust contract regardless — the render is stamped with exactly what was asked.
+        // nil override omits stage_id and the server falls back to the script's own binding —
+        // read *at render time* from the saved script, the single source of truth. Resolving it
+        // client-side here would silently render with a stale binding whenever another device
+        // rebound the script. Requires the creature-server#128 fallback fix.
         let request = DialogRequest.fromScript(
             scriptId, persistence: persistence, autoplay: autoplay, title: title,
-            generationId: selectedGenerationId, stageId: stageOverride ?? scriptStageId)
+            generationId: selectedGenerationId, stageId: stageOverride)
 
         Task {
             let result = await server.renderDialog(request)
