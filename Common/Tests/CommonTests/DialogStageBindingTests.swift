@@ -93,9 +93,12 @@ struct DialogStageBindingTests {
         #expect(encoded["updated_at"] == nil)
     }
 
-    @Test("an unbound script sends no stage_id, so omission can't clear one")
-    func upsertOmitsAbsentStageBinding() throws {
+    @Test("an unbound script sends an empty stage_id, which the server treats as an explicit clear")
+    func upsertSendsEmptyStringForNoStage() throws {
+        // Verified against the deployed server: an *absent* key preserves the stored binding
+        // (protecting stage-unaware clients), while "" clears it. A stage-aware client's nil is a
+        // decision, so the field is always sent.
         let script = DialogScript(id: UUID(), title: "Scene 3", notes: "", turns: [])
-        #expect(try object(UpsertDialogScriptRequest(script))["stage_id"] == nil)
+        #expect(try object(UpsertDialogScriptRequest(script))["stage_id"] as? String == "")
     }
 }

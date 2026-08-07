@@ -17,12 +17,16 @@ struct StageEditor: View {
     var createNew = false
 
     @Query(sort: \CreatureModel.name) private var creatures: [CreatureModel]
+    /// Every saved dialog script, for the "Dialogs on This Stage" section — the *forward* link
+    /// from a stage to the scenes that bind it. Filtered client-side by stage id.
+    @Query(sort: \DialogScriptModel.title) private var dialogScriptModels: [DialogScriptModel]
     /// The local mirror the `stage-list` cache invalidation keeps current, so a stage saved on
     /// another device shows up here without anything being polled.
     @Query(sort: \StageModel.updatedAtMillis, order: .reverse) private var stageModels: [StageModel]
     @State private var store = StageStore()
     @State private var selectedCreatureID: CreatureIdentifier?
     @State private var isCreatingStage = false
+    @State private var scriptToOpen: DialogScript? = nil
     @State private var isConfirmingDelete = false
     @State private var newStageTitle = ""
 
@@ -110,6 +114,19 @@ struct StageEditor: View {
         } message: {
             Text("Name this physical arrangement — 'Mainstage', 'Travel', and so on.")
         }
+        .sheet(item: $scriptToOpen) { script in
+            NavigationStack {
+                DialogScriptEditor(existing: script)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { scriptToOpen = nil }
+                        }
+                    }
+            }
+            #if os(macOS)
+                .frame(minWidth: 760, minHeight: 640)
+            #endif
+        }
         .confirmationDialog(
             "Delete this stage?", isPresented: $isConfirmingDelete, titleVisibility: .visible
         ) {
@@ -161,12 +178,87 @@ struct StageEditor: View {
         Form {
             stageSection
             if store.stage != nil {
+                dialogsSection
                 placementSection
                 offStageSection
                 audioSection
             }
         }
         .formStyle(.grouped)
+    }
+
+    // MARK: - Dialogs on this stage
+
+    /// Scripts whose saved binding points at the selected stage.
+    private var boundScripts: [DialogScriptModel] {
+        guard let id = store.stage?.id.uuidString.lowercased() else { return [] }
+        return dialogScriptModels.filter { $0.stageIdString == id }
+    }
+
+    private enum ScriptRenderStatus {
+        case unrendered
+        case current
+        case stale
+    }
+
+    /// What state a bound script's renders are in, joined from the server's staleness report.
+    /// The report lists *animations rendered against this stage*; a bound script with no entry
+    /// there has never been rendered with the stage — the state that otherwise looks like
+    /// "saving my stage did nothing".
+    private func renderStatus(for script: DialogScriptModel) -> ScriptRenderStatus {
+        guard let report = store.animationStaleness else { return .unrendered }
+        let scriptID = script.id.uuidString.lowercased()
+        let entries = report.items.filter { $0.sourceScriptID.lowercased() == scriptID }
+        if entries.isEmpty { return .unrendered }
+        return entries.contains(where: \.isStale) ? .stale : .current
+    }
+
+    @ViewBuilder
+    private var dialogsSection: some View {
+        Section("Dialogs on This Stage") {
+            if boundScripts.isEmpty {
+                Text(
+                    "No dialog scripts bind this stage yet. Pick it in a script's Stage section to give that scene head aiming."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                ForEach(boundScripts) { script in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(script.title.isEmpty ? "(untitled)" : script.title)
+                            statusLabel(renderStatus(for: script))
+                        }
+                        Spacer()
+                        Button("Open") {
+                            scriptToOpen = script.toDTO()
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func statusLabel(_ status: ScriptRenderStatus) -> some View {
+        switch status {
+        case .unrendered:
+            Label("Not rendered with this stage yet", systemImage: "circle.dashed")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        case .current:
+            Label("Rendered — up to date", systemImage: "checkmark.circle")
+                .font(.caption)
+                .foregroundStyle(.green)
+        case .stale:
+            Label(
+                "Rendered before this stage last moved — re-render",
+                systemImage: "clock.badge.exclamationmark"
+            )
+            .font(.caption)
+            .foregroundStyle(.orange)
+        }
     }
 
     private var stageSection: some View {

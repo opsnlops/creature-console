@@ -21,6 +21,9 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
     /// animations not rendered from dialog. See the multichar-dialog feature.
     public var sourceScriptId: String?
     public var sourceScriptTurns: [DialogScriptTurn]?
+    /// The stage this animation was rendered against (issue #119), if any. Soft pointer like
+    /// `sourceScriptId` — the stage may have been deleted; the render still plays.
+    public var sourceStageId: String?
 
 
     // Custom CodingKeys to map JSON keys to struct properties
@@ -35,12 +38,14 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
         case multitrackAudio = "multitrack_audio"
         case sourceScriptId = "source_script_id"
         case sourceScriptTurns = "source_script_turns"
+        case sourceStageId = "source_stage_id"
     }
 
     public init(
         id: AnimationIdentifier, title: String, lastUpdated: Date, millisecondsPerFrame: UInt32,
         note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool,
-        sourceScriptId: String? = nil, sourceScriptTurns: [DialogScriptTurn]? = nil
+        sourceScriptId: String? = nil, sourceScriptTurns: [DialogScriptTurn]? = nil,
+        sourceStageId: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -52,6 +57,7 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
         self.multitrackAudio = multitrackAudio
         self.sourceScriptId = sourceScriptId
         self.sourceScriptTurns = sourceScriptTurns
+        self.sourceStageId = sourceStageId
     }
 
     /// The source dialog script's id as a typed `UUID`, or `nil` when there's no live source
@@ -59,6 +65,13 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
     public var sourceScriptIdentifier: DialogScriptIdentifier? {
         guard let sourceScriptId, !sourceScriptId.isEmpty else { return nil }
         return UUID(uuidString: sourceScriptId)
+    }
+
+    /// The source stage's id as a typed `UUID`, or `nil` when the render wasn't stage-bound
+    /// (or the server sent an empty string).
+    public var sourceStageIdentifier: StageIdentifier? {
+        guard let sourceStageId, !sourceStageId.isEmpty else { return nil }
+        return UUID(uuidString: sourceStageId)
     }
 
     /// True when this animation was rendered from a dialog (has a script pointer and/or a
@@ -75,6 +88,7 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
             && lhs.multitrackAudio == rhs.multitrackAudio
             && lhs.sourceScriptId == rhs.sourceScriptId
             && lhs.sourceScriptTurns == rhs.sourceScriptTurns
+            && lhs.sourceStageId == rhs.sourceStageId
     }
 
 
@@ -89,6 +103,7 @@ public struct AnimationMetadata: Hashable, Equatable, Codable, Identifiable, Sen
         hasher.combine(multitrackAudio)
         hasher.combine(sourceScriptId)
         hasher.combine(sourceScriptTurns)
+        hasher.combine(sourceStageId)
     }
 
 }

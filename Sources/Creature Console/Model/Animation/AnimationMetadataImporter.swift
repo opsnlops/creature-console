@@ -29,6 +29,7 @@ actor AnimationMetadataImporter {
                     existing.numberOfFrames = dto.numberOfFrames
                     existing.multitrackAudio = dto.multitrackAudio
                     existing.sourceScriptId = dto.sourceScriptId
+                    existing.sourceStageId = dto.sourceStageId
                 } else {
                     // Insert new
                     modelContext.insert(AnimationMetadataModel(dto: dto))

@@ -109,8 +109,10 @@ struct DialogScriptTests {
         let script = DialogScript.mock()  // has id + created_at + updated_at
         let data = try JSONEncoder().encode(UpsertDialogScriptRequest(script))
         let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-        // The server's upsert DTO rejects unknown fields, so we must send exactly these three.
-        #expect(Set(obj.keys) == ["title", "notes", "turns"])
+        // The server's upsert DTO rejects unknown fields, so we must send exactly these four.
+        // stage_id is always present ("" = unbound) — the server preserves the stored binding
+        // when the key is absent, and this client's nil is a decision, not ignorance.
+        #expect(Set(obj.keys) == ["title", "notes", "turns", "stage_id"])
         #expect(obj["id"] == nil)
         #expect(obj["created_at"] == nil)
         #expect(obj["updated_at"] == nil)

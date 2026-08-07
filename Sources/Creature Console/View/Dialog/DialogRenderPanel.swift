@@ -1,6 +1,7 @@
 import Common
 import Foundation
 import OSLog
+import SwiftData
 import SwiftUI
 
 /// Renders the current scene into a multi-track Animation. Posts the async render job, then
@@ -20,12 +21,20 @@ struct DialogRenderPanel: View {
     let selectedGenerationId: DialogGenerationIdentifier?
     let defaultTitle: String
     let backgroundMusic: DialogBackgroundMusic?
+    /// The stage saved on the script, which the server uses when the request doesn't override.
+    let scriptStageId: StageIdentifier?
 
     private let server = CreatureServerClient.shared
 
     @State private var persistence: DialogPersistence = .permanent
     @State private var autoplay = false
     @State private var titleText = ""
+    /// Per-render stage override; nil follows the script's own binding. This is how a travel
+    /// rendition of a mainstage scene gets made without touching the saved script — the server
+    /// keys rendered animations by (script, stage), so both renditions coexist.
+    @State private var stageOverride: StageIdentifier? = nil
+
+    @Query(sort: \StageModel.title) private var stageModels: [StageModel]
 
     @State private var activeJobId: String? = nil
     @State private var observedJob: JobStatusStore.JobInfo? = nil
@@ -34,6 +43,14 @@ struct DialogRenderPanel: View {
     @State private var completedResult: DialogJobResult? = nil
     @State private var errorAlert: ErrorAlert?
     @State private var renderedSoundToShare: String? = nil
+
+    /// What "no override" means right now, so the menu reads as a statement of fact rather than
+    /// a mystery default.
+    private var followScriptLabel: String {
+        guard let scriptStageId else { return "None — script has no stage" }
+        let title = stageModels.first(where: { $0.id == scriptStageId })?.title
+        return "Script's stage — \(title?.isEmpty == false ? title! : "(untitled)")"
+    }
 
     private var turnsAreReady: Bool {
         !turns.isEmpty
@@ -68,14 +85,18 @@ struct DialogRenderPanel: View {
             }
 
             if scriptId == nil || selectedGenerationId == nil {
+                // This is the actionable blocker for the greyed-out Render button, so it reads
+                // as one — not as passive info. Rendering goes by script id and picks up the
+                // *saved* server copy, which is exactly why unsaved edits (including a freshly
+                // chosen stage) must be saved first.
                 Label(
                     scriptId == nil
-                        ? "Save the script before final rendering."
+                        ? "Unsaved changes — save the script, then render."
                         : "Generate and select a full-dialog voice take before final rendering.",
-                    systemImage: "info.circle"
+                    systemImage: scriptId == nil ? "square.and.arrow.down" : "info.circle"
                 )
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.orange)
             }
 
             HStack {
@@ -86,6 +107,28 @@ struct DialogRenderPanel: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+            }
+
+            HStack {
+                Text("Stage").frame(width: 90, alignment: .leading)
+                Picker("Stage", selection: $stageOverride) {
+                    Text(followScriptLabel).tag(StageIdentifier?.none)
+                    ForEach(stageModels.filter { $0.id != scriptStageId }) { model in
+                        Text("Override: \(model.title.isEmpty ? "(untitled)" : model.title)")
+                            .tag(Optional(model.id))
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+            }
+
+            if scriptStageId == nil && stageOverride == nil {
+                Label(
+                    "No stage — the cast won't look at each other. Bind one in the Stage section above for head aiming.",
+                    systemImage: "eye.slash"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             HStack {
@@ -206,9 +249,11 @@ struct DialogRenderPanel: View {
         let effectiveTitle = trimmedTitle.isEmpty ? fallback : trimmedTitle
         let title = effectiveTitle.isEmpty ? nil : effectiveTitle
 
+        // nil override omits stage_id, and the server falls back to the script's own binding —
+        // so "follow the script" and "explicitly this stage" are both expressible.
         let request = DialogRequest.fromScript(
             scriptId, persistence: persistence, autoplay: autoplay, title: title,
-            generationId: selectedGenerationId)
+            generationId: selectedGenerationId, stageId: stageOverride)
 
         Task {
             let result = await server.renderDialog(request)

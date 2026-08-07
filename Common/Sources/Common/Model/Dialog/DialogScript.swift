@@ -140,8 +140,12 @@ public struct UpsertDialogScriptRequest: Encodable, Sendable {
     public var title: String
     public var notes: String
     public var turns: [DialogScriptTurn]
-    /// The script's usual stage. Sent only when set, so a client that doesn't know about stages
-    /// can't clear one by omission.
+    /// The script's usual stage.
+    ///
+    /// The server preserves the stored binding when this key is **absent** (so a stage-unaware
+    /// client can't clear one by omission) and clears it on an **empty string**. This request
+    /// always sends the field — a UUID or `""` — because a stage-aware client's `nil` is a
+    /// decision, not ignorance.
     public var stageId: StageIdentifier?
 
     enum CodingKeys: String, CodingKey {
@@ -170,7 +174,7 @@ public struct UpsertDialogScriptRequest: Encodable, Sendable {
         try container.encode(title, forKey: .title)
         try container.encode(notes, forKey: .notes)
         try container.encode(turns, forKey: .turns)
-        try container.encodeIfPresent(stageId?.uuidString.lowercased(), forKey: .stageId)
+        try container.encode(stageId?.uuidString.lowercased() ?? "", forKey: .stageId)
     }
 }
 

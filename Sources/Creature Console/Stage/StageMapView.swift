@@ -26,6 +26,10 @@ struct StageMapView: View {
 
     var onRemove: ((CreatureIdentifier) -> Void)?
 
+    /// Creatures to call out on the map — the dialog editor passes the scene's speakers so you can
+    /// see at a glance who in the cast actually has lines on this stage. Empty = no emphasis.
+    var emphasizedCreatureIDs: Set<CreatureIdentifier> = []
+
     @Environment(\.colorScheme) private var colorScheme
 
     private var extent: Float { StageLimits.coordinateLimit }
@@ -153,9 +157,10 @@ struct StageMapView: View {
     /// icon can't detach, costs 28pt, and answers the only question being asked.
     private func headingBadge(_ placement: StagePlacement, isSelected: Bool) -> some View {
         let tint: Color = isSelected ? .accentColor : .teal
+        let speaks = emphasizedCreatureIDs.contains(placement.creatureID)
         return ZStack {
-            Circle().fill(tint.opacity(0.12))
-            Circle().stroke(tint.opacity(0.35), lineWidth: 1)
+            Circle().fill(tint.opacity(speaks ? 0.28 : 0.12))
+            Circle().stroke(tint.opacity(speaks ? 0.8 : 0.35), lineWidth: speaks ? 1.5 : 1)
 
             Image(systemName: placement.isMuted ? "speaker.slash.fill" : "bird.fill")
                 .font(.system(size: 11, weight: .semibold))
@@ -169,6 +174,15 @@ struct StageMapView: View {
                     .offset(y: -13)
             }
             .rotationEffect(.degrees(Double(placement.yaw) + 180))
+
+            if speaks {
+                Image(systemName: "music.microphone")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(tint)
+                    .padding(2)
+                    .background(Circle().fill(.background))
+                    .offset(x: 11, y: 11)
+            }
         }
         .frame(width: 28, height: 28)
     }
