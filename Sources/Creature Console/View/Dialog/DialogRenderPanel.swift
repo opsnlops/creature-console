@@ -249,11 +249,13 @@ struct DialogRenderPanel: View {
         let effectiveTitle = trimmedTitle.isEmpty ? fallback : trimmedTitle
         let title = effectiveTitle.isEmpty ? nil : effectiveTitle
 
-        // nil override omits stage_id, and the server falls back to the script's own binding —
-        // so "follow the script" and "explicitly this stage" are both expressible.
+        // "Follow the script" is resolved to the script's actual stage id *here*, not left to
+        // the server: the deployed render path never consults the script's binding when the
+        // request omits stage_id (creature-server#128), and sending it explicitly is the more
+        // robust contract regardless — the render is stamped with exactly what was asked.
         let request = DialogRequest.fromScript(
             scriptId, persistence: persistence, autoplay: autoplay, title: title,
-            generationId: selectedGenerationId, stageId: stageOverride)
+            generationId: selectedGenerationId, stageId: stageOverride ?? scriptStageId)
 
         Task {
             let result = await server.renderDialog(request)

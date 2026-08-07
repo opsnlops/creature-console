@@ -129,6 +129,8 @@ final class StageStore {
     }
 
     /// One stale animation to re-render, as computed by the view from the SwiftData mirrors.
+    /// `title` must be the **script's** title — the server appends " — <stage>" itself, so an
+    /// animation title (already suffixed) would stack a copy on every re-render.
     struct StaleRender: Equatable, Sendable {
         let scriptID: DialogScriptIdentifier
         let title: String
