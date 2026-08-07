@@ -26,6 +26,10 @@ struct AnimationDialogProvenanceView: View {
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
 
+    /// Mirror-first source for "Open Dialog Script"; the server is only the deleted-or-not
+    /// tiebreaker when the script isn't in the local cache.
+    @Query private var dialogScripts: [DialogScriptModel]
+
     @State private var isLoading = false
     @State private var scriptToOpen: DialogScript? = nil
     @State private var showSnapshot = false
@@ -212,6 +216,10 @@ struct AnimationDialogProvenanceView: View {
     }
 
     private func open(_ id: DialogScriptIdentifier) {
+        if let cached = dialogScripts.first(where: { $0.id == id }) {
+            scriptToOpen = cached.toDTO()
+            return
+        }
         isLoading = true
         statusMessage = nil
         Task {

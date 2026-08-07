@@ -30,9 +30,6 @@ final class StageStore {
     private(set) var loadState: LoadState = .idle
     private(set) var isSaving = false
     private(set) var saveError: String?
-    /// How many animations rendered against the selected stage are now out of date.
-    private(set) var animationStaleness: StageAnimationsDTO?
-
     /// Progress of a batch re-render kicked off from the Dialogs section.
     struct RerenderRun: Equatable {
         var completed: Int
@@ -104,9 +101,10 @@ final class StageStore {
             let target =
                 preferredID ?? stage?.id ?? Self.lastSelectedStageID() ?? loaded.first?.id
             select(target)
-            // Seed the SwiftData mirror. This costs a second fetch on open, but the mirror is what
-            // carries changes from other devices, and on a cold store (or right after a schema
-            // wipe) nothing else would populate it — leaving the live-update path silently dead.
+            // Seed the SwiftData mirror — the one legitimate manual rebuild. Writes rely on
+            // the server's own stage-list broadcast, but on a cold store (or right after a
+            // schema wipe) nothing changed server-side, so no invalidation will ever arrive
+            // to populate it. Staleness math reads the mirror; empty means silently wrong.
             CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true)
         case .failure(let error):
             let message = ServerError.detailedMessage(from: error)
@@ -119,21 +117,25 @@ final class StageStore {
         guard let id, let match = stages.first(where: { $0.id == id }) else {
             stage = nil
             savedStage = nil
-            animationStaleness = nil
             remoteChangeNotice = nil
             pendingRemoteStage = nil
             return
         }
         stage = match
         savedStage = match
-        animationStaleness = nil
         remoteChangeNotice = nil
         pendingRemoteStage = nil
         Self.rememberSelectedStageID(id)
-        Task { await refreshStaleness(for: id) }
     }
 
-    /// Re-render every stale animation on this stage, one at a time.
+    /// One stale animation to re-render, as computed by the view from the SwiftData mirrors.
+    struct StaleRender: Equatable, Sendable {
+        let scriptID: DialogScriptIdentifier
+        let title: String
+    }
+
+    /// Re-render stale animations, one at a time. The caller computes the list from the local
+    /// mirrors — staleness lives entirely in SwiftData, so there is no server report to consult.
     ///
     /// Each item becomes a render request pinned to **this stage explicitly** — not the script's
     /// current binding, which may have moved on. A stale mainstage rendition should come back as
@@ -142,27 +144,22 @@ final class StageStore {
     /// point, not what anyone says, and re-spending ElevenLabs on it would be pure waste.
     ///
     /// Sequential on purpose: renders contend for the same audio pipeline server-side, and
-    /// "Re-rendering 2 of 3" is legible in a way six interleaved progress bars are not.
-    func rerenderStaleAnimations() async {
-        guard rerenderRun == nil, let stageID = stage?.id else { return }
-        let stale = animationStaleness?.items.filter(\.isStale) ?? []
-        guard !stale.isEmpty else { return }
+    /// "Re-rendering 2 of 3" is legible in a way six interleaved progress bars are not. No
+    /// refresh at the end either — each completed render broadcasts an animation invalidation,
+    /// the mirror updates, and the rows recompute themselves.
+    func rerenderStale(_ items: [StaleRender]) async {
+        guard rerenderRun == nil, let stageID = stage?.id, !items.isEmpty else { return }
 
         rerenderNotice = nil
-        rerenderRun = RerenderRun(completed: 0, total: stale.count, currentTitle: nil)
+        rerenderRun = RerenderRun(completed: 0, total: items.count, currentTitle: nil)
         var failures: [String] = []
 
-        for (index, item) in stale.enumerated() {
+        for (index, item) in items.enumerated() {
             rerenderRun = RerenderRun(
-                completed: index, total: stale.count, currentTitle: item.title)
-
-            guard let scriptID = UUID(uuidString: item.sourceScriptID) else {
-                failures.append("\(item.title): source script id isn't a UUID")
-                continue
-            }
+                completed: index, total: items.count, currentTitle: item.title)
 
             let request = DialogRequest.fromScript(
-                scriptID, persistence: .permanent, title: item.title, stageId: stageID)
+                item.scriptID, persistence: .permanent, title: item.title, stageId: stageID)
 
             switch await server.renderDialog(request) {
             case .success(let job):
@@ -183,21 +180,6 @@ final class StageStore {
         rerenderRun = nil
         if !failures.isEmpty {
             rerenderNotice = "Some re-renders failed — " + failures.joined(separator: "; ")
-        }
-        await refreshStaleness(for: stageID)
-    }
-
-    /// Ask the server how much of the rendered catalogue this stage has outdated.
-    func refreshStaleness(for id: StageIdentifier) async {
-        switch await server.listStageAnimations(id: id) {
-        case .success(let report):
-            // Only apply if the operator hasn't moved on to another stage meanwhile.
-            guard stage?.id == id else { return }
-            animationStaleness = report
-        case .failure(let error):
-            logger.debug(
-                "Could not load stage animation staleness: \(ServerError.detailedMessage(from: error))"
-            )
         }
     }
 
@@ -260,7 +242,6 @@ final class StageStore {
         savedStage = incoming
         pendingRemoteStage = nil
         remoteChangeNotice = nil
-        Task { await refreshStaleness(for: incoming.id) }
     }
 
     // MARK: - Saving
@@ -278,11 +259,10 @@ final class StageStore {
 
         switch await server.updateStage(working) {
         case .success(let saved):
+            // apply() updates this device's UI immediately; the mirror (and every other
+            // device) catches up when the server's own stage-list invalidation lands. No
+            // manual rebuild here — racing the broadcast just double-fetches.
             apply(saved)
-            CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true)
-            // The save just bumped updated_at, so everything rendered against this stage is
-            // now stale — re-read rather than showing the pre-save count.
-            await refreshStaleness(for: saved.id)
         case .failure(let error):
             let message = ServerError.detailedMessage(from: error)
             logger.warning("Could not save stage \(working.id): \(message)")
@@ -299,7 +279,6 @@ final class StageStore {
         case .success(let created):
             stages.insert(created, at: 0)
             select(created.id)
-            CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true)
         case .failure(let error):
             saveError = ServerError.detailedMessage(from: error)
         }
@@ -323,7 +302,6 @@ final class StageStore {
             if stage?.id == id {
                 select(stages.first?.id)
             }
-            CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true)
         case .failure(let error):
             saveError = ServerError.detailedMessage(from: error)
         }

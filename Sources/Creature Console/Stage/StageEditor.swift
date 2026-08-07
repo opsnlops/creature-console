@@ -82,6 +82,9 @@ struct StageEditor: View {
         .navigationTitle(navigationTitleText)
         .task {
             store.noteKnownCreatures(stageCreatures)
+            // Mirror first: on a warm cache the picker and map appear instantly, and the server
+            // load below only reconciles. The mirror is invalidation-fed, so it's rarely behind.
+            store.syncStages(from: stageModels.map { $0.toDTO() })
             await store.load(selecting: stageID)
             // Arriving via "Create New" always prompts, even when the server already has stages —
             // otherwise the load would helpfully select an existing one and quietly ignore the ask.
@@ -98,10 +101,6 @@ struct StageEditor: View {
         }
         .onChange(of: store.stage?.id) { _, _ in
             ensureSelection()
-        }
-        .onChange(of: animationFingerprint) { _, _ in
-            guard let id = store.stage?.id else { return }
-            Task { await store.refreshStaleness(for: id) }
         }
         .toolbar {
             ToolbarItem {
@@ -126,15 +125,7 @@ struct StageEditor: View {
         } message: {
             Text("Name this physical arrangement — 'Mainstage', 'Travel', and so on.")
         }
-        .sheet(
-            item: $scriptToOpen,
-            onDismiss: {
-                // A render may have been kicked off (or finished) in the sheet.
-                if let id = store.stage?.id {
-                    Task { await store.refreshStaleness(for: id) }
-                }
-            }
-        ) { script in
+        .sheet(item: $scriptToOpen) { script in
             NavigationStack {
                 DialogScriptEditor(existing: script)
                     .toolbar {
@@ -209,12 +200,28 @@ struct StageEditor: View {
 
     // MARK: - Dialogs on this stage
 
-    /// Changes exactly when a render lands or an animation is deleted — cheap to compare, and
-    /// far less churn than watching whole models.
-    private var animationFingerprint: [String] {
-        animationMetadataModels.map {
-            "\($0.id)|\($0.lastUpdated?.timeIntervalSince1970 ?? 0)"
-        }
+    /// Animations rendered against the selected stage, straight from the mirror.
+    private var stageAnimations: [AnimationMetadataModel] {
+        guard let id = store.stage?.id.uuidString.lowercased() else { return [] }
+        return animationMetadataModels.filter { $0.sourceStageId?.lowercased() == id }
+    }
+
+    /// The staleness test, computed locally: rendered against an older version of the stage than
+    /// the mirror holds now. Both halves arrive via cache invalidation, so these rows update the
+    /// moment a render lands or the stage is saved — on any device, with no explicit refresh.
+    private func isStale(_ animation: AnimationMetadataModel) -> Bool {
+        guard let stageUpdatedAt = savedStageUpdatedAt else { return false }
+        return (animation.sourceStageUpdatedAt ?? 0) < stageUpdatedAt
+    }
+
+    /// The *saved* stage's updated_at from the mirror — unsaved local edits don't stale anything.
+    private var savedStageUpdatedAt: Int64? {
+        guard let id = store.stage?.id else { return nil }
+        return stageModels.first(where: { $0.id == id })?.updatedAtMillis
+    }
+
+    private var staleAnimations: [AnimationMetadataModel] {
+        stageAnimations.filter(isStale)
     }
 
     /// Scripts whose saved binding points at the selected stage.
@@ -229,16 +236,14 @@ struct StageEditor: View {
         case stale
     }
 
-    /// What state a bound script's renders are in, joined from the server's staleness report.
-    /// The report lists *animations rendered against this stage*; a bound script with no entry
-    /// there has never been rendered with the stage — the state that otherwise looks like
-    /// "saving my stage did nothing".
+    /// What state a bound script's renders are in, joined entirely from the local mirrors.
+    /// A bound script with no render against this stage has never been rendered with it — the
+    /// state that otherwise looks like "saving my stage did nothing".
     private func renderStatus(for script: DialogScriptModel) -> ScriptRenderStatus {
-        guard let report = store.animationStaleness else { return .unrendered }
         let scriptID = script.id.uuidString.lowercased()
-        let entries = report.items.filter { $0.sourceScriptID.lowercased() == scriptID }
+        let entries = stageAnimations.filter { $0.sourceScriptId?.lowercased() == scriptID }
         if entries.isEmpty { return .unrendered }
-        return entries.contains(where: \.isStale) ? .stale : .current
+        return entries.contains(where: isStale) ? .stale : .current
     }
 
     @ViewBuilder
@@ -279,12 +284,16 @@ struct StageEditor: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-        } else if let report = store.animationStaleness, report.staleCount > 0 {
+        } else if !staleAnimations.isEmpty {
             Button {
-                Task { await store.rerenderStaleAnimations() }
+                let items = staleAnimations.compactMap { model -> StageStore.StaleRender? in
+                    guard let scriptID = model.sourceScriptIdentifier else { return nil }
+                    return StageStore.StaleRender(scriptID: scriptID, title: model.title)
+                }
+                Task { await store.rerenderStale(items) }
             } label: {
                 Label(
-                    "Re-render All (\(report.staleCount))",
+                    "Re-render All (\(staleAnimations.count))",
                     systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
             }
             .buttonStyle(.glassProminent)
@@ -342,16 +351,19 @@ struct StageEditor: View {
                     .font(.caption)
             }
 
-            if let staleness = store.animationStaleness, let summary = staleness.stalenessSummary {
-                Label(summary, systemImage: "clock.badge.exclamationmark")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .help(
-                        "These were rendered before this stage last changed. Re-render them to pick up the new positions."
-                    )
-            } else if let staleness = store.animationStaleness, staleness.count > 0 {
+            if !staleAnimations.isEmpty {
                 Label(
-                    "\(staleness.count) animation(s) rendered on this stage, all current",
+                    "\(staleAnimations.count) of \(stageAnimations.count) animations out of date",
+                    systemImage: "clock.badge.exclamationmark"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .help(
+                    "These were rendered before this stage last changed. Re-render them to pick up the new positions."
+                )
+            } else if !stageAnimations.isEmpty {
+                Label(
+                    "\(stageAnimations.count) animation(s) rendered on this stage, all current",
                     systemImage: "checkmark.circle"
                 )
                 .font(.caption)

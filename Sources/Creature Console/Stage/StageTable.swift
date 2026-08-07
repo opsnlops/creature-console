@@ -130,7 +130,10 @@ struct StageTable: View {
             .navigationDestination(item: $stageToEdit) { stage in
                 StageEditor(stageID: stage.id)
             }
-            .task { await store.load() }
+            .task {
+                store.syncStages(from: stageModels.map { $0.toDTO() })
+                await store.load()
+            }
             .onChange(of: stageModels.map(\.updatedAtMillis)) { _, _ in
                 store.syncStages(from: stageModels.map { $0.toDTO() })
             }

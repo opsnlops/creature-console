@@ -5,6 +5,9 @@
 
     struct SpatialStageView: View {
         @Query(sort: \CreatureModel.name) private var creatures: [CreatureModel]
+        /// The stage mirror — keeps the listening window's picker in step with edits made
+        /// anywhere, same as the stage editor.
+        @Query private var stageModels: [StageModel]
         @Query(sort: \AnimationMetadataModel.title)
         private var animations: [AnimationMetadataModel]
         @State private var viewModel = SpatialStageViewModel()
@@ -46,8 +49,12 @@
             .navigationTitle("Spatial Stage")
             .task {
                 viewModel.reconcileCreatures(stageCreatures)
+                viewModel.store.syncStages(from: stageModels.map { $0.toDTO() })
                 await viewModel.loadStages()
                 chooseDefaultSimulation()
+            }
+            .onChange(of: stageModels.map(\.updatedAtMillis)) { _, _ in
+                viewModel.store.syncStages(from: stageModels.map { $0.toDTO() })
             }
             .onChange(of: stageCreatures) { _, newValue in
                 viewModel.reconcileCreatures(newValue)

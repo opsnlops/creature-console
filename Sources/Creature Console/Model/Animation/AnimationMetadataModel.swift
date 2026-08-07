@@ -24,12 +24,15 @@ final class AnimationMetadataModel: Identifiable {
     /// Soft pointer to the stage this animation was rendered against (UUID string), or `nil`
     /// for renders without head aiming. Optional with a default: a lightweight migration.
     var sourceStageId: String? = nil
+    /// The stage's updated_at at render time (epoch ms) — the local half of the staleness test.
+    var sourceStageUpdatedAt: Int64? = nil
 
     init(
         id: AnimationIdentifier, title: String, lastUpdated: Date?, millisecondsPerFrame: UInt32,
         note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool,
         sourceScriptId: String? = nil,
-        sourceStageId: String? = nil
+        sourceStageId: String? = nil,
+        sourceStageUpdatedAt: Int64? = nil
     ) {
         self.id = id
         self.title = title
@@ -41,6 +44,7 @@ final class AnimationMetadataModel: Identifiable {
         self.multitrackAudio = multitrackAudio
         self.sourceScriptId = sourceScriptId
         self.sourceStageId = sourceStageId
+        self.sourceStageUpdatedAt = sourceStageUpdatedAt
     }
 
     /// The source dialog script id as a typed `UUID`, or `nil` when absent/empty/non-UUID.
@@ -63,7 +67,8 @@ extension AnimationMetadataModel {
             numberOfFrames: dto.numberOfFrames,
             multitrackAudio: dto.multitrackAudio,
             sourceScriptId: dto.sourceScriptId,
-            sourceStageId: dto.sourceStageId
+            sourceStageId: dto.sourceStageId,
+            sourceStageUpdatedAt: dto.sourceStageUpdatedAt
         )
     }
 
@@ -79,7 +84,8 @@ extension AnimationMetadataModel {
             numberOfFrames: numberOfFrames,
             multitrackAudio: multitrackAudio,
             sourceScriptId: sourceScriptId,
-            sourceStageId: sourceStageId
+            sourceStageId: sourceStageId,
+            sourceStageUpdatedAt: sourceStageUpdatedAt
         )
     }
 }
