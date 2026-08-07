@@ -142,23 +142,27 @@ struct AnimationTable: View {
                         }
                         .disabled(!hasSelection)
 
-                        Button {
-                            if let id = targetId {
-                                loadAnimationForEditing(animationId: id)
-                            }
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        .disabled(!hasSelection)
-
-                        // Jump to the source dialog script, but only when this animation was
-                        // rendered from a saved one.
+                        // A dialog-rendered animation opens as a viewer (the script drives edits),
+                        // so the menu says View — offering "Edit" and opening something that
+                        // won't edit would be a lie.
                         let sourceScriptId: DialogScriptIdentifier? = {
                             guard let id = targetId,
                                 let md = animations.first(where: { $0.id == id })
                             else { return nil }
                             return md.sourceScriptIdentifier
                         }()
+
+                        Button {
+                            if let id = targetId {
+                                loadAnimationForEditing(animationId: id)
+                            }
+                        } label: {
+                            sourceScriptId == nil
+                                ? Label("Edit", systemImage: "pencil")
+                                : Label("View", systemImage: "eye")
+                        }
+                        .disabled(!hasSelection)
+
                         if let sourceScriptId {
                             Button {
                                 loadScriptForEditing(scriptId: sourceScriptId)

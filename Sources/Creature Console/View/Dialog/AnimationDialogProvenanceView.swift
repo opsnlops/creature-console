@@ -35,10 +35,8 @@ struct AnimationDialogProvenanceView: View {
     /// through the turns-based preview (which regenerates a fresh take when nothing's cached).
     @State private var audioStatus: String? = nil
 
-    /// Take chosen in the embedded preview panel (drives preview/export of the snapshot turns).
-    @State private var selectedGenerationId: DialogGenerationIdentifier? = nil
-    @State private var previewScope: DialogPreviewScope = .full
-    @State private var fullDialogMeta: DialogPreviewMetaDTO? = nil
+    /// Kicks off the shared MP3 download/save flow hosted below.
+    @State private var soundToShare: String? = nil
 
     var body: some View {
         if metadata.hasDialogProvenance {
@@ -55,28 +53,21 @@ struct AnimationDialogProvenanceView: View {
                     renderedAudioCard
                 }
 
-                if let scriptId = metadata.sourceScriptIdentifier {
-                    DialogRerenderButton(
-                        scriptId: scriptId,
-                        title: metadata.title,
-                        onCompleted: { result in
-                            Task { await refreshEditor(animationId: result.animationId) }
-                        })
-                }
-
-                // Listen to / export the audio for the snapshot turns this animation was rendered
-                // from. The 17-channel WAV is only available via the preview endpoint (turns-based),
-                // so we drive all of it off the CoW snapshot.
-                if let turns = metadata.sourceScriptTurns, !turns.isEmpty {
-                    DialogPreviewPanel(
-                        turns: turns, title: metadata.title,
-                        scope: $previewScope,
-                        fullDialogMeta: $fullDialogMeta,
-                        selectedGenerationId: $selectedGenerationId)
-                }
+                // Deliberately *no* re-render button and no voice-take audition here — those are
+                // the dialog editor's job, and it's one sheet away via Open Dialog Script. This
+                // screen is about the rendered artifact: where it came from, and what it sounds
+                // like as rendered.
             }
         }
-        .sheet(item: $scriptToOpen) { script in
+        .shareableSoundFlow(fileName: $soundToShare)
+        // The dialog editor presented from here can re-render this animation in place, so
+        // re-fetch on dismissal — otherwise the tracks below would be showing the old render.
+        .sheet(
+            item: $scriptToOpen,
+            onDismiss: {
+                Task { await refreshEditor(animationId: metadata.id) }
+            }
+        ) { script in
             NavigationStack {
                 DialogScriptEditor(existing: script, mode: .animationLinked)
                     .toolbar {
@@ -119,6 +110,13 @@ struct AnimationDialogProvenanceView: View {
                 } label: {
                     Label("Stop", systemImage: "stop.circle")
                 }
+
+                ShareableSoundButton(
+                    fileName: metadata.soundFile,
+                    title: "Share MP3…",
+                    trigger: $soundToShare
+                )
+                .buttonStyle(.glass)
             }
             if let audioStatus {
                 Text(audioStatus).font(.caption).foregroundStyle(.secondary)

@@ -19,6 +19,9 @@ struct AnimationEditor: View {
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
 
+    /// The stage mirror, for resolving a rendered animation's stage id to its title.
+    @Query private var stageModels: [StageModel]
+
     // The parent view will set this to true if we're about to make a _new_ animation
     @State var createNew: Bool = false
 
@@ -42,6 +45,20 @@ struct AnimationEditor: View {
     /// Dialog provenance (script + per-creature mouth cues) for this animation's rendered sound,
     /// fetched lazily. Nil for hand-made animations or when the sound carries none.
     @State private var provenance: DialogProvenance? = nil
+
+    /// Whether this animation was rendered from a dialog. Checks the metadata pointer *and* the
+    /// lazily-fetched iXML provenance, because some renders never got `source_script_id` stamped —
+    /// those flip to read-only a beat after the provenance loads rather than never.
+    private var isDialogRendered: Bool {
+        model.animation.metadata.hasDialogProvenance || provenance != nil
+    }
+
+    /// A dialog-rendered animation is a build artifact: the script (and its stage) drive edits,
+    /// and anything hand-changed here — recorded tracks, metadata tweaks — would be silently
+    /// destroyed by the next re-render. So rendered animations are viewed, not edited.
+    private var effectiveReadOnly: Bool {
+        readOnly || isDialogRendered
+    }
 
 
     // Initializers
@@ -92,7 +109,7 @@ struct AnimationEditor: View {
             .navigationSubtitle("Active Universe: \(activeUniverse)")
         #endif
         .toolbar(id: "animationEditor") {
-            if !readOnly {
+            if !effectiveReadOnly {
                 ToolbarItem(id: "save", placement: .secondaryAction) {
                     Button(action: {
                         saveAnimationToServer()
@@ -114,7 +131,7 @@ struct AnimationEditor: View {
                 .help("Play on Server (Universe \(activeUniverse))")
             }
 
-            if !readOnly {
+            if !effectiveReadOnly {
                 ToolbarItem(id: "newTrack", placement: .primaryAction) {
                     Menu {
                         if availableCreatures.isEmpty {
@@ -330,11 +347,23 @@ struct AnimationEditor: View {
         ScrollView {
             GlassEffectContainer(spacing: 24) {
                 VStack(alignment: .leading, spacing: 16) {
-                    animationMetadataForm
-                    AnimationDialogProvenanceView(
-                        metadata: model.animation.metadata,
-                        onRerendered: { updated in model.reload(with: updated) }
-                    )
+                    if isDialogRendered {
+                        // Metadata first — what you're looking at — then the banner explaining
+                        // why it's read-only, then the script card, which is the editing surface
+                        // for a rendered animation.
+                        renderedMetadataFacts
+                        renderedAnimationBanner
+                        AnimationDialogProvenanceView(
+                            metadata: model.animation.metadata,
+                            onRerendered: { updated in model.reload(with: updated) }
+                        )
+                    } else {
+                        animationMetadataForm
+                        AnimationDialogProvenanceView(
+                            metadata: model.animation.metadata,
+                            onRerendered: { updated in model.reload(with: updated) }
+                        )
+                    }
                     TrackListingView(animation: model.animation, provenance: provenance)
                         .id(model.tracksVersion)
                 }
@@ -343,6 +372,44 @@ struct AnimationEditor: View {
             }
         }
         .bottomToolbarInset()
+    }
+
+    private var renderedAnimationBanner: some View {
+        Label(
+            "Rendered from a dialog script. The script drives edits — change its turns or stage "
+                + "and re-render; hand edits here would be lost on the next render.",
+            systemImage: "text.bubble"
+        )
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .glassEffect(.regular.tint(.blue.opacity(0.15)), in: .rect(cornerRadius: 10))
+    }
+
+    /// Read-only metadata for a rendered animation. Same information as the editable form, shown
+    /// as facts — every one of these is determined by the render, not authored here.
+    private var renderedMetadataFacts: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            LabeledContent("Title", value: model.title)
+            LabeledContent("Sound File", value: model.soundFile)
+            LabeledContent("Multi-Track Audio", value: model.multitrackAudio ? "Yes" : "No")
+            if let stageId = model.animation.metadata.sourceStageIdentifier {
+                // The stage may have been deleted since the render — the animation still plays,
+                // so show the id rather than pretending there was no stage.
+                LabeledContent(
+                    "Stage",
+                    value: stageModels.first(where: { $0.id == stageId })?.title
+                        ?? "(deleted stage \(stageId.uuidString.lowercased().prefix(8))…)")
+            }
+            LabeledContent("Frame Period", value: "\(model.millisecondsPerFrame) ms")
+            if !model.note.isEmpty {
+                LabeledContent("Notes", value: model.note)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
 
