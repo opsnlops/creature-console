@@ -33,6 +33,18 @@ final class StageStore {
     /// How many animations rendered against the selected stage are now out of date.
     private(set) var animationStaleness: StageAnimationsDTO?
 
+    /// Progress of a batch re-render kicked off from the Dialogs section.
+    struct RerenderRun: Equatable {
+        var completed: Int
+        var total: Int
+        var currentTitle: String?
+    }
+
+    /// Non-nil while "Re-render All" is running.
+    private(set) var rerenderRun: RerenderRun?
+    /// Failures from the last batch re-render, if any.
+    private(set) var rerenderNotice: String?
+
     /// Set when the stage being edited changed somewhere else while there are unsaved edits here.
     /// Nil whenever the working copy is clean — a clean stage just adopts the incoming version.
     private(set) var remoteChangeNotice: String?
@@ -119,6 +131,60 @@ final class StageStore {
         pendingRemoteStage = nil
         Self.rememberSelectedStageID(id)
         Task { await refreshStaleness(for: id) }
+    }
+
+    /// Re-render every stale animation on this stage, one at a time.
+    ///
+    /// Each item becomes a render request pinned to **this stage explicitly** — not the script's
+    /// current binding, which may have moved on. A stale mainstage rendition should come back as
+    /// a mainstage rendition even if its script now points at the travel stage. No generation id
+    /// is sent, so the server reuses the cached voice take: a stage move changes where heads
+    /// point, not what anyone says, and re-spending ElevenLabs on it would be pure waste.
+    ///
+    /// Sequential on purpose: renders contend for the same audio pipeline server-side, and
+    /// "Re-rendering 2 of 3" is legible in a way six interleaved progress bars are not.
+    func rerenderStaleAnimations() async {
+        guard rerenderRun == nil, let stageID = stage?.id else { return }
+        let stale = animationStaleness?.items.filter(\.isStale) ?? []
+        guard !stale.isEmpty else { return }
+
+        rerenderNotice = nil
+        rerenderRun = RerenderRun(completed: 0, total: stale.count, currentTitle: nil)
+        var failures: [String] = []
+
+        for (index, item) in stale.enumerated() {
+            rerenderRun = RerenderRun(
+                completed: index, total: stale.count, currentTitle: item.title)
+
+            guard let scriptID = UUID(uuidString: item.sourceScriptID) else {
+                failures.append("\(item.title): source script id isn't a UUID")
+                continue
+            }
+
+            let request = DialogRequest.fromScript(
+                scriptID, persistence: .permanent, title: item.title, stageId: stageID)
+
+            switch await server.renderDialog(request) {
+            case .success(let job):
+                await JobStatusStore.shared.seedQueued(job)
+                for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
+                    if case .terminal(let info) = event {
+                        if info.status == .failed {
+                            failures.append(item.title + ": " + (info.result ?? "render failed"))
+                        }
+                        break
+                    }
+                }
+            case .failure(let error):
+                failures.append(item.title + ": " + ServerError.detailedMessage(from: error))
+            }
+        }
+
+        rerenderRun = nil
+        if !failures.isEmpty {
+            rerenderNotice = "Some re-renders failed — " + failures.joined(separator: "; ")
+        }
+        await refreshStaleness(for: stageID)
     }
 
     /// Ask the server how much of the rendered catalogue this stage has outdated.

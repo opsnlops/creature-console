@@ -20,6 +20,9 @@ struct StageEditor: View {
     /// Every saved dialog script, for the "Dialogs on This Stage" section — the *forward* link
     /// from a stage to the scenes that bind it. Filtered client-side by stage id.
     @Query(sort: \DialogScriptModel.title) private var dialogScriptModels: [DialogScriptModel]
+    /// The animation mirror, watched only as a refresh trigger: a finished render lands here via
+    /// cache invalidation, which is the moment staleness rows can actually change.
+    @Query private var animationMetadataModels: [AnimationMetadataModel]
     /// The local mirror the `stage-list` cache invalidation keeps current, so a stage saved on
     /// another device shows up here without anything being polled.
     @Query(sort: \StageModel.updatedAtMillis, order: .reverse) private var stageModels: [StageModel]
@@ -49,6 +52,11 @@ struct StageEditor: View {
 
     private var extent: Float { StageLimits.coordinateLimit }
 
+    private var navigationTitleText: String {
+        if let title = store.stage?.title, !title.isEmpty { return title }
+        return "Stages"
+    }
+
     var body: some View {
         Group {
             #if os(macOS)
@@ -71,7 +79,7 @@ struct StageEditor: View {
                 }
             #endif
         }
-        .navigationTitle(store.stage?.title.isEmpty == false ? store.stage!.title : "Stages")
+        .navigationTitle(navigationTitleText)
         .task {
             store.noteKnownCreatures(stageCreatures)
             await store.load(selecting: stageID)
@@ -90,6 +98,10 @@ struct StageEditor: View {
         }
         .onChange(of: store.stage?.id) { _, _ in
             ensureSelection()
+        }
+        .onChange(of: animationFingerprint) { _, _ in
+            guard let id = store.stage?.id else { return }
+            Task { await store.refreshStaleness(for: id) }
         }
         .toolbar {
             ToolbarItem {
@@ -114,7 +126,15 @@ struct StageEditor: View {
         } message: {
             Text("Name this physical arrangement — 'Mainstage', 'Travel', and so on.")
         }
-        .sheet(item: $scriptToOpen) { script in
+        .sheet(
+            item: $scriptToOpen,
+            onDismiss: {
+                // A render may have been kicked off (or finished) in the sheet.
+                if let id = store.stage?.id {
+                    Task { await store.refreshStaleness(for: id) }
+                }
+            }
+        ) { script in
             NavigationStack {
                 DialogScriptEditor(existing: script)
                     .toolbar {
@@ -189,6 +209,14 @@ struct StageEditor: View {
 
     // MARK: - Dialogs on this stage
 
+    /// Changes exactly when a render lands or an animation is deleted — cheap to compare, and
+    /// far less churn than watching whole models.
+    private var animationFingerprint: [String] {
+        animationMetadataModels.map {
+            "\($0.id)|\($0.lastUpdated?.timeIntervalSince1970 ?? 0)"
+        }
+    }
+
     /// Scripts whose saved binding points at the selected stage.
     private var boundScripts: [DialogScriptModel] {
         guard let id = store.stage?.id.uuidString.lowercased() else { return [] }
@@ -216,6 +244,8 @@ struct StageEditor: View {
     @ViewBuilder
     private var dialogsSection: some View {
         Section("Dialogs on This Stage") {
+            rerenderControls
+
             if boundScripts.isEmpty {
                 Text(
                     "No dialog scripts bind this stage yet. Pick it in a script's Stage section to give that scene head aiming."
@@ -238,6 +268,41 @@ struct StageEditor: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var rerenderControls: some View {
+        if let run = store.rerenderRun {
+            VStack(alignment: .leading, spacing: 4) {
+                ProgressView(value: Double(run.completed), total: Double(max(run.total, 1)))
+                Text(rerenderProgressText(run))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } else if let report = store.animationStaleness, report.staleCount > 0 {
+            Button {
+                Task { await store.rerenderStaleAnimations() }
+            } label: {
+                Label(
+                    "Re-render All (\(report.staleCount))",
+                    systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+            }
+            .buttonStyle(.glassProminent)
+            .help(
+                "Re-renders every out-of-date animation against this stage, reusing the cached voice takes — no new voice generation."
+            )
+        }
+
+        if let notice = store.rerenderNotice {
+            Label(notice, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        }
+    }
+
+    private func rerenderProgressText(_ run: StageStore.RerenderRun) -> String {
+        guard let title = run.currentTitle else { return "Re-rendering…" }
+        return "Re-rendering “\(title)”… (\(run.completed + 1) of \(run.total))"
     }
 
     @ViewBuilder
