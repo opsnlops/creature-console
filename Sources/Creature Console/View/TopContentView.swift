@@ -103,6 +103,23 @@ struct TopContentView: View {
                             Label("Soundboard", systemImage: "speaker.wave.2")
                                 .symbolRenderingMode(.hierarchical)
                         }
+
+                        NavigationLink {
+                            TVSpatialAuditionView()
+                        } label: {
+                            Label("Spatial Audition", systemImage: "person.wave.2")
+                                .symbolRenderingMode(.hierarchical)
+                        }
+
+                        NavigationLink {
+                            TVLiveStageView()
+                        } label: {
+                            Label(
+                                "Live Stage Monitor",
+                                systemImage: "antenna.radiowaves.left.and.right"
+                            )
+                            .symbolRenderingMode(.hierarchical)
+                        }
                     }
 
                     Section("Diagnostics") {

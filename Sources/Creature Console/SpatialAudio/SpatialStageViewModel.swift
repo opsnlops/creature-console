@@ -16,6 +16,18 @@
         var inputMode: SpatialStageInputMode = .simulation
         var interfaces: [SACNInterface] = []
         var selectedInterfaceID: String?
+        /// Where a `creature-cli network rtp-listen` relay lives — persisted per machine, since
+        /// which Pi bridges the animatronic VLAN depends on where this machine is sitting.
+        var relayHost: String = UserDefaults.standard.string(forKey: "spatialRelayHost") ?? "" {
+            didSet { UserDefaults.standard.set(relayHost, forKey: "spatialRelayHost") }
+        }
+        var relayPort: Int = {
+            let stored = UserDefaults.standard.integer(forKey: "spatialRelayPort")
+            return stored == 0 ? 1964 : stored
+        }()
+        {
+            didSet { UserDefaults.standard.set(relayPort, forKey: "spatialRelayPort") }
+        }
         var selectedAnimationID: String?
         var isLooping = false {
             didSet {
@@ -179,13 +191,26 @@
                 renderer.update(stage: stage)
 
                 switch inputMode {
-                case .live:
-                    guard
-                        let selectedInterface = interfaces.first(where: {
-                            $0.id == selectedInterfaceID
-                        })
-                    else {
-                        throw SpatialStageViewModelError.noNetworkInterface
+                case .live, .liveRelay:
+                    let transport: SpatialLiveTransport
+                    if inputMode == .live {
+                        guard
+                            let selectedInterface = interfaces.first(where: {
+                                $0.id == selectedInterfaceID
+                            })
+                        else {
+                            throw SpatialStageViewModelError.noNetworkInterface
+                        }
+                        transport = .multicast(selectedInterface.nwInterface)
+                    } else {
+                        let host = relayHost.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !host.isEmpty else {
+                            throw SpatialStageViewModelError.noRelayHost
+                        }
+                        guard (1...65535).contains(relayPort) else {
+                            throw SpatialStageViewModelError.invalidRelayPort
+                        }
+                        transport = .relay(host: host, port: UInt16(relayPort))
                     }
                     let source = try SpatialLiveAudioSource(
                         renderer: renderer,
@@ -195,7 +220,7 @@
                             .commonPlayoutDelayMilliseconds,
                         onDiagnostics: diagnosticsHandler(for: token)
                     )
-                    try source.start(interface: selectedInterface.nwInterface)
+                    try source.start(transport: transport)
                     guard startToken == token else {
                         source.stop()
                         return
@@ -300,6 +325,8 @@
     enum SpatialStageViewModelError: LocalizedError {
         case noNetworkInterface
         case noSimulationSelected
+        case noRelayHost
+        case invalidRelayPort
 
         var errorDescription: String? {
             switch self {
@@ -307,6 +334,10 @@
                 "Choose the network interface connected to the creature audio network."
             case .noSimulationSelected:
                 "Choose a multitrack animation to simulate."
+            case .noRelayHost:
+                "Enter the address of a machine running 'creature-cli network rtp-listen'."
+            case .invalidRelayPort:
+                "The relay port must be between 1 and 65535."
             }
         }
     }

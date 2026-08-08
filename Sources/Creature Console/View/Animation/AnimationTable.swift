@@ -179,7 +179,8 @@ struct AnimationTable: View {
                                 }
                             } label: {
                                 Label(
-                                    "Play Audio Locally (Spatially)", systemImage: "spatial.audio")
+                                    "Play Audio Locally (Spatially)",
+                                    systemImage: "person.wave.2")
                             }
                             .disabled(localSoundFile.isEmpty || localSpatialStage == nil)
                         #endif

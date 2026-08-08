@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(tvOS)
     import Common
     import Foundation
     import Observation
@@ -37,6 +37,10 @@
             stop()
             let token = UUID()
             startToken = token
+
+            #if os(tvOS)
+                try SpatialAudioSession.configureForMultichannelPlayback()
+            #endif
 
             let channels = Set(stage.placements.map(\.audioChannel)).filter {
                 (1...16).contains($0)

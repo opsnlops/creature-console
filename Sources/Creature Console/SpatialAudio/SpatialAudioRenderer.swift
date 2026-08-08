@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(tvOS)
     import AVFAudio
     import Common
     import Foundation

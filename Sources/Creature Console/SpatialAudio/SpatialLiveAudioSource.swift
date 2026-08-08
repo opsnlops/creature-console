@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(tvOS)
     import Common
     import Foundation
     import Network
@@ -116,7 +116,10 @@
             qos: .userInteractive
         )
         private let renderer: SpatialAudioRenderer
-        private let receiver = SpatialMulticastReceiver()
+        #if os(macOS)
+            private let multicastReceiver = SpatialMulticastReceiver()
+        #endif
+        private let relayReceiver = SpatialRelayReceiver()
         private let activeChannels: Set<Int>
         private let monitoringDelayFrames: Int
         private let commonPlayoutDelay: Duration
@@ -154,7 +157,7 @@
             }
         }
 
-        func start(interface: NWInterface) throws {
+        func start(transport: SpatialLiveTransport) throws {
             queue.sync {
                 stopLocked(finalState: .stopped)
                 diagnostics = SpatialStageDiagnostics(state: .starting)
@@ -179,24 +182,42 @@
                 self.timer = timer
             }
 
+            let onPacket: @Sendable (SpatialReceivedPacket) -> Void = { [weak self] packet in
+                guard let self else {
+                    return
+                }
+                queue.async { [weak self] in
+                    self?.receive(packet)
+                }
+            }
+            let onError: @Sendable (String) -> Void = { [weak self] message in
+                guard let self else {
+                    return
+                }
+                queue.async { [weak self] in
+                    self?.fail(message)
+                }
+            }
+
             do {
-                try receiver.start(
-                    channels: activeChannels,
-                    interface: interface
-                ) { [weak self] packet in
-                    guard let self else {
-                        return
-                    }
-                    queue.async { [weak self] in
-                        self?.receive(packet)
-                    }
-                } onError: { [weak self] message in
-                    guard let self else {
-                        return
-                    }
-                    queue.async { [weak self] in
-                        self?.fail(message)
-                    }
+                switch transport {
+                #if os(macOS)
+                    case .multicast(let interface):
+                        try multicastReceiver.start(
+                            channels: activeChannels,
+                            interface: interface,
+                            onPacket: onPacket,
+                            onError: onError
+                        )
+                #endif
+                case .relay(let host, let port):
+                    relayReceiver.start(
+                        host: host,
+                        port: port,
+                        channels: activeChannels,
+                        onPacket: onPacket,
+                        onError: onError
+                    )
                 }
             } catch {
                 queue.sync {
@@ -222,7 +243,7 @@
                 stopLocked(finalState: .stopped)
                 publishDiagnostics(force: true)
             }
-            receiver.stop()
+            stopReceivers()
             renderer.pause()
         }
 
@@ -236,7 +257,7 @@
             diagnostics.state = finalState
         }
 
-        private func receive(_ received: SpatialMulticastReceiver.ReceivedPacket) {
+        private func receive(_ received: SpatialReceivedPacket) {
             guard isRunning, let stream = streams[received.channel] else {
                 return
             }
@@ -296,12 +317,19 @@
             }
         }
 
+        private func stopReceivers() {
+            #if os(macOS)
+                multicastReceiver.stop()
+            #endif
+            relayReceiver.stop()
+        }
+
         private func fail(_ message: String) {
             guard isRunning else {
                 return
             }
             stopLocked(finalState: .failed(message))
-            receiver.stop()
+            stopReceivers()
             renderer.pause()
             publishDiagnostics(force: true)
         }

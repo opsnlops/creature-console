@@ -3,6 +3,8 @@ import Foundation
 public enum RTPAudioConstants {
     public static let dialogMulticastPrefix = "239.19.63."
     public static let backgroundMusicMulticastAddress = "239.19.63.17"
+    /// The lane background music rides on, one past the 16 dialog channels.
+    public static let backgroundMusicChannel = 17
     public static let rtpPort: UInt16 = 5004
     public static let rtcpPort: UInt16 = 5005
     public static let opusPayloadType: UInt8 = 96

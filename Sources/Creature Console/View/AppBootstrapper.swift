@@ -72,7 +72,26 @@ actor AppBootstrapper {
             ("Fixtures", await importFixturesIntoSwiftData()),
             ("Dialog scripts", await importDialogScriptsIntoSwiftData()),
             ("Storyboards", await importStoryboardsIntoSwiftData()),
+            ("Stages", await importStagesIntoSwiftData()),
         ]
+    }
+
+    private func importStagesIntoSwiftData() async -> Result<String, Error> {
+        do {
+            let container = await SwiftDataStore.shared.container()
+            let importer = StageImporter(modelContainer: container)
+            let server = CreatureServerClient.shared
+            let result = await server.listStages()
+            switch result {
+            case .success(let list):
+                try await importer.upsertBatch(list)
+                return .success("Imported \(list.count) stages")
+            case .failure(let serverError):
+                return .failure(serverError)
+            }
+        } catch {
+            return .failure(error)
+        }
     }
 
     private func importSoundsIntoSwiftData() async -> Result<String, Error> {

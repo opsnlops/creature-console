@@ -27,7 +27,7 @@ final class LocalAudioPlayer {
 
     @ObservationIgnored private let audioManager = AudioManager.shared
     @ObservationIgnored private let server = CreatureServerClient.shared
-    #if os(macOS)
+    #if os(macOS) || os(tvOS)
         @ObservationIgnored private let spatial = SpatialAuditionPlayer()
     #endif
 
@@ -59,7 +59,7 @@ final class LocalAudioPlayer {
         return .success(())
     }
 
-    #if os(macOS)
+    #if os(macOS) || os(tvOS)
         /// Play a 17-channel WAV positioned on a stage — takes (`adHoc: true`) and promoted or
         /// rendered files (`adHoc: false`) alike.
         func playSpatially(_ soundFile: String, stage: Stage, adHoc: Bool = false) async throws {
@@ -71,7 +71,7 @@ final class LocalAudioPlayer {
 
     func stop() {
         audioManager.stopURLPlayback()
-        #if os(macOS)
+        #if os(macOS) || os(tvOS)
             spatial.stop()
         #endif
         nowPlaying = nil

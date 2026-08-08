@@ -1511,6 +1511,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				117C86FF2CA0CC81007B5682 /* Creature TV */,
+				A0D100000000000000000002 /* SpatialAudio */,
 			);
 			name = "Creature TV";
 			packageProductDependencies = (

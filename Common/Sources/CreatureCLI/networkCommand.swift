@@ -4,13 +4,72 @@
     import Foundation
     import Network
 
+    // Interface discovery shared by the sACN and RTP relay listeners.
+    private func fetchInterfaces() -> [SACNInterface] {
+        let monitor = NWPathMonitor()
+        let queue = DispatchQueue(label: "io.opsnlops.CreatureCLI.SACNPathMonitor")
+        let semaphore = DispatchSemaphore(value: 0)
+        let box = InterfaceBox()
+
+        monitor.pathUpdateHandler = { path in
+            box.value = SACNInterfaceCatalog.interfaceOptions(from: path)
+            semaphore.signal()
+        }
+
+        monitor.start(queue: queue)
+        _ = semaphore.wait(timeout: .now() + 2)
+        monitor.cancel()
+
+        return box.value
+    }
+
+    private func printInterfaces(_ interfaces: [SACNInterface]) {
+        if interfaces.isEmpty {
+            print("No interfaces found.")
+            return
+        }
+        for interface in interfaces {
+            let addresses =
+                interface.addresses.isEmpty
+                ? ""
+                : " (\(interface.addresses.joined(separator: ", ")))"
+            print("\(interface.name) \(interface.type)\(addresses)")
+        }
+    }
+
+    private func selectInterface(
+        named name: String?, from interfaces: [SACNInterface]
+    ) -> SACNInterface? {
+        if let name {
+            return interfaces.first { $0.name == name }
+        }
+        return interfaces.first
+    }
+
+    private func printListenerAddresses(port: Int) {
+        print("Clients may connect on the following IP addresses:")
+        let allAddresses = SACNInterfaceCatalog.ipv4AddressesByInterface()
+            .values
+            .flatMap { $0 }
+            .sorted()
+        if allAddresses.isEmpty {
+            print("(no IPv4 addresses found)")
+        } else {
+            for address in allAddresses {
+                print("- \(address)")
+            }
+        }
+        print("Remote viewer port: \(port)")
+    }
+
     extension CreatureCLI {
 
         struct Network: AsyncParsableCommand {
             static let configuration = CommandConfiguration(
                 abstract: "Network tooling for CreatureCLI",
                 subcommands: [
-                    SACNListen.self
+                    SACNListen.self,
+                    RTPListen.self,
                 ]
             )
 
@@ -47,7 +106,9 @@
                         return
                     }
 
-                    guard let selectedInterface = selectInterface(from: interfaces) else {
+                    guard
+                        let selectedInterface = selectInterface(named: interface, from: interfaces)
+                    else {
                         throw failWithMessage("No matching interfaces found.")
                     }
 
@@ -74,19 +135,7 @@
                         switch state {
                         case .ready:
                             print("Listening on \(selectedInterface.name)")
-                            print("Clients may connect on the following IP addresses:")
-                            let allAddresses = SACNInterfaceCatalog.ipv4AddressesByInterface()
-                                .values
-                                .flatMap { $0 }
-                                .sorted()
-                            if allAddresses.isEmpty {
-                                print("(no IPv4 addresses found)")
-                            } else {
-                                for address in allAddresses {
-                                    print("- \(address)")
-                                }
-                            }
-                            print("Remote viewer port: \(port)")
+                            printListenerAddresses(port: port)
                             if let lockedUniverse = proxy.lockedUniverse {
                                 print("Universe locked to \(lockedUniverse)")
                             } else {
@@ -102,44 +151,83 @@
                     listener.start(queue: queue)
                     try? await Task.sleep(nanoseconds: .max)
                 }
+            }
 
-                private func fetchInterfaces() -> [SACNInterface] {
-                    let monitor = NWPathMonitor()
-                    let queue = DispatchQueue(label: "io.opsnlops.CreatureCLI.SACNPathMonitor")
-                    let semaphore = DispatchSemaphore(value: 0)
-                    let box = InterfaceBox()
+            struct RTPListen: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    commandName: "rtp-listen",
+                    abstract: "Relay the live RTP audio streams to remote spatial viewers",
+                    discussion: """
+                        Joins the creature audio multicast lanes (16 dialog channels plus \
+                        background music, RTP and RTCP) on a local interface and relays the raw \
+                        packets over TCP. Run this on a machine wired to the animatronic VLAN — \
+                        like a Pi — and the console or Creature TV can monitor a live show \
+                        spatially from networks with no multicast route.
+                        """
+                )
 
-                    monitor.pathUpdateHandler = { path in
-                        box.value = SACNInterfaceCatalog.interfaceOptions(from: path)
-                        semaphore.signal()
+                @Option(help: "Interface name to listen on (ex: en0)")
+                var interface: String?
+
+                @Option(help: "TCP port to listen on for remote viewers")
+                var port: Int = 1964
+
+                @Option(help: "Maximum number of concurrent viewers")
+                var maxClients: Int = 8
+
+                @Flag(help: "List available interfaces and exit")
+                var listInterfaces: Bool = false
+
+                func run() async throws {
+                    guard maxClients > 0 else {
+                        throw failWithMessage("Max clients must be at least 1.")
                     }
+                    let interfaces = fetchInterfaces()
 
-                    monitor.start(queue: queue)
-                    _ = semaphore.wait(timeout: .now() + 2)
-                    monitor.cancel()
-
-                    return box.value
-                }
-
-                private func printInterfaces(_ interfaces: [SACNInterface]) {
-                    if interfaces.isEmpty {
-                        print("No interfaces found.")
+                    if listInterfaces {
+                        printInterfaces(interfaces)
                         return
                     }
-                    for interface in interfaces {
-                        let addresses =
-                            interface.addresses.isEmpty
-                            ? ""
-                            : " (\(interface.addresses.joined(separator: ", ")))"
-                        print("\(interface.name) \(interface.type)\(addresses)")
-                    }
-                }
 
-                private func selectInterface(from interfaces: [SACNInterface]) -> SACNInterface? {
-                    if let name = interface {
-                        return interfaces.first { $0.name == name }
+                    guard
+                        let selectedInterface = selectInterface(named: interface, from: interfaces)
+                    else {
+                        throw failWithMessage("No matching interfaces found.")
                     }
-                    return interfaces.first
+
+                    guard port > 0, port <= 65535 else {
+                        throw failWithMessage("Invalid port. Must be 1-65535.")
+                    }
+
+                    let proxy = RTPRemoteProxy(
+                        interface: selectedInterface,
+                        maxClients: maxClients
+                    )
+                    try proxy.startCapture()
+
+                    let endpointPort =
+                        NWEndpoint.Port(rawValue: UInt16(port)) ?? .init(integerLiteral: 9012)
+                    let listener = try NWListener(using: .tcp, on: endpointPort)
+                    let queue = DispatchQueue(label: "io.opsnlops.CreatureCLI.RTPRemoteListener")
+
+                    listener.newConnectionHandler = { connection in
+                        proxy.attach(connection: connection)
+                    }
+
+                    listener.stateUpdateHandler = { state in
+                        switch state {
+                        case .ready:
+                            print("Capturing live audio on \(selectedInterface.name)")
+                            printListenerAddresses(port: port)
+                        case .failed(let error):
+                            print("Listener failed: \(error.localizedDescription)")
+                        default:
+                            break
+                        }
+                    }
+
+                    listener.start(queue: queue)
+                    try? await Task.sleep(nanoseconds: .max)
                 }
             }
         }
@@ -152,13 +240,80 @@
     import NIOCore
     import NIOPosix
 
+    // Interface discovery shared by the sACN and RTP relay listeners.
+    private func fetchLinuxInterfaces() throws -> [LinuxInterface] {
+        let devices = try System.enumerateDevices()
+        var merged: [String: (device: NIONetworkDevice, addresses: Set<String>)] = [:]
+
+        for device in devices {
+            guard let address = device.address else {
+                continue
+            }
+            guard case .v4 = address, let ip = address.ipAddress else {
+                continue
+            }
+            if var existing = merged[device.name] {
+                existing.addresses.insert(ip)
+                merged[device.name] = existing
+            } else {
+                merged[device.name] = (device: device, addresses: [ip])
+            }
+        }
+
+        return merged.map { entry in
+            LinuxInterface(
+                name: entry.key,
+                addresses: entry.value.addresses.sorted(),
+                device: entry.value.device
+            )
+        }
+        .sorted { $0.name < $1.name }
+    }
+
+    private func printInterfaces(_ interfaces: [LinuxInterface]) {
+        if interfaces.isEmpty {
+            print("No interfaces found.")
+            return
+        }
+        for interface in interfaces {
+            let addresses =
+                interface.addresses.isEmpty
+                ? ""
+                : " (\(interface.addresses.joined(separator: ", ")))"
+            print("\(interface.name)\(addresses)")
+        }
+    }
+
+    private func selectInterface(
+        named name: String?, from interfaces: [LinuxInterface]
+    ) -> LinuxInterface? {
+        if let name {
+            return interfaces.first { $0.name == name }
+        }
+        return interfaces.first
+    }
+
+    private func printListenerAddresses(interfaces: [LinuxInterface], port: Int) {
+        print("Clients may connect on the following IP addresses:")
+        let allAddresses = interfaces.flatMap { $0.addresses }.sorted()
+        if allAddresses.isEmpty {
+            print("(no IPv4 addresses found)")
+        } else {
+            for address in allAddresses {
+                print("- \(address)")
+            }
+        }
+        print("Remote viewer port: \(port)")
+    }
+
     extension CreatureCLI {
 
         struct Network: AsyncParsableCommand {
             static let configuration = CommandConfiguration(
                 abstract: "Network tooling for CreatureCLI",
                 subcommands: [
-                    SACNListen.self
+                    SACNListen.self,
+                    RTPListen.self,
                 ]
             )
 
@@ -188,14 +343,16 @@
                     guard maxClients > 0 else {
                         throw failWithMessage("Max clients must be at least 1.")
                     }
-                    let interfaces = try fetchInterfaces()
+                    let interfaces = try fetchLinuxInterfaces()
 
                     if listInterfaces {
                         printInterfaces(interfaces)
                         return
                     }
 
-                    guard let selectedInterface = selectInterface(from: interfaces) else {
+                    guard
+                        let selectedInterface = selectInterface(named: interface, from: interfaces)
+                    else {
                         throw failWithMessage("No matching interfaces found.")
                     }
 
@@ -229,16 +386,7 @@
 
                     let channel = try await bootstrap.bind(host: "0.0.0.0", port: port).get()
                     print("Listening on \(selectedInterface.name)")
-                    print("Clients may connect on the following IP addresses:")
-                    let allAddresses = interfaces.flatMap { $0.addresses }.sorted()
-                    if allAddresses.isEmpty {
-                        print("(no IPv4 addresses found)")
-                    } else {
-                        for address in allAddresses {
-                            print("- \(address)")
-                        }
-                    }
-                    print("Remote viewer port: \(port)")
+                    printListenerAddresses(interfaces: interfaces, port: port)
                     if let lockedUniverse = proxy.lockedUniverse {
                         print("Universe locked to \(lockedUniverse)")
                     } else {
@@ -247,55 +395,83 @@
 
                     try await channel.closeFuture.get()
                 }
+            }
 
-                private func fetchInterfaces() throws -> [LinuxInterface] {
-                    let devices = try System.enumerateDevices()
-                    var merged: [String: (device: NIONetworkDevice, addresses: Set<String>)] = [:]
+            struct RTPListen: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    commandName: "rtp-listen",
+                    abstract: "Relay the live RTP audio streams to remote spatial viewers",
+                    discussion: """
+                        Joins the creature audio multicast lanes (16 dialog channels plus \
+                        background music, RTP and RTCP) on a local interface and relays the raw \
+                        packets over TCP. Run this on a machine wired to the animatronic VLAN — \
+                        like a Pi — and the console or Creature TV can monitor a live show \
+                        spatially from networks with no multicast route.
+                        """
+                )
 
-                    for device in devices {
-                        guard let address = device.address else {
-                            continue
-                        }
-                        guard case .v4 = address, let ip = address.ipAddress else {
-                            continue
-                        }
-                        if var existing = merged[device.name] {
-                            existing.addresses.insert(ip)
-                            merged[device.name] = existing
-                        } else {
-                            merged[device.name] = (device: device, addresses: [ip])
-                        }
+                @Option(help: "Interface name to listen on (ex: eth0)")
+                var interface: String?
+
+                @Option(help: "TCP port to listen on for remote viewers")
+                var port: Int = 1964
+
+                @Option(help: "Maximum number of concurrent viewers")
+                var maxClients: Int = 8
+
+                @Flag(help: "List available interfaces and exit")
+                var listInterfaces: Bool = false
+
+                func run() async throws {
+                    guard maxClients > 0 else {
+                        throw failWithMessage("Max clients must be at least 1.")
                     }
+                    let interfaces = try fetchLinuxInterfaces()
 
-                    return merged.map { entry in
-                        LinuxInterface(
-                            name: entry.key,
-                            addresses: entry.value.addresses.sorted(),
-                            device: entry.value.device
-                        )
-                    }
-                    .sorted { $0.name < $1.name }
-                }
-
-                private func printInterfaces(_ interfaces: [LinuxInterface]) {
-                    if interfaces.isEmpty {
-                        print("No interfaces found.")
+                    if listInterfaces {
+                        printInterfaces(interfaces)
                         return
                     }
-                    for interface in interfaces {
-                        let addresses =
-                            interface.addresses.isEmpty
-                            ? ""
-                            : " (\(interface.addresses.joined(separator: ", ")))"
-                        print("\(interface.name)\(addresses)")
-                    }
-                }
 
-                private func selectInterface(from interfaces: [LinuxInterface]) -> LinuxInterface? {
-                    if let name = interface {
-                        return interfaces.first { $0.name == name }
+                    guard
+                        let selectedInterface = selectInterface(named: interface, from: interfaces)
+                    else {
+                        throw failWithMessage("No matching interfaces found.")
                     }
-                    return interfaces.first
+
+                    guard port > 0, port <= 65535 else {
+                        throw failWithMessage("Invalid port. Must be 1-65535.")
+                    }
+
+                    let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+                    defer {
+                        group.shutdownGracefully { error in
+                            if let error {
+                                print("EventLoopGroup shutdown error: \(error)")
+                            }
+                        }
+                    }
+
+                    let proxy = LinuxRTPRemoteProxy(
+                        group: group,
+                        interface: selectedInterface,
+                        maxClients: maxClients
+                    )
+                    try await proxy.startCapture()
+
+                    let bootstrap = ServerBootstrap(group: group)
+                        .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
+                        .serverChannelOption(ChannelOptions.backlog, value: 256)
+                        .childChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
+                        .childChannelInitializer { channel in
+                            proxy.attach(channel: channel)
+                        }
+
+                    let channel = try await bootstrap.bind(host: "0.0.0.0", port: port).get()
+                    print("Capturing live audio on \(selectedInterface.name)")
+                    printListenerAddresses(interfaces: interfaces, port: port)
+
+                    try await channel.closeFuture.get()
                 }
             }
         }

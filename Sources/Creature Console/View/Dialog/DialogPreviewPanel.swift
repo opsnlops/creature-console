@@ -113,7 +113,7 @@ struct DialogPreviewPanel: View {
 
             #if os(macOS)
                 Toggle(isOn: $spatialAudition) {
-                    Label("Spatial audition", systemImage: "spatial.audio")
+                    Label("Spatial audition", systemImage: "person.wave.2")
                 }
                 .toggleStyle(.switch)
                 .controlSize(.small)
