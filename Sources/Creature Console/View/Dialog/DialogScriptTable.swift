@@ -13,7 +13,9 @@ struct DialogScriptTable: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    @Query(sort: \DialogScriptModel.updatedAtMillis, order: .reverse)
+    // Alphabetical, matching the animation and creature lists — scripts are found by name,
+    // not by which one was touched last.
+    @Query(sort: \DialogScriptModel.title, order: .forward)
     private var scripts: [DialogScriptModel]
 
     let server = CreatureServerClient.shared
