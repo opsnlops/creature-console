@@ -836,15 +836,18 @@ private struct DialogMusicCandidate: Identifiable, Equatable {
     let result: DialogMusicGenerationResult
     let sourceCacheKey: String
     let sourceDialogGenerationId: DialogGenerationIdentifier
-    let sourceScriptUpdatedAt: Int64?
     var isExpired = false
 
     var id: UUID { result.musicGenerationId }
 
-    func matches(_ meta: DialogPreviewMetaDTO?, scriptUpdatedAt: Int64?) -> Bool {
-        sourceCacheKey == meta?.cacheKey
-            && sourceDialogGenerationId == meta?.generationId
-            && sourceScriptUpdatedAt == scriptUpdatedAt
+    /// A candidate is current iff it was composed against the *accepted* voice. Comparing to the
+    /// last-auditioned take made warnings flap during A/B listening, and comparing to the
+    /// script's updated_at stale-marked every candidate on ANY save — picking a stage was enough
+    /// to orange-flag music whose voice hadn't changed at all.
+    func matches(_ acceptedVoice: DialogAcceptedVoice?) -> Bool {
+        guard let acceptedVoice else { return false }
+        return sourceCacheKey.lowercased() == acceptedVoice.dialogCacheKey.lowercased()
+            && sourceDialogGenerationId == acceptedVoice.generationId
     }
 }
 
@@ -852,9 +855,12 @@ private struct DialogMusicCandidate: Identifiable, Equatable {
 /// session state makes experimentation cheap while promotion remains an explicit commit point.
 struct DialogMusicPanel: View {
     let scriptId: DialogScriptIdentifier?
-    let fullDialogMeta: DialogPreviewMetaDTO?
+    /// Music is composed against the *accepted* voice — the audio that will actually render —
+    /// never against whatever take happens to be auditioning.
+    let acceptedVoice: DialogAcceptedVoice?
+    /// Whether the acceptance still matches the current turns (computed by the editor).
+    let acceptedVoiceIsFresh: Bool
     let backgroundMusic: DialogBackgroundMusic?
-    let scriptUpdatedAt: Int64?
     let hasUnsavedChanges: Bool
     let onScriptUpdated: (DialogScript) -> Void
     let onMusicUpdated: (DialogBackgroundMusic?) -> Void
@@ -868,8 +874,7 @@ struct DialogMusicPanel: View {
     @State private var candidates: [DialogMusicCandidate] = []
     @State private var activeJobId: String?
     @State private var observedJob: JobStatusStore.JobInfo?
-    @State private var jobSourceMeta: DialogPreviewMetaDTO?
-    @State private var jobSourceScriptUpdatedAt: Int64?
+    @State private var jobSourceVoice: DialogAcceptedVoice?
     @State private var isSubmitting = false
     @State private var isAuditioning = false
     @State private var musicVolume = 0.35
@@ -888,7 +893,8 @@ struct DialogMusicPanel: View {
     }
 
     private var canGenerate: Bool {
-        scriptId != nil && fullDialogMeta != nil && !hasUnsavedChanges && !trimmedPrompt.isEmpty
+        scriptId != nil && acceptedVoice != nil && acceptedVoiceIsFresh && !hasUnsavedChanges
+            && !trimmedPrompt.isEmpty
             && trimmedPrompt.utf8.count <= DialogLimits.maxMusicPromptBytes
             && !isSubmitting && !(observedJob.map { !$0.isTerminal } ?? false)
     }
@@ -1005,12 +1011,7 @@ struct DialogMusicPanel: View {
         .onChange(of: musicVolume) { _, value in
             audioManager.dialogMusicVolume = Float(value)
         }
-        .onChange(of: fullDialogMeta) { _, _ in
-            auditionToken = UUID()
-            isAuditioning = false
-            audioManager.stopDialogAudition()
-        }
-        .onChange(of: scriptUpdatedAt) { _, _ in
+        .onChange(of: acceptedVoice) { _, _ in
             auditionToken = UUID()
             isAuditioning = false
             audioManager.stopDialogAudition()
@@ -1053,9 +1054,12 @@ struct DialogMusicPanel: View {
         if scriptId == nil || hasUnsavedChanges {
             return "Save the current script before generating music."
         }
-        if fullDialogMeta == nil {
+        if acceptedVoice == nil {
+            return "Accept a voice take first — music is composed against the accepted voice."
+        }
+        if !acceptedVoiceIsFresh {
             return
-                "Generate and select a full-dialog voice take first. Partial previews cannot drive music generation."
+                "The accepted voice take predates the current turns. Re-accept a take before generating music."
         }
         return nil
     }
@@ -1073,7 +1077,7 @@ struct DialogMusicPanel: View {
                 .textSelection(.enabled)
             HStack {
                 Button("Play with Dialog") { auditionAccepted(music) }
-                    .disabled(fullDialogMeta == nil || isAuditioning)
+                    .disabled(acceptedVoice == nil || isAuditioning)
                 Button(isPlayingAcceptedMusic ? "Stop Music" : "Play Music") {
                     if isPlayingAcceptedMusic {
                         stopAcceptedMusic()
@@ -1097,7 +1101,7 @@ struct DialogMusicPanel: View {
 
     @ViewBuilder
     private func candidateCard(_ candidate: DialogMusicCandidate) -> some View {
-        let isCurrent = candidate.matches(fullDialogMeta, scriptUpdatedAt: scriptUpdatedAt)
+        let isCurrent = candidate.matches(acceptedVoice)
         let isAccepted = backgroundMusic?.generationId == candidate.id
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -1122,7 +1126,7 @@ struct DialogMusicPanel: View {
                 .foregroundStyle(.orange)
             } else if !isCurrent {
                 Label(
-                    "This candidate belongs to an older voice take.",
+                    "Made for a different voice take than the accepted one — its timing won't match. Generate a new candidate.",
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(.caption)
@@ -1150,15 +1154,14 @@ struct DialogMusicPanel: View {
     }
 
     private func generate() {
-        guard let scriptId, let meta = fullDialogMeta, canGenerate else { return }
+        guard let scriptId, let voice = acceptedVoice, canGenerate else { return }
         isSubmitting = true
-        jobSourceMeta = meta
-        jobSourceScriptUpdatedAt = scriptUpdatedAt
+        jobSourceVoice = voice
         statusMessage = "Starting music generation…"
         let request = DialogMusicRequest(
             scriptId: scriptId,
-            dialogCacheKey: meta.cacheKey,
-            dialogGenerationId: meta.generationId,
+            dialogCacheKey: voice.dialogCacheKey,
+            dialogGenerationId: voice.generationId,
             prompt: trimmedPrompt,
             durationExtensionMilliseconds: Int64(durationExtensionSeconds * 1_000),
             generationMode: generationMode)
@@ -1180,7 +1183,7 @@ struct DialogMusicPanel: View {
     private func finishGeneration(_ info: JobStatusStore.JobInfo) {
         defer { activeJobId = nil }
         guard info.status == .completed, let result = info.dialogMusicResult,
-            let sourceMeta = jobSourceMeta
+            let sourceVoice = jobSourceVoice
         else {
             errorAlert = ErrorAlert(
                 title: "Music Generation Failed",
@@ -1189,9 +1192,8 @@ struct DialogMusicPanel: View {
             return
         }
         let candidate = DialogMusicCandidate(
-            result: result, sourceCacheKey: sourceMeta.cacheKey,
-            sourceDialogGenerationId: sourceMeta.generationId,
-            sourceScriptUpdatedAt: jobSourceScriptUpdatedAt)
+            result: result, sourceCacheKey: sourceVoice.dialogCacheKey,
+            sourceDialogGenerationId: sourceVoice.generationId)
         candidates.insert(candidate, at: 0)
         statusMessage = "Candidate ready"
         audition(candidate)
@@ -1207,12 +1209,9 @@ struct DialogMusicPanel: View {
     }
 
     private func promote(_ candidate: DialogMusicCandidate) {
-        guard !hasUnsavedChanges,
-            candidate.matches(fullDialogMeta, scriptUpdatedAt: scriptUpdatedAt)
-        else { return }
+        guard !hasUnsavedChanges, candidate.matches(acceptedVoice) else { return }
         let promotionScriptId = scriptId
-        let promotionMeta = fullDialogMeta
-        let promotionUpdatedAt = scriptUpdatedAt
+        let promotionVoice = acceptedVoice
         statusMessage = "Accepting music…"
         Task {
             switch await server.promoteDialogMusic(generationId: candidate.id) {
@@ -1227,8 +1226,7 @@ struct DialogMusicPanel: View {
                     case .success(let canonical):
                         await MainActor.run {
                             guard scriptId == promotionScriptId,
-                                fullDialogMeta == promotionMeta,
-                                scriptUpdatedAt == promotionUpdatedAt,
+                                acceptedVoice == promotionVoice,
                                 !hasUnsavedChanges
                             else {
                                 return
@@ -1240,8 +1238,7 @@ struct DialogMusicPanel: View {
                     case .failure(let error):
                         await MainActor.run {
                             guard scriptId == promotionScriptId,
-                                fullDialogMeta == promotionMeta,
-                                scriptUpdatedAt == promotionUpdatedAt,
+                                acceptedVoice == promotionVoice,
                                 !hasUnsavedChanges
                             else {
                                 return
@@ -1258,8 +1255,7 @@ struct DialogMusicPanel: View {
                 } else {
                     await MainActor.run {
                         guard scriptId == promotionScriptId,
-                            fullDialogMeta == promotionMeta,
-                            scriptUpdatedAt == promotionUpdatedAt,
+                            acceptedVoice == promotionVoice,
                             !hasUnsavedChanges
                         else {
                             return
@@ -1294,17 +1290,17 @@ struct DialogMusicPanel: View {
     }
 
     private func audition(_ candidate: DialogMusicCandidate) {
-        guard let meta = fullDialogMeta,
+        guard let voice = acceptedVoice,
             let musicURL = server.makeAbsoluteURL(fromRelativePath: candidate.result.mp3Url)
         else { return }
-        audition(meta: meta, musicURL: musicURL, candidateId: candidate.id)
+        audition(voice: voice, musicURL: musicURL, candidateId: candidate.id)
     }
 
     private func auditionAccepted(_ music: DialogBackgroundMusic) {
-        guard let meta = fullDialogMeta,
+        guard let voice = acceptedVoice,
             case .success(let musicURL) = server.getSoundRenditionURL(music.soundFile, as: .mp3)
         else { return }
-        audition(meta: meta, musicURL: musicURL, candidateId: nil)
+        audition(voice: voice, musicURL: musicURL, candidateId: nil)
     }
 
     private func playAcceptedMusic(_ music: DialogBackgroundMusic) {
@@ -1357,11 +1353,11 @@ struct DialogMusicPanel: View {
     }
 
     private func audition(
-        meta: DialogPreviewMetaDTO, musicURL: URL, candidateId: UUID?
+        voice: DialogAcceptedVoice, musicURL: URL, candidateId: UUID?
     ) {
         guard
             case .success(let voiceURL) = server.dialogPreviewRenditionURL(
-                cacheKey: meta.cacheKey, generationId: meta.generationId, as: .mp3)
+                cacheKey: voice.dialogCacheKey, generationId: voice.generationId, as: .mp3)
         else {
             errorAlert = ErrorAlert(
                 title: "Audition Failed", message: "Could not build the dialog MP3 URL.")
@@ -1383,7 +1379,7 @@ struct DialogMusicPanel: View {
                     switch audioManager.cacheAudioData(
                         voiceData,
                         cacheKey:
-                            "preview-\(meta.cacheKey)-\(meta.generationId.uuidString.lowercased())",
+                            "preview-\(voice.dialogCacheKey)-\(voice.generationId.uuidString.lowercased())",
                         fileExtension: "mp3")
                     {
                     case .success(let localVoiceURL):
@@ -1392,7 +1388,7 @@ struct DialogMusicPanel: View {
                             switch audioManager.cacheAudioData(
                                 data,
                                 cacheKey: candidateId?.uuidString.lowercased()
-                                    ?? "accepted-\(meta.cacheKey)",
+                                    ?? "accepted-\(voice.dialogCacheKey)",
                                 fileExtension: "mp3")
                             {
                             case .success(let localMusicURL):

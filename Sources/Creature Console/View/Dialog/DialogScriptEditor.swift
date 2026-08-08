@@ -149,9 +149,9 @@ struct DialogScriptEditor: View {
                         }
                         DialogMusicPanel(
                             scriptId: renderScriptId,
-                            fullDialogMeta: fullDialogMeta,
+                            acceptedVoice: original.acceptedVoice,
+                            acceptedVoiceIsFresh: hasFreshAcceptedVoice,
                             backgroundMusic: original.backgroundMusic,
-                            scriptUpdatedAt: original.updatedAt,
                             hasUnsavedChanges: createNew || isDirty
                         ) { canonical in
                             // Music removal is a server-side field mutation. Merge only that
