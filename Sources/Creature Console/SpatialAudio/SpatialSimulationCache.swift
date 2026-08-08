@@ -8,10 +8,13 @@
 
         func download(
             soundFile: String,
+            adHoc: Bool = false,
             server: CreatureServerClient = .shared
         ) async throws -> URL {
             let remoteURL: URL
-            switch server.getSoundURL(soundFile) {
+            // The permanent route's basename resolution does not reach the ad-hoc bucket —
+            // take exports live there and need the explicit ad-hoc route.
+            switch adHoc ? server.getAdHocSoundURL(soundFile) : server.getSoundURL(soundFile) {
             case .success(let url):
                 remoteURL = url
             case .failure(let error):

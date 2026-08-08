@@ -738,17 +738,20 @@ struct DialogPreviewPanel: View {
         ) async {
             audioManager.stopURLPlayback()
             let soundFile: String
+            let adHoc: Bool
             if dto.generationId == acceptedVoice?.generationId,
                 let promoted = acceptedVoice?.soundFile, !promoted.isEmpty
             {
                 // The accepted take's ad-hoc export moved on promotion; its permanent file is
                 // the same 17-channel audio under the promoted name.
                 soundFile = promoted
+                adHoc = false
             } else {
                 soundFile = "dialog-17ch-\(dto.generationId.uuidString.lowercased()).wav"
+                adHoc = true
             }
             do {
-                try await spatialPlayer.play(soundFile: soundFile, stage: stage)
+                try await spatialPlayer.play(soundFile: soundFile, stage: stage, adHoc: adHoc)
                 guard token == requestToken else { return }
                 isWorking = false
                 statusMessage =

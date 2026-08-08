@@ -31,9 +31,9 @@
         @ObservationIgnored private var startToken = UUID()
 
         /// Download (or reuse the cached copy of) the take's 17-channel WAV and play it through
-        /// the stage's placements. `soundFile` is resolved by basename, so both ad-hoc take
-        /// exports and promoted accepted files work.
-        func play(soundFile: String, stage: Stage) async throws {
+        /// the stage's placements. Candidate exports live in the ad-hoc bucket (`adHoc: true`);
+        /// promoted accepted files live in the permanent store.
+        func play(soundFile: String, stage: Stage, adHoc: Bool = false) async throws {
             stop()
             let token = UUID()
             startToken = token
@@ -43,7 +43,8 @@
             }
             guard !channels.isEmpty else { throw AuditionError.stageHasNoAudioLanes }
 
-            let fileURL = try await SpatialSimulationCache.shared.download(soundFile: soundFile)
+            let fileURL = try await SpatialSimulationCache.shared.download(
+                soundFile: soundFile, adHoc: adHoc)
             guard startToken == token else { return }
 
             let renderer = try SpatialAudioRenderer(channels: channels)
