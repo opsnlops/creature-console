@@ -203,6 +203,10 @@ struct DialogPreviewPanel: View {
             // here belongs to a different cache key now. The acceptance itself is NOT touched —
             // it lives on the script and simply reads as stale until these turns are saved and
             // re-accepted. Nothing chosen is ever silently un-chosen.
+            // Capture BEFORE clearing: these run on every keystroke in a turn's text field, and
+            // AVFoundation teardown isn't free — only touch the audio stack when something was
+            // actually loaded or playing.
+            let hadAudio = meta != nil || isWorking
             meta = nil
             takes = []
             isWorking = false
@@ -210,9 +214,13 @@ struct DialogPreviewPanel: View {
             requestToken = UUID()
             fullDialogMeta = nil
             currentCacheKey = nil
-            audioManager.stopURLPlayback()
+            if hadAudio {
+                audioManager.stopURLPlayback()
+            }
             #if os(macOS)
-                spatialPlayer.stop()
+                if spatialPlayer.isPlaying {
+                    spatialPlayer.stop()
+                }
             #endif
             if scope.selectedTurns(from: turns) == nil {
                 scope = .full
@@ -228,7 +236,13 @@ struct DialogPreviewPanel: View {
         .errorAlert($errorAlert)
         // Listing takes is a free lookup (no generation), so the list is just *there* on open —
         // and it carries the cache key that resolves the acceptance's freshness immediately.
+        //
+        // Debounced: task(id:) restarts on every keystroke while turn text is edited, so
+        // sleeping first means only a pause in typing reaches the server. Without this, each
+        // keystroke fired a lookup POST and churned the panel's state — visible as typing lag.
         .task(id: turnContent) {
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled else { return }
             await lookupTakes()
         }
         .fileExporter(
