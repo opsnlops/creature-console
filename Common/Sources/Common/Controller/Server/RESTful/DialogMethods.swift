@@ -221,20 +221,40 @@ extension CreatureServerClient {
         }
     }
 
-    /// Accept a voice take for a script — the only voice a render may use. Returns the canonical
-    /// script carrying the new `accepted_voice`.
+    /// How an accept resolved: immediately, or as a queued assembly job (server 3.40.1).
+    ///
+    /// 200 is the ordinary case — generation writes the take's audio, so accept just promotes
+    /// the file and returns the updated script. 202 covers takes whose ad-hoc audio has to be
+    /// assembled first (pre-3.40.1 takes, or anything the 24 h sweep reclaimed); the job's
+    /// completion result is the same script body a 200 returns. Validation is synchronous on
+    /// both paths — a stale cache key or unknown generation is an immediate 400/404, never a
+    /// job that fails later.
+    public enum DialogVoiceAcceptOutcome: Sendable {
+        case accepted(DialogScript)
+        case queued(JobCreatedResponse)
+    }
+
+    /// Accept a voice take for a script — the only voice a render may use.
     public func acceptDialogVoice(
         scriptId: DialogScriptIdentifier,
         generationId: DialogGenerationIdentifier,
         dialogCacheKey: String
-    ) async -> Result<DialogScript, ServerError> {
-        await sendData(
+    ) async -> Result<DialogVoiceAcceptOutcome, ServerError> {
+        await sendDataResponse(
             path: "/animation/dialog/voice/accept", method: "POST",
             body: AcceptVoiceRequest(
                 scriptId: scriptId.uuidString.lowercased(),
                 generationId: generationId.uuidString.lowercased(),
-                dialogCacheKey: dialogCacheKey.lowercased()),
-            returnType: DialogScript.self)
+                dialogCacheKey: dialogCacheKey.lowercased())
+        )
+        .flatMap { response in
+            if response.statusCode == 202 {
+                return decodeResponse(response.data, returnType: JobCreatedResponse.self)
+                    .map { .queued($0) }
+            }
+            return decodeResponse(response.data, returnType: DialogScript.self)
+                .map { .accepted($0) }
+        }
     }
 
     /// Clear a script's accepted voice take (explicit, like clearing accepted music).

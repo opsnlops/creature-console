@@ -515,8 +515,11 @@ struct DialogPreviewPanel: View {
         }
     }
 
-    /// Make this take the script's voice. The server validates and returns the canonical script;
-    /// the editor merges it the same way music promotion does.
+    /// Make this take the script's voice. Ordinarily immediate (200); when the take's audio has
+    /// to be assembled first — pre-3.40.1 takes, or an ad-hoc file the sweep reclaimed — the
+    /// server queues a job (202) whose completion result is the same canonical script, so both
+    /// paths land in the same merge. Validation is synchronous either way: a stale cache key or
+    /// unknown generation fails right here, never a minute later inside a job.
     private func accept(_ take: DialogPreviewLookupDTO.Generation) {
         guard let scriptId, let currentCacheKey else { return }
         isAccepting = true
@@ -526,22 +529,72 @@ struct DialogPreviewPanel: View {
                 scriptId: scriptId,
                 generationId: take.generationId,
                 dialogCacheKey: currentCacheKey)
-            await MainActor.run {
-                isAccepting = false
-                switch result {
-                case .success(let canonical):
+            switch result {
+            case .success(.accepted(let canonical)):
+                await MainActor.run {
+                    isAccepting = false
                     statusMessage = "Voice accepted"
                     onVoiceChanged?(canonical)
-                case .failure(let error):
-                    // The server's own message is the good one here — its 404 distinguishes a
-                    // missing take artifact (server#133) from a swept TTL, which a canned client
-                    // string can't. The pre-deploy "endpoint doesn't exist" translation this
-                    // replaced would now actively misdiagnose.
+                }
+            case .success(.queued(let job)):
+                await JobStatusStore.shared.seedQueued(job)
+                await rideAcceptJob(job)
+            case .failure(let error):
+                await MainActor.run {
+                    isAccepting = false
+                    // The server's message is the good one — it distinguishes a stale cache key
+                    // from an unknown generation from missing audio better than a canned string.
                     statusMessage = nil
                     presentError(ServerError.detailedMessage(from: error), title: "Accept Failed")
                 }
             }
         }
+    }
+
+    /// Follow a queued accept (audio assembly) to its end. The terminal result decodes as the
+    /// same script body a 200 would have returned.
+    private func rideAcceptJob(_ job: JobCreatedResponse) async {
+        for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
+            switch event {
+            case .updated(let info):
+                let percent = Int((info.progress ?? 0) * 100)
+                await MainActor.run {
+                    statusMessage = "Assembling take audio… \(percent)%"
+                }
+            case .terminal(let info):
+                await MainActor.run {
+                    isAccepting = false
+                    guard info.status == .completed else {
+                        statusMessage = nil
+                        presentError(
+                            info.result ?? "The accept job failed on the server.",
+                            title: "Accept Failed")
+                        return
+                    }
+                    guard let result = info.result, let data = result.data(using: .utf8),
+                        let canonical = try? JSONDecoder().decode(DialogScript.self, from: data)
+                    else {
+                        statusMessage = nil
+                        presentError(
+                            "The accept job finished but its result could not be decoded.",
+                            title: "Accept Failed")
+                        return
+                    }
+                    statusMessage = "Voice accepted"
+                    onVoiceChanged?(canonical)
+                }
+                return
+            case .removed:
+                await MainActor.run {
+                    isAccepting = false
+                    statusMessage = nil
+                    presentError(
+                        "The accept job was removed before it finished.", title: "Accept Failed")
+                }
+                return
+            }
+        }
+        await MainActor.run { isAccepting = false }
     }
 
     /// Resolve preview meta, transparently riding the generation job when the server
