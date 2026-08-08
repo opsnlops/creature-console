@@ -1082,6 +1082,20 @@ struct DialogMusicPanel: View {
                 )
                 .font(.caption)
                 .foregroundStyle(.orange)
+            } else if matchesVoice == nil {
+                // Accepted before the server recorded provenance (server#136). Re-promoting
+                // backfills from the audio's own iXML — no regeneration, one call.
+                HStack(spacing: 8) {
+                    Text("Not yet checked against the accepted voice.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Check Voice Match") {
+                        backfillProvenance(music)
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                    .disabled(scriptId == nil || hasUnsavedChanges || isSubmitting)
+                }
             }
             Text(music.soundFile)
                 .font(.caption.monospaced())
@@ -1232,7 +1246,11 @@ struct DialogMusicPanel: View {
                     soundFile: result.soundFile,
                     generationId: result.musicGenerationId,
                     prompt: candidate.result.prompt,
-                    acceptedAt: Int64(Date().timeIntervalSince1970 * 1_000))
+                    acceptedAt: Int64(Date().timeIntervalSince1970 * 1_000),
+                    // The candidate knows what it was composed against; the fallback card must
+                    // not show "unknown" for a promotion that just happened.
+                    sourceDialogGenerationId: candidate.sourceDialogGenerationId,
+                    sourceDialogCacheKey: candidate.sourceCacheKey)
                 if let scriptId {
                     switch await server.getDialogScript(id: scriptId) {
                     case .success(let canonical):
@@ -1279,6 +1297,34 @@ struct DialogMusicPanel: View {
                 }
             case .failure(let error):
                 await MainActor.run { presentError("Could Not Accept Music", error) }
+            }
+        }
+    }
+
+    /// Repair pre-#136 accepted music: re-promoting the same generation makes the server
+    /// backfill source provenance from the WAV's embedded iXML, after which the card can render
+    /// a real verdict instead of silence.
+    private func backfillProvenance(_ music: DialogBackgroundMusic) {
+        guard let scriptId, !hasUnsavedChanges else { return }
+        let repairScriptId = scriptId
+        statusMessage = "Checking music against the accepted voice…"
+        Task {
+            switch await server.promoteDialogMusic(generationId: music.generationId) {
+            case .success:
+                switch await server.getDialogScript(id: scriptId) {
+                case .success(let canonical):
+                    await MainActor.run {
+                        guard self.scriptId == repairScriptId, !hasUnsavedChanges else { return }
+                        onScriptUpdated(canonical)
+                        statusMessage = nil
+                    }
+                case .failure(let error):
+                    await MainActor.run {
+                        presentError("Checked, But Script Refresh Failed", error)
+                    }
+                }
+            case .failure(let error):
+                await MainActor.run { presentError("Could Not Check Music", error) }
             }
         }
     }
