@@ -10,7 +10,9 @@ struct SettingsView: View {
         ZStack {
 
             #if os(tvOS)
-                NetworkSettingsView()
+                // Sectioned list (lives in the Creature TV target): Network plus the
+                // local-data reset the other platforms keep under Debug.
+                TVSettingsView()
             #else
                 TabView {
                     NetworkSettingsView()

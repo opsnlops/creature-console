@@ -18,6 +18,9 @@ struct TVLiveStageView: View {
     // everything, configured in Settings > Network (both relays run on the same VLAN Pi).
     @AppStorage("relayHost") private var relayHost = "10.19.63.10"
     @AppStorage("audioRelayPort") private var relayPort = 1964
+    // Device-level output boost — this room's Denon wants more level than the positional
+    // mix provides. Shared with the Spatial Audition screen.
+    @AppStorage("monitorBoostDB") private var monitorBoostDB: Double = 0
 
     @State private var monitor = TVLiveStageMonitor()
     @State private var selectedStageID: StageIdentifier?
@@ -48,6 +51,13 @@ struct TVLiveStageView: View {
                             }
                         }
                         .disabled(monitor.isRunning)
+                    }
+
+                    Section("Output") {
+                        TVOutputBoostPicker()
+                            .onChange(of: monitorBoostDB) { _, newValue in
+                                monitor.setBoost(decibels: Float(newValue))
+                            }
                     }
 
                     Section {
@@ -176,10 +186,16 @@ final class TVLiveStageMonitor {
                 }
             }
         )
+        renderer.setMonitorBoost(
+            decibels: Float(UserDefaults.standard.double(forKey: "monitorBoostDB")))
         try source.start(transport: .relay(host: host, port: UInt16(port)))
         self.renderer = renderer
         self.source = source
         isRunning = true
+    }
+
+    func setBoost(decibels: Float) {
+        renderer?.setMonitorBoost(decibels: decibels)
     }
 
     func stop() {
@@ -188,5 +204,22 @@ final class TVLiveStageMonitor {
         renderer = nil
         isRunning = false
         diagnostics = SpatialStageDiagnostics()
+    }
+}
+
+/// Output-boost control shared by the TV's listening surfaces. tvOS has no Slider, so this is
+/// a stepped picker; the value is post-mix makeup gain in dB, persisted per device.
+struct TVOutputBoostPicker: View {
+
+    @AppStorage("monitorBoostDB") private var monitorBoostDB: Double = 0
+
+    var body: some View {
+        Picker("Output Boost", selection: $monitorBoostDB) {
+            Text("Off").tag(0.0)
+            Text("+3 dB").tag(3.0)
+            Text("+6 dB").tag(6.0)
+            Text("+9 dB").tag(9.0)
+            Text("+12 dB").tag(12.0)
+        }
     }
 }

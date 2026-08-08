@@ -1,5 +1,6 @@
 #if os(macOS) || os(tvOS)
     import AVFAudio
+    import Accelerate
     import Common
     import Foundation
     import Synchronization
@@ -16,8 +17,23 @@
             let sourceNode: AVAudioSourceNode
         }
 
+        /// Per-lane and music gains, applied in the *sample* domain at enqueue time.
+        /// AVAudioMixing.volume silently clamps to 1.0 — a 150% stage gain set through node
+        /// volume just lies. Node volume is reserved for mute (instant); magnitude lives here,
+        /// where values above 1.0 are honest. Written on the main actor, read on the audio
+        /// producer's queue.
+        private struct GainState {
+            var lanes: [Int: Float] = [:]
+            var music: Float = 0.7
+        }
+
         private let engine = AVAudioEngine()
         private let environment = AVAudioEnvironmentNode()
+        /// Device-level makeup gain (dB) after the mix — multichannel speaker rendering spreads
+        /// energy across the layout and lands quieter than the Mac's stereo render, and living
+        /// rooms want more level than the positional math alone provides.
+        private let makeupEQ = AVAudioUnitEQ(numberOfBands: 0)
+        private let gainState = Mutex<GainState>(GainState())
         private let backgroundQueue = SpatialPCMQueue(capacity: queueCapacityFrames)
         private let backgroundNode: AVAudioSourceNode
         private let renderQuantumTracker: RenderQuantumTracker
@@ -46,8 +62,11 @@
 
             engine.attach(environment)
             engine.attach(backgroundNode)
+            engine.attach(makeupEQ)
             engine.connect(backgroundNode, to: engine.mainMixerNode, format: format)
             engine.connect(environment, to: engine.mainMixerNode, format: nil)
+            engine.connect(engine.mainMixerNode, to: makeupEQ, format: nil)
+            engine.connect(makeupEQ, to: engine.outputNode, format: nil)
 
             environment.outputType = .auto
             // Stage coordinates are relative to the listener, so these ears sit at the origin.
@@ -141,13 +160,20 @@
                 }
             }
 
+            let gains = gainState.withLock { $0 }
+
             // There is one producer, and the consumers only increase available capacity.
             // Once every queue passes the preflight, the batch cannot partially fail.
-            guard backgroundQueue.write(backgroundSamples) else {
+            guard backgroundQueue.write(Self.applying(gain: gains.music, to: backgroundSamples))
+            else {
                 return false
             }
             for (channel, emitter) in emitters {
-                guard emitter.queue.write(creatureSamples[channel] ?? silence) else {
+                let samples = Self.applying(
+                    gain: gains.lanes[channel] ?? 1,
+                    to: creatureSamples[channel] ?? silence
+                )
+                guard emitter.queue.write(samples) else {
                     assertionFailure("Spatial PCM queue capacity changed after preflight")
                     return false
                 }
@@ -164,7 +190,12 @@
                 pitch: 0,
                 roll: 0
             )
-            backgroundNode.volume = stage.audio.backgroundMusicGain
+            gainState.withLock { state in
+                state.music = stage.audio.backgroundMusicGain
+                state.lanes = Dictionary(
+                    uniqueKeysWithValues: stage.placements.map { ($0.audioChannel, $0.gain) }
+                )
+            }
 
             for placement in stage.placements {
                 guard let emitter = emitters[placement.audioChannel] else {
@@ -175,9 +206,24 @@
                     y: placement.y,
                     z: placement.z
                 )
-                emitter.sourceNode.volume = placement.isMuted ? 0 : placement.gain
+                // Mute stays on the node so it lands instantly; magnitude is applied to the
+                // samples at enqueue time (node volume clamps at 1.0, stage gain goes to 1.5).
+                emitter.sourceNode.volume = placement.isMuted ? 0 : 1
                 emitter.sourceNode.reverbBlend = stage.audio.reverbBlend
             }
+        }
+
+        /// Post-mix makeup gain in decibels (0–24). The room's knob, not the stage's: how much
+        /// level this device's output wants on top of the positional mix.
+        func setMonitorBoost(decibels: Float) {
+            makeupEQ.globalGain = min(max(decibels, 0), 24)
+        }
+
+        private static func applying(gain: Float, to samples: [Float]) -> [Float] {
+            guard gain != 1 else {
+                return samples
+            }
+            return vDSP.multiply(gain, samples)
         }
 
         func setMasterVolume(_ volume: Float) {

@@ -53,6 +53,10 @@
 
             let renderer = try SpatialAudioRenderer(channels: channels)
             renderer.update(stage: stage)
+            #if os(tvOS)
+                renderer.setMonitorBoost(
+                    decibels: Float(UserDefaults.standard.double(forKey: "monitorBoostDB")))
+            #endif
             let source = try SpatialSimulationAudioSource(
                 renderer: renderer,
                 fileURL: fileURL,

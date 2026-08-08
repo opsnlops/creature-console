@@ -116,6 +116,10 @@ struct TVSpatialAuditionView: View {
                             }
                         }
                     }
+
+                    Section("Output") {
+                        TVOutputBoostPicker()
+                    }
                 }
             }
         }
