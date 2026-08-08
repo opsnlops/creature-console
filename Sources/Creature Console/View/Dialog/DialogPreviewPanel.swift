@@ -32,6 +32,9 @@ struct DialogPreviewPanel: View {
     var scriptId: DialogScriptIdentifier? = nil
     /// The script's accepted voice, from the saved copy.
     var acceptedVoice: DialogAcceptedVoice? = nil
+    /// Whether this script already has rendered animations, so the empty takes list can say
+    /// "your renders are fine, their takes just aged out" instead of implying a virgin script.
+    var hasExistingRender: Bool = false
     /// Canonical script handed back by accept/clear, for the editor to merge (music-flow shape).
     var onVoiceChanged: ((DialogScript) -> Void)? = nil
 
@@ -424,7 +427,14 @@ struct DialogPreviewPanel: View {
         case .failure(.notFound):
             guard token == requestToken else { return }
             takes = []
-            statusMessage = "No takes yet — Generate one to start auditioning."
+            // A script with living renders isn't a blank slate: its takes simply aged out of the
+            // 24 h audition cache. The renders keep playing; only *changing* the voice needs a
+            // new take — and re-rendering replaces the old performance, so say so here rather
+            // than letting the generic copy imply nothing exists.
+            statusMessage =
+                hasExistingRender
+                ? "This script's takes have expired from the audition cache — its rendered animations still play. Generate a new take only if you want to change the voice (re-rendering replaces the old performance)."
+                : "No takes yet — Generate one to start auditioning."
         case .failure(let error):
             guard token == requestToken else { return }
             statusMessage = "Could not list takes: \(error.localizedDescription)"

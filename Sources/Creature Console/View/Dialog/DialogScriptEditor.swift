@@ -102,6 +102,13 @@ struct DialogScriptEditor: View {
         original.acceptedVoice?.isFresh(forCacheKey: currentCacheKey) ?? false
     }
 
+    /// Whether any rendered animation points back at this script — drives the takes panel's
+    /// empty-state copy for scripts whose takes aged out but whose renders live on.
+    private var hasRenderedAnimation: Bool {
+        let scriptID = original.id.uuidString.lowercased()
+        return animations.contains { $0.sourceScriptId?.lowercased() == scriptID }
+    }
+
     var body: some View {
         ScrollView {
             GlassEffectContainer(spacing: 16) {
@@ -129,7 +136,8 @@ struct DialogScriptEditor: View {
                             // SAVED script), so a dirty editor must disable Accept the same way
                             // it disables Render — with "save first" as the stated fix.
                             scriptId: renderScriptId,
-                            acceptedVoice: original.acceptedVoice
+                            acceptedVoice: original.acceptedVoice,
+                            hasExistingRender: hasRenderedAnimation
                         ) { canonical in
                             // Acceptance is a server-side field mutation, like music promotion.
                             // Merge only the voice + timestamps so a response landing after a
