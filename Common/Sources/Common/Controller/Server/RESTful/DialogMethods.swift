@@ -209,6 +209,63 @@ extension CreatureServerClient {
             returnType: JobCreatedResponse.self)
     }
 
+    /// Wire body for the voice-take accept endpoint (server#131).
+    private struct AcceptVoiceRequest: Encodable {
+        let scriptId: String
+        let generationId: String
+        let dialogCacheKey: String
+        enum CodingKeys: String, CodingKey {
+            case scriptId = "script_id"
+            case generationId = "generation_id"
+            case dialogCacheKey = "dialog_cache_key"
+        }
+    }
+
+    /// How an accept resolved: immediately, or as a queued assembly job (server 3.40.1).
+    ///
+    /// 200 is the ordinary case — generation writes the take's audio, so accept just promotes
+    /// the file and returns the updated script. 202 covers takes whose ad-hoc audio has to be
+    /// assembled first (pre-3.40.1 takes, or anything the 24 h sweep reclaimed); the job's
+    /// completion result is the same script body a 200 returns. Validation is synchronous on
+    /// both paths — a stale cache key or unknown generation is an immediate 400/404, never a
+    /// job that fails later.
+    public enum DialogVoiceAcceptOutcome: Sendable {
+        case accepted(DialogScript)
+        case queued(JobCreatedResponse)
+    }
+
+    /// Accept a voice take for a script — the only voice a render may use.
+    public func acceptDialogVoice(
+        scriptId: DialogScriptIdentifier,
+        generationId: DialogGenerationIdentifier,
+        dialogCacheKey: String
+    ) async -> Result<DialogVoiceAcceptOutcome, ServerError> {
+        await sendDataResponse(
+            path: "/animation/dialog/voice/accept", method: "POST",
+            body: AcceptVoiceRequest(
+                scriptId: scriptId.uuidString.lowercased(),
+                generationId: generationId.uuidString.lowercased(),
+                dialogCacheKey: dialogCacheKey.lowercased())
+        )
+        .flatMap { response in
+            if response.statusCode == 202 {
+                return decodeResponse(response.data, returnType: JobCreatedResponse.self)
+                    .map { .queued($0) }
+            }
+            return decodeResponse(response.data, returnType: DialogScript.self)
+                .map { .accepted($0) }
+        }
+    }
+
+    /// Clear a script's accepted voice take (explicit, like clearing accepted music).
+    public func clearDialogVoice(
+        scriptId: DialogScriptIdentifier
+    ) async -> Result<DialogScript, ServerError> {
+        await sendData(
+            path: "/animation/dialog/script/\(scriptId.uuidString.lowercased())/voice",
+            method: "DELETE", body: EmptyBody(), returnType: DialogScript.self)
+    }
+
     public func promoteDialogMusic(generationId: UUID) async -> Result<
         DialogMusicPromotionResult, ServerError
     > {

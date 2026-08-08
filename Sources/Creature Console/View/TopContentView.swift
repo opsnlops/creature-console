@@ -77,46 +77,7 @@ struct TopContentView: View {
                     }
                 }
 
-                #if os(tvOS)
-                    Section("Live Magic") {
-                        NavigationLink {
-                            LiveMagicView()
-                        } label: {
-                            Label("Live Magic Console", systemImage: "sparkles.rectangle.stack")
-                                .symbolRenderingMode(.hierarchical)
-                        }
-                    }
-
-                    Section("Animations") {
-                        NavigationLink {
-                            TVAnimationTriggerView()
-                        } label: {
-                            Label("Animation Triggers", systemImage: "figure.socialdance")
-                                .symbolRenderingMode(.hierarchical)
-                        }
-                    }
-
-                    Section("Soundboard") {
-                        NavigationLink {
-                            TVSoundboardView()
-                        } label: {
-                            Label("Soundboard", systemImage: "speaker.wave.2")
-                                .symbolRenderingMode(.hierarchical)
-                        }
-                    }
-
-                    Section("Diagnostics") {
-                        NavigationLink {
-                            TVSACNUniverseMonitorView()
-                        } label: {
-                            Label(
-                                "sACN Universe Monitor",
-                                systemImage: "dot.radiowaves.left.and.right"
-                            )
-                            .symbolRenderingMode(.hierarchical)
-                        }
-                    }
-                #elseif os(iOS) || os(macOS)
+                #if os(iOS) || os(macOS)
                     Section("Live Magic") {
                         NavigationLink {
                             LiveMagicView()

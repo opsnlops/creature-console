@@ -38,8 +38,12 @@ struct Creature_TVApp: App {
             "logSpareTimeFrameInterval": 1000,
             "useOurJoystick": true,
             "activeUniverse": 1,
+            "relayHost": "10.19.63.10",
+            "sacnRelayPort": 1963,
+            "audioRelayPort": 1964,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
+        PreferenceMigration.migrateRelayKeys()
 
         // Initialize async components
         Task {
@@ -98,13 +102,11 @@ struct Creature_TVApp: App {
 
     }
 
-    /// All persisted SwiftData models. Keep in sync with the main app's schema.
+    /// All persisted SwiftData models — `AppSchema` is the single source of truth shared with
+    /// the main app. (An earlier inline copy of this list silently drifted and left the TV
+    /// without `StageModel`, which blanked every stage-dependent screen. Never fork it again.)
     private static var modelTypes: [any PersistentModel.Type] {
-        [
-            SoundModel.self, CreatureModel.self, AnimationMetadataModel.self,
-            PlaylistModel.self, PlaylistItemModel.self, ServerLogModel.self,
-            DmxFixtureModel.self, DialogScriptModel.self, StoryboardModel.self,
-        ]
+        AppSchema.modelTypes
     }
 
     /// Open the model container, recovering from an un-migratable schema change by wiping the

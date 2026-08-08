@@ -36,10 +36,12 @@ struct NetworkSettingsView: View {
     @AppStorage("useProxy") private var useProxy: Bool = false
     @AppStorage("activeUniverse") private var activeUniverse: Int = 1
     @AppStorage("sacnMonitorSource") private var sacnMonitorSource: String = "remote"
-    @AppStorage("sacnRemoteHost") private var sacnRemoteHost: String = ""
-    @AppStorage("sacnRemotePort") private var sacnRemotePort: Int = 1963
+    @AppStorage("relayHost") private var relayHost: String = "10.19.63.10"
+    @AppStorage("sacnRelayPort") private var sacnRelayPort: Int = 1963
+    @AppStorage("audioRelayPort") private var audioRelayPort: Int = 1964
     @State private var activeUniverseString: String = ""
-    @State private var sacnRemotePortString: String = ""
+    @State private var sacnRelayPortString: String = ""
+    @State private var audioRelayPortString: String = ""
     @State private var showUniverseClampHint: Bool = false
     @State private var proxyApiKey: String = ""
     private let numericFieldWidth: CGFloat = 200
@@ -204,25 +206,18 @@ struct NetworkSettingsView: View {
                         proxyApiKey = (try? keychain.string(forKey: "proxyApiKey")) ?? ""
                     }
 
-                    // Card 4: sACN Monitor
+                    // Card 4: Network Monitors — the sACN and live-audio monitors both talk
+                    // to relays on the same VLAN-connected machine ("creature-cli network
+                    // sacn-listen" / "rtp-listen"), so they share one host and differ only
+                    // by port. One card, one place to configure both (#72).
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("sACN Monitor", systemImage: "dot.radiowaves.left.and.right")
+                        Label("Network Monitors", systemImage: "dot.radiowaves.left.and.right")
                             .font(.headline)
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("Source")
+                                Text("Relay Host")
                                 Spacer()
-                                Picker("Source", selection: $sacnMonitorSource) {
-                                    Text("Local").tag("local")
-                                    Text("Remote").tag("remote")
-                                }
-                                .pickerStyle(.segmented)
-                                .frame(width: 200)
-                            }
-                            HStack {
-                                Text("Remote Host")
-                                Spacer()
-                                TextField("10.0.0.2", text: $sacnRemoteHost)
+                                TextField("10.19.63.10", text: $relayHost)
                                     #if os(tvOS)
                                         .textFieldStyle(.plain)
                                     #else
@@ -237,9 +232,19 @@ struct NetworkSettingsView: View {
                                     #endif
                             }
                             HStack {
-                                Text("Remote Port")
+                                Text("sACN Source")
                                 Spacer()
-                                TextField("1963", text: $sacnRemotePortString)
+                                Picker("sACN Source", selection: $sacnMonitorSource) {
+                                    Text("Local").tag("local")
+                                    Text("Remote").tag("remote")
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(width: 200)
+                            }
+                            HStack {
+                                Text("sACN Relay Port")
+                                Spacer()
+                                TextField("1963", text: $sacnRelayPortString)
                                     #if os(tvOS)
                                         .textFieldStyle(.plain)
                                     #else
@@ -249,17 +254,44 @@ struct NetworkSettingsView: View {
                                     #if os(iOS) || os(tvOS)
                                         .keyboardType(.numberPad)
                                     #endif
-                                    .onChange(of: sacnRemotePortString) { _, newValue in
+                                    .onChange(of: sacnRelayPortString) { _, newValue in
                                         let filtered = newValue.filter { $0.isNumber }
                                         if filtered != newValue {
-                                            sacnRemotePortString = filtered
+                                            sacnRelayPortString = filtered
                                         }
                                         if let value = Int(filtered) {
                                             let clamped = min(max(value, 1), 65_535)
                                             if clamped != value {
-                                                sacnRemotePortString = String(clamped)
+                                                sacnRelayPortString = String(clamped)
                                             }
-                                            sacnRemotePort = clamped
+                                            sacnRelayPort = clamped
+                                        }
+                                    }
+                            }
+                            HStack {
+                                Text("Audio Relay Port")
+                                Spacer()
+                                TextField("1964", text: $audioRelayPortString)
+                                    #if os(tvOS)
+                                        .textFieldStyle(.plain)
+                                    #else
+                                        .textFieldStyle(.roundedBorder)
+                                    #endif
+                                    .frame(width: numericFieldWidth)
+                                    #if os(iOS) || os(tvOS)
+                                        .keyboardType(.numberPad)
+                                    #endif
+                                    .onChange(of: audioRelayPortString) { _, newValue in
+                                        let filtered = newValue.filter { $0.isNumber }
+                                        if filtered != newValue {
+                                            audioRelayPortString = filtered
+                                        }
+                                        if let value = Int(filtered) {
+                                            let clamped = min(max(value, 1), 65_535)
+                                            if clamped != value {
+                                                audioRelayPortString = String(clamped)
+                                            }
+                                            audioRelayPort = clamped
                                         }
                                     }
                             }
@@ -289,8 +321,11 @@ struct NetworkSettingsView: View {
             if activeUniverseString.isEmpty {
                 activeUniverseString = String(activeUniverse)
             }
-            if sacnRemotePortString.isEmpty {
-                sacnRemotePortString = String(sacnRemotePort)
+            if sacnRelayPortString.isEmpty {
+                sacnRelayPortString = String(sacnRelayPort)
+            }
+            if audioRelayPortString.isEmpty {
+                audioRelayPortString = String(audioRelayPort)
             }
         }
         .onChange(of: activeUniverse) { _, newValue in
@@ -299,10 +334,10 @@ struct NetworkSettingsView: View {
                 activeUniverseString = value
             }
         }
-        .onChange(of: sacnRemotePort) { _, newValue in
+        .onChange(of: sacnRelayPort) { _, newValue in
             let value = String(newValue)
-            if sacnRemotePortString != value {
-                sacnRemotePortString = value
+            if sacnRelayPortString != value {
+                sacnRelayPortString = value
             }
         }
     }

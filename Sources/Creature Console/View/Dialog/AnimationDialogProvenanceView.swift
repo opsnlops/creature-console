@@ -109,7 +109,7 @@ struct AnimationDialogProvenanceView: View {
                 .buttonStyle(.glassProminent)
 
                 Button {
-                    audioManager.stopURLPlayback()
+                    LocalAudioPlayer.shared.stop()
                     audioStatus = nil
                 } label: {
                     Label("Stop", systemImage: "stop.circle")
@@ -134,17 +134,11 @@ struct AnimationDialogProvenanceView: View {
     private func playRenderedAudio() {
         let fileName = metadata.soundFile
         guard !fileName.isEmpty else { return }
-        // The MP3 route's URL ends in `.mp3` (creature-server#57), so AVPlayer detects the format
-        // and streams it — the ~5 MB mono downmix plays in about a second, no full download.
-        switch server.getSoundRenditionURL(fileName, as: .mp3) {
-        case .success(let url):
+        switch LocalAudioPlayer.shared.playRendition(fileName) {
+        case .success:
             audioStatus = "Playing…"
-            if case .failure(let error) = audioManager.playURL(url) {
-                audioStatus = "Playback failed: \(error.message)"
-            }
         case .failure(let error):
-            audioStatus =
-                "Couldn't build the audio URL: \(ServerError.detailedMessage(from: error))"
+            audioStatus = "Playback failed: \(ServerError.detailedMessage(from: error))"
         }
     }
 

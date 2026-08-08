@@ -23,10 +23,19 @@ struct RootView: View {
 
     @ViewBuilder
     private var contentView: some View {
-        TopContentView()
-            .task {
-                await AppBootstrapper.shared.startIfNeeded()
-            }
+        // tvOS gets its own tab-based root — the split view this shared with the desktop
+        // focus-trapped on the remote (#72). Bootstrap and alert plumbing stay shared here.
+        #if os(tvOS)
+            TVRootView()
+                .task {
+                    await AppBootstrapper.shared.startIfNeeded()
+                }
+        #else
+            TopContentView()
+                .task {
+                    await AppBootstrapper.shared.startIfNeeded()
+                }
+        #endif
     }
 
     var body: some View {

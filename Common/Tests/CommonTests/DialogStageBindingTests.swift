@@ -102,3 +102,70 @@ struct DialogStageBindingTests {
         #expect(try object(UpsertDialogScriptRequest(script))["stage_id"] as? String == "")
     }
 }
+
+@Suite("Accepted voice take")
+struct DialogAcceptedVoiceTests {
+
+    @Test("round-trips on a script and never travels in the upsert")
+    func roundTripsAndStaysOutOfUpsert() throws {
+        let voice = DialogAcceptedVoice(
+            generationId: UUID(),
+            dialogCacheKey: String(repeating: "ab", count: 32),
+            acceptedAt: 1_786_100_000_000)
+        let script = DialogScript(
+            id: UUID(), title: "Scene", notes: "", turns: [], acceptedVoice: voice)
+
+        let decoded = try JSONDecoder().decode(
+            DialogScript.self, from: try JSONEncoder().encode(script))
+        #expect(decoded.acceptedVoice == voice)
+
+        // Like background_music: acceptance is server-managed via the accept endpoint, so an
+        // ordinary script edit can't clear it by omission.
+        let upsert =
+            try JSONSerialization.jsonObject(
+                with: try JSONEncoder().encode(UpsertDialogScriptRequest(script))) as! [String: Any]
+        #expect(upsert["accepted_voice"] == nil)
+    }
+
+    @Test("freshness is a cache-key comparison, case-insensitive, and nil-safe")
+    func freshnessComparesCacheKeys() {
+        let key = String(repeating: "cd", count: 32)
+        let voice = DialogAcceptedVoice(generationId: UUID(), dialogCacheKey: key, acceptedAt: 0)
+
+        #expect(voice.isFresh(forCacheKey: key))
+        #expect(voice.isFresh(forCacheKey: key.uppercased()))
+        #expect(!voice.isFresh(forCacheKey: String(repeating: "ef", count: 32)))
+        #expect(!voice.isFresh(forCacheKey: nil))
+        #expect(!voice.isFresh(forCacheKey: ""))
+    }
+
+    @Test("decodes from the server's wire shape, with or without the promoted file")
+    func decodesWireShape() throws {
+        let json = """
+            {"generation_id":"\(UUID().uuidString.lowercased())",
+             "dialog_cache_key":"\(String(repeating: "12", count: 32))",
+             "accepted_at": 1786100000000,
+             "sound_file": "dialog/voice/test-coffee--ab12cd34.wav"}
+            """
+        let voice = try JSONDecoder().decode(DialogAcceptedVoice.self, from: Data(json.utf8))
+        #expect(voice.acceptedAt == 1_786_100_000_000)
+        #expect(voice.soundFile == "dialog/voice/test-coffee--ab12cd34.wav")
+
+        // Promotion may lag or predate the field — absent must decode as nil, not fail.
+        let bare = """
+            {"generation_id":"\(UUID().uuidString.lowercased())",
+             "dialog_cache_key":"\(String(repeating: "12", count: 32))",
+             "accepted_at": 1}
+            """
+        #expect(
+            try JSONDecoder().decode(DialogAcceptedVoice.self, from: Data(bare.utf8)).soundFile
+                == nil)
+    }
+
+    @Test("a script without an acceptance decodes cleanly")
+    func absentAcceptanceDecodes() throws {
+        let json = #"{"id":"\#(UUID().uuidString.lowercased())","title":"S","turns":[]}"#
+        let script = try JSONDecoder().decode(DialogScript.self, from: Data(json.utf8))
+        #expect(script.acceptedVoice == nil)
+    }
+}

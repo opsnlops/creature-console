@@ -25,6 +25,9 @@ final class DialogScriptModel: Identifiable {
     var notes: String = ""
     var turnsJSON: Data = Data("[]".utf8)
     var backgroundMusicJSON: Data? = nil
+    /// The accepted voice take, JSON-encoded like the music blob. Must round-trip — dropping it
+    /// would make an edit through the cache lose the acceptance the render gate depends on.
+    var acceptedVoiceJSON: Data? = nil
     /// The script's usual stage, stored as a string so SwiftData needs no schema knowledge of
     /// UUIDs; nil = unbound. Must round-trip faithfully — dropping it here would make an edit
     /// through the cache silently clear the binding on save.
@@ -38,6 +41,7 @@ final class DialogScriptModel: Identifiable {
         notes: String,
         turnsJSON: Data,
         backgroundMusicJSON: Data?,
+        acceptedVoiceJSON: Data?,
         stageIdString: String?,
         createdAtMillis: Int64?,
         updatedAtMillis: Int64?
@@ -47,6 +51,7 @@ final class DialogScriptModel: Identifiable {
         self.notes = notes
         self.turnsJSON = turnsJSON
         self.backgroundMusicJSON = backgroundMusicJSON
+        self.acceptedVoiceJSON = acceptedVoiceJSON
         self.stageIdString = stageIdString
         self.createdAtMillis = createdAtMillis
         self.updatedAtMillis = updatedAtMillis
@@ -60,14 +65,17 @@ extension DialogScriptModel {
         // programming/schema error and should not silently turn a real script into an empty one.
         var turns: Data
         var backgroundMusic: Data?
+        var acceptedVoice: Data?
         do {
             turns = try JSONEncoder().encode(dto.turns)
             backgroundMusic = try dto.backgroundMusic.map { try JSONEncoder().encode($0) }
+            acceptedVoice = try dto.acceptedVoice.map { try JSONEncoder().encode($0) }
         } catch {
             Self.logger.fault(
                 "Could not encode dialog script \(dto.id): \(error.localizedDescription)")
             turns = Data("[]".utf8)
             backgroundMusic = nil
+            acceptedVoice = nil
         }
         self.init(
             id: dto.id,
@@ -75,6 +83,7 @@ extension DialogScriptModel {
             notes: dto.notes,
             turnsJSON: turns,
             backgroundMusicJSON: backgroundMusic,
+            acceptedVoiceJSON: acceptedVoice,
             stageIdString: dto.stageId?.uuidString.lowercased(),
             createdAtMillis: dto.createdAt,
             updatedAtMillis: dto.updatedAt
@@ -114,6 +123,9 @@ extension DialogScriptModel {
             notes: notes,
             turns: turns,
             backgroundMusic: backgroundMusic,
+            acceptedVoice: acceptedVoiceJSON.flatMap {
+                try? JSONDecoder().decode(DialogAcceptedVoice.self, from: $0)
+            },
             stageId: stageIdString.flatMap { UUID(uuidString: $0) },
             createdAt: createdAtMillis,
             updatedAt: updatedAtMillis

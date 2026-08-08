@@ -1,8 +1,9 @@
-#if os(macOS)
+#if os(macOS) || os(tvOS)
     import Foundation
 
     enum SpatialStageInputMode: String, CaseIterable, Identifiable, Sendable {
         case live
+        case liveRelay
         case simulation
 
         var id: String { rawValue }
@@ -11,10 +12,15 @@
             switch self {
             case .live:
                 "Live RTP"
+            case .liveRelay:
+                "Live via Relay"
             case .simulation:
                 "Simulation"
             }
         }
+
+        /// Both live modes feed the same pipeline; only the transport differs.
+        var isLive: Bool { self != .simulation }
     }
 
     enum SpatialStageConnectionState: Equatable, Sendable {

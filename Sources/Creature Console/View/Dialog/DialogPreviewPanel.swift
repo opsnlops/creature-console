@@ -2,6 +2,7 @@ import AVFoundation
 import Common
 import Foundation
 import OSLog
+import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -25,15 +26,21 @@ struct DialogPreviewPanel: View {
     /// music generation or the final render.
     @Binding var scope: DialogPreviewScope
     @Binding var fullDialogMeta: DialogPreviewMetaDTO?
-    /// The take chosen here is shared with the render panel so a render uses exactly what was
-    /// auditioned. `nil` means "latest / server decides".
-    @Binding var selectedGenerationId: DialogGenerationIdentifier?
-    /// Existing scripts should reopen on their latest cached take when one is available. New
-    /// scripts remain intentionally blank until the author asks for a preview.
-    var restoreCachedTake: Bool = false
-    /// When a permanent dialog render has embedded its voice generation id, prefer that exact
-    /// take over a newer unrelated preview cached for the same turns.
-    var preferredGenerationId: DialogGenerationIdentifier? = nil
+    /// sha256(turns) as the server computes it, learned from the takes lookup. The render gate's
+    /// freshness comparison (accepted take vs current turns) reads this.
+    @Binding var currentCacheKey: String?
+    /// Saved-script identity, required to Accept. Nil (unsaved) leaves Accept disabled.
+    var scriptId: DialogScriptIdentifier? = nil
+    /// The script's accepted voice, from the saved copy.
+    var acceptedVoice: DialogAcceptedVoice? = nil
+    /// Whether this script already has rendered animations, so the empty takes list can say
+    /// "your renders are fine, their takes just aged out" instead of implying a virgin script.
+    var hasExistingRender: Bool = false
+    /// The script's stage binding, for spatial audition — takes play positioned where the birds
+    /// will actually sit.
+    var stageId: StageIdentifier? = nil
+    /// Canonical script handed back by accept/clear, for the editor to merge (music-flow shape).
+    var onVoiceChanged: ((DialogScript) -> Void)? = nil
 
     private let server = CreatureServerClient.shared
     private let audioManager = AudioManager.shared
@@ -42,7 +49,23 @@ struct DialogPreviewPanel: View {
     @State private var statusMessage: String? = nil
     @State private var meta: DialogPreviewMetaDTO? = nil
     @State private var takes: [DialogPreviewLookupDTO.Generation] = []
-    @State private var scopedGenerationId: DialogGenerationIdentifier? = nil
+    @State private var isAccepting = false
+
+    #if os(macOS)
+        /// Deliberately @AppStorage, deliberately not on the script: whether spatial audition
+        /// sounds good is a property of the *machine's* audio hardware (April's laptop: great;
+        /// the workshop Mac on plain speakers: not), so the preference must never sync between
+        /// devices or ride the script.
+        @AppStorage("voiceTakeSpatialAudition") private var spatialAudition = false
+    #endif
+    private let localAudio = LocalAudioPlayer.shared
+    @Query private var stageModels: [StageModel]
+
+    /// The bound stage, resolved from the invalidation-fed mirror.
+    private var spatialStage: Stage? {
+        guard let stageId else { return nil }
+        return stageModels.first(where: { $0.id == stageId })?.toDTO()
+    }
     /// Invalidates in-flight preview/lookup/export work when the turns or scope changes. The
     /// server request cannot always be cancelled once it is on the wire, so completions must
     /// also prove that they still belong to the current editor state before mutating the UI.
@@ -88,6 +111,23 @@ struct DialogPreviewPanel: View {
 
             previewScopePicker
 
+            #if os(macOS)
+                Toggle(isOn: $spatialAudition) {
+                    Label("Spatial audition", systemImage: "person.wave.2")
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .disabled(spatialStage == nil)
+                .help(
+                    spatialStage == nil
+                        ? "Bind a stage to hear takes positioned in space."
+                        : "Play takes through the stage's placements — the same render path as the Spatial Stage monitor. A per-machine setting: great on headphones, less so on plain speakers."
+                )
+                .onChange(of: spatialAudition) { _, _ in
+                    localAudio.stop()
+                }
+            #endif
+
             if !scope.isFullDialog {
                 Label(
                     "Partial previews are faster, but lose some cross-speaker reactivity. They cannot be used for music or final rendering.",
@@ -105,47 +145,29 @@ struct DialogPreviewPanel: View {
                 .foregroundStyle(.secondary)
             }
 
+            if scope.isFullDialog {
+                acceptedVoiceCard
+            }
+
+            // One generation verb: every press makes a *new* take and adds it to the list.
+            // Auditioning is tapping a take; choosing is Accept. (April: "All should
+            // regenerate, but only one can be chosen.")
             HStack(spacing: 12) {
                 Button {
-                    preview(regenerate: false)
+                    generateTake()
                 } label: {
-                    Label("Preview", systemImage: "play.circle")
+                    Label("Generate Take", systemImage: "sparkles")
                 }
+                .buttonStyle(.glass)
                 .disabled(!turnsAreReady || isWorking)
 
-                Button {
-                    preview(regenerate: true)
-                } label: {
-                    Label("Regenerate", systemImage: "arrow.triangle.2.circlepath")
+                if let statusMessage {
+                    Text(statusMessage).font(.caption).foregroundStyle(.secondary)
                 }
-                .disabled(!turnsAreReady || isWorking)
-
-                Button {
-                    refreshTakes()
-                } label: {
-                    Label("Find Takes", systemImage: "square.stack.3d.up")
-                }
-                .disabled(!turnsAreReady || isWorking)
-            }
-
-            if let meta {
-                HStack(spacing: 8) {
-                    Image(systemName: meta.cached ? "bolt.fill" : "sparkles")
-                        .foregroundStyle(meta.cached ? .yellow : .blue)
-                    Text(
-                        "\(meta.cached ? "Cached take" : "Fresh take") • \(TimeHelper.formatDuration(meta.durationSeconds))"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-            }
-
-            if let statusMessage {
-                Text(statusMessage).font(.caption).foregroundStyle(.secondary)
             }
 
             if !takes.isEmpty {
-                takePicker
+                takeList
             }
 
             if meta != nil, scope.isFullDialog {
@@ -176,17 +198,24 @@ struct DialogPreviewPanel: View {
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
         .onChange(of: turnContent) {
-            // Takes are keyed by sha256(turns) server-side; a turn change means everything
-            // shown here belongs to a different cache key now.
+            // Takes are keyed by sha256(turns) server-side; a turn change means everything shown
+            // here belongs to a different cache key now. The acceptance itself is NOT touched —
+            // it lives on the script and simply reads as stale until these turns are saved and
+            // re-accepted. Nothing chosen is ever silently un-chosen.
+            // Capture BEFORE clearing: these run on every keystroke in a turn's text field, and
+            // AVFoundation teardown isn't free — only touch the audio stack when something was
+            // actually loaded or playing.
+            let hadAudio = meta != nil || isWorking
             meta = nil
             takes = []
             isWorking = false
             statusMessage = nil
-            scopedGenerationId = nil
             requestToken = UUID()
             fullDialogMeta = nil
-            selectedGenerationId = nil
-            audioManager.stopURLPlayback()
+            currentCacheKey = nil
+            if hadAudio || localAudio.isPlaying {
+                localAudio.stop()
+            }
             if scope.selectedTurns(from: turns) == nil {
                 scope = .full
             }
@@ -196,12 +225,19 @@ struct DialogPreviewPanel: View {
             takes = []
             isWorking = false
             statusMessage = nil
-            scopedGenerationId = nil
             requestToken = UUID()
         }
         .errorAlert($errorAlert)
-        .task(id: preferredGenerationId) {
-            await restoreLatestCachedTakeIfAvailable()
+        // Listing takes is a free lookup (no generation), so the list is just *there* on open —
+        // and it carries the cache key that resolves the acceptance's freshness immediately.
+        //
+        // Debounced: task(id:) restarts on every keystroke while turn text is edited, so
+        // sleeping first means only a pause in typing reaches the server. Without this, each
+        // keystroke fired a lookup POST and churned the panel's state — visible as typing lag.
+        .task(id: turnContent) {
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled else { return }
+            await lookupTakes()
         }
         .fileExporter(
             isPresented: $showExporter,
@@ -311,103 +347,348 @@ struct DialogPreviewPanel: View {
             })
     }
 
-    private var takePicker: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Available takes (newest first)").font(.caption).foregroundStyle(.secondary)
-            Picker("Take", selection: activeGenerationId) {
-                ForEach(Array(takes.enumerated()), id: \.element.id) { index, take in
-                    Text(takeLabel(take, index: index))
-                        .tag(Optional(take.generationId))
+    /// The one voice this script will render with — or the reasons it can't render yet.
+    @ViewBuilder
+    private var acceptedVoiceCard: some View {
+        if let acceptedVoice {
+            let fresh = acceptedVoice.isFresh(forCacheKey: currentCacheKey)
+            HStack(spacing: 8) {
+                Image(systemName: fresh ? "checkmark.seal.fill" : "clock.badge.exclamationmark")
+                    .foregroundStyle(fresh ? .green : .orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(fresh ? "Accepted voice take" : "Accepted voice take is stale")
+                        .font(.subheadline.bold())
+                    Text(
+                        fresh
+                            ? "Accepted \(acceptedVoice.acceptedAtDate.formatted(date: .abbreviated, time: .shortened)) — this is the voice the render uses."
+                            : "The turns changed since this take was accepted; its audio is of the old text. Generate, audition, and accept a new take."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if fresh {
+                    Button("Play") {
+                        // The promoted file is permanent; the preview-cache copy expires with
+                        // the 24 h ad-hoc TTL. Prefer the one that always works.
+                        if let soundFile = acceptedVoice.soundFile, !soundFile.isEmpty {
+                            #if os(macOS)
+                                if spatialAudition, let stage = spatialStage {
+                                    playPromotedSpatially(soundFile, stage: stage)
+                                    return
+                                }
+                            #endif
+                            playPromoted(soundFile)
+                        } else {
+                            audition(generationId: acceptedVoice.generationId)
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(isWorking)
                 }
             }
-            .labelsHidden()
-            .onChange(of: activeGenerationId.wrappedValue) { _, newValue in
-                // Re-audition the newly chosen take. Skip when the selection was cleared
-                // (turns changed) or when it's the take we're already showing (preview()
-                // writes the id back after each request).
-                guard let newValue, newValue != meta?.generationId, turnsAreReady, !isWorking else {
-                    return
+            .padding(10)
+            .glassEffect(
+                .regular.tint(fresh ? .green.opacity(0.18) : .orange.opacity(0.18)),
+                in: .rect(cornerRadius: 10)
+            )
+            .contextMenu {
+                Button(role: .destructive) {
+                    clearAcceptance()
+                } label: {
+                    Label("Un-accept Voice", systemImage: "xmark.seal")
                 }
-                loadCachedTake(newValue)
+            }
+
+            Button("Un-accept Voice…", role: .destructive) {
+                clearAcceptance()
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
+            .disabled(isAccepting || scriptId == nil)
+            .help(
+                "Moves the take back to ad-hoc storage (kept 24 hours) and reopens the choice. Rendering blocks until a voice is accepted again."
+            )
+        } else {
+            Label(
+                "No voice accepted yet. Generate takes, audition them, and accept the best one — renders only use audited voices.",
+                systemImage: "waveform.badge.exclamationmark"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private var takeList: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Takes (newest first) — tap to audition · unaccepted takes are kept 24 hours")
+                .font(.caption).foregroundStyle(.secondary)
+
+            // The reason Accept is disabled must be *visible*, not a hover tooltip on a grey
+            // button — typing anywhere in the turns dirties the script, and April hit exactly
+            // that: a take she'd just auditioned with Accept greyed and nothing saying why.
+            if scope.isFullDialog {
+                if scriptId == nil {
+                    Label(
+                        "Save the script to accept a take — acceptance is checked against the saved turns.",
+                        systemImage: "square.and.arrow.down"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                } else if currentCacheKey == nil {
+                    Label("Checking takes against the current turns…", systemImage: "clock")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            ForEach(Array(takes.enumerated()), id: \.element.id) { index, take in
+                takeRow(take, index: index)
             }
         }
     }
 
-    private var activeGenerationId: Binding<DialogGenerationIdentifier?> {
-        scope.isFullDialog ? $selectedGenerationId : $scopedGenerationId
+    private func takeRow(_ take: DialogPreviewLookupDTO.Generation, index: Int) -> some View {
+        let isPlayingRow = meta?.generationId == take.generationId
+        let isAccepted = acceptedVoice?.generationId == take.generationId
+        return HStack(spacing: 10) {
+            Button {
+                audition(generationId: take.generationId)
+            } label: {
+                Label(
+                    takeLabel(take, index: index),
+                    systemImage: isPlayingRow ? "speaker.wave.2.fill" : "play.circle")
+            }
+            .buttonStyle(.borderless)
+            .disabled(isWorking)
+
+            Spacer()
+
+            if isAccepted {
+                Label("Accepted", systemImage: "checkmark.seal.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            } else if scope.isFullDialog {
+                Button("Accept") {
+                    accept(take)
+                }
+                .buttonStyle(.borderless)
+                .disabled(isAccepting || scriptId == nil || currentCacheKey == nil)
+                .help(
+                    scriptId == nil
+                        ? "Save the script before accepting a voice take."
+                        : "Make this the voice the render uses.")
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     // MARK: - Actions
 
-    private func loadCachedTake(_ generationId: DialogGenerationIdentifier) {
-        guard !isWorking, meta?.generationId != generationId, turnsAreReady else { return }
-        activeGenerationId.wrappedValue = generationId
-        preview(regenerate: false)
-    }
-
-    private func restoreLatestCachedTakeIfAvailable() async {
-        guard restoreCachedTake, scope.isFullDialog, fullDialogMeta == nil, turnsAreReady else {
-            return
-        }
+    /// Free lookup of the cached takes for the current turns. Runs on open and after every
+    /// generation — it's also what learns the cache key that resolves acceptance freshness.
+    private func lookupTakes() async {
+        guard turnsAreReady, scope.isFullDialog else { return }
         let token = requestToken
-        // Prevent the picker binding from starting a second preview while restoration selects a
-        // take below.
-        isWorking = true
-
-        let request = DialogPreviewRequest.fromTurns(previewTurns, title: title)
-        switch await server.dialogPreviewLookup(request) {
+        switch await server.dialogPreviewLookup(.fromTurns(previewTurns)) {
+        case .success(let dto):
+            guard token == requestToken else { return }
+            takes = dto.generations
+            currentCacheKey = dto.cacheKey
+            if statusMessage == nil {
+                statusMessage = "\(dto.generations.count) take(s)"
+            }
         case .failure(.notFound):
             guard token == requestToken else { return }
-            if let preferredGenerationId {
-                takes = [existingRenderedTake(preferredGenerationId)]
-                selectedGenerationId = preferredGenerationId
-                isWorking = false
-                statusMessage =
-                    "Using the voice take from the existing render. Preview audio is no longer cached."
-            } else {
-                takes = []
-                isWorking = false
-                statusMessage = "No cached takes yet — Preview to generate one."
-            }
+            takes = []
+            // A script with living renders isn't a blank slate: its takes simply aged out of the
+            // 24 h audition cache. The renders keep playing; only *changing* the voice needs a
+            // new take — and re-rendering replaces the old performance, so say so here rather
+            // than letting the generic copy imply nothing exists.
+            statusMessage =
+                hasExistingRender
+                ? "This script's takes have expired from the audition cache — its rendered animations still play. Generate a new take only if you want to change the voice (re-rendering replaces the old performance)."
+                : "No takes yet — Generate one to start auditioning."
         case .failure(let error):
             guard token == requestToken else { return }
-            isWorking = false
-            statusMessage = "Could not restore cached takes: \(error.localizedDescription)"
-        case .success(let lookup):
-            guard !lookup.generations.isEmpty, token == requestToken else {
-                isWorking = false
-                return
-            }
-
-            takes = lookup.generations
-            let availableGenerationIDs = Set(lookup.generations.map(\.generationId))
-            if let preferredGenerationId {
-                if availableGenerationIDs.contains(preferredGenerationId) {
-                    selectedGenerationId = preferredGenerationId
-                    statusMessage = "Restoring the voice take from the existing render…"
-                } else {
-                    // Render provenance can outlive the server's temporary preview cache. Keep
-                    // the actual rendered voice visible and selected instead of silently
-                    // switching the author to an unrelated newer take.
-                    takes.append(existingRenderedTake(preferredGenerationId))
-                    selectedGenerationId = preferredGenerationId
-                    isWorking = false
-                    statusMessage =
-                        "Using the voice take from the existing render. Preview audio is no longer cached."
-                    return
-                }
-            } else {
-                selectedGenerationId = lookup.latestGenerationId
-                statusMessage = "Restoring the latest cached voice take…"
-            }
-            preview(regenerate: false, play: false)
+            statusMessage = "Could not list takes: \(error.localizedDescription)"
         }
     }
 
-    private func existingRenderedTake(
-        _ generationId: DialogGenerationIdentifier
-    ) -> DialogPreviewLookupDTO.Generation {
-        DialogPreviewLookupDTO.Generation(generationId: generationId, createdAt: "")
+    /// Always a *new* take — generation and audition are different verbs on purpose.
+    private func generateTake() {
+        loadTake(generationId: nil, regenerate: true)
+    }
+
+    /// Play an existing take. Never generates.
+    private func audition(generationId: DialogGenerationIdentifier) {
+        loadTake(generationId: generationId, regenerate: false)
+    }
+
+    private func loadTake(generationId: DialogGenerationIdentifier?, regenerate: Bool) {
+        guard turnsAreReady else { return }
+        isWorking = true
+        statusMessage = regenerate ? "Generating a fresh take…" : "Loading take…"
+        let request = DialogPreviewRequest.fromTurns(
+            previewTurns,
+            generationId: generationId,
+            regenerate: regenerate ? true : nil,
+            title: title)
+        let token = UUID()
+        requestToken = token
+        Task {
+            let result = await resolveMeta(request, token: token)
+            guard token == requestToken else { return }
+            switch result {
+            case .success(let dto):
+                meta = dto
+                if scope.isFullDialog {
+                    fullDialogMeta = dto
+                    currentCacheKey = dto.cacheKey
+                }
+                if regenerate {
+                    // Refresh the list so the new take shows as a row alongside the others —
+                    // generate four, compare, accept the best.
+                    await lookupTakes()
+                }
+                await playMeta(dto, token: token)
+            case .failure(let error):
+                isWorking = false
+                statusMessage = nil
+                presentError(ServerError.detailedMessage(from: error))
+            }
+        }
+    }
+
+    #if os(macOS)
+        private func playPromotedSpatially(_ soundFile: String, stage: Stage) {
+            statusMessage = "Playing accepted voice spatially…"
+            Task {
+                do {
+                    try await localAudio.playSpatially(soundFile, stage: stage)
+                } catch {
+                    await MainActor.run {
+                        statusMessage = "Spatial audio unavailable — playing flat."
+                        playPromoted(soundFile)
+                    }
+                }
+            }
+        }
+    #endif
+
+    /// Play the accepted voice through its promoted, permanent sound file — the path that still
+    /// works after the take candidates have aged out of the ad-hoc store.
+    private func playPromoted(_ soundFile: String) {
+        switch localAudio.playRendition(soundFile) {
+        case .success:
+            statusMessage = "Playing accepted voice…"
+        case .failure(let error):
+            presentError("Playback failed: \(ServerError.detailedMessage(from: error))")
+        }
+    }
+
+    /// Un-accept: the server demotes the promoted file back to ad-hoc (24 h TTL restarts) and
+    /// returns the canonical script with no acceptance. Rendering blocks until a new Accept.
+    private func clearAcceptance() {
+        guard let scriptId else { return }
+        isAccepting = true
+        statusMessage = "Un-accepting voice…"
+        Task {
+            let result = await server.clearDialogVoice(scriptId: scriptId)
+            await MainActor.run {
+                isAccepting = false
+                switch result {
+                case .success(let canonical):
+                    statusMessage = "Voice un-accepted — the take is back in ad-hoc for 24 hours"
+                    onVoiceChanged?(canonical)
+                case .failure(let error):
+                    statusMessage = nil
+                    presentError(
+                        ServerError.detailedMessage(from: error), title: "Un-accept Failed")
+                }
+            }
+        }
+    }
+
+    /// Make this take the script's voice. Ordinarily immediate (200); when the take's audio has
+    /// to be assembled first — pre-3.40.1 takes, or an ad-hoc file the sweep reclaimed — the
+    /// server queues a job (202) whose completion result is the same canonical script, so both
+    /// paths land in the same merge. Validation is synchronous either way: a stale cache key or
+    /// unknown generation fails right here, never a minute later inside a job.
+    private func accept(_ take: DialogPreviewLookupDTO.Generation) {
+        guard let scriptId, let currentCacheKey else { return }
+        isAccepting = true
+        statusMessage = "Accepting take…"
+        Task {
+            let result = await server.acceptDialogVoice(
+                scriptId: scriptId,
+                generationId: take.generationId,
+                dialogCacheKey: currentCacheKey)
+            switch result {
+            case .success(.accepted(let canonical)):
+                await MainActor.run {
+                    isAccepting = false
+                    statusMessage = "Voice accepted"
+                    onVoiceChanged?(canonical)
+                }
+            case .success(.queued(let job)):
+                await JobStatusStore.shared.seedQueued(job)
+                await rideAcceptJob(job)
+            case .failure(let error):
+                await MainActor.run {
+                    isAccepting = false
+                    // The server's message is the good one — it distinguishes a stale cache key
+                    // from an unknown generation from missing audio better than a canned string.
+                    statusMessage = nil
+                    presentError(ServerError.detailedMessage(from: error), title: "Accept Failed")
+                }
+            }
+        }
+    }
+
+    /// Follow a queued accept (audio assembly) to its end. The terminal result decodes as the
+    /// same script body a 200 would have returned.
+    private func rideAcceptJob(_ job: JobCreatedResponse) async {
+        for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
+            switch event {
+            case .updated(let info):
+                let percent = Int((info.progress ?? 0) * 100)
+                await MainActor.run {
+                    statusMessage = "Assembling take audio… \(percent)%"
+                }
+            case .terminal(let info):
+                await MainActor.run {
+                    isAccepting = false
+                    guard info.status == .completed else {
+                        statusMessage = nil
+                        presentError(
+                            info.result ?? "The accept job failed on the server.",
+                            title: "Accept Failed")
+                        return
+                    }
+                    guard let result = info.result, let data = result.data(using: .utf8),
+                        let canonical = try? JSONDecoder().decode(DialogScript.self, from: data)
+                    else {
+                        statusMessage = nil
+                        presentError(
+                            "The accept job finished but its result could not be decoded.",
+                            title: "Accept Failed")
+                        return
+                    }
+                    statusMessage = "Voice accepted"
+                    onVoiceChanged?(canonical)
+                }
+                return
+            case .removed:
+                await MainActor.run {
+                    isAccepting = false
+                    statusMessage = nil
+                    presentError(
+                        "The accept job was removed before it finished.", title: "Accept Failed")
+                }
+                return
+            }
+        }
+        await MainActor.run { isAccepting = false }
     }
 
     /// Resolve preview meta, transparently riding the generation job when the server
@@ -456,43 +737,55 @@ struct DialogPreviewPanel: View {
         }
     }
 
-    private func preview(regenerate: Bool, play: Bool = true) {
-        guard turnsAreReady else { return }
-        isWorking = true
-        statusMessage = regenerate ? "Generating a fresh take…" : "Preparing preview…"
-        let request = DialogPreviewRequest.fromTurns(
-            previewTurns,
-            generationId: regenerate ? nil : activeGenerationId.wrappedValue,
-            regenerate: regenerate ? true : nil,
-            title: title)
-        let token = UUID()
-        requestToken = token
-        Task {
-            let result = await resolveMeta(request, token: token)
-            guard token == requestToken else { return }
-            switch result {
-            case .success(let dto):
-                meta = dto
-                activeGenerationId.wrappedValue = dto.generationId
-                if scope.isFullDialog {
-                    fullDialogMeta = dto
-                }
-                if play {
-                    await playMeta(dto, token: token)
-                } else {
-                    isWorking = false
-                    statusMessage = "Latest cached voice take loaded"
-                }
-            case .failure(let error):
-                isWorking = false
-                statusMessage = nil
-                presentError(ServerError.detailedMessage(from: error))
-            }
-        }
-    }
-
     private func playMeta(_ dto: DialogPreviewMetaDTO, token: UUID) async {
         guard token == requestToken else { return }
+
+        #if os(macOS)
+            if spatialAudition, let stage = spatialStage {
+                await playMetaSpatially(dto, stage: stage, token: token)
+                return
+            }
+        #endif
+        await playMetaFlat(dto, token: token)
+    }
+
+    #if os(macOS)
+        /// Spatial path: the take's 17-channel export, positioned on the bound stage. Falls back
+        /// to the flat MP3 with a visible note rather than failing silent — the 17ch file can be
+        /// missing for takes that predate export-at-generation.
+        private func playMetaSpatially(
+            _ dto: DialogPreviewMetaDTO, stage: Stage, token: UUID
+        ) async {
+            let soundFile: String
+            let adHoc: Bool
+            if dto.generationId == acceptedVoice?.generationId,
+                let promoted = acceptedVoice?.soundFile, !promoted.isEmpty
+            {
+                // The accepted take's ad-hoc export moved on promotion; its permanent file is
+                // the same 17-channel audio under the promoted name.
+                soundFile = promoted
+                adHoc = false
+            } else {
+                soundFile = "dialog-17ch-\(dto.generationId.uuidString.lowercased()).wav"
+                adHoc = true
+            }
+            do {
+                try await localAudio.playSpatially(soundFile, stage: stage, adHoc: adHoc)
+                guard token == requestToken else { return }
+                isWorking = false
+                statusMessage =
+                    "Playing spatially on \(stage.title.isEmpty ? "the stage" : stage.title)…"
+            } catch {
+                guard token == requestToken else { return }
+                statusMessage = "Spatial audio unavailable for this take — playing flat."
+                await playMetaFlat(dto, token: token, preserveStatus: true)
+            }
+        }
+    #endif
+
+    private func playMetaFlat(
+        _ dto: DialogPreviewMetaDTO, token: UUID, preserveStatus: Bool = false
+    ) async {
         guard
             case .success(let url) = server.dialogPreviewRenditionURL(
                 cacheKey: dto.cacheKey, generationId: dto.generationId, as: .mp3)
@@ -515,42 +808,18 @@ struct DialogPreviewPanel: View {
                 fileExtension: "mp3")
             {
             case .success(let localURL):
-                statusMessage = "Playing preview…"
-                if case .failure(let audioError) = audioManager.playURL(localURL) {
-                    presentError("Playback failed: \(audioError.localizedDescription)")
+                if !preserveStatus {
+                    statusMessage = "Playing preview…"
+                }
+                if case .failure(let audioError) = localAudio.playLocalFile(localURL) {
+                    presentError(
+                        "Playback failed: \(ServerError.detailedMessage(from: audioError))")
                 }
             case .failure(let audioError):
                 presentError("Could not cache preview audio: \(audioError.localizedDescription)")
             }
         case .failure(let error):
             presentError("Could not load preview MP3: \(ServerError.detailedMessage(from: error))")
-        }
-    }
-
-    private func refreshTakes() {
-        guard turnsAreReady else { return }
-        let token = UUID()
-        requestToken = token
-        isWorking = true
-        statusMessage = "Looking up cached takes…"
-        Task {
-            let result = await server.dialogPreviewLookup(.fromTurns(previewTurns))
-            guard token == requestToken else { return }
-            isWorking = false
-            switch result {
-            case .success(let dto):
-                takes = dto.generations
-                let generationId = activeGenerationId.wrappedValue ?? dto.latestGenerationId
-                activeGenerationId.wrappedValue = generationId
-                statusMessage = "\(dto.generations.count) cached take(s)"
-                isWorking = false
-                loadCachedTake(generationId)
-            case .failure(.notFound):
-                takes = []
-                statusMessage = "No cached takes yet — Preview to generate one."
-            case .failure(let error):
-                presentError(ServerError.detailedMessage(from: error))
-            }
         }
     }
 
@@ -561,7 +830,7 @@ struct DialogPreviewPanel: View {
         isWorking = true
         statusMessage = "Fetching mono WAV…"
         let request = DialogPreviewRequest.fromTurns(
-            previewTurns, generationId: activeGenerationId.wrappedValue, title: title)
+            previewTurns, generationId: meta?.generationId, title: title)
         Task {
             let metaResult = await resolveMeta(request, token: token)
             guard token == requestToken else { return }
@@ -596,7 +865,7 @@ struct DialogPreviewPanel: View {
         isWorking = true
         statusMessage = "Encoding shareable MP3…"
         let request = DialogPreviewRequest.fromTurns(
-            previewTurns, generationId: activeGenerationId.wrappedValue, title: title)
+            previewTurns, generationId: meta?.generationId, title: title)
         Task {
             let metaResult = await resolveMeta(request, token: token)
             guard token == requestToken else { return }
@@ -631,7 +900,7 @@ struct DialogPreviewPanel: View {
         isWorking = true
         statusMessage = "Rendering 17-channel WAV…"
         let request = DialogPreviewRequest.fromTurns(
-            previewTurns, generationId: activeGenerationId.wrappedValue, title: title)
+            previewTurns, generationId: meta?.generationId, title: title)
         Task {
             // Always a job now (server 3.23.0) — long scenes make enormous WAVs. Watch
             // it, then download the assembled file from the ad-hoc sound bucket.
@@ -692,20 +961,18 @@ struct DialogPreviewPanel: View {
         }
     }
 
-    private func presentError(_ message: String) {
-        errorAlert = ErrorAlert(title: "Preview Error", message: message)
+    private func presentError(_ message: String, title: String = "Preview Error") {
+        errorAlert = ErrorAlert(title: title, message: message)
         statusMessage = nil
     }
 
     private func takeLabel(_ take: DialogPreviewLookupDTO.Generation, index: Int) -> String {
-        if take.generationId == preferredGenerationId, take.createdAt.isEmpty {
-            return "#\(index + 1) • Existing rendered voice"
-        }
-        let shortId = String(take.generationId.uuidString.lowercased().prefix(8))
         if let date = take.createdAtDate {
-            return "#\(index + 1) • \(date.formatted(date: .abbreviated, time: .shortened))"
+            return
+                "Take \(takes.count - index) • \(date.formatted(date: .abbreviated, time: .shortened))"
         }
-        return "#\(index + 1) • \(shortId)"
+        return
+            "Take \(takes.count - index) • \(take.generationId.uuidString.lowercased().prefix(8))"
     }
 }
 
@@ -713,15 +980,18 @@ private struct DialogMusicCandidate: Identifiable, Equatable {
     let result: DialogMusicGenerationResult
     let sourceCacheKey: String
     let sourceDialogGenerationId: DialogGenerationIdentifier
-    let sourceScriptUpdatedAt: Int64?
     var isExpired = false
 
     var id: UUID { result.musicGenerationId }
 
-    func matches(_ meta: DialogPreviewMetaDTO?, scriptUpdatedAt: Int64?) -> Bool {
-        sourceCacheKey == meta?.cacheKey
-            && sourceDialogGenerationId == meta?.generationId
-            && sourceScriptUpdatedAt == scriptUpdatedAt
+    /// A candidate is current iff it was composed against the *accepted* voice. Comparing to the
+    /// last-auditioned take made warnings flap during A/B listening, and comparing to the
+    /// script's updated_at stale-marked every candidate on ANY save — picking a stage was enough
+    /// to orange-flag music whose voice hadn't changed at all.
+    func matches(_ acceptedVoice: DialogAcceptedVoice?) -> Bool {
+        guard let acceptedVoice else { return false }
+        return sourceCacheKey.lowercased() == acceptedVoice.dialogCacheKey.lowercased()
+            && sourceDialogGenerationId == acceptedVoice.generationId
     }
 }
 
@@ -729,9 +999,12 @@ private struct DialogMusicCandidate: Identifiable, Equatable {
 /// session state makes experimentation cheap while promotion remains an explicit commit point.
 struct DialogMusicPanel: View {
     let scriptId: DialogScriptIdentifier?
-    let fullDialogMeta: DialogPreviewMetaDTO?
+    /// Music is composed against the *accepted* voice — the audio that will actually render —
+    /// never against whatever take happens to be auditioning.
+    let acceptedVoice: DialogAcceptedVoice?
+    /// Whether the acceptance still matches the current turns (computed by the editor).
+    let acceptedVoiceIsFresh: Bool
     let backgroundMusic: DialogBackgroundMusic?
-    let scriptUpdatedAt: Int64?
     let hasUnsavedChanges: Bool
     let onScriptUpdated: (DialogScript) -> Void
     let onMusicUpdated: (DialogBackgroundMusic?) -> Void
@@ -745,8 +1018,7 @@ struct DialogMusicPanel: View {
     @State private var candidates: [DialogMusicCandidate] = []
     @State private var activeJobId: String?
     @State private var observedJob: JobStatusStore.JobInfo?
-    @State private var jobSourceMeta: DialogPreviewMetaDTO?
-    @State private var jobSourceScriptUpdatedAt: Int64?
+    @State private var jobSourceVoice: DialogAcceptedVoice?
     @State private var isSubmitting = false
     @State private var isAuditioning = false
     @State private var musicVolume = 0.35
@@ -765,7 +1037,8 @@ struct DialogMusicPanel: View {
     }
 
     private var canGenerate: Bool {
-        scriptId != nil && fullDialogMeta != nil && !hasUnsavedChanges && !trimmedPrompt.isEmpty
+        scriptId != nil && acceptedVoice != nil && acceptedVoiceIsFresh && !hasUnsavedChanges
+            && !trimmedPrompt.isEmpty
             && trimmedPrompt.utf8.count <= DialogLimits.maxMusicPromptBytes
             && !isSubmitting && !(observedJob.map { !$0.isTerminal } ?? false)
     }
@@ -882,12 +1155,7 @@ struct DialogMusicPanel: View {
         .onChange(of: musicVolume) { _, value in
             audioManager.dialogMusicVolume = Float(value)
         }
-        .onChange(of: fullDialogMeta) { _, _ in
-            auditionToken = UUID()
-            isAuditioning = false
-            audioManager.stopDialogAudition()
-        }
-        .onChange(of: scriptUpdatedAt) { _, _ in
+        .onChange(of: acceptedVoice) { _, _ in
             auditionToken = UUID()
             isAuditioning = false
             audioManager.stopDialogAudition()
@@ -930,27 +1198,56 @@ struct DialogMusicPanel: View {
         if scriptId == nil || hasUnsavedChanges {
             return "Save the current script before generating music."
         }
-        if fullDialogMeta == nil {
+        if acceptedVoice == nil {
+            return "Accept a voice take first — music is composed against the accepted voice."
+        }
+        if !acceptedVoiceIsFresh {
             return
-                "Generate and select a full-dialog voice take first. Partial previews cannot drive music generation."
+                "The accepted voice take predates the current turns. Re-accept a take before generating music."
         }
         return nil
     }
 
     @ViewBuilder
     private func acceptedMusicCard(_ music: DialogBackgroundMusic) -> some View {
+        // nil = server hasn't recorded which voice take this music was composed against
+        // (pre-#136 acceptance) — unknown is shown as nothing, never as a false verdict.
+        let matchesVoice = music.matchesAcceptedVoice(acceptedVoice)
         VStack(alignment: .leading, spacing: 8) {
             Label("Accepted music", systemImage: "checkmark.seal.fill")
                 .foregroundStyle(.green)
                 .font(.headline)
             Text(music.prompt).font(.subheadline)
+
+            if matchesVoice == false {
+                Label(
+                    "Composed against a different voice take than the accepted one — its timing may not match. Generate and accept a new candidate.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            } else if matchesVoice == nil {
+                // Accepted before the server recorded provenance (server#136). Re-promoting
+                // backfills from the audio's own iXML — no regeneration, one call.
+                HStack(spacing: 8) {
+                    Text("Not yet checked against the accepted voice.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Check Voice Match") {
+                        backfillProvenance(music)
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                    .disabled(scriptId == nil || hasUnsavedChanges || isSubmitting)
+                }
+            }
             Text(music.soundFile)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
             HStack {
                 Button("Play with Dialog") { auditionAccepted(music) }
-                    .disabled(fullDialogMeta == nil || isAuditioning)
+                    .disabled(acceptedVoice == nil || isAuditioning)
                 Button(isPlayingAcceptedMusic ? "Stop Music" : "Play Music") {
                     if isPlayingAcceptedMusic {
                         stopAcceptedMusic()
@@ -974,7 +1271,7 @@ struct DialogMusicPanel: View {
 
     @ViewBuilder
     private func candidateCard(_ candidate: DialogMusicCandidate) -> some View {
-        let isCurrent = candidate.matches(fullDialogMeta, scriptUpdatedAt: scriptUpdatedAt)
+        let isCurrent = candidate.matches(acceptedVoice)
         let isAccepted = backgroundMusic?.generationId == candidate.id
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -999,7 +1296,7 @@ struct DialogMusicPanel: View {
                 .foregroundStyle(.orange)
             } else if !isCurrent {
                 Label(
-                    "This candidate belongs to an older voice take.",
+                    "Made for a different voice take than the accepted one — its timing won't match. Generate a new candidate.",
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(.caption)
@@ -1027,15 +1324,14 @@ struct DialogMusicPanel: View {
     }
 
     private func generate() {
-        guard let scriptId, let meta = fullDialogMeta, canGenerate else { return }
+        guard let scriptId, let voice = acceptedVoice, canGenerate else { return }
         isSubmitting = true
-        jobSourceMeta = meta
-        jobSourceScriptUpdatedAt = scriptUpdatedAt
+        jobSourceVoice = voice
         statusMessage = "Starting music generation…"
         let request = DialogMusicRequest(
             scriptId: scriptId,
-            dialogCacheKey: meta.cacheKey,
-            dialogGenerationId: meta.generationId,
+            dialogCacheKey: voice.dialogCacheKey,
+            dialogGenerationId: voice.generationId,
             prompt: trimmedPrompt,
             durationExtensionMilliseconds: Int64(durationExtensionSeconds * 1_000),
             generationMode: generationMode)
@@ -1057,7 +1353,7 @@ struct DialogMusicPanel: View {
     private func finishGeneration(_ info: JobStatusStore.JobInfo) {
         defer { activeJobId = nil }
         guard info.status == .completed, let result = info.dialogMusicResult,
-            let sourceMeta = jobSourceMeta
+            let sourceVoice = jobSourceVoice
         else {
             errorAlert = ErrorAlert(
                 title: "Music Generation Failed",
@@ -1066,9 +1362,8 @@ struct DialogMusicPanel: View {
             return
         }
         let candidate = DialogMusicCandidate(
-            result: result, sourceCacheKey: sourceMeta.cacheKey,
-            sourceDialogGenerationId: sourceMeta.generationId,
-            sourceScriptUpdatedAt: jobSourceScriptUpdatedAt)
+            result: result, sourceCacheKey: sourceVoice.dialogCacheKey,
+            sourceDialogGenerationId: sourceVoice.generationId)
         candidates.insert(candidate, at: 0)
         statusMessage = "Candidate ready"
         audition(candidate)
@@ -1084,12 +1379,9 @@ struct DialogMusicPanel: View {
     }
 
     private func promote(_ candidate: DialogMusicCandidate) {
-        guard !hasUnsavedChanges,
-            candidate.matches(fullDialogMeta, scriptUpdatedAt: scriptUpdatedAt)
-        else { return }
+        guard !hasUnsavedChanges, candidate.matches(acceptedVoice) else { return }
         let promotionScriptId = scriptId
-        let promotionMeta = fullDialogMeta
-        let promotionUpdatedAt = scriptUpdatedAt
+        let promotionVoice = acceptedVoice
         statusMessage = "Accepting music…"
         Task {
             switch await server.promoteDialogMusic(generationId: candidate.id) {
@@ -1098,14 +1390,17 @@ struct DialogMusicPanel: View {
                     soundFile: result.soundFile,
                     generationId: result.musicGenerationId,
                     prompt: candidate.result.prompt,
-                    acceptedAt: Int64(Date().timeIntervalSince1970 * 1_000))
+                    acceptedAt: Int64(Date().timeIntervalSince1970 * 1_000),
+                    // The candidate knows what it was composed against; the fallback card must
+                    // not show "unknown" for a promotion that just happened.
+                    sourceDialogGenerationId: candidate.sourceDialogGenerationId,
+                    sourceDialogCacheKey: candidate.sourceCacheKey)
                 if let scriptId {
                     switch await server.getDialogScript(id: scriptId) {
                     case .success(let canonical):
                         await MainActor.run {
                             guard scriptId == promotionScriptId,
-                                fullDialogMeta == promotionMeta,
-                                scriptUpdatedAt == promotionUpdatedAt,
+                                acceptedVoice == promotionVoice,
                                 !hasUnsavedChanges
                             else {
                                 return
@@ -1117,8 +1412,7 @@ struct DialogMusicPanel: View {
                     case .failure(let error):
                         await MainActor.run {
                             guard scriptId == promotionScriptId,
-                                fullDialogMeta == promotionMeta,
-                                scriptUpdatedAt == promotionUpdatedAt,
+                                acceptedVoice == promotionVoice,
                                 !hasUnsavedChanges
                             else {
                                 return
@@ -1135,8 +1429,7 @@ struct DialogMusicPanel: View {
                 } else {
                     await MainActor.run {
                         guard scriptId == promotionScriptId,
-                            fullDialogMeta == promotionMeta,
-                            scriptUpdatedAt == promotionUpdatedAt,
+                            acceptedVoice == promotionVoice,
                             !hasUnsavedChanges
                         else {
                             return
@@ -1148,6 +1441,34 @@ struct DialogMusicPanel: View {
                 }
             case .failure(let error):
                 await MainActor.run { presentError("Could Not Accept Music", error) }
+            }
+        }
+    }
+
+    /// Repair pre-#136 accepted music: re-promoting the same generation makes the server
+    /// backfill source provenance from the WAV's embedded iXML, after which the card can render
+    /// a real verdict instead of silence.
+    private func backfillProvenance(_ music: DialogBackgroundMusic) {
+        guard let scriptId, !hasUnsavedChanges else { return }
+        let repairScriptId = scriptId
+        statusMessage = "Checking music against the accepted voice…"
+        Task {
+            switch await server.promoteDialogMusic(generationId: music.generationId) {
+            case .success:
+                switch await server.getDialogScript(id: scriptId) {
+                case .success(let canonical):
+                    await MainActor.run {
+                        guard self.scriptId == repairScriptId, !hasUnsavedChanges else { return }
+                        onScriptUpdated(canonical)
+                        statusMessage = nil
+                    }
+                case .failure(let error):
+                    await MainActor.run {
+                        presentError("Checked, But Script Refresh Failed", error)
+                    }
+                }
+            case .failure(let error):
+                await MainActor.run { presentError("Could Not Check Music", error) }
             }
         }
     }
@@ -1171,17 +1492,17 @@ struct DialogMusicPanel: View {
     }
 
     private func audition(_ candidate: DialogMusicCandidate) {
-        guard let meta = fullDialogMeta,
+        guard let voice = acceptedVoice,
             let musicURL = server.makeAbsoluteURL(fromRelativePath: candidate.result.mp3Url)
         else { return }
-        audition(meta: meta, musicURL: musicURL, candidateId: candidate.id)
+        audition(voice: voice, musicURL: musicURL, candidateId: candidate.id)
     }
 
     private func auditionAccepted(_ music: DialogBackgroundMusic) {
-        guard let meta = fullDialogMeta,
+        guard let voice = acceptedVoice,
             case .success(let musicURL) = server.getSoundRenditionURL(music.soundFile, as: .mp3)
         else { return }
-        audition(meta: meta, musicURL: musicURL, candidateId: nil)
+        audition(voice: voice, musicURL: musicURL, candidateId: nil)
     }
 
     private func playAcceptedMusic(_ music: DialogBackgroundMusic) {
@@ -1234,11 +1555,11 @@ struct DialogMusicPanel: View {
     }
 
     private func audition(
-        meta: DialogPreviewMetaDTO, musicURL: URL, candidateId: UUID?
+        voice: DialogAcceptedVoice, musicURL: URL, candidateId: UUID?
     ) {
         guard
             case .success(let voiceURL) = server.dialogPreviewRenditionURL(
-                cacheKey: meta.cacheKey, generationId: meta.generationId, as: .mp3)
+                cacheKey: voice.dialogCacheKey, generationId: voice.generationId, as: .mp3)
         else {
             errorAlert = ErrorAlert(
                 title: "Audition Failed", message: "Could not build the dialog MP3 URL.")
@@ -1260,7 +1581,7 @@ struct DialogMusicPanel: View {
                     switch audioManager.cacheAudioData(
                         voiceData,
                         cacheKey:
-                            "preview-\(meta.cacheKey)-\(meta.generationId.uuidString.lowercased())",
+                            "preview-\(voice.dialogCacheKey)-\(voice.generationId.uuidString.lowercased())",
                         fileExtension: "mp3")
                     {
                     case .success(let localVoiceURL):
@@ -1269,7 +1590,7 @@ struct DialogMusicPanel: View {
                             switch audioManager.cacheAudioData(
                                 data,
                                 cacheKey: candidateId?.uuidString.lowercased()
-                                    ?? "accepted-\(meta.cacheKey)",
+                                    ?? "accepted-\(voice.dialogCacheKey)",
                                 fileExtension: "mp3")
                             {
                             case .success(let localMusicURL):

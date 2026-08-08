@@ -47,6 +47,10 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
     public var notes: String
     public var turns: [DialogScriptTurn]
     public var backgroundMusic: DialogBackgroundMusic?
+    /// The explicitly accepted voice take (issue #69 / server#131). Server-managed via the accept
+    /// endpoint — like `backgroundMusic`, it never travels in the upsert body, so ordinary edits
+    /// can't clear it. Staleness is `acceptedVoice.isFresh(forCacheKey:)` against current turns.
+    public var acceptedVoice: DialogAcceptedVoice?
     /// The stage this script is normally rendered against, if any.
     ///
     /// A render request's `stageId` overrides this, which is how a travel rendition of a mainstage
@@ -62,6 +66,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         case notes
         case turns
         case backgroundMusic = "background_music"
+        case acceptedVoice = "accepted_voice"
         case stageId = "stage_id"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -73,6 +78,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         notes: String,
         turns: [DialogScriptTurn],
         backgroundMusic: DialogBackgroundMusic? = nil,
+        acceptedVoice: DialogAcceptedVoice? = nil,
         stageId: StageIdentifier? = nil,
         createdAt: Int64? = nil,
         updatedAt: Int64? = nil
@@ -82,6 +88,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         self.notes = notes
         self.turns = turns
         self.backgroundMusic = backgroundMusic
+        self.acceptedVoice = acceptedVoice
         self.stageId = stageId
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -95,6 +102,8 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         turns = try container.decodeIfPresent([DialogScriptTurn].self, forKey: .turns) ?? []
         backgroundMusic = try container.decodeIfPresent(
             DialogBackgroundMusic.self, forKey: .backgroundMusic)
+        acceptedVoice = try container.decodeIfPresent(
+            DialogAcceptedVoice.self, forKey: .acceptedVoice)
         // The server writes "" for "no stage", which isn't a UUID — treat it as absent rather
         // than failing the whole decode.
         stageId = try container.decodeIfPresent(String.self, forKey: .stageId).flatMap {
@@ -113,6 +122,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         try container.encode(notes, forKey: .notes)
         try container.encode(turns, forKey: .turns)
         try container.encodeIfPresent(backgroundMusic, forKey: .backgroundMusic)
+        try container.encodeIfPresent(acceptedVoice, forKey: .acceptedVoice)
         try container.encodeIfPresent(stageId?.uuidString.lowercased(), forKey: .stageId)
         try container.encodeIfPresent(createdAt, forKey: .createdAt)
         try container.encodeIfPresent(updatedAt, forKey: .updatedAt)

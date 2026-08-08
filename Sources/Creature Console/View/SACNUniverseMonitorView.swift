@@ -22,8 +22,8 @@ struct SACNUniverseMonitorView: View {
 
     @AppStorage("activeUniverse") private var activeUniverse: Int = 1
     @AppStorage("sacnMonitorSource") private var storedSource: String = defaultSourceRawValue
-    @AppStorage("sacnRemoteHost") private var storedRemoteHost: String = ""
-    @AppStorage("sacnRemotePort") private var storedRemotePort: Int = 1963
+    @AppStorage("relayHost") private var storedRemoteHost: String = "10.19.63.10"
+    @AppStorage("sacnRelayPort") private var storedRemotePort: Int = 1963
     @Query(sort: \CreatureModel.name) private var creatures: [CreatureModel]
     @Query(sort: \DmxFixtureModel.name) private var fixtures: [DmxFixtureModel]
     @State private var viewModel = SACNUniverseMonitorViewModel()
@@ -244,14 +244,14 @@ struct SACNUniverseMonitorView: View {
             Text("Remote Listener")
                 .font(.headline)
             HStack(spacing: 8) {
-                TextField("Host", text: $viewModel.remoteHost)
+                TextField("Relay Host", text: $viewModel.remoteHost)
                     .modifier(SACNTextFieldStyle())
                     .frame(width: 180)
                     .focused($focusedField, equals: .remoteHost)
                     #if os(tvOS)
                         .prefersDefaultFocus(viewModel.source == .remote, in: headerFocusScope)
                     #endif
-                TextField("Port", text: $remotePortString)
+                TextField("Relay Port", text: $remotePortString)
                     .modifier(SACNTextFieldStyle())
                     .frame(width: 70)
                     .focused($focusedField, equals: .remotePort)

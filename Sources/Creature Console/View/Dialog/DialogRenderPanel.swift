@@ -18,7 +18,10 @@ struct DialogRenderPanel: View {
 
     let scriptId: DialogScriptIdentifier?
     let turns: [DialogScriptTurn]
-    let selectedGenerationId: DialogGenerationIdentifier?
+    /// The saved script's accepted voice and the current turns' cache key — together, the render
+    /// precondition: renders only use audited, explicitly accepted, non-stale voices.
+    let acceptedVoice: DialogAcceptedVoice?
+    let currentCacheKey: String?
     let defaultTitle: String
     let backgroundMusic: DialogBackgroundMusic?
     /// The stage saved on the script, which the server uses when the request doesn't override.
@@ -64,6 +67,10 @@ struct DialogRenderPanel: View {
         isSubmitting || (observedJob.map { !$0.isTerminal } ?? false)
     }
 
+    private var voiceIsReady: Bool {
+        acceptedVoice?.isFresh(forCacheKey: currentCacheKey) ?? false
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Render").font(.headline)
@@ -84,16 +91,18 @@ struct DialogRenderPanel: View {
                 .foregroundStyle(.secondary)
             }
 
-            if scriptId == nil || selectedGenerationId == nil {
-                // This is the actionable blocker for the greyed-out Render button, so it reads
-                // as one — not as passive info. Rendering goes by script id and picks up the
-                // *saved* server copy, which is exactly why unsaved edits (including a freshly
-                // chosen stage) must be saved first.
+            if scriptId == nil || !voiceIsReady {
+                // The actionable blocker for the greyed-out Render button, naming the fix.
+                // Rendering goes by script id and the server enforces a fresh accepted voice
+                // (server#131) — nothing plays on the birds that nobody listened to.
                 Label(
                     scriptId == nil
                         ? "Unsaved changes — save the script, then render."
-                        : "Generate and select a full-dialog voice take before final rendering.",
-                    systemImage: scriptId == nil ? "square.and.arrow.down" : "info.circle"
+                        : (acceptedVoice == nil
+                            ? "Accept a voice take in the Voice Take section — renders only use audited voices."
+                            : "The accepted voice take predates these turns — re-audition and accept a new one."),
+                    systemImage: scriptId == nil
+                        ? "square.and.arrow.down" : "waveform.badge.exclamationmark"
                 )
                 .font(.caption)
                 .foregroundStyle(.orange)
@@ -149,9 +158,7 @@ struct DialogRenderPanel: View {
                     Label("Render Dialog", systemImage: "film")
                 }
                 .buttonStyle(.glassProminent)
-                .disabled(
-                    !turnsAreReady || isRendering || scriptId == nil
-                        || selectedGenerationId == nil)
+                .disabled(!turnsAreReady || isRendering || scriptId == nil || !voiceIsReady)
 
                 if isRendering {
                     ProgressView().controlSize(.small)
@@ -237,7 +244,7 @@ struct DialogRenderPanel: View {
     // MARK: - Actions
 
     private func render() {
-        guard turnsAreReady, let scriptId, selectedGenerationId != nil else { return }
+        guard turnsAreReady, let scriptId, voiceIsReady else { return }
         isSubmitting = true
         observedJob = nil
         completedResult = nil
@@ -253,9 +260,11 @@ struct DialogRenderPanel: View {
         // read *at render time* from the saved script, the single source of truth. Resolving it
         // client-side here would silently render with a stale binding whenever another device
         // rebound the script. Requires the creature-server#128 fallback fix.
+        // No generation_id: the server renders the script's accepted voice, which it enforces
+        // (server#131) — the request naming one is an override for tooling, not this flow.
         let request = DialogRequest.fromScript(
             scriptId, persistence: persistence, autoplay: autoplay, title: title,
-            generationId: selectedGenerationId, stageId: stageOverride)
+            stageId: stageOverride)
 
         Task {
             let result = await server.renderDialog(request)

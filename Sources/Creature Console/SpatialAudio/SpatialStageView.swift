@@ -76,7 +76,7 @@
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 240)
+                    .frame(width: 340)
                     .disabled(viewModel.isActive || viewModel.isPreparing)
 
                     if viewModel.inputMode == .live {
@@ -88,6 +88,21 @@
                         }
                         .frame(maxWidth: 380)
                         .disabled(viewModel.isActive || viewModel.isPreparing)
+                    } else if viewModel.inputMode == .liveRelay {
+                        TextField(
+                            "Relay Host", text: $viewModel.relayHost, prompt: Text("10.19.63.10")
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 260)
+                        .disabled(viewModel.isActive || viewModel.isPreparing)
+                        TextField(
+                            "Relay Port", value: $viewModel.relayPort,
+                            format: .number.grouping(.never)
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 70)
+                        .disabled(viewModel.isActive || viewModel.isPreparing)
+                        .help("Where 'creature-cli network rtp-listen' is running (default 1964)")
                     } else {
                         Picker("Animation", selection: $viewModel.selectedAnimationID) {
                             Text("Choose 17-channel WAV").tag(String?.none)
@@ -318,7 +333,7 @@
                         "Output latency "
                             + "\(Int(viewModel.diagnostics.outputLatencyMilliseconds.rounded())) ms"
                     )
-                    if viewModel.inputMode == .live {
+                    if viewModel.inputMode.isLive {
                         Text(liveTimingDescription)
                         if viewModel.diagnostics.outputUnderruns > 0 {
                             Text("\(viewModel.diagnostics.outputUnderruns) output underruns")

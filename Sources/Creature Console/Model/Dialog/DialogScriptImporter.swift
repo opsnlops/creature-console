@@ -27,6 +27,8 @@ actor DialogScriptImporter {
                     existing.notes = dto.notes
                     existing.turnsJSON = encodedTurns
                     existing.backgroundMusicJSON = encodedMusic
+                    existing.acceptedVoiceJSON =
+                        dto.acceptedVoice.flatMap { try? JSONEncoder().encode($0) }
                     existing.stageIdString = dto.stageId?.uuidString.lowercased()
                     existing.createdAtMillis = dto.createdAt
                     existing.updatedAtMillis = dto.updatedAt

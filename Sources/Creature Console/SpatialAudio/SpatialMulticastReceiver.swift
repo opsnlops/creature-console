@@ -9,17 +9,6 @@
             let channel: Int
         }
 
-        enum PacketKind: Sendable {
-            case rtp
-            case rtcp
-        }
-
-        struct ReceivedPacket: Sendable {
-            let channel: Int
-            let kind: PacketKind
-            let data: Data
-        }
-
         private let queue = DispatchQueue(
             label: "io.opsnlops.CreatureConsole.SpatialMulticastReceiver"
         )
@@ -28,7 +17,7 @@
         func start(
             channels: Set<Int>,
             interface: NWInterface,
-            onPacket: @escaping @Sendable (ReceivedPacket) -> Void,
+            onPacket: @escaping @Sendable (SpatialReceivedPacket) -> Void,
             onError: @escaping @Sendable (String) -> Void
         ) throws {
             try queue.sync {
@@ -42,7 +31,7 @@
                                 channels: channels,
                                 port: RTPAudioConstants.rtpPort
                             ),
-                            kind: .rtp,
+                            kind: SpatialPacketKind.rtp,
                             interface: interface,
                             onPacket: onPacket,
                             onError: onError
@@ -54,7 +43,7 @@
                                 channels: channels,
                                 port: RTPAudioConstants.rtcpPort
                             ),
-                            kind: .rtcp,
+                            kind: SpatialPacketKind.rtcp,
                             interface: interface,
                             onPacket: onPacket,
                             onError: onError
@@ -82,7 +71,9 @@
         }
 
         static func subscriptions(channels: Set<Int>, port: UInt16) -> [Subscription] {
-            channels.filter { (1...16).contains($0) }.union([17]).sorted().compactMap {
+            channels.filter { (1...16).contains($0) }.union([
+                RTPAudioConstants.backgroundMusicChannel
+            ]).sorted().compactMap {
                 channel in
                 let address =
                     channel == 17
@@ -100,9 +91,9 @@
 
         private func makeGroup(
             subscriptions: [Subscription],
-            kind: PacketKind,
+            kind: SpatialPacketKind,
             interface: NWInterface,
-            onPacket: @escaping @Sendable (ReceivedPacket) -> Void,
+            onPacket: @escaping @Sendable (SpatialReceivedPacket) -> Void,
             onError: @escaping @Sendable (String) -> Void
         ) throws -> NWConnectionGroup {
             let channelsByEndpoint = Dictionary(
@@ -129,7 +120,7 @@
                 else {
                     return
                 }
-                onPacket(ReceivedPacket(channel: channel, kind: kind, data: content))
+                onPacket(SpatialReceivedPacket(channel: channel, kind: kind, data: content))
             }
             group.stateUpdateHandler = { state in
                 if case .failed(let error) = state {
