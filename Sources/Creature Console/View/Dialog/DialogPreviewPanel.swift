@@ -429,6 +429,24 @@ struct DialogPreviewPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Takes (newest first) — tap to audition · unaccepted takes are kept 24 hours")
                 .font(.caption).foregroundStyle(.secondary)
+
+            // The reason Accept is disabled must be *visible*, not a hover tooltip on a grey
+            // button — typing anywhere in the turns dirties the script, and April hit exactly
+            // that: a take she'd just auditioned with Accept greyed and nothing saying why.
+            if scope.isFullDialog {
+                if scriptId == nil {
+                    Label(
+                        "Save the script to accept a take — acceptance is checked against the saved turns.",
+                        systemImage: "square.and.arrow.down"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                } else if currentCacheKey == nil {
+                    Label("Checking takes against the current turns…", systemImage: "clock")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             ForEach(Array(takes.enumerated()), id: \.element.id) { index, take in
                 takeRow(take, index: index)
             }
