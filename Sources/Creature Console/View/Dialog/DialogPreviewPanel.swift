@@ -532,12 +532,11 @@ struct DialogPreviewPanel: View {
                 case .success(let canonical):
                     statusMessage = "Voice accepted"
                     onVoiceChanged?(canonical)
-                case .failure(.notFound):
-                    statusMessage = nil
-                    presentError(
-                        "This server doesn't support voice acceptance yet — it needs the accept endpoint from creature-server#131.",
-                        title: "Accept Failed")
                 case .failure(let error):
+                    // The server's own message is the good one here — its 404 distinguishes a
+                    // missing take artifact (server#133) from a swept TTL, which a canned client
+                    // string can't. The pre-deploy "endpoint doesn't exist" translation this
+                    // replaced would now actively misdiagnose.
                     statusMessage = nil
                     presentError(ServerError.detailedMessage(from: error), title: "Accept Failed")
                 }
