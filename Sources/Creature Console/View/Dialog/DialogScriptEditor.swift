@@ -124,7 +124,11 @@ struct DialogScriptEditor: View {
                             scope: $previewScope,
                             fullDialogMeta: $fullDialogMeta,
                             currentCacheKey: $currentCacheKey,
-                            scriptId: createNew ? nil : original.id,
+                            // renderScriptId, not just the saved id: the server rejects accepting
+                            // against turns it hasn't seen (its cache-key check compares the
+                            // SAVED script), so a dirty editor must disable Accept the same way
+                            // it disables Render — with "save first" as the stated fix.
+                            scriptId: renderScriptId,
                             acceptedVoice: original.acceptedVoice
                         ) { canonical in
                             // Acceptance is a server-side field mutation, like music promotion.
