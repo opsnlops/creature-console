@@ -469,9 +469,14 @@ struct DialogPreviewPanel: View {
                 case .success(let canonical):
                     statusMessage = "Voice accepted"
                     onVoiceChanged?(canonical)
+                case .failure(.notFound):
+                    statusMessage = nil
+                    presentError(
+                        "This server doesn't support voice acceptance yet — it needs the accept endpoint from creature-server#131.",
+                        title: "Accept Failed")
                 case .failure(let error):
                     statusMessage = nil
-                    presentError(ServerError.detailedMessage(from: error))
+                    presentError(ServerError.detailedMessage(from: error), title: "Accept Failed")
                 }
             }
         }
@@ -697,8 +702,8 @@ struct DialogPreviewPanel: View {
         }
     }
 
-    private func presentError(_ message: String) {
-        errorAlert = ErrorAlert(title: "Preview Error", message: message)
+    private func presentError(_ message: String, title: String = "Preview Error") {
+        errorAlert = ErrorAlert(title: title, message: message)
         statusMessage = nil
     }
 
