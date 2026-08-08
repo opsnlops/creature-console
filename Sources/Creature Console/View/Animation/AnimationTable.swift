@@ -32,6 +32,9 @@ struct AnimationTable: View {
     @State private var errorAlert: ErrorAlert?
     @State private var selection: AnimationIdentifier? = nil
     @State private var animationSoundToShare: String? = nil
+    /// The stage mirror, to position local spatial playback on the stage a render was made for.
+    @Query private var stageModels: [StageModel]
+    private let localAudio = LocalAudioPlayer.shared
 
     @State private var loadAnimationTask: Task<Void, Never>? = nil
     @State private var playAnimationTask: Task<Void, Never>? = nil
@@ -144,6 +147,50 @@ struct AnimationTable: View {
                                 systemImage: "bolt.fill")
                         }
                         .disabled(!hasSelection)
+
+                        // Local playback — no server scheduling, no hardware. Flat streams the
+                        // MP3 rendition; spatial plays the render's own 17-channel WAV positioned
+                        // on the stage it was rendered against, via the same path the Voice Take
+                        // panel's spatial audition uses.
+                        let localSoundFile: String = {
+                            guard let id = targetId,
+                                let md = animations.first(where: { $0.id == id })
+                            else { return "" }
+                            return md.soundFile
+                        }()
+                        Button {
+                            playAudioLocally(localSoundFile)
+                        } label: {
+                            Label("Play Audio Locally", systemImage: "speaker.wave.2")
+                        }
+                        .disabled(localSoundFile.isEmpty)
+
+                        #if os(macOS)
+                            let localSpatialStage: Stage? = {
+                                guard let id = targetId,
+                                    let md = animations.first(where: { $0.id == id }),
+                                    let stageId = md.sourceStageId.flatMap(UUID.init)
+                                else { return nil }
+                                return stageModels.first(where: { $0.id == stageId })?.toDTO()
+                            }()
+                            Button {
+                                if let stage = localSpatialStage {
+                                    playAudioLocallySpatially(localSoundFile, stage: stage)
+                                }
+                            } label: {
+                                Label(
+                                    "Play Audio Locally (Spatially)", systemImage: "spatial.audio")
+                            }
+                            .disabled(localSoundFile.isEmpty || localSpatialStage == nil)
+                        #endif
+
+                        if localAudio.isPlaying {
+                            Button {
+                                localAudio.stop()
+                            } label: {
+                                Label("Stop Local Audio", systemImage: "stop.circle")
+                            }
+                        }
 
                         // A dialog-rendered animation opens as a viewer (the script drives edits),
                         // so the menu says View — offering "Edit" and opening something that
@@ -667,6 +714,33 @@ struct AnimationTable: View {
         activeAnimationLipSyncJob = nil
         observedJobInfo = nil
     }
+
+    private func playAudioLocally(_ fileName: String) {
+        guard !fileName.isEmpty else { return }
+        if case .failure(let error) = localAudio.playRendition(fileName) {
+            errorAlert = ErrorAlert(title: "Local Playback Failed", error: error)
+        } else {
+            statusBanner = "Playing locally: \(fileName)"
+        }
+    }
+
+    #if os(macOS)
+        private func playAudioLocallySpatially(_ fileName: String, stage: Stage) {
+            guard !fileName.isEmpty else { return }
+            statusBanner = "Preparing spatial playback…"
+            Task {
+                do {
+                    try await localAudio.playSpatially(fileName, stage: stage)
+                    statusBanner =
+                        "Playing spatially on \(stage.title.isEmpty ? "the stage" : stage.title)…"
+                } catch {
+                    statusBanner = nil
+                    errorAlert = ErrorAlert(
+                        title: "Spatial Playback Failed", message: error.localizedDescription)
+                }
+            }
+        }
+    #endif
 
     func loadAnimationForEditing(animationId: AnimationIdentifier) {
         loadAnimationTask?.cancel()

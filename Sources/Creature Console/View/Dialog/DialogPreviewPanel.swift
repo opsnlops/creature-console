@@ -57,8 +57,8 @@ struct DialogPreviewPanel: View {
         /// the workshop Mac on plain speakers: not), so the preference must never sync between
         /// devices or ride the script.
         @AppStorage("voiceTakeSpatialAudition") private var spatialAudition = false
-        @State private var spatialPlayer = SpatialAuditionPlayer()
     #endif
+    private let localAudio = LocalAudioPlayer.shared
     @Query private var stageModels: [StageModel]
 
     /// The bound stage, resolved from the invalidation-fed mirror.
@@ -124,8 +124,7 @@ struct DialogPreviewPanel: View {
                         : "Play takes through the stage's placements — the same render path as the Spatial Stage monitor. A per-machine setting: great on headphones, less so on plain speakers."
                 )
                 .onChange(of: spatialAudition) { _, _ in
-                    spatialPlayer.stop()
-                    audioManager.stopURLPlayback()
+                    localAudio.stop()
                 }
             #endif
 
@@ -214,14 +213,9 @@ struct DialogPreviewPanel: View {
             requestToken = UUID()
             fullDialogMeta = nil
             currentCacheKey = nil
-            if hadAudio {
-                audioManager.stopURLPlayback()
+            if hadAudio || localAudio.isPlaying {
+                localAudio.stop()
             }
-            #if os(macOS)
-                if spatialPlayer.isPlaying {
-                    spatialPlayer.stop()
-                }
-            #endif
             if scope.selectedTurns(from: turns) == nil {
                 scope = .full
             }
@@ -567,11 +561,10 @@ struct DialogPreviewPanel: View {
 
     #if os(macOS)
         private func playPromotedSpatially(_ soundFile: String, stage: Stage) {
-            audioManager.stopURLPlayback()
             statusMessage = "Playing accepted voice spatially…"
             Task {
                 do {
-                    try await spatialPlayer.play(soundFile: soundFile, stage: stage)
+                    try await localAudio.playSpatially(soundFile, stage: stage)
                 } catch {
                     await MainActor.run {
                         statusMessage = "Spatial audio unavailable — playing flat."
@@ -585,16 +578,11 @@ struct DialogPreviewPanel: View {
     /// Play the accepted voice through its promoted, permanent sound file — the path that still
     /// works after the take candidates have aged out of the ad-hoc store.
     private func playPromoted(_ soundFile: String) {
-        switch server.getSoundRenditionURL(soundFile, as: .mp3) {
-        case .success(let url):
+        switch localAudio.playRendition(soundFile) {
+        case .success:
             statusMessage = "Playing accepted voice…"
-            if case .failure(let error) = audioManager.playURL(url) {
-                presentError("Playback failed: \(error.message)")
-            }
         case .failure(let error):
-            presentError(
-                "Could not build the accepted voice URL: \(ServerError.detailedMessage(from: error))"
-            )
+            presentError("Playback failed: \(ServerError.detailedMessage(from: error))")
         }
     }
 
@@ -768,7 +756,6 @@ struct DialogPreviewPanel: View {
         private func playMetaSpatially(
             _ dto: DialogPreviewMetaDTO, stage: Stage, token: UUID
         ) async {
-            audioManager.stopURLPlayback()
             let soundFile: String
             let adHoc: Bool
             if dto.generationId == acceptedVoice?.generationId,
@@ -783,7 +770,7 @@ struct DialogPreviewPanel: View {
                 adHoc = true
             }
             do {
-                try await spatialPlayer.play(soundFile: soundFile, stage: stage, adHoc: adHoc)
+                try await localAudio.playSpatially(soundFile, stage: stage, adHoc: adHoc)
                 guard token == requestToken else { return }
                 isWorking = false
                 statusMessage =
@@ -824,8 +811,9 @@ struct DialogPreviewPanel: View {
                 if !preserveStatus {
                     statusMessage = "Playing preview…"
                 }
-                if case .failure(let audioError) = audioManager.playURL(localURL) {
-                    presentError("Playback failed: \(audioError.localizedDescription)")
+                if case .failure(let audioError) = localAudio.playLocalFile(localURL) {
+                    presentError(
+                        "Playback failed: \(ServerError.detailedMessage(from: audioError))")
                 }
             case .failure(let audioError):
                 presentError("Could not cache preview audio: \(audioError.localizedDescription)")
