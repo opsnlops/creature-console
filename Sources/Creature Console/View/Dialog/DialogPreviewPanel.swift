@@ -1066,11 +1066,23 @@ struct DialogMusicPanel: View {
 
     @ViewBuilder
     private func acceptedMusicCard(_ music: DialogBackgroundMusic) -> some View {
+        // nil = server hasn't recorded which voice take this music was composed against
+        // (pre-#136 acceptance) — unknown is shown as nothing, never as a false verdict.
+        let matchesVoice = music.matchesAcceptedVoice(acceptedVoice)
         VStack(alignment: .leading, spacing: 8) {
             Label("Accepted music", systemImage: "checkmark.seal.fill")
                 .foregroundStyle(.green)
                 .font(.headline)
             Text(music.prompt).font(.subheadline)
+
+            if matchesVoice == false {
+                Label(
+                    "Composed against a different voice take than the accepted one — its timing may not match. Generate and accept a new candidate.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
             Text(music.soundFile)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)

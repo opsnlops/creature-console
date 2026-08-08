@@ -112,19 +112,40 @@ public struct DialogBackgroundMusic: Codable, Equatable, Hashable, Sendable {
     public let generationId: UUID
     public let prompt: String
     public let acceptedAt: Int64
+    /// The voice take this music was composed against (server#136). Optional: accepted music
+    /// that predates the field decodes as nil, and the client shows no verdict rather than a
+    /// false one.
+    public let sourceDialogGenerationId: DialogGenerationIdentifier?
+    public let sourceDialogCacheKey: String?
 
     enum CodingKeys: String, CodingKey {
         case soundFile = "sound_file"
         case generationId = "generation_id"
         case prompt
         case acceptedAt = "accepted_at"
+        case sourceDialogGenerationId = "source_dialog_generation_id"
+        case sourceDialogCacheKey = "source_dialog_cache_key"
     }
 
-    public init(soundFile: String, generationId: UUID, prompt: String, acceptedAt: Int64) {
+    public init(
+        soundFile: String, generationId: UUID, prompt: String, acceptedAt: Int64,
+        sourceDialogGenerationId: DialogGenerationIdentifier? = nil,
+        sourceDialogCacheKey: String? = nil
+    ) {
         self.soundFile = soundFile
         self.generationId = generationId
         self.prompt = prompt
         self.acceptedAt = acceptedAt
+        self.sourceDialogGenerationId = sourceDialogGenerationId
+        self.sourceDialogCacheKey = sourceDialogCacheKey
+    }
+
+    /// Whether this music was composed against the given accepted voice. Nil when the server
+    /// hasn't recorded provenance (pre-#136 acceptances) — unknown, not stale.
+    public func matchesAcceptedVoice(_ voice: DialogAcceptedVoice?) -> Bool? {
+        guard let sourceDialogGenerationId else { return nil }
+        guard let voice else { return false }
+        return sourceDialogGenerationId == voice.generationId
     }
 
     public var acceptedAtDate: Date {
