@@ -317,7 +317,13 @@ struct DialogPreviewPanel: View {
                 Spacer()
                 if fresh {
                     Button("Play") {
-                        audition(generationId: acceptedVoice.generationId)
+                        // The promoted file is permanent; the preview-cache copy expires with
+                        // the 24 h ad-hoc TTL. Prefer the one that always works.
+                        if let soundFile = acceptedVoice.soundFile, !soundFile.isEmpty {
+                            playPromoted(soundFile)
+                        } else {
+                            audition(generationId: acceptedVoice.generationId)
+                        }
                     }
                     .buttonStyle(.borderless)
                     .disabled(isWorking)
@@ -339,8 +345,8 @@ struct DialogPreviewPanel: View {
 
     private var takeList: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Takes (newest first) — tap to audition").font(.caption).foregroundStyle(
-                .secondary)
+            Text("Takes (newest first) — tap to audition · unaccepted takes are kept 24 hours")
+                .font(.caption).foregroundStyle(.secondary)
             ForEach(Array(takes.enumerated()), id: \.element.id) { index, take in
                 takeRow(take, index: index)
             }
@@ -449,6 +455,22 @@ struct DialogPreviewPanel: View {
                 statusMessage = nil
                 presentError(ServerError.detailedMessage(from: error))
             }
+        }
+    }
+
+    /// Play the accepted voice through its promoted, permanent sound file — the path that still
+    /// works after the take candidates have aged out of the ad-hoc store.
+    private func playPromoted(_ soundFile: String) {
+        switch server.getSoundRenditionURL(soundFile, as: .mp3) {
+        case .success(let url):
+            statusMessage = "Playing accepted voice…"
+            if case .failure(let error) = audioManager.playURL(url) {
+                presentError("Playback failed: \(error.message)")
+            }
+        case .failure(let error):
+            presentError(
+                "Could not build the accepted voice URL: \(ServerError.detailedMessage(from: error))"
+            )
         }
     }
 

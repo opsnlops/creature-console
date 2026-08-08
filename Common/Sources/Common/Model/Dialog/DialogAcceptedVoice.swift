@@ -18,19 +18,26 @@ public struct DialogAcceptedVoice: Codable, Equatable, Hashable, Sendable {
     public let dialogCacheKey: String
     /// Wall-clock milliseconds since epoch, server-stamped at acceptance.
     public let acceptedAt: Int64
+    /// The promoted sound file in the permanent store. Takes live as ad-hoc sounds (24 h TTL);
+    /// accepting *moves* the audio here, and un-accepting moves it back — so this file is how the
+    /// accepted voice stays auditionable after the preview cache and the ad-hoc copy expire.
+    public let soundFile: String?
 
     enum CodingKeys: String, CodingKey {
         case generationId = "generation_id"
         case dialogCacheKey = "dialog_cache_key"
         case acceptedAt = "accepted_at"
+        case soundFile = "sound_file"
     }
 
     public init(
-        generationId: DialogGenerationIdentifier, dialogCacheKey: String, acceptedAt: Int64
+        generationId: DialogGenerationIdentifier, dialogCacheKey: String, acceptedAt: Int64,
+        soundFile: String? = nil
     ) {
         self.generationId = generationId
         self.dialogCacheKey = dialogCacheKey
         self.acceptedAt = acceptedAt
+        self.soundFile = soundFile
     }
 
     public var acceptedAtDate: Date {

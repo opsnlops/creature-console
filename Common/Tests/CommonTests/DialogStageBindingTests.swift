@@ -121,8 +121,9 @@ struct DialogAcceptedVoiceTests {
 
         // Like background_music: acceptance is server-managed via the accept endpoint, so an
         // ordinary script edit can't clear it by omission.
-        let upsert = try JSONSerialization.jsonObject(
-            with: try JSONEncoder().encode(UpsertDialogScriptRequest(script))) as! [String: Any]
+        let upsert =
+            try JSONSerialization.jsonObject(
+                with: try JSONEncoder().encode(UpsertDialogScriptRequest(script))) as! [String: Any]
         #expect(upsert["accepted_voice"] == nil)
     }
 
@@ -138,16 +139,27 @@ struct DialogAcceptedVoiceTests {
         #expect(!voice.isFresh(forCacheKey: ""))
     }
 
-    @Test("decodes from the server's wire shape")
+    @Test("decodes from the server's wire shape, with or without the promoted file")
     func decodesWireShape() throws {
         let json = """
             {"generation_id":"\(UUID().uuidString.lowercased())",
              "dialog_cache_key":"\(String(repeating: "12", count: 32))",
-             "accepted_at": 1786100000000}
+             "accepted_at": 1786100000000,
+             "sound_file": "dialog/voice/test-coffee--ab12cd34.wav"}
             """
         let voice = try JSONDecoder().decode(DialogAcceptedVoice.self, from: Data(json.utf8))
         #expect(voice.acceptedAt == 1_786_100_000_000)
-        #expect(voice.acceptedAtDate.timeIntervalSince1970 > 0)
+        #expect(voice.soundFile == "dialog/voice/test-coffee--ab12cd34.wav")
+
+        // Promotion may lag or predate the field — absent must decode as nil, not fail.
+        let bare = """
+            {"generation_id":"\(UUID().uuidString.lowercased())",
+             "dialog_cache_key":"\(String(repeating: "12", count: 32))",
+             "accepted_at": 1}
+            """
+        #expect(
+            try JSONDecoder().decode(DialogAcceptedVoice.self, from: Data(bare.utf8)).soundFile
+                == nil)
     }
 
     @Test("a script without an acceptance decodes cleanly")
