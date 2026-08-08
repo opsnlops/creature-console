@@ -2,6 +2,7 @@ import AVFoundation
 import Common
 import Foundation
 import OSLog
+import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -35,6 +36,9 @@ struct DialogPreviewPanel: View {
     /// Whether this script already has rendered animations, so the empty takes list can say
     /// "your renders are fine, their takes just aged out" instead of implying a virgin script.
     var hasExistingRender: Bool = false
+    /// The script's stage binding, for spatial audition — takes play positioned where the birds
+    /// will actually sit.
+    var stageId: StageIdentifier? = nil
     /// Canonical script handed back by accept/clear, for the editor to merge (music-flow shape).
     var onVoiceChanged: ((DialogScript) -> Void)? = nil
 
@@ -46,6 +50,22 @@ struct DialogPreviewPanel: View {
     @State private var meta: DialogPreviewMetaDTO? = nil
     @State private var takes: [DialogPreviewLookupDTO.Generation] = []
     @State private var isAccepting = false
+
+    #if os(macOS)
+        /// Deliberately @AppStorage, deliberately not on the script: whether spatial audition
+        /// sounds good is a property of the *machine's* audio hardware (April's laptop: great;
+        /// the workshop Mac on plain speakers: not), so the preference must never sync between
+        /// devices or ride the script.
+        @AppStorage("voiceTakeSpatialAudition") private var spatialAudition = false
+        @State private var spatialPlayer = SpatialAuditionPlayer()
+    #endif
+    @Query private var stageModels: [StageModel]
+
+    /// The bound stage, resolved from the invalidation-fed mirror.
+    private var spatialStage: Stage? {
+        guard let stageId else { return nil }
+        return stageModels.first(where: { $0.id == stageId })?.toDTO()
+    }
     /// Invalidates in-flight preview/lookup/export work when the turns or scope changes. The
     /// server request cannot always be cancelled once it is on the wire, so completions must
     /// also prove that they still belong to the current editor state before mutating the UI.
@@ -90,6 +110,24 @@ struct DialogPreviewPanel: View {
             }
 
             previewScopePicker
+
+            #if os(macOS)
+                Toggle(isOn: $spatialAudition) {
+                    Label("Spatial audition", systemImage: "spatial.audio")
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .disabled(spatialStage == nil)
+                .help(
+                    spatialStage == nil
+                        ? "Bind a stage to hear takes positioned in space."
+                        : "Play takes through the stage's placements — the same render path as the Spatial Stage monitor. A per-machine setting: great on headphones, less so on plain speakers."
+                )
+                .onChange(of: spatialAudition) { _, _ in
+                    spatialPlayer.stop()
+                    audioManager.stopURLPlayback()
+                }
+            #endif
 
             if !scope.isFullDialog {
                 Label(
@@ -173,6 +211,9 @@ struct DialogPreviewPanel: View {
             fullDialogMeta = nil
             currentCacheKey = nil
             audioManager.stopURLPlayback()
+            #if os(macOS)
+                spatialPlayer.stop()
+            #endif
             if scope.selectedTurns(from: turns) == nil {
                 scope = .full
             }
@@ -323,6 +364,12 @@ struct DialogPreviewPanel: View {
                         // The promoted file is permanent; the preview-cache copy expires with
                         // the 24 h ad-hoc TTL. Prefer the one that always works.
                         if let soundFile = acceptedVoice.soundFile, !soundFile.isEmpty {
+                            #if os(macOS)
+                                if spatialAudition, let stage = spatialStage {
+                                    playPromotedSpatially(soundFile, stage: stage)
+                                    return
+                                }
+                            #endif
                             playPromoted(soundFile)
                         } else {
                             audition(generationId: acceptedVoice.generationId)
@@ -485,6 +532,23 @@ struct DialogPreviewPanel: View {
             }
         }
     }
+
+    #if os(macOS)
+        private func playPromotedSpatially(_ soundFile: String, stage: Stage) {
+            audioManager.stopURLPlayback()
+            statusMessage = "Playing accepted voice spatially…"
+            Task {
+                do {
+                    try await spatialPlayer.play(soundFile: soundFile, stage: stage)
+                } catch {
+                    await MainActor.run {
+                        statusMessage = "Spatial audio unavailable — playing flat."
+                        playPromoted(soundFile)
+                    }
+                }
+            }
+        }
+    #endif
 
     /// Play the accepted voice through its promoted, permanent sound file — the path that still
     /// works after the take candidates have aged out of the ad-hoc store.
@@ -655,6 +719,51 @@ struct DialogPreviewPanel: View {
 
     private func playMeta(_ dto: DialogPreviewMetaDTO, token: UUID) async {
         guard token == requestToken else { return }
+
+        #if os(macOS)
+            if spatialAudition, let stage = spatialStage {
+                await playMetaSpatially(dto, stage: stage, token: token)
+                return
+            }
+        #endif
+        await playMetaFlat(dto, token: token)
+    }
+
+    #if os(macOS)
+        /// Spatial path: the take's 17-channel export, positioned on the bound stage. Falls back
+        /// to the flat MP3 with a visible note rather than failing silent — the 17ch file can be
+        /// missing for takes that predate export-at-generation.
+        private func playMetaSpatially(
+            _ dto: DialogPreviewMetaDTO, stage: Stage, token: UUID
+        ) async {
+            audioManager.stopURLPlayback()
+            let soundFile: String
+            if dto.generationId == acceptedVoice?.generationId,
+                let promoted = acceptedVoice?.soundFile, !promoted.isEmpty
+            {
+                // The accepted take's ad-hoc export moved on promotion; its permanent file is
+                // the same 17-channel audio under the promoted name.
+                soundFile = promoted
+            } else {
+                soundFile = "dialog-17ch-\(dto.generationId.uuidString.lowercased()).wav"
+            }
+            do {
+                try await spatialPlayer.play(soundFile: soundFile, stage: stage)
+                guard token == requestToken else { return }
+                isWorking = false
+                statusMessage =
+                    "Playing spatially on \(stage.title.isEmpty ? "the stage" : stage.title)…"
+            } catch {
+                guard token == requestToken else { return }
+                statusMessage = "Spatial audio unavailable for this take — playing flat."
+                await playMetaFlat(dto, token: token, preserveStatus: true)
+            }
+        }
+    #endif
+
+    private func playMetaFlat(
+        _ dto: DialogPreviewMetaDTO, token: UUID, preserveStatus: Bool = false
+    ) async {
         guard
             case .success(let url) = server.dialogPreviewRenditionURL(
                 cacheKey: dto.cacheKey, generationId: dto.generationId, as: .mp3)
@@ -677,7 +786,9 @@ struct DialogPreviewPanel: View {
                 fileExtension: "mp3")
             {
             case .success(let localURL):
-                statusMessage = "Playing preview…"
+                if !preserveStatus {
+                    statusMessage = "Playing preview…"
+                }
                 if case .failure(let audioError) = audioManager.playURL(localURL) {
                     presentError("Playback failed: \(audioError.localizedDescription)")
                 }

@@ -137,7 +137,8 @@ struct DialogScriptEditor: View {
                             // it disables Render — with "save first" as the stated fix.
                             scriptId: renderScriptId,
                             acceptedVoice: original.acceptedVoice,
-                            hasExistingRender: hasRenderedAnimation
+                            hasExistingRender: hasRenderedAnimation,
+                            stageId: script.stageId
                         ) { canonical in
                             // Acceptance is a server-side field mutation, like music promotion.
                             // Merge only the voice + timestamps so a response landing after a

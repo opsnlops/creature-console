@@ -228,10 +228,6 @@
 		11FA32B629E3749B004C5181 /* SixAxisJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32B529E3749B004C5181 /* SixAxisJoystick.swift */; };
 		11FA32BB29E3A337004C5181 /* DebugJoystickScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA32BA29E3A337004C5181 /* DebugJoystickScene.swift */; };
 		181C4F50BC868ABAF7DA7A7E /* StoryboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54614CD9A93C664522211643 /* StoryboardModel.swift */; };
-		AA0100000000000000000B01 /* StageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A01 /* StageModel.swift */; };
-		AA0100000000000000000B02 /* StageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A02 /* StageImporter.swift */; };
-		AA0100000000000000000C01 /* StageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A01 /* StageModel.swift */; };
-		AA0100000000000000000C02 /* StageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A02 /* StageImporter.swift */; };
 		202B47D6B51E9DFCE7BF9E23 /* StoryboardEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED34910B9AE0FAF886C4B9D /* StoryboardEditor.swift */; };
 		234E4D4BAA45573AFDDE3327 /* StoryboardImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */; };
 		2470F7BEF21E3FF180C260A8 /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
@@ -258,6 +254,10 @@
 		A0D100000000000000000001 /* YbridOpus in Frameworks */ = {isa = PBXBuildFile; productRef = A0D100000000000000000004 /* YbridOpus */; };
 		A0D100000000000000000006 /* SpatialPCMQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D100000000000000000005 /* SpatialPCMQueueTests.swift */; };
 		A93D4886BE8CC2A68D8DA3E4 /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
+		AA0100000000000000000B01 /* StageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A01 /* StageModel.swift */; };
+		AA0100000000000000000B02 /* StageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A02 /* StageImporter.swift */; };
+		AA0100000000000000000C01 /* StageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A01 /* StageModel.swift */; };
+		AA0100000000000000000C02 /* StageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A02 /* StageImporter.swift */; };
 		B0A5226481B86C3BEFB8D1CE /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
 		B0EB4DDC9872D02FBC869667 /* StoryboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54614CD9A93C664522211643 /* StoryboardModel.swift */; };
 		BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */; };
@@ -532,8 +532,6 @@
 		39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptModel.swift; path = "Sources/Creature Console/Model/Dialog/DialogScriptModel.swift"; sourceTree = SOURCE_ROOT; };
 		5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureModel.swift; sourceTree = "<group>"; };
 		54614CD9A93C664522211643 /* StoryboardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardModel.swift; path = "Sources/Creature Console/Model/Storyboard/StoryboardModel.swift"; sourceTree = SOURCE_ROOT; };
-		AA0100000000000000000A01 /* StageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StageModel.swift; path = "Sources/Creature Console/Model/Stage/StageModel.swift"; sourceTree = SOURCE_ROOT; };
-		AA0100000000000000000A02 /* StageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StageImporter.swift; path = "Sources/Creature Console/Model/Stage/StageImporter.swift"; sourceTree = SOURCE_ROOT; };
 		54784797A276DA212FB115FD /* DialogPreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogPreviewPanel.swift; path = "Sources/Creature Console/View/Dialog/DialogPreviewPanel.swift"; sourceTree = SOURCE_ROOT; };
 		5AC63B5FAA210EBA47845BE9 /* ChannelListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListEditor.swift; sourceTree = "<group>"; };
 		5ED34910B9AE0FAF886C4B9D /* StoryboardEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardEditor.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardEditor.swift"; sourceTree = SOURCE_ROOT; };
@@ -544,6 +542,8 @@
 		8DFE236913DA409FB1992756 /* DebugSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSettings.swift; sourceTree = "<group>"; };
 		9B114574B9AE13711DA368FE /* StoryboardPerformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardPerformView.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardPerformView.swift"; sourceTree = SOURCE_ROOT; };
 		A0D100000000000000000005 /* SpatialPCMQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialPCMQueueTests.swift; sourceTree = "<group>"; };
+		AA0100000000000000000A01 /* StageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StageModel.swift; path = "Sources/Creature Console/Model/Stage/StageModel.swift"; sourceTree = SOURCE_ROOT; };
+		AA0100000000000000000A02 /* StageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StageImporter.swift; path = "Sources/Creature Console/Model/Stage/StageImporter.swift"; sourceTree = SOURCE_ROOT; };
 		AACD60A23863C4FD5518C910 /* StoryboardCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardCanvas.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardCanvas.swift"; sourceTree = SOURCE_ROOT; };
 		AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogScriptTable.swift; path = "Sources/Creature Console/View/Dialog/DialogScriptTable.swift"; sourceTree = SOURCE_ROOT; };
 		AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardImporter.swift; path = "Sources/Creature Console/Model/Storyboard/StoryboardImporter.swift"; sourceTree = SOURCE_ROOT; };
