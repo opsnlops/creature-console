@@ -332,7 +332,25 @@ struct DialogPreviewPanel: View {
             .padding(10)
             .glassEffect(
                 .regular.tint(fresh ? .green.opacity(0.18) : .orange.opacity(0.18)),
-                in: .rect(cornerRadius: 10))
+                in: .rect(cornerRadius: 10)
+            )
+            .contextMenu {
+                Button(role: .destructive) {
+                    clearAcceptance()
+                } label: {
+                    Label("Un-accept Voice", systemImage: "xmark.seal")
+                }
+            }
+
+            Button("Un-accept Voice…", role: .destructive) {
+                clearAcceptance()
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
+            .disabled(isAccepting || scriptId == nil)
+            .help(
+                "Moves the take back to ad-hoc storage (kept 24 hours) and reopens the choice. Rendering blocks until a voice is accepted again."
+            )
         } else {
             Label(
                 "No voice accepted yet. Generate takes, audition them, and accept the best one — renders only use audited voices.",
@@ -471,6 +489,29 @@ struct DialogPreviewPanel: View {
             presentError(
                 "Could not build the accepted voice URL: \(ServerError.detailedMessage(from: error))"
             )
+        }
+    }
+
+    /// Un-accept: the server demotes the promoted file back to ad-hoc (24 h TTL restarts) and
+    /// returns the canonical script with no acceptance. Rendering blocks until a new Accept.
+    private func clearAcceptance() {
+        guard let scriptId else { return }
+        isAccepting = true
+        statusMessage = "Un-accepting voice…"
+        Task {
+            let result = await server.clearDialogVoice(scriptId: scriptId)
+            await MainActor.run {
+                isAccepting = false
+                switch result {
+                case .success(let canonical):
+                    statusMessage = "Voice un-accepted — the take is back in ad-hoc for 24 hours"
+                    onVoiceChanged?(canonical)
+                case .failure(let error):
+                    statusMessage = nil
+                    presentError(
+                        ServerError.detailedMessage(from: error), title: "Un-accept Failed")
+                }
+            }
         }
     }
 
