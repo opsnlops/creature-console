@@ -47,11 +47,15 @@ struct CreatureConsole: App {
             "logSpareTimeFrameInterval": 1000,
             "useOurJoystick": true,
             "activeUniverse": 1,
+            "relayHost": "10.19.63.10",
+            "sacnRelayPort": 1963,
+            "audioRelayPort": 1964,
             "menubarSelectedCreatureId": "",
             "animationFilmingCountdownSeconds": 3,
             "dmxLiveHoldSeconds": 3,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
+        PreferenceMigration.migrateRelayKeys()
 
         // Clean up any stale/partial mono preview cache files on launch
         AudioManager.cleanupMonoPreviewCacheOnLaunch()

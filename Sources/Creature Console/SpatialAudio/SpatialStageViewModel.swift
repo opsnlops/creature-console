@@ -18,15 +18,17 @@
         var selectedInterfaceID: String?
         /// Where a `creature-cli network rtp-listen` relay lives — persisted per machine, since
         /// which Pi bridges the animatronic VLAN depends on where this machine is sitting.
-        var relayHost: String = UserDefaults.standard.string(forKey: "spatialRelayHost") ?? "" {
-            didSet { UserDefaults.standard.set(relayHost, forKey: "spatialRelayHost") }
+        var relayHost: String =
+            UserDefaults.standard.string(forKey: "relayHost") ?? "10.19.63.10"
+        {
+            didSet { UserDefaults.standard.set(relayHost, forKey: "relayHost") }
         }
         var relayPort: Int = {
-            let stored = UserDefaults.standard.integer(forKey: "spatialRelayPort")
+            let stored = UserDefaults.standard.integer(forKey: "audioRelayPort")
             return stored == 0 ? 1964 : stored
         }()
         {
-            didSet { UserDefaults.standard.set(relayPort, forKey: "spatialRelayPort") }
+            didSet { UserDefaults.standard.set(relayPort, forKey: "audioRelayPort") }
         }
         var selectedAnimationID: String?
         var isLooping = false {

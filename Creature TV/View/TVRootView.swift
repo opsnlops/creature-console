@@ -31,11 +31,8 @@ struct TVRootView: View {
                 Tab("Spatial Audition", systemImage: "person.wave.2") {
                     NavigationStack { TVSpatialAuditionView() }
                 }
-                Tab("Live Monitor", systemImage: "antenna.radiowaves.left.and.right") {
-                    NavigationStack { TVLiveStageView() }
-                }
-                Tab("Diagnostics", systemImage: "stethoscope") {
-                    NavigationStack { TVDiagnosticsView() }
+                Tab("Monitoring", systemImage: "antenna.radiowaves.left.and.right") {
+                    NavigationStack { TVMonitoringView() }
                 }
                 Tab("Settings", systemImage: "gear") {
                     NavigationStack { SettingsView() }
@@ -82,25 +79,39 @@ struct TVCreaturesView: View {
     }
 }
 
-/// The Diagnostics tab: the deep-inspection screens, each a push so Menu walks back out.
-struct TVDiagnosticsView: View {
+/// The Monitoring tab: both live network monitors side by side — they watch the same wire
+/// (DMX and audio) through relays on the same VLAN machine, configured together under
+/// Settings › Network Monitors — plus the joystick inspector. Each is a push, so Menu
+/// always walks back out.
+struct TVMonitoringView: View {
 
     var body: some View {
         List {
-            NavigationLink {
-                TVSACNUniverseMonitorView()
-            } label: {
-                Label("sACN Universe Monitor", systemImage: "dot.radiowaves.left.and.right")
-                    .symbolRenderingMode(.hierarchical)
+            Section("Live Network") {
+                NavigationLink {
+                    TVSACNUniverseMonitorView()
+                } label: {
+                    Label("sACN Universe Monitor", systemImage: "dot.radiowaves.left.and.right")
+                        .symbolRenderingMode(.hierarchical)
+                }
+
+                NavigationLink {
+                    TVLiveStageView()
+                } label: {
+                    Label("Live Stage Audio", systemImage: "person.wave.2")
+                        .symbolRenderingMode(.hierarchical)
+                }
             }
 
-            NavigationLink {
-                JoystickDebugView()
-            } label: {
-                Label("Debug Joystick", systemImage: "gamecontroller")
-                    .symbolRenderingMode(.hierarchical)
+            Section("Hardware") {
+                NavigationLink {
+                    JoystickDebugView()
+                } label: {
+                    Label("Debug Joystick", systemImage: "gamecontroller")
+                        .symbolRenderingMode(.hierarchical)
+                }
             }
         }
-        .navigationTitle("Diagnostics")
+        .navigationTitle("Monitoring")
     }
 }

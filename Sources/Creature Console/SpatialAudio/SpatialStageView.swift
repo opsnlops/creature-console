@@ -90,13 +90,14 @@
                         .disabled(viewModel.isActive || viewModel.isPreparing)
                     } else if viewModel.inputMode == .liveRelay {
                         TextField(
-                            "Relay host", text: $viewModel.relayHost, prompt: Text("pi.local")
+                            "Relay Host", text: $viewModel.relayHost, prompt: Text("10.19.63.10")
                         )
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 260)
                         .disabled(viewModel.isActive || viewModel.isPreparing)
                         TextField(
-                            "Port", value: $viewModel.relayPort, format: .number.grouping(.never)
+                            "Relay Port", value: $viewModel.relayPort,
+                            format: .number.grouping(.never)
                         )
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 70)

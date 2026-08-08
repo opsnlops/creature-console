@@ -26,3 +26,29 @@ actor SwiftDataStoreWiper {
         try modelContext.save()
     }
 }
+
+/// One-time carryover of legacy relay preference keys to the unified names. The sACN and
+/// audio monitors grew up separately ("sacnRemoteHost"/"spatialRelayHost", "Remote" vs
+/// "Relay") — everything now shares "relayHost" and per-service "…RelayPort" keys (#72).
+enum PreferenceMigration {
+    static func migrateRelayKeys() {
+        let defaults = UserDefaults.standard
+        let renames = [
+            ("sacnRemoteHost", "relayHost"),
+            ("spatialRelayHost", "relayHost"),
+            ("sacnRemotePort", "sacnRelayPort"),
+            ("spatialRelayPort", "audioRelayPort"),
+        ]
+        for (legacy, unified) in renames {
+            let persisted =
+                defaults.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "") ?? [:]
+            if let value = persisted[legacy] {
+                let emptyString = (value as? String)?.isEmpty ?? false
+                if persisted[unified] == nil, !emptyString {
+                    defaults.set(value, forKey: unified)
+                }
+                defaults.removeObject(forKey: legacy)
+            }
+        }
+    }
+}

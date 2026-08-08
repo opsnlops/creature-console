@@ -17,8 +17,13 @@ Blow it up (April's words). TV gets its own root:
   tvOS sidebar. Swiping up / Menu from any tab root reveals it; it is *always* reachable.
 - **One `NavigationStack` per tab.** Menu pops toward the tab root by construction; at the
   root it surfaces the tab bar. Dead ends become structurally impossible.
-- Tabs: Creatures, Live Magic, Animations, Soundboard, Spatial Audition, Live Monitor,
-  Diagnostics (sACN universe monitor + joystick debug), Settings.
+- Tabs: Creatures, Live Magic, Animations, Soundboard, Spatial Audition, Monitoring, Settings.
+- **Monitoring** unifies the two live-network monitors (sACN universes and stage audio) plus
+  the joystick inspector. The monitors previously diverged completely — sACN configured in
+  Settings under a dedicated sidebar item, audio configured inline on its own tab. Now both
+  read one shared relay host (`relayHost`, default `10.19.63.10`) plus per-service ports from
+  a single **Settings › Network Monitors** card, since both relays run on the same
+  VLAN-connected machine (`creature-cli network sacn-listen` / `rtp-listen`).
 - `RootView` keeps the shared bootstrap/alert/websocket plumbing and simply branches:
   `TVRootView` on tvOS, `TopContentView` everywhere else. The `#if os(tvOS)` sections come
   out of `TopContentView`'s sidebar.

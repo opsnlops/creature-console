@@ -38,8 +38,12 @@ struct Creature_TVApp: App {
             "logSpareTimeFrameInterval": 1000,
             "useOurJoystick": true,
             "activeUniverse": 1,
+            "relayHost": "10.19.63.10",
+            "sacnRelayPort": 1963,
+            "audioRelayPort": 1964,
         ]
         UserDefaults.standard.register(defaults: defaultPreferences)
+        PreferenceMigration.migrateRelayKeys()
 
         // Initialize async components
         Task {

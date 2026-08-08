@@ -14,10 +14,10 @@ struct TVLiveStageView: View {
     @Query(sort: \StageModel.title, order: .forward)
     private var stages: [StageModel]
 
-    // Same defaults keys as the Mac's Spatial Stage window — per device, since which Pi
-    // bridges the VLAN depends on where this box is sitting.
-    @AppStorage("spatialRelayHost") private var relayHost = ""
-    @AppStorage("spatialRelayPort") private var relayPort = 1964
+    // Shared with the sACN monitor and the Mac's Spatial Stage window: one relay host for
+    // everything, configured in Settings > Network (both relays run on the same VLAN Pi).
+    @AppStorage("relayHost") private var relayHost = "10.19.63.10"
+    @AppStorage("audioRelayPort") private var relayPort = 1964
 
     @State private var monitor = TVLiveStageMonitor()
     @State private var selectedStageID: StageIdentifier?
@@ -40,18 +40,6 @@ struct TVLiveStageView: View {
                 }
             } else {
                 Form {
-                    Section("Relay") {
-                        TextField("Relay host", text: $relayHost, prompt: Text("pi.local"))
-                            .disabled(monitor.isRunning)
-                        TextField("Port", value: $relayPort, format: .number.grouping(.never))
-                            .disabled(monitor.isRunning)
-                        Text(
-                            "Run “creature-cli network rtp-listen” on a machine connected to the animatronic VLAN."
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-
                     Section("Stage") {
                         Picker("Stage", selection: $selectedStageID) {
                             Text("Choose a stage").tag(StageIdentifier?.none)
@@ -99,6 +87,11 @@ struct TVLiveStageView: View {
     @ViewBuilder
     private var statusFooter: some View {
         VStack(alignment: .leading, spacing: 4) {
+            Text(
+                "Relay: \(relayHost):\(String(relayPort)) — change under Settings › Network Monitors. Run “creature-cli network rtp-listen” there."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
             Text(monitor.diagnostics.state.label)
                 .font(.headline)
                 .foregroundStyle(monitor.isRunning ? .green : .secondary)
