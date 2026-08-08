@@ -45,8 +45,8 @@ struct DialogScriptEditor: View {
 
     @State private var savedBanner: String?
 
-    /// Take chosen in the preview panel, reused by the render panel.
-    @State private var selectedGenerationId: DialogGenerationIdentifier? = nil
+    /// sha256(current turns) learned from the takes lookup; the acceptance-freshness test.
+    @State private var currentCacheKey: String? = nil
     @State private var fullDialogMeta: DialogPreviewMetaDTO? = nil
     @State private var previewScope: DialogPreviewScope = .full
     @State private var collapsedTurnIds: Set<UUID> = []
@@ -96,54 +96,10 @@ struct DialogScriptEditor: View {
 
     private var canAddTurn: Bool { script.turns.count < DialogLimits.maxTurns }
 
-    /// Permanent dialog renders embed their ElevenLabs generation ids in the sound provenance.
-    /// Resolve the sound through the newest animation for this script first. A promoted music
-    /// file also carries the script id and a generation id, so scanning every sound directly can
-    /// accidentally use a music generation as the voice take.
-    private var existingRenderedGenerationId: DialogGenerationIdentifier? {
-        guard !createNew else { return nil }
-        let scriptID = original.id.uuidString.lowercased()
-        let acceptedMusicGenerationID = original.backgroundMusic?.generationId.uuidString
-            .lowercased()
-        let acceptedMusicFileName = original.backgroundMusic?.soundFile
-            .split(separator: "/")
-            .last
-            .map(String.init)?
-            .lowercased()
-        let sourceAnimations =
-            animations
-            .filter { $0.sourceScriptId?.lowercased() == scriptID && !$0.soundFile.isEmpty }
-            .sorted { ($0.lastUpdated ?? .distantPast) > ($1.lastUpdated ?? .distantPast) }
-        let renderedSoundIDs = sourceAnimations.map { $0.soundFile.lowercased() }
-        let sourceVoiceSounds = sounds.filter { sound in
-            guard sound.sourceScriptId.lowercased() == scriptID else { return false }
-            let soundID = sound.id.lowercased()
-            if soundID.contains("/music/")
-                || acceptedMusicFileName.map({ $0 == soundID }) == true
-            {
-                return false
-            }
-            let soundGenerationIDs = sound.generationIds
-                .split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
-            return !soundGenerationIDs.contains(acceptedMusicGenerationID ?? "")
-        }
-        // Prefer the sound attached to the newest rendered animation. Some server versions
-        // normalize the animation's sound path differently from the sound-list id, so retain a
-        // provenance-based fallback rather than making an otherwise valid render disappear.
-        let exactVoiceSounds = sourceVoiceSounds.filter {
-            renderedSoundIDs.contains($0.id.lowercased())
-        }
-        let voiceSounds = exactVoiceSounds.isEmpty ? sourceVoiceSounds : exactVoiceSounds
-
-        for sound in voiceSounds {
-            for rawID in sound.generationIds.split(separator: ",") {
-                if let generationID = UUID(uuidString: rawID.trimmingCharacters(in: .whitespaces)) {
-                    return generationID
-                }
-            }
-        }
-        return nil
+    /// Whether the saved script's accepted voice matches the current turns — the render
+    /// precondition. Freshness resolves from the takes lookup's cache key.
+    private var hasFreshAcceptedVoice: Bool {
+        original.acceptedVoice?.isFresh(forCacheKey: currentCacheKey) ?? false
     }
 
     var body: some View {
@@ -167,9 +123,26 @@ struct DialogScriptEditor: View {
                             turns: script.turns, title: script.title,
                             scope: $previewScope,
                             fullDialogMeta: $fullDialogMeta,
-                            selectedGenerationId: $selectedGenerationId,
-                            restoreCachedTake: !createNew,
-                            preferredGenerationId: existingRenderedGenerationId)
+                            currentCacheKey: $currentCacheKey,
+                            scriptId: createNew ? nil : original.id,
+                            acceptedVoice: original.acceptedVoice
+                        ) { canonical in
+                            // Acceptance is a server-side field mutation, like music promotion.
+                            // Merge only the voice + timestamps so a response landing after a
+                            // local edit can't clobber turns still being authored.
+                            var updatedOriginal = original
+                            updatedOriginal.acceptedVoice = canonical.acceptedVoice
+                            updatedOriginal.createdAt = canonical.createdAt
+                            updatedOriginal.updatedAt = canonical.updatedAt
+                            original = updatedOriginal
+
+                            var updatedScript = script
+                            updatedScript.acceptedVoice = canonical.acceptedVoice
+                            updatedScript.createdAt = canonical.createdAt
+                            updatedScript.updatedAt = canonical.updatedAt
+                            script = updatedScript
+                            persistLocalScript(updatedScript)
+                        }
                         DialogMusicPanel(
                             scriptId: renderScriptId,
                             fullDialogMeta: fullDialogMeta,
@@ -206,7 +179,8 @@ struct DialogScriptEditor: View {
                             DialogRenderPanel(
                                 scriptId: renderScriptId,
                                 turns: script.turns,
-                                selectedGenerationId: selectedGenerationId,
+                                acceptedVoice: original.acceptedVoice,
+                                currentCacheKey: currentCacheKey,
                                 defaultTitle: script.title,
                                 backgroundMusic: original.backgroundMusic,
                                 // The *live* stage, not the saved one. Rendering is only possible
@@ -222,11 +196,12 @@ struct DialogScriptEditor: View {
                                 DialogRerenderButton(
                                     scriptId: original.id,
                                     title: script.title,
-                                    generationId: selectedGenerationId,
-                                    disabled: isDirty,
+                                    disabled: isDirty || !hasFreshAcceptedVoice,
                                     disabledHint: isDirty
                                         ? "Save your edits first so the re-render includes them."
-                                        : nil
+                                        : (!hasFreshAcceptedVoice
+                                            ? "Accept a voice take first — renders only use audited voices."
+                                            : nil)
                                 )
                             }
                         }
@@ -275,11 +250,10 @@ struct DialogScriptEditor: View {
             scheduleValidation(for: newValue)
         }
         .onChange(of: turnContent) { _, _ in
-            // The server's preview cache key is sha256(turns), so any turn change (text,
-            // creature, add/remove/reorder) orphans the selected take — asking for it under
-            // the new key would 404. Fall back to "latest / server decides".
-            selectedGenerationId = nil
+            // The preview cache key is sha256(turns); a turn change moves everything to a new
+            // key. The acceptance itself stays put on the script and reads as stale.
             fullDialogMeta = nil
+            currentCacheKey = nil
         }
     }
 
@@ -625,6 +599,7 @@ struct DialogScriptEditor: View {
                         preserved.createdAt = saved.createdAt
                         preserved.updatedAt = saved.updatedAt
                         preserved.backgroundMusic = saved.backgroundMusic
+                        preserved.acceptedVoice = saved.acceptedVoice
                         script = preserved
                         savedBanner = "Saved; newer edits remain unsaved"
                     } else {

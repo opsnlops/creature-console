@@ -25,15 +25,15 @@ struct DialogPreviewPanel: View {
     /// music generation or the final render.
     @Binding var scope: DialogPreviewScope
     @Binding var fullDialogMeta: DialogPreviewMetaDTO?
-    /// The take chosen here is shared with the render panel so a render uses exactly what was
-    /// auditioned. `nil` means "latest / server decides".
-    @Binding var selectedGenerationId: DialogGenerationIdentifier?
-    /// Existing scripts should reopen on their latest cached take when one is available. New
-    /// scripts remain intentionally blank until the author asks for a preview.
-    var restoreCachedTake: Bool = false
-    /// When a permanent dialog render has embedded its voice generation id, prefer that exact
-    /// take over a newer unrelated preview cached for the same turns.
-    var preferredGenerationId: DialogGenerationIdentifier? = nil
+    /// sha256(turns) as the server computes it, learned from the takes lookup. The render gate's
+    /// freshness comparison (accepted take vs current turns) reads this.
+    @Binding var currentCacheKey: String?
+    /// Saved-script identity, required to Accept. Nil (unsaved) leaves Accept disabled.
+    var scriptId: DialogScriptIdentifier? = nil
+    /// The script's accepted voice, from the saved copy.
+    var acceptedVoice: DialogAcceptedVoice? = nil
+    /// Canonical script handed back by accept/clear, for the editor to merge (music-flow shape).
+    var onVoiceChanged: ((DialogScript) -> Void)? = nil
 
     private let server = CreatureServerClient.shared
     private let audioManager = AudioManager.shared
@@ -42,7 +42,7 @@ struct DialogPreviewPanel: View {
     @State private var statusMessage: String? = nil
     @State private var meta: DialogPreviewMetaDTO? = nil
     @State private var takes: [DialogPreviewLookupDTO.Generation] = []
-    @State private var scopedGenerationId: DialogGenerationIdentifier? = nil
+    @State private var isAccepting = false
     /// Invalidates in-flight preview/lookup/export work when the turns or scope changes. The
     /// server request cannot always be cancelled once it is on the wire, so completions must
     /// also prove that they still belong to the current editor state before mutating the UI.
@@ -105,47 +105,29 @@ struct DialogPreviewPanel: View {
                 .foregroundStyle(.secondary)
             }
 
+            if scope.isFullDialog {
+                acceptedVoiceCard
+            }
+
+            // One generation verb: every press makes a *new* take and adds it to the list.
+            // Auditioning is tapping a take; choosing is Accept. (April: "All should
+            // regenerate, but only one can be chosen.")
             HStack(spacing: 12) {
                 Button {
-                    preview(regenerate: false)
+                    generateTake()
                 } label: {
-                    Label("Preview", systemImage: "play.circle")
+                    Label("Generate Take", systemImage: "sparkles")
                 }
+                .buttonStyle(.glass)
                 .disabled(!turnsAreReady || isWorking)
 
-                Button {
-                    preview(regenerate: true)
-                } label: {
-                    Label("Regenerate", systemImage: "arrow.triangle.2.circlepath")
+                if let statusMessage {
+                    Text(statusMessage).font(.caption).foregroundStyle(.secondary)
                 }
-                .disabled(!turnsAreReady || isWorking)
-
-                Button {
-                    refreshTakes()
-                } label: {
-                    Label("Find Takes", systemImage: "square.stack.3d.up")
-                }
-                .disabled(!turnsAreReady || isWorking)
-            }
-
-            if let meta {
-                HStack(spacing: 8) {
-                    Image(systemName: meta.cached ? "bolt.fill" : "sparkles")
-                        .foregroundStyle(meta.cached ? .yellow : .blue)
-                    Text(
-                        "\(meta.cached ? "Cached take" : "Fresh take") • \(TimeHelper.formatDuration(meta.durationSeconds))"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-            }
-
-            if let statusMessage {
-                Text(statusMessage).font(.caption).foregroundStyle(.secondary)
             }
 
             if !takes.isEmpty {
-                takePicker
+                takeList
             }
 
             if meta != nil, scope.isFullDialog {
@@ -176,16 +158,17 @@ struct DialogPreviewPanel: View {
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
         .onChange(of: turnContent) {
-            // Takes are keyed by sha256(turns) server-side; a turn change means everything
-            // shown here belongs to a different cache key now.
+            // Takes are keyed by sha256(turns) server-side; a turn change means everything shown
+            // here belongs to a different cache key now. The acceptance itself is NOT touched —
+            // it lives on the script and simply reads as stale until these turns are saved and
+            // re-accepted. Nothing chosen is ever silently un-chosen.
             meta = nil
             takes = []
             isWorking = false
             statusMessage = nil
-            scopedGenerationId = nil
             requestToken = UUID()
             fullDialogMeta = nil
-            selectedGenerationId = nil
+            currentCacheKey = nil
             audioManager.stopURLPlayback()
             if scope.selectedTurns(from: turns) == nil {
                 scope = .full
@@ -196,12 +179,13 @@ struct DialogPreviewPanel: View {
             takes = []
             isWorking = false
             statusMessage = nil
-            scopedGenerationId = nil
             requestToken = UUID()
         }
         .errorAlert($errorAlert)
-        .task(id: preferredGenerationId) {
-            await restoreLatestCachedTakeIfAvailable()
+        // Listing takes is a free lookup (no generation), so the list is just *there* on open —
+        // and it carries the cache key that resolves the acceptance's freshness immediately.
+        .task(id: turnContent) {
+            await lookupTakes()
         }
         .fileExporter(
             isPresented: $showExporter,
@@ -311,103 +295,186 @@ struct DialogPreviewPanel: View {
             })
     }
 
-    private var takePicker: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Available takes (newest first)").font(.caption).foregroundStyle(.secondary)
-            Picker("Take", selection: activeGenerationId) {
-                ForEach(Array(takes.enumerated()), id: \.element.id) { index, take in
-                    Text(takeLabel(take, index: index))
-                        .tag(Optional(take.generationId))
+    /// The one voice this script will render with — or the reasons it can't render yet.
+    @ViewBuilder
+    private var acceptedVoiceCard: some View {
+        if let acceptedVoice {
+            let fresh = acceptedVoice.isFresh(forCacheKey: currentCacheKey)
+            HStack(spacing: 8) {
+                Image(systemName: fresh ? "checkmark.seal.fill" : "clock.badge.exclamationmark")
+                    .foregroundStyle(fresh ? .green : .orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(fresh ? "Accepted voice take" : "Accepted voice take is stale")
+                        .font(.subheadline.bold())
+                    Text(
+                        fresh
+                            ? "Accepted \(acceptedVoice.acceptedAtDate.formatted(date: .abbreviated, time: .shortened)) — this is the voice the render uses."
+                            : "The turns changed since this take was accepted; its audio is of the old text. Generate, audition, and accept a new take."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if fresh {
+                    Button("Play") {
+                        audition(generationId: acceptedVoice.generationId)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(isWorking)
                 }
             }
-            .labelsHidden()
-            .onChange(of: activeGenerationId.wrappedValue) { _, newValue in
-                // Re-audition the newly chosen take. Skip when the selection was cleared
-                // (turns changed) or when it's the take we're already showing (preview()
-                // writes the id back after each request).
-                guard let newValue, newValue != meta?.generationId, turnsAreReady, !isWorking else {
-                    return
-                }
-                loadCachedTake(newValue)
+            .padding(10)
+            .glassEffect(
+                .regular.tint(fresh ? .green.opacity(0.18) : .orange.opacity(0.18)),
+                in: .rect(cornerRadius: 10))
+        } else {
+            Label(
+                "No voice accepted yet. Generate takes, audition them, and accept the best one — renders only use audited voices.",
+                systemImage: "waveform.badge.exclamationmark"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private var takeList: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Takes (newest first) — tap to audition").font(.caption).foregroundStyle(
+                .secondary)
+            ForEach(Array(takes.enumerated()), id: \.element.id) { index, take in
+                takeRow(take, index: index)
             }
         }
     }
 
-    private var activeGenerationId: Binding<DialogGenerationIdentifier?> {
-        scope.isFullDialog ? $selectedGenerationId : $scopedGenerationId
+    private func takeRow(_ take: DialogPreviewLookupDTO.Generation, index: Int) -> some View {
+        let isPlayingRow = meta?.generationId == take.generationId
+        let isAccepted = acceptedVoice?.generationId == take.generationId
+        return HStack(spacing: 10) {
+            Button {
+                audition(generationId: take.generationId)
+            } label: {
+                Label(
+                    takeLabel(take, index: index),
+                    systemImage: isPlayingRow ? "speaker.wave.2.fill" : "play.circle")
+            }
+            .buttonStyle(.borderless)
+            .disabled(isWorking)
+
+            Spacer()
+
+            if isAccepted {
+                Label("Accepted", systemImage: "checkmark.seal.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            } else if scope.isFullDialog {
+                Button("Accept") {
+                    accept(take)
+                }
+                .buttonStyle(.borderless)
+                .disabled(isAccepting || scriptId == nil || currentCacheKey == nil)
+                .help(
+                    scriptId == nil
+                        ? "Save the script before accepting a voice take."
+                        : "Make this the voice the render uses.")
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     // MARK: - Actions
 
-    private func loadCachedTake(_ generationId: DialogGenerationIdentifier) {
-        guard !isWorking, meta?.generationId != generationId, turnsAreReady else { return }
-        activeGenerationId.wrappedValue = generationId
-        preview(regenerate: false)
-    }
-
-    private func restoreLatestCachedTakeIfAvailable() async {
-        guard restoreCachedTake, scope.isFullDialog, fullDialogMeta == nil, turnsAreReady else {
-            return
-        }
+    /// Free lookup of the cached takes for the current turns. Runs on open and after every
+    /// generation — it's also what learns the cache key that resolves acceptance freshness.
+    private func lookupTakes() async {
+        guard turnsAreReady, scope.isFullDialog else { return }
         let token = requestToken
-        // Prevent the picker binding from starting a second preview while restoration selects a
-        // take below.
-        isWorking = true
-
-        let request = DialogPreviewRequest.fromTurns(previewTurns, title: title)
-        switch await server.dialogPreviewLookup(request) {
+        switch await server.dialogPreviewLookup(.fromTurns(previewTurns)) {
+        case .success(let dto):
+            guard token == requestToken else { return }
+            takes = dto.generations
+            currentCacheKey = dto.cacheKey
+            if statusMessage == nil {
+                statusMessage = "\(dto.generations.count) take(s)"
+            }
         case .failure(.notFound):
             guard token == requestToken else { return }
-            if let preferredGenerationId {
-                takes = [existingRenderedTake(preferredGenerationId)]
-                selectedGenerationId = preferredGenerationId
-                isWorking = false
-                statusMessage =
-                    "Using the voice take from the existing render. Preview audio is no longer cached."
-            } else {
-                takes = []
-                isWorking = false
-                statusMessage = "No cached takes yet — Preview to generate one."
-            }
+            takes = []
+            statusMessage = "No takes yet — Generate one to start auditioning."
         case .failure(let error):
             guard token == requestToken else { return }
-            isWorking = false
-            statusMessage = "Could not restore cached takes: \(error.localizedDescription)"
-        case .success(let lookup):
-            guard !lookup.generations.isEmpty, token == requestToken else {
-                isWorking = false
-                return
-            }
-
-            takes = lookup.generations
-            let availableGenerationIDs = Set(lookup.generations.map(\.generationId))
-            if let preferredGenerationId {
-                if availableGenerationIDs.contains(preferredGenerationId) {
-                    selectedGenerationId = preferredGenerationId
-                    statusMessage = "Restoring the voice take from the existing render…"
-                } else {
-                    // Render provenance can outlive the server's temporary preview cache. Keep
-                    // the actual rendered voice visible and selected instead of silently
-                    // switching the author to an unrelated newer take.
-                    takes.append(existingRenderedTake(preferredGenerationId))
-                    selectedGenerationId = preferredGenerationId
-                    isWorking = false
-                    statusMessage =
-                        "Using the voice take from the existing render. Preview audio is no longer cached."
-                    return
-                }
-            } else {
-                selectedGenerationId = lookup.latestGenerationId
-                statusMessage = "Restoring the latest cached voice take…"
-            }
-            preview(regenerate: false, play: false)
+            statusMessage = "Could not list takes: \(error.localizedDescription)"
         }
     }
 
-    private func existingRenderedTake(
-        _ generationId: DialogGenerationIdentifier
-    ) -> DialogPreviewLookupDTO.Generation {
-        DialogPreviewLookupDTO.Generation(generationId: generationId, createdAt: "")
+    /// Always a *new* take — generation and audition are different verbs on purpose.
+    private func generateTake() {
+        loadTake(generationId: nil, regenerate: true)
+    }
+
+    /// Play an existing take. Never generates.
+    private func audition(generationId: DialogGenerationIdentifier) {
+        loadTake(generationId: generationId, regenerate: false)
+    }
+
+    private func loadTake(generationId: DialogGenerationIdentifier?, regenerate: Bool) {
+        guard turnsAreReady else { return }
+        isWorking = true
+        statusMessage = regenerate ? "Generating a fresh take…" : "Loading take…"
+        let request = DialogPreviewRequest.fromTurns(
+            previewTurns,
+            generationId: generationId,
+            regenerate: regenerate ? true : nil,
+            title: title)
+        let token = UUID()
+        requestToken = token
+        Task {
+            let result = await resolveMeta(request, token: token)
+            guard token == requestToken else { return }
+            switch result {
+            case .success(let dto):
+                meta = dto
+                if scope.isFullDialog {
+                    fullDialogMeta = dto
+                    currentCacheKey = dto.cacheKey
+                }
+                if regenerate {
+                    // Refresh the list so the new take shows as a row alongside the others —
+                    // generate four, compare, accept the best.
+                    await lookupTakes()
+                }
+                await playMeta(dto, token: token)
+            case .failure(let error):
+                isWorking = false
+                statusMessage = nil
+                presentError(ServerError.detailedMessage(from: error))
+            }
+        }
+    }
+
+    /// Make this take the script's voice. The server validates and returns the canonical script;
+    /// the editor merges it the same way music promotion does.
+    private func accept(_ take: DialogPreviewLookupDTO.Generation) {
+        guard let scriptId, let currentCacheKey else { return }
+        isAccepting = true
+        statusMessage = "Accepting take…"
+        Task {
+            let result = await server.acceptDialogVoice(
+                scriptId: scriptId,
+                generationId: take.generationId,
+                dialogCacheKey: currentCacheKey)
+            await MainActor.run {
+                isAccepting = false
+                switch result {
+                case .success(let canonical):
+                    statusMessage = "Voice accepted"
+                    onVoiceChanged?(canonical)
+                case .failure(let error):
+                    statusMessage = nil
+                    presentError(ServerError.detailedMessage(from: error))
+                }
+            }
+        }
     }
 
     /// Resolve preview meta, transparently riding the generation job when the server
@@ -456,41 +523,6 @@ struct DialogPreviewPanel: View {
         }
     }
 
-    private func preview(regenerate: Bool, play: Bool = true) {
-        guard turnsAreReady else { return }
-        isWorking = true
-        statusMessage = regenerate ? "Generating a fresh take…" : "Preparing preview…"
-        let request = DialogPreviewRequest.fromTurns(
-            previewTurns,
-            generationId: regenerate ? nil : activeGenerationId.wrappedValue,
-            regenerate: regenerate ? true : nil,
-            title: title)
-        let token = UUID()
-        requestToken = token
-        Task {
-            let result = await resolveMeta(request, token: token)
-            guard token == requestToken else { return }
-            switch result {
-            case .success(let dto):
-                meta = dto
-                activeGenerationId.wrappedValue = dto.generationId
-                if scope.isFullDialog {
-                    fullDialogMeta = dto
-                }
-                if play {
-                    await playMeta(dto, token: token)
-                } else {
-                    isWorking = false
-                    statusMessage = "Latest cached voice take loaded"
-                }
-            case .failure(let error):
-                isWorking = false
-                statusMessage = nil
-                presentError(ServerError.detailedMessage(from: error))
-            }
-        }
-    }
-
     private func playMeta(_ dto: DialogPreviewMetaDTO, token: UUID) async {
         guard token == requestToken else { return }
         guard
@@ -527,33 +559,6 @@ struct DialogPreviewPanel: View {
         }
     }
 
-    private func refreshTakes() {
-        guard turnsAreReady else { return }
-        let token = UUID()
-        requestToken = token
-        isWorking = true
-        statusMessage = "Looking up cached takes…"
-        Task {
-            let result = await server.dialogPreviewLookup(.fromTurns(previewTurns))
-            guard token == requestToken else { return }
-            isWorking = false
-            switch result {
-            case .success(let dto):
-                takes = dto.generations
-                let generationId = activeGenerationId.wrappedValue ?? dto.latestGenerationId
-                activeGenerationId.wrappedValue = generationId
-                statusMessage = "\(dto.generations.count) cached take(s)"
-                isWorking = false
-                loadCachedTake(generationId)
-            case .failure(.notFound):
-                takes = []
-                statusMessage = "No cached takes yet — Preview to generate one."
-            case .failure(let error):
-                presentError(ServerError.detailedMessage(from: error))
-            }
-        }
-    }
-
     private func exportMono() {
         // Ensure we have meta (and therefore an audio URL) for the current selection.
         let token = UUID()
@@ -561,7 +566,7 @@ struct DialogPreviewPanel: View {
         isWorking = true
         statusMessage = "Fetching mono WAV…"
         let request = DialogPreviewRequest.fromTurns(
-            previewTurns, generationId: activeGenerationId.wrappedValue, title: title)
+            previewTurns, generationId: meta?.generationId, title: title)
         Task {
             let metaResult = await resolveMeta(request, token: token)
             guard token == requestToken else { return }
@@ -596,7 +601,7 @@ struct DialogPreviewPanel: View {
         isWorking = true
         statusMessage = "Encoding shareable MP3…"
         let request = DialogPreviewRequest.fromTurns(
-            previewTurns, generationId: activeGenerationId.wrappedValue, title: title)
+            previewTurns, generationId: meta?.generationId, title: title)
         Task {
             let metaResult = await resolveMeta(request, token: token)
             guard token == requestToken else { return }
@@ -631,7 +636,7 @@ struct DialogPreviewPanel: View {
         isWorking = true
         statusMessage = "Rendering 17-channel WAV…"
         let request = DialogPreviewRequest.fromTurns(
-            previewTurns, generationId: activeGenerationId.wrappedValue, title: title)
+            previewTurns, generationId: meta?.generationId, title: title)
         Task {
             // Always a job now (server 3.23.0) — long scenes make enormous WAVs. Watch
             // it, then download the assembled file from the ad-hoc sound bucket.
@@ -698,14 +703,12 @@ struct DialogPreviewPanel: View {
     }
 
     private func takeLabel(_ take: DialogPreviewLookupDTO.Generation, index: Int) -> String {
-        if take.generationId == preferredGenerationId, take.createdAt.isEmpty {
-            return "#\(index + 1) • Existing rendered voice"
-        }
-        let shortId = String(take.generationId.uuidString.lowercased().prefix(8))
         if let date = take.createdAtDate {
-            return "#\(index + 1) • \(date.formatted(date: .abbreviated, time: .shortened))"
+            return
+                "Take \(takes.count - index) • \(date.formatted(date: .abbreviated, time: .shortened))"
         }
-        return "#\(index + 1) • \(shortId)"
+        return
+            "Take \(takes.count - index) • \(take.generationId.uuidString.lowercased().prefix(8))"
     }
 }
 

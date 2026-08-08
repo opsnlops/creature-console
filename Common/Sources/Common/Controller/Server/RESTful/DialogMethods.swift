@@ -209,6 +209,43 @@ extension CreatureServerClient {
             returnType: JobCreatedResponse.self)
     }
 
+    /// Wire body for the voice-take accept endpoint (server#131).
+    private struct AcceptVoiceRequest: Encodable {
+        let scriptId: String
+        let generationId: String
+        let dialogCacheKey: String
+        enum CodingKeys: String, CodingKey {
+            case scriptId = "script_id"
+            case generationId = "generation_id"
+            case dialogCacheKey = "dialog_cache_key"
+        }
+    }
+
+    /// Accept a voice take for a script — the only voice a render may use. Returns the canonical
+    /// script carrying the new `accepted_voice`.
+    public func acceptDialogVoice(
+        scriptId: DialogScriptIdentifier,
+        generationId: DialogGenerationIdentifier,
+        dialogCacheKey: String
+    ) async -> Result<DialogScript, ServerError> {
+        await sendData(
+            path: "/animation/dialog/voice/accept", method: "POST",
+            body: AcceptVoiceRequest(
+                scriptId: scriptId.uuidString.lowercased(),
+                generationId: generationId.uuidString.lowercased(),
+                dialogCacheKey: dialogCacheKey.lowercased()),
+            returnType: DialogScript.self)
+    }
+
+    /// Clear a script's accepted voice take (explicit, like clearing accepted music).
+    public func clearDialogVoice(
+        scriptId: DialogScriptIdentifier
+    ) async -> Result<DialogScript, ServerError> {
+        await sendData(
+            path: "/animation/dialog/script/\(scriptId.uuidString.lowercased())/voice",
+            method: "DELETE", body: EmptyBody(), returnType: DialogScript.self)
+    }
+
     public func promoteDialogMusic(generationId: UUID) async -> Result<
         DialogMusicPromotionResult, ServerError
     > {

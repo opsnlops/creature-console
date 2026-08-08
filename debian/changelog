@@ -1,3 +1,11 @@
+creature-cli (2.48.0) unstable; urgency=medium
+
+  * Add script-level accepted voice takes: generate takes, audition candidates,
+    and explicitly accept the one a render is allowed to use (server#131).
+  * Keep creature-cli, creature-mqtt, and creature-agent versions aligned.
+
+ -- April White <april@creature.engineering>  Fri, 07 Aug 2026 22:30:00 -0700
+
 creature-cli (2.47.0) unstable; urgency=medium
 
   * Add Stage support: where each creature sits and which way it faces, so the
