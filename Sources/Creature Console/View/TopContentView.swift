@@ -186,6 +186,21 @@ struct TopContentView: View {
                 #endif
 
                 #if os(iOS) || os(macOS)
+                    Section("Stages") {
+                        NavigationLink {
+                            StageTable()
+                        } label: {
+                            Label("List All", systemImage: "square.on.square.dashed")
+                        }
+                        NavigationLink {
+                            StageEditor(createNew: true)
+                        } label: {
+                            Label("Create New", systemImage: "plus.viewfinder")
+                        }
+                    }
+                #endif
+
+                #if os(iOS) || os(macOS)
                     Section("Playlists") {
                         NavigationLink {
                             PlaylistsTable()

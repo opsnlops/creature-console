@@ -25,6 +25,9 @@ struct AnimationTable: View {
     /// The cached sound list, used to flag animations whose sound file no longer exists on
     /// the server — silent bombs otherwise discovered only when playback fails mid-show.
     @Query private var sounds: [SoundModel]
+    /// The dialog-script mirror, so "Edit Script" opens instantly from local data instead of a
+    /// server round-trip. The server is only consulted when the mirror doesn't have the script.
+    @Query private var dialogScripts: [DialogScriptModel]
 
     @State private var errorAlert: ErrorAlert?
     @State private var selection: AnimationIdentifier? = nil
@@ -142,23 +145,27 @@ struct AnimationTable: View {
                         }
                         .disabled(!hasSelection)
 
-                        Button {
-                            if let id = targetId {
-                                loadAnimationForEditing(animationId: id)
-                            }
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        .disabled(!hasSelection)
-
-                        // Jump to the source dialog script, but only when this animation was
-                        // rendered from a saved one.
+                        // A dialog-rendered animation opens as a viewer (the script drives edits),
+                        // so the menu says View — offering "Edit" and opening something that
+                        // won't edit would be a lie.
                         let sourceScriptId: DialogScriptIdentifier? = {
                             guard let id = targetId,
                                 let md = animations.first(where: { $0.id == id })
                             else { return nil }
                             return md.sourceScriptIdentifier
                         }()
+
+                        Button {
+                            if let id = targetId {
+                                loadAnimationForEditing(animationId: id)
+                            }
+                        } label: {
+                            sourceScriptId == nil
+                                ? Label("Edit", systemImage: "pencil")
+                                : Label("View", systemImage: "eye")
+                        }
+                        .disabled(!hasSelection)
+
                         if let sourceScriptId {
                             Button {
                                 loadScriptForEditing(scriptId: sourceScriptId)
@@ -589,9 +596,15 @@ struct AnimationTable: View {
         animations.first(where: { $0.id == animationId })?.title ?? animationId
     }
 
-    /// Fetch the source dialog script and present it in a sheet. The pointer is soft (the
-    /// script may have been deleted), so surface a friendly message on 404.
+    /// Open the source dialog script, mirror-first: the invalidation-fed SwiftData copy is
+    /// almost always current and costs nothing. The server is a fallback, not the default —
+    /// its one remaining job here is distinguishing "not synced yet" from "deleted" when the
+    /// mirror comes up empty. The pointer is soft either way, so 404 gets a friendly message.
     private func loadScriptForEditing(scriptId: DialogScriptIdentifier) {
+        if let cached = dialogScripts.first(where: { $0.id == scriptId }) {
+            scriptToEdit = cached.toDTO()
+            return
+        }
         loadScriptTask?.cancel()
         loadScriptTask = Task {
             let result = await server.getDialogScript(id: scriptId)

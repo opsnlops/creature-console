@@ -41,6 +41,10 @@ struct DebugSettingsView: View {
             "Storyboards", "rectangle.grid.2x2",
             { CacheInvalidationProcessor.rebuild(.storyboard, deleteStaleEntries: true) }
         ),
+        (
+            "Stages", "square.on.square.dashed",
+            { CacheInvalidationProcessor.rebuild(.stage, deleteStaleEntries: true) }
+        ),
     ]
 
     var body: some View {

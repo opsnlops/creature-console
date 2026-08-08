@@ -24,6 +24,8 @@ extension CreatureServerClient {
             cacheTypeString = "dialog-script-list"
         case .storyboardList:
             cacheTypeString = "storyboard-list"
+        case .stageList:
+            cacheTypeString = "stage-list"
         case .unknown:
             cacheTypeString = "unknown"
         }
@@ -80,7 +82,8 @@ extension CreatureServerClient {
         logger.debug("telling the server to send a fake playlist update command")
 
         logger.debug("calling fetchData() now...")
-        let returnObject = await fetchData(path: "/debug/playlist/update", returnType: StatusDTO.self)
+        let returnObject = await fetchData(
+            path: "/debug/playlist/update", returnType: StatusDTO.self)
         logger.debug("...and we're back!")
 
         // Yay we got something back

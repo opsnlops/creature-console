@@ -25,6 +25,10 @@ final class DialogScriptModel: Identifiable {
     var notes: String = ""
     var turnsJSON: Data = Data("[]".utf8)
     var backgroundMusicJSON: Data? = nil
+    /// The script's usual stage, stored as a string so SwiftData needs no schema knowledge of
+    /// UUIDs; nil = unbound. Must round-trip faithfully — dropping it here would make an edit
+    /// through the cache silently clear the binding on save.
+    var stageIdString: String? = nil
     var createdAtMillis: Int64? = nil
     var updatedAtMillis: Int64? = nil
 
@@ -34,6 +38,7 @@ final class DialogScriptModel: Identifiable {
         notes: String,
         turnsJSON: Data,
         backgroundMusicJSON: Data?,
+        stageIdString: String?,
         createdAtMillis: Int64?,
         updatedAtMillis: Int64?
     ) {
@@ -42,6 +47,7 @@ final class DialogScriptModel: Identifiable {
         self.notes = notes
         self.turnsJSON = turnsJSON
         self.backgroundMusicJSON = backgroundMusicJSON
+        self.stageIdString = stageIdString
         self.createdAtMillis = createdAtMillis
         self.updatedAtMillis = updatedAtMillis
     }
@@ -69,6 +75,7 @@ extension DialogScriptModel {
             notes: dto.notes,
             turnsJSON: turns,
             backgroundMusicJSON: backgroundMusic,
+            stageIdString: dto.stageId?.uuidString.lowercased(),
             createdAtMillis: dto.createdAt,
             updatedAtMillis: dto.updatedAt
         )
@@ -107,6 +114,7 @@ extension DialogScriptModel {
             notes: notes,
             turns: turns,
             backgroundMusic: backgroundMusic,
+            stageId: stageIdString.flatMap { UUID(uuidString: $0) },
             createdAt: createdAtMillis,
             updatedAt: updatedAtMillis
         )

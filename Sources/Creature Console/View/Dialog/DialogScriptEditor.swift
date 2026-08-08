@@ -152,6 +152,13 @@ struct DialogScriptEditor: View {
                 VStack(alignment: .leading, spacing: 16) {
                     detailsSection
                     turnsSection
+                    // The stage is part of authoring the scene, not a render option: it decides
+                    // whether the cast looks at each other, and it's saved with the script.
+                    StageBindingPanel(
+                        stageId: $script.stageId,
+                        speakingCreatureIDs: script.turns.map(\.creatureId),
+                        creatureName: creatureName(for:)
+                    )
                     validationBanner
                     // Partial/full voice previews can use in-memory turns. Music and final render
                     // stay downstream of a saved script and an exact full-dialog take.
@@ -201,7 +208,12 @@ struct DialogScriptEditor: View {
                                 turns: script.turns,
                                 selectedGenerationId: selectedGenerationId,
                                 defaultTitle: script.title,
-                                backgroundMusic: original.backgroundMusic)
+                                backgroundMusic: original.backgroundMusic,
+                                // The *live* stage, not the saved one. Rendering is only possible
+                                // once the script is saved (renderScriptId gates on !isDirty), at
+                                // which point live == saved — so this is always what the render
+                                // will actually use, and it never contradicts the picker above.
+                                scriptStageId: script.stageId)
                         case .animationLinked:
                             // This script already has a rendered animation; offer an in-place
                             // re-render instead of a fresh one. Requires a saved (non-dirty) script

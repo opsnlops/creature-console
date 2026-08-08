@@ -47,6 +47,12 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
     public var notes: String
     public var turns: [DialogScriptTurn]
     public var backgroundMusic: DialogBackgroundMusic?
+    /// The stage this script is normally rendered against, if any.
+    ///
+    /// A render request's `stageId` overrides this, which is how a travel rendition of a mainstage
+    /// scene gets made. The server does not check that the stage still exists — a script may
+    /// outlive a stage, and a dangling id just means no head aiming.
+    public var stageId: StageIdentifier?
     public var createdAt: Int64?
     public var updatedAt: Int64?
 
@@ -56,6 +62,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         case notes
         case turns
         case backgroundMusic = "background_music"
+        case stageId = "stage_id"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -66,6 +73,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         notes: String,
         turns: [DialogScriptTurn],
         backgroundMusic: DialogBackgroundMusic? = nil,
+        stageId: StageIdentifier? = nil,
         createdAt: Int64? = nil,
         updatedAt: Int64? = nil
     ) {
@@ -74,6 +82,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         self.notes = notes
         self.turns = turns
         self.backgroundMusic = backgroundMusic
+        self.stageId = stageId
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -86,6 +95,11 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         turns = try container.decodeIfPresent([DialogScriptTurn].self, forKey: .turns) ?? []
         backgroundMusic = try container.decodeIfPresent(
             DialogBackgroundMusic.self, forKey: .backgroundMusic)
+        // The server writes "" for "no stage", which isn't a UUID — treat it as absent rather
+        // than failing the whole decode.
+        stageId = try container.decodeIfPresent(String.self, forKey: .stageId).flatMap {
+            UUID(uuidString: $0)
+        }
         createdAt = try container.decodeIfPresent(Int64.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(Int64.self, forKey: .updatedAt)
     }
@@ -99,6 +113,7 @@ public struct DialogScript: Codable, Equatable, Hashable, Identifiable, Sendable
         try container.encode(notes, forKey: .notes)
         try container.encode(turns, forKey: .turns)
         try container.encodeIfPresent(backgroundMusic, forKey: .backgroundMusic)
+        try container.encodeIfPresent(stageId?.uuidString.lowercased(), forKey: .stageId)
         try container.encodeIfPresent(createdAt, forKey: .createdAt)
         try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
     }
@@ -125,21 +140,41 @@ public struct UpsertDialogScriptRequest: Encodable, Sendable {
     public var title: String
     public var notes: String
     public var turns: [DialogScriptTurn]
+    /// The script's usual stage.
+    ///
+    /// The server preserves the stored binding when this key is **absent** (so a stage-unaware
+    /// client can't clear one by omission) and clears it on an **empty string**. This request
+    /// always sends the field — a UUID or `""` — because a stage-aware client's `nil` is a
+    /// decision, not ignorance.
+    public var stageId: StageIdentifier?
 
     enum CodingKeys: String, CodingKey {
         case title
         case notes
         case turns
+        case stageId = "stage_id"
     }
 
-    public init(title: String, notes: String, turns: [DialogScriptTurn]) {
+    public init(
+        title: String, notes: String, turns: [DialogScriptTurn], stageId: StageIdentifier? = nil
+    ) {
         self.title = title
         self.notes = notes
         self.turns = turns
+        self.stageId = stageId
     }
 
     public init(_ script: DialogScript) {
-        self.init(title: script.title, notes: script.notes, turns: script.turns)
+        self.init(
+            title: script.title, notes: script.notes, turns: script.turns, stageId: script.stageId)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(title, forKey: .title)
+        try container.encode(notes, forKey: .notes)
+        try container.encode(turns, forKey: .turns)
+        try container.encode(stageId?.uuidString.lowercased() ?? "", forKey: .stageId)
     }
 }
 
