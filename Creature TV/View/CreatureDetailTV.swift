@@ -38,6 +38,10 @@ struct CreatureDetail: View {
                 .padding(.horizontal, 36)
                 .padding(.bottom, 36)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .navigationTitle(creature.name)
+                // Pure display, no focusable controls — without this, Menu on a pushed tvOS
+                // screen exits the whole app instead of popping (see tvPassiveScreenEscape).
+                .tvPassiveScreenEscape()
                 .errorAlert($errorAlert)
         #else
             VStack {
