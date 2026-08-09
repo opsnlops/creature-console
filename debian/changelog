@@ -1,3 +1,15 @@
+creature-cli (2.49.0) unstable; urgency=medium
+
+  * Ship systemd units that run both relays permanently on the VLAN
+    bridge host: creature-sacn-relay.service (network sacn-listen) and
+    creature-audio-relay.service (network rtp-listen). Installed
+    disabled — "systemctl enable --now" them on the bridge host only.
+    Interface defaults to enp6s0, override in
+    /etc/default/creature-relay. Stateless and sandboxed
+    (DynamicUser, ProtectSystem=strict).
+
+ -- April White <april@creature.engineering>  Fri, 08 Aug 2026 15:30:00 -0700
+
 creature-cli (2.48.2) unstable; urgency=medium
 
   * No CLI changes; version kept in lockstep with the console apps

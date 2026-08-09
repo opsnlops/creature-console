@@ -32,6 +32,10 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-cli/usr/share/fish/vendor_completions.d; \
 	$$BIN --generate-completion-script fish > $(CURDIR)/debian/creature-cli/usr/share/fish/vendor_completions.d/creature-cli.fish
 
+	# Shared config for the relay units (conffile — compat 13 marks /etc automatically).
+	install -d $(CURDIR)/debian/creature-cli/etc/default
+	install -m644 $(CURDIR)/debian/creature-relay.default $(CURDIR)/debian/creature-cli/etc/default/creature-relay
+
 	install -d $(CURDIR)/debian/creature-mqtt/usr/bin
 	MQTT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_MQTT) --show-bin-path)/creature-mqtt; \
 		install -m755 $$MQTT_BIN_PATH $(CURDIR)/debian/creature-mqtt/usr/bin/creature-mqtt
@@ -53,6 +57,14 @@ override_dh_auto_install:
 	$$AGENT_BIN --generate-completion-script zsh > $(CURDIR)/debian/creature-agent/usr/share/zsh/vendor-completions/_creature-agent; \
 	install -d $(CURDIR)/debian/creature-agent/usr/share/fish/vendor_completions.d; \
 	$$AGENT_BIN --generate-completion-script fish > $(CURDIR)/debian/creature-agent/usr/share/fish/vendor_completions.d/creature-agent.fish
+
+# The relay units ship disabled: they only make sense on the host that bridges the
+# animatronic VLAN (April enables them there by hand). The agent/mqtt services keep the
+# debhelper default (enabled on install).
+override_dh_installsystemd:
+	dh_installsystemd --no-enable --no-start -pcreature-cli --name=creature-sacn-relay
+	dh_installsystemd --no-enable --no-start -pcreature-cli --name=creature-audio-relay
+	dh_installsystemd --no-package=creature-cli
 
 override_dh_dwz:
 	# Skip dwz; binary may lack supported debug sections (static Swift).

@@ -1,0 +1,25 @@
+[Unit]
+Description=Creature live-audio RTP relay (creature-cli network rtp-listen)
+Documentation=https://github.com/opsnlops/creature-console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+# Baked-in default; /etc/default/creature-relay overrides it.
+Environment=RELAY_INTERFACE=enp6s0
+EnvironmentFile=-/etc/default/creature-relay
+ExecStart=/usr/bin/creature-cli network rtp-listen --interface ${RELAY_INTERFACE} $RELAY_AUDIO_EXTRA_ARGS
+Restart=always
+RestartSec=5
+
+# The relay is stateless and unprivileged: it joins the RTP/RTCP multicast lanes and serves
+# TCP viewers on 1964. Nothing it does needs a real user or any filesystem access.
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
