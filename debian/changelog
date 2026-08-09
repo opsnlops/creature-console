@@ -1,3 +1,10 @@
+creature-cli (2.48.1) unstable; urgency=medium
+
+  * No CLI changes; version kept in lockstep with the console apps
+    (tvOS fix: passive full-screen views no longer exit the app on Menu).
+
+ -- April White <april@creature.engineering>  Fri, 08 Aug 2026 14:30:00 -0700
+
 creature-cli (2.48.0) unstable; urgency=medium
 
   * Add script-level accepted voice takes: generate takes, audition candidates,

@@ -40,6 +40,11 @@ struct JoystickDebugView: View {
                 disconnectedContent
             }
         }
+        // Pure display, no focusable controls — without this, Menu on a pushed tvOS screen
+        // exits the whole app instead of popping (see tvPassiveScreenEscape).
+        #if os(tvOS)
+            .tvPassiveScreenEscape()
+        #endif
         .task {
             for await newState in await JoystickManager.shared.stateUpdates {
                 state = newState

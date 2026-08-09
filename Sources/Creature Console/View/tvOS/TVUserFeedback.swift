@@ -13,6 +13,32 @@
         let message: String
     }
 
+    /// Escape hatch for *passive* pushed screens (the sACN grid, the joystick inspector —
+    /// pure displays with no focusable controls). On tvOS, a pushed screen that focus never
+    /// enters is a trap: Menu acts at the app root and EXITS THE APP instead of popping.
+    /// This makes the screen itself the focus target and translates Menu into an explicit
+    /// pop. Interactive screens don't need it — their controls take focus and Menu pops
+    /// natively.
+    private struct TVPassiveScreenEscape: ViewModifier {
+        @Environment(\.dismiss) private var dismiss
+
+        func body(content: Content) -> some View {
+            content
+                .focusable()
+                .onExitCommand {
+                    dismiss()
+                }
+        }
+    }
+
+    extension View {
+        /// Apply to any pushed tvOS screen with no focusable controls, so Menu pops it
+        /// instead of exiting the app.
+        func tvPassiveScreenEscape() -> some View {
+            modifier(TVPassiveScreenEscape())
+        }
+    }
+
     /// tvOS toast styled to match the StatusBanner convention: a tinted glass capsule
     /// floating over the content, with a green/red/blue tint keyed to the toast kind.
     struct TVStatusToastView: View {
