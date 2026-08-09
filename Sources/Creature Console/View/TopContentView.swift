@@ -208,12 +208,13 @@ struct TopContentView: View {
                 #endif
 
 
-                #if os(macOS)
-                    // Mirrors the TV's Monitoring tab. These are real windows (the grids and
-                    // the spatial engine deserve their own), but the sidebar is the front
-                    // door — the Window menu is where windows are *found*, not where app
-                    // features should *live*.
-                    Section("Monitoring") {
+                // Mirrors the TV's Monitoring tab: the network monitors plus the joystick
+                // inspector. The monitor windows are macOS-only; they stay real windows (the
+                // grids and the spatial engine deserve their own), but the sidebar is the
+                // front door — the Window menu is where windows are *found*, not where app
+                // features should *live*.
+                Section("Monitoring") {
+                    #if os(macOS)
                         Button {
                             openWindow(id: "sacnUniverseMonitor")
                         } label: {
@@ -229,15 +230,16 @@ struct TopContentView: View {
                             Label("Spatial Stage", systemImage: "person.wave.2")
                         }
                         .buttonStyle(.plain)
-                    }
-                #endif
+                    #endif
 
-                Section("Controls") {
                     NavigationLink {
                         JoystickDebugView()
                     } label: {
                         Label("Debug Joystick", systemImage: "gamecontroller")
                     }
+                }
+
+                Section("Controls") {
 
                     #if os(iOS) || os(macOS)
                         NavigationLink {

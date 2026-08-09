@@ -1,3 +1,10 @@
+creature-cli (2.50.1) unstable; urgency=medium
+
+  * No CLI changes; version kept in lockstep with the console apps
+    (Debug Joystick joins the Monitoring sidebar section).
+
+ -- April White <april@creature.engineering>  Fri, 08 Aug 2026 23:00:00 -0700
+
 creature-cli (2.50.0) unstable; urgency=medium
 
   * No CLI changes; version kept in lockstep with the console apps
