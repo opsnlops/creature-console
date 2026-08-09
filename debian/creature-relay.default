@@ -1,0 +1,9 @@
+# Shared configuration for the Creature relay services
+# (creature-sacn-relay.service and creature-audio-relay.service).
+#
+# The interface wired to the animatronic VLAN. Both relays capture on it.
+RELAY_INTERFACE=enp6s0
+
+# Extra arguments appended to each relay, e.g. "--port 2963 --max-clients 4".
+#RELAY_SACN_EXTRA_ARGS=
+#RELAY_AUDIO_EXTRA_ARGS=
