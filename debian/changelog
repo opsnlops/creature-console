@@ -1,3 +1,11 @@
+creature-cli (2.50.0) unstable; urgency=medium
+
+  * No CLI changes; version kept in lockstep with the console apps
+    (macOS gains a Monitoring sidebar section that opens the sACN and
+    Spatial Stage monitor windows directly).
+
+ -- April White <april@creature.engineering>  Fri, 08 Aug 2026 22:30:00 -0700
+
 creature-cli (2.49.0) unstable; urgency=medium
 
   * Ship systemd units that run both relays permanently on the VLAN

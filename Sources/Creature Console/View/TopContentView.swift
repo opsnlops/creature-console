@@ -25,6 +25,9 @@ struct TopContentView: View {
 
     @State private var selectedCreature: Creature?
     @State private var hideBottomToolbar = false
+    #if os(macOS)
+        @Environment(\.openWindow) private var openWindow
+    #endif
 
 
     let logger = Logger(subsystem: "io.opsnlops.CreatureConsole", category: "TopContentView")
@@ -204,6 +207,30 @@ struct TopContentView: View {
                     }
                 #endif
 
+
+                #if os(macOS)
+                    // Mirrors the TV's Monitoring tab. These are real windows (the grids and
+                    // the spatial engine deserve their own), but the sidebar is the front
+                    // door — the Window menu is where windows are *found*, not where app
+                    // features should *live*.
+                    Section("Monitoring") {
+                        Button {
+                            openWindow(id: "sacnUniverseMonitor")
+                        } label: {
+                            Label(
+                                "sACN Universe Monitor",
+                                systemImage: "dot.radiowaves.left.and.right")
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            openWindow(id: "spatialStage")
+                        } label: {
+                            Label("Spatial Stage", systemImage: "person.wave.2")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                #endif
 
                 Section("Controls") {
                     NavigationLink {
