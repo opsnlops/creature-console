@@ -29,7 +29,8 @@ struct DialogPreviewPanel: View {
     /// sha256(turns) as the server computes it, learned from the takes lookup. The render gate's
     /// freshness comparison (accepted take vs current turns) reads this.
     @Binding var currentCacheKey: String?
-    /// Saved-script identity, required to Accept. Nil (unsaved) leaves Accept disabled.
+    /// Saved-script identity, required to generate or accept a take. Nil means the script is new
+    /// or has unsaved changes, so its turns do not yet match the server's canonical copy.
     var scriptId: DialogScriptIdentifier? = nil
     /// The script's accepted voice, from the saved copy.
     var acceptedVoice: DialogAcceptedVoice? = nil
@@ -143,6 +144,13 @@ struct DialogPreviewPanel: View {
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            } else if scriptId == nil {
+                Label(
+                    "Save the script before generating a voice take.",
+                    systemImage: "square.and.arrow.down"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
             }
 
             if scope.isFullDialog {
@@ -159,7 +167,12 @@ struct DialogPreviewPanel: View {
                     Label("Generate Take", systemImage: "sparkles")
                 }
                 .buttonStyle(.glass)
-                .disabled(!turnsAreReady || isWorking)
+                .disabled(!turnsAreReady || scriptId == nil || isWorking)
+                .help(
+                    scriptId == nil
+                        ? "Save the script before generating a voice take."
+                        : "Generate a new voice take."
+                )
 
                 if let statusMessage {
                     Text(statusMessage).font(.caption).foregroundStyle(.secondary)
@@ -202,19 +215,24 @@ struct DialogPreviewPanel: View {
             // here belongs to a different cache key now. The acceptance itself is NOT touched —
             // it lives on the script and simply reads as stale until these turns are saved and
             // re-accepted. Nothing chosen is ever silently un-chosen.
-            // Capture BEFORE clearing: these run on every keystroke in a turn's text field, and
-            // AVFoundation teardown isn't free — only touch the audio stack when something was
-            // actually loaded or playing.
-            let hadAudio = meta != nil || isWorking
-            meta = nil
-            takes = []
-            isWorking = false
-            statusMessage = nil
-            requestToken = UUID()
-            fullDialogMeta = nil
-            currentCacheKey = nil
-            if hadAudio || localAudio.isPlaying {
-                localAudio.stop()
+            // This runs on every keystroke. Invalidate state once after leaving a populated
+            // preview instead of minting a new token and rewriting seven State values for every
+            // subsequent character. The debounced lookup below owns its own task cancellation.
+            let hasPreviewState =
+                meta != nil || !takes.isEmpty || isWorking || statusMessage != nil
+                || fullDialogMeta != nil || currentCacheKey != nil
+            if hasPreviewState {
+                let hadAudio = meta != nil || isWorking
+                meta = nil
+                takes = []
+                isWorking = false
+                statusMessage = nil
+                requestToken = UUID()
+                fullDialogMeta = nil
+                currentCacheKey = nil
+                if hadAudio || localAudio.isPlaying {
+                    localAudio.stop()
+                }
             }
             if scope.selectedTurns(from: turns) == nil {
                 scope = .full
@@ -228,15 +246,9 @@ struct DialogPreviewPanel: View {
             requestToken = UUID()
         }
         .errorAlert($errorAlert)
-        // Listing takes is a free lookup (no generation), so the list is just *there* on open —
-        // and it carries the cache key that resolves the acceptance's freshness immediately.
-        //
-        // Debounced: task(id:) restarts on every keystroke while turn text is edited, so
-        // sleeping first means only a pause in typing reaches the server. Without this, each
-        // keystroke fired a lookup POST and churned the panel's state — visible as typing lag.
-        .task(id: turnContent) {
-            try? await Task.sleep(for: .milliseconds(600))
-            guard !Task.isCancelled else { return }
+        // Load existing takes when the panel appears. Editing is deliberately not a trigger:
+        // typing must remain a local operation, and explicit preview actions refresh this state.
+        .task {
             await lookupTakes()
         }
         .fileExporter(
@@ -516,6 +528,7 @@ struct DialogPreviewPanel: View {
 
     /// Always a *new* take — generation and audition are different verbs on purpose.
     private func generateTake() {
+        guard scriptId != nil else { return }
         loadTake(generationId: nil, regenerate: true)
     }
 
@@ -777,15 +790,16 @@ struct DialogPreviewPanel: View {
                     "Playing spatially on \(stage.title.isEmpty ? "the stage" : stage.title)…"
             } catch {
                 guard token == requestToken else { return }
-                statusMessage = "Spatial audio unavailable for this take — playing flat."
-                await playMetaFlat(dto, token: token, preserveStatus: true)
+                isWorking = false
+                statusMessage = "Spatial audio unavailable for this take."
+                presentError(
+                    "The server did not produce a usable 17-channel file for this take. \(ServerError.detailedMessage(from: error))",
+                    title: "Spatial Audition Failed")
             }
         }
     #endif
 
-    private func playMetaFlat(
-        _ dto: DialogPreviewMetaDTO, token: UUID, preserveStatus: Bool = false
-    ) async {
+    private func playMetaFlat(_ dto: DialogPreviewMetaDTO, token: UUID) async {
         guard
             case .success(let url) = server.dialogPreviewRenditionURL(
                 cacheKey: dto.cacheKey, generationId: dto.generationId, as: .mp3)
@@ -808,9 +822,7 @@ struct DialogPreviewPanel: View {
                 fileExtension: "mp3")
             {
             case .success(let localURL):
-                if !preserveStatus {
-                    statusMessage = "Playing preview…"
-                }
+                statusMessage = "Playing preview…"
                 if case .failure(let audioError) = localAudio.playLocalFile(localURL) {
                     presentError(
                         "Playback failed: \(ServerError.detailedMessage(from: audioError))")

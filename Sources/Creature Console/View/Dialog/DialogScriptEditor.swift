@@ -5,10 +5,9 @@ import SwiftData
 import SwiftUI
 
 /// Top-level editor for a `DialogScript`. Operates on a local mutable `@State` copy of the
-/// script (struct value semantics, mirroring `FixtureEditor`). Live, debounced validation
-/// runs against the server's `/validate` endpoint; once the script is saved, the listen /
-/// export and render panels appear inline so the author can audition and render without
-/// bouncing back through the table.
+/// script (struct value semantics, mirroring `FixtureEditor`). Server validation runs when the
+/// author saves; once the script is saved, the listen / export and render panels appear inline so
+/// the author can audition and render without bouncing back through the table.
 struct DialogScriptEditor: View {
 
     /// How the editor was reached, which decides the render affordance.
@@ -33,10 +32,6 @@ struct DialogScriptEditor: View {
     /// dirty detection and to decide whether a render can go by `script_id` (provenance).
     @State private var original: DialogScript
     @State private var script: DialogScript
-
-    @State private var validation: DialogScriptValidationDTO? = nil
-    @State private var validateTask: Task<Void, Never>? = nil
-    @State private var isValidating = false
 
     @State private var isSaving = false
     @State private var savingMessage = ""
@@ -72,10 +67,13 @@ struct DialogScriptEditor: View {
     }
 
     init(existing: DialogScript, mode: Mode = .standalone) {
+        let sanitized = existing.sanitizedForSpeech
         self.mode = mode
         _createNew = State(initialValue: false)
         _original = State(initialValue: existing)
-        _script = State(initialValue: existing)
+        _script = State(initialValue: sanitized)
+        _savedBanner = State(
+            initialValue: sanitized == existing ? nil : "Cleaned pasted text — save to continue")
     }
 
     /// True when the in-memory script differs from the last-saved server copy.
@@ -122,9 +120,9 @@ struct DialogScriptEditor: View {
                         speakingCreatureIDs: script.turns.map(\.creatureId),
                         creatureName: creatureName(for:)
                     )
-                    validationBanner
-                    // Partial/full voice previews can use in-memory turns. Music and final render
-                    // stay downstream of a saved script and an exact full-dialog take.
+                    // Keep the voice workflow visible while authoring, but the panel requires the
+                    // current turns to be saved before it will generate or accept a take. Music
+                    // and final render additionally require an exact accepted full-dialog take.
                     if !script.turns.isEmpty {
                         DialogPreviewPanel(
                             turns: script.turns, title: script.title,
@@ -258,15 +256,13 @@ struct DialogScriptEditor: View {
             }
         }
         .statusBanner($savedBanner, duration: .seconds(2), alignment: .top)
-        .task { await runValidation(for: script) }
-        .onChange(of: script) { _, newValue in
-            scheduleValidation(for: newValue)
-        }
         .onChange(of: turnContent) { _, _ in
             // The preview cache key is sha256(turns); a turn change moves everything to a new
             // key. The acceptance itself stays put on the script and reads as stale.
-            fullDialogMeta = nil
-            currentCacheKey = nil
+            if fullDialogMeta != nil || currentCacheKey != nil {
+                fullDialogMeta = nil
+                currentCacheKey = nil
+            }
         }
     }
 
@@ -461,44 +457,6 @@ struct DialogScriptEditor: View {
             ?? (id.isEmpty ? "No creature" : "Unknown")
     }
 
-    @ViewBuilder
-    private var validationBanner: some View {
-        if let validation, !createNew || !script.turns.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    if isValidating {
-                        ProgressView().controlSize(.small)
-                        Text("Validating…").font(.caption).foregroundStyle(.secondary)
-                    } else if validation.valid {
-                        Label("Valid", systemImage: "checkmark.seal.fill")
-                            .foregroundStyle(.green)
-                            .font(.subheadline)
-                    } else {
-                        Label("Not valid yet", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
-                            .font(.subheadline)
-                    }
-                    Spacer()
-                }
-                ForEach(validation.errorMessages, id: \.self) { msg in
-                    Label(msg, systemImage: "xmark.octagon")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-                ForEach(validation.missingCreatureIds, id: \.self) { cid in
-                    Label(
-                        "Creature not registered: \(cid)", systemImage: "person.fill.questionmark"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
-        }
-    }
-
     private func characterCount(_ count: Int, limit: Int) -> some View {
         Text("\(count)/\(limit)")
             .font(.caption2)
@@ -508,22 +466,31 @@ struct DialogScriptEditor: View {
     // MARK: - Derived
 
     private var localLimitProblem: String? {
-        if script.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        localLimitProblem(in: script)
+    }
+
+    private func localLimitProblem(in candidate: DialogScript) -> String? {
+        if candidate.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Title cannot be empty."
         }
-        if script.title.count > DialogLimits.maxTitle {
+        if candidate.title.count > DialogLimits.maxTitle {
             return "Title is too long (max \(DialogLimits.maxTitle) characters)."
         }
-        if script.notes.count > DialogLimits.maxNotes {
+        if candidate.notes.count > DialogLimits.maxNotes {
             return "Notes are too long (max \(DialogLimits.maxNotes) characters)."
         }
-        if script.turns.isEmpty {
+        if candidate.turns.isEmpty {
             return "Add at least one turn."
         }
-        if script.turns.count > DialogLimits.maxTurns {
+        if candidate.turns.count > DialogLimits.maxTurns {
             return "Too many turns (max \(DialogLimits.maxTurns))."
         }
-        if script.turns.contains(where: { $0.text.count > DialogLimits.maxTurnText }) {
+        if candidate.turns.contains(where: {
+            $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }) {
+            return "Every turn needs some text."
+        }
+        if candidate.turns.contains(where: { $0.text.count > DialogLimits.maxTurnText }) {
             return "A turn's text is too long (max \(DialogLimits.maxTurnText) characters)."
         }
         return nil
@@ -551,48 +518,52 @@ struct DialogScriptEditor: View {
         script.turns.swapAt(index, target)
     }
 
-    // MARK: - Validation (debounced)
-
-    private func scheduleValidation(for snapshot: DialogScript) {
-        validateTask?.cancel()
-        validateTask = Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            if Task.isCancelled { return }
-            await runValidation(for: snapshot)
-        }
-    }
-
-    private func runValidation(for snapshot: DialogScript) async {
-        await MainActor.run { isValidating = true }
-        let result = await server.validateDialogScript(snapshot)
-        if Task.isCancelled { return }
-        await MainActor.run {
-            isValidating = false
-            switch result {
-            case .success(let dto):
-                validation = dto
-            case .failure(let error):
-                // Network/validation transport failures shouldn't nag with an alert on every
-                // keystroke; log and leave the last good validation in place.
-                logger.debug(
-                    "validate request failed: \(ServerError.detailedMessage(from: error))")
-            }
-        }
-    }
-
     // MARK: - Save / delete
 
     private func save() {
-        if let problem = localLimitProblem {
+        let sanitized = script.sanitizedForSpeech
+        if let problem = localLimitProblem(in: sanitized) {
             showError(title: "Cannot Save", message: problem)
             return
         }
+        let didCleanSpeechText = sanitized != script
+        if didCleanSpeechText {
+            script = sanitized
+        }
+        let toSave = sanitized
+        let isCreating = createNew
         isSaving = true
-        savingMessage = createNew ? "Creating dialog…" : "Saving dialog…"
-        let toSave = script
+        savingMessage = "Validating dialog…"
         Task {
+            let validationResult = await server.validateDialogScript(toSave)
+            switch validationResult {
+            case .success(let validation):
+                guard validation.valid else {
+                    await MainActor.run {
+                        isSaving = false
+                        let message =
+                            validation.errorMessages.isEmpty
+                            ? "The server rejected this dialog."
+                            : validation.errorMessages.joined(separator: "\n")
+                        showError(title: "Cannot Save", message: message)
+                    }
+                    return
+                }
+            case .failure(let error):
+                await MainActor.run {
+                    isSaving = false
+                    showError(
+                        title: "Validation Failed",
+                        message: ServerError.detailedMessage(from: error))
+                }
+                return
+            }
+
+            await MainActor.run {
+                savingMessage = isCreating ? "Creating dialog…" : "Saving dialog…"
+            }
             let result =
-                createNew
+                isCreating
                 ? await server.createDialogScript(toSave)
                 : await server.updateDialogScript(toSave)
             await MainActor.run {
@@ -617,7 +588,7 @@ struct DialogScriptEditor: View {
                         savedBanner = "Saved; newer edits remain unsaved"
                     } else {
                         script = saved
-                        savedBanner = "Saved"
+                        savedBanner = didCleanSpeechText ? "Cleaned pasted text and saved" : "Saved"
                     }
                     persistLocalScript(saved)
                 case .failure(let error):
