@@ -55,6 +55,13 @@
             listenerYaw = try container.decodeIfPresent(Float.self, forKey: .listenerYaw) ?? 0
             monitoringDelayMilliseconds =
                 try container.decodeIfPresent(Int.self, forKey: .monitoringDelayMilliseconds) ?? 10
+            // Layout v1 shipped with an 80 ms placeholder before monitoring was synchronized to
+            // the 10 ms RTP packet cadence. The deleted `SpatialStageLayout.migrateToCurrentVersion`
+            // normalized this sentinel on load; retain that compatibility while decoding the
+            // one-time server migration document.
+            if version < 2, monitoringDelayMilliseconds == 80 {
+                monitoringDelayMilliseconds = 10
+            }
             commonPlayoutDelayMilliseconds =
                 try container.decodeIfPresent(Int.self, forKey: .commonPlayoutDelayMilliseconds)
                 ?? 20

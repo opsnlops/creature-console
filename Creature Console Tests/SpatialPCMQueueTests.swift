@@ -297,57 +297,68 @@ struct SpatialMulticastReceiverTests {
     }
 }
 
-@Suite("Spatial stage layout")
-struct SpatialStageLayoutTests {
-    private let creatures = [
-        SpatialStageCreature(id: "one", name: "One", audioChannel: 3),
-        SpatialStageCreature(id: "two", name: "Two", audioChannel: 3),
-    ]
-
-    @Test("removed creatures stay excluded during reconciliation")
-    func removedCreaturesStayExcludedDuringReconciliation() {
-        var layout = SpatialStageLayout()
-        layout.reconcile(with: creatures)
-
-        layout.removeCreature(id: "two")
-        layout.reconcile(with: creatures)
-
-        #expect(layout.placements.map(\.creatureID) == ["one"])
-        #expect(layout.excludedCreatureIDs == ["two"])
-    }
-
-    @Test("restoring a creature adds it to the stage again")
-    func restoringCreatureAddsItToStageAgain() {
-        var layout = SpatialStageLayout()
-        layout.reconcile(with: creatures)
-        layout.removeCreature(id: "two")
-
-        layout.restoreCreature(id: "two", from: creatures)
-
-        #expect(layout.placements.map(\.creatureID) == ["one", "two"])
-        #expect(layout.excludedCreatureIDs.isEmpty)
-    }
-
-    @Test("layouts saved before exclusions decode with an empty roster override")
-    func legacyLayoutDecodesWithEmptyRosterOverride() throws {
+@Suite("Spatial stage migration")
+struct SpatialStageMigrationTests {
+    @Test("v1 monitoring delay sentinel migrates to one RTP packet")
+    func legacyMonitoringDelayMigratesToOnePacket() throws {
         let data = Data(
             #"{"version":1,"stageWidth":12,"monitoringDelayMilliseconds":80}"#.utf8
         )
 
-        var layout = try JSONDecoder().decode(SpatialStageLayout.self, from: data)
-        layout.migrateToCurrentVersion()
+        let layout = try JSONDecoder().decode(LegacySpatialStageLayout.self, from: data)
 
-        #expect(layout.stageWidth == 12)
-        #expect(layout.version == SpatialStageLayout.currentVersion)
         #expect(layout.monitoringDelayMilliseconds == 10)
         #expect(layout.commonPlayoutDelayMilliseconds == 20)
-        #expect(layout.excludedCreatureIDs.isEmpty)
+        #expect(layout.placements.isEmpty)
     }
 
-    @Test("new layouts use one RTP packet of monitoring delay")
-    func newLayoutsUseOnePacketOfMonitoringDelay() {
-        #expect(SpatialStageLayout().monitoringDelayMilliseconds == 10)
-        #expect(SpatialStageLayout().commonPlayoutDelayMilliseconds == 20)
+    @Test("legacy layout converts into the server stage model")
+    func legacyLayoutConvertsToServerStage() throws {
+        let data = Data(
+            """
+            {
+              "version": 3,
+              "listenerX": 0,
+              "listenerY": 1.6,
+              "listenerZ": 2,
+              "listenerYaw": 0,
+              "monitoringDelayMilliseconds": 20,
+              "commonPlayoutDelayMilliseconds": 30,
+              "backgroundMusicGain": 0.5,
+              "reverbBlend": 0.1,
+              "placements": [
+                {
+                  "creatureID": "one",
+                  "creatureName": "One",
+                  "audioChannel": 3,
+                  "x": 1,
+                  "y": 1.4,
+                  "z": -2,
+                  "gain": 0.8,
+                  "isMuted": true
+                }
+              ]
+            }
+            """.utf8
+        )
+
+        let legacy = try JSONDecoder().decode(LegacySpatialStageLayout.self, from: data)
+        let stage = SpatialStageMigration.stage(from: legacy, title: "Migrated")
+        let placement = try #require(stage.placements.first)
+
+        #expect(stage.title == "Migrated")
+        #expect(stage.version == StageLimits.currentVersion)
+        #expect(placement.creatureID == "one")
+        #expect(placement.audioChannel == 3)
+        #expect(placement.x == 1)
+        #expect(abs(placement.y - (-0.2)) < 0.0001)
+        #expect(placement.z == -4)
+        #expect(placement.gain == 0.8)
+        #expect(placement.isMuted)
+        #expect(stage.audio.monitoringDelayMilliseconds == 20)
+        #expect(stage.audio.commonPlayoutDelayMilliseconds == 30)
+        #expect(stage.audio.backgroundMusicGain == 0.5)
+        #expect(stage.audio.reverbBlend == 0.1)
     }
 }
 
