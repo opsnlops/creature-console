@@ -1,3 +1,12 @@
+creature-cli (2.50.2) unstable; urgency=medium
+
+  * No CLI changes; version kept in lockstep with the console apps
+    (dialog editing now preserves the cursor and avoids per-keystroke work).
+  * Repair stale spatial-stage migration tests and preserve the v1 monitoring
+    delay normalization when importing legacy layouts.
+
+ -- April White <april@creature.engineering>  Mon, 10 Aug 2026 15:15:28 -0700
+
 creature-cli (2.50.1) unstable; urgency=medium
 
   * No CLI changes; version kept in lockstep with the console apps

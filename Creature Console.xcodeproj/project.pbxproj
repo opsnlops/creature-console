@@ -1665,6 +1665,9 @@
 		323048998CFAFF61434DF674 /* Stamp Build Number (git SHA) */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
 			name = "Stamp Build Number (git SHA)";
 			shellPath = /bin/sh;
 			shellScript = (
@@ -1672,15 +1675,15 @@
 				"# The build number always reflects the source it was built from. A committed value",
 				"# can't equal its own commit's SHA, so this is stamped at build time instead.",
 				"set -eu",
-				"GIT_SHA=$(git -C \"${SRCROOT}\" rev-parse --short HEAD 2>/dev/null || echo \"\")",
-				"if [ -z \"${GIT_SHA}\" ]; then",
-				"  echo \"warning: could not determine git short SHA; leaving CFBundleVersion unchanged\"",
-				"  exit 0",
+				"GIT_SHA=$(/usr/bin/git -C \"${SRCROOT}\" rev-parse --short HEAD)",
+				"if ! printf '%s' \"${GIT_SHA}\" | /usr/bin/grep -Eq '^[0-9a-f]{7,}$'; then",
+				"  echo \"error: git returned an invalid short SHA: ${GIT_SHA}\"",
+				"  exit 1",
 				"fi",
 				"INFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"",
 				"if [ ! -f \"${INFO_PLIST}\" ]; then",
-				"  echo \"warning: Info.plist not found at ${INFO_PLIST}; skipping build-number stamp\"",
-				"  exit 0",
+				"  echo \"error: Info.plist not found at ${INFO_PLIST}; cannot stamp build number\"",
+				"  exit 1",
 				"fi",
 				"/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${GIT_SHA}\" \"${INFO_PLIST}\" \\",
 				"  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${GIT_SHA}\" \"${INFO_PLIST}\"",
@@ -2152,7 +2155,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 08ed61e;
+				CURRENT_PROJECT_VERSION = d4df8c8;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -2161,6 +2164,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Creature-Console-Info.plist";
@@ -2184,7 +2188,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.50.1;
+				MARKETING_VERSION = 2.50.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2206,7 +2210,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 08ed61e;
+				CURRENT_PROJECT_VERSION = d4df8c8;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -2215,6 +2219,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Creature-Console-Info.plist";
@@ -2238,7 +2243,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.50.1;
+				MARKETING_VERSION = 2.50.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2309,7 +2314,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 08ed61e;
+				CURRENT_PROJECT_VERSION = d4df8c8;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -2322,7 +2327,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.50.1;
+				MARKETING_VERSION = 2.50.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2341,7 +2346,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 08ed61e;
+				CURRENT_PROJECT_VERSION = d4df8c8;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -2354,7 +2359,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.50.1;
+				MARKETING_VERSION = 2.50.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
