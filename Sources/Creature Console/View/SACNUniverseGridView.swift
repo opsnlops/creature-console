@@ -19,8 +19,11 @@ import SwiftUI
 /// draws overlay owners — grid cells and legend swatches alike — goes through here so a
 /// creature or fixture is the same color everywhere on screen.
 enum SACNOverlayPalette {
+    static let saturation: Double = 0.7
+    static let brightness: Double = 0.9
+
     static func color(hue: Double) -> Color {
-        Color(hue: hue, saturation: 0.7, brightness: 0.9)
+        Color(hue: hue, saturation: saturation, brightness: brightness)
     }
 }
 
@@ -70,6 +73,10 @@ private struct SACNUniverseCanvasGridView: View {
     let gridPadding: CGFloat
     @Environment(\.colorScheme) private var colorScheme
     @State private var gridImage: Image?
+    // Owner tints, marker dots, and slot labels only change when the patch or geometry
+    // does, so they render into a cached image layered above the live Canvas. Resolving
+    // them (Text especially) inside the 50 Hz Canvas pass was a top CPU cost (#76).
+    @State private var overlayImage: Image?
     @State private var cachedSize: CGSize = .zero
 
     var body: some View {
@@ -98,7 +105,6 @@ private struct SACNUniverseCanvasGridView: View {
                 }
                 Canvas { context, _ in
                     for index in 0..<512 {
-                        let slotIndex = index + 1
                         let rowIndex = index / columnsCount
                         let columnIndex = index % columnsCount
                         let x =
@@ -118,63 +124,17 @@ private struct SACNUniverseCanvasGridView: View {
                             Path(rect),
                             with: .color(slotFill(for: slots[safe: index] ?? 0))
                         )
-
-                        if let owner = slotOwners[slotIndex]?.first {
-                            context.fill(Path(rect), with: .color(owner.color.opacity(0.28)))
-                            let outlineWidth =
-                                max(1, min(layout.cellSize.width, layout.cellSize.height) / 12)
-                            context.stroke(
-                                Path(rect),
-                                with: .color(owner.color.opacity(0.65)),
-                                lineWidth: outlineWidth
-                            )
-                        }
-
-                        if let owners = slotOwners[slotIndex] {
-                            let dotOwners = owners.prefix(3)
-                            if !dotOwners.isEmpty {
-                                let dotSize = layout.minDimension / 3.5
-                                let dotSpacing: CGFloat = 1
-                                let totalDotsWidth =
-                                    CGFloat(dotOwners.count) * dotSize
-                                    + CGFloat(max(0, dotOwners.count - 1)) * dotSpacing
-                                var dotX = rect.maxX - 1 - totalDotsWidth
-                                let dotY = rect.maxY - 1 - dotSize
-                                for owner in dotOwners {
-                                    let dotRect = CGRect(
-                                        x: dotX,
-                                        y: dotY,
-                                        width: dotSize,
-                                        height: dotSize
-                                    )
-                                    context.fill(
-                                        Path(
-                                            roundedRect: dotRect,
-                                            cornerRadius: dotSize
-                                                * owner.kind.markerCornerFraction
-                                        ),
-                                        with: .color(owner.color)
-                                    )
-                                    dotX += dotSize + dotSpacing
-                                }
-                            }
-                        }
-
-                        if (slotIndex - 1) % 16 == 0 {
-                            let fontSize = max(8, min(12, layout.minDimension * 0.35))
-                            let label = Text("\(slotIndex)")
-                                .font(
-                                    .system(
-                                        size: fontSize, weight: .semibold, design: .monospaced)
-                                )
-                                .foregroundStyle(.white.opacity(0.85))
-                            let textPoint = CGPoint(
-                                x: rect.minX + 2,
-                                y: rect.minY + 1
-                            )
-                            context.draw(label, at: textPoint, anchor: .topLeading)
-                        }
                     }
+                }
+                if let overlayImage {
+                    overlayImage
+                        .resizable()
+                        .frame(width: layout.totalSize.width, height: layout.totalSize.height)
+                        .position(
+                            x: gridPadding + layout.origin.x + layout.totalSize.width / 2,
+                            y: gridPadding + layout.origin.y + layout.totalSize.height / 2
+                        )
+                        .allowsHitTesting(false)
                 }
                 #if os(macOS)
                     SACNGridHoverReadout(
@@ -188,13 +148,16 @@ private struct SACNUniverseCanvasGridView: View {
                 #endif
             }
             .onAppear {
-                updateGridImage(for: geometry.size)
+                updateCachedImages(for: geometry.size)
             }
             .onChange(of: geometry.size) { _, newValue in
-                updateGridImage(for: newValue)
+                updateCachedImages(for: newValue)
             }
             .onChange(of: colorScheme) { _, _ in
-                updateGridImage(for: geometry.size)
+                updateCachedImages(for: geometry.size, forceGrid: true)
+            }
+            .onChange(of: slotOwners) { _, _ in
+                updateCachedImages(for: geometry.size)
             }
         }
     }
@@ -217,14 +180,10 @@ private struct SACNUniverseCanvasGridView: View {
         #endif
     }
 
-    private func updateGridImage(for size: CGSize) {
+    private func updateCachedImages(for size: CGSize, forceGrid: Bool = false) {
         guard size != .zero else {
             return
         }
-        if size == cachedSize, gridImage != nil {
-            return
-        }
-        cachedSize = size
         let layout = GridLayout(
             size: CGSize(
                 width: max(0, size.width - gridPadding * 2),
@@ -233,7 +192,11 @@ private struct SACNUniverseCanvasGridView: View {
             columnsCount: columnsCount,
             rowsCount: rowsCount
         )
-        gridImage = renderGridImage(layout: layout)
+        if forceGrid || size != cachedSize || gridImage == nil {
+            gridImage = renderGridImage(layout: layout)
+        }
+        overlayImage = renderOverlayImage(layout: layout)
+        cachedSize = size
     }
 
     #if os(iOS) || os(tvOS)
@@ -279,6 +242,108 @@ private struct SACNUniverseCanvasGridView: View {
 
     private func gridLabelFontSize(layout: GridLayout) -> CGFloat {
         max(6, min(10, layout.minDimension * 0.35))
+    }
+
+    #if os(iOS) || os(tvOS)
+        private func renderOverlayImage(layout: GridLayout) -> Image {
+            let renderer = UIGraphicsImageRenderer(size: layout.totalSize)
+            let image = renderer.image { context in
+                drawOverlay(into: context.cgContext, layout: layout)
+            }
+            return Image(uiImage: image)
+        }
+    #else
+        private func renderOverlayImage(layout: GridLayout) -> Image {
+            let image = NSImage(size: layout.totalSize, flipped: true) { _ in
+                guard let cgContext = NSGraphicsContext.current?.cgContext else {
+                    return false
+                }
+                drawOverlay(into: cgContext, layout: layout)
+                return true
+            }
+            return Image(nsImage: image)
+        }
+    #endif
+
+    private func platformColor(hue: Double, alpha: CGFloat) -> PlatformColor {
+        PlatformColor(
+            hue: hue,
+            saturation: SACNOverlayPalette.saturation,
+            brightness: SACNOverlayPalette.brightness,
+            alpha: alpha
+        )
+    }
+
+    /// Everything that sits on top of the live value fills but changes only with the patch:
+    /// owner tints and outlines, marker dots, and the slot-number labels.
+    private func drawOverlay(into cgContext: CGContext, layout: GridLayout) {
+        let labelFontSize = max(8, min(12, layout.minDimension * 0.35))
+        let labelAttributes: [NSAttributedString.Key: Any] = [
+            .font: PlatformFont.monospacedSystemFont(ofSize: labelFontSize, weight: .semibold),
+            .foregroundColor: PlatformColor.white.withAlphaComponent(0.85),
+        ]
+
+        for index in 0..<512 {
+            let slotIndex = index + 1
+            let rowIndex = index / columnsCount
+            let columnIndex = index % columnsCount
+            let x = CGFloat(columnIndex) * (layout.cellSize.width + layout.spacing)
+            let y = CGFloat(rowIndex) * (layout.cellSize.height + layout.spacing)
+            let rect = CGRect(
+                x: x,
+                y: y,
+                width: layout.cellSize.width,
+                height: layout.cellSize.height
+            )
+
+            if let owner = slotOwners[slotIndex]?.first {
+                cgContext.setFillColor(platformColor(hue: owner.hue, alpha: 0.28).cgColor)
+                cgContext.fill(rect)
+                let outlineWidth =
+                    max(1, min(layout.cellSize.width, layout.cellSize.height) / 12)
+                cgContext.setStrokeColor(platformColor(hue: owner.hue, alpha: 0.65).cgColor)
+                cgContext.setLineWidth(outlineWidth)
+                cgContext.stroke(rect)
+            }
+
+            if let owners = slotOwners[slotIndex] {
+                let dotOwners = owners.prefix(3)
+                if !dotOwners.isEmpty {
+                    let dotSize = layout.minDimension / 3.5
+                    let dotSpacing: CGFloat = 1
+                    let totalDotsWidth =
+                        CGFloat(dotOwners.count) * dotSize
+                        + CGFloat(max(0, dotOwners.count - 1)) * dotSpacing
+                    var dotX = rect.maxX - 1 - totalDotsWidth
+                    let dotY = rect.maxY - 1 - dotSize
+                    for owner in dotOwners {
+                        let dotRect = CGRect(
+                            x: dotX,
+                            y: dotY,
+                            width: dotSize,
+                            height: dotSize
+                        )
+                        cgContext.setFillColor(platformColor(hue: owner.hue, alpha: 1).cgColor)
+                        cgContext.addPath(
+                            Path(
+                                roundedRect: dotRect,
+                                cornerRadius: dotSize * owner.kind.markerCornerFraction
+                            ).cgPath
+                        )
+                        cgContext.fillPath()
+                        dotX += dotSize + dotSpacing
+                    }
+                }
+            }
+
+            if (slotIndex - 1) % 16 == 0 {
+                let label = "\(slotIndex)" as NSString
+                label.draw(
+                    at: CGPoint(x: rect.minX + 2, y: rect.minY + 1),
+                    withAttributes: labelAttributes
+                )
+            }
+        }
     }
 
     #if os(iOS) || os(tvOS)
