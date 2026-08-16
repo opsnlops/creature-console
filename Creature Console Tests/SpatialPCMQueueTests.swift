@@ -1,3 +1,8 @@
+// Everything under test here (SpatialPCMQueue, the simulation source, the diagnostics
+// types) is compiled only for macOS — this suite must be too, or the shared test target
+// fails to build on iOS.
+#if os(macOS)
+
 import Common
 import Foundation
 import Network
@@ -478,3 +483,5 @@ private final class ImmediateDrainSpatialRenderer: SpatialSimulationAudioRenderi
 
     func resume() throws {}
 }
+
+#endif
