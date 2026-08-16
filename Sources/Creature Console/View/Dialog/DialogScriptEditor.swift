@@ -111,118 +111,116 @@ struct DialogScriptEditor: View {
 
     var body: some View {
         ScrollView {
-            GlassEffectContainer(spacing: 16) {
-                VStack(alignment: .leading, spacing: 16) {
-                    detailsSection
-                    turnsSection
-                    // The stage is part of authoring the scene, not a render option: it decides
-                    // whether the cast looks at each other, and it's saved with the script.
-                    StageBindingPanel(
-                        stageId: $script.stageId,
-                        speakingCreatureIDs: script.turns.map(\.creatureId),
-                        creatureName: creatureName(for:)
-                    )
-                    // Keep the voice workflow visible while authoring, but the panel requires the
-                    // current turns to be saved before it will generate or accept a take. Music
-                    // and final render additionally require an exact accepted full-dialog take.
-                    if !script.turns.isEmpty {
-                        DialogPreviewPanel(
-                            turns: script.turns, title: script.title,
-                            scope: $previewScope,
-                            fullDialogMeta: $fullDialogMeta,
-                            currentCacheKey: $currentCacheKey,
-                            // renderScriptId, not just the saved id: the server rejects accepting
-                            // against turns it hasn't seen (its cache-key check compares the
-                            // SAVED script), so a dirty editor must disable Accept the same way
-                            // it disables Render — with "save first" as the stated fix.
-                            scriptId: renderScriptId,
-                            acceptedVoice: original.acceptedVoice,
-                            hasExistingRender: hasRenderedAnimation,
-                            stageId: script.stageId
-                        ) { canonical in
-                            // Acceptance is a server-side field mutation, like music promotion.
-                            // Merge only the voice + timestamps so a response landing after a
-                            // local edit can't clobber turns still being authored.
-                            var updatedOriginal = original
-                            updatedOriginal.acceptedVoice = canonical.acceptedVoice
-                            updatedOriginal.createdAt = canonical.createdAt
-                            updatedOriginal.updatedAt = canonical.updatedAt
-                            original = updatedOriginal
+            VStack(alignment: .leading, spacing: 16) {
+                detailsSection
+                turnsSection
+                // The stage is part of authoring the scene, not a render option: it decides
+                // whether the cast looks at each other, and it's saved with the script.
+                StageBindingPanel(
+                    stageId: $script.stageId,
+                    speakingCreatureIDs: script.turns.map(\.creatureId),
+                    creatureName: creatureName(for:)
+                )
+                // Keep the voice workflow visible while authoring, but the panel requires the
+                // current turns to be saved before it will generate or accept a take. Music
+                // and final render additionally require an exact accepted full-dialog take.
+                if !script.turns.isEmpty {
+                    DialogPreviewPanel(
+                        turns: script.turns, title: script.title,
+                        scope: $previewScope,
+                        fullDialogMeta: $fullDialogMeta,
+                        currentCacheKey: $currentCacheKey,
+                        // renderScriptId, not just the saved id: the server rejects accepting
+                        // against turns it hasn't seen (its cache-key check compares the
+                        // SAVED script), so a dirty editor must disable Accept the same way
+                        // it disables Render — with "save first" as the stated fix.
+                        scriptId: renderScriptId,
+                        acceptedVoice: original.acceptedVoice,
+                        hasExistingRender: hasRenderedAnimation,
+                        stageId: script.stageId
+                    ) { canonical in
+                        // Acceptance is a server-side field mutation, like music promotion.
+                        // Merge only the voice + timestamps so a response landing after a
+                        // local edit can't clobber turns still being authored.
+                        var updatedOriginal = original
+                        updatedOriginal.acceptedVoice = canonical.acceptedVoice
+                        updatedOriginal.createdAt = canonical.createdAt
+                        updatedOriginal.updatedAt = canonical.updatedAt
+                        original = updatedOriginal
 
-                            var updatedScript = script
-                            updatedScript.acceptedVoice = canonical.acceptedVoice
-                            updatedScript.createdAt = canonical.createdAt
-                            updatedScript.updatedAt = canonical.updatedAt
-                            script = updatedScript
-                            persistLocalScript(updatedScript)
-                        }
-                        DialogMusicPanel(
+                        var updatedScript = script
+                        updatedScript.acceptedVoice = canonical.acceptedVoice
+                        updatedScript.createdAt = canonical.createdAt
+                        updatedScript.updatedAt = canonical.updatedAt
+                        script = updatedScript
+                        persistLocalScript(updatedScript)
+                    }
+                    DialogMusicPanel(
+                        scriptId: renderScriptId,
+                        acceptedVoice: original.acceptedVoice,
+                        acceptedVoiceIsFresh: hasFreshAcceptedVoice,
+                        backgroundMusic: original.backgroundMusic,
+                        hasUnsavedChanges: createNew || isDirty
+                    ) { canonical in
+                        // Music removal is a server-side field mutation. Merge only that
+                        // field so a response that arrives after a local edit cannot erase
+                        // title, notes, or turns that are still being authored.
+                        var updatedOriginal = original
+                        updatedOriginal.backgroundMusic = canonical.backgroundMusic
+                        updatedOriginal.createdAt = canonical.createdAt
+                        updatedOriginal.updatedAt = canonical.updatedAt
+                        original = updatedOriginal
+
+                        var updatedScript = script
+                        updatedScript.backgroundMusic = canonical.backgroundMusic
+                        updatedScript.createdAt = canonical.createdAt
+                        updatedScript.updatedAt = canonical.updatedAt
+                        script = updatedScript
+                        persistLocalScript(updatedScript)
+                    } onMusicUpdated: { music in
+                        var updated = original
+                        updated.backgroundMusic = music
+                        original = updated
+                        var localScript = script
+                        localScript.backgroundMusic = music
+                        script = localScript
+                        persistLocalScript(localScript)
+                    }
+                    switch mode {
+                    case .standalone:
+                        DialogRenderPanel(
                             scriptId: renderScriptId,
+                            turns: script.turns,
                             acceptedVoice: original.acceptedVoice,
-                            acceptedVoiceIsFresh: hasFreshAcceptedVoice,
+                            currentCacheKey: currentCacheKey,
+                            defaultTitle: script.title,
                             backgroundMusic: original.backgroundMusic,
-                            hasUnsavedChanges: createNew || isDirty
-                        ) { canonical in
-                            // Music removal is a server-side field mutation. Merge only that
-                            // field so a response that arrives after a local edit cannot erase
-                            // title, notes, or turns that are still being authored.
-                            var updatedOriginal = original
-                            updatedOriginal.backgroundMusic = canonical.backgroundMusic
-                            updatedOriginal.createdAt = canonical.createdAt
-                            updatedOriginal.updatedAt = canonical.updatedAt
-                            original = updatedOriginal
-
-                            var updatedScript = script
-                            updatedScript.backgroundMusic = canonical.backgroundMusic
-                            updatedScript.createdAt = canonical.createdAt
-                            updatedScript.updatedAt = canonical.updatedAt
-                            script = updatedScript
-                            persistLocalScript(updatedScript)
-                        } onMusicUpdated: { music in
-                            var updated = original
-                            updated.backgroundMusic = music
-                            original = updated
-                            var localScript = script
-                            localScript.backgroundMusic = music
-                            script = localScript
-                            persistLocalScript(localScript)
-                        }
-                        switch mode {
-                        case .standalone:
-                            DialogRenderPanel(
-                                scriptId: renderScriptId,
-                                turns: script.turns,
-                                acceptedVoice: original.acceptedVoice,
-                                currentCacheKey: currentCacheKey,
-                                defaultTitle: script.title,
-                                backgroundMusic: original.backgroundMusic,
-                                // The *live* stage, not the saved one. Rendering is only possible
-                                // once the script is saved (renderScriptId gates on !isDirty), at
-                                // which point live == saved — so this is always what the render
-                                // will actually use, and it never contradicts the picker above.
-                                scriptStageId: script.stageId)
-                        case .animationLinked:
-                            // This script already has a rendered animation; offer an in-place
-                            // re-render instead of a fresh one. Requires a saved (non-dirty) script
-                            // so the re-render picks up the latest turns server-side.
-                            if !createNew {
-                                DialogRerenderButton(
-                                    scriptId: original.id,
-                                    title: script.title,
-                                    disabled: isDirty || !hasFreshAcceptedVoice,
-                                    disabledHint: isDirty
-                                        ? "Save your edits first so the re-render includes them."
-                                        : (!hasFreshAcceptedVoice
-                                            ? "Accept a voice take first — renders only use audited voices."
-                                            : nil)
-                                )
-                            }
+                            // The *live* stage, not the saved one. Rendering is only possible
+                            // once the script is saved (renderScriptId gates on !isDirty), at
+                            // which point live == saved — so this is always what the render
+                            // will actually use, and it never contradicts the picker above.
+                            scriptStageId: script.stageId)
+                    case .animationLinked:
+                        // This script already has a rendered animation; offer an in-place
+                        // re-render instead of a fresh one. Requires a saved (non-dirty) script
+                        // so the re-render picks up the latest turns server-side.
+                        if !createNew {
+                            DialogRerenderButton(
+                                scriptId: original.id,
+                                title: script.title,
+                                disabled: isDirty || !hasFreshAcceptedVoice,
+                                disabledHint: isDirty
+                                    ? "Save your edits first so the re-render includes them."
+                                    : (!hasFreshAcceptedVoice
+                                        ? "Accept a voice take first — renders only use audited voices."
+                                        : nil)
+                            )
                         }
                     }
-                    Spacer(minLength: 40)
                 }
-                .padding()
+                Spacer(minLength: 40)
             }
+            .padding()
         }
         .navigationTitle(
             createNew ? "New Dialog" : (script.title.isEmpty ? "Dialog" : script.title)
@@ -296,7 +294,7 @@ struct DialogScriptEditor: View {
             }
         }
         .padding(20)
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .panelCard()
     }
 
     private var turnsSection: some View {
@@ -385,7 +383,7 @@ struct DialogScriptEditor: View {
             .disabled(!canAddTurn)
         }
         .padding(20)
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .panelCard()
     }
 
     private func creatureName(for id: CreatureIdentifier) -> String {
@@ -648,7 +646,7 @@ private struct DialogTurnRow: View, @MainActor Equatable {
             }
         }
         .padding(16)
-        .glassEffect(.regular, in: .rect(cornerRadius: 10))
+        .panelCard(cornerRadius: 10)
     }
 
     private var creaturePicker: some View {

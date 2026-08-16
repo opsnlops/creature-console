@@ -315,14 +315,18 @@
                 Label("BGM", systemImage: "music.note")
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
-                    .background(
-                        Color.purple.opacity(0.12 + 0.45 * signalLevel(for: 17)),
-                        in: .capsule
-                    )
-                    .shadow(
-                        color: Color.purple.opacity(0.45 * signalLevel(for: 17)),
-                        radius: 8 * signalLevel(for: 17)
-                    )
+                    .background {
+                        // Fixed blur, animated opacity — a level-driven shadow radius made
+                        // the compositor re-render the glow on every meter tick (#74).
+                        ZStack {
+                            Capsule()
+                                .fill(Color.purple)
+                                .blur(radius: 8)
+                                .opacity(0.45 * signalLevel(for: 17))
+                            Capsule()
+                                .fill(Color.purple.opacity(0.12 + 0.45 * signalLevel(for: 17)))
+                        }
+                    }
                     .animation(.linear(duration: 0.1), value: signalLevel(for: 17))
                     .help("The pill follows background-music channel 17.")
 
@@ -373,7 +377,9 @@
             }
             let level =
                 viewModel.diagnostics.channels.first(where: { $0.channel == channel })?.level ?? 0
-            return SpatialAudioLevel.meterLevel(for: level)
+            // Quantize so sub-step meter jitter doesn't restart glow animations on every
+            // 10 Hz diagnostics publish — identical values mean no layer changes at all.
+            return (SpatialAudioLevel.meterLevel(for: level) * 24).rounded() / 24
         }
 
         private func diagnosticsHelp(for channel: Int) -> String {

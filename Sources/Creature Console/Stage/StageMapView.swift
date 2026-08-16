@@ -67,12 +67,13 @@ struct StageMapView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    // Fixed geometry and blur, animated opacity only: a level-driven blur
+                    // radius re-renders the blur every frame, which at meter rate kept the
+                    // GPU busy whenever audio played (#74). Opacity changes are nearly free.
                     RoundedRectangle(cornerRadius: 18)
-                        .stroke(
-                            Color.purple.opacity(0.5 * signalLevel(17)),
-                            lineWidth: 1 + 2 * signalLevel(17)
-                        )
-                        .blur(radius: 1 + 5 * signalLevel(17))
+                        .stroke(Color.purple, lineWidth: 3)
+                        .blur(radius: 6)
+                        .opacity(0.5 * signalLevel(17))
                 }
             }
             .coordinateSpace(name: "stageMap")
@@ -205,6 +206,13 @@ struct StageMapView: View {
         .foregroundStyle(placement.isMuted ? Color.secondary : creatureForegroundColor)
         .background {
             ZStack {
+                // The audio glow: fixed blur radius, level drives only opacity. The old
+                // level-driven shadow radius forced a shadow re-render on every meter tick,
+                // which multiplied across cards whenever a scene played (#74).
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.green)
+                    .blur(radius: 10)
+                    .opacity(0.5 * level)
                 RoundedRectangle(cornerRadius: 10)
                     .fill(creatureSurfaceColor)
                 if isSelected {
@@ -218,7 +226,8 @@ struct StageMapView: View {
         .overlay {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.green.opacity(0.65 * level), lineWidth: 1 + level)
+                    .stroke(Color.green, lineWidth: 1.5)
+                    .opacity(0.65 * level)
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(
                         isSelected ? Color.accentColor : Color.secondary.opacity(0.25),
@@ -235,7 +244,6 @@ struct StageMapView: View {
         .accessibilityAction {
             selectedCreatureID = placement.creatureID
         }
-        .shadow(color: Color.green.opacity(0.5 * level), radius: 4 + 10 * level)
         .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
         .help(channelHelp(placement.audioChannel))
         .contextMenu {

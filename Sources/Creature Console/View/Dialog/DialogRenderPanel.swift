@@ -179,7 +179,7 @@ struct DialogRenderPanel: View {
             }
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .panelCard()
         .onAppear {
             // Pre-fill the title with the suggested scene name so it's a real, editable
             // value that's actually used — not just a grey placeholder that gets ignored.
@@ -238,7 +238,7 @@ struct DialogRenderPanel: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .glassEffect(.regular.tint(.green.opacity(0.25)), in: .rect(cornerRadius: 10))
+        .panelCard(cornerRadius: 10, tint: .green)
     }
 
     // MARK: - Actions

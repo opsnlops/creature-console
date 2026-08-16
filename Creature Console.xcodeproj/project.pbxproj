@@ -280,6 +280,8 @@
 		FEA1A1E70000000000000013 /* Pasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000011 /* Pasteboard.swift */; };
 		FEA1A1E70000000000000022 /* StatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000021 /* StatusBanner.swift */; };
 		FEA1A1E70000000000000023 /* StatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000021 /* StatusBanner.swift */; };
+		FEA1A1E70000000000000132 /* PanelCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000131 /* PanelCard.swift */; };
+		FEA1A1E70000000000000133 /* PanelCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000131 /* PanelCard.swift */; };
 		FEA1A1E70000000000000032 /* TestModelContainerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000031 /* TestModelContainerFactory.swift */; };
 		FEA1A1E70000000000000042 /* TestRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000041 /* TestRun.swift */; };
 		FEA1A1E70000000000000043 /* TestRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000041 /* TestRun.swift */; };
@@ -562,6 +564,7 @@
 		FEA1A1E70000000000000004 /* JobWatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobWatching.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000011 /* Pasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pasteboard.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000021 /* StatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBanner.swift; sourceTree = "<group>"; };
+		FEA1A1E70000000000000131 /* PanelCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelCard.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000031 /* TestModelContainerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestModelContainerFactory.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000041 /* TestRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRun.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000051 /* ConsoleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleStore.swift; sourceTree = "<group>"; };
@@ -1150,6 +1153,7 @@
 				FEA1A1E70000000000000001 /* ErrorAlert.swift */,
 				FEA1A1E70000000000000011 /* Pasteboard.swift */,
 				FEA1A1E70000000000000021 /* StatusBanner.swift */,
+				FEA1A1E70000000000000131 /* PanelCard.swift */,
 				FEA1A1E70000000000000004 /* JobWatching.swift */,
 			);
 			path = Shared;
@@ -1803,6 +1807,7 @@
 				FEA1A1E70000000000000052 /* ConsoleStore.swift in Sources */,
 				FEA1A1E70000000000000012 /* Pasteboard.swift in Sources */,
 				FEA1A1E70000000000000022 /* StatusBanner.swift in Sources */,
+				FEA1A1E70000000000000132 /* PanelCard.swift in Sources */,
 				FEA1A1E70000000000000005 /* JobWatching.swift in Sources */,
 				11AFC3192BE9ED7700602604 /* CreatureManager.swift in Sources */,
 				1142E66229DFB22300B795F0 /* CreatureDetail.swift in Sources */,
@@ -1913,6 +1918,7 @@
 				FEA1A1E70000000000000003 /* ErrorAlert.swift in Sources */,
 				FEA1A1E70000000000000013 /* Pasteboard.swift in Sources */,
 				FEA1A1E70000000000000023 /* StatusBanner.swift in Sources */,
+				FEA1A1E70000000000000133 /* PanelCard.swift in Sources */,
 				FEA1A1E70000000000000006 /* JobWatching.swift in Sources */,
 				117C876F2CA0D45E007B5682 /* BottomToolBarView.swift in Sources */,
 				117C87702CA0D586007B5682 /* NetworkSettingsView.swift in Sources */,

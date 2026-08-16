@@ -209,7 +209,7 @@ struct DialogPreviewPanel: View {
             }
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .panelCard()
         .onChange(of: turnContent) {
             // Takes are keyed by sha256(turns) server-side; a turn change means everything shown
             // here belongs to a different cache key now. The acceptance itself is NOT touched —
@@ -400,10 +400,7 @@ struct DialogPreviewPanel: View {
                 }
             }
             .padding(10)
-            .glassEffect(
-                .regular.tint(fresh ? .green.opacity(0.18) : .orange.opacity(0.18)),
-                in: .rect(cornerRadius: 10)
-            )
+            .panelCard(cornerRadius: 10, tint: fresh ? .green : .orange)
             .contextMenu {
                 Button(role: .destructive) {
                     clearAcceptance()
@@ -1152,7 +1149,7 @@ struct DialogMusicPanel: View {
             }
         }
         .padding(20)
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .panelCard()
         .watchJob(activeJobId) { info in
             observedJob = info
             let percent = Int((info.progress ?? 0) * 100)
@@ -1278,7 +1275,7 @@ struct DialogMusicPanel: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .glassEffect(.regular.tint(.green.opacity(0.18)), in: .rect(cornerRadius: 10))
+        .panelCard(cornerRadius: 10, tint: .green)
     }
 
     @ViewBuilder
@@ -1332,7 +1329,7 @@ struct DialogMusicPanel: View {
             }
         }
         .padding(12)
-        .glassEffect(.regular, in: .rect(cornerRadius: 10))
+        .panelCard(cornerRadius: 10)
     }
 
     private func generate() {

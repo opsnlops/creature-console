@@ -77,7 +77,7 @@ struct DialogRerenderButton: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+        .panelCard()
         .watchJob(jobId) { info in
             progress = info.progress
         } onTerminal: { info in
