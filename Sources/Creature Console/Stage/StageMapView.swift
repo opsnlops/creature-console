@@ -53,14 +53,26 @@ struct StageMapView: View {
                 listener
 
                 ForEach(placements) { placement in
-                    node(placement)
-                        .position(position(for: placement, in: proxy.size))
-                        .simultaneousGesture(
-                            dragGesture(for: placement, in: proxy.size),
-                            // A read-only map (the listening window) still selects on tap, it just
-                            // can't move anything.
-                            isEnabled: onMove != nil
-                        )
+                    StageMapNode(
+                        placement: placement,
+                        isSelected: selectedCreatureID == placement.creatureID,
+                        level: signalLevel(placement.audioChannel),
+                        name: displayName(placement),
+                        helpText: channelHelp(placement.audioChannel),
+                        speaks: emphasizedCreatureIDs.contains(placement.creatureID),
+                        onSelect: { selectedCreatureID = placement.creatureID },
+                        onRemove: onRemove.map { remove in
+                            { remove(placement.creatureID) }
+                        }
+                    )
+                    .equatable()
+                    .position(position(for: placement, in: proxy.size))
+                    .simultaneousGesture(
+                        dragGesture(for: placement, in: proxy.size),
+                        // A read-only map (the listening window) still selects on tap, it just
+                        // can't move anything.
+                        isEnabled: onMove != nil
+                    )
                 }
             }
             .overlay {
@@ -145,8 +157,44 @@ struct StageMapView: View {
         .allowsHitTesting(false)
     }
 
-    private func node(_ placement: StagePlacement) -> some View {
-        card(placement, isSelected: selectedCreatureID == placement.creatureID)
+    /// Maps the ±5 m box onto the canvas: x left→right, z top→bottom with −z (in front of the
+    /// listener) at the top, which puts the listener dead centre.
+    private func position(for placement: StagePlacement, in size: CGSize) -> CGPoint {
+        let normalizedX = (CGFloat(placement.x / extent) + 1) / 2
+        let normalizedZ = (CGFloat(placement.z / extent) + 1) / 2
+        return CGPoint(
+            x: min(max(normalizedX, 0.04), 0.96) * size.width,
+            y: min(max(normalizedZ, 0.05), 0.95) * size.height
+        )
+    }
+}
+
+/// One creature's card on the map, split out with an `Equatable` gate so a 10 Hz meter tick
+/// re-renders only the cards whose (quantized) level actually moved — before this, every
+/// diagnostics publish rebuilt every card on the stage (#76). `helpText` is deliberately left
+/// out of `==`: it carries live packet counters that change every publish, and comparing it
+/// would defeat the gate. A tooltip that lags until the next level change is fine; the
+/// counters only tick while audio flows, which is exactly when levels change too.
+private struct StageMapNode: View, @MainActor Equatable {
+    let placement: StagePlacement
+    let isSelected: Bool
+    let level: Double
+    let name: String
+    let helpText: String
+    let speaks: Bool
+    let onSelect: () -> Void
+    let onRemove: (() -> Void)?
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.placement == rhs.placement && lhs.isSelected == rhs.isSelected
+            && lhs.level == rhs.level && lhs.name == rhs.name && lhs.speaks == rhs.speaks
+            && (lhs.onRemove == nil) == (rhs.onRemove == nil)
+    }
+
+    var body: some View {
+        card
     }
 
     /// Which way this creature is pointed, as a compass ring around its icon.
@@ -156,9 +204,8 @@ struct StageMapView: View {
     /// behind the label, and one big enough to clear it floats free of the creature it belongs to.
     /// On a map with five creatures you end up guessing which shape is whose. A badge fixed to the
     /// icon can't detach, costs 28pt, and answers the only question being asked.
-    private func headingBadge(_ placement: StagePlacement, isSelected: Bool) -> some View {
+    private var headingBadge: some View {
         let tint: Color = isSelected ? .accentColor : .teal
-        let speaks = emphasizedCreatureIDs.contains(placement.creatureID)
         return ZStack {
             Circle().fill(tint.opacity(speaks ? 0.28 : 0.12))
             Circle().stroke(tint.opacity(speaks ? 0.8 : 0.35), lineWidth: speaks ? 1.5 : 1)
@@ -188,11 +235,10 @@ struct StageMapView: View {
         .frame(width: 28, height: 28)
     }
 
-    private func card(_ placement: StagePlacement, isSelected: Bool) -> some View {
-        let level = signalLevel(placement.audioChannel)
-        return VStack(spacing: 2) {
-            headingBadge(placement, isSelected: isSelected)
-            Text(displayName(placement))
+    private var card: some View {
+        VStack(spacing: 2) {
+            headingBadge
+            Text(name)
                 .lineLimit(1)
             Text(
                 "CH \(placement.audioChannel)  ·  \(placement.y, specifier: "%+.2f") m  ·  \(placement.yaw, specifier: "%+.0f")°"
@@ -236,20 +282,16 @@ struct StageMapView: View {
             }
         }
         .contentShape(.rect)
-        .onTapGesture {
-            selectedCreatureID = placement.creatureID
-        }
+        .onTapGesture(perform: onSelect)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
-        .accessibilityAction {
-            selectedCreatureID = placement.creatureID
-        }
+        .accessibilityAction { onSelect() }
         .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
-        .help(channelHelp(placement.audioChannel))
+        .help(helpText)
         .contextMenu {
             if let onRemove {
                 Button("Remove from Stage", systemImage: "minus.circle", role: .destructive) {
-                    onRemove(placement.creatureID)
+                    onRemove()
                 }
             }
         }
@@ -268,16 +310,5 @@ struct StageMapView: View {
 
     private var creatureForegroundColor: Color {
         colorScheme == .dark ? .white : .black
-    }
-
-    /// Maps the ±5 m box onto the canvas: x left→right, z top→bottom with −z (in front of the
-    /// listener) at the top, which puts the listener dead centre.
-    private func position(for placement: StagePlacement, in size: CGSize) -> CGPoint {
-        let normalizedX = (CGFloat(placement.x / extent) + 1) / 2
-        let normalizedZ = (CGFloat(placement.z / extent) + 1) / 2
-        return CGPoint(
-            x: min(max(normalizedX, 0.04), 0.96) * size.width,
-            y: min(max(normalizedZ, 0.05), 0.95) * size.height
-        )
     }
 }
