@@ -282,9 +282,13 @@ struct DialogScriptEditor: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Notes").font(.title3).foregroundStyle(.secondary)
+                // TextEditor is greedy: offered unbounded height (a VStack in a ScrollView),
+                // it fills the window instead of hugging its text. The old GlassEffectContainer
+                // happened to bound the proposal; now the cap must be explicit. Longer notes
+                // scroll inside the editor.
                 TextEditor(text: $script.notes)
                     .font(.title3)
-                    .frame(minHeight: 90)
+                    .frame(minHeight: 90, maxHeight: 160)
                     .contentMargins(16, for: .scrollContent)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8).stroke(.quaternary)
@@ -635,9 +639,11 @@ private struct DialogTurnRow: View, @MainActor Equatable {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             } else {
+                // Same explicit cap as the notes editor: without it each expanded turn's
+                // TextEditor stretches to the full window height.
                 TextEditor(text: $turn.text)
                     .font(.title3)
-                    .frame(minHeight: 88)
+                    .frame(minHeight: 88, maxHeight: 200)
                     .contentMargins(16, for: .scrollContent)
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
 
