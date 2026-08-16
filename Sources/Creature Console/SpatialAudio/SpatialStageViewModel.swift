@@ -41,6 +41,11 @@
         let store = StageStore()
 
         private(set) var diagnostics = SpatialStageDiagnostics()
+        /// Mirror of `diagnostics.state`, written only on actual transitions. Controls that
+        /// only care whether playback is active (`isActive`, `isPaused`, `.disabled(...)`)
+        /// track this instead of `diagnostics`, so the 10 Hz numeric publishes don't
+        /// invalidate the whole window (#76).
+        private(set) var playbackState: SpatialStageConnectionState = .stopped
         private(set) var isPreparing = false
         var selectedCreatureID: String?
 
@@ -75,7 +80,7 @@
         }
 
         var isActive: Bool {
-            switch diagnostics.state {
+            switch playbackState {
             case .stopped, .failed:
                 false
             case .starting, .waitingForAudio, .playing, .paused:
@@ -84,7 +89,7 @@
         }
 
         var isPaused: Bool {
-            diagnostics.state == .paused
+            playbackState == .paused
         }
 
         /// The stage being edited, or `nil` when the server has none yet.
@@ -184,7 +189,7 @@
             }
 
             isPreparing = true
-            diagnostics.state = .starting
+            setDiagnosticsState(.starting)
             let token = UUID()
             startToken = token
 
@@ -256,7 +261,7 @@
                     source.start(looping: isLooping)
                 }
             } catch is CancellationError {
-                diagnostics.state = .stopped
+                setDiagnosticsState(.stopped)
             } catch {
                 fail(error.localizedDescription)
             }
@@ -273,11 +278,13 @@
             liveSource = nil
             simulationSource = nil
             renderer = nil
-            diagnostics.state = .stopped
-            diagnostics.bufferedMilliseconds = 0
-            for index in diagnostics.channels.indices {
-                diagnostics.channels[index].level = 0
+            var stopped = diagnostics
+            stopped.state = .stopped
+            stopped.bufferedMilliseconds = 0
+            for index in stopped.channels.indices {
+                stopped.channels[index].level = 0
             }
+            publishDiagnostics(stopped)
         }
 
         func togglePause() {
@@ -299,7 +306,7 @@
                     guard self?.startToken == token else {
                         return
                     }
-                    self?.diagnostics = diagnostics
+                    self?.publishDiagnostics(diagnostics)
                 }
             }
         }
@@ -320,7 +327,20 @@
 
         private func fail(_ message: String) {
             isPreparing = false
-            diagnostics.state = .failed(message)
+            setDiagnosticsState(.failed(message))
+        }
+
+        private func setDiagnosticsState(_ state: SpatialStageConnectionState) {
+            var updated = diagnostics
+            updated.state = state
+            publishDiagnostics(updated)
+        }
+
+        private func publishDiagnostics(_ newDiagnostics: SpatialStageDiagnostics) {
+            diagnostics = newDiagnostics
+            if playbackState != newDiagnostics.state {
+                playbackState = newDiagnostics.state
+            }
         }
     }
 

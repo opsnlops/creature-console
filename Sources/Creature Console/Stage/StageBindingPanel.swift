@@ -101,7 +101,7 @@ struct StageBindingPanel: View {
             }
         }
         .padding(20)
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .panelCard()
     }
 
     private var unplacedSpeakerWarning: String {

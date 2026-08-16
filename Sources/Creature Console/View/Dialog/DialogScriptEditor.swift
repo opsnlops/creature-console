@@ -52,9 +52,11 @@ struct DialogScriptEditor: View {
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
 
-    @Query private var sounds: [SoundModel]
-
-    @Query private var animations: [AnimationMetadataModel]
+    /// Only the animations rendered from a dialog script — the provenance-bearing subset.
+    /// A whole-table query here meant every SwiftData save anywhere (server log lines arrive
+    /// continuously) re-fetched all animation metadata just to answer `hasRenderedAnimation` (#74).
+    @Query(filter: #Predicate<AnimationMetadataModel> { $0.sourceScriptId != nil })
+    private var scriptRenderedAnimations: [AnimationMetadataModel]
 
     private let server = CreatureServerClient.shared
 
@@ -104,123 +106,121 @@ struct DialogScriptEditor: View {
     /// empty-state copy for scripts whose takes aged out but whose renders live on.
     private var hasRenderedAnimation: Bool {
         let scriptID = original.id.uuidString.lowercased()
-        return animations.contains { $0.sourceScriptId?.lowercased() == scriptID }
+        return scriptRenderedAnimations.contains { $0.sourceScriptId?.lowercased() == scriptID }
     }
 
     var body: some View {
         ScrollView {
-            GlassEffectContainer(spacing: 16) {
-                VStack(alignment: .leading, spacing: 16) {
-                    detailsSection
-                    turnsSection
-                    // The stage is part of authoring the scene, not a render option: it decides
-                    // whether the cast looks at each other, and it's saved with the script.
-                    StageBindingPanel(
-                        stageId: $script.stageId,
-                        speakingCreatureIDs: script.turns.map(\.creatureId),
-                        creatureName: creatureName(for:)
-                    )
-                    // Keep the voice workflow visible while authoring, but the panel requires the
-                    // current turns to be saved before it will generate or accept a take. Music
-                    // and final render additionally require an exact accepted full-dialog take.
-                    if !script.turns.isEmpty {
-                        DialogPreviewPanel(
-                            turns: script.turns, title: script.title,
-                            scope: $previewScope,
-                            fullDialogMeta: $fullDialogMeta,
-                            currentCacheKey: $currentCacheKey,
-                            // renderScriptId, not just the saved id: the server rejects accepting
-                            // against turns it hasn't seen (its cache-key check compares the
-                            // SAVED script), so a dirty editor must disable Accept the same way
-                            // it disables Render — with "save first" as the stated fix.
-                            scriptId: renderScriptId,
-                            acceptedVoice: original.acceptedVoice,
-                            hasExistingRender: hasRenderedAnimation,
-                            stageId: script.stageId
-                        ) { canonical in
-                            // Acceptance is a server-side field mutation, like music promotion.
-                            // Merge only the voice + timestamps so a response landing after a
-                            // local edit can't clobber turns still being authored.
-                            var updatedOriginal = original
-                            updatedOriginal.acceptedVoice = canonical.acceptedVoice
-                            updatedOriginal.createdAt = canonical.createdAt
-                            updatedOriginal.updatedAt = canonical.updatedAt
-                            original = updatedOriginal
+            VStack(alignment: .leading, spacing: 16) {
+                detailsSection
+                turnsSection
+                // The stage is part of authoring the scene, not a render option: it decides
+                // whether the cast looks at each other, and it's saved with the script.
+                StageBindingPanel(
+                    stageId: $script.stageId,
+                    speakingCreatureIDs: script.turns.map(\.creatureId),
+                    creatureName: creatureName(for:)
+                )
+                // Keep the voice workflow visible while authoring, but the panel requires the
+                // current turns to be saved before it will generate or accept a take. Music
+                // and final render additionally require an exact accepted full-dialog take.
+                if !script.turns.isEmpty {
+                    DialogPreviewPanel(
+                        turns: script.turns, title: script.title,
+                        scope: $previewScope,
+                        fullDialogMeta: $fullDialogMeta,
+                        currentCacheKey: $currentCacheKey,
+                        // renderScriptId, not just the saved id: the server rejects accepting
+                        // against turns it hasn't seen (its cache-key check compares the
+                        // SAVED script), so a dirty editor must disable Accept the same way
+                        // it disables Render — with "save first" as the stated fix.
+                        scriptId: renderScriptId,
+                        acceptedVoice: original.acceptedVoice,
+                        hasExistingRender: hasRenderedAnimation,
+                        stageId: script.stageId
+                    ) { canonical in
+                        // Acceptance is a server-side field mutation, like music promotion.
+                        // Merge only the voice + timestamps so a response landing after a
+                        // local edit can't clobber turns still being authored.
+                        var updatedOriginal = original
+                        updatedOriginal.acceptedVoice = canonical.acceptedVoice
+                        updatedOriginal.createdAt = canonical.createdAt
+                        updatedOriginal.updatedAt = canonical.updatedAt
+                        original = updatedOriginal
 
-                            var updatedScript = script
-                            updatedScript.acceptedVoice = canonical.acceptedVoice
-                            updatedScript.createdAt = canonical.createdAt
-                            updatedScript.updatedAt = canonical.updatedAt
-                            script = updatedScript
-                            persistLocalScript(updatedScript)
-                        }
-                        DialogMusicPanel(
+                        var updatedScript = script
+                        updatedScript.acceptedVoice = canonical.acceptedVoice
+                        updatedScript.createdAt = canonical.createdAt
+                        updatedScript.updatedAt = canonical.updatedAt
+                        script = updatedScript
+                        persistLocalScript(updatedScript)
+                    }
+                    DialogMusicPanel(
+                        scriptId: renderScriptId,
+                        acceptedVoice: original.acceptedVoice,
+                        acceptedVoiceIsFresh: hasFreshAcceptedVoice,
+                        backgroundMusic: original.backgroundMusic,
+                        hasUnsavedChanges: createNew || isDirty
+                    ) { canonical in
+                        // Music removal is a server-side field mutation. Merge only that
+                        // field so a response that arrives after a local edit cannot erase
+                        // title, notes, or turns that are still being authored.
+                        var updatedOriginal = original
+                        updatedOriginal.backgroundMusic = canonical.backgroundMusic
+                        updatedOriginal.createdAt = canonical.createdAt
+                        updatedOriginal.updatedAt = canonical.updatedAt
+                        original = updatedOriginal
+
+                        var updatedScript = script
+                        updatedScript.backgroundMusic = canonical.backgroundMusic
+                        updatedScript.createdAt = canonical.createdAt
+                        updatedScript.updatedAt = canonical.updatedAt
+                        script = updatedScript
+                        persistLocalScript(updatedScript)
+                    } onMusicUpdated: { music in
+                        var updated = original
+                        updated.backgroundMusic = music
+                        original = updated
+                        var localScript = script
+                        localScript.backgroundMusic = music
+                        script = localScript
+                        persistLocalScript(localScript)
+                    }
+                    switch mode {
+                    case .standalone:
+                        DialogRenderPanel(
                             scriptId: renderScriptId,
+                            turns: script.turns,
                             acceptedVoice: original.acceptedVoice,
-                            acceptedVoiceIsFresh: hasFreshAcceptedVoice,
+                            currentCacheKey: currentCacheKey,
+                            defaultTitle: script.title,
                             backgroundMusic: original.backgroundMusic,
-                            hasUnsavedChanges: createNew || isDirty
-                        ) { canonical in
-                            // Music removal is a server-side field mutation. Merge only that
-                            // field so a response that arrives after a local edit cannot erase
-                            // title, notes, or turns that are still being authored.
-                            var updatedOriginal = original
-                            updatedOriginal.backgroundMusic = canonical.backgroundMusic
-                            updatedOriginal.createdAt = canonical.createdAt
-                            updatedOriginal.updatedAt = canonical.updatedAt
-                            original = updatedOriginal
-
-                            var updatedScript = script
-                            updatedScript.backgroundMusic = canonical.backgroundMusic
-                            updatedScript.createdAt = canonical.createdAt
-                            updatedScript.updatedAt = canonical.updatedAt
-                            script = updatedScript
-                            persistLocalScript(updatedScript)
-                        } onMusicUpdated: { music in
-                            var updated = original
-                            updated.backgroundMusic = music
-                            original = updated
-                            var localScript = script
-                            localScript.backgroundMusic = music
-                            script = localScript
-                            persistLocalScript(localScript)
-                        }
-                        switch mode {
-                        case .standalone:
-                            DialogRenderPanel(
-                                scriptId: renderScriptId,
-                                turns: script.turns,
-                                acceptedVoice: original.acceptedVoice,
-                                currentCacheKey: currentCacheKey,
-                                defaultTitle: script.title,
-                                backgroundMusic: original.backgroundMusic,
-                                // The *live* stage, not the saved one. Rendering is only possible
-                                // once the script is saved (renderScriptId gates on !isDirty), at
-                                // which point live == saved — so this is always what the render
-                                // will actually use, and it never contradicts the picker above.
-                                scriptStageId: script.stageId)
-                        case .animationLinked:
-                            // This script already has a rendered animation; offer an in-place
-                            // re-render instead of a fresh one. Requires a saved (non-dirty) script
-                            // so the re-render picks up the latest turns server-side.
-                            if !createNew {
-                                DialogRerenderButton(
-                                    scriptId: original.id,
-                                    title: script.title,
-                                    disabled: isDirty || !hasFreshAcceptedVoice,
-                                    disabledHint: isDirty
-                                        ? "Save your edits first so the re-render includes them."
-                                        : (!hasFreshAcceptedVoice
-                                            ? "Accept a voice take first — renders only use audited voices."
-                                            : nil)
-                                )
-                            }
+                            // The *live* stage, not the saved one. Rendering is only possible
+                            // once the script is saved (renderScriptId gates on !isDirty), at
+                            // which point live == saved — so this is always what the render
+                            // will actually use, and it never contradicts the picker above.
+                            scriptStageId: script.stageId)
+                    case .animationLinked:
+                        // This script already has a rendered animation; offer an in-place
+                        // re-render instead of a fresh one. Requires a saved (non-dirty) script
+                        // so the re-render picks up the latest turns server-side.
+                        if !createNew {
+                            DialogRerenderButton(
+                                scriptId: original.id,
+                                title: script.title,
+                                disabled: isDirty || !hasFreshAcceptedVoice,
+                                disabledHint: isDirty
+                                    ? "Save your edits first so the re-render includes them."
+                                    : (!hasFreshAcceptedVoice
+                                        ? "Accept a voice take first — renders only use audited voices."
+                                        : nil)
+                            )
                         }
                     }
-                    Spacer(minLength: 40)
                 }
-                .padding()
+                Spacer(minLength: 40)
             }
+            .padding()
         }
         .navigationTitle(
             createNew ? "New Dialog" : (script.title.isEmpty ? "Dialog" : script.title)
@@ -277,24 +277,28 @@ struct DialogScriptEditor: View {
                     TextField("Scene title", text: $script.title)
                         .textFieldStyle(.roundedBorder)
                         .font(.title3)
-                    characterCount(script.title.count, limit: DialogLimits.maxTitle)
+                    CharacterCountLabel(count: script.title.count, limit: DialogLimits.maxTitle)
                 }
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Notes").font(.title3).foregroundStyle(.secondary)
+                // TextEditor is greedy: offered unbounded height (a VStack in a ScrollView),
+                // it fills the window instead of hugging its text. The old GlassEffectContainer
+                // happened to bound the proposal; now the cap must be explicit. Longer notes
+                // scroll inside the editor.
                 TextEditor(text: $script.notes)
                     .font(.title3)
-                    .frame(minHeight: 90)
+                    .frame(minHeight: 90, maxHeight: 160)
                     .contentMargins(16, for: .scrollContent)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8).stroke(.quaternary)
                     )
-                characterCount(script.notes.count, limit: DialogLimits.maxNotes)
+                CharacterCountLabel(count: script.notes.count, limit: DialogLimits.maxNotes)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .padding(20)
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .panelCard()
     }
 
     private var turnsSection: some View {
@@ -352,7 +356,27 @@ struct DialogScriptEditor: View {
             }
 
             ForEach($script.turns) { $turn in
-                turnRow(turn: $turn)
+                let id = turn.id
+                let index = script.turns.firstIndex(where: { $0.id == id }) ?? 0
+                DialogTurnRow(
+                    turn: $turn,
+                    index: index,
+                    turnCount: script.turns.count,
+                    isCollapsed: collapsedTurnIds.contains(id),
+                    creatures: creatures,
+                    onPreview: { previewScope = .turn(index) },
+                    onToggleCollapsed: {
+                        if collapsedTurnIds.contains(id) {
+                            collapsedTurnIds.remove(id)
+                        } else {
+                            collapsedTurnIds.insert(id)
+                        }
+                    },
+                    onMoveUp: { moveTurn(id: id, by: -1) },
+                    onMoveDown: { moveTurn(id: id, by: 1) },
+                    onRemove: { removeTurn(id: id) }
+                )
+                .equatable()
             }
 
             Button {
@@ -363,104 +387,12 @@ struct DialogScriptEditor: View {
             .disabled(!canAddTurn)
         }
         .padding(20)
-        .glassEffect(.regular, in: .rect(cornerRadius: 12))
-    }
-
-    @ViewBuilder
-    private func turnRow(turn: Binding<DialogScriptTurn>) -> some View {
-        let id = turn.wrappedValue.id
-        let index = script.turns.firstIndex(where: { $0.id == id }) ?? 0
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Turn \(index + 1)").font(.title3.bold())
-                Spacer()
-                creaturePicker(selection: turn.creatureId)
-                Button {
-                    previewScope = .turn(index)
-                } label: {
-                    Label("Preview This Turn", systemImage: "play.circle")
-                }
-                .buttonStyle(.borderless)
-                .help("Switch the voice panel to a partial preview of this turn")
-                Button {
-                    if collapsedTurnIds.contains(id) {
-                        collapsedTurnIds.remove(id)
-                    } else {
-                        collapsedTurnIds.insert(id)
-                    }
-                } label: {
-                    Image(systemName: collapsedTurnIds.contains(id) ? "chevron.down" : "chevron.up")
-                }
-                .buttonStyle(.borderless)
-                Button {
-                    moveTurn(id: id, by: -1)
-                } label: {
-                    Image(systemName: "arrow.up")
-                }
-                .disabled(index == 0)
-                .buttonStyle(.borderless)
-                Button {
-                    moveTurn(id: id, by: 1)
-                } label: {
-                    Image(systemName: "arrow.down")
-                }
-                .disabled(index == script.turns.count - 1)
-                .buttonStyle(.borderless)
-                Button(role: .destructive) {
-                    removeTurn(id: id)
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.borderless)
-            }
-
-            if collapsedTurnIds.contains(id) {
-                Text(turn.wrappedValue.text.isEmpty ? "Empty turn" : turn.wrappedValue.text)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            } else {
-                TextEditor(text: turn.text)
-                    .font(.title3)
-                    .frame(minHeight: 88)
-                    .contentMargins(16, for: .scrollContent)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
-
-                characterCount(turn.wrappedValue.text.count, limit: DialogLimits.maxTurnText)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-        }
-        .padding(16)
-        .glassEffect(.regular, in: .rect(cornerRadius: 10))
-    }
-
-    private func creaturePicker(selection: Binding<CreatureIdentifier>) -> some View {
-        Picker("Creature", selection: selection) {
-            Text("Select creature…").tag("")
-            ForEach(creatures) { creature in
-                Text(creature.name).tag(creature.id)
-            }
-            // Preserve an unknown / missing creature id so editing doesn't silently drop it.
-            if !selection.wrappedValue.isEmpty,
-                !creatures.contains(where: { $0.id == selection.wrappedValue })
-            {
-                Text("Unknown (\(selection.wrappedValue.prefix(8)))")
-                    .tag(selection.wrappedValue)
-            }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 220)
+        .panelCard()
     }
 
     private func creatureName(for id: CreatureIdentifier) -> String {
         creatures.first(where: { $0.id == id })?.name
             ?? (id.isEmpty ? "No creature" : "Unknown")
-    }
-
-    private func characterCount(_ count: Int, limit: Int) -> some View {
-        Text("\(count)/\(limit)")
-            .font(.caption2)
-            .foregroundStyle(count > limit ? .red : .secondary)
     }
 
     // MARK: - Derived
@@ -641,5 +573,114 @@ struct DialogScriptEditor: View {
                 )
             }
         }
+    }
+}
+
+/// One turn's editing card, split out of the editor with an `Equatable` gate so a keystroke in
+/// one turn re-renders only that row. Before this, every character typed rebuilt every glass
+/// panel and TextEditor in the editor (#74). Anything a closure captures that can change while
+/// the row's inputs stay equal must be part of `==` — otherwise a skipped render keeps a stale
+/// closure.
+private struct DialogTurnRow: View, @MainActor Equatable {
+    @Binding var turn: DialogScriptTurn
+    let index: Int
+    let turnCount: Int
+    let isCollapsed: Bool
+    let creatures: [CreatureModel]
+    let onPreview: () -> Void
+    let onToggleCollapsed: () -> Void
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+    let onRemove: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        // Creatures compare by identity: SwiftData hands the same model instances back across
+        // fetches, and Observation tracks in-place renames because the body reads `.name`.
+        lhs.turn == rhs.turn && lhs.index == rhs.index && lhs.turnCount == rhs.turnCount
+            && lhs.isCollapsed == rhs.isCollapsed
+            && lhs.creatures.count == rhs.creatures.count
+            && zip(lhs.creatures, rhs.creatures).allSatisfy { $0 === $1 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Turn \(index + 1)").font(.title3.bold())
+                Spacer()
+                creaturePicker
+                Button(action: onPreview) {
+                    Label("Preview This Turn", systemImage: "play.circle")
+                }
+                .buttonStyle(.borderless)
+                .help("Switch the voice panel to a partial preview of this turn")
+                Button(action: onToggleCollapsed) {
+                    Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
+                }
+                .buttonStyle(.borderless)
+                Button(action: onMoveUp) {
+                    Image(systemName: "arrow.up")
+                }
+                .disabled(index == 0)
+                .buttonStyle(.borderless)
+                Button(action: onMoveDown) {
+                    Image(systemName: "arrow.down")
+                }
+                .disabled(index == turnCount - 1)
+                .buttonStyle(.borderless)
+                Button(role: .destructive, action: onRemove) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+            }
+
+            if isCollapsed {
+                Text(turn.text.isEmpty ? "Empty turn" : turn.text)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            } else {
+                // Same explicit cap as the notes editor: without it each expanded turn's
+                // TextEditor stretches to the full window height.
+                TextEditor(text: $turn.text)
+                    .font(.title3)
+                    .frame(minHeight: 88, maxHeight: 200)
+                    .contentMargins(16, for: .scrollContent)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+
+                CharacterCountLabel(count: turn.text.count, limit: DialogLimits.maxTurnText)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+        .padding(16)
+        .panelCard(cornerRadius: 10)
+    }
+
+    private var creaturePicker: some View {
+        Picker("Creature", selection: $turn.creatureId) {
+            Text("Select creature…").tag("")
+            ForEach(creatures) { creature in
+                Text(creature.name).tag(creature.id)
+            }
+            // Preserve an unknown / missing creature id so editing doesn't silently drop it.
+            if !turn.creatureId.isEmpty,
+                !creatures.contains(where: { $0.id == turn.creatureId })
+            {
+                Text("Unknown (\(turn.creatureId.prefix(8)))")
+                    .tag(turn.creatureId)
+            }
+        }
+        .labelsHidden()
+        .frame(maxWidth: 220)
+    }
+}
+
+private struct CharacterCountLabel: View {
+    let count: Int
+    let limit: Int
+
+    var body: some View {
+        Text("\(count)/\(limit)")
+            .font(.caption2)
+            .foregroundStyle(count > limit ? .red : .secondary)
     }
 }

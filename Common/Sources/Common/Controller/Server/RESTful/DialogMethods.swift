@@ -1,8 +1,6 @@
 import Foundation
 import Logging
 
-private struct EmptyBody: Encodable {}
-
 /// The lookup endpoint deliberately accepts only `turns`. Keep this separate from
 /// `DialogPreviewRequest`, whose optional generation/title fields belong to `/preview/meta`.
 private struct DialogPreviewLookupBody: Encodable {
@@ -120,7 +118,7 @@ extension CreatureServerClient {
 
         return await sendData(
             path: "/animation/dialog/script/\(scriptId.uuidString.lowercased())/music",
-            method: "DELETE", body: EmptyBody(), returnType: DialogScript.self)
+            method: "DELETE", returnType: DialogScript.self)
     }
 
     public func deleteDialogScript(id: DialogScriptIdentifier) async -> Result<String, ServerError>
@@ -129,7 +127,7 @@ extension CreatureServerClient {
 
         return await sendData(
             path: "/animation/dialog/script/\(id.uuidString.lowercased())", method: "DELETE",
-            body: EmptyBody(), returnType: StatusDTO.self
+            returnType: StatusDTO.self
         ).map { $0.message }
     }
 
@@ -263,7 +261,7 @@ extension CreatureServerClient {
     ) async -> Result<DialogScript, ServerError> {
         await sendData(
             path: "/animation/dialog/script/\(scriptId.uuidString.lowercased())/voice",
-            method: "DELETE", body: EmptyBody(), returnType: DialogScript.self)
+            method: "DELETE", returnType: DialogScript.self)
     }
 
     public func promoteDialogMusic(generationId: UUID) async -> Result<
@@ -272,7 +270,7 @@ extension CreatureServerClient {
         await sendData(
             path:
                 "/animation/dialog/music/generated/\(generationId.uuidString.lowercased())/promote",
-            method: "POST", body: EmptyBody(), returnType: DialogMusicPromotionResult.self)
+            method: "POST", returnType: DialogMusicPromotionResult.self)
     }
 
     public func dialogMusicGenerationURL(generationId: UUID) -> URL? {

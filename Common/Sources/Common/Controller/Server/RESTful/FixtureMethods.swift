@@ -1,8 +1,6 @@
 import Foundation
 import Logging
 
-private struct EmptyBody: Encodable {}
-
 extension CreatureServerClient {
 
     public func getAllFixtures() async -> Result<[DmxFixture], ServerError> {
@@ -30,7 +28,7 @@ extension CreatureServerClient {
         logger.debug("attempting to delete fixture \(id)")
 
         return await sendData(
-            path: "/fixture/\(id)", method: "DELETE", body: EmptyBody(), returnType: StatusDTO.self
+            path: "/fixture/\(id)", method: "DELETE", returnType: StatusDTO.self
         ).map { $0.message }
     }
 
@@ -60,7 +58,7 @@ extension CreatureServerClient {
         logger.debug("clearing universe on fixture \(id)")
 
         return await sendData(
-            path: "/fixture/\(id)/universe", method: "DELETE", body: EmptyBody(),
+            path: "/fixture/\(id)/universe", method: "DELETE",
             returnType: DmxFixture.self)
     }
 

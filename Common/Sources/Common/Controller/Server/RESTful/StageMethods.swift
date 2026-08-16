@@ -1,8 +1,6 @@
 import Foundation
 import Logging
 
-private struct EmptyBody: Encodable {}
-
 extension CreatureServerClient {
 
     public func listStages() async -> Result<[Stage], ServerError> {
@@ -46,7 +44,7 @@ extension CreatureServerClient {
         logger.debug("attempting to delete stage \(id)")
 
         return await sendData(
-            path: "/stage/\(id.uuidString.lowercased())", method: "DELETE", body: EmptyBody(),
+            path: "/stage/\(id.uuidString.lowercased())", method: "DELETE",
             returnType: StatusDTO.self
         ).map { $0.message }
     }

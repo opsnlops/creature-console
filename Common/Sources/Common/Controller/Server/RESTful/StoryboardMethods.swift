@@ -1,8 +1,6 @@
 import Foundation
 import Logging
 
-private struct EmptyBody: Encodable {}
-
 extension CreatureServerClient {
 
     public func listStoryboards() async -> Result<[Storyboard], ServerError> {
@@ -47,7 +45,7 @@ extension CreatureServerClient {
         logger.debug("attempting to delete storyboard \(id)")
 
         return await sendData(
-            path: "/storyboard/\(id.uuidString.lowercased())", method: "DELETE", body: EmptyBody(),
+            path: "/storyboard/\(id.uuidString.lowercased())", method: "DELETE",
             returnType: StatusDTO.self
         ).map { $0.message }
     }

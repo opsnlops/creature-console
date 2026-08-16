@@ -341,30 +341,15 @@ struct SACNUniverseMonitorView: View {
         }
     }
 
+    // The status line and grid live in child views so only they track the receiver's
+    // high-rate properties — read in this struct's body, every flush would re-render the
+    // whole monitor, header pickers included (#76).
     private var statusLine: some View {
-        HStack(spacing: 12) {
-            Label(statusText, systemImage: statusSymbol)
-                .foregroundStyle(statusTint)
-            if let lastPacketDate = viewModel.lastPacketDate {
-                Text("Last packet \(lastPacketDate, style: .relative)")
-                    .foregroundStyle(.secondary)
-            }
-            if let sequence = viewModel.lastSequence {
-                Text("Seq \(sequence)")
-                    .foregroundStyle(.secondary)
-            }
-            Text("Packets \(viewModel.packetCount)")
-                .foregroundStyle(.secondary)
-        }
+        SACNMonitorStatusLine(viewModel: viewModel)
     }
 
     private var grid: some View {
-        SACNUniverseGridView(
-            slots: viewModel.slots,
-            slotOwners: slotOwners
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .layoutPriority(1)
+        SACNMonitorGrid(viewModel: viewModel, slotOwners: slotOwners)
     }
 
     private var legend: some View {
@@ -455,6 +440,72 @@ struct SACNUniverseMonitorView: View {
         return parts.joined(separator: " · ")
     }
 
+    /// Recompute who owns which slot for the universe we're currently watching. Cheap enough
+    /// to redo on a universe change — it's a walk over the cached creatures and fixtures.
+    private func rebuildOverlay() {
+        let overlay = SACNUniverseOverlayBuilder.build(
+            creatures: overlayCreatures,
+            fixtures: overlayFixtures,
+            universe: UInt32(clamping: viewModel.universe)
+        )
+        slotOwners = overlay.slotOwners
+        creatureLegend = overlay.creatures
+        fixtureLegend = overlay.fixtures
+    }
+
+    /// Pull the creatures and fixtures out of SwiftData on a background context and hand the
+    /// value-type DTOs back to the main actor.
+    private func reloadOverlaySources() {
+        Task {
+            let container = await SwiftDataStore.shared.container()
+            let context = ModelContext(container)
+            let creatureDescriptor = FetchDescriptor<CreatureModel>(
+                sortBy: [SortDescriptor(\.name, order: .forward)]
+            )
+            let fixtureDescriptor = FetchDescriptor<DmxFixtureModel>(
+                sortBy: [SortDescriptor(\.name, order: .forward)]
+            )
+            do {
+                let creatures = try context.fetch(creatureDescriptor).map { $0.toDTO() }
+                let fixtures = try context.fetch(fixtureDescriptor).map { $0.toDTO() }
+                await MainActor.run {
+                    overlayCreatures = creatures
+                    overlayFixtures = fixtures
+                    rebuildOverlay()
+                }
+            } catch {
+                await MainActor.run {
+                    overlayCreatures = []
+                    overlayFixtures = []
+                    rebuildOverlay()
+                }
+            }
+        }
+    }
+}
+
+private struct SACNMonitorStatusLine: View {
+    var viewModel: SACNUniverseMonitorViewModel
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Label(statusText, systemImage: statusSymbol)
+                .foregroundStyle(statusTint)
+            if let lastPacketDate = viewModel.lastPacketDate {
+                Text("Last packet \(lastPacketDate, style: .relative)")
+                    .foregroundStyle(.secondary)
+            }
+            if let sequence = viewModel.lastSequence {
+                Text("Seq \(sequence)")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            Text("Packets \(viewModel.packetCount)")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private var statusText: String {
         switch viewModel.status {
         case .idle:
@@ -511,48 +562,19 @@ struct SACNUniverseMonitorView: View {
             return .secondary
         }
     }
+}
 
-    /// Recompute who owns which slot for the universe we're currently watching. Cheap enough
-    /// to redo on a universe change — it's a walk over the cached creatures and fixtures.
-    private func rebuildOverlay() {
-        let overlay = SACNUniverseOverlayBuilder.build(
-            creatures: overlayCreatures,
-            fixtures: overlayFixtures,
-            universe: UInt32(clamping: viewModel.universe)
+private struct SACNMonitorGrid: View {
+    var viewModel: SACNUniverseMonitorViewModel
+    let slotOwners: [Int: [SACNSlotOwner]]
+
+    var body: some View {
+        SACNUniverseGridView(
+            slots: viewModel.slots,
+            slotOwners: slotOwners
         )
-        slotOwners = overlay.slotOwners
-        creatureLegend = overlay.creatures
-        fixtureLegend = overlay.fixtures
-    }
-
-    /// Pull the creatures and fixtures out of SwiftData on a background context and hand the
-    /// value-type DTOs back to the main actor.
-    private func reloadOverlaySources() {
-        Task {
-            let container = await SwiftDataStore.shared.container()
-            let context = ModelContext(container)
-            let creatureDescriptor = FetchDescriptor<CreatureModel>(
-                sortBy: [SortDescriptor(\.name, order: .forward)]
-            )
-            let fixtureDescriptor = FetchDescriptor<DmxFixtureModel>(
-                sortBy: [SortDescriptor(\.name, order: .forward)]
-            )
-            do {
-                let creatures = try context.fetch(creatureDescriptor).map { $0.toDTO() }
-                let fixtures = try context.fetch(fixtureDescriptor).map { $0.toDTO() }
-                await MainActor.run {
-                    overlayCreatures = creatures
-                    overlayFixtures = fixtures
-                    rebuildOverlay()
-                }
-            } catch {
-                await MainActor.run {
-                    overlayCreatures = []
-                    overlayFixtures = []
-                    rebuildOverlay()
-                }
-            }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .layoutPriority(1)
     }
 }
 

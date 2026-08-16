@@ -125,7 +125,7 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
     /**
      Returns the URL to our server
-
+    
      @param type Which type of URL to make (http or websocket)
      */
     public func makeBaseURL(_ type: UrlType) -> String {
@@ -188,10 +188,10 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
     /**
      Creates a configured URLRequest with proper headers for proxy support
-
+    
      This method ensures all HTTP requests to the server include the necessary headers
      for proxy authentication and routing, regardless of where in the app they originate.
-
+    
      - Parameter url: The URL to create the request for
      - Returns: A URLRequest configured with API key and Host headers as needed
      */
@@ -310,6 +310,44 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         logger.debug("Using URL: \(url)")
         return await sendDataResponse(
             url, method: method, body: body, successStatusCodes: successStatusCodes)
+    }
+
+    /// Send a request with no body at all — for action and delete endpoints that take no
+    /// payload. Encoding a placeholder (`{}`) here is not harmless: server endpoints that
+    /// declare no body never drain those two bytes, and on a keep-alive connection they get
+    /// parsed as the start of the *next* request's method (`{}GET …`), failing its routing
+    /// (#75, creature-server#142).
+    func sendData<T: Decodable>(
+        path: String, method: String, returnType: T.Type
+    ) async -> Result<T, ServerError> {
+        guard let url = makeURL(path) else {
+            return .failure(.serverError("unable to make base URL"))
+        }
+        logger.debug("Using URL: \(url)")
+        let response = await sendDataResponse(url, method: method)
+        switch response {
+        case .success(let response):
+            return decodeResponse(response.data, returnType: returnType)
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
+    /// Bodyless request primitive: no `httpBody`, no Content-Type.
+    func sendDataResponse(
+        _ url: URL,
+        method: String,
+        successStatusCodes: Set<Int> = [200, 201, 202]
+    ) async -> Result<HTTPResponseData, ServerError> {
+        var request = createConfiguredURLRequest(for: url)
+        request.httpMethod = method
+
+        return await performRequest(
+            request,
+            method: method,
+            url: url,
+            successStatusCodes: successStatusCodes
+        )
     }
 
     func sendRawJson<T: Decodable>(

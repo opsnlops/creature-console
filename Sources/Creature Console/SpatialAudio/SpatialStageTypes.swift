@@ -1,4 +1,5 @@
 #if os(macOS) || os(tvOS)
+    import Accelerate
     import Foundation
 
     enum SpatialStageInputMode: String, CaseIterable, Identifiable, Sendable {
@@ -85,6 +86,19 @@
 
     enum SpatialAudioLevel {
         static func rootMeanSquare(of samples: [Float]) -> Float {
+            guard !samples.isEmpty else {
+                return 0
+            }
+
+            // Meters run this over every decoded packet on every channel (~800k samples/s
+            // while a scene plays), so it has to be the vectorized path. A non-finite
+            // sample poisons the vDSP result, which routes those rare defensive cases to
+            // the scalar filter below — same ignore-the-garbage semantics the tests pin.
+            let vectorized = vDSP.rootMeanSquare(samples)
+            if vectorized.isFinite {
+                return vectorized
+            }
+
             var energy = 0.0
             var finiteSampleCount = 0
 

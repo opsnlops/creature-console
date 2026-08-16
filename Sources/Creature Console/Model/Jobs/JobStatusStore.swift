@@ -93,8 +93,53 @@ actor JobStatusStore {
                 }
                 continuation.finish()
             }
-            continuation.onTermination = { _ in task.cancel() }
+            // Backstop for lost websocket completions: completions arrive only over the
+            // websocket, so a job that finishes while the socket is down (or still
+            // connecting) would otherwise strand this watcher forever — the stage
+            // re-render run froze exactly this way (#77). The poll feeds a terminal REST
+            // snapshot through the normal completion path; while events flow it never
+            // has anything to add.
+            let pollTask = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(15))
+                    guard !Task.isCancelled else { return }
+                    await self.reconcileFromServer(jobId: jobId)
+                }
+            }
+            continuation.onTermination = { _ in
+                task.cancel()
+                pollTask.cancel()
+            }
         }
+    }
+
+    /// Fetch the job's REST snapshot and, if it is terminal, route it through the store's
+    /// completion path so every observer hears about it via the usual broadcast. Non-terminal
+    /// snapshots are discarded — live progress belongs to the websocket, and a slow poll
+    /// racing a fresh event must not overwrite it.
+    private func reconcileFromServer(jobId: String) async {
+        // Skip jobs the store no longer tracks: either the completion already arrived (and
+        // the watcher removed the job) or it was never seeded here.
+        guard jobs[jobId] != nil else { return }
+        guard
+            case .success(let snapshot) = await CreatureServerClient.shared.getJob(jobId: jobId),
+            snapshot.status.isTerminal,
+            // Re-check after the await: the real completion may have landed (and removed
+            // the job) while the fetch was in flight, and updating now would resurrect it.
+            jobs[jobId] != nil
+        else { return }
+
+        logger.warning(
+            "JobStatusStore: job \(jobId) is \(snapshot.status.rawValue) per REST snapshot but no websocket completion arrived — reconciling"
+        )
+        update(
+            with: JobCompletion(
+                jobId: snapshot.jobId,
+                jobType: snapshot.jobType,
+                status: snapshot.status,
+                result: snapshot.result,
+                details: snapshot.details
+            ))
     }
 
     /// Seed the store with an optimistic queued/0.0 entry right after the server accepts

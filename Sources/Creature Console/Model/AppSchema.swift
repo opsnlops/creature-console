@@ -8,10 +8,17 @@ enum AppSchema {
     static var modelTypes: [any PersistentModel.Type] {
         [
             SoundModel.self, CreatureModel.self, AnimationMetadataModel.self,
-            PlaylistModel.self, PlaylistItemModel.self, ServerLogModel.self,
+            PlaylistModel.self, PlaylistItemModel.self,
             DmxFixtureModel.self, DialogScriptModel.self, StoryboardModel.self,
             StageModel.self,
         ]
+    }
+
+    /// Server logs live in their own ModelContainer, not the cache container above: every
+    /// ModelContext save re-runs every `@Query` on the same container, so the log stream's
+    /// steady flushes were re-rendering every query-backed view in the app (#76).
+    static var logModelTypes: [any PersistentModel.Type] {
+        [ServerLogModel.self]
     }
 }
 
