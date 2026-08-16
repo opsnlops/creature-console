@@ -1,3 +1,12 @@
+creature-cli (2.50.3) unstable; urgency=medium
+
+  * No CLI changes; version kept in lockstep with the console apps
+    (live-monitor and dialog-editor performance work: observation-scoped
+    subviews, a dedicated server-log store, cached sACN grid overlays,
+    vDSP meters, and a REST backstop for lost job completions).
+
+ -- April White <april@creature.engineering>  Sat, 15 Aug 2026 23:22:17 -0700
+
 creature-cli (2.50.2) unstable; urgency=medium
 
   * No CLI changes; version kept in lockstep with the console apps
