@@ -9,7 +9,7 @@ import SwiftUI
 /// semantics, mirroring `DialogScriptEditor`); saves via the server CRUD.
 struct StoryboardEditor: View {
 
-    private let logger = Logger(
+    private static let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "StoryboardEditor")
 
     @State private var createNew: Bool
@@ -21,6 +21,13 @@ struct StoryboardEditor: View {
     /// Drives the iOS editor *sheet* — set only by an explicit tap, never by dragging, so moving a
     /// tile doesn't pop the inspector over the canvas. (macOS uses the side column instead.)
     @State private var editingTileID: UUID? = nil
+
+    private var isEditingSheetPresented: Binding<Bool> {
+        Binding(
+            get: { editingTileID != nil },
+            set: { if !$0 { editingTileID = nil } }
+        )
+    }
 
     @State private var isSaving = false
     @State private var savingMessage = ""
@@ -43,6 +50,8 @@ struct StoryboardEditor: View {
     private var dialogs: [DialogScriptModel]
 
     private let server = CreatureServerClient.shared
+
+    // MARK: - Init
 
     init(createNew: Bool) {
         let template = Storyboard.newEmpty()
@@ -229,6 +238,8 @@ struct StoryboardEditor: View {
             .padding(12)
     }
 
+    // MARK: - Gestures
+
     @ViewBuilder
     private func tileView(tile: Binding<StoryboardTile>, canvasSize: CGSize) -> some View {
         let t = tile.wrappedValue
@@ -330,7 +341,8 @@ struct StoryboardEditor: View {
         if isSaving {
             Text(savingMessage)
                 .font(.title3)
-                .padding(.horizontal, 16).padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
                 .glassEffect(.regular, in: .capsule)
                 .padding(.top, 12)
         }
