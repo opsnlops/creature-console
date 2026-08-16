@@ -1,8 +1,6 @@
 import Foundation
 import Logging
 
-private struct EmptyBody: Encodable {}
-
 extension CreatureServerClient {
 
 
@@ -92,7 +90,7 @@ extension CreatureServerClient {
         logger.debug("attempting to delete animation \(animationId)")
 
         return await sendData(
-            path: "/animation/\(animationId)", method: "DELETE", body: EmptyBody(),
+            path: "/animation/\(animationId)", method: "DELETE",
             returnType: StatusDTO.self
         )
         .map { $0.message }

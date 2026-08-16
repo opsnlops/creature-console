@@ -5,8 +5,6 @@ import Logging
     import FoundationNetworking
 #endif
 
-private struct EmptyBody: Encodable {}
-
 extension CreatureServerClient {
 
     public func stopPlayingPlaylist(universe: UniverseIdentifier) async -> Result<
@@ -104,7 +102,7 @@ extension CreatureServerClient {
         logger.debug("attempting to delete playlist: \(playlistId)")
 
         return await sendData(
-            path: "/playlist/\(playlistId)", method: "DELETE", body: EmptyBody(),
+            path: "/playlist/\(playlistId)", method: "DELETE",
             returnType: StatusDTO.self
         )
         .map { $0.message }
