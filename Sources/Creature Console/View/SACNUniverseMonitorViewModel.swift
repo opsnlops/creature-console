@@ -78,11 +78,16 @@ final class SACNUniverseMonitorViewModel {
     @ObservationIgnored private let pathQueue = DispatchQueue(
         label: "io.opsnlops.CreatureConsole.SACNPathMonitor")
     @ObservationIgnored private let framePublishInterval: UInt64 = 20_000_000
+    /// The counters (`packetCount`, `lastSequence`, `lastPacketDate`) are human-readable
+    /// status, not the visualization — publishing them at frame rate forced the status
+    /// line to re-render 50×/s (#76). A few Hz still reads as live.
+    @ObservationIgnored private let statusPublishInterval: UInt64 = 250_000_000
     @ObservationIgnored private var pendingSlots: [UInt8] = Array(repeating: 0, count: 512)
     @ObservationIgnored private var pendingSequence: UInt8?
     @ObservationIgnored private var pendingPacketCount: Int = 0
     @ObservationIgnored private var pendingLastPacketDate: Date?
     @ObservationIgnored private var isFlushScheduled = false
+    @ObservationIgnored private var isStatusFlushScheduled = false
 
     init() {
         pathMonitor.pathUpdateHandler = { [weak self] path in
@@ -168,6 +173,7 @@ final class SACNUniverseMonitorViewModel {
         pendingPacketCount = 0
         pendingLastPacketDate = nil
         isFlushScheduled = false
+        isStatusFlushScheduled = false
 
         if source == .local {
             guard let interface = selectedInterface else {
@@ -282,14 +288,31 @@ final class SACNUniverseMonitorViewModel {
                 guard let self else { return }
                 try? await Task.sleep(nanoseconds: self.framePublishInterval)
                 await MainActor.run {
-                    self.flushPendingFrames()
+                    self.flushPendingSlots()
+                }
+            }
+        }
+        if !isStatusFlushScheduled {
+            isStatusFlushScheduled = true
+            Task { [weak self] in
+                guard let self else { return }
+                try? await Task.sleep(nanoseconds: self.statusPublishInterval)
+                await MainActor.run {
+                    self.flushPendingStatus()
                 }
             }
         }
     }
 
-    private func flushPendingFrames() {
+    private func flushPendingSlots() {
         slots = pendingSlots
+        isFlushScheduled = false
+        if isRunning, status != .listening {
+            status = .listening
+        }
+    }
+
+    private func flushPendingStatus() {
         lastSequence = pendingSequence
         if let pendingLastPacketDate {
             lastPacketDate = pendingLastPacketDate
@@ -299,10 +322,7 @@ final class SACNUniverseMonitorViewModel {
         }
         pendingPacketCount = 0
         pendingLastPacketDate = nil
-        isFlushScheduled = false
-        if isRunning, status != .listening {
-            status = .listening
-        }
+        isStatusFlushScheduled = false
     }
 
     private var appVersion: String {

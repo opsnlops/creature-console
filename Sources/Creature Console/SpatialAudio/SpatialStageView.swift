@@ -149,40 +149,7 @@
                     .buttonStyle(.borderedProminent)
                 }
 
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 8, height: 8)
-                    Text(viewModel.diagnostics.state.label)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-
-                    if viewModel.inputMode == .simulation,
-                        viewModel.diagnostics.simulationDuration > 0
-                    {
-                        Slider(
-                            value: Binding(
-                                get: { viewModel.diagnostics.simulationPosition },
-                                set: { viewModel.seek(to: $0) }
-                            ),
-                            in: 0...viewModel.diagnostics.simulationDuration
-                        )
-                        Text(
-                            "\(formatted(viewModel.diagnostics.simulationPosition)) / "
-                                + formatted(viewModel.diagnostics.simulationDuration)
-                        )
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                    } else {
-                        Spacer()
-                        Text(
-                            "\(Int(viewModel.diagnostics.bufferedMilliseconds.rounded())) ms buffered"
-                        )
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                    }
-                }
-                .font(.caption)
+                SpatialTransportStatusRow(viewModel: viewModel)
             }
             .padding()
         }
@@ -254,6 +221,68 @@
         }
 
 
+        private func chooseDefaultSimulation() {
+            guard
+                viewModel.selectedAnimationID == nil
+                    || !simulations.contains(where: { $0.id == viewModel.selectedAnimationID })
+            else {
+                return
+            }
+            viewModel.selectedAnimationID = simulations.first?.id
+        }
+
+        private var stageSelection: Binding<StageIdentifier?> {
+            Binding(
+                get: { viewModel.stage?.id },
+                set: { viewModel.store.select($0) }
+            )
+        }
+
+    }
+
+    /// The transport bar's status readout. Separate from `SpatialStageView` so only this row
+    /// tracks `diagnostics` — its 10 Hz publishes would otherwise re-render (and re-lay-out)
+    /// the whole window, segmented picker included (#76).
+    private struct SpatialTransportStatusRow: View {
+        var viewModel: SpatialStageViewModel
+
+        var body: some View {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 8, height: 8)
+                Text(viewModel.diagnostics.state.label)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                if viewModel.inputMode == .simulation,
+                    viewModel.diagnostics.simulationDuration > 0
+                {
+                    Slider(
+                        value: Binding(
+                            get: { viewModel.diagnostics.simulationPosition },
+                            set: { viewModel.seek(to: $0) }
+                        ),
+                        in: 0...viewModel.diagnostics.simulationDuration
+                    )
+                    Text(
+                        "\(formatted(viewModel.diagnostics.simulationPosition)) / "
+                            + formatted(viewModel.diagnostics.simulationDuration)
+                    )
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                } else {
+                    Spacer()
+                    Text(
+                        "\(Int(viewModel.diagnostics.bufferedMilliseconds.rounded())) ms buffered"
+                    )
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                }
+            }
+            .font(.caption)
+        }
+
         private var statusColor: Color {
             switch viewModel.diagnostics.state {
             case .playing:
@@ -269,28 +298,10 @@
             }
         }
 
-        private func chooseDefaultSimulation() {
-            guard
-                viewModel.selectedAnimationID == nil
-                    || !simulations.contains(where: { $0.id == viewModel.selectedAnimationID })
-            else {
-                return
-            }
-            viewModel.selectedAnimationID = simulations.first?.id
-        }
-
         private func formatted(_ time: TimeInterval) -> String {
             let seconds = max(Int(time), 0)
             return String(format: "%d:%02d", seconds / 60, seconds % 60)
         }
-
-        private var stageSelection: Binding<StageIdentifier?> {
-            Binding(
-                get: { viewModel.stage?.id },
-                set: { viewModel.store.select($0) }
-            )
-        }
-
     }
 
     /// The listening window's map: the shared stage canvas, read-only, with live audio meters
