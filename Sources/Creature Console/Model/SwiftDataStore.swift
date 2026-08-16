@@ -30,6 +30,68 @@ actor SwiftDataStore {
             waiters.append(continuation)
         }
     }
+
+}
+
+/// The server-log container. Logs live in their own store (see `AppSchema.logModelTypes`),
+/// created lazily on first use — the log importer's first line or the log window opening.
+///
+/// Lazy creation is load-bearing, not a nicety: the app is also the unit-test host, and
+/// eagerly opening a second container at launch reliably crashed parallel test suites that
+/// create their own containers (the issue #38 crash mode, back with a corrupted-job
+/// signature). Under tests nothing touches logs, so this container is simply never built.
+@MainActor
+enum ServerLogStore {
+    static let container: ModelContainer = makeContainer()
+
+    private static func makeContainer() -> ModelContainer {
+        do {
+            let fm = FileManager.default
+            #if os(tvOS)
+                let dataDirectory = try fm.url(
+                    for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                let storeURL = dataDirectory.appendingPathComponent(
+                    "CreatureConsoleTVLogStore.sqlite")
+            #else
+                let dataDirectory = try fm.url(
+                    for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil,
+                    create: true)
+                let storeURL = dataDirectory.appendingPathComponent(
+                    "CreatureConsoleLogStore", isDirectory: true)
+            #endif
+
+            let modelTypes = AppSchema.logModelTypes
+            let schema = Schema(modelTypes)
+            let config = ModelConfiguration(url: storeURL)
+
+            if SwiftDataStoreMigration.needsWipe(storeURL: storeURL, modelTypes: modelTypes) {
+                wipeStore(at: storeURL)
+            }
+
+            do {
+                let container = try ModelContainer(for: schema, configurations: config)
+                SwiftDataStoreMigration.recordSignature(storeURL: storeURL, modelTypes: modelTypes)
+                return container
+            } catch {
+                wipeStore(at: storeURL)
+                let container = try ModelContainer(for: schema, configurations: config)
+                SwiftDataStoreMigration.recordSignature(storeURL: storeURL, modelTypes: modelTypes)
+                return container
+            }
+        } catch {
+            fatalError("Failed to create server-log ModelContainer: \(error)")
+        }
+    }
+
+    /// Remove the log store and its `-shm` / `-wal` sidecars (or the directory).
+    private static func wipeStore(at storeURL: URL) {
+        let fm = FileManager.default
+        let base = storeURL.lastPathComponent
+        let parent = storeURL.deletingLastPathComponent()
+        for name in [base, base + "-shm", base + "-wal"] {
+            try? fm.removeItem(at: parent.appendingPathComponent(name))
+        }
+    }
 }
 
 /// Schema-versioning for the on-disk SwiftData store, shared by the macOS/iOS and tvOS apps.

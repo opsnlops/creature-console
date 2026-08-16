@@ -17,7 +17,17 @@ private let recentLogsDescriptor: FetchDescriptor<ServerLogModel> = {
     return descriptor
 }()
 
+/// Thin wrapper that points the log table at the dedicated server-log container. Without
+/// this, its `@Query` would run against the cache container from the environment — the
+/// logs don't live there anymore (see `AppSchema.logModelTypes`).
 struct LogView: View {
+    var body: some View {
+        LogViewContent()
+            .modelContainer(ServerLogStore.container)
+    }
+}
+
+private struct LogViewContent: View {
     @Environment(\.modelContext) private var modelContext
 
     @AppStorage("serverLogsScrollBackLines") private var serverLogsScrollBackLines: Int = 150

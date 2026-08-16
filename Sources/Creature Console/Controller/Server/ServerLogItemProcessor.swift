@@ -10,7 +10,7 @@ struct ServerLogItemProcessor {
     // ModelContext) for every log line is wasteful at log-burst rates, and any
     // per-instance state in the importer would never accumulate across instances.
     private static let sharedImporter = Task {
-        ServerLogImporter(modelContainer: await SwiftDataStore.shared.container())
+        ServerLogImporter(modelContainer: await ServerLogStore.container)
     }
 
     static public func processServerLogItem(_ serverLogItem: ServerLogItem) async {
