@@ -8,7 +8,7 @@ import Testing
 @Suite("ServerLogImporter operations")
 struct ServerLogImporterTests {
 
-    @Test("addLog inserts new log entry")
+    @Test("addLog + flush inserts new log entry")
     func addLogInsertsNew() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -24,7 +24,8 @@ struct ServerLogImporterTests {
             thread_id: 12345
         )
 
-        try await importer.addLog(dto)
+        await importer.addLog(dto)
+        try await importer.flush()
 
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<ServerLogModel>()
@@ -37,7 +38,64 @@ struct ServerLogImporterTests {
         #expect(results.first?.threadId == 12345)
     }
 
-    @Test("addLog trims old logs when exceeding max count")
+    @Test("flush writes every pooled line in one batch")
+    func flushWritesPooledLines() async throws {
+        let schema = Schema([ServerLogModel.self])
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
+
+        let importer = ServerLogImporter(modelContainer: container)
+
+        for i in 0..<25 {
+            let dto = ServerLogItem(
+                timestamp: Date(),
+                level: "INFO",
+                message: "Log \(i)",
+                logger_name: "TestLogger",
+                thread_id: UInt32(i)
+            )
+            await importer.addLog(dto)
+        }
+        try await importer.flush()
+
+        let context = ModelContext(container)
+        let results = try context.fetch(FetchDescriptor<ServerLogModel>())
+        #expect(results.count == 25)
+    }
+
+    @Test("pooled lines persist on their own without an explicit flush")
+    func timedFlushPersistsWithoutExplicitFlush() async throws {
+        let schema = Schema([ServerLogModel.self])
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
+
+        let importer = ServerLogImporter(modelContainer: container)
+
+        let dto = ServerLogItem(
+            timestamp: Date(),
+            level: "INFO",
+            message: "Eventually persisted",
+            logger_name: "TestLogger",
+            thread_id: 1
+        )
+        await importer.addLog(dto)
+
+        // The timed flush fires after the importer's pooling delay; poll rather than
+        // assuming an exact schedule.
+        let context = ModelContext(container)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        var results: [ServerLogModel] = []
+        while ContinuousClock.now < deadline {
+            results = try context.fetch(FetchDescriptor<ServerLogModel>())
+            if !results.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+
+        #expect(results.count == 1)
+        #expect(results.first?.message == "Eventually persisted")
+    }
+
+    @Test("flush trims old logs when exceeding max count")
     func addLogTrimsOldLogs() async throws {
         let schema = Schema([ServerLogModel.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -55,8 +113,9 @@ struct ServerLogImporterTests {
                 logger_name: "TestLogger",
                 thread_id: UInt32(i)
             )
-            try await importer.addLog(dto)
+            await importer.addLog(dto)
         }
+        try await importer.flush()
 
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<ServerLogModel>(
@@ -92,8 +151,9 @@ struct ServerLogImporterTests {
                 logger_name: "TestLogger",
                 thread_id: UInt32(i)
             )
-            try await importer.addLog(dto)
+            await importer.addLog(dto)
         }
+        try await importer.flush()
 
         // Verify logs were added
         let context = ModelContext(container)
@@ -105,6 +165,30 @@ struct ServerLogImporterTests {
         try await importer.clearAllLogs()
 
         results = try context.fetch(fetchDescriptor)
+        #expect(results.isEmpty)
+    }
+
+    @Test("clearAllLogs drops lines still pooled for the next flush")
+    func clearAllLogsDropsPendingLines() async throws {
+        let schema = Schema([ServerLogModel.self])
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try makeTestModelContainer(schema: schema, configuration: config)
+
+        let importer = ServerLogImporter(modelContainer: container)
+
+        let dto = ServerLogItem(
+            timestamp: Date(),
+            level: "INFO",
+            message: "Pooled but cleared",
+            logger_name: "TestLogger",
+            thread_id: 1
+        )
+        await importer.addLog(dto)
+        try await importer.clearAllLogs()
+        try await importer.flush()
+
+        let context = ModelContext(container)
+        let results = try context.fetch(FetchDescriptor<ServerLogModel>())
         #expect(results.isEmpty)
     }
 
@@ -150,8 +234,9 @@ struct ServerLogImporterTests {
                 logger_name: "TestLogger",
                 thread_id: UInt32(index)
             )
-            try await importer.addLog(dto)
+            await importer.addLog(dto)
         }
+        try await importer.flush()
 
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<ServerLogModel>(
@@ -184,8 +269,9 @@ struct ServerLogImporterTests {
                 logger_name: "TestLogger",
                 thread_id: UInt32(index)
             )
-            try await importer.addLog(dto)
+            await importer.addLog(dto)
         }
+        try await importer.flush()
 
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<ServerLogModel>()
@@ -215,8 +301,9 @@ struct ServerLogImporterTests {
                 logger_name: "TestLogger",
                 thread_id: UInt32(i)
             )
-            try await importer.addLog(dto)
+            await importer.addLog(dto)
         }
+        try await importer.flush()
 
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<ServerLogModel>()
@@ -233,7 +320,8 @@ struct ServerLogImporterTests {
             logger_name: "TestLogger",
             thread_id: 500
         )
-        try await importer.addLog(dto)
+        await importer.addLog(dto)
+        try await importer.flush()
 
         results = try context.fetch(fetchDescriptor)
 

@@ -15,13 +15,9 @@ struct ServerLogItemProcessor {
 
     static public func processServerLogItem(_ serverLogItem: ServerLogItem) async {
 
-        // Feed this to SwiftData so it shows up in the UI
-        do {
-            try await sharedImporter.value.addLog(serverLogItem)
-        } catch {
-            logger.warning(
-                "Failed to save server log to SwiftData: \(error.localizedDescription)")
-        }
+        // Feed this to SwiftData so it shows up in the UI. The importer batches lines into
+        // one save per flush interval; save failures surface in its own log.
+        await sharedImporter.value.addLog(serverLogItem)
 
         // Convert the level to our enum
         let level = ServerLogLevel(from: serverLogItem.level)

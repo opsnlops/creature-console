@@ -52,9 +52,11 @@ struct DialogScriptEditor: View {
     @Query(sort: \CreatureModel.name, order: .forward)
     private var creatures: [CreatureModel]
 
-    @Query private var sounds: [SoundModel]
-
-    @Query private var animations: [AnimationMetadataModel]
+    /// Only the animations rendered from a dialog script — the provenance-bearing subset.
+    /// A whole-table query here meant every SwiftData save anywhere (server log lines arrive
+    /// continuously) re-fetched all animation metadata just to answer `hasRenderedAnimation` (#74).
+    @Query(filter: #Predicate<AnimationMetadataModel> { $0.sourceScriptId != nil })
+    private var scriptRenderedAnimations: [AnimationMetadataModel]
 
     private let server = CreatureServerClient.shared
 
@@ -104,7 +106,7 @@ struct DialogScriptEditor: View {
     /// empty-state copy for scripts whose takes aged out but whose renders live on.
     private var hasRenderedAnimation: Bool {
         let scriptID = original.id.uuidString.lowercased()
-        return animations.contains { $0.sourceScriptId?.lowercased() == scriptID }
+        return scriptRenderedAnimations.contains { $0.sourceScriptId?.lowercased() == scriptID }
     }
 
     var body: some View {
@@ -277,7 +279,7 @@ struct DialogScriptEditor: View {
                     TextField("Scene title", text: $script.title)
                         .textFieldStyle(.roundedBorder)
                         .font(.title3)
-                    characterCount(script.title.count, limit: DialogLimits.maxTitle)
+                    CharacterCountLabel(count: script.title.count, limit: DialogLimits.maxTitle)
                 }
             }
             VStack(alignment: .leading, spacing: 4) {
@@ -289,7 +291,7 @@ struct DialogScriptEditor: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 8).stroke(.quaternary)
                     )
-                characterCount(script.notes.count, limit: DialogLimits.maxNotes)
+                CharacterCountLabel(count: script.notes.count, limit: DialogLimits.maxNotes)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
@@ -352,7 +354,27 @@ struct DialogScriptEditor: View {
             }
 
             ForEach($script.turns) { $turn in
-                turnRow(turn: $turn)
+                let id = turn.id
+                let index = script.turns.firstIndex(where: { $0.id == id }) ?? 0
+                DialogTurnRow(
+                    turn: $turn,
+                    index: index,
+                    turnCount: script.turns.count,
+                    isCollapsed: collapsedTurnIds.contains(id),
+                    creatures: creatures,
+                    onPreview: { previewScope = .turn(index) },
+                    onToggleCollapsed: {
+                        if collapsedTurnIds.contains(id) {
+                            collapsedTurnIds.remove(id)
+                        } else {
+                            collapsedTurnIds.insert(id)
+                        }
+                    },
+                    onMoveUp: { moveTurn(id: id, by: -1) },
+                    onMoveDown: { moveTurn(id: id, by: 1) },
+                    onRemove: { removeTurn(id: id) }
+                )
+                .equatable()
             }
 
             Button {
@@ -366,101 +388,9 @@ struct DialogScriptEditor: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
-    @ViewBuilder
-    private func turnRow(turn: Binding<DialogScriptTurn>) -> some View {
-        let id = turn.wrappedValue.id
-        let index = script.turns.firstIndex(where: { $0.id == id }) ?? 0
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Turn \(index + 1)").font(.title3.bold())
-                Spacer()
-                creaturePicker(selection: turn.creatureId)
-                Button {
-                    previewScope = .turn(index)
-                } label: {
-                    Label("Preview This Turn", systemImage: "play.circle")
-                }
-                .buttonStyle(.borderless)
-                .help("Switch the voice panel to a partial preview of this turn")
-                Button {
-                    if collapsedTurnIds.contains(id) {
-                        collapsedTurnIds.remove(id)
-                    } else {
-                        collapsedTurnIds.insert(id)
-                    }
-                } label: {
-                    Image(systemName: collapsedTurnIds.contains(id) ? "chevron.down" : "chevron.up")
-                }
-                .buttonStyle(.borderless)
-                Button {
-                    moveTurn(id: id, by: -1)
-                } label: {
-                    Image(systemName: "arrow.up")
-                }
-                .disabled(index == 0)
-                .buttonStyle(.borderless)
-                Button {
-                    moveTurn(id: id, by: 1)
-                } label: {
-                    Image(systemName: "arrow.down")
-                }
-                .disabled(index == script.turns.count - 1)
-                .buttonStyle(.borderless)
-                Button(role: .destructive) {
-                    removeTurn(id: id)
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.borderless)
-            }
-
-            if collapsedTurnIds.contains(id) {
-                Text(turn.wrappedValue.text.isEmpty ? "Empty turn" : turn.wrappedValue.text)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            } else {
-                TextEditor(text: turn.text)
-                    .font(.title3)
-                    .frame(minHeight: 88)
-                    .contentMargins(16, for: .scrollContent)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
-
-                characterCount(turn.wrappedValue.text.count, limit: DialogLimits.maxTurnText)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-        }
-        .padding(16)
-        .glassEffect(.regular, in: .rect(cornerRadius: 10))
-    }
-
-    private func creaturePicker(selection: Binding<CreatureIdentifier>) -> some View {
-        Picker("Creature", selection: selection) {
-            Text("Select creature…").tag("")
-            ForEach(creatures) { creature in
-                Text(creature.name).tag(creature.id)
-            }
-            // Preserve an unknown / missing creature id so editing doesn't silently drop it.
-            if !selection.wrappedValue.isEmpty,
-                !creatures.contains(where: { $0.id == selection.wrappedValue })
-            {
-                Text("Unknown (\(selection.wrappedValue.prefix(8)))")
-                    .tag(selection.wrappedValue)
-            }
-        }
-        .labelsHidden()
-        .frame(maxWidth: 220)
-    }
-
     private func creatureName(for id: CreatureIdentifier) -> String {
         creatures.first(where: { $0.id == id })?.name
             ?? (id.isEmpty ? "No creature" : "Unknown")
-    }
-
-    private func characterCount(_ count: Int, limit: Int) -> some View {
-        Text("\(count)/\(limit)")
-            .font(.caption2)
-            .foregroundStyle(count > limit ? .red : .secondary)
     }
 
     // MARK: - Derived
@@ -641,5 +571,112 @@ struct DialogScriptEditor: View {
                 )
             }
         }
+    }
+}
+
+/// One turn's editing card, split out of the editor with an `Equatable` gate so a keystroke in
+/// one turn re-renders only that row. Before this, every character typed rebuilt every glass
+/// panel and TextEditor in the editor (#74). Anything a closure captures that can change while
+/// the row's inputs stay equal must be part of `==` — otherwise a skipped render keeps a stale
+/// closure.
+private struct DialogTurnRow: View, @MainActor Equatable {
+    @Binding var turn: DialogScriptTurn
+    let index: Int
+    let turnCount: Int
+    let isCollapsed: Bool
+    let creatures: [CreatureModel]
+    let onPreview: () -> Void
+    let onToggleCollapsed: () -> Void
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+    let onRemove: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        // Creatures compare by identity: SwiftData hands the same model instances back across
+        // fetches, and Observation tracks in-place renames because the body reads `.name`.
+        lhs.turn == rhs.turn && lhs.index == rhs.index && lhs.turnCount == rhs.turnCount
+            && lhs.isCollapsed == rhs.isCollapsed
+            && lhs.creatures.count == rhs.creatures.count
+            && zip(lhs.creatures, rhs.creatures).allSatisfy { $0 === $1 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Turn \(index + 1)").font(.title3.bold())
+                Spacer()
+                creaturePicker
+                Button(action: onPreview) {
+                    Label("Preview This Turn", systemImage: "play.circle")
+                }
+                .buttonStyle(.borderless)
+                .help("Switch the voice panel to a partial preview of this turn")
+                Button(action: onToggleCollapsed) {
+                    Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
+                }
+                .buttonStyle(.borderless)
+                Button(action: onMoveUp) {
+                    Image(systemName: "arrow.up")
+                }
+                .disabled(index == 0)
+                .buttonStyle(.borderless)
+                Button(action: onMoveDown) {
+                    Image(systemName: "arrow.down")
+                }
+                .disabled(index == turnCount - 1)
+                .buttonStyle(.borderless)
+                Button(role: .destructive, action: onRemove) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+            }
+
+            if isCollapsed {
+                Text(turn.text.isEmpty ? "Empty turn" : turn.text)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            } else {
+                TextEditor(text: $turn.text)
+                    .font(.title3)
+                    .frame(minHeight: 88)
+                    .contentMargins(16, for: .scrollContent)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+
+                CharacterCountLabel(count: turn.text.count, limit: DialogLimits.maxTurnText)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+        .padding(16)
+        .glassEffect(.regular, in: .rect(cornerRadius: 10))
+    }
+
+    private var creaturePicker: some View {
+        Picker("Creature", selection: $turn.creatureId) {
+            Text("Select creature…").tag("")
+            ForEach(creatures) { creature in
+                Text(creature.name).tag(creature.id)
+            }
+            // Preserve an unknown / missing creature id so editing doesn't silently drop it.
+            if !turn.creatureId.isEmpty,
+                !creatures.contains(where: { $0.id == turn.creatureId })
+            {
+                Text("Unknown (\(turn.creatureId.prefix(8)))")
+                    .tag(turn.creatureId)
+            }
+        }
+        .labelsHidden()
+        .frame(maxWidth: 220)
+    }
+}
+
+private struct CharacterCountLabel: View {
+    let count: Int
+    let limit: Int
+
+    var body: some View {
+        Text("\(count)/\(limit)")
+            .font(.caption2)
+            .foregroundStyle(count > limit ? .red : .secondary)
     }
 }
