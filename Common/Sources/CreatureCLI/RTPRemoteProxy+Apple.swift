@@ -81,6 +81,10 @@
             parameters.requiredInterface = interface.nwInterface
             parameters.allowLocalEndpointReuse = true
 
+            // The receive handler is @Sendable; give it an immutable snapshot of the
+            // finished map rather than the mutable local it was built in.
+            let channelMap = channelsByEndpoint
+
             let group = NWConnectionGroup(with: multicastGroup, using: parameters)
             group.setReceiveHandler(
                 maximumMessageSize: RTPAudioConstants.maximumPacketSize,
@@ -90,7 +94,7 @@
                     isComplete,
                     let content,
                     let localEndpoint = message.localEndpoint,
-                    let channel = channelsByEndpoint[localEndpoint]
+                    let channel = channelMap[localEndpoint]
                 else {
                     return
                 }
