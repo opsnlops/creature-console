@@ -1,3 +1,13 @@
+creature-cli (2.51.0) unstable; urgency=medium
+
+  * Common now binds the server's motion-only stage re-render endpoints
+    (POST /stage/{id}/rerender and /animation/{id}/rerender), and the
+    console's "Re-render All" uses them instead of the dialog render
+    path — no more surprise ElevenLabs regeneration on a stage move
+    (issue #79).
+
+ -- April White <april@creature.engineering>  Sun, 16 Aug 2026 18:54:04 -0700
+
 creature-cli (2.50.3) unstable; urgency=medium
 
   * No CLI changes; version kept in lockstep with the console apps
