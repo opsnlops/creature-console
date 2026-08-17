@@ -30,11 +30,12 @@ final class StageStore {
     private(set) var loadState: LoadState = .idle
     private(set) var isSaving = false
     private(set) var saveError: String?
-    /// Progress of a batch re-render kicked off from the Dialogs section.
+    /// Progress of a motion-only re-render kicked off from the Dialogs section. One server-side
+    /// job covers every stale animation; `progress` is the job's 0...1 fraction and `message` is
+    /// the server's acceptance message ("Re-rendering 13 animation(s) against stage 'Mainstage'…").
     struct RerenderRun: Equatable {
-        var completed: Int
-        var total: Int
-        var currentTitle: String?
+        var progress: Double
+        var message: String
     }
 
     /// Non-nil while "Re-render All" is running.
@@ -128,61 +129,57 @@ final class StageStore {
         Self.rememberSelectedStageID(id)
     }
 
-    /// One stale animation to re-render, as computed by the view from the SwiftData mirrors.
-    /// `title` must be the **script's** title — the server appends " — <stage>" itself, so an
-    /// animation title (already suffixed) would stack a copy on every re-render.
-    struct StaleRender: Equatable, Sendable {
-        let scriptID: DialogScriptIdentifier
-        let title: String
-    }
-
-    /// Re-render stale animations, one at a time. The caller computes the list from the local
-    /// mirrors — staleness lives entirely in SwiftData, so there is no server report to consult.
+    /// Re-render this stage's stale animations, **motion only**, as one server-side job
+    /// (`POST /stage/{id}/rerender`, `stale_only: true` — issue #79).
     ///
-    /// Each item becomes a render request pinned to **this stage explicitly** — not the script's
-    /// current binding, which may have moved on. A stale mainstage rendition should come back as
-    /// a mainstage rendition even if its script now points at the travel stage. No generation id
-    /// is sent, so the server reuses the cached voice take: a stage move changes where heads
-    /// point, not what anyone says, and re-spending ElevenLabs on it would be pure waste.
-    ///
-    /// Sequential on purpose: renders contend for the same audio pipeline server-side, and
-    /// "Re-rendering 2 of 3" is legible in a way six interleaved progress bars are not. No
-    /// refresh at the end either — each completed render broadcasts an animation invalidation,
-    /// the mirror updates, and the rows recompute themselves.
-    func rerenderStale(_ items: [StaleRender]) async {
-        guard rerenderRun == nil, let stageID = stage?.id, !items.isEmpty else { return }
+    /// The server recovers each creature's mouth bytes from the rendered WAV's iXML `LIPSYNC`
+    /// block and rebuilds only the motion tracks — no audio is regenerated, so nothing is ever
+    /// sent to ElevenLabs and the accepted performance is preserved byte-for-byte. Staleness is
+    /// judged server-side against the same `updated_at` the local mirrors track, so there is no
+    /// list to send. No refresh at the end either — each rebuilt animation broadcasts an
+    /// invalidation, the mirror updates, and the rows recompute themselves.
+    func rerenderStale() async {
+        guard rerenderRun == nil, let stageID = stage?.id else { return }
 
         rerenderNotice = nil
-        rerenderRun = RerenderRun(completed: 0, total: items.count, currentTitle: nil)
-        var failures: [String] = []
+        defer { rerenderRun = nil }
 
-        for (index, item) in items.enumerated() {
-            rerenderRun = RerenderRun(
-                completed: index, total: items.count, currentTitle: item.title)
-
-            let request = DialogRequest.fromScript(
-                item.scriptID, persistence: .permanent, title: item.title, stageId: stageID)
-
-            switch await server.renderDialog(request) {
-            case .success(let job):
-                await JobStatusStore.shared.seedQueued(job)
-                for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
-                    if case .terminal(let info) = event {
-                        if info.status == .failed {
-                            failures.append(item.title + ": " + (info.result ?? "render failed"))
-                        }
-                        break
+        switch await server.rerenderStage(id: stageID, staleOnly: true) {
+        case .success(.nothingToDo(let message)):
+            // The mirror thought something was stale but the server disagrees — surface its
+            // explanation rather than silently doing nothing.
+            rerenderNotice = message
+        case .success(.queued(let job)):
+            rerenderRun = RerenderRun(progress: 0, message: job.message)
+            await JobStatusStore.shared.seedQueued(job)
+            for await event in await JobStatusStore.shared.events(forJob: job.jobId) {
+                switch event {
+                case .updated(let info):
+                    if let progress = info.progress {
+                        rerenderRun = RerenderRun(progress: progress, message: job.message)
                     }
+                case .terminal(let info):
+                    if info.status == .failed {
+                        rerenderNotice = "Re-render failed — " + (info.result ?? "unknown error")
+                    } else if let result = decodeRerenderResult(info.result),
+                        !result.failures.isEmpty
+                    {
+                        rerenderNotice =
+                            "\(result.rerendered) of \(result.requested) re-rendered — "
+                            + result.failures.joined(separator: "; ")
+                    }
+                case .removed:
+                    break
                 }
-            case .failure(let error):
-                failures.append(item.title + ": " + ServerError.detailedMessage(from: error))
             }
+        case .failure(let error):
+            rerenderNotice = "Re-render failed — " + ServerError.detailedMessage(from: error)
         }
+    }
 
-        rerenderRun = nil
-        if !failures.isEmpty {
-            rerenderNotice = "Some re-renders failed — " + failures.joined(separator: "; ")
-        }
+    private func decodeRerenderResult(_ result: String?) -> StageRerenderJobResult? {
+        guard let result, let data = result.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(StageRerenderJobResult.self, from: data)
     }
 
     /// Throw away local edits and go back to what the server last confirmed.

@@ -279,19 +279,14 @@ struct StageEditor: View {
     private var rerenderControls: some View {
         if let run = store.rerenderRun {
             VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: Double(run.completed), total: Double(max(run.total, 1)))
-                Text(rerenderProgressText(run))
+                ProgressView(value: run.progress)
+                Text(run.message)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         } else if !staleAnimations.isEmpty {
             Button {
-                let items = staleAnimations.compactMap { model -> StageStore.StaleRender? in
-                    guard let scriptID = model.sourceScriptIdentifier else { return nil }
-                    return StageStore.StaleRender(
-                        scriptID: scriptID, title: renderTitle(for: model, scriptID: scriptID))
-                }
-                Task { await store.rerenderStale(items) }
+                Task { await store.rerenderStale() }
             } label: {
                 Label(
                     "Re-render All (\(staleAnimations.count))",
@@ -299,7 +294,7 @@ struct StageEditor: View {
             }
             .buttonStyle(.glassProminent)
             .help(
-                "Re-renders every out-of-date animation against this stage, reusing the cached voice takes — no new voice generation."
+                "Re-renders every out-of-date animation against this stage, motion only — the existing audio is reused untouched and no voice is ever regenerated."
             )
         }
 
@@ -308,33 +303,6 @@ struct StageEditor: View {
                 .font(.caption)
                 .foregroundStyle(.orange)
         }
-    }
-
-    /// The title to send with a re-render: the *script's*, never the animation's. The server
-    /// appends " — <stage>" to whatever it's given, so echoing the animation's already-suffixed
-    /// title stacks another copy per re-render ("… — Imported Stage — Imported Stage"). Caught
-    /// live while testing the batch flow.
-    private func renderTitle(
-        for animation: AnimationMetadataModel, scriptID: DialogScriptIdentifier
-    ) -> String {
-        if let script = dialogScriptModels.first(where: { $0.id == scriptID }),
-            !script.title.isEmpty
-        {
-            return script.title
-        }
-        // Script gone from the mirror (deleted/unsynced): strip the recognizable suffix rather
-        // than send it back to be doubled.
-        if let stageTitle = store.stage?.title, !stageTitle.isEmpty,
-            animation.title.hasSuffix(" — \(stageTitle)")
-        {
-            return String(animation.title.dropLast(stageTitle.count + 3))
-        }
-        return animation.title
-    }
-
-    private func rerenderProgressText(_ run: StageStore.RerenderRun) -> String {
-        guard let title = run.currentTitle else { return "Re-rendering…" }
-        return "Re-rendering “\(title)”… (\(run.completed + 1) of \(run.total))"
     }
 
     @ViewBuilder

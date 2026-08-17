@@ -60,4 +60,72 @@ extension CreatureServerClient {
             path: "/stage/\(id.uuidString.lowercased())/animations",
             returnType: StageAnimationsDTO.self)
     }
+
+    // MARK: - Motion-only re-render
+
+    /// Wire body for the stage re-render endpoint.
+    private struct StageRerenderRequest: Encodable {
+        let staleOnly: Bool
+        enum CodingKeys: String, CodingKey {
+            case staleOnly = "stale_only"
+        }
+    }
+
+    /// Wire body for the animation re-render endpoint when re-targeting another stage.
+    private struct AnimationRerenderRequest: Encodable {
+        let stageId: String
+        enum CodingKeys: String, CodingKey {
+            case stageId = "stage_id"
+        }
+    }
+
+    /// How a stage re-render request resolved: queued as a `stage-rerender` job (202), or
+    /// nothing to do (200) — the server found no animations needing a rebuild, and its
+    /// message says why.
+    public enum StageRerenderOutcome: Sendable {
+        case queued(JobCreatedResponse)
+        case nothingToDo(String)
+    }
+
+    /// Re-render the animations rendered against a stage, **motion only** — the server rebuilds
+    /// head aiming and mouth tracks from what's already on disk and never regenerates audio
+    /// (creature-server #119 Part 6). Pass `staleOnly: true` to skip animations already current
+    /// with the stage. The job's completion result decodes as ``StageRerenderJobResult``.
+    public func rerenderStage(id: StageIdentifier, staleOnly: Bool) async -> Result<
+        StageRerenderOutcome, ServerError
+    > {
+        logger.debug("attempting a motion-only re-render of stage \(id) (staleOnly: \(staleOnly))")
+
+        return await sendDataResponse(
+            path: "/stage/\(id.uuidString.lowercased())/rerender", method: "POST",
+            body: StageRerenderRequest(staleOnly: staleOnly)
+        )
+        .flatMap { response in
+            if response.statusCode == 202 {
+                return decodeResponse(response.data, returnType: JobCreatedResponse.self)
+                    .map { .queued($0) }
+            }
+            return decodeResponse(response.data, returnType: StatusDTO.self)
+                .map { .nothingToDo($0.message) }
+        }
+    }
+
+    /// Re-render one animation's motion, reusing its audio untouched. `stageId` re-targets the
+    /// rebuild against a different stage; nil rebuilds against the stage the animation was
+    /// rendered with. Overwrites the animation in place (HTTP 202, `stage-rerender` job).
+    public func rerenderAnimation(
+        id: AnimationIdentifier, stageId: StageIdentifier? = nil
+    ) async -> Result<JobCreatedResponse, ServerError> {
+        logger.debug("attempting a motion-only re-render of animation \(id)")
+
+        let path = "/animation/\(id.lowercased())/rerender"
+        guard let stageId else {
+            // Bodyless on purpose — see the note on the bodyless `sendData` overload (#75).
+            return await sendData(path: path, method: "POST", returnType: JobCreatedResponse.self)
+        }
+        return await sendData(
+            path: path, method: "POST",
+            body: AnimationRerenderRequest(stageId: stageId.uuidString.lowercased()),
+            returnType: JobCreatedResponse.self)
+    }
 }

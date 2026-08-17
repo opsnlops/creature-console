@@ -30,6 +30,10 @@ struct JobModelsTests {
         let music = try decoder.decode(Wrapper.self, from: musicData)
         #expect(music.type == .dialogMusic)
 
+        let rerenderData = #"{"type":"stage-rerender"}"#.data(using: .utf8)!
+        let rerender = try decoder.decode(Wrapper.self, from: rerenderData)
+        #expect(rerender.type == .stageRerender)
+
         let unknownData = #"{"type":"image-render"}"#.data(using: .utf8)!
         let unknown = try decoder.decode(Wrapper.self, from: unknownData)
         #expect(unknown.type == .unknown)
@@ -137,5 +141,36 @@ struct JobModelsTests {
         #expect(completion.jobType == .adHocSpeechPrepare)
         #expect(completion.decodeResult(as: AdHocSpeechJobResult.self)?.animationId == "A1")
         #expect(completion.decodeResult(as: AdHocSpeechJobResult.self)?.playbackTriggered == false)
+    }
+
+    @Test("decodes stage re-render job result payload")
+    func decodesStageRerenderJobResult() throws {
+        let json = """
+            {
+                "job_id": "rerender-1",
+                "job_type": "stage-rerender",
+                "status": "completed",
+                "result": "{\\"rerendered\\":12,\\"requested\\":13,\\"failures\\":[\\"abc: animation has no usable frame timing\\"]}"
+            }
+            """
+        let data = Data(json.utf8)
+        let completion = try JSONDecoder().decode(JobCompletion.self, from: data)
+
+        #expect(completion.jobType == .stageRerender)
+        let result = completion.decodeResult(as: StageRerenderJobResult.self)
+        #expect(result?.rerendered == 12)
+        #expect(result?.requested == 13)
+        #expect(result?.failures == ["abc: animation has no usable frame timing"])
+    }
+
+    @Test("decodes stage re-render job result with no failures")
+    func decodesStageRerenderJobResultWithNoFailures() throws {
+        let json = #"{"rerendered":3,"requested":3,"failures":[]}"#
+        let result = try JSONDecoder().decode(
+            StageRerenderJobResult.self, from: Data(json.utf8))
+
+        #expect(result.rerendered == 3)
+        #expect(result.requested == 3)
+        #expect(result.failures.isEmpty)
     }
 }

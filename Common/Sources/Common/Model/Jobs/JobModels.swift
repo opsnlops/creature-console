@@ -10,6 +10,7 @@ public enum JobType: String, Codable, Sendable {
     case dialogPreview = "dialog-preview"
     case dialogPreviewExport = "dialog-preview-export"
     case dialogMusic = "dialog-music"
+    case stageRerender = "stage-rerender"
     case voiceFile = "voice-file"
     case unknown
 
@@ -281,6 +282,21 @@ public struct DialogPreviewExportResult: Codable, Equatable, Sendable {
         self.fileName = fileName
         self.generationId = generationId
         self.cacheKey = cacheKey
+    }
+}
+
+/// Result payload of a `stage-rerender` job: how many animations were rebuilt, motion-only,
+/// against the stage. `failures` carries one human-readable line per animation that couldn't
+/// be rebuilt; the job only reports `failed` when *nothing* succeeded.
+public struct StageRerenderJobResult: Codable, Equatable, Sendable {
+    public let rerendered: Int
+    public let requested: Int
+    public let failures: [String]
+
+    public init(rerendered: Int, requested: Int, failures: [String]) {
+        self.rerendered = rerendered
+        self.requested = requested
+        self.failures = failures
     }
 }
 
