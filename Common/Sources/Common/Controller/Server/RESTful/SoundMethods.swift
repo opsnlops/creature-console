@@ -12,7 +12,10 @@ func soundBasename(_ stored: String) -> String {
     stored.split(separator: "/").last.map(String.init) ?? stored
 }
 
-private func parseFilenameFromContentDisposition(_ header: String?) -> String? {
+/// Pull the suggested filename out of a `Content-Disposition` header. The header is
+/// advisory — callers fall back to a locally-computed name when it's missing.
+/// Shared by the sound and exchange download paths.
+func parseFilenameFromContentDisposition(_ header: String?) -> String? {
     guard let header else { return nil }
 
     let segments = header.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) }
@@ -175,7 +178,7 @@ extension CreatureServerClient {
     /**
      Returns the URL of a downmixed rendition of a stored sound (the server searches the
      permanent store, then the ad-hoc store, and downmixes multi-channel WAVs to mono).
-    
+
      The rendition format is a parameter — one path, one method — not a method per format. See
      `SoundRendition`: MP3 (`GET /sound/mp3/…`, plays in AVFoundation + Slack — the GUI's format)
      or Ogg/Opus (`GET /sound/shareable/…` — smaller; kept for the CLI). Requires
@@ -201,7 +204,7 @@ extension CreatureServerClient {
 
     /**
      Fetch the embedded provenance of a dialog sound file.
-    
+
      Dialog renders carry an iXML chunk describing the source script and channel
      layout (server issue #47). Returns the parsed `DialogProvenance`, or a failure
      (404) when the sound carries no embedded provenance.
@@ -236,7 +239,7 @@ extension CreatureServerClient {
 
     /**
      Download a downmixed rendition of a stored sound, ready to write to disk.
-    
+
      The server looks in the permanent sound store first, then the ad-hoc store, downmixes
      multi-channel WAVs to mono, and encodes to the requested `SoundRendition` (MP3 for the GUI,
      Ogg/Opus for the CLI). One method, format as a parameter.

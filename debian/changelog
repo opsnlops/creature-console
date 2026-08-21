@@ -1,3 +1,17 @@
+creature-cli (2.52.0) unstable; urgency=medium
+
+  * New 'exchanges' command group for streamed ad-hoc exchanges
+    (creature-server#150): 'exchanges list' shows recent sessions,
+    'exchanges show' prints the full transcript and parts, and
+    'exchanges download' saves the stitched, fully-tagged audio as
+    MP3, Ogg/Opus, or the raw 17-channel WAV, honoring the server's
+    Content-Disposition filename (issue #81).
+  * Cache invalidation decoding is now lenient: cache types this
+    build doesn't know collapse to 'unknown' instead of failing the
+    message, so future server-side cache types stay compatible.
+
+ -- April White <april@creature.engineering>  Thu, 20 Aug 2026 22:12:18 -0700
+
 creature-cli (2.51.0) unstable; urgency=medium
 
   * Common now binds the server's motion-only stage re-render endpoints

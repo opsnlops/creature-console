@@ -9,10 +9,18 @@ public enum CacheType: String, CustomStringConvertible, Codable, Sendable {
     case dialogScriptList = "dialog-script-list"
     case storyboardList = "storyboard-list"
     case stageList = "stage-list"
+    case adHocExchangeList = "ad-hoc-exchange-list"
     case unknown = "unknown"
 
     public var description: String {
         return self.rawValue
+    }
+
+    /// The server adds cache types over time; a value this build doesn't know
+    /// collapses to `.unknown` instead of failing the whole invalidation message.
+    public init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        self = CacheType(rawValue: value) ?? .unknown
     }
 }
 

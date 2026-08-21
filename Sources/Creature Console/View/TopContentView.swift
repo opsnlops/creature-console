@@ -100,6 +100,12 @@ struct TopContentView: View {
                         } label: {
                             Label("Ad-Hoc Sounds", systemImage: "waveform.circle")
                         }
+
+                        NavigationLink {
+                            AdHocExchangeListView()
+                        } label: {
+                            Label("Exchanges", systemImage: "bubble.left.and.text.bubble.right")
+                        }
                     }
                 #endif
 

@@ -4,31 +4,7 @@ import Logging
 extension CreatureServerClient {
 
     private func invalidateCache(for type: CacheType) async -> Result<StatusDTO, ServerError> {
-        let cacheTypeString: String
-        switch type {
-        case .animation:
-            cacheTypeString = "animation"
-        case .creature:
-            cacheTypeString = "creature"
-        case .playlist:
-            cacheTypeString = "playlist"
-        case .soundList:
-            cacheTypeString = "sound-list"
-        case .adHocAnimationList:
-            cacheTypeString = "ad-hoc-animation-list"
-        case .adHocSoundList:
-            cacheTypeString = "ad-hoc-sound-list"
-        case .fixture:
-            cacheTypeString = "fixture"
-        case .dialogScriptList:
-            cacheTypeString = "dialog-script-list"
-        case .storyboardList:
-            cacheTypeString = "storyboard-list"
-        case .stageList:
-            cacheTypeString = "stage-list"
-        case .unknown:
-            cacheTypeString = "unknown"
-        }
+        let cacheTypeString = type.rawValue
 
         logger.debug("telling the server to send a \(cacheTypeString) cache invalidation message")
 
