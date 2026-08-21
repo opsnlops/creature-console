@@ -776,8 +776,8 @@ extension CreatureCLI.Sounds {
         globalOptions: GlobalOptions,
         remoteURLProvider: @escaping (any SoundCommandClient) async -> Result<URL, ServerError>
     ) async throws {
-        let destinationURL = resolveDestinationURL(output: output, fileName: defaultFileName)
-        try ensureDestinationWritable(destinationURL, overwrite: overwrite)
+        let destinationURL = resolveDownloadDestination(output: output, fileName: defaultFileName)
+        try ensureDownloadDestinationWritable(destinationURL, overwrite: overwrite)
 
         let server = await makeServer(for: globalOptions)
         let remoteURL: URL
@@ -798,45 +798,6 @@ extension CreatureCLI.Sounds {
         } catch {
             throw failWithMessage(
                 "Failed to download sound: \(error.localizedDescription)")
-        }
-    }
-
-    fileprivate static func resolveDestinationURL(output: String?, fileName: String) -> URL {
-        let fileManager = FileManager.default
-
-        if let output {
-            var outputURL = URL(fileURLWithPath: output)
-
-            var isDirectory: ObjCBool = false
-            if fileManager.fileExists(atPath: outputURL.path, isDirectory: &isDirectory),
-                isDirectory.boolValue
-            {
-                return outputURL.appendingPathComponent(fileName)
-            }
-
-            if output.hasSuffix("/") {
-                outputURL.appendPathComponent(fileName)
-                return outputURL
-            }
-
-            return outputURL
-        } else {
-            let cwd = URL(fileURLWithPath: fileManager.currentDirectoryPath)
-            return cwd.appendingPathComponent(fileName)
-        }
-    }
-
-    fileprivate static func ensureDestinationWritable(_ url: URL, overwrite: Bool) throws {
-        let fileManager = FileManager.default
-        let parent = url.deletingLastPathComponent()
-        try fileManager.createDirectory(at: parent, withIntermediateDirectories: true)
-
-        if fileManager.fileExists(atPath: url.path) {
-            guard overwrite else {
-                throw failWithMessage(
-                    "Destination \(url.path) already exists. Use --overwrite to replace it.")
-            }
-            try fileManager.removeItem(at: url)
         }
     }
 

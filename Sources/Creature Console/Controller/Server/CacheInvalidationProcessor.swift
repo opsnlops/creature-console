@@ -98,6 +98,12 @@ actor CacheInvalidationProcessor {
             logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
         case .adHocSoundList:
             logger.info("ad-hoc sound cache invalidation received - refresh handler pending")
+        case .adHocExchangeList:
+            // Exchanges are TTL'd server data, not a SwiftData mirror — broadcast so any
+            // open exchange list reloads (posted on the main actor for UI listeners).
+            Task { @MainActor in
+                NotificationCenter.default.post(name: .adHocExchangeListChanged, object: nil)
+            }
         default:
             return
         }

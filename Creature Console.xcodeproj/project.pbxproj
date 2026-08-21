@@ -301,6 +301,8 @@
 		FEA1B1E70000000000000074 /* AdHocAnimationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */; };
 		FEA1B1E70000000000000076 /* AdHocSoundViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000075 /* AdHocSoundViews.swift */; };
 		FEA1B1E70000000000000077 /* AdHocSoundViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000075 /* AdHocSoundViews.swift */; };
+		FEA1B1E70000000000000091 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
+		FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 		FEA1B1E70000000000000079 /* SensorDataTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000078 /* SensorDataTables.swift */; };
 		FEA1B1E7000000000000007A /* SensorDataTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000078 /* SensorDataTables.swift */; };
 		FEA1B1E7000000000000007C /* CreatureRuntimeSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */; };
@@ -577,6 +579,7 @@
 		FEA1B1E70000000000000070 /* PlaylistDetailComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistDetailComponents.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocAnimationViews.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000075 /* AdHocSoundViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocSoundViews.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocExchangeViews.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000078 /* SensorDataTables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorDataTables.swift; sourceTree = "<group>"; };
 		FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureRuntimeSummary.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000081 /* DuplicateInstanceGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateInstanceGuard.swift; sourceTree = "<group>"; };
@@ -780,6 +783,7 @@
 			children = (
 				113D00A02EB12D3E00155515 /* AdHocAssetsView.swift */,
 				FEA1B1E70000000000000075 /* AdHocSoundViews.swift */,
+				FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */,
 				FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */,
 				113D004D2EAF0C9B00155515 /* LiveMagicPromptSheet.swift */,
 				113D004E2EAF0C9B00155515 /* LiveMagicView.swift */,
@@ -1773,6 +1777,7 @@
 				113D00532EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
 				113D00A12EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
 				FEA1B1E70000000000000076 /* AdHocSoundViews.swift in Sources */,
+				FEA1B1E70000000000000091 /* AdHocExchangeViews.swift in Sources */,
 				FEA1B1E70000000000000073 /* AdHocAnimationViews.swift in Sources */,
 				11F9A0112F0C123400123456 /* TVSoundboardView.swift in Sources */,
 				11F9A0132F0C123400123456 /* TVAnimationTriggerView.swift in Sources */,
@@ -1946,6 +1951,7 @@
 				113D00562EAF0C9B00155515 /* LiveMagicView.swift in Sources */,
 				113D00A22EB12D3E00155515 /* AdHocAssetsView.swift in Sources */,
 				FEA1B1E70000000000000077 /* AdHocSoundViews.swift in Sources */,
+				FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */,
 				FEA1B1E70000000000000074 /* AdHocAnimationViews.swift in Sources */,
 				11AB0000000000000000B003 /* ShareableSoundButton.swift in Sources */,
 				11AB0000000000000000B013 /* DialogProvenanceView.swift in Sources */,
@@ -2194,7 +2200,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.51.0;
+				MARKETING_VERSION = 2.52.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2249,7 +2255,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.51.0;
+				MARKETING_VERSION = 2.52.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2333,7 +2339,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.51.0;
+				MARKETING_VERSION = 2.52.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -2365,7 +2371,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 2.51.0;
+				MARKETING_VERSION = 2.52.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-TV";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
