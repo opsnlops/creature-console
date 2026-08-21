@@ -209,7 +209,7 @@ private struct AdHocAnimationRow: View {
                     Text(animation.metadata.title)
                         .font(.headline)
                     if let createdAt = animation.createdAt {
-                        Text(adHocRelativeString(createdAt))
+                        adHocRelativeText(createdAt)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

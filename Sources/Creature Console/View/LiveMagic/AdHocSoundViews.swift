@@ -122,7 +122,7 @@ private struct AdHocSoundRow: View {
                     .font(.headline)
                 Spacer()
                 if let createdAt = entry.createdAt {
-                    Text(adHocRelativeString(createdAt))
+                    adHocRelativeText(createdAt)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

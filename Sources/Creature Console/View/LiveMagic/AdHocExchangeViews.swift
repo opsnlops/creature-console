@@ -135,7 +135,7 @@ private struct AdHocExchangeRow: View {
                     .foregroundStyle(exchange.status.tint)
                 Spacer()
                 if let createdAt = exchange.createdAt {
-                    Text(adHocRelativeString(createdAt))
+                    adHocRelativeText(createdAt)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
