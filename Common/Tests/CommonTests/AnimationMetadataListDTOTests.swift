@@ -11,7 +11,6 @@ struct AnimationMetadataListDTOTests {
         let metadata1 = AnimationMetadata(
             id: "anim1",
             title: "Wave",
-            lastUpdated: Date(timeIntervalSince1970: 1_000_000),
             millisecondsPerFrame: 20,
             note: "Test animation",
             soundFile: "wave.mp3",
@@ -77,7 +76,6 @@ struct AnimationMetadataListDTOTests {
         let metadata1 = AnimationMetadata(
             id: "anim1",
             title: "Test",
-            lastUpdated: Date(timeIntervalSince1970: 1_000_000),
             millisecondsPerFrame: 20,
             note: "Note",
             soundFile: "test.mp3",

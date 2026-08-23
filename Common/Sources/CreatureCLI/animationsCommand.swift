@@ -313,10 +313,6 @@ extension CreatureCLI {
                             print("Sound File: \(animation.metadata.soundFile)")
                             print("Tracks: \(animation.tracks.count)")
                             print("Number of Frames: \(animation.metadata.numberOfFrames)")
-                            if let created = animation.metadata.lastUpdated {
-                                let stamp = AdHoc.formattedDate(created)
-                                print("Last Updated: \(stamp)")
-                            }
                             print("")
                         case .failure(let error):
                             throw failWithMessage(

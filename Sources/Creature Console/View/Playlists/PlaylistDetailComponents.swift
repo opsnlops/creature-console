@@ -4,6 +4,82 @@
 import Common
 import SwiftUI
 
+/// The tap-to-edit weight control shared by both playlist item rows.
+///
+/// The bounds rule lives here, once. An out-of-range value keeps the field open with the
+/// accepted range shown rather than being silently discarded — the server rejects anything
+/// outside `PlaylistLimits.itemWeightRange`, and finding that out on save is too late.
+struct PlaylistItemWeightEditor: View {
+    let weight: UInt32
+    /// Share of playtime, shown when the weight isn't being edited.
+    let percentage: Double
+    @Binding var isEditing: Bool
+    let onWeightChanged: (UInt32) -> Void
+
+    @State private var editingWeight: String = ""
+
+    private var isEditedWeightValid: Bool {
+        PlaylistLimits.weight(fromUserInput: editingWeight) != nil
+    }
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 8) {
+                if isEditing {
+                    TextField("Weight", text: $editingWeight)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 60)
+                        .onSubmit {
+                            submitWeightChange()
+                        }
+
+                    Button("✓") {
+                        submitWeightChange()
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(isEditedWeightValid ? .green : .secondary)
+                    .disabled(!isEditedWeightValid)
+                    .help("Save the new weight")
+                } else {
+                    Text("Weight: \(weight)")
+                        .font(.subheadline)
+                        .onTapGesture {
+                            startEditing()
+                        }
+                }
+            }
+
+            if isEditing, !isEditedWeightValid {
+                Text("\(PlaylistLimits.minimumItemWeight)–\(PlaylistLimits.maximumItemWeight)")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else {
+                Text(String(format: "%.1f%%", percentage))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .onChange(of: isEditing) { _, nowEditing in
+            // Covers the context-menu entry point, which flips the flag from outside.
+            if nowEditing, editingWeight.isEmpty {
+                editingWeight = String(weight)
+            }
+        }
+    }
+
+    private func startEditing() {
+        editingWeight = String(weight)
+        isEditing = true
+    }
+
+    private func submitWeightChange() {
+        guard let newWeight = PlaylistLimits.weight(fromUserInput: editingWeight) else { return }
+        onWeightChanged(newWeight)
+        isEditing = false
+        editingWeight = ""
+    }
+}
+
 struct PlaylistItemRow: View {
     let item: PlaylistItem
     let animationName: String
@@ -11,7 +87,6 @@ struct PlaylistItemRow: View {
     let onWeightChanged: (UInt32) -> Void
     let onDelete: () -> Void
 
-    @State private var editingWeight: String = ""
     @State private var isEditingWeight = false
 
     var body: some View {
@@ -27,35 +102,12 @@ struct PlaylistItemRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
-                HStack(spacing: 8) {
-                    if isEditingWeight {
-                        TextField("Weight", text: $editingWeight)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 60)
-                            .onSubmit {
-                                submitWeightChange()
-                            }
-
-                        Button("✓") {
-                            submitWeightChange()
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.green)
-                        .help("Save the new weight")
-                    } else {
-                        Text("Weight: \(item.weight)")
-                            .font(.subheadline)
-                            .onTapGesture {
-                                startEditingWeight()
-                            }
-                    }
-                }
-
-                Text(String(format: "%.1f%%", percentage))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            PlaylistItemWeightEditor(
+                weight: item.weight,
+                percentage: percentage,
+                isEditing: $isEditingWeight,
+                onWeightChanged: onWeightChanged
+            )
 
             Button("Delete") {
                 onDelete()
@@ -66,7 +118,7 @@ struct PlaylistItemRow: View {
         .padding(.vertical, 8)
         .contextMenu {
             Button("Edit Weight") {
-                startEditingWeight()
+                isEditingWeight = true
             }
 
             Divider()
@@ -76,33 +128,18 @@ struct PlaylistItemRow: View {
             }
         }
     }
-
-    private func startEditingWeight() {
-        editingWeight = String(item.weight)
-        isEditingWeight = true
-    }
-
-    private func submitWeightChange() {
-        if let newWeight = UInt32(editingWeight) {
-            onWeightChanged(newWeight)
-        }
-        isEditingWeight = false
-    }
 }
 
 struct WeightDistributionView: View {
     let items: [PlaylistItem]
     let animations: [AnimationMetadataModel]
 
-    private var totalWeight: UInt32 {
-        items.reduce(0) { $0 + $1.weight }
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 0) {
                 ForEach(items, id: \.id) { item in
-                    let percentage = totalWeight > 0 ? Double(item.weight) / Double(totalWeight) : 0
+                    let percentage = items.share(of: item)
 
                     Rectangle()
                         .fill(colorForAnimation(item.animationId))
@@ -117,8 +154,7 @@ struct WeightDistributionView: View {
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 200))], spacing: 8) {
                 ForEach(items, id: \.id) { item in
-                    let percentage =
-                        totalWeight > 0 ? Double(item.weight) / Double(totalWeight) * 100 : 0
+                    let percentage = items.percentage(of: item)
 
                     HStack(spacing: 8) {
                         Rectangle()

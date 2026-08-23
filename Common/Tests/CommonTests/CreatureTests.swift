@@ -19,14 +19,12 @@ struct CreatureTests {
             channelOffset: 3,
             mouthSlot: 1,
             audioChannel: 2,
-            inputs: inputs,
-            realData: true
+            inputs: inputs
         )
         #expect(creature.name == "Bunny")
         #expect(creature.channelOffset == 3)
         #expect(creature.mouthSlot == 1)
         #expect(creature.audioChannel == 2)
-        #expect(creature.realData == true)
         #expect(creature.inputs == inputs)
     }
 
@@ -57,8 +55,7 @@ struct CreatureTests {
             channelOffset: 7,
             mouthSlot: 3,
             audioChannel: 5,
-            inputs: inputs,
-            realData: true
+            inputs: inputs
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(Creature.self, from: data)
@@ -73,8 +70,7 @@ struct CreatureTests {
             channelOffset: 10,
             mouthSlot: 4,
             audioChannel: 3,
-            inputs: [],
-            realData: false
+            inputs: []
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
@@ -89,19 +85,28 @@ struct CreatureTests {
         #expect(object["audioChannel"] == nil)
     }
 
-    @Test("Decoding defaults realData to false when missing")
-    func decodingDefaultsRealData() throws {
-        let dict: [String: Any] = [
-            "id": UUID().uuidString,
-            "name": "NoFlag",
-            "channel_offset": 1,
-            "mouth_slot": 6,
-            "audio_channel": 2,
-            "inputs": [] as [Any],
+    @Test("Encoding never emits a field the server doesn't define")
+    func encodingEmitsOnlyContractFields() throws {
+        let creature = Creature(
+            id: UUID().uuidString,
+            name: "Contract",
+            channelOffset: 1,
+            mouthSlot: 6,
+            audioChannel: 2,
+            inputs: []
+        )
+        let data = try JSONEncoder().encode(creature)
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        // `realData` was a Console invention that never existed on the server. The server
+        // tolerates unknown top-level creature fields today, but that tolerance is explicitly
+        // not part of the contract (console#87), so nothing extra goes out.
+        let allowed: Set<String> = [
+            "id", "name", "channel_offset", "mouth_slot", "audio_channel", "inputs",
+            "mouth_input", "speech_loop_animation_ids", "idle_animation_ids", "gaze", "runtime",
         ]
-        let data = try JSONSerialization.data(withJSONObject: dict, options: [])
-        let decoded = try JSONDecoder().decode(Creature.self, from: data)
-        #expect(decoded.realData == false)
+        #expect(Set(object.keys).isSubset(of: allowed))
+        #expect(object["realData"] == nil)
     }
 
     // MARK: Equality & hashing
@@ -128,8 +133,7 @@ struct CreatureTests {
             channelOffset: base.channelOffset,
             mouthSlot: base.mouthSlot,
             audioChannel: base.audioChannel,
-            inputs: base.inputs,
-            realData: base.realData
+            inputs: base.inputs
         )
         #expect(base != changedName)
 
@@ -139,8 +143,7 @@ struct CreatureTests {
             channelOffset: base.channelOffset,
             mouthSlot: base.mouthSlot,
             audioChannel: base.audioChannel,
-            inputs: base.inputs + [Input(name: "Extra", slot: 9, width: 1, joystickAxis: 9)],
-            realData: base.realData
+            inputs: base.inputs + [Input(name: "Extra", slot: 9, width: 1, joystickAxis: 9)]
         )
         #expect(base != changedInputs)
 
@@ -150,8 +153,7 @@ struct CreatureTests {
             channelOffset: base.channelOffset + 1,
             mouthSlot: base.mouthSlot,
             audioChannel: base.audioChannel,
-            inputs: base.inputs,
-            realData: base.realData
+            inputs: base.inputs
         )
         #expect(base != changedOffset)
 
@@ -161,8 +163,7 @@ struct CreatureTests {
             channelOffset: base.channelOffset,
             mouthSlot: base.mouthSlot + 1,
             audioChannel: base.audioChannel,
-            inputs: base.inputs,
-            realData: base.realData
+            inputs: base.inputs
         )
         #expect(base != changedMouthSlot)
 
@@ -172,20 +173,19 @@ struct CreatureTests {
             channelOffset: base.channelOffset,
             mouthSlot: base.mouthSlot,
             audioChannel: base.audioChannel + 1,
-            inputs: base.inputs,
-            realData: base.realData
+            inputs: base.inputs
         )
         #expect(base != changedAudio)
 
-        let flippedFlag = Creature(
+        let changedMouthInput = Creature(
             id: base.id,
             name: base.name,
             channelOffset: base.channelOffset,
             mouthSlot: base.mouthSlot,
             audioChannel: base.audioChannel,
             inputs: base.inputs,
-            realData: !base.realData
+            mouthInput: base.inputs.first?.name
         )
-        #expect(base != flippedFlag)
+        #expect(base != changedMouthInput)
     }
 }

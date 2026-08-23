@@ -20,28 +20,37 @@ final class CreatureModel {
     var name: String = ""
     var channelOffset: Int = 0
     var mouthSlot: Int = 0
-    var realData: Bool = false
     var audioChannel: Int = 0
+    /// Names the input that drives the mouth, overriding `mouthSlot`. Optional with a default,
+    /// so it's a lightweight SwiftData migration.
+    var mouthInput: String? = nil
     var speechLoopAnimationIds: [String] = []
     var idleAnimationIds: [String] = []
     var inputsJSON: Data = Data("[]".utf8)
+    /// Head-aiming config, stored as a JSON blob for the same reason `inputs` is: it's one
+    /// nested document from the server, and a child relationship would churn on every refresh.
+    /// Empty data means no gaze configured.
+    var gazeJSON: Data = Data()
 
     init(
-        id: String, name: String, channelOffset: Int, mouthSlot: Int, realData: Bool,
+        id: String, name: String, channelOffset: Int, mouthSlot: Int,
         audioChannel: Int,
         inputs: [Common.Input],
+        mouthInput: String? = nil,
         speechLoopAnimationIds: [String],
-        idleAnimationIds: [String]
+        idleAnimationIds: [String],
+        gaze: Common.GazeConfig? = nil
     ) {
         self.id = id
         self.name = name
         self.channelOffset = channelOffset
         self.mouthSlot = mouthSlot
-        self.realData = realData
         self.audioChannel = audioChannel
         self.inputsJSON = CreatureModel.encodeInputs(inputs)
+        self.mouthInput = mouthInput
         self.speechLoopAnimationIds = speechLoopAnimationIds
         self.idleAnimationIds = idleAnimationIds
+        self.gazeJSON = CreatureModel.encodeGaze(gaze)
     }
 }
 
@@ -58,6 +67,24 @@ extension CreatureModel {
         (try? JSONDecoder().decode([Common.Input].self, from: inputsJSON)) ?? []
     }
 
+    /// Encode gaze to the stored blob. A creature with no gaze stores empty data rather than
+    /// an empty object, so "no head aiming" survives the round trip as absence.
+    static func encodeGaze(_ gaze: Common.GazeConfig?) -> Data {
+        guard let gaze, !gaze.isEmpty, let encoded = try? JSONEncoder().encode(gaze) else {
+            return Data()
+        }
+        return encoded
+    }
+
+    /// The head-aiming config, decoded from the stored JSON blob, or `nil` when there is none.
+    var gaze: Common.GazeConfig? {
+        guard !gazeJSON.isEmpty,
+            let decoded = try? JSONDecoder().decode(Common.GazeConfig.self, from: gazeJSON),
+            !decoded.isEmpty
+        else { return nil }
+        return decoded
+    }
+
     // Initialize from the Common DTO
     convenience init(dto: Common.Creature) {
         self.init(
@@ -65,11 +92,12 @@ extension CreatureModel {
             name: dto.name,
             channelOffset: dto.channelOffset,
             mouthSlot: dto.mouthSlot,
-            realData: dto.realData,
             audioChannel: dto.audioChannel,
             inputs: dto.inputs,
+            mouthInput: dto.mouthInput,
             speechLoopAnimationIds: dto.speechLoopAnimationIds,
-            idleAnimationIds: dto.idleAnimationIds
+            idleAnimationIds: dto.idleAnimationIds,
+            gaze: dto.gaze
         )
     }
 
@@ -82,9 +110,10 @@ extension CreatureModel {
             mouthSlot: mouthSlot,
             audioChannel: audioChannel,
             inputs: inputs,
-            realData: realData,
+            mouthInput: mouthInput,
             speechLoopAnimationIds: speechLoopAnimationIds,
-            idleAnimationIds: idleAnimationIds
+            idleAnimationIds: idleAnimationIds,
+            gaze: gaze
         )
     }
 }

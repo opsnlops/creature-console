@@ -7,6 +7,10 @@ func creatureDetails(_ creature: Creature) -> String {
     lines.append("  Channel Offset: \(creature.channelOffset)")
     lines.append("  Audio Channel:  \(creature.audioChannel)")
     lines.append("  Mouth Slot:     \(creature.mouthSlot)")
+    if let mouthInput = creature.mouthInput {
+        lines.append(
+            "  Mouth Input:    \(mouthInput) (slot \(creature.resolvedMouthSlot))")
+    }
     lines.append("  Inputs:         \(creature.inputs.count)")
 
     if !creature.speechLoopAnimationIds.isEmpty {
@@ -16,6 +20,19 @@ func creatureDetails(_ creature: Creature) -> String {
     if !creature.idleAnimationIds.isEmpty {
         let joined = creature.idleAnimationIds.joined(separator: ", ")
         lines.append("  Idle Loops:     \(joined)")
+    }
+
+    if let gaze = creature.gaze, !gaze.isEmpty {
+        lines.append("Gaze:")
+        for named in gaze.axes {
+            let range = String(
+                format: "%.1f° → %.1f°", named.axis.degreesAtMin, named.axis.degreesAtMax)
+            var line = "  \(named.name): input=\(named.axis.input) range=\(range)"
+            if let listening = named.axis.listeningAmount {
+                line += String(format: " listening=%.2f", listening)
+            }
+            lines.append(line)
+        }
     }
 
     if let runtime = creature.runtime {

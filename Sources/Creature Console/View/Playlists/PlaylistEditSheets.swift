@@ -46,7 +46,7 @@ struct EditPlaylistSheet: View {
                                         Spacer()
 
                                         Text(
-                                            "Total Weight: \(totalWeight(for: editablePlaylist ?? currentPlaylist))"
+                                            "Total Weight: \((editablePlaylist ?? currentPlaylist).totalWeight)"
                                         )
                                         .foregroundStyle(.secondary)
                                         .font(.caption)
@@ -184,14 +184,8 @@ struct EditPlaylistSheet: View {
         animations.first(where: { $0.id == id })?.title ?? "Unknown Animation"
     }
 
-    private func totalWeight(for playlist: Common.Playlist) -> UInt32 {
-        playlist.items.reduce(0) { $0 + $1.weight }
-    }
-
     private func percentage(for item: PlaylistItem, in playlist: Common.Playlist) -> Double {
-        let total = totalWeight(for: playlist)
-        guard total > 0 else { return 0 }
-        return Double(item.weight) / Double(total) * 100
+        playlist.percentage(of: item)
     }
 }
 
@@ -202,13 +196,10 @@ struct EditablePlaylistItemRow: View {
     let onWeightChanged: (UInt32) -> Void
     let onDelete: () -> Void
 
-    @State private var editingWeight: String = ""
     @State private var isEditingWeight = false
 
     private var percentage: Double {
-        let totalWeight = currentPlaylist.items.reduce(0) { $0 + $1.weight }
-        guard totalWeight > 0 else { return 0 }
-        return Double(item.weight) / Double(totalWeight) * 100
+        currentPlaylist.percentage(of: item)
     }
 
     var body: some View {
@@ -224,35 +215,12 @@ struct EditablePlaylistItemRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
-                HStack(spacing: 8) {
-                    if isEditingWeight {
-                        TextField("Weight", text: $editingWeight)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 60)
-                            .onSubmit {
-                                submitWeightChange()
-                            }
-
-                        Button("✓") {
-                            submitWeightChange()
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.green)
-                        .help("Save the new weight")
-                    } else {
-                        Text("Weight: \(item.weight)")
-                            .font(.subheadline)
-                            .onTapGesture {
-                                startEditingWeight()
-                            }
-                    }
-                }
-
-                Text(String(format: "%.1f%%", percentage))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            PlaylistItemWeightEditor(
+                weight: item.weight,
+                percentage: percentage,
+                isEditing: $isEditingWeight,
+                onWeightChanged: onWeightChanged
+            )
 
             Button("Delete") {
                 onDelete()
@@ -263,7 +231,7 @@ struct EditablePlaylistItemRow: View {
         .padding(.vertical, 8)
         .contextMenu {
             Button("Edit Weight") {
-                startEditingWeight()
+                isEditingWeight = true
             }
 
             Divider()
@@ -272,18 +240,6 @@ struct EditablePlaylistItemRow: View {
                 onDelete()
             }
         }
-    }
-
-    private func startEditingWeight() {
-        editingWeight = String(item.weight)
-        isEditingWeight = true
-    }
-
-    private func submitWeightChange() {
-        if let newWeight = UInt32(editingWeight), newWeight > 0 {
-            onWeightChanged(newWeight)
-        }
-        isEditingWeight = false
     }
 }
 
@@ -314,12 +270,23 @@ struct AddAnimationToEditPlaylistSheet: View {
                     Text("Weight")
                         .font(.headline)
 
-                    TextField("Enter weight (1-999)", text: $weight)
-                        .textFieldStyle(.roundedBorder)
+                    TextField(
+                        "Enter weight (\(PlaylistLimits.minimumItemWeight)-\(PlaylistLimits.maximumItemWeight))",
+                        text: $weight
+                    )
+                    .textFieldStyle(.roundedBorder)
 
-                    Text("Higher weights make animations more likely to be selected.")
+                    if weight.isEmpty || isWeightValid {
+                        Text("Higher weights make animations more likely to be selected.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(
+                            "Weight must be a whole number from \(PlaylistLimits.minimumItemWeight) to \(PlaylistLimits.maximumItemWeight)."
+                        )
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.orange)
+                    }
                 }
                 .padding()
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
@@ -377,19 +344,24 @@ struct AddAnimationToEditPlaylistSheet: View {
                     Button("Add") {
                         addAnimation()
                     }
-                    .disabled(
-                        selectedAnimation == nil || weight.isEmpty || UInt32(weight) == nil
-                            || UInt32(weight) == 0)
+                    .disabled(selectedAnimation == nil || !isWeightValid)
                 }
             }
         }
         .frame(minWidth: 600, minHeight: 500)
     }
 
+    /// Whether what's typed is a weight the server would accept.
+    private var isWeightValid: Bool {
+        PlaylistLimits.weight(fromUserInput: weight) != nil
+    }
+
     private func addAnimation() {
+        // Nothing here dismisses on an invalid weight — the Add button is disabled and the
+        // field explains the range, so the sheet stays put until the value is one the server
+        // will take.
         guard let animation = selectedAnimation,
-            let weightValue = UInt32(weight),
-            weightValue > 0
+            let weightValue = PlaylistLimits.weight(fromUserInput: weight)
         else {
             return
         }

@@ -1,3 +1,33 @@
+creature-cli (2.53.0) unstable; urgency=medium
+
+  * Speak the neutral Creature Server JSON contract from server 3.45.0
+    (creature-server#170): absent optionals are omitted rather than sent
+    as null, and no field the server doesn't define goes out (console#87,
+    superseding #83, #84, and #85).
+  * Animation metadata decodes payloads with 'note' omitted, and no longer
+    sends 'last_updated' -- a field the server never had, which the new
+    codec rejects outright. Saving or renaming an animation works again
+    against 3.45.0.
+  * Animation metadata now carries 'render_seed', 'source_stage_placements',
+    and 'source_render_choices', so renaming a stage- or dialog-rendered
+    animation stops silently stripping its provenance.
+  * A track has exactly one owner: 'creatures detail' and every other
+    animation read now handles fixture-only tracks, which previously failed
+    to decode because the server omits 'creature_id' for them.
+  * Creature configs model 'mouth_input' and 'gaze'; 'creatures detail'
+    prints both.
+  * New 'creatures import' command uploads a creature configuration file
+    verbatim, with '--register' to also claim a universe. The bytes go up
+    unchanged so fields this build doesn't model survive the trip.
+  * Playlist item weights are validated against the server's 1-999 range
+    before a request is issued.
+  * A dialog turn's equality no longer counts its client-only id, which is
+    minted fresh on every decode. Comparing turns reported a difference on
+    every server round trip, which left the dialog editor permanently
+    marked as having unsaved changes after a save.
+
+ -- April White <april@creature.engineering>  Sat, 22 Aug 2026 19:20:13 -0700
+
 creature-cli (2.52.0) unstable; urgency=medium
 
   * New 'exchanges' command group for streamed ad-hoc exchanges

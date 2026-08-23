@@ -16,7 +16,6 @@ public struct Animation: Hashable, Identifiable, Codable, Sendable {
         self.metadata = AnimationMetadata(
             id: "",
             title: "",
-            lastUpdated: Date(),
             millisecondsPerFrame: 20,
             note: "",
             soundFile: "",

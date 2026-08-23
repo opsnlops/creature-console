@@ -26,8 +26,7 @@ struct CreatureImporterTests {
                 inputs: [
                     Common.Input(name: "Input 1", slot: 1, width: 8, joystickAxis: 0),
                     Common.Input(name: "Input 2", slot: 2, width: 16, joystickAxis: 1),
-                ],
-                realData: true
+                ]
             ),
             Common.Creature(
                 id: "creature_2",
@@ -37,8 +36,7 @@ struct CreatureImporterTests {
                 audioChannel: 2,
                 inputs: [
                     Common.Input(name: "Input 3", slot: 3, width: 8, joystickAxis: 2)
-                ],
-                realData: false
+                ]
             ),
         ]
 
@@ -53,13 +51,11 @@ struct CreatureImporterTests {
         #expect(creature1?.name == "Creature 1")
         #expect(creature1?.mouthSlot == 2)
         #expect(creature1?.inputs.count == 2)
-        #expect(creature1?.realData == true)
 
         let creature2 = results.first { $0.id == "creature_2" }
         #expect(creature2?.name == "Creature 2")
         #expect(creature2?.mouthSlot == 3)
         #expect(creature2?.inputs.count == 1)
-        #expect(creature2?.realData == false)
     }
 
     @Test("upsertBatch updates existing creatures and inputs")
@@ -80,8 +76,7 @@ struct CreatureImporterTests {
             inputs: [
                 Common.Input(name: "Input 1", slot: 1, width: 8, joystickAxis: 0),
                 Common.Input(name: "Input 2", slot: 2, width: 16, joystickAxis: 1),
-            ],
-            realData: true
+            ]
         )
         try await importer.upsertBatch([initialDTO])
 
@@ -96,8 +91,7 @@ struct CreatureImporterTests {
                 Common.Input(name: "Input 3", slot: 3, width: 8, joystickAxis: 2),
                 Common.Input(name: "Input 4", slot: 4, width: 16, joystickAxis: 3),
                 Common.Input(name: "Input 5", slot: 5, width: 8, joystickAxis: 4),
-            ],
-            realData: false
+            ]
         )
         try await importer.upsertBatch([updatedDTO])
 
@@ -111,7 +105,6 @@ struct CreatureImporterTests {
         #expect(results.first?.channelOffset == 20)
         #expect(results.first?.mouthSlot == 5)
         #expect(results.first?.audioChannel == 2)
-        #expect(results.first?.realData == false)
         #expect(results.first?.inputs.count == 3)
         #expect(results.first?.inputs.contains { $0.name == "Input 3" } == true)
     }
@@ -135,8 +128,7 @@ struct CreatureImporterTests {
                 Common.Input(name: "Input 1", slot: 1, width: 8, joystickAxis: 0),
                 Common.Input(name: "Input 2", slot: 2, width: 16, joystickAxis: 1),
                 Common.Input(name: "Input 3", slot: 3, width: 8, joystickAxis: 2),
-            ],
-            realData: true
+            ]
         )
         try await importer.upsertBatch([initialDTO])
 
@@ -149,8 +141,7 @@ struct CreatureImporterTests {
             audioChannel: 1,
             inputs: [
                 Common.Input(name: "Input 4", slot: 4, width: 16, joystickAxis: 3)
-            ],
-            realData: true
+            ]
         )
         try await importer.upsertBatch([updatedDTO])
 
@@ -201,16 +192,13 @@ struct CreatureImporterTests {
         let dtos = [
             Common.Creature(
                 id: "creature_1", name: "Keep 1", channelOffset: 10, mouthSlot: 2, audioChannel: 1,
-                inputs: [],
-                realData: true),
+                inputs: []),
             Common.Creature(
                 id: "creature_2", name: "Keep 2", channelOffset: 20, mouthSlot: 4, audioChannel: 2,
-                inputs: [],
-                realData: false),
+                inputs: []),
             Common.Creature(
                 id: "creature_3", name: "Delete Me", channelOffset: 30, mouthSlot: 6,
-                audioChannel: 3, inputs: [],
-                realData: true),
+                audioChannel: 3, inputs: []),
         ]
 
         try await importer.upsertBatch(dtos)
@@ -260,8 +248,7 @@ struct CreatureImporterTests {
             channelOffset: 10,
             mouthSlot: 3,
             audioChannel: 1,
-            inputs: [],
-            realData: true
+            inputs: []
         )
         try await importer.upsertBatch([dto])
 

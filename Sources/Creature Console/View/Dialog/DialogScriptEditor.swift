@@ -87,11 +87,15 @@ struct DialogScriptEditor: View {
         (!createNew && !isDirty) ? original.id : nil
     }
 
-    /// Turn ids are client-only SwiftUI identities and are freshly minted whenever the server
-    /// sends the canonical script back. Compare the wire content instead so refreshing a script
-    /// after accepting music does not discard the exact voice take selected for rendering.
-    private var turnContent: [String] {
-        script.turns.map { "\($0.creatureId)\u{0}\($0.text)" }
+    /// The turns as the preview cache sees them.
+    ///
+    /// This used to map each turn to a `creatureId\0text` string, because a turn's client-only
+    /// `id` is minted fresh whenever the server sends the canonical script back and the
+    /// synthesized `Equatable` counted it — so comparing turns directly reported a change on
+    /// every refresh. `DialogScriptTurn` now compares on wire content (console#87), which is
+    /// exactly what this needs, so the turns can speak for themselves.
+    private var turnContent: [DialogScriptTurn] {
+        script.turns
     }
 
     private var canAddTurn: Bool { script.turns.count < DialogLimits.maxTurns }

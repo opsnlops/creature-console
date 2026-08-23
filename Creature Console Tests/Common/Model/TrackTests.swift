@@ -10,7 +10,7 @@ struct TrackTests {
     func trackInitialization() {
         let track = Track.mock()
         #expect(track.id.uuidString.count == 36)
-        #expect(track.creatureId.count == 36)
+        #expect(track.creatureId?.count == 36)
         #expect(track.animationId.count == 36)
         #expect(track.frames.count == 8)
         #expect(track.frames.allSatisfy { $0.count == 7 })
@@ -49,7 +49,7 @@ struct TrackTests {
         let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
         #expect(jsonObject != nil)
         #expect(jsonObject?["id"] as? String == track.id.uuidString.lowercased())
-        #expect(jsonObject?["creature_id"] as? String == track.creatureId.lowercased())
+        #expect(jsonObject?["creature_id"] as? String == track.creatureId?.lowercased())
         #expect(jsonObject?["animation_id"] as? String == track.animationId.lowercased())
         #expect((jsonObject?["frames"] as? [String])?.count == 8)
     }

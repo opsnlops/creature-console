@@ -11,7 +11,7 @@ struct TrackTests {
         let track = Track.mock()
         #expect(track.frames.count == 8)
         #expect(track.frames.allSatisfy { $0.count == 7 })
-        #expect(!track.creatureId.isEmpty)
+        #expect(track.creatureId?.isEmpty == false)
         #expect(!track.animationId.isEmpty)
     }
 
@@ -46,7 +46,7 @@ struct TrackTests {
         let data = try JSONEncoder().encode(t)
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect((object["id"] as? String) == t.id.uuidString.lowercased())
-        #expect((object["creature_id"] as? String) == t.creatureId.lowercased())
+        #expect((object["creature_id"] as? String) == t.creatureId?.lowercased())
         #expect((object["animation_id"] as? String) == t.animationId.lowercased())
         let frames = try #require(object["frames"] as? [String])
         #expect(frames.count == t.frames.count)

@@ -19,8 +19,8 @@ struct PlaylistDetail: View {
     private let logger = Logger(
         subsystem: "io.opsnlops.CreatureConsole", category: "PlaylistDetail")
 
-    var totalWeight: UInt32 {
-        playlist.items.reduce(0) { $0 + $1.weight }
+    var totalWeight: UInt64 {
+        playlist.totalWeight
     }
 
     var body: some View {

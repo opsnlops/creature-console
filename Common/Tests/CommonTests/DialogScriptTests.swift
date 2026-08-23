@@ -119,3 +119,62 @@ struct DialogScriptTests {
         #expect((obj["turns"] as? [[String: Any]])?.count == script.turns.count)
     }
 }
+
+
+@Suite("DialogScriptTurn identity vs. content")
+struct DialogScriptTurnEqualityTests {
+
+    private let creatureId = "5d7c1a02-9b34-4e18-8f6a-2c0d3e5b7a91"
+
+    /// A turn's `id` is a client-only SwiftUI identity, minted fresh on every decode and
+    /// deliberately kept off the wire. It must not count toward equality.
+    ///
+    /// It used to. That made a script decoded from the server unequal to the identical script
+    /// held in memory, so `DialogScriptEditor.isDirty` (`script != original`) stayed true
+    /// forever after a save — and `isDirty` gates the render id, the Render button, take
+    /// acceptance, and music promotion. The editor sat there claiming unsaved changes it
+    /// didn't have.
+    @Test("two turns with the same creature and text are equal despite different ids")
+    func sameContentDifferentIdsAreEqual() {
+        let a = DialogScriptTurn(creatureId: creatureId, text: "Did you hear that?")
+        let b = DialogScriptTurn(creatureId: creatureId, text: "Did you hear that?")
+
+        #expect(a.id != b.id)
+        #expect(a == b)
+
+        var hasherA = Hasher()
+        a.hash(into: &hasherA)
+        var hasherB = Hasher()
+        b.hash(into: &hasherB)
+        #expect(hasherA.finalize() == hasherB.finalize())
+    }
+
+    @Test("content still decides inequality")
+    func contentDecidesInequality() {
+        let base = DialogScriptTurn(creatureId: creatureId, text: "Hello")
+        #expect(base != DialogScriptTurn(creatureId: creatureId, text: "Hello!"))
+        #expect(
+            base
+                != DialogScriptTurn(
+                    creatureId: "6e8d2b13-ac45-4f29-9a7b-3d1e4f6c8b02", text: "Hello"))
+    }
+
+    /// The editor's dirty check in miniature: save, take the server's canonical copy back, and
+    /// the unchanged script must compare equal to it.
+    @Test("a script survives a save round trip as equal")
+    func scriptRoundTripsAsEqual() throws {
+        let script = DialogScript(
+            id: UUID(),
+            title: "Morning Chatter",
+            notes: "",
+            turns: [
+                DialogScriptTurn(creatureId: creatureId, text: "Good morning!"),
+                DialogScriptTurn(creatureId: creatureId, text: "Good morning!"),
+            ])
+
+        let data = try JSONEncoder().encode(script)
+        let canonical = try JSONDecoder().decode(DialogScript.self, from: data)
+
+        #expect(canonical == script, "an unedited script must not read as dirty after a save")
+    }
+}

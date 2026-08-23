@@ -1,10 +1,22 @@
 import Foundation
 import Logging
 
+/// Who a `Track` drives.
+///
+/// A track has exactly one owner — a creature or a DMX fixture, never both and never
+/// neither. The server enforces this (`trackFromJson` rejects a payload where
+/// `creature_id` and `fixture_id` are both set or both absent), and modelling it as an
+/// enum means the Console can't build an invalid track in the first place.
+public enum TrackOwner: Hashable, Equatable, Sendable {
+    case creature(CreatureIdentifier)
+    case fixture(DmxFixtureIdentifier)
+}
+
 /**
  A `Track` is one creature's (or fixture's) set of moments in an animation. There could be several tracks in an animation, or just one. It all depends on who is involved.
 
- The `creatureId` tells the server which Creature this track is connected to. The optional `fixtureId` instead targets a DMX fixture; exactly one of `creatureId` / `fixtureId` is meaningful per track.
+ The ``owner`` says which it is. Use ``creatureId`` / ``fixtureId`` to ask about one kind
+ specifically; both are `nil` when the track belongs to the other kind.
  */
 
 public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
@@ -13,21 +25,46 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
 
     // The `id` property to conform to Identifiable
     public var id: TrackIdentifier
-    public var creatureId: CreatureIdentifier
+    public var owner: TrackOwner
     public var animationId: AnimationIdentifier
-    public var fixtureId: DmxFixtureIdentifier?
     public var frames: [Data]
 
+    /// The creature this track drives, or `nil` when it drives a fixture.
+    public var creatureId: CreatureIdentifier? {
+        guard case .creature(let id) = owner else { return nil }
+        return id
+    }
+
+    /// The DMX fixture this track drives, or `nil` when it drives a creature.
+    public var fixtureId: DmxFixtureIdentifier? {
+        guard case .fixture(let id) = owner else { return nil }
+        return id
+    }
+
     public init(
-        id: TrackIdentifier, creatureId: CreatureIdentifier, animationId: AnimationIdentifier,
-        fixtureId: DmxFixtureIdentifier? = nil, frames: [Data]
+        id: TrackIdentifier, owner: TrackOwner, animationId: AnimationIdentifier, frames: [Data]
     ) {
         self.id = id
-        self.creatureId = creatureId
+        self.owner = owner
         self.animationId = animationId
-        self.fixtureId = fixtureId
         self.frames = frames
         Self.logger.trace("Created a new Track from init()")
+    }
+
+    /// Convenience for the common case: a track that drives a creature.
+    public init(
+        id: TrackIdentifier, creatureId: CreatureIdentifier, animationId: AnimationIdentifier,
+        frames: [Data]
+    ) {
+        self.init(id: id, owner: .creature(creatureId), animationId: animationId, frames: frames)
+    }
+
+    /// Convenience for a track that drives a DMX fixture.
+    public init(
+        id: TrackIdentifier, fixtureId: DmxFixtureIdentifier, animationId: AnimationIdentifier,
+        frames: [Data]
+    ) {
+        self.init(id: id, owner: .fixture(fixtureId), animationId: animationId, frames: frames)
     }
 
     // Enum for CodingKeys
@@ -43,11 +80,17 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id.uuidString.lowercased(), forKey: .id)  // Lowercase UUID string
-        try container.encode(creatureId.lowercased(), forKey: .creatureId)  // Lowercase UUID string
         try container.encode(animationId.lowercased(), forKey: .animationId)  // Lowercase UUID string
-        if let fixtureId, !fixtureId.isEmpty {
+
+        // Exactly one owner key goes out. An empty string is not an accepted stand-in for
+        // absent — the server rejects it.
+        switch owner {
+        case .creature(let creatureId):
+            try container.encode(creatureId.lowercased(), forKey: .creatureId)
+        case .fixture(let fixtureId):
             try container.encode(fixtureId.lowercased(), forKey: .fixtureId)
         }
+
         let base64Frames = frames.map { $0.base64EncodedString() }
         try container.encode(base64Frames, forKey: .frames)
     }
@@ -56,10 +99,33 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(TrackIdentifier.self, forKey: .id)
-        self.creatureId = try container.decode(CreatureIdentifier.self, forKey: .creatureId)
         self.animationId = try container.decode(AnimationIdentifier.self, forKey: .animationId)
-        self.fixtureId = try container.decodeIfPresent(
-            DmxFixtureIdentifier.self, forKey: .fixtureId)
+
+        // The server omits the key it doesn't have. Treat an empty string the same as absent,
+        // so a legacy document written by an older client still lands on a valid owner.
+        let creatureId = try container.decodeIfPresent(CreatureIdentifier.self, forKey: .creatureId)
+            .flatMap { $0.isEmpty ? nil : $0 }
+        let fixtureId = try container.decodeIfPresent(
+            DmxFixtureIdentifier.self, forKey: .fixtureId
+        ).flatMap { $0.isEmpty ? nil : $0 }
+
+        switch (creatureId, fixtureId) {
+        case (let creatureId?, nil):
+            self.owner = .creature(creatureId)
+        case (nil, let fixtureId?):
+            self.owner = .fixture(fixtureId)
+        case (nil, nil):
+            throw DecodingError.dataCorruptedError(
+                forKey: .creatureId, in: container,
+                debugDescription: "A track needs a creature_id or a fixture_id; it had neither.")
+        case (_?, _?):
+            throw DecodingError.dataCorruptedError(
+                forKey: .fixtureId, in: container,
+                debugDescription:
+                    "A track drives a creature or a fixture, not both; creature_id and fixture_id were both set."
+            )
+        }
+
         let base64Frames = try container.decode([String].self, forKey: .frames)
         self.frames = try base64Frames.map {
             guard let data = Data(base64Encoded: $0) else {
@@ -74,16 +140,14 @@ public struct Track: Hashable, Equatable, Codable, Identifiable, Sendable {
     }
 
     public static func == (lhs: Track, rhs: Track) -> Bool {
-        lhs.id == rhs.id && lhs.creatureId == rhs.creatureId && lhs.animationId == rhs.animationId
-            && lhs.fixtureId == rhs.fixtureId
+        lhs.id == rhs.id && lhs.owner == rhs.owner && lhs.animationId == rhs.animationId
             && lhs.frames.elementsEqual(rhs.frames, by: { $0 == $1 })
     }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
-        hasher.combine(creatureId)
+        hasher.combine(owner)
         hasher.combine(animationId)
-        hasher.combine(fixtureId)
         frames.forEach { hasher.combine($0) }  // Hash each frame's data
     }
 

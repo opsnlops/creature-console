@@ -86,6 +86,13 @@ struct CreatureConfigDisplay: View {
                     configRow(label: "Name", value: creature.name)
                     configRow(label: "Channel Offset", value: String(creature.channelOffset))
                     configRow(label: "Mouth Slot", value: String(creature.mouthSlot))
+                    if let mouthInput = creature.mouthInput {
+                        // When set, this names the input that actually drives the mouth, and the
+                        // raw slot number above is just the fallback.
+                        configRow(
+                            label: "Mouth Input",
+                            value: "\(mouthInput) (slot \(creature.resolvedMouthSlot))")
+                    }
                     configRow(label: "Audio Channel", value: String(creature.audioChannel))
                 }
                 .padding()
@@ -121,6 +128,42 @@ struct CreatureConfigDisplay: View {
                 .padding()
                 .background(Color.secondary.opacity(0.1))
                 .clipShape(.rect(cornerRadius: 12))
+
+                if let gaze = creature.gaze, !gaze.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Gaze")
+                            .font(.headline)
+
+                        Text(
+                            "How this creature aims its head. Each axis maps one input's travel to real-world degrees."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                        ForEach(gaze.axes, id: \.name) { named in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(named.name)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                configRow(label: "Input", value: named.axis.input)
+                                configRow(
+                                    label: "Range",
+                                    value: String(
+                                        format: "%.1f° → %.1f°", named.axis.degreesAtMin,
+                                        named.axis.degreesAtMax))
+                                if let listening = named.axis.listeningAmount {
+                                    configRow(
+                                        label: "Listening",
+                                        value: String(format: "%.2f", listening))
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+                }
 
                 if creature.inputs.isEmpty {
                     // Empty state
