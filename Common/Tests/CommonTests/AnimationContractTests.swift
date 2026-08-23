@@ -289,6 +289,69 @@ struct AnimationContractTests {
         #expect(object["source_stage_updated_at"] as? Int64 == 1_770_000_000_000)
     }
 
+    /// Tracks in one animation may be different lengths, and `number_of_frames` is the
+    /// longest of them — a creature whose track runs short simply stops moving and holds
+    /// its last position.
+    ///
+    /// This shape had no fixture, which is exactly why creature-server#175 went unnoticed:
+    /// 34 of 86 stored animations are like this, and the server rejected every one of them
+    /// while every fixture here used equal-length tracks and passed.
+    @Test("tracks of unequal length round-trip, with number_of_frames as the longest")
+    func unequalTrackLengthsRoundTrip() throws {
+        let shortTrackId = UUID().uuidString
+        let json = """
+            {
+              "id": "\(animationId)",
+              "metadata": {
+                "animation_id": "\(animationId)",
+                "title": "Two Birds, One Stops Early",
+                "milliseconds_per_frame": 20,
+                "sound_file": "",
+                "number_of_frames": 3,
+                "multitrack_audio": false
+              },
+              "tracks": [
+                {"id": "\(UUID().uuidString)", "creature_id": "\(creatureId)",
+                 "animation_id": "\(animationId)",
+                 "frames": ["\(frame)", "\(frame)", "\(frame)"]},
+                {"id": "\(shortTrackId)", "creature_id": "\(otherCreatureId)",
+                 "animation_id": "\(animationId)",
+                 "frames": ["\(frame)"]}
+              ]
+            }
+            """
+        let animation = try decode(json)
+
+        #expect(animation.tracks.count == 2)
+        #expect(animation.tracks.map(\.frames.count) == [3, 1])
+        #expect(animation.metadata.numberOfFrames == 3)
+
+        let again = try roundTrip(animation)
+        #expect(again == animation)
+        #expect(again.tracks.map(\.frames.count) == [3, 1], "the short track must not be padded")
+        try NeutralContract.expectNoNulls(animation, "an animation with unequal track lengths")
+    }
+
+    /// `Animation` recomputes `number_of_frames` from its tracks when they change. It must
+    /// take the longest, not the first or the shortest, or a short track would silently
+    /// truncate the animation's duration.
+    @Test("recalculating number_of_frames takes the longest track")
+    func recalculateTakesLongest() throws {
+        var animation = Animation()
+        animation.tracks = [
+            Track(
+                id: TrackIdentifier(), creatureId: creatureId,
+                animationId: animation.id, frames: Array(repeating: Data([1]), count: 4)),
+            Track(
+                id: TrackIdentifier(), creatureId: otherCreatureId,
+                animationId: animation.id, frames: [Data([1])]),
+        ]
+        #expect(animation.metadata.numberOfFrames == 4)
+
+        animation.recalculateNumberOfFrames()
+        #expect(animation.metadata.numberOfFrames == 4)
+    }
+
     /// The bug this whole thing started from: rename an animation, lose its provenance.
     @Test("renaming a rendered animation keeps its provenance")
     func renamingKeepsProvenance() throws {
