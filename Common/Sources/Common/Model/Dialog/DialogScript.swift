@@ -26,6 +26,21 @@ public struct DialogScriptTurn: Codable, Equatable, Hashable, Identifiable, Send
         self.creatureId = creatureId
         self.text = text
     }
+
+    /// Equality and hashing deliberately ignore ``id``.
+    ///
+    /// That value is a client-only identity minted fresh on every decode, so counting it would
+    /// make a turn unequal to itself across a round trip — and with it, any animation carrying
+    /// a `source_script_turns` snapshot. What a turn *is* on the wire is its creature and its
+    /// text, which is exactly what these compare.
+    public static func == (lhs: DialogScriptTurn, rhs: DialogScriptTurn) -> Bool {
+        lhs.creatureId == rhs.creatureId && lhs.text == rhs.text
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(creatureId)
+        hasher.combine(text)
+    }
 }
 
 /// A saved, editable multi-character dialog scene.

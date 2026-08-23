@@ -158,9 +158,31 @@ each stage is independently testable and stage 1 is the one that unblocks 3.45.0
 
 `DialogScript`, `DmxFixture`, `Sound`, `AdHocExchange`, `StreamFrameData`,
 `VirtualStatusLightsDTO`, `Notice`, `CacheInvalidation`, `ServerLogItem`,
-`PlaylistStatus`. Most are already lenient (`decodeIfPresent … ?? ""`) and read-only, so
-the audit is: does anything require a key the server now omits, and does anything encode
-a placeholder on the way back out? Fix what the audit finds; document what's clean.
+`PlaylistStatus`. The audit is: does anything require a key the server now omits, and
+does anything encode a placeholder on the way back out?
+
+**Result: clean, with one exception.** These models already use `decodeIfPresent … ?? ""`
+for everything the server omits and `encodeIfPresent` for everything optional.
+`DmxFixture` omits `assigned_universe` correctly, `Sound` defaults every embedded-metadata
+field, `CacheInvalidation` already collapses unknown cache types to `.unknown`, and
+`PlaylistStatus` already spells `current_animation` in snake case. Rather than churn code
+that's already right, the audit is preserved as an executable assertion — see
+`WritableModelNullSweepTests`, which fails if a future optional is added with a plain
+`encode`.
+
+The exception was `DialogScriptTurn`. Its `id` is a client-only UUID, minted fresh on every
+decode and deliberately excluded from `CodingKeys` — but it was still counted by the
+synthesized `Equatable`, so a turn was never equal to itself across a round trip. That made
+every equality check involving a `source_script_turns` snapshot silently useless, including
+the "round trip preserves meaning" test #87 asks for. Equality and hashing now match the
+wire: creature and text.
+
+That was masking a live bug. `DialogScriptEditor.isDirty` is `script != original`, and the
+save path sets `original = saved` from the server's response — whose turns carry fresh ids.
+So after any save the editor was permanently dirty regardless of content, and `isDirty`
+gates `renderScriptId`, the Render button, take acceptance, and music promotion. The file
+already carried a local workaround (`turnContent` mapping turns to `creatureId\0text`
+strings) with a comment describing the symptom, which is now unnecessary and gone.
 
 ### Stage 5 — Fixtures and tests
 
@@ -206,7 +228,7 @@ issue, done per-identifier, after this lands.
 
 ## Verification
 
-- `cd Common && swift test`
+- `cd Common && swift test` — 561 passing
 - macOS and iOS Xcode test targets (`xcodebuild test`, with its own `-derivedDataPath`).
 - Linux container build of all three CLI products before tagging, per CLAUDE.md.
 - Live check against a 3.45.0 server: `creature-cli animations rename` on a
