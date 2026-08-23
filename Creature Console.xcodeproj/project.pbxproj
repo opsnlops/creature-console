@@ -251,7 +251,7 @@
 		786C4469BE761562C02CD8CA /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
 		7DB638E818B72A9D9F481B7F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
 		9DE68FE4120C11C5EC98D74C /* LiveControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */; };
-		A0D100000000000000000001 /* YbridOpus in Frameworks */ = {isa = PBXBuildFile; productRef = A0D100000000000000000004 /* YbridOpus */; };
+		A0D100000000000000000001 /* YbridOpus in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = A0D100000000000000000004 /* YbridOpus */; };
 		A0D100000000000000000006 /* SpatialPCMQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D100000000000000000005 /* SpatialPCMQueueTests.swift */; };
 		A93D4886BE8CC2A68D8DA3E4 /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
 		AA0100000000000000000B01 /* StageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A01 /* StageModel.swift */; };
@@ -280,13 +280,13 @@
 		FEA1A1E70000000000000013 /* Pasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000011 /* Pasteboard.swift */; };
 		FEA1A1E70000000000000022 /* StatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000021 /* StatusBanner.swift */; };
 		FEA1A1E70000000000000023 /* StatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000021 /* StatusBanner.swift */; };
-		FEA1A1E70000000000000132 /* PanelCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000131 /* PanelCard.swift */; };
-		FEA1A1E70000000000000133 /* PanelCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000131 /* PanelCard.swift */; };
 		FEA1A1E70000000000000032 /* TestModelContainerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000031 /* TestModelContainerFactory.swift */; };
 		FEA1A1E70000000000000042 /* TestRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000041 /* TestRun.swift */; };
 		FEA1A1E70000000000000043 /* TestRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000041 /* TestRun.swift */; };
 		FEA1A1E70000000000000052 /* ConsoleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000051 /* ConsoleStore.swift */; };
 		FEA1A1E70000000000000053 /* ConsoleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000051 /* ConsoleStore.swift */; };
+		FEA1A1E70000000000000132 /* PanelCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000131 /* PanelCard.swift */; };
+		FEA1A1E70000000000000133 /* PanelCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1A1E70000000000000131 /* PanelCard.swift */; };
 		FEA1B1E70000000000000062 /* SACNUniverseMonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000061 /* SACNUniverseMonitorViewModel.swift */; };
 		FEA1B1E70000000000000063 /* SACNUniverseMonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000061 /* SACNUniverseMonitorViewModel.swift */; };
 		FEA1B1E70000000000000065 /* SACNRemoteReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000064 /* SACNRemoteReceiver.swift */; };
@@ -301,12 +301,12 @@
 		FEA1B1E70000000000000074 /* AdHocAnimationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */; };
 		FEA1B1E70000000000000076 /* AdHocSoundViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000075 /* AdHocSoundViews.swift */; };
 		FEA1B1E70000000000000077 /* AdHocSoundViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000075 /* AdHocSoundViews.swift */; };
-		FEA1B1E70000000000000091 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
-		FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 		FEA1B1E70000000000000079 /* SensorDataTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000078 /* SensorDataTables.swift */; };
 		FEA1B1E7000000000000007A /* SensorDataTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000078 /* SensorDataTables.swift */; };
 		FEA1B1E7000000000000007C /* CreatureRuntimeSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */; };
 		FEA1B1E70000000000000082 /* DuplicateInstanceGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000081 /* DuplicateInstanceGuard.swift */; };
+		FEA1B1E70000000000000091 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
+		FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -566,10 +566,10 @@
 		FEA1A1E70000000000000004 /* JobWatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobWatching.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000011 /* Pasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pasteboard.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000021 /* StatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBanner.swift; sourceTree = "<group>"; };
-		FEA1A1E70000000000000131 /* PanelCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelCard.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000031 /* TestModelContainerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestModelContainerFactory.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000041 /* TestRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRun.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000051 /* ConsoleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleStore.swift; sourceTree = "<group>"; };
+		FEA1A1E70000000000000131 /* PanelCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelCard.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000061 /* SACNUniverseMonitorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNUniverseMonitorViewModel.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000064 /* SACNRemoteReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNRemoteReceiver.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000067 /* SACNUniverseGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SACNUniverseGridView.swift; sourceTree = "<group>"; };
@@ -579,10 +579,10 @@
 		FEA1B1E70000000000000070 /* PlaylistDetailComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistDetailComponents.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000072 /* AdHocAnimationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocAnimationViews.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000075 /* AdHocSoundViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocSoundViews.swift; sourceTree = "<group>"; };
-		FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocExchangeViews.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000078 /* SensorDataTables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorDataTables.swift; sourceTree = "<group>"; };
 		FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureRuntimeSummary.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000081 /* DuplicateInstanceGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateInstanceGuard.swift; sourceTree = "<group>"; };
+		FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocExchangeViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -1464,7 +1464,7 @@
 				11703D8429DD197F00EF7E3D /* Sources */,
 				11703D8529DD197F00EF7E3D /* Frameworks */,
 				11703D8629DD197F00EF7E3D /* Resources */,
-				323048998CFAFF61434DF674 /* Stamp Build Number (git SHA) */,
+				323048998CFAFF61434DF674 /* Stamp Build Number */,
 			);
 			buildRules = (
 			);
@@ -1514,6 +1514,7 @@
 				117C86FA2CA0CC81007B5682 /* Sources */,
 				117C86FB2CA0CC81007B5682 /* Frameworks */,
 				117C86FC2CA0CC81007B5682 /* Resources */,
+				DD0EE6777F80300DFEC61B18 /* Stamp Build Number */,
 			);
 			buildRules = (
 			);
@@ -1670,32 +1671,134 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		323048998CFAFF61434DF674 /* Stamp Build Number (git SHA) */ = {
+		323048998CFAFF61434DF674 /* Stamp Build Number */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			inputPaths = (
 				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
 			);
-			name = "Stamp Build Number (git SHA)";
+			name = "Stamp Build Number";
 			shellPath = /bin/sh;
 			shellScript = (
-				"# Stamp CFBundleVersion with the current git short SHA",
-				"# The build number always reflects the source it was built from. A committed value",
-				"# can't equal its own commit's SHA, so this is stamped at build time instead.",
+				"# Stamp CFBundleVersion with a monotonically increasing integer.",
+				"#",
+				"# App Store Connect requires CFBundleVersion to be a number that only ever goes up",
+				"# for a given marketing version. The previous git-short-SHA scheme is hexadecimal and",
+				"# unordered, so uploads were rejected outright — that is why this exists.",
+				"#",
+				"# The value is the number of commits reachable from HEAD. That is stateless,",
+				"# reproducible from any full checkout, and monotonic because commits only ever",
+				"# accumulate. Two builds of the same commit produce the same number, so to re-upload",
+				"# without a code change, either make a commit or raise BUILD_NUMBER_BASE below —",
+				"# raising it also jumps the sequence past anything already uploaded.",
+				"#",
+				"# Stamped at build time into the processed Info.plist so the signature covers it.",
+				"# CURRENT_PROJECT_VERSION in the project is only the fallback for a git-less build.",
 				"set -eu",
-				"GIT_SHA=$(/usr/bin/git -C \"${SRCROOT}\" rev-parse --short HEAD)",
-				"if ! printf '%s' \"${GIT_SHA}\" | /usr/bin/grep -Eq '^[0-9a-f]{7,}$'; then",
-				"  echo \"error: git returned an invalid short SHA: ${GIT_SHA}\"",
-				"  exit 1",
-				"fi",
+				"",
+				"BUILD_NUMBER_BASE=0",
+				"",
 				"INFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"",
 				"if [ ! -f \"${INFO_PLIST}\" ]; then",
 				"  echo \"error: Info.plist not found at ${INFO_PLIST}; cannot stamp build number\"",
 				"  exit 1",
 				"fi",
-				"/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${GIT_SHA}\" \"${INFO_PLIST}\" \\",
-				"  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${GIT_SHA}\" \"${INFO_PLIST}\"",
-				"echo \"Stamped CFBundleVersion = ${GIT_SHA}\"",
+				"",
+				"COMMIT_COUNT=$(/usr/bin/git -C \"${SRCROOT}\" rev-list --count HEAD 2>/dev/null || true)",
+				"",
+				"# A shallow checkout counts only the commits it fetched, which would silently produce",
+				"# a much smaller build number than a full clone. CI defaults to depth 1, so warn loudly",
+				"# rather than let a bad number reach an upload.",
+				"IS_SHALLOW=$(/usr/bin/git -C \"${SRCROOT}\" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)",
+				"if [ \"${IS_SHALLOW}\" = \"true\" ]; then",
+				"  echo \"warning: shallow git checkout — commit count ${COMMIT_COUNT} is not the real history depth.\"",
+				"  echo \"warning: do not ship this build; fetch the full history first (git fetch --unshallow).\"",
+				"fi",
+				"",
+				"if printf '%s' \"${COMMIT_COUNT}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  BUILD_NUMBER=$((BUILD_NUMBER_BASE + COMMIT_COUNT))",
+				"else",
+				"  # No git at all (archiving an exported source tree). Fall back rather than failing",
+				"  # the build, but say so: this number does not move, so it must not be shipped twice.",
+				"  BUILD_NUMBER=\"${CURRENT_PROJECT_VERSION:-}\"",
+				"  echo \"warning: git unavailable — falling back to CURRENT_PROJECT_VERSION=${BUILD_NUMBER}.\"",
+				"  echo \"warning: that number does NOT increment. Do not upload this build.\"",
+				"fi",
+				"",
+				"if ! printf '%s' \"${BUILD_NUMBER}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  echo \"error: computed build number '${BUILD_NUMBER}' is not a positive integer\"",
+				"  exit 1",
+				"fi",
+				"",
+				"/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${BUILD_NUMBER}\" \"${INFO_PLIST}\" \\",
+				"  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${BUILD_NUMBER}\" \"${INFO_PLIST}\"",
+				"echo \"Stamped CFBundleVersion = ${BUILD_NUMBER} (${COMMIT_COUNT:-?} commits + base ${BUILD_NUMBER_BASE})\"",
+				"",
+			);
+			showEnvVarsInLog = 0;
+		};
+		DD0EE6777F80300DFEC61B18 /* Stamp Build Number */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp Build Number";
+			shellPath = /bin/sh;
+			shellScript = (
+				"# Stamp CFBundleVersion with a monotonically increasing integer.",
+				"#",
+				"# App Store Connect requires CFBundleVersion to be a number that only ever goes up",
+				"# for a given marketing version. The previous git-short-SHA scheme is hexadecimal and",
+				"# unordered, so uploads were rejected outright — that is why this exists.",
+				"#",
+				"# The value is the number of commits reachable from HEAD. That is stateless,",
+				"# reproducible from any full checkout, and monotonic because commits only ever",
+				"# accumulate. Two builds of the same commit produce the same number, so to re-upload",
+				"# without a code change, either make a commit or raise BUILD_NUMBER_BASE below —",
+				"# raising it also jumps the sequence past anything already uploaded.",
+				"#",
+				"# Stamped at build time into the processed Info.plist so the signature covers it.",
+				"# CURRENT_PROJECT_VERSION in the project is only the fallback for a git-less build.",
+				"set -eu",
+				"",
+				"BUILD_NUMBER_BASE=0",
+				"",
+				"INFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"",
+				"if [ ! -f \"${INFO_PLIST}\" ]; then",
+				"  echo \"error: Info.plist not found at ${INFO_PLIST}; cannot stamp build number\"",
+				"  exit 1",
+				"fi",
+				"",
+				"COMMIT_COUNT=$(/usr/bin/git -C \"${SRCROOT}\" rev-list --count HEAD 2>/dev/null || true)",
+				"",
+				"# A shallow checkout counts only the commits it fetched, which would silently produce",
+				"# a much smaller build number than a full clone. CI defaults to depth 1, so warn loudly",
+				"# rather than let a bad number reach an upload.",
+				"IS_SHALLOW=$(/usr/bin/git -C \"${SRCROOT}\" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)",
+				"if [ \"${IS_SHALLOW}\" = \"true\" ]; then",
+				"  echo \"warning: shallow git checkout — commit count ${COMMIT_COUNT} is not the real history depth.\"",
+				"  echo \"warning: do not ship this build; fetch the full history first (git fetch --unshallow).\"",
+				"fi",
+				"",
+				"if printf '%s' \"${COMMIT_COUNT}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  BUILD_NUMBER=$((BUILD_NUMBER_BASE + COMMIT_COUNT))",
+				"else",
+				"  # No git at all (archiving an exported source tree). Fall back rather than failing",
+				"  # the build, but say so: this number does not move, so it must not be shipped twice.",
+				"  BUILD_NUMBER=\"${CURRENT_PROJECT_VERSION:-}\"",
+				"  echo \"warning: git unavailable — falling back to CURRENT_PROJECT_VERSION=${BUILD_NUMBER}.\"",
+				"  echo \"warning: that number does NOT increment. Do not upload this build.\"",
+				"fi",
+				"",
+				"if ! printf '%s' \"${BUILD_NUMBER}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  echo \"error: computed build number '${BUILD_NUMBER}' is not a positive integer\"",
+				"  exit 1",
+				"fi",
+				"",
+				"/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${BUILD_NUMBER}\" \"${INFO_PLIST}\" \\",
+				"  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${BUILD_NUMBER}\" \"${INFO_PLIST}\"",
+				"echo \"Stamped CFBundleVersion = ${BUILD_NUMBER} (${COMMIT_COUNT:-?} commits + base ${BUILD_NUMBER_BASE})\"",
 				"",
 			);
 			showEnvVarsInLog = 0;
@@ -2167,7 +2270,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = d4df8c8;
+				CURRENT_PROJECT_VERSION = 523;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -2195,7 +2298,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -2222,7 +2325,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = d4df8c8;
+				CURRENT_PROJECT_VERSION = 523;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
 				ENABLE_APP_SANDBOX = NO;
@@ -2250,7 +2353,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -2326,9 +2429,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = d4df8c8;
+				CURRENT_PROJECT_VERSION = 523;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Console;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
@@ -2358,9 +2462,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = d4df8c8;
+				CURRENT_PROJECT_VERSION = 523;
 				DEVELOPMENT_ASSET_PATHS = "\"Creature TV/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Console;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
