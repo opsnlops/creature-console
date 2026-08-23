@@ -34,9 +34,12 @@ Commits are signed with a YubiKey, and the touch prompt times out. If `git commi
 - **CLI tool**: `cd Common && swift build --target creature-cli`
 
 ### Versioning
-- **Build number (`CFBundleVersion`)** is stamped automatically at build time from the git short SHA (`git rev-parse --short HEAD`) by the "Stamp Build Number (git SHA)" Run Script build phase on the **Creature Console** target. It writes the SHA into the processed `Info.plist` before signing, so the signature covers it, and runs on every build (`alwaysOutOfDate`).
-  - **Don't hand-edit the build number** expecting it to stick — the script overrides it in the product. `CURRENT_PROJECT_VERSION` in `project.pbxproj` is only a fallback for when git is unavailable. (A committed value can never equal its own commit's SHA, which is why this is done at build time.)
-  - The tvOS **Creature TV** target is not stamped; add the same phase there if its build number should track the SHA too.
+- **Build number (`CFBundleVersion`)** is stamped automatically at build time by the "Stamp Build Number" Run Script build phase, on **both** the Creature Console and Creature TV targets. The value is `git rev-list --count HEAD` — the commit count, a plain increasing integer, because App Store Connect requires `CFBundleVersion` to be a number that only ever goes up for a given marketing version. (It used to be the git short SHA, which App Store Connect rejects: hex, and unordered.) The script writes into the processed `Info.plist` before signing, so the signature covers it, and runs on every build (`alwaysOutOfDate`).
+  - **Don't hand-edit the build number** expecting it to stick — the script overrides it in the product.
+  - Commits only accumulate, so the number only goes up. Two builds of the *same* commit produce the *same* number, so to re-upload without a code change, either make a commit or raise `BUILD_NUMBER_BASE` in the script (which also jumps the sequence past anything already uploaded).
+  - **Shallow checkouts count only what they fetched.** CI defaults to depth 1, which would yield 1 instead of the real count. The script warns loudly; never ship a build from a shallow clone.
+  - `CURRENT_PROJECT_VERSION` in `project.pbxproj` is only the fallback for a build with no git available. Keep it numeric — it used to hold the *marketing* version (`2.53.0`), which is the wrong field.
+  - **The script needs `ENABLE_USER_SCRIPT_SANDBOXING = NO`** on any target that runs it. The project default is `YES`, which sandboxes the script and blocks it from reading `$SRCROOT/.git` — git then fails and the build silently falls back to `CURRENT_PROJECT_VERSION`, freezing the number. Both app targets override it to `NO`.
 - **Marketing version (`CFBundleShortVersionString` / `MARKETING_VERSION`)** is separate and bumped manually. Keep the app version and the CLI `version` (in `Common/Sources/CreatureCLI/top.swift`) in sync, bump before committing, and create a matching git tag (e.g. `v2.25.0`).
 
 ### Code Formatting
