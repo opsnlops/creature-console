@@ -22,7 +22,6 @@ actor AnimationMetadataImporter {
                 if let existing = existingByID[dto.id] {
                     // Update existing
                     existing.title = dto.title
-                    existing.lastUpdated = dto.lastUpdated
                     existing.millisecondsPerFrame = dto.millisecondsPerFrame
                     existing.note = dto.note
                     existing.soundFile = dto.soundFile

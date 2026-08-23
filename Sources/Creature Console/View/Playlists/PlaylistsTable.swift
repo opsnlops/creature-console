@@ -43,8 +43,7 @@ struct PlaylistsTable: View {
             .width(min: 80)
 
             TableColumn("Total Weight") { playlist in
-                let totalWeight = playlist.items.reduce(0) { $0 + $1.weight }
-                Text(totalWeight, format: .number)
+                Text(playlist.totalWeight, format: .number)
             }
             .width(min: 100)
 

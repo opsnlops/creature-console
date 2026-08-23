@@ -78,11 +78,20 @@ struct TrackListingView: View {
             )
         } else {
             VStack(alignment: .leading, spacing: 6) {
-                Label("Missing creature for track", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.yellow)
-                Text("Creature id \(track.creatureId) not found in cache.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                switch track.owner {
+                case .creature(let creatureId):
+                    Label("Missing creature for track", systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.yellow)
+                    Text("Creature id \(creatureId) not found in cache.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                case .fixture(let fixtureId):
+                    Label("Fixture track", systemImage: "lightbulb")
+                        .foregroundStyle(.secondary)
+                    Text("Drives DMX fixture \(fixtureId). There's no editor for these yet.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 8)

@@ -11,7 +11,6 @@ final class AnimationMetadataModel: Identifiable {
     // Use animation ID as the unique identifier
     @Attribute(.unique) var id: AnimationIdentifier = ""
     var title: String = ""
-    var lastUpdated: Date? = nil
     var millisecondsPerFrame: UInt32 = 20
     var note: String = ""
     var soundFile: String = ""
@@ -28,7 +27,7 @@ final class AnimationMetadataModel: Identifiable {
     var sourceStageUpdatedAt: Int64? = nil
 
     init(
-        id: AnimationIdentifier, title: String, lastUpdated: Date?, millisecondsPerFrame: UInt32,
+        id: AnimationIdentifier, title: String, millisecondsPerFrame: UInt32,
         note: String, soundFile: String, numberOfFrames: UInt32, multitrackAudio: Bool,
         sourceScriptId: String? = nil,
         sourceStageId: String? = nil,
@@ -36,7 +35,6 @@ final class AnimationMetadataModel: Identifiable {
     ) {
         self.id = id
         self.title = title
-        self.lastUpdated = lastUpdated
         self.millisecondsPerFrame = millisecondsPerFrame
         self.note = note
         self.soundFile = soundFile
@@ -60,7 +58,6 @@ extension AnimationMetadataModel {
         self.init(
             id: dto.id,
             title: dto.title,
-            lastUpdated: dto.lastUpdated,
             millisecondsPerFrame: dto.millisecondsPerFrame,
             note: dto.note,
             soundFile: dto.soundFile,
@@ -77,7 +74,6 @@ extension AnimationMetadataModel {
         Common.AnimationMetadata(
             id: id,
             title: title,
-            lastUpdated: lastUpdated ?? Date(),
             millisecondsPerFrame: millisecondsPerFrame,
             note: note,
             soundFile: soundFile,

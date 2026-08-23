@@ -20,7 +20,6 @@ struct AnimationMetadataImporterTests {
             Common.AnimationMetadata(
                 id: "anim_1",
                 title: "Animation 1",
-                lastUpdated: Date(),
                 millisecondsPerFrame: 20,
                 note: "Test note",
                 soundFile: "test.wav",
@@ -30,7 +29,6 @@ struct AnimationMetadataImporterTests {
             Common.AnimationMetadata(
                 id: "anim_2",
                 title: "Animation 2",
-                lastUpdated: Date(),
                 millisecondsPerFrame: 30,
                 note: "",
                 soundFile: "",
@@ -62,7 +60,6 @@ struct AnimationMetadataImporterTests {
         let initialDTO = Common.AnimationMetadata(
             id: "anim_1",
             title: "Original Title",
-            lastUpdated: Date(),
             millisecondsPerFrame: 20,
             note: "Original note",
             soundFile: "original.wav",
@@ -75,7 +72,6 @@ struct AnimationMetadataImporterTests {
         let updatedDTO = Common.AnimationMetadata(
             id: "anim_1",
             title: "Updated Title",
-            lastUpdated: Date(),
             millisecondsPerFrame: 30,
             note: "Updated note",
             soundFile: "updated.wav",
@@ -127,7 +123,6 @@ struct AnimationMetadataImporterTests {
             Common.AnimationMetadata(
                 id: "anim_1",
                 title: "Keep 1",
-                lastUpdated: Date(),
                 millisecondsPerFrame: 20,
                 note: "",
                 soundFile: "",
@@ -137,7 +132,6 @@ struct AnimationMetadataImporterTests {
             Common.AnimationMetadata(
                 id: "anim_2",
                 title: "Keep 2",
-                lastUpdated: Date(),
                 millisecondsPerFrame: 20,
                 note: "",
                 soundFile: "",
@@ -147,7 +141,6 @@ struct AnimationMetadataImporterTests {
             Common.AnimationMetadata(
                 id: "anim_3",
                 title: "Delete Me",
-                lastUpdated: Date(),
                 millisecondsPerFrame: 20,
                 note: "",
                 soundFile: "",
@@ -201,7 +194,6 @@ struct AnimationMetadataImporterTests {
         let initialDTO = Common.AnimationMetadata(
             id: "anim_1",
             title: "Existing",
-            lastUpdated: Date(),
             millisecondsPerFrame: 20,
             note: "",
             soundFile: "",
@@ -215,7 +207,6 @@ struct AnimationMetadataImporterTests {
             Common.AnimationMetadata(
                 id: "anim_1",
                 title: "Updated Existing",
-                lastUpdated: Date(),
                 millisecondsPerFrame: 30,
                 note: "",
                 soundFile: "",
@@ -225,7 +216,6 @@ struct AnimationMetadataImporterTests {
             Common.AnimationMetadata(
                 id: "anim_2",
                 title: "Brand New",
-                lastUpdated: Date(),
                 millisecondsPerFrame: 40,
                 note: "",
                 soundFile: "",

@@ -9,8 +9,8 @@ struct PlaylistTests {
     @Test("initializes with all properties")
     func initializesWithAllProperties() {
         let items = [
-            PlaylistItem(animationId: "anim1", weight: 10),
-            PlaylistItem(animationId: "anim2", weight: 20),
+            PlaylistItem(animationId: "3f4a1c22-5d90-4e11-8b7a-6c2d0e9f1a35", weight: 10),
+            PlaylistItem(animationId: "7b6d2e44-1a8c-4f03-9d52-8e1b3c7a2f96", weight: 20),
         ]
         let playlist = Playlist(id: "playlist123", name: "Test Playlist", items: items)
 
@@ -33,7 +33,7 @@ struct PlaylistTests {
     @Test("encodes to JSON correctly")
     func encodesToJSON() throws {
         let items = [
-            PlaylistItem(animationId: "anim1", weight: 10)
+            PlaylistItem(animationId: "3f4a1c22-5d90-4e11-8b7a-6c2d0e9f1a35", weight: 10)
         ]
         let playlist = Playlist(id: "playlist123", name: "Test", items: items)
 
@@ -55,11 +55,11 @@ struct PlaylistTests {
                 "name": "My Playlist",
                 "items": [
                     {
-                        "animation_id": "anim1",
+                        "animation_id": "3f4a1c22-5d90-4e11-8b7a-6c2d0e9f1a35",
                         "weight": 5
                     },
                     {
-                        "animation_id": "anim2",
+                        "animation_id": "7b6d2e44-1a8c-4f03-9d52-8e1b3c7a2f96",
                         "weight": 10
                     }
                 ]
@@ -73,18 +73,18 @@ struct PlaylistTests {
         #expect(playlist.id == "playlist456")
         #expect(playlist.name == "My Playlist")
         #expect(playlist.items.count == 2)
-        #expect(playlist.items[0].animationId == "anim1")
+        #expect(playlist.items[0].animationId == "3f4a1c22-5d90-4e11-8b7a-6c2d0e9f1a35")
         #expect(playlist.items[0].weight == 5)
-        #expect(playlist.items[1].animationId == "anim2")
+        #expect(playlist.items[1].animationId == "7b6d2e44-1a8c-4f03-9d52-8e1b3c7a2f96")
         #expect(playlist.items[1].weight == 10)
     }
 
     @Test("round-trip encoding preserves data")
     func roundTripEncodingPreservesData() throws {
         let items = [
-            PlaylistItem(animationId: "anim1", weight: 15),
-            PlaylistItem(animationId: "anim2", weight: 25),
-            PlaylistItem(animationId: "anim3", weight: 35),
+            PlaylistItem(animationId: "3f4a1c22-5d90-4e11-8b7a-6c2d0e9f1a35", weight: 15),
+            PlaylistItem(animationId: "7b6d2e44-1a8c-4f03-9d52-8e1b3c7a2f96", weight: 25),
+            PlaylistItem(animationId: "c05e8917-42b6-4a7d-b310-9f4e6d2a8c51", weight: 35),
         ]
         let original = Playlist(id: "test123", name: "Round Trip Test", items: items)
 
@@ -102,9 +102,9 @@ struct PlaylistTests {
 
     @Test("equality compares all fields")
     func equalityComparesAllFields() {
-        let items1 = [PlaylistItem(animationId: "anim1", weight: 10)]
-        let items2 = [PlaylistItem(animationId: "anim1", weight: 10)]
-        let items3 = [PlaylistItem(animationId: "anim2", weight: 20)]
+        let items1 = [PlaylistItem(animationId: "3f4a1c22-5d90-4e11-8b7a-6c2d0e9f1a35", weight: 10)]
+        let items2 = [PlaylistItem(animationId: "3f4a1c22-5d90-4e11-8b7a-6c2d0e9f1a35", weight: 10)]
+        let items3 = [PlaylistItem(animationId: "7b6d2e44-1a8c-4f03-9d52-8e1b3c7a2f96", weight: 20)]
 
         let playlist1 = Playlist(id: "same", name: "Same", items: items1)
         let playlist2 = Playlist(id: "same", name: "Same", items: items2)
@@ -120,7 +120,7 @@ struct PlaylistTests {
 
     @Test("hashing is consistent with equality")
     func hashingConsistentWithEquality() {
-        let items = [PlaylistItem(animationId: "anim1", weight: 10)]
+        let items = [PlaylistItem(animationId: "3f4a1c22-5d90-4e11-8b7a-6c2d0e9f1a35", weight: 10)]
 
         let playlist1 = Playlist(id: "same", name: "Same", items: items)
         let playlist2 = Playlist(id: "same", name: "Same", items: items)

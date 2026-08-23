@@ -8,7 +8,6 @@ class AnimationMetadataTests: XCTestCase {
         // Arrange
         let id = UUID().uuidString
         let title = "Test Animation"
-        let lastUpdated = Date()
         let millisecondsPerFrame: UInt32 = 30
         let note = "Test Note"
         let soundFile = "test_sound.mp3"
@@ -17,7 +16,7 @@ class AnimationMetadataTests: XCTestCase {
 
         // Act
         let metadata = AnimationMetadata(
-            id: id, title: title, lastUpdated: lastUpdated,
+            id: id, title: title,
             millisecondsPerFrame: millisecondsPerFrame, note: note, soundFile: soundFile,
             numberOfFrames: numberOfFrames, multitrackAudio: multitrackAudio
         )
@@ -25,7 +24,6 @@ class AnimationMetadataTests: XCTestCase {
         // Assert
         XCTAssertEqual(metadata.id, id)
         XCTAssertEqual(metadata.title, title)
-        XCTAssertEqual(metadata.lastUpdated, lastUpdated)
         XCTAssertEqual(metadata.millisecondsPerFrame, millisecondsPerFrame)
         XCTAssertEqual(metadata.note, note)
         XCTAssertEqual(metadata.soundFile, soundFile)
@@ -37,7 +35,7 @@ class AnimationMetadataTests: XCTestCase {
         // Arrange
         let id = UUID().uuidString
         let metadata = AnimationMetadata(
-            id: id, title: "Test Animation", lastUpdated: Date(), millisecondsPerFrame: 20,
+            id: id, title: "Test Animation", millisecondsPerFrame: 20,
             note: "Test Note", soundFile: "test_sound.mp3", numberOfFrames: 120,
             multitrackAudio: true)
         let encoder = JSONEncoder()
@@ -55,17 +53,16 @@ class AnimationMetadataTests: XCTestCase {
         // Arrange
         let id1 = UUID().uuidString
         let id2 = UUID().uuidString
-        let testDate = Date()
         let metadata1 = AnimationMetadata(
-            id: id1, title: "Test Animation", lastUpdated: testDate, millisecondsPerFrame: 20,
+            id: id1, title: "Test Animation", millisecondsPerFrame: 20,
             note: "Test Note", soundFile: "test_sound.mp3", numberOfFrames: 120,
             multitrackAudio: true)
         let metadata2 = AnimationMetadata(
-            id: id1, title: "Test Animation", lastUpdated: testDate, millisecondsPerFrame: 20,
+            id: id1, title: "Test Animation", millisecondsPerFrame: 20,
             note: "Test Note", soundFile: "test_sound.mp3", numberOfFrames: 120,
             multitrackAudio: true)
         let metadata3 = AnimationMetadata(
-            id: id2, title: "Another Animation", lastUpdated: testDate, millisecondsPerFrame: 25,
+            id: id2, title: "Another Animation", millisecondsPerFrame: 25,
             note: "Another Note", soundFile: "another_sound.mp3", numberOfFrames: 150,
             multitrackAudio: false)
 
@@ -77,9 +74,8 @@ class AnimationMetadataTests: XCTestCase {
     func testHashability() {
         // Arrange
         let id = UUID().uuidString
-        let date = Date()
         let metadata1 = AnimationMetadata(
-            id: id, title: "Test Animation", lastUpdated: date, millisecondsPerFrame: 20,
+            id: id, title: "Test Animation", millisecondsPerFrame: 20,
             note: "Test Note", soundFile: "test_sound.mp3", numberOfFrames: 120,
             multitrackAudio: true)
         var hasher1 = Hasher()
@@ -87,7 +83,7 @@ class AnimationMetadataTests: XCTestCase {
         let hash1 = hasher1.finalize()
 
         let metadata2 = AnimationMetadata(
-            id: id, title: "Test Animation", lastUpdated: date, millisecondsPerFrame: 20,
+            id: id, title: "Test Animation", millisecondsPerFrame: 20,
             note: "Test Note", soundFile: "test_sound.mp3", numberOfFrames: 120,
             multitrackAudio: true)
         var hasher2 = Hasher()
@@ -104,7 +100,6 @@ class AnimationMetadataTests: XCTestCase {
 
         // Assert
         XCTAssertFalse(mockMetadata.title.isEmpty)
-        XCTAssertNotNil(mockMetadata.lastUpdated)
         XCTAssertTrue(mockMetadata.millisecondsPerFrame > 0)
         XCTAssertFalse(mockMetadata.note.isEmpty)
         XCTAssertFalse(mockMetadata.soundFile.isEmpty)

@@ -6,40 +6,48 @@ import Testing
 @Suite("PlaylistItem model tests")
 struct PlaylistItemTests {
 
+    // Real UUIDs throughout: the server requires `animation_id` to be one, and decoding
+    // enforces the same rule so a bad id is caught here rather than as a 400 on save.
+    private let animationId = "9c1f5d8a-4b62-4c7e-9a3d-1f0e2b8c6d54"
+    private let otherAnimationId = "2b7e6f11-0c3a-4d59-8e21-5a9c4b3d7e08"
+
     @Test("initializes with properties")
     func initializesWithProperties() {
-        let item = PlaylistItem(animationId: "anim123", weight: 42)
+        let item = PlaylistItem(animationId: animationId, weight: 42)
 
-        #expect(item.animationId == "anim123")
+        #expect(item.animationId == animationId)
         #expect(item.weight == 42)
-        #expect(item.id == "anim123")  // id should equal animationId
+        #expect(item.id == animationId)  // id should equal animationId
+        #expect(item.isValid)
     }
 
     @Test("id property returns animationId")
     func idPropertyReturnsAnimationId() {
-        let item = PlaylistItem(animationId: "test_animation", weight: 10)
+        let item = PlaylistItem(animationId: animationId, weight: 10)
 
         #expect(item.id == item.animationId)
-        #expect(item.id == "test_animation")
+        #expect(item.id == animationId)
     }
 
     @Test("encodes to JSON with snake_case")
     func encodesToJSONWithSnakeCase() throws {
-        let item = PlaylistItem(animationId: "anim456", weight: 75)
+        let item = PlaylistItem(animationId: animationId, weight: 75)
 
         let encoder = JSONEncoder()
         let data = try encoder.encode(item)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
-        #expect(json?["animation_id"] as? String == "anim456")
+        #expect(json?["animation_id"] as? String == animationId)
         #expect(json?["weight"] as? Int == 75)
+        // The server rejects unknown keys on a playlist item, so these two are the whole set.
+        #expect(json?.count == 2)
     }
 
     @Test("decodes from JSON with snake_case")
     func decodesFromJSONWithSnakeCase() throws {
         let jsonString = """
             {
-                "animation_id": "my_animation",
+                "animation_id": "\(animationId)",
                 "weight": 99
             }
             """
@@ -48,13 +56,13 @@ struct PlaylistItemTests {
         let decoder = JSONDecoder()
         let item = try decoder.decode(PlaylistItem.self, from: data)
 
-        #expect(item.animationId == "my_animation")
+        #expect(item.animationId == animationId)
         #expect(item.weight == 99)
     }
 
     @Test("round-trip encoding preserves data")
     func roundTripEncodingPreservesData() throws {
-        let original = PlaylistItem(animationId: "roundtrip_test", weight: 50)
+        let original = PlaylistItem(animationId: animationId, weight: 50)
 
         let encoder = JSONEncoder()
         let data = try encoder.encode(original)
@@ -68,10 +76,10 @@ struct PlaylistItemTests {
 
     @Test("equality compares animationId and weight")
     func equalityComparesFields() {
-        let item1 = PlaylistItem(animationId: "anim1", weight: 10)
-        let item2 = PlaylistItem(animationId: "anim1", weight: 10)
-        let item3 = PlaylistItem(animationId: "anim2", weight: 10)
-        let item4 = PlaylistItem(animationId: "anim1", weight: 20)
+        let item1 = PlaylistItem(animationId: animationId, weight: 10)
+        let item2 = PlaylistItem(animationId: animationId, weight: 10)
+        let item3 = PlaylistItem(animationId: otherAnimationId, weight: 10)
+        let item4 = PlaylistItem(animationId: animationId, weight: 20)
 
         #expect(item1 == item2)
         #expect(item1 != item3)  // Different animationId
@@ -80,8 +88,8 @@ struct PlaylistItemTests {
 
     @Test("hashing is consistent with equality")
     func hashingConsistentWithEquality() {
-        let item1 = PlaylistItem(animationId: "same", weight: 15)
-        let item2 = PlaylistItem(animationId: "same", weight: 15)
+        let item1 = PlaylistItem(animationId: animationId, weight: 15)
+        let item2 = PlaylistItem(animationId: animationId, weight: 15)
 
         var hasher1 = Hasher()
         item1.hash(into: &hasher1)
@@ -92,73 +100,90 @@ struct PlaylistItemTests {
         #expect(hasher1.finalize() == hasher2.finalize())
     }
 
-    @Test("mock creates valid item")
+    @Test("mock creates a valid item")
     func mockCreatesValidItem() {
         let mock = PlaylistItem.mock()
 
-        #expect(!mock.animationId.isEmpty)
-        #expect(mock.weight < 100)  // Mock uses random 0-99
+        #expect(UUID(uuidString: mock.animationId) != nil)
+        #expect(PlaylistLimits.itemWeightRange.contains(mock.weight))
+        #expect(mock.isValid)
     }
 
-    @Test("handles zero weight")
-    func handlesZeroWeight() throws {
-        let item = PlaylistItem(animationId: "zero_weight", weight: 0)
+    // MARK: Weight bounds
 
-        #expect(item.weight == 0)
-
-        let encoder = JSONEncoder()
-        let data = try encoder.encode(item)
-
-        let decoder = JSONDecoder()
-        let decoded = try decoder.decode(PlaylistItem.self, from: data)
-
-        #expect(decoded.weight == 0)
+    /// The accepted ends of the range. These used to be 0 and `UInt32.max`, both of which the
+    /// server now rejects.
+    @Test(
+        "accepts the boundary weights",
+        arguments: [PlaylistLimits.minimumItemWeight, 500, PlaylistLimits.maximumItemWeight])
+    func acceptsBoundaryWeights(weight: UInt32) throws {
+        let jsonString = """
+            {
+                "animation_id": "\(animationId)",
+                "weight": \(weight)
+            }
+            """
+        let decoded = try JSONDecoder().decode(
+            PlaylistItem.self, from: Data(jsonString.utf8))
+        #expect(decoded.weight == weight)
+        #expect(decoded.isValid)
     }
 
-    @Test("handles maximum UInt32 weight")
-    func handlesMaxWeight() throws {
-        let maxWeight: UInt32 = UInt32.max
-        let item = PlaylistItem(animationId: "max_weight", weight: maxWeight)
-
-        #expect(item.weight == maxWeight)
-
-        let encoder = JSONEncoder()
-        let data = try encoder.encode(item)
-
-        let decoder = JSONDecoder()
-        let decoded = try decoder.decode(PlaylistItem.self, from: data)
-
-        #expect(decoded.weight == maxWeight)
-    }
-
-    @Test("handles special characters in animationId")
-    func handlesSpecialCharactersInId() throws {
-        let specialIds = [
-            "animation-with-dashes",
-            "animation_with_underscores",
-            "animation.with.dots",
-            "animation123",
-            "UPPERCASE_ANIMATION",
-        ]
-
-        for specialId in specialIds {
-            let item = PlaylistItem(animationId: specialId, weight: 10)
-
-            let encoder = JSONEncoder()
-            let data = try encoder.encode(item)
-
-            let decoder = JSONDecoder()
-            let decoded = try decoder.decode(PlaylistItem.self, from: data)
-
-            #expect(decoded.animationId == specialId)
+    @Test("rejects weights outside the range", arguments: [0, 1000, UInt32.max])
+    func rejectsOutOfRangeWeights(weight: UInt32) {
+        let jsonString = """
+            {
+                "animation_id": "\(animationId)",
+                "weight": \(weight)
+            }
+            """
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(PlaylistItem.self, from: Data(jsonString.utf8))
         }
+        #expect(!PlaylistItem(animationId: animationId, weight: weight).isValid)
+    }
+
+    // MARK: Identifier shape
+
+    @Test(
+        "rejects a non-UUID animation_id",
+        arguments: [
+            "animation-with-dashes", "animation_with_underscores", "animation.with.dots",
+            "animation123", "UPPERCASE_ANIMATION", "",
+        ])
+    func rejectsNonUuidAnimationId(badId: String) {
+        let jsonString = """
+            {
+                "animation_id": "\(badId)",
+                "weight": 10
+            }
+            """
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(PlaylistItem.self, from: Data(jsonString.utf8))
+        }
+        #expect(!PlaylistItem(animationId: badId, weight: 10).isValid)
+    }
+
+    /// The server compares ids as strings but accepts either case, and Foundation's `UUID`
+    /// parses both — an uppercase id has to keep working.
+    @Test("accepts an uppercase UUID")
+    func acceptsUppercaseUuid() throws {
+        let upper = animationId.uppercased()
+        let jsonString = """
+            {
+                "animation_id": "\(upper)",
+                "weight": 10
+            }
+            """
+        let decoded = try JSONDecoder().decode(PlaylistItem.self, from: Data(jsonString.utf8))
+        #expect(decoded.animationId == upper)
     }
 
     @Test("fails gracefully on missing fields")
     func failsGracefullyOnMissingFields() throws {
         let jsonString = """
             {
-                "animation_id": "test"
+                "animation_id": "\(animationId)"
             }
             """
 

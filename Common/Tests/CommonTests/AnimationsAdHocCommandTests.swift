@@ -56,7 +56,6 @@ struct AnimationsAdHocCommandTests {
         let metadata = AnimationMetadata(
             id: "anim-123",
             title: "Crowd work riff",
-            lastUpdated: Date(),
             millisecondsPerFrame: 20,
             note: "",
             soundFile: "anim-123.wav",

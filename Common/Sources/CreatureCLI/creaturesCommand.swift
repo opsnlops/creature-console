@@ -7,7 +7,9 @@ extension CreatureCLI {
     struct Creatures: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Mess with the Creatures",
-            subcommands: [List.self, Search.self, Detail.self, Validate.self, Idle.self]
+            subcommands: [
+                List.self, Search.self, Detail.self, Validate.self, Import.self, Idle.self,
+            ]
         )
 
         @OptionGroup()
@@ -118,6 +120,104 @@ extension CreatureCLI {
             }
         }
 
+        /// Read a creature configuration file, exactly as it sits on disk.
+        ///
+        /// The bytes go to the server unchanged. The Console's `Creature` model is a trimmed
+        /// view of what the server stores, and an upsert replaces the whole document, so
+        /// round-tripping a config through the model would quietly drop whatever it doesn't
+        /// model — motors, servo settings, and anything else added since this build shipped.
+        static func readCreatureConfigFile(at path: String) throws -> String {
+            let inputURL = URL(fileURLWithPath: path).standardizedFileURL
+            let fileManager = FileManager.default
+
+            var isDirectory: ObjCBool = false
+            guard fileManager.fileExists(atPath: inputURL.path, isDirectory: &isDirectory)
+            else {
+                throw failWithMessage("Input file \(inputURL.path) does not exist.")
+            }
+            guard !isDirectory.boolValue else {
+                throw failWithMessage(
+                    "Input path \(inputURL.path) is a directory. Provide a JSON file.")
+            }
+
+            let rawConfig: String
+            do {
+                rawConfig = try String(contentsOf: inputURL, encoding: .utf8)
+            } catch {
+                throw failWithMessage("Unable to read JSON file: \(error.localizedDescription)")
+            }
+
+            guard !rawConfig.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw failWithMessage("The provided JSON file is empty.")
+            }
+
+            return rawConfig
+        }
+
+        struct Import: AsyncParsableCommand {
+            static let configuration = CommandConfiguration(
+                abstract: "Upload a creature configuration JSON file to the server",
+                discussion: """
+                    Creates the creature if it's new, replaces its stored configuration if it \
+                    already exists. The file is sent exactly as written — the server keeps the \
+                    JSON it receives, so fields this build doesn't know about survive the trip.
+
+                    Because the server replaces the whole document rather than merging, the file \
+                    must be complete: anything missing from it is removed from the creature. The \
+                    natural source is a `creatures detail <id> --json` dump. Try \
+                    `creatures validate` first if you're unsure the file is good.
+                    """
+            )
+
+            @Argument(help: "Path to the creature configuration JSON file to upload")
+            var inputPath: String
+
+            @Flag(
+                name: .long,
+                help: "Register the creature on a universe as well as storing its config")
+            var register: Bool = false
+
+            @Option(help: "Universe to register on. Only meaningful with --register.")
+            var universe: UniverseIdentifier = 1
+
+            @OptionGroup()
+            var globalOptions: GlobalOptions
+
+            func run() async throws {
+                let rawConfig = try Creatures.readCreatureConfigFile(at: inputPath)
+                let shouldRegister = register
+                let targetUniverse = universe
+
+                try await tracedRun("creatures.import", config: globalOptions) { server in
+                    let result =
+                        shouldRegister
+                        ? await server.registerCreature(
+                            rawConfig: rawConfig, universe: targetUniverse)
+                        : await server.upsertCreature(rawConfig: rawConfig)
+
+                    switch result {
+                    case .success(let creature):
+                        print("✅ Stored '\(creature.name)' (\(creature.id))")
+                        if shouldRegister {
+                            print("   Registered on universe \(targetUniverse)")
+                        }
+                        print("   Inputs: \(creature.inputs.count)")
+                        if let mouthInput = creature.mouthInput {
+                            print("   Mouth input: \(mouthInput)")
+                        }
+                        if let gaze = creature.gaze, !gaze.isEmpty {
+                            let axes = gaze.axes.map(\.name).joined(separator: ", ")
+                            print("   Gaze axes: \(axes)")
+                        }
+                    case .failure(let error):
+                        throw failWithMessage(
+                            "Unable to store creature: \(ServerError.detailedMessage(from: error))"
+                        )
+                    }
+                }
+            }
+        }
+
         struct Validate: AsyncParsableCommand {
             static let configuration = CommandConfiguration(
                 abstract: "Validate a creature configuration JSON file",
@@ -132,29 +232,7 @@ extension CreatureCLI {
             var globalOptions: GlobalOptions
 
             func run() async throws {
-                let inputURL = URL(fileURLWithPath: inputPath).standardizedFileURL
-                let fileManager = FileManager.default
-
-                var isDirectory: ObjCBool = false
-                guard fileManager.fileExists(atPath: inputURL.path, isDirectory: &isDirectory)
-                else {
-                    throw failWithMessage("Input file \(inputURL.path) does not exist.")
-                }
-                guard !isDirectory.boolValue else {
-                    throw failWithMessage(
-                        "Input path \(inputURL.path) is a directory. Provide a JSON file.")
-                }
-
-                let rawConfig: String
-                do {
-                    rawConfig = try String(contentsOf: inputURL, encoding: .utf8)
-                } catch {
-                    throw failWithMessage("Unable to read JSON file: \(error.localizedDescription)")
-                }
-
-                guard !rawConfig.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                    throw failWithMessage("The provided JSON file is empty.")
-                }
+                let rawConfig = try readCreatureConfigFile(at: inputPath)
 
                 try await tracedRun("creatures.validate", config: globalOptions) { server in
                     let result = await server.validateCreatureConfig(rawConfig: rawConfig)
@@ -182,7 +260,8 @@ extension CreatureCLI {
                                     let title =
                                         animation.metadata.title.isEmpty
                                         ? "Untitled" : animation.metadata.title
-                                    let creatureIds = Set(animation.tracks.map { $0.creatureId })
+                                    let creatureIds = Set(
+                                        animation.tracks.compactMap { $0.creatureId })
                                     if creatureIds.count == 1, let creatureId = creatureIds.first {
                                         let name = await Self.fetchCreatureName(
                                             server: server, creatureId: creatureId)

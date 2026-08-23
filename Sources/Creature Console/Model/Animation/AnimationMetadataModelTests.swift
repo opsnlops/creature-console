@@ -12,7 +12,6 @@ struct AnimationMetadataModelTests {
     func initializesWithValues() throws {
         let id: AnimationIdentifier = "anim_123"
         let title = "Test Animation"
-        let lastUpdated = Date()
         let msPerFrame: UInt32 = 20
         let note = "Test note"
         let soundFile = "test.wav"
@@ -22,7 +21,6 @@ struct AnimationMetadataModelTests {
         let model = AnimationMetadataModel(
             id: id,
             title: title,
-            lastUpdated: lastUpdated,
             millisecondsPerFrame: msPerFrame,
             note: note,
             soundFile: soundFile,
@@ -32,7 +30,6 @@ struct AnimationMetadataModelTests {
 
         #expect(model.id == id)
         #expect(model.title == title)
-        #expect(model.lastUpdated == lastUpdated)
         #expect(model.millisecondsPerFrame == msPerFrame)
         #expect(model.note == note)
         #expect(model.soundFile == soundFile)
@@ -45,7 +42,6 @@ struct AnimationMetadataModelTests {
         let dto = Common.AnimationMetadata(
             id: "anim_456",
             title: "DTO Animation",
-            lastUpdated: Date(),
             millisecondsPerFrame: 30,
             note: "DTO note",
             soundFile: "dto.wav",
@@ -57,7 +53,6 @@ struct AnimationMetadataModelTests {
 
         #expect(model.id == dto.id)
         #expect(model.title == dto.title)
-        #expect(model.lastUpdated == dto.lastUpdated)
         #expect(model.millisecondsPerFrame == dto.millisecondsPerFrame)
         #expect(model.note == dto.note)
         #expect(model.soundFile == dto.soundFile)
@@ -67,11 +62,9 @@ struct AnimationMetadataModelTests {
 
     @Test("converts to DTO")
     func convertsToDTO() throws {
-        let lastUpdated = Date()
         let model = AnimationMetadataModel(
             id: "anim_789",
             title: "Model Animation",
-            lastUpdated: lastUpdated,
             millisecondsPerFrame: 25,
             note: "Model note",
             soundFile: "model.wav",
@@ -83,7 +76,6 @@ struct AnimationMetadataModelTests {
 
         #expect(dto.id == model.id)
         #expect(dto.title == model.title)
-        #expect(dto.lastUpdated == model.lastUpdated)
         #expect(dto.millisecondsPerFrame == model.millisecondsPerFrame)
         #expect(dto.note == model.note)
         #expect(dto.soundFile == model.soundFile)
@@ -96,7 +88,6 @@ struct AnimationMetadataModelTests {
         let originalDTO = Common.AnimationMetadata(
             id: "anim_round",
             title: "Round Trip",
-            lastUpdated: Date(),
             millisecondsPerFrame: 33,
             note: "Round trip note",
             soundFile: "round.wav",
@@ -109,7 +100,6 @@ struct AnimationMetadataModelTests {
 
         #expect(convertedDTO.id == originalDTO.id)
         #expect(convertedDTO.title == originalDTO.title)
-        #expect(convertedDTO.lastUpdated == originalDTO.lastUpdated)
         #expect(convertedDTO.millisecondsPerFrame == originalDTO.millisecondsPerFrame)
         #expect(convertedDTO.note == originalDTO.note)
         #expect(convertedDTO.soundFile == originalDTO.soundFile)
@@ -117,12 +107,14 @@ struct AnimationMetadataModelTests {
         #expect(convertedDTO.multitrackAudio == originalDTO.multitrackAudio)
     }
 
-    @Test("handles nil lastUpdated date")
-    func handlesNilLastUpdated() throws {
+    /// A model built from an otherwise-empty record still converts cleanly, and — the point
+    /// of console#87 — the DTO it produces invents nothing. `toDTO()` used to stamp
+    /// `lastUpdated: lastUpdated ?? Date()`, a placeholder for a field the server never had.
+    @Test("converting a minimal model invents no values")
+    func minimalModelInventsNothing() throws {
         let model = AnimationMetadataModel(
             id: "anim_nil",
             title: "Nil Date",
-            lastUpdated: nil,
             millisecondsPerFrame: 20,
             note: "",
             soundFile: "",
@@ -130,11 +122,15 @@ struct AnimationMetadataModelTests {
             multitrackAudio: false
         )
 
-        #expect(model.lastUpdated == nil)
-
-        // When converting to DTO, nil lastUpdated becomes Date()
         let dto = model.toDTO()
-        #expect(dto.lastUpdated != nil)
+
+        #expect(dto.note.isEmpty)
+        #expect(dto.sourceScriptId == nil)
+        #expect(dto.sourceStageId == nil)
+        #expect(dto.sourceStageUpdatedAt == nil)
+        #expect(dto.renderSeed == nil)
+        #expect(dto.sourceStagePlacements == nil)
+        #expect(dto.sourceRenderChoices == nil)
     }
 
     @Test("persists in SwiftData context")
@@ -147,7 +143,6 @@ struct AnimationMetadataModelTests {
         let model = AnimationMetadataModel(
             id: "anim_persist",
             title: "Persist Test",
-            lastUpdated: Date(),
             millisecondsPerFrame: 20,
             note: "Persist note",
             soundFile: "persist.wav",
@@ -176,7 +171,6 @@ struct AnimationMetadataModelTests {
         let model1 = AnimationMetadataModel(
             id: "anim_unique",
             title: "First",
-            lastUpdated: Date(),
             millisecondsPerFrame: 20,
             note: "",
             soundFile: "",
@@ -187,7 +181,6 @@ struct AnimationMetadataModelTests {
         let model2 = AnimationMetadataModel(
             id: "anim_unique",
             title: "Second",
-            lastUpdated: Date(),
             millisecondsPerFrame: 30,
             note: "",
             soundFile: "",

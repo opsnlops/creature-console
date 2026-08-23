@@ -24,17 +24,21 @@ actor CreatureImporter {
                     existing.name = dto.name
                     existing.channelOffset = dto.channelOffset
                     existing.mouthSlot = dto.mouthSlot
-                    existing.realData = dto.realData
                     existing.audioChannel = dto.audioChannel
+                    existing.mouthInput = dto.mouthInput
                     existing.speechLoopAnimationIds = dto.speechLoopAnimationIds
                     existing.idleAnimationIds = dto.idleAnimationIds
 
-                    // Inputs are a JSON blob now, so there are no child objects to invalidate.
-                    // Only write when the bytes actually change, to avoid waking SwiftUI on
-                    // no-op refreshes.
+                    // Inputs and gaze are JSON blobs now, so there are no child objects to
+                    // invalidate. Only write when the bytes actually change, to avoid waking
+                    // SwiftUI on no-op refreshes.
                     let encodedInputs = CreatureModel.encodeInputs(dto.inputs)
                     if existing.inputsJSON != encodedInputs {
                         existing.inputsJSON = encodedInputs
+                    }
+                    let encodedGaze = CreatureModel.encodeGaze(dto.gaze)
+                    if existing.gazeJSON != encodedGaze {
+                        existing.gazeJSON = encodedGaze
                     }
                 } else {
                     // Insert new

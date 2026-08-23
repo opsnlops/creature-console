@@ -14,7 +14,6 @@ struct CreatureModelTests {
         let name = "Test Creature"
         let channelOffset = 10
         let mouthSlot = 4
-        let realData = true
         let audioChannel = 1
         let speechLoopIds = ["speech1", "speech2"]
         let idleIds = ["idle1", "idle2"]
@@ -28,7 +27,6 @@ struct CreatureModelTests {
             name: name,
             channelOffset: channelOffset,
             mouthSlot: mouthSlot,
-            realData: realData,
             audioChannel: audioChannel,
             inputs: inputs,
             speechLoopAnimationIds: speechLoopIds,
@@ -39,7 +37,6 @@ struct CreatureModelTests {
         #expect(creature.name == name)
         #expect(creature.channelOffset == channelOffset)
         #expect(creature.mouthSlot == mouthSlot)
-        #expect(creature.realData == realData)
         #expect(creature.audioChannel == audioChannel)
         #expect(creature.inputs.count == 2)
         #expect(creature.inputs[0].name == "Input1")
@@ -60,7 +57,6 @@ struct CreatureModelTests {
                 Common.Input(name: "Input A", slot: 1, width: 8, joystickAxis: 0),
                 Common.Input(name: "Input B", slot: 2, width: 16, joystickAxis: 1),
             ],
-            realData: false,
             speechLoopAnimationIds: ["speech-loop-1"],
             idleAnimationIds: ["idle-loop-1", "idle-loop-2"]
         )
@@ -71,7 +67,6 @@ struct CreatureModelTests {
         #expect(creature.name == dto.name)
         #expect(creature.channelOffset == dto.channelOffset)
         #expect(creature.mouthSlot == dto.mouthSlot)
-        #expect(creature.realData == dto.realData)
         #expect(creature.audioChannel == dto.audioChannel)
         #expect(creature.inputs.count == 2)
         #expect(creature.inputs[0].name == "Input A")
@@ -93,7 +88,6 @@ struct CreatureModelTests {
             name: "Model Creature",
             channelOffset: 30,
             mouthSlot: 6,
-            realData: true,
             audioChannel: 3,
             inputs: inputs,
             speechLoopAnimationIds: ["speech-loop-A"],
@@ -106,7 +100,6 @@ struct CreatureModelTests {
         #expect(dto.name == creature.name)
         #expect(dto.channelOffset == creature.channelOffset)
         #expect(dto.mouthSlot == creature.mouthSlot)
-        #expect(dto.realData == creature.realData)
         #expect(dto.audioChannel == creature.audioChannel)
         #expect(dto.inputs.count == 2)
         #expect(dto.inputs[0].name == "Input X")
@@ -130,7 +123,6 @@ struct CreatureModelTests {
                 Common.Input(name: "Input 2", slot: 2, width: 16, joystickAxis: 1),
                 Common.Input(name: "Input 3", slot: 3, width: 8, joystickAxis: 2),
             ],
-            realData: true,
             speechLoopAnimationIds: ["speech-loop-round"],
             idleAnimationIds: ["idle-loop-round"]
         )
@@ -142,7 +134,6 @@ struct CreatureModelTests {
         #expect(convertedDTO.name == originalDTO.name)
         #expect(convertedDTO.channelOffset == originalDTO.channelOffset)
         #expect(convertedDTO.mouthSlot == originalDTO.mouthSlot)
-        #expect(convertedDTO.realData == originalDTO.realData)
         #expect(convertedDTO.audioChannel == originalDTO.audioChannel)
         #expect(convertedDTO.inputs.count == originalDTO.inputs.count)
         for (index, input) in convertedDTO.inputs.enumerated() {
@@ -167,7 +158,6 @@ struct CreatureModelTests {
             name: "Persist Test",
             channelOffset: 0,
             mouthSlot: 1,
-            realData: false,
             audioChannel: 0,
             inputs: [
                 Common.Input(name: "Blob Input 1", slot: 1, width: 8, joystickAxis: 0),
@@ -203,7 +193,6 @@ struct CreatureModelTests {
             name: "First",
             channelOffset: 0,
             mouthSlot: 1,
-            realData: false,
             audioChannel: 0,
             inputs: [],
             speechLoopAnimationIds: [],
@@ -214,7 +203,6 @@ struct CreatureModelTests {
             name: "Second",
             channelOffset: 10,
             mouthSlot: 3,
-            realData: true,
             audioChannel: 1,
             inputs: [],
             speechLoopAnimationIds: [],

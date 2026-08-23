@@ -23,6 +23,13 @@ final class PlaylistModel: Identifiable {
 }
 
 extension PlaylistModel {
+
+    /// The sum of every item's weight, accumulated wide for the same reason as
+    /// ``Common/Playlist/totalWeight``: locally edited values aren't validated yet.
+    var totalWeight: UInt64 {
+        items.reduce(UInt64(0)) { $0 + UInt64($1.weight) }
+    }
+
     // Initialize from the Common DTO
     convenience init(dto: Common.Playlist) {
         let itemModels = dto.items.map { PlaylistItemModel(dto: $0) }
