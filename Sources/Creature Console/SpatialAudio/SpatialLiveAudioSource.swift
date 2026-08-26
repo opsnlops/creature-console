@@ -1,4 +1,4 @@
-#if os(macOS) || os(tvOS)
+#if os(macOS) || os(iOS) || os(tvOS)
     import Common
     import Foundation
     import Network

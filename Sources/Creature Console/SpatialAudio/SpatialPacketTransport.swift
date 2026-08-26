@@ -1,4 +1,4 @@
-#if os(macOS) || os(tvOS)
+#if os(macOS) || os(iOS) || os(tvOS)
     import Common
     import Foundation
     import Network
@@ -6,7 +6,7 @@
     /// Shared vocabulary for the two ways live audio packets reach the spatial pipeline:
     /// straight off the animatronic VLAN's multicast groups (macOS with a route to it), or
     /// through a `creature-cli network rtp-listen` relay over TCP (any network — and the only
-    /// possible path on tvOS, which can't join multicast groups at all). Downstream of this
+    /// supported path on iOS and tvOS). Downstream of this
     /// type the pipeline neither knows nor cares which transport delivered a packet.
     enum SpatialPacketKind: Sendable {
         case rtp

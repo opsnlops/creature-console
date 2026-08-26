@@ -1,3 +1,12 @@
+creature-cli (2.54.0) unstable; urgency=medium
+
+  * Add Spatial Stage on iOS with live relay monitoring and local multitrack
+    simulation playback.
+  * Add AirPods head tracking to spatial playback on macOS, iOS, and tvOS.
+  * Default the spatial relay address to 10.69.66.1 to reduce router hops.
+
+ -- April White <april@creature.engineering>  Tue, 25 Aug 2026 18:32:18 -0700
+
 creature-cli (2.53.0) unstable; urgency=medium
 
   * Speak the neutral Creature Server JSON contract from server 3.45.0

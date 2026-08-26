@@ -1,4 +1,4 @@
-#if os(macOS) || os(tvOS)
+#if os(macOS) || os(iOS) || os(tvOS)
     import Common
     import Foundation
 
@@ -123,14 +123,38 @@
             )
         }
 
-    #elseif os(tvOS)
+    #elseif os(iOS) || os(tvOS)
         import AVFAudio
 
-        /// AVAudioConverter-backed decoder (`kAudioFormatOpus`): YbridOpus ships no tvOS slice,
-        /// so the TV decodes with the system codec instead. It has no FEC or PLC — acceptable,
-        /// because the only transport that reaches tvOS is the TCP relay, where packets are
+        /// AVAudioConverter-backed decoder (`kAudioFormatOpus`): iOS and tvOS decode with the
+        /// system codec instead of libopus. It has no FEC or PLC — acceptable, because the only
+        /// transport that reaches either platform is the TCP relay, where packets are
         /// never lost, only late; a stall fills with silence.
         final class SpatialOpusDecoder: @unchecked Sendable {
+            /// AVAudioConverter's input block is `@Sendable` even though conversion invokes it
+            /// synchronously. Keep its one-shot mutable state behind a Sendable reference so the
+            /// block doesn't directly capture AVAudioBuffer or a local mutable variable.
+            private final class ConversionInput: @unchecked Sendable {
+                private let buffer: AVAudioCompressedBuffer
+                private var wasFed = false
+
+                init(buffer: AVAudioCompressedBuffer) {
+                    self.buffer = buffer
+                }
+
+                func next(
+                    status: UnsafeMutablePointer<AVAudioConverterInputStatus>
+                ) -> AVAudioBuffer? {
+                    guard !wasFed else {
+                        status.pointee = .noDataNow
+                        return nil
+                    }
+                    wasFed = true
+                    status.pointee = .haveData
+                    return buffer
+                }
+            }
+
             enum DecodeKind: Sendable {
                 case packet
                 case forwardErrorCorrection
@@ -211,17 +235,11 @@
                     return (Self.silence, .silence)
                 }
 
-                var fed = false
                 var conversionError: NSError?
+                let conversionInput = ConversionInput(buffer: compressed)
                 let status = converter.convert(to: pcm, error: &conversionError) {
                     _, outStatus in
-                    if fed {
-                        outStatus.pointee = .noDataNow
-                        return nil
-                    }
-                    fed = true
-                    outStatus.pointee = .haveData
-                    return compressed
+                    conversionInput.next(status: outStatus)
                 }
 
                 guard status != .error, conversionError == nil, pcm.frameLength > 0,

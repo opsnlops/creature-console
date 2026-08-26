@@ -220,6 +220,14 @@ struct TopContentView: View {
                 // front door — the Window menu is where windows are *found*, not where app
                 // features should *live*.
                 Section("Monitoring") {
+                    #if os(iOS)
+                        NavigationLink {
+                            IOSSpatialStageView()
+                        } label: {
+                            Label("Spatial Stage", systemImage: "person.wave.2")
+                        }
+                    #endif
+
                     #if os(macOS)
                         Button {
                             openWindow(id: "sacnUniverseMonitor")

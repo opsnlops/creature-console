@@ -1,4 +1,4 @@
-#if os(macOS) || os(tvOS)
+#if os(macOS) || os(iOS) || os(tvOS)
     import AVFAudio
     import Accelerate
     import Common
@@ -40,7 +40,7 @@
         private var emitters: [Int: Emitter] = [:]
         private let format: AVAudioFormat
 
-        init(channels: Set<Int>) throws {
+        init(channels: Set<Int>, headTrackingEnabled: Bool = false) throws {
             guard
                 let format = AVAudioFormat(
                     commonFormat: .pcmFormatFloat32,
@@ -69,6 +69,10 @@
             engine.connect(makeupEQ, to: engine.outputNode, format: nil)
 
             environment.outputType = .auto
+            // The system applies the AirPods head-pose offset on top of the stage's listener
+            // orientation. On routes without compatible head tracking this remains a fixed
+            // spatial mix, so callers don't need a separate fallback renderer.
+            environment.isListenerHeadTrackingEnabled = headTrackingEnabled
             // Stage coordinates are relative to the listener, so these ears sit at the origin.
             environment.listenerPosition = AVAudio3DPoint(x: 0, y: 0, z: 0)
             environment.listenerAngularOrientation = AVAudio3DAngularOrientation(

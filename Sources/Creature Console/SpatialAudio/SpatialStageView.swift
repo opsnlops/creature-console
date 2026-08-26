@@ -90,7 +90,7 @@
                         .disabled(viewModel.isActive || viewModel.isPreparing)
                     } else if viewModel.inputMode == .liveRelay {
                         TextField(
-                            "Relay Host", text: $viewModel.relayHost, prompt: Text("10.19.63.10")
+                            "Relay Host", text: $viewModel.relayHost, prompt: Text("10.69.66.1")
                         )
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 260)
@@ -115,6 +115,14 @@
                     }
 
                     Spacer()
+
+                    Toggle("Head Tracking", isOn: $viewModel.headTrackingEnabled)
+                        .toggleStyle(.switch)
+                        .fixedSize()
+                        .disabled(viewModel.isActive || viewModel.isPreparing)
+                        .help(
+                            "Keep the stage fixed in space while you turn your head with compatible AirPods."
+                        )
 
                     if viewModel.inputMode == .simulation {
                         Toggle("Loop", isOn: $viewModel.isLooping)

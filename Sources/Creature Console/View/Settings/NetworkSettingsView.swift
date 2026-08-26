@@ -36,7 +36,7 @@ struct NetworkSettingsView: View {
     @AppStorage("useProxy") private var useProxy: Bool = false
     @AppStorage("activeUniverse") private var activeUniverse: Int = 1
     @AppStorage("sacnMonitorSource") private var sacnMonitorSource: String = "remote"
-    @AppStorage("relayHost") private var relayHost: String = "10.19.63.10"
+    @AppStorage("relayHost") private var relayHost: String = "10.69.66.1"
     @AppStorage("sacnRelayPort") private var sacnRelayPort: Int = 1963
     @AppStorage("audioRelayPort") private var audioRelayPort: Int = 1964
     @State private var activeUniverseString: String = ""
@@ -217,7 +217,7 @@ struct NetworkSettingsView: View {
                             HStack {
                                 Text("Relay Host")
                                 Spacer()
-                                TextField("10.19.63.10", text: $relayHost)
+                                TextField("10.69.66.1", text: $relayHost)
                                     #if os(tvOS)
                                         .textFieldStyle(.plain)
                                     #else

@@ -4,12 +4,6 @@
     import Network
     import Observation
 
-    struct SpatialSimulationSelection: Equatable, Identifiable, Sendable {
-        let id: String
-        let title: String
-        let soundFile: String
-    }
-
     @MainActor
     @Observable
     final class SpatialStageViewModel {
@@ -19,7 +13,7 @@
         /// Where a `creature-cli network rtp-listen` relay lives — persisted per machine, since
         /// which Pi bridges the animatronic VLAN depends on where this machine is sitting.
         var relayHost: String =
-            UserDefaults.standard.string(forKey: "relayHost") ?? "10.19.63.10"
+            UserDefaults.standard.string(forKey: "relayHost") ?? "10.69.66.1"
         {
             didSet { UserDefaults.standard.set(relayHost, forKey: "relayHost") }
         }
@@ -29,6 +23,16 @@
         }()
         {
             didSet { UserDefaults.standard.set(relayPort, forKey: "audioRelayPort") }
+        }
+        var headTrackingEnabled = UserDefaults.standard.bool(
+            forKey: "spatialHeadTrackingEnabled"
+        ) {
+            didSet {
+                UserDefaults.standard.set(
+                    headTrackingEnabled,
+                    forKey: "spatialHeadTrackingEnabled"
+                )
+            }
         }
         var selectedAnimationID: String?
         var isLooping = false {
@@ -194,7 +198,10 @@
             startToken = token
 
             do {
-                let renderer = try SpatialAudioRenderer(channels: channels)
+                let renderer = try SpatialAudioRenderer(
+                    channels: channels,
+                    headTrackingEnabled: headTrackingEnabled
+                )
                 renderer.update(stage: stage)
 
                 switch inputMode {

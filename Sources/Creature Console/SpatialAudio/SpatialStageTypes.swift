@@ -1,4 +1,4 @@
-#if os(macOS) || os(tvOS)
+#if os(macOS) || os(iOS) || os(tvOS)
     import Accelerate
     import Foundation
 
@@ -22,6 +22,12 @@
 
         /// Both live modes feed the same pipeline; only the transport differs.
         var isLive: Bool { self != .simulation }
+    }
+
+    struct SpatialSimulationSelection: Equatable, Identifiable, Sendable {
+        let id: String
+        let title: String
+        let soundFile: String
     }
 
     enum SpatialStageConnectionState: Equatable, Sendable {

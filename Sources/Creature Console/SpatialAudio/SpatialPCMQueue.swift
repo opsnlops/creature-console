@@ -1,4 +1,4 @@
-#if os(macOS) || os(tvOS)
+#if os(macOS) || os(iOS) || os(tvOS)
     import Synchronization
 
     /// A single-producer/single-consumer PCM queue. The audio render callback is the only

@@ -22,7 +22,7 @@ struct SACNUniverseMonitorView: View {
 
     @AppStorage("activeUniverse") private var activeUniverse: Int = 1
     @AppStorage("sacnMonitorSource") private var storedSource: String = defaultSourceRawValue
-    @AppStorage("relayHost") private var storedRemoteHost: String = "10.19.63.10"
+    @AppStorage("relayHost") private var storedRemoteHost: String = "10.69.66.1"
     @AppStorage("sacnRelayPort") private var storedRemotePort: Int = 1963
     @Query(sort: \CreatureModel.name) private var creatures: [CreatureModel]
     @Query(sort: \DmxFixtureModel.name) private var fixtures: [DmxFixtureModel]

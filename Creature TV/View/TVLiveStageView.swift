@@ -16,13 +16,14 @@ struct TVLiveStageView: View {
 
     // Shared with the sACN monitor and the Mac's Spatial Stage window: one relay host for
     // everything, configured in Settings > Network (both relays run on the same VLAN Pi).
-    @AppStorage("relayHost") private var relayHost = "10.19.63.10"
+    @AppStorage("relayHost") private var relayHost = "10.69.66.1"
     @AppStorage("audioRelayPort") private var relayPort = 1964
+    @AppStorage("spatialHeadTrackingEnabled") private var headTrackingEnabled = true
     // Device-level output boost — this room's Denon wants more level than the positional
     // mix provides. Shared with the Spatial Audition screen.
     @AppStorage("monitorBoostDB") private var monitorBoostDB: Double = 0
 
-    @State private var monitor = TVLiveStageMonitor()
+    @State private var monitor = RelaySpatialStageMonitor()
     @State private var selectedStageID: StageIdentifier?
     @State private var errorMessage: String?
     @State private var showError = false
@@ -54,6 +55,8 @@ struct TVLiveStageView: View {
                     }
 
                     Section("Output") {
+                        Toggle("Head Tracking", isOn: $headTrackingEnabled)
+                            .disabled(monitor.isRunning)
                         TVOutputBoostPicker()
                             .onChange(of: monitorBoostDB) { _, newValue in
                                 monitor.setBoost(decibels: Float(newValue))
@@ -124,86 +127,14 @@ struct TVLiveStageView: View {
             try monitor.start(
                 stage: stage,
                 host: relayHost.trimmingCharacters(in: .whitespaces),
-                port: relayPort
+                port: relayPort,
+                headTrackingEnabled: headTrackingEnabled,
+                monitorBoostDecibels: Float(monitorBoostDB)
             )
         } catch {
             errorMessage = ServerError.detailedMessage(from: error)
             showError = true
         }
-    }
-}
-
-/// Owns the renderer + live source lifecycle so the view stays declarative. The Mac equivalent
-/// (`SpatialStageViewModel`) also owns stage editing and interface discovery; the TV needs
-/// neither, so this stays tiny rather than sharing that class.
-@MainActor
-@Observable
-final class TVLiveStageMonitor {
-
-    private(set) var diagnostics = SpatialStageDiagnostics()
-    private(set) var isRunning = false
-
-    @ObservationIgnored private var renderer: SpatialAudioRenderer?
-    @ObservationIgnored private var source: SpatialLiveAudioSource?
-
-    enum MonitorError: LocalizedError {
-        case noAudioLanes
-        case invalidPort
-
-        var errorDescription: String? {
-            switch self {
-            case .noAudioLanes:
-                "This stage has no creatures with audio channels 1–16 to position."
-            case .invalidPort:
-                "The relay port must be between 1 and 65535."
-            }
-        }
-    }
-
-    func start(stage: Stage, host: String, port: Int) throws {
-        stop()
-
-        let channels = Set(stage.placements.map(\.audioChannel)).filter { (1...16).contains($0) }
-        guard !channels.isEmpty else {
-            throw MonitorError.noAudioLanes
-        }
-        guard (1...65535).contains(port) else {
-            throw MonitorError.invalidPort
-        }
-
-        try SpatialAudioSession.configureForMultichannelPlayback()
-
-        let renderer = try SpatialAudioRenderer(channels: channels)
-        renderer.update(stage: stage)
-        let source = try SpatialLiveAudioSource(
-            renderer: renderer,
-            channels: channels,
-            monitoringDelayMilliseconds: stage.audio.monitoringDelayMilliseconds,
-            commonPlayoutDelayMilliseconds: stage.audio.commonPlayoutDelayMilliseconds,
-            onDiagnostics: { [weak self] diagnostics in
-                Task { @MainActor [weak self] in
-                    self?.diagnostics = diagnostics
-                }
-            }
-        )
-        renderer.setMonitorBoost(
-            decibels: Float(UserDefaults.standard.double(forKey: "monitorBoostDB")))
-        try source.start(transport: .relay(host: host, port: UInt16(port)))
-        self.renderer = renderer
-        self.source = source
-        isRunning = true
-    }
-
-    func setBoost(decibels: Float) {
-        renderer?.setMonitorBoost(decibels: decibels)
-    }
-
-    func stop() {
-        source?.stop()
-        source = nil
-        renderer = nil
-        isRunning = false
-        diagnostics = SpatialStageDiagnostics()
     }
 }
 

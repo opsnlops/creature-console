@@ -19,6 +19,8 @@ struct TVSpatialAuditionView: View {
 
     @Query private var stages: [StageModel]
 
+    @AppStorage("spatialHeadTrackingEnabled") private var headTrackingEnabled = true
+
     private let localAudio = LocalAudioPlayer.shared
 
     @State private var nowPlayingTitle: String?
@@ -118,6 +120,8 @@ struct TVSpatialAuditionView: View {
                     }
 
                     Section("Output") {
+                        Toggle("Head Tracking", isOn: $headTrackingEnabled)
+                            .disabled(localAudio.isPlaying)
                         TVOutputBoostPicker()
                     }
                 }

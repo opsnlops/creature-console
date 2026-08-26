@@ -39,7 +39,7 @@
             startToken = token
 
             #if os(tvOS)
-                try SpatialAudioSession.configureForMultichannelPlayback()
+                try SpatialAudioSession.configureForPlayback()
             #endif
 
             let channels = Set(stage.placements.map(\.audioChannel)).filter {
@@ -51,7 +51,12 @@
                 soundFile: soundFile, adHoc: adHoc)
             guard startToken == token else { return }
 
-            let renderer = try SpatialAudioRenderer(channels: channels)
+            let renderer = try SpatialAudioRenderer(
+                channels: channels,
+                headTrackingEnabled: UserDefaults.standard.bool(
+                    forKey: "spatialHeadTrackingEnabled"
+                )
+            )
             renderer.update(stage: stage)
             #if os(tvOS)
                 renderer.setMonitorBoost(

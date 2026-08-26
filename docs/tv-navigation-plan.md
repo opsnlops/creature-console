@@ -21,7 +21,7 @@ Blow it up (April's words). TV gets its own root:
 - **Monitoring** unifies the two live-network monitors (sACN universes and stage audio) plus
   the joystick inspector. The monitors previously diverged completely — sACN configured in
   Settings under a dedicated sidebar item, audio configured inline on its own tab. Now both
-  read one shared relay host (`relayHost`, default `10.19.63.10`) plus per-service ports from
+  read one shared relay host (`relayHost`, default `10.69.66.1`) plus per-service ports from
   a single **Settings › Network Monitors** card, since both relays run on the same
   VLAN-connected machine (`creature-cli network sacn-listen` / `rtp-listen`).
 - `RootView` keeps the shared bootstrap/alert/websocket plumbing and simply branches:
