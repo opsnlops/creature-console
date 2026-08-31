@@ -1,3 +1,10 @@
+creature-cli (2.54.1) unstable; urgency=medium
+
+  * Fix creature-agent MQTT event handling for ISO 8601 timestamps, including
+    fractional seconds, and log malformed timestamp payloads.
+
+ -- April White <april@creature.engineering>  Mon, 31 Aug 2026 11:57:14 -0700
+
 creature-cli (2.54.0) unstable; urgency=medium
 
   * Add Spatial Stage on iOS with live relay monitoring and local multitrack

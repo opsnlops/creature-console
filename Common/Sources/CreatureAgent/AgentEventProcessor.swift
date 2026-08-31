@@ -85,6 +85,16 @@ struct AgentEventProcessor: Sendable {
         let timestampDescription = eventTimestamp.map { "\($0)" } ?? "nil"
         logger.debug("MQTT timestamp parsed for \(topic): \(timestampDescription)")
 
+        guard let eventTimestamp else {
+            let maximumLoggedPayloadLength = 200
+            let loggedPayload = String(payload.prefix(maximumLoggedPayloadLength))
+            let truncationIndicator = payload.count > maximumLoggedPayloadLength ? "…" : ""
+            logger.warning(
+                "Skipping MQTT message for \(topic): expected an ISO 8601 timestamp, received \(String(reflecting: loggedPayload + truncationIndicator))"
+            )
+            return
+        }
+
         if isRetained {
             let existingTimestamp = await eventTracker.initialTimestamp(for: topic)
             if existingTimestamp == nil {

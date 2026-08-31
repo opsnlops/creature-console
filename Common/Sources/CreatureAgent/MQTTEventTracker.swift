@@ -63,12 +63,18 @@ actor MQTTEventTracker {
 
     nonisolated static func timestamp(from payload: String) -> TimeInterval? {
         let trimmed = payload.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let value = Double(trimmed) else {
-            return nil
+        guard !trimmed.isEmpty else { return nil }
+
+        let fractionalSecondsFormat = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+        if let date = try? fractionalSecondsFormat.parse(trimmed) {
+            return date.timeIntervalSince1970
         }
-        if value >= 1_000_000_000_000 {
-            return value / 1000
+
+        let wholeSecondsFormat = Date.ISO8601FormatStyle()
+        if let date = try? wholeSecondsFormat.parse(trimmed) {
+            return date.timeIntervalSince1970
         }
-        return value
+
+        return nil
     }
 }

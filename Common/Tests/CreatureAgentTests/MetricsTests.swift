@@ -90,6 +90,10 @@ private func makeAgentProcessor(
     )
 }
 
+private func mqttTimestamp(_ date: Date = Date()) -> String {
+    Date.ISO8601FormatStyle(includingFractionalSeconds: true).format(date)
+}
+
 // MARK: - Serialized parent suite
 
 /// All metrics tests share a serialized parent suite to prevent races on the global MetricsSystem.
@@ -199,7 +203,7 @@ struct ObservabilityMetricsTests {
 
             let processor = makeAgentProcessor()
 
-            let timestamp = "\(Date().timeIntervalSince1970)"
+            let timestamp = mqttTimestamp()
             await processor.processEvent(
                 topic: "test/topic", payload: timestamp, isRetained: false)
 
@@ -216,7 +220,7 @@ struct ObservabilityMetricsTests {
             let tracker = MQTTEventTracker(logger: Logger(label: "test"))
             let processor = makeAgentProcessor(eventTracker: tracker)
 
-            let timestamp = "\(Date().timeIntervalSince1970)"
+            let timestamp = mqttTimestamp()
 
             // First event should be processed
             await processor.processEvent(
@@ -250,9 +254,9 @@ struct ObservabilityMetricsTests {
                 eventTracker: tracker
             )
 
-            let now = Date().timeIntervalSince1970
-            let ts1 = "\(now)"
-            let ts2 = "\(now + 1)"
+            let now = Date()
+            let ts1 = mqttTimestamp(now)
+            let ts2 = mqttTimestamp(now.addingTimeInterval(1))
 
             // First event processes and marks the area
             await processor.processEvent(
@@ -275,7 +279,7 @@ struct ObservabilityMetricsTests {
 
             let processor = makeAgentProcessor()
 
-            let timestamp = "\(Date().timeIntervalSince1970)"
+            let timestamp = mqttTimestamp()
             await processor.processEvent(
                 topic: "test/topic", payload: timestamp, isRetained: false)
 
@@ -300,7 +304,7 @@ struct ObservabilityMetricsTests {
                 }
             )
 
-            let timestamp = "\(Date().timeIntervalSince1970)"
+            let timestamp = mqttTimestamp()
             await processor.processEvent(
                 topic: "test/topic", payload: timestamp, isRetained: false)
 
@@ -320,7 +324,7 @@ struct ObservabilityMetricsTests {
                 }
             )
 
-            let timestamp = "\(Date().timeIntervalSince1970)"
+            let timestamp = mqttTimestamp()
             await processor.processEvent(
                 topic: "test/topic", payload: timestamp, isRetained: false)
 

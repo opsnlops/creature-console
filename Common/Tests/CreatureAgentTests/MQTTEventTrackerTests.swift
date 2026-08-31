@@ -46,10 +46,21 @@ struct MQTTEventTrackerTests {
         #expect(updated == 60)
     }
 
-    @Test("Converts millisecond timestamps")
-    func convertsMillisecondTimestamps() {
-        let millis = "1768880656153"
-        let seconds = MQTTEventTracker.timestamp(from: millis)
-        #expect(seconds == 1_768_880_656.153)
+    @Test("Parses ISO 8601 timestamps with fractional seconds")
+    func parsesISO8601TimestampWithFractionalSeconds() {
+        let timestamp = MQTTEventTracker.timestamp(from: "2026-08-31T18:48:20.765Z")
+        #expect(abs((timestamp ?? 0) - 1_788_202_100.765) < 0.000_001)
+    }
+
+    @Test("Parses ISO 8601 timestamps with whole seconds")
+    func parsesISO8601TimestampWithWholeSeconds() {
+        let timestamp = MQTTEventTracker.timestamp(from: "2026-08-31T18:48:20Z")
+        #expect(timestamp == 1_788_202_100)
+    }
+
+    @Test("Rejects legacy numeric timestamps")
+    func rejectsLegacyNumericTimestamp() {
+        #expect(MQTTEventTracker.timestamp(from: "1788202100.765") == nil)
+        #expect(MQTTEventTracker.timestamp(from: "1788202100765") == nil)
     }
 }
