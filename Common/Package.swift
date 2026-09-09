@@ -196,3 +196,10 @@ let package = Package(
         ),
     ]
 )
+
+#if os(Linux)
+    // PlaylistRuntime uses Apple's Combine framework and is only consumed by Apple-platform apps.
+    // Omitting it on Linux keeps server-only builds and tests from requiring an unavailable module.
+    package.products.removeAll { $0.name == "PlaylistRuntime" }
+    package.targets.removeAll { $0.name == "PlaylistRuntime" }
+#endif
