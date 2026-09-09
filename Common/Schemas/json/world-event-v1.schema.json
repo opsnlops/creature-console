@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/world-event-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "event_id",
+    "type",
+    "occurred_at",
+    "source",
+    "subject_ids",
+    "epistemic",
+    "payload",
+    "caused_by"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion"
+    },
+    "event_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/eventID"
+    },
+    "type": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/eventType"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observed_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "world_sequence": {
+      "type": ["integer", "null"],
+      "minimum": 1
+    },
+    "source": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": {
+          "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_event_id": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "subject_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+      }
+    },
+    "place_id": {
+      "oneOf": [
+        { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
+        { "type": "null" }
+      ]
+    },
+    "epistemic": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/epistemic"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "caused_by": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "world-definitions-v1.schema.json#/$defs/eventID" },
+          { "$ref": "world-definitions-v1.schema.json#/$defs/factID" }
+        ]
+      }
+    },
+    "trace": {
+      "oneOf": [
+        { "$ref": "world-definitions-v1.schema.json#/$defs/trace" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "additionalProperties": true
+}

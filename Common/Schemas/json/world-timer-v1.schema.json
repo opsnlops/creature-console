@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/world-timer-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "timer_id",
+    "purpose",
+    "due_at",
+    "status",
+    "subject_ids",
+    "caused_by",
+    "payload"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion"
+    },
+    "timer_id": {
+      "type": "string",
+      "pattern": "^timer:[a-z0-9._:-]+$"
+    },
+    "purpose": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/eventType"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "enum": ["pending", "fired", "canceled"]
+    },
+    "subject_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+      }
+    },
+    "caused_by": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "world-definitions-v1.schema.json#/$defs/eventID" },
+          { "$ref": "world-definitions-v1.schema.json#/$defs/factID" }
+        ]
+      }
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

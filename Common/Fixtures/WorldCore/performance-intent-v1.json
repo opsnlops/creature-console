@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "intent_id": "intent:e481599d-06aa-43db-b9fe-fd9ebf052fee",
+  "consideration_id": "consideration:0ca76343-466a-45ae-b9f1-7fc3fe952ddd",
+  "interaction_id": "interaction:79303d9b-b925-4b8b-834b-c911e7330bf4",
+  "character_id": "character:beaky",
+  "kind": "dialog",
+  "participants": ["character:beaky", "person:april"],
+  "turns": [
+    {
+      "character_id": "character:beaky",
+      "text": "April? You have church in half an hour. Why are you still here?"
+    }
+  ],
+  "animation_id": null,
+  "urgency": 0.82,
+  "expires_at": "2026-09-08T10:45:00-07:00",
+  "trace": {
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-eedb49fbf197c6c1-01",
+    "tracestate": null,
+    "baggage": null
+  }
+}

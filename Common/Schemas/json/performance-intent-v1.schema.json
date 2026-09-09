@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/performance-intent-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "intent_id",
+    "consideration_id",
+    "interaction_id",
+    "character_id",
+    "kind",
+    "participants",
+    "turns",
+    "urgency"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion"
+    },
+    "intent_id": {
+      "type": "string",
+      "pattern": "^intent:[a-z0-9._:-]+$"
+    },
+    "consideration_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/considerationID"
+    },
+    "interaction_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/interactionID"
+    },
+    "character_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+    },
+    "kind": { "enum": ["dialog", "animation"] },
+    "participants": {
+      "type": "array",
+      "items": {
+        "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+      }
+    },
+    "turns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["character_id", "text"],
+        "properties": {
+          "character_id": {
+            "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+          },
+          "text": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "animation_id": { "type": ["string", "null"] },
+    "urgency": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/confidence"
+    },
+    "expires_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "trace": {
+      "oneOf": [
+        { "$ref": "world-definitions-v1.schema.json#/$defs/trace" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "additionalProperties": true
+}

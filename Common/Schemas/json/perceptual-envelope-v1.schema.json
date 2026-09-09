@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/perceptual-envelope-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "consideration_id",
+    "character_id",
+    "event",
+    "world_facts",
+    "relevant_memories"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion"
+    },
+    "consideration_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/considerationID"
+    },
+    "character_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+    },
+    "trace": {
+      "oneOf": [
+        { "$ref": "world-definitions-v1.schema.json#/$defs/trace" },
+        { "type": "null" }
+      ]
+    },
+    "event": {
+      "type": "object",
+      "required": ["event_id", "type"],
+      "properties": {
+        "event_id": {
+          "$ref": "world-definitions-v1.schema.json#/$defs/eventID"
+        },
+        "type": {
+          "$ref": "world-definitions-v1.schema.json#/$defs/eventType"
+        }
+      },
+      "additionalProperties": true
+    },
+    "world_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["statement", "confidence", "fact_id"],
+        "properties": {
+          "statement": { "type": "string" },
+          "confidence": {
+            "$ref": "world-definitions-v1.schema.json#/$defs/confidence"
+          },
+          "fact_id": {
+            "$ref": "world-definitions-v1.schema.json#/$defs/factID"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "relevant_memories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["memory_id", "summary"],
+        "properties": {
+          "memory_id": {
+            "type": "string",
+            "pattern": "^memory:[a-z0-9._:-]+$"
+          },
+          "summary": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "known_participants": {
+      "type": "array",
+      "items": {
+        "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+      }
+    },
+    "prior_reaction_interaction_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "world-definitions-v1.schema.json#/$defs/interactionID"
+      }
+    }
+  },
+  "additionalProperties": true
+}

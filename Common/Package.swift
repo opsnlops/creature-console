@@ -14,6 +14,9 @@ let package = Package(
         .library(
             name: "PlaylistRuntime",
             targets: ["PlaylistRuntime"]),
+        .library(
+            name: "WorldCore",
+            targets: ["WorldCore"]),
 
     ],
     dependencies: [
@@ -79,6 +82,9 @@ let package = Package(
                 "Common",
                 .product(name: "Logging", package: "swift-log"),
             ]),
+
+        .target(
+            name: "WorldCore"),
 
         .target(
             name: "Observability",
@@ -158,6 +164,10 @@ let package = Package(
                 "creature-mqtt",
                 .product(name: "MetricsTestKit", package: "swift-metrics"),
             ]
+        ),
+        .testTarget(
+            name: "WorldCoreTests",
+            dependencies: ["WorldCore"]
         ),
     ]
 )
