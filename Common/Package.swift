@@ -29,9 +29,11 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.74.0"),
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.27.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.6"),
+        // Temporary until a tagged Swift OTel release contains the Swift 6.3 crash fix.
+        // Tracking: https://github.com/opsnlops/creature-console/issues/121
         .package(
             url: "https://github.com/swift-otel/swift-otel.git",
-            from: "1.0.0",
+            revision: "1454506613248a57935c42a17beabc2a133fb934",
             traits: ["OTLPHTTP"]),
         .package(
             url: "https://github.com/swift-server/swift-service-lifecycle.git",
