@@ -129,6 +129,14 @@ extension NamespacedID where Domain == FactIDDomain {
     }
 }
 
+extension NamespacedID where Domain == TimerIDDomain {
+    /// Creates a timer identifier from a stable semantic key such as
+    /// `calendar-event-123:departure-due`.
+    public static func stable(_ key: String) throws -> Self {
+        try Self(validating: "\(TimerIDDomain.namespace):\(key)")
+    }
+}
+
 extension NamespacedID where Domain == ConsiderationIDDomain {
     public static func generated(using uuid: UUID = UUID()) -> Self {
         generated(namespace: ConsiderationIDDomain.namespace, using: uuid)

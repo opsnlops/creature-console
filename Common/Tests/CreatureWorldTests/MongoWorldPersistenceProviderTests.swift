@@ -46,6 +46,54 @@ struct MongoWorldPersistenceProviderTests {
         #expect(await provider.isHealthy())
         #expect(await attempts.value == 2)
     }
+
+    @Test("A new persistence connection recovers timers before becoming healthy")
+    func connectionRecoversTimersBeforePublication() async {
+        let recoveries = ConnectionAttemptCounter()
+        let provider = MongoWorldPersistenceProvider(
+            uri: CreatureWorldConfiguration.defaultMongoURI,
+            logger: Logger(label: "creature-world-provider-tests"),
+            connector: { _, _ in
+                MongoWorldPersistenceConnection(
+                    isHealthy: { true },
+                    recoverTimers: {
+                        _ = await recoveries.increment()
+                    },
+                    shutdown: {}
+                )
+            }
+        )
+
+        await provider.connectIfNeeded()
+
+        #expect(await recoveries.value == 1)
+        #expect(await provider.isHealthy())
+    }
+
+    @Test("Timer recovery failure rejects and closes the candidate connection")
+    func failedTimerRecoveryRejectsConnection() async {
+        let shutdowns = ConnectionAttemptCounter()
+        let provider = MongoWorldPersistenceProvider(
+            uri: CreatureWorldConfiguration.defaultMongoURI,
+            logger: Logger(label: "creature-world-provider-tests"),
+            connector: { _, _ in
+                MongoWorldPersistenceConnection(
+                    isHealthy: { true },
+                    recoverTimers: {
+                        throw TestConnectionError.unavailable
+                    },
+                    shutdown: {
+                        _ = await shutdowns.increment()
+                    }
+                )
+            }
+        )
+
+        await provider.connectIfNeeded()
+
+        #expect(!(await provider.isHealthy()))
+        #expect(await shutdowns.value == 1)
+    }
 }
 
 private actor ConnectionAttemptCounter {
