@@ -209,6 +209,8 @@ GitHub Actions automatically runs tests on push to `main` and on all pull reques
 
 ## Documentation
 
+- [Creature World Manual](docs/creature-world-manual.md)
+- [Beaky's World Design and Roadmap](docs/beakys-world.md)
 - [Lightweight Console User Guide](docs/lightweight-console.md)
 - Swift Package tests
 - Xcode tests for macOS and iOS
