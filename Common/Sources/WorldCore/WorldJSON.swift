@@ -87,7 +87,7 @@ public enum WorldJSON {
         encoder.outputFormatting = prettyPrinted ? [.prettyPrinted, .sortedKeys] : [.sortedKeys]
         encoder.dateEncodingStrategy = .custom { date, encoder in
             var container = encoder.singleValueContainer()
-            try container.encode(format(date))
+            try container.encode(timestamp(date))
         }
         return encoder
     }
@@ -108,7 +108,7 @@ public enum WorldJSON {
         return decoder
     }
 
-    private static func format(_ date: Date) -> String {
+    public static func timestamp(_ date: Date) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter.string(from: date)

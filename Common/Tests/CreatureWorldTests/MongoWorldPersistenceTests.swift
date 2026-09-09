@@ -46,11 +46,13 @@ struct MongoWorldPersistenceTests {
         try await withPersistence { persistence in
             let sourceEventID = UUID().uuidString.lowercased()
             let first = try makeEvent(sourceEventID: sourceEventID)
+            let receivedAt = Date(timeIntervalSince1970: 1_000)
 
-            let inserted = try await persistence.events.append(first)
-            let duplicateID = try await persistence.events.append(first)
+            let inserted = try await persistence.events.append(first, receivedAt: receivedAt)
+            let duplicateID = try await persistence.events.append(first, receivedAt: receivedAt)
             let duplicateSource = try await persistence.events.append(
-                makeEvent(sourceID: first.source.id, sourceEventID: sourceEventID)
+                makeEvent(sourceID: first.source.id, sourceEventID: sourceEventID),
+                receivedAt: receivedAt
             )
 
             let accepted = try #require(inserted.insertedEvent)
@@ -85,9 +87,13 @@ struct MongoWorldPersistenceTests {
                 of: WorldEventEnvelope.self,
                 returning: [WorldEventEnvelope].self
             ) { group in
+                let receivedAt = Date(timeIntervalSince1970: 2_000)
                 for _ in 0..<20 {
                     group.addTask {
-                        let result = try await persistence.events.append(makeEvent())
+                        let result = try await persistence.events.append(
+                            makeEvent(),
+                            receivedAt: receivedAt
+                        )
                         return try #require(result.insertedEvent)
                     }
                 }
@@ -203,6 +209,82 @@ struct MongoWorldPersistenceTests {
             #expect(reloadedTimer.status == .pending)
             #expect(reloadedCheckpoint.sourceID == checkpoint.sourceID)
             #expect(reloadedCheckpoint.value == checkpoint.value)
+        }
+    }
+
+    @Test("Timer claims, completion, replacement, and cancellation are conditional")
+    func timerLifecycleIsAtomic() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let timerID = try TimerID.stable("test:\(suffix):purpose")
+            let firstDueAt = Date(timeIntervalSince1970: 10_000)
+            let first = WorldTimer(
+                timerID: timerID,
+                purpose: try WorldEventType(validating: "test.timer-fired"),
+                dueAt: firstDueAt,
+                subjectIDs: [],
+                causedBy: [],
+                payload: [:]
+            )
+            try await persistence.timers.schedule(first)
+
+            let claimed = try #require(
+                try await persistence.timers.claim(
+                    timerID: timerID,
+                    dueAt: firstDueAt,
+                    firingAt: firstDueAt
+                )
+            )
+            #expect(claimed.status == .firing)
+            #expect(
+                try await persistence.timers.markFired(
+                    timerID: timerID,
+                    dueAt: firstDueAt,
+                    firedAt: firstDueAt
+                )
+            )
+            #expect(
+                try await persistence.timers.claim(
+                    timerID: timerID,
+                    dueAt: firstDueAt,
+                    firingAt: firstDueAt
+                ) == nil
+            )
+
+            let replacementDueAt = firstDueAt.addingTimeInterval(60)
+            let replacement = WorldTimer(
+                timerID: timerID,
+                purpose: first.purpose,
+                dueAt: replacementDueAt,
+                subjectIDs: [],
+                causedBy: [],
+                payload: [:]
+            )
+            try await persistence.timers.schedule(replacement)
+            #expect(
+                try await persistence.timers.claim(
+                    timerID: timerID,
+                    dueAt: firstDueAt,
+                    firingAt: replacementDueAt
+                ) == nil
+            )
+            #expect(
+                try await persistence.timers.cancel(
+                    timerID: timerID,
+                    canceledAt: replacementDueAt
+                )
+            )
+            #expect(
+                try await !persistence.timers.cancel(
+                    timerID: timerID,
+                    canceledAt: replacementDueAt
+                )
+            )
+            #expect(
+                try await !persistence.timers.recoverable(limit: 100).contains {
+                    $0.timerID == timerID
+                }
+            )
         }
     }
 

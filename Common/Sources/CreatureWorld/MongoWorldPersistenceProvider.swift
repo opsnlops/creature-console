@@ -2,21 +2,53 @@ import Foundation
 import Logging
 import Observability
 import ServiceLifecycle
+import WorldCore
 
 struct MongoWorldPersistenceConnection: Sendable {
     let isHealthy: @Sendable () async -> Bool
+    let recoverTimers: @Sendable () async throws -> Void
+    let scheduleTimer: @Sendable (WorldTimer) async throws -> Void
+    let cancelTimer: @Sendable (TimerID) async throws -> Bool
     let shutdown: @Sendable () async -> Void
 
-    init(persistence: MongoWorldPersistence) {
+    init(
+        persistence: MongoWorldPersistence,
+        clock: any WorldClock = SystemWorldClock(),
+        logger: Logger
+    ) {
+        let world = World(
+            eventStore: persistence.events,
+            factStore: persistence.facts,
+            reducers: [],
+            clock: clock
+        )
+        let timerScheduler = WorldTimerScheduler(
+            store: persistence.timers,
+            eventSink: world,
+            clock: clock,
+            logger: logger
+        )
         isHealthy = { await persistence.isHealthy() }
-        shutdown = { await persistence.cluster.disconnect() }
+        recoverTimers = { try await timerScheduler.recover() }
+        scheduleTimer = { try await timerScheduler.schedule($0) }
+        cancelTimer = { try await timerScheduler.cancel(timerID: $0) }
+        shutdown = {
+            await timerScheduler.shutdown()
+            await persistence.cluster.disconnect()
+        }
     }
 
     init(
         isHealthy: @escaping @Sendable () async -> Bool,
+        recoverTimers: @escaping @Sendable () async throws -> Void = {},
+        scheduleTimer: @escaping @Sendable (WorldTimer) async throws -> Void = { _ in },
+        cancelTimer: @escaping @Sendable (TimerID) async throws -> Bool = { _ in false },
         shutdown: @escaping @Sendable () async -> Void
     ) {
         self.isHealthy = isHealthy
+        self.recoverTimers = recoverTimers
+        self.scheduleTimer = scheduleTimer
+        self.cancelTimer = cancelTimer
         self.shutdown = shutdown
     }
 }
@@ -36,7 +68,10 @@ actor MongoWorldPersistenceProvider {
         logger: Logger,
         connector: @escaping Connector = { uri, logger in
             let persistence = try await MongoWorldPersistence.connect(to: uri, logger: logger)
-            return MongoWorldPersistenceConnection(persistence: persistence)
+            return MongoWorldPersistenceConnection(
+                persistence: persistence,
+                logger: logger
+            )
         }
     ) {
         self.uri = uri
@@ -50,7 +85,14 @@ actor MongoWorldPersistenceProvider {
         defer { isConnecting = false }
 
         do {
-            connection = try await connector(uri, logger)
+            let candidate = try await connector(uri, logger)
+            do {
+                try await candidate.recoverTimers()
+            } catch {
+                await candidate.shutdown()
+                throw error
+            }
+            connection = candidate
             if consecutiveFailures > 0 {
                 logger.info(
                     "MongoDB connection recovered",
@@ -90,6 +132,20 @@ actor MongoWorldPersistenceProvider {
         await connection?.shutdown()
         connection = nil
     }
+
+    func schedule(_ timer: WorldTimer) async throws {
+        guard let connection else { throw MongoWorldPersistenceProviderError.unavailable }
+        try await connection.scheduleTimer(timer)
+    }
+
+    func cancel(timerID: TimerID) async throws -> Bool {
+        guard let connection else { throw MongoWorldPersistenceProviderError.unavailable }
+        return try await connection.cancelTimer(timerID)
+    }
+}
+
+enum MongoWorldPersistenceProviderError: Error, Equatable, Sendable {
+    case unavailable
 }
 
 struct MongoWorldPersistenceService: Service, Sendable {

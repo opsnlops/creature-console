@@ -28,7 +28,19 @@
       "format": "date-time"
     },
     "status": {
-      "enum": ["pending", "fired", "canceled"]
+      "enum": ["pending", "firing", "fired", "canceled"]
+    },
+    "firing_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fired_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "canceled_at": {
+      "type": "string",
+      "format": "date-time"
     },
     "subject_ids": {
       "type": "array",

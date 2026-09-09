@@ -45,7 +45,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.2",
+  "build_version": "0.1.5",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -157,7 +157,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.2",
+  "build_version": "0.1.5",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -173,7 +173,7 @@ Schema migrations 1 and 2 establish the following collections and indexes:
 | `world_event_processing` | Durable completion markers for accepted events | Unique event ID in `_id` |
 | `world_counters` | Atomic sequence allocation | `_id: "world_sequence"` counter document |
 | `facts` | Durable facts and current-state reads | Unique `fact_id`; active facts by subject, predicate, validity, and supersession |
-| `timers` | Durable simulator timers | Unique `timer_id`; pending timers by status and due time |
+| `timers` | Durable simulator timers | Unique `timer_id`; recoverable timers by status and due time |
 | `source_checkpoints` | Per-source cursor or checkpoint state | Unique `source_id` |
 | `schema_migrations` | Applied Creature World schema versions | Migration version in `_id`; current migration is 2 |
 
@@ -191,6 +191,35 @@ Consumers must order by the value, not infer missing events from a gap.
 
 Current facts are records where both `valid_to` and `superseded_by` are null. They are stored in
 MongoDB, so reconnecting or restarting Creature World does not erase the current world state.
+
+### Durable time and timers
+
+Domain code uses the injected `WorldClock`; it does not read wall-clock time directly. Production
+uses `SystemWorldClock`. Deterministic tests and future replay use `ManualWorldClock`, whose time is
+advanced explicitly and whose sleeps are cancellable. Timer tests never wait for real time.
+
+Timer IDs are stable semantic keys such as
+`timer:calendar-event-123:departure-due`. Scheduling the same key again replaces its pending
+definition, so a changed due time does not leave the old wake-up active. Canceling is conditional:
+only a pending timer can transition to `canceled`.
+
+A firing uses this durable lifecycle:
+
+1. Atomically transition the matching timer occurrence from `pending` to `firing`.
+2. Submit its semantic event through the authoritative `World` actor.
+3. After durable event acceptance and reduction, transition that occurrence to `fired`.
+
+The emitted event uses the timer ID and due-time milliseconds as its stable source identity. If the
+process stops after event acceptance but before the final timer update, startup recovery finds the
+`firing` timer and submits the same source identity again. The immutable event log deduplicates that
+retry, after which the timer can safely become `fired`. Overdue pending timers follow the same path
+when MongoDB first connects or reconnects. The event records `timer_id`, `scheduled_for`,
+`fired_at`, and nonnegative `lateness_ms` alongside the timer's semantic payload and provenance.
+
+Recovery is bounded to 10,000 active timers per process. A larger set prevents readiness rather
+than allocating an unbounded collection. In-memory waits are canceled during replacement,
+cancellation, database disconnect, and graceful shutdown; MongoDB remains the authoritative timer
+state.
 
 ## Authoritative event processing
 
@@ -240,8 +269,13 @@ span remains a child of acceptance and its upstream caller.
 Span attributes are restricted to controlled event, source, sequence, disposition, and lag fields.
 Event payload values are never attached. Metrics cover received, accepted, rejected, duplicate,
 processed, and failed events, queue depth, subscriber drops, and event lag. Extraction of the
-envelope's W3C headers and reinjection into derived envelopes remains part of VW-008; the actor's
+envelope's W3C headers and reinjection into derived envelopes remains part of VW-009; the actor's
 task boundary is already tested not to break an active context.
+
+Timer operations add `world.timer.schedule`, `world.timer.cancel`, and `world.timer.fire` spans and
+counters for scheduled, canceled, fired, recovered, rejected, and failed timers. Attributes contain
+only the stable timer ID, semantic purpose, disposition, and lateness; timer payload values are not
+attached.
 
 ## Running in production
 
@@ -278,7 +312,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.2_amd64.deb
+sudo apt install ./creature-world_0.1.5_amd64.deb
 ```
 
 The package installs:

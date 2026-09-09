@@ -19,7 +19,7 @@ struct WorldEventRepository: Sendable {
         self.counters = database[MongoWorldCollection.counters]
     }
 
-    func append(_ proposedEvent: WorldEventEnvelope, receivedAt: Date = Date()) async throws
+    func append(_ proposedEvent: WorldEventEnvelope, receivedAt: Date) async throws
         -> EventAppendResult
     {
         if let existing = try await event(withID: proposedEvent.eventID) {
