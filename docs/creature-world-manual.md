@@ -303,6 +303,66 @@ while its internal retry loop reconnects.
 
 ## Observability and troubleshooting
 
+Creature World always writes structured logs to standard error, which systemd captures in the
+journal. It exports logs, traces, and metrics over OTLP only when
+`OTEL_EXPORTER_OTLP_ENDPOINT` is set. The OTLP exporter is not part of the readiness decision, so
+a Honeycomb outage does not stop the service or make `/v1/health` unavailable.
+
+### Honeycomb
+
+For an interactive development run against Honeycomb's US instance:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_EXPORTER_OTLP_HEADERS='x-honeycomb-team=YOUR_API_KEY'
+world/creature-world
+```
+
+Use `https://api.eu1.honeycomb.io` instead for Honeycomb's EU instance. Creature World supplies
+the service name `creature-world`; `OTEL_SERVICE_NAME` may override it when an intentionally
+different name is required. Honeycomb Classic also requires a dataset header:
+
+```bash
+export OTEL_EXPORTER_OTLP_HEADERS='x-honeycomb-team=YOUR_API_KEY,x-honeycomb-dataset=YOUR_DATASET'
+```
+
+The packaged systemd unit reads `/etc/default/creature-world`, but that package-owned file is for
+non-secret overrides. Keep the API key in a separate root-readable environment file managed by
+the host's secret-provisioning system:
+
+```bash
+sudo install -o root -g root -m 0600 /dev/null /etc/creature/world-otel.env
+sudoedit /etc/creature/world-otel.env
+```
+
+Put the three `OTEL_` assignments from the development example in that file without `export`,
+then add a systemd drop-in:
+
+```bash
+sudo systemctl edit creature-world
+```
+
+```ini
+[Service]
+EnvironmentFile=/etc/creature/world-otel.env
+```
+
+Apply the change and verify both local operation and telemetry delivery:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart creature-world
+systemctl status creature-world
+journalctl -u creature-world --since "5 minutes ago"
+```
+
+Then query Honeycomb for `service.name = creature-world`. The shared HTTPS endpoint is a base URL;
+the OpenTelemetry HTTP exporter appends the signal paths for traces, metrics, and logs. Never put
+the API key in `world.json`, a command-line option, source control, or diagnostic output. See
+[Honeycomb's OpenTelemetry configuration guide](https://docs.honeycomb.io/send-data/opentelemetry/)
+for endpoint and header details.
+
 Startup logs identify:
 
 - the Creature World build and schema versions;
@@ -385,6 +445,7 @@ not changed incidentally:
 | Bounded ingress, derivation, and subscription queues | Prevents resource exhaustion and makes overload or resnapshot requirements explicit. |
 | Durable processed marker separate from acceptance | Makes failures after append retryable without reducing completed duplicates again. |
 | Privacy-safe event spans and metrics from the first actor slice | Keeps causal telemetry connected without copying private event payloads into Honeycomb. |
+| Shared periodic health-check lifecycle | Keeps cadence, graceful cancellation, and cleanup consistent while each service owns its protocol-specific health probe. |
 
 Update this manual whenever an implementation change affects configuration, operational behavior,
 persistence guarantees, packaging, or recovery semantics.

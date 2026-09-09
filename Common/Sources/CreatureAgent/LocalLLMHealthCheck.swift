@@ -1,6 +1,7 @@
 import Foundation
 import Logging
 import Metrics
+import Observability
 import ServiceLifecycle
 import Tracing
 
@@ -28,13 +29,15 @@ struct LocalLLMHealthCheck: Service {
         logger.info(
             "Local LLM health check started (url: \(healthURL), interval: \(intervalSeconds)s)")
 
-        try await cancelWhenGracefulShutdown {
-            while !Task.isCancelled {
-                try await Task.sleep(for: .seconds(intervalSeconds))
+        try await PeriodicHealthCheckService(
+            interval: .seconds(intervalSeconds),
+            operation: {
                 await performCheck()
+            },
+            shutdown: {
+                logger.info("Local LLM health check shutting down")
             }
-        }
-        logger.info("Local LLM health check shutting down")
+        ).run()
     }
 
     private func performCheck() async {

@@ -189,6 +189,10 @@ let package = Package(
             dependencies: ["WorldCore"]
         ),
         .testTarget(
+            name: "ObservabilityTests",
+            dependencies: ["Observability"]
+        ),
+        .testTarget(
             name: "CreatureWorldTests",
             dependencies: [
                 "creature-world",

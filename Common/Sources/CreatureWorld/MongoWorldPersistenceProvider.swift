@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import Observability
 import ServiceLifecycle
 
 struct MongoWorldPersistenceConnection: Sendable {
@@ -96,17 +97,15 @@ struct MongoWorldPersistenceService: Service, Sendable {
     var retryInterval: Duration = .seconds(5)
 
     func run() async throws {
-        do {
-            try await cancelWhenGracefulShutdown {
-                while !Task.isCancelled {
-                    try await Task.sleep(for: retryInterval)
-                    await provider.connectIfNeeded()
-                    _ = await provider.isHealthy()
-                }
+        try await PeriodicHealthCheckService(
+            interval: retryInterval,
+            operation: {
+                await provider.connectIfNeeded()
+                _ = await provider.isHealthy()
+            },
+            shutdown: {
+                await provider.shutdown()
             }
-        } catch is CancellationError {
-            // Graceful shutdown cancels the retry loop's sleep.
-        }
-        await provider.shutdown()
+        ).run()
     }
 }
