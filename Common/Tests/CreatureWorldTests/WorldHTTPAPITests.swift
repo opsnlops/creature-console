@@ -133,13 +133,12 @@ struct WorldHTTPAPITests {
         }
     }
 
-    @Test("Non-loopback APIs require a bearer token while health stays public")
-    func authentication() async throws {
+    @Test("Non-loopback APIs remain open without credentials")
+    func nonLoopbackAccess() async throws {
         let service = TestWorldApplicationService()
         let configuration = try CreatureWorldConfiguration(
             host: "0.0.0.0",
-            port: 8080,
-            apiToken: "correct horse battery staple"
+            port: 8080
         )
         let application = try makeApplication(
             configuration: configuration,
@@ -151,20 +150,6 @@ struct WorldHTTPAPITests {
                 #expect(response.status == .ok)
             }
             try await client.execute(uri: "/world/v1/events", method: .get) { response in
-                #expect(response.status == .unauthorized)
-            }
-            try await client.execute(
-                uri: "/world/v1/events",
-                method: .get,
-                headers: [.authorization: "Bearer wrong"]
-            ) { response in
-                #expect(response.status == .unauthorized)
-            }
-            try await client.execute(
-                uri: "/world/v1/events",
-                method: .get,
-                headers: [.authorization: "Bearer correct horse battery staple"]
-            ) { response in
                 #expect(response.status == .ok)
             }
         }

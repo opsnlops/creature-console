@@ -39,7 +39,6 @@ struct CreatureWorldConfigurationTests {
             from: fixtureURL,
             environment: [
                 CreatureWorldConfiguration.hostEnvironmentKey: "0.0.0.0",
-                CreatureWorldConfiguration.apiTokenEnvironmentKey: "test-token",
                 CreatureWorldConfiguration.allowedOriginsEnvironmentKey:
                     "https://viewer.example, https://communicator.example",
                 CreatureWorldConfiguration.mongoURIEnvironmentKey:
@@ -49,7 +48,6 @@ struct CreatureWorldConfigurationTests {
         )
 
         #expect(loaded.host == "0.0.0.0")
-        #expect(loaded.apiToken == "test-token")
         #expect(
             loaded.allowedOrigins == [
                 "https://viewer.example", "https://communicator.example",
@@ -57,25 +55,6 @@ struct CreatureWorldConfigurationTests {
         )
         #expect(loaded.mongoURI == "mongodb://mongo.internal:27017/creature_world")
         #expect(loaded.port == 18_092)
-    }
-
-    @Test("Non-loopback binding requires API authentication")
-    func nonLoopbackRequiresAPIToken() {
-        #expect(
-            throws: CreatureWorldConfigurationError.missingAPIToken(host: "0.0.0.0")
-        ) {
-            try CreatureWorldConfiguration.load(
-                from: nil,
-                environment: [CreatureWorldConfiguration.hostEnvironmentKey: "0.0.0.0"]
-            )
-        }
-    }
-
-    @Test("API token cannot be blank")
-    func blankAPITokenIsRejected() {
-        #expect(throws: CreatureWorldConfigurationError.emptyAPIToken) {
-            try CreatureWorldConfiguration(apiToken: "  ")
-        }
     }
 
     @Test("Configuration requires the isolated creature_world database")

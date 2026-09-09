@@ -36,7 +36,6 @@ struct WorldAPIConfiguration: Equatable, Sendable {
 
 enum WorldAPIError: Error, Equatable, LocalizedError, Sendable {
     case databaseUnavailable
-    case invalidAuthorization
     case invalidOrigin
     case unsupportedMediaType
     case invalidQuery(name: String)
@@ -48,8 +47,6 @@ enum WorldAPIError: Error, Equatable, LocalizedError, Sendable {
         switch self {
         case .databaseUnavailable:
             "Creature World persistence is unavailable"
-        case .invalidAuthorization:
-            "A valid bearer token is required"
         case .invalidOrigin:
             "The request Origin is not allowed"
         case .unsupportedMediaType:

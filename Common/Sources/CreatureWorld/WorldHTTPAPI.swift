@@ -24,7 +24,6 @@ struct WorldHTTPAPI: Sendable {
     func addRoutes(to router: RouterGroup<BasicRequestContext>) {
         router.post("v1/events") { request, _ in
             await respond {
-                try authorize(request)
                 try requireJSON(request)
                 return try await execute {
                     var event = try await decode(
@@ -46,7 +45,6 @@ struct WorldHTTPAPI: Sendable {
 
         router.post("v1/events:batch") { request, _ in
             await respond {
-                try authorize(request)
                 try requireJSON(request)
                 return try await execute {
                     let batch = try await decode(
@@ -73,7 +71,6 @@ struct WorldHTTPAPI: Sendable {
 
         router.get("v1/events") { request, _ in
             await respond {
-                try authorize(request)
                 let afterSequence = try nonnegativeInt64Query(
                     "after_sequence",
                     request: request,
@@ -90,7 +87,6 @@ struct WorldHTTPAPI: Sendable {
 
         router.get("v1/facts") { request, _ in
             await respond {
-                try authorize(request)
                 let subjectID = try request.uri.queryParameters["subject_id"].map {
                     try EntityID(validating: String($0))
                 }
@@ -112,7 +108,6 @@ struct WorldHTTPAPI: Sendable {
 
         router.get("v1/timers") { request, _ in
             await respond {
-                try authorize(request)
                 let status = try request.uri.queryParameters["status"].map {
                     guard let status = WorldTimerStatus(rawValue: String($0)) else {
                         throw WorldAPIError.invalidQuery(name: "status")
@@ -133,7 +128,6 @@ struct WorldHTTPAPI: Sendable {
 
         router.get("v1/snapshot") { request, _ in
             await respond {
-                try authorize(request)
                 let limit = try pageLimit(request)
                 return try await execute {
                     try jsonResponse(await service.snapshot(limit: limit))
@@ -143,7 +137,6 @@ struct WorldHTTPAPI: Sendable {
 
         router.get("v1/stream") { request, _ in
             await respond {
-                try authorize(request)
                 try validateOrigin(request)
                 let querySequence = try request.uri.queryParameters["after_sequence"].map {
                     guard let value = Int64($0), value >= 0 else {
@@ -232,27 +225,6 @@ struct WorldHTTPAPI: Sendable {
                     }
                 )
             }
-        }
-    }
-
-    private func authorize(_ request: Request) throws {
-        guard configuration.requiresAuthentication else { return }
-        let authorizationValues = request.headers[values: .authorization]
-        guard let expectedToken = configuration.apiToken,
-            authorizationValues.count == 1
-        else {
-            throw WorldAPIError.invalidAuthorization
-        }
-        let components = authorizationValues[0].split(
-            maxSplits: 1,
-            omittingEmptySubsequences: true,
-            whereSeparator: { $0.isWhitespace }
-        )
-        guard components.count == 2,
-            components[0].caseInsensitiveCompare("Bearer") == .orderedSame,
-            constantTimeEqual(String(components[1]), expectedToken)
-        else {
-            throw WorldAPIError.invalidAuthorization
         }
     }
 
@@ -360,9 +332,6 @@ struct WorldHTTPAPI: Sendable {
         let status: HTTPResponse.Status
         let code: String
         switch error {
-        case WorldAPIError.invalidAuthorization:
-            status = .unauthorized
-            code = "unauthorized"
         case WorldAPIError.invalidOrigin:
             status = .forbidden
             code = "origin_not_allowed"
@@ -433,16 +402,4 @@ struct WorldHTTPAPI: Sendable {
         try await writer.write(ByteBuffer(string: message))
     }
 
-    private func constantTimeEqual(_ candidate: String, _ expected: String) -> Bool {
-        let candidateBytes = Array(candidate.utf8)
-        let expectedBytes = Array(expected.utf8)
-        var difference = UInt(candidateBytes.count ^ expectedBytes.count)
-        let count = max(candidateBytes.count, expectedBytes.count)
-        for index in 0..<count {
-            let left = index < candidateBytes.count ? candidateBytes[index] : 0
-            let right = index < expectedBytes.count ? expectedBytes[index] : 0
-            difference |= UInt(left ^ right)
-        }
-        return difference == 0
-    }
 }

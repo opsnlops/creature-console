@@ -17,6 +17,10 @@ infrastructure does not make its products one application or one release.
 - Returns pretty-printed JSON; the server pushes cache invalidations after completion, so clients must not set lipsync flags manually.
 - Supports `allow_overwrite`; default should be false to avoid accidental regeneration.
 
+**Network Trust Model:** Creature services assume the local LAN is trusted. Do not introduce
+application-layer authentication or require credentials for LAN API access unless the architecture
+is explicitly changed. Firewalls and the external ingress proxy own access control outside the LAN.
+
 ## Project Structure & Module Organization
 - `Sources/Creature Console/` hosts the SwiftUI app, grouped by feature (`Controller`, `Model`, `View`).
   - `Model/` contains SwiftData models for local persistence (AnimationMetadataModel, CreatureModel, PlaylistModel, SoundModel, ServerLogModel)
@@ -127,8 +131,8 @@ infrastructure does not make its products one application or one release.
 - Linux builds and package tests use the pinned Swift 6.3.3 release toolchain on every
   architecture.
 - A product's package artifact version must match the version reported by that executable's
-  offline `--version` command. For example, Creature World `0.1.6` produces
-  `creature-world_0.1.6_<architecture>.deb`.
+  offline `--version` command. For example, Creature World `0.1.7` produces
+  `creature-world_0.1.7_<architecture>.deb`.
 - Shared Debian source metadata may retain its established source-package version, but
   `debian/rules` must pass each independently versioned binary package's own version to
   `dh_gencontrol`.

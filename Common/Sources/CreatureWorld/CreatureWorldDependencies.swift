@@ -13,7 +13,6 @@ struct CreatureWorldDependencies: Sendable {
         logger: Logger,
         buildInfo: CreatureWorldBuildInfo = .current
     ) async throws -> CreatureWorldDependencies {
-        try configuration.validateAPIExposure()
         let persistence = MongoWorldPersistenceProvider(
             uri: configuration.mongoURI,
             logger: logger

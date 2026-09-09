@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.6",
+  "build_version": "0.1.7",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -78,7 +78,6 @@ systemd service reads `/etc/creature/world.json` by default.
 | HTTP host | `host` | `SERVER_HOSTNAME` | `--host`, `-H` | `127.0.0.1` |
 | HTTP port | `port` | `SERVER_PORT` | `--port`, `-p` | `8000` |
 | MongoDB URI | `mongodb_uri` | `MONGODB_URI` | `--mongodb-uri` | Local replica set |
-| API bearer token | `api_token` | `CREATURE_WORLD_API_TOKEN` | — | None |
 | Browser stream origins | `allowed_origins` | `CREATURE_WORLD_ALLOWED_ORIGINS` | — | None |
 
 Example:
@@ -94,9 +93,7 @@ Example:
 `--log-level` controls log verbosity and defaults to `debug`. Supported values are `trace`,
 `debug`, `info`, `notice`, `warning`, `error`, and `critical`.
 
-`CREATURE_WORLD_ALLOWED_ORIGINS` is a comma-separated list of exact origins. Keep API tokens out
-of checked-in JSON and command-line options; environment injection avoids both source control and
-the process argument list.
+`CREATURE_WORLD_ALLOWED_ORIGINS` is a comma-separated list of exact origins.
 
 Run `creature-world --help` for the complete command-line reference.
 
@@ -164,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.6",
+  "build_version": "0.1.7",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -339,11 +336,10 @@ curl --no-buffer http://127.0.0.1:8000/world/v1/stream
 ### Network exposure
 
 Creature World binds to loopback by default. Set `host` or `SERVER_HOSTNAME` deliberately when a
-reverse proxy, container network, or another host must reach it. A non-loopback bind refuses to
-start unless `CREATURE_WORLD_API_TOKEN` or `api_token` is configured. All endpoints except the
-public readiness check require `Authorization: Bearer <token>` in that mode. The same credential
-currently grants read and write access. Use TLS at the reverse proxy or network boundary; the
-service does not terminate TLS itself.
+reverse proxy, container network, or another host must reach it. Creature World's HTTP API is open
+and does not authenticate callers, including when bound beyond loopback. Restrict access with the
+host firewall and trusted network or reverse-proxy boundary. Use TLS at that boundary; the service
+does not terminate TLS itself.
 
 Browser access to the SSE endpoint additionally requires the request's exact `Origin` in
 `allowed_origins`. Requests without `Origin`, including native applications, are allowed. Creature
@@ -376,7 +372,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.6_amd64.deb
+sudo apt install ./creature-world_0.1.7_amd64.deb
 ```
 
 The package installs:
@@ -511,7 +507,7 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
 The integration suite verifies migrations and indexes, both forms of event deduplication,
 concurrent unique sequencing, idempotent fact upserts, fact survival across a reconnect, timers,
 source checkpoints, and API persistence across a complete application restart. The focused HTTP
-suite also proves ordered and duplicate acceptance, bounded inputs, authentication, trace
+suite also proves ordered and duplicate acceptance, bounded inputs, non-loopback access, trace
 validation, overload, deadlines, SSE origin enforcement, and gap-free reconnect behavior.
 The tests write uniquely identified records to the `creature_world` database and do not drop the
 database afterward. Use a disposable development or CI deployment, never production.
@@ -542,7 +538,7 @@ not changed incidentally:
 | MongoDB gates readiness, not process startup | The service remains observable and recovers automatically through database outages. |
 | HTTP 503 for unavailable persistence | Load balancers and operators receive an honest readiness signal. |
 | Versioned JSON plus SSE boundary | Gives native clients a small durable request/response API and an ordered live feed without coupling handlers to MongoDB. |
-| Bearer auth required beyond loopback | Prevents an accidental network bind from exposing world reads and writes without a credential. |
+| Open HTTP API | Keeps trusted-LAN clients simple; firewall and ingress policy own network access control. |
 | Exact browser Origin allowlist | Prevents an arbitrary website from opening an authenticated live stream. |
 | Independent Debian package and version | The repository is a monorepo whose deployable products have separate lifecycles. |
 | One authoritative `World` actor | Preserves deterministic ordering while concurrent tasks keep persistence I/O outside the actor. |
