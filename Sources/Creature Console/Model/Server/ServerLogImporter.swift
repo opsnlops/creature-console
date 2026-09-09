@@ -52,6 +52,15 @@ actor ServerLogImporter {
         try trimOldLogs()
     }
 
+    /// Suspend until every batch already scheduled by the importer has finished writing.
+    /// Callers that need a persistence boundary can await this without guessing when the
+    /// batching task will be scheduled.
+    func waitForPendingWrites() async {
+        while let task = flushTask {
+            await task.value
+        }
+    }
+
     // Remove the oldest logs once the table exceeds the max count. A COUNT query plus a
     // fetch limited to just the overflow keeps the steady-state cost per flush tiny —
     // never a full fetch+sort of the table — so this is safe to run on every flush.

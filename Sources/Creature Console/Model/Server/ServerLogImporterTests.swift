@@ -79,17 +79,10 @@ struct ServerLogImporterTests {
             thread_id: 1
         )
         await importer.addLog(dto)
+        await importer.waitForPendingWrites()
 
-        // The timed flush fires after the importer's pooling delay; poll rather than
-        // assuming an exact schedule.
         let context = ModelContext(container)
-        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
-        var results: [ServerLogModel] = []
-        while ContinuousClock.now < deadline {
-            results = try context.fetch(FetchDescriptor<ServerLogModel>())
-            if !results.isEmpty { break }
-            try await Task.sleep(for: .milliseconds(50))
-        }
+        let results = try context.fetch(FetchDescriptor<ServerLogModel>())
 
         #expect(results.count == 1)
         #expect(results.first?.message == "Eventually persisted")
