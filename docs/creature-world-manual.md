@@ -424,7 +424,7 @@ swift test
 ```
 
 On Linux, the package manifest omits `PlaylistRuntime` because that client-side library uses
-Apple's Combine framework. This keeps Creature World's Swift 6.3 Linux build and MongoDB tests
+Apple's Combine framework. This keeps Creature World's Swift 6.3.3 Linux build and MongoDB tests
 independent from Apple-only application code.
 
 ## Decision record
@@ -434,7 +434,7 @@ not changed incidentally:
 
 | Decision | Rationale |
 | --- | --- |
-| Swift 6.3 and strict concurrency | Creature World is a Swift service in the existing monorepo and uses modern concurrency guarantees. |
+| Swift 6.3.3 and strict concurrency | Creature World is a Swift service in the existing monorepo and uses modern concurrency guarantees. |
 | Hummingbird 2.26.0 | Lightweight, concurrency-native HTTP service aligned with Creature World's workload. |
 | JSON configuration | Matches the rest of the Creature software and avoids introducing a second configuration format. |
 | MongoDB 8.3.8 replica set | Pins development and CI to the selected MongoDB 8.3 line and supports production-shaped write semantics. |

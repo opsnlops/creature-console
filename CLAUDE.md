@@ -59,18 +59,19 @@ Commits are signed with a YubiKey, and the touch prompt times out. If `git commi
 - **IMPORTANT**: Always run tests before committing changes
 
 ### Linux / Debian Packages
-The CLI tools ship as Debian packages built **on Linux** by CI (`.github/workflows/build-deb.yml`, which runs `debian/rules`). Three products are packaged: `creature-cli`, `creature-mqtt`, and `creature-agent`.
+The CLI tools ship as Debian packages built **on Linux** by CI (`.github/workflows/build-deb.yml`, which runs `debian/rules`). Four products are packaged: `creature-cli`, `creature-mqtt`, `creature-agent`, and `creature-world`.
 
 - **`#if os(Linux)` code never compiles on macOS** (e.g. the NIO websocket client in `Common/Sources/Common/Controller/Server/RESTful/WebSocketMethods+Linux.swift`), so a green macOS build proves nothing about the Linux branch. Linux-only API gaps are easy to hit: Combine doesn't exist there, and Foundation/NIO conveniences may live in different modules (e.g. `ByteBuffer.readData` is NIOFoundationCompat-only — use `readBytes` from NIOCore).
 - **IMPORTANT**: A version is not done until the Linux products build. Before tagging a release — and any time Linux-conditional code or the `Common` package changes — verify in a Linux container:
   ```bash
-  docker run --rm -v "$PWD/Common:/src" -w /src swift:6.3 bash -c \
+  docker run --rm -v "$PWD/Common:/src" -w /src swift:6.3.3 bash -c \
     'swift build --scratch-path /tmp/b --product creature-cli && \
      swift build --scratch-path /tmp/b --product creature-mqtt && \
-     swift build --scratch-path /tmp/b --product creature-agent'
+     swift build --scratch-path /tmp/b --product creature-agent && \
+     swift build --scratch-path /tmp/b --product creature-world'
   ```
   Keep the container's Swift version in step with `SWIFT_VERSION` in `build-deb.yml`. Don't pipe `swift build` through `tail`/`grep` when checking results — that masks the exit code.
-- A full `swift build` of every target does **not** work on Linux (e.g. `PlaylistRuntime` imports Combine); build the three packaged products, exactly as `debian/rules` does.
+- A full `swift build` of every target does **not** work on Linux (e.g. `PlaylistRuntime` imports Combine); build the four packaged products, exactly as `debian/rules` does.
 - Each release needs a new `debian/changelog` entry (version must match the git tag).
 
 ### CLI Tool Usage
