@@ -6,6 +6,7 @@
 
 #SERVER_HOSTNAME=127.0.0.1
 #SERVER_PORT=8000
+#MONGODB_URI=mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000
 
 # OpenTelemetry (uncomment to enable OTLP export).
 #OTEL_SERVICE_NAME=creature-world

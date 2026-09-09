@@ -1,0 +1,54 @@
+{
+  "name": "creature-world",
+  "services": {
+    "mongodb": {
+      "image": "mongo:8.3.8",
+      "command": [
+        "mongod",
+        "--replSet",
+        "creature-world",
+        "--bind_ip_all"
+      ],
+      "ports": [
+        "27017:27017"
+      ],
+      "volumes": [
+        "mongodb-data:/data/db"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok"
+        ],
+        "interval": "2s",
+        "timeout": "5s",
+        "retries": 30
+      }
+    },
+    "mongodb-init": {
+      "image": "mongo:8.3.8",
+      "depends_on": {
+        "mongodb": {
+          "condition": "service_healthy"
+        }
+      },
+      "restart": "no",
+      "entrypoint": [
+        "mongosh",
+        "--host",
+        "mongodb:27017",
+        "--quiet",
+        "--eval"
+      ],
+      "command": [
+        "try { rs.status().ok } catch (error) { rs.initiate({_id: 'creature-world', members: [{_id: 0, host: 'mongodb:27017'}]}).ok }"
+      ]
+    }
+  },
+  "volumes": {
+    "mongodb-data": {}
+  }
+}

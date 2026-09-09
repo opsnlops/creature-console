@@ -68,6 +68,25 @@ swift build --target creature-cli
 swift run creature-cli --help
 ```
 
+**Creature World:**
+```bash
+# MongoDB 8.3.8, configured as a single-node replica set
+docker compose -f compose.creature-world.json up -d
+
+cd Common
+swift run creature-world
+```
+
+Creature World always uses the isolated `creature_world` database. Its JSON configuration accepts
+`mongodb_uri`; `MONGODB_URI` and `--mongodb-uri` override that value. The default URI connects to the
+local development replica set. Run the MongoDB integration suite with:
+
+```bash
+cd Common
+MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true' \
+  swift test --filter MongoWorldPersistenceTests
+```
+
 ### Debian packages
 - Host OS: Debian Trixie (CI uses `debian:trixie-slim` containers).
 - Swift toolchain: install via Swiftly:
@@ -86,7 +105,9 @@ swift run creature-cli --help
 - Helper scripts:
   - `build_deb.sh` — wrapper for `dpkg-buildpackage -us -uc -b`.
   - `clean_deb.sh` — runs `dh_clean` to clear `debian/` build outputs (parent artifacts left intact).
-- Package contents: builds `creature-cli`, `creature-mqtt`, `creature-agent`, and `creature-world` packages. Creature World installs at `/bin/creature-world`, with JSON configuration at `/etc/creature/world.json`, a hardened systemd unit, and bash, zsh, and fish completions under `/usr/share`.
+- Creature World is packaged independently as `creature-world_<version>_<architecture>.deb`. It
+  installs at `/bin/creature-world`, with JSON configuration at `/etc/creature/world.json`, a
+  hardened systemd unit, and bash, zsh, and fish completions under `/usr/share`.
 - When a new Swift release ships:
   1) Update the CLI version in `Common/Sources/CreatureCLI/top.swift`.
   2) Update `debian/changelog` with the new version and entry.

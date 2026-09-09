@@ -161,6 +161,7 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "MongoKitten", package: "MongoKitten"),
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ],
             path: "Sources/CreatureWorld/"),
@@ -190,6 +191,7 @@ let package = Package(
             dependencies: [
                 "creature-world",
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
+                .product(name: "MongoKitten", package: "MongoKitten"),
             ]
         ),
     ]

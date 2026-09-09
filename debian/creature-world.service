@@ -1,7 +1,7 @@
 [Unit]
 Description=Creature World shared-world simulator
 Documentation=https://github.com/opsnlops/creature-console
-After=network-online.target
+After=network-online.target mongod.service
 Wants=network-online.target
 
 [Service]

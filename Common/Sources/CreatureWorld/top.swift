@@ -11,8 +11,8 @@ struct CreatureWorld: AsyncParsableCommand {
         discussion: """
             Runs the authoritative shared-world simulator for Creature clients.
 
-            Configuration precedence is command options, SERVER_HOSTNAME and SERVER_PORT,
-            the JSON configuration file, then built-in defaults.
+            Configuration precedence is command options, SERVER_HOSTNAME, SERVER_PORT, and
+            MONGODB_URI, the JSON configuration file, then built-in defaults.
 
             🦜 Bawk!
             """,
@@ -32,6 +32,9 @@ struct CreatureWorld: AsyncParsableCommand {
     @Option(name: [.customShort("p"), .long], help: "HTTP port (or SERVER_PORT)")
     var port: Int?
 
+    @Option(name: .long, help: "MongoDB URI selecting creature_world (or MONGODB_URI)")
+    var mongodbURI: String?
+
     @Option(
         name: .long,
         help: "Log level (trace, debug, info, notice, warning, error, critical)"
@@ -43,11 +46,11 @@ struct CreatureWorld: AsyncParsableCommand {
         let configPath = config ?? environment[CreatureWorldConfiguration.configPathEnvironmentKey]
         let configURL = configPath.map { URL(fileURLWithPath: $0) }
         let configuration = try CreatureWorldConfiguration.load(from: configURL)
-            .overriding(host: host, port: port)
+            .overriding(host: host, port: port, mongoURI: mongodbURI)
         let observabilityServices = try bootstrapObservability(serviceName: "creature-world")
         var logger = Logger(label: "creature-world")
         logger.logLevel = logLevel.loggerLevel
-        let dependencies = CreatureWorldDependencies.live(
+        let dependencies = try await CreatureWorldDependencies.live(
             configuration: configuration,
             logger: logger
         )

@@ -19,6 +19,7 @@ struct CreatureWorldApplicationTests {
                 #expect(health.status == "ok")
                 #expect(health.service == "creature-world")
                 #expect(health.buildVersion == "application-test")
+                #expect(health.mongodb == "ok")
                 #expect(health.schemaVersion == 9)
             }
         }
@@ -37,7 +38,7 @@ struct CreatureWorldApplicationTests {
 
     private func makeApplication() throws -> Application<RouterResponder<BasicRequestContext>> {
         let configuration = try CreatureWorldConfiguration(host: "127.0.0.1", port: 8080)
-        let dependencies = CreatureWorldDependencies.live(
+        let dependencies = CreatureWorldDependencies.testing(
             configuration: configuration,
             logger: Logger(label: "creature-world-tests"),
             buildInfo: CreatureWorldBuildInfo(version: "application-test", schemaVersion: 9)
