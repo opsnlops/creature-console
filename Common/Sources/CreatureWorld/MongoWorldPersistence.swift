@@ -1,7 +1,6 @@
 import Foundation
 import Logging
 import MongoKitten
-import ServiceLifecycle
 
 enum MongoWorldStartupError: Error, Equatable, LocalizedError, Sendable {
     case connectionFailed(targets: String, database: String, reason: String)
@@ -132,15 +131,6 @@ struct MongoWorldPersistence: Sendable {
         } catch {
             return false
         }
-    }
-}
-
-struct MongoWorldPersistenceService: Service, Sendable {
-    let cluster: MongoCluster
-
-    func run() async throws {
-        try await gracefulShutdown()
-        await cluster.disconnect()
     }
 }
 

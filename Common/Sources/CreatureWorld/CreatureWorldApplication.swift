@@ -10,13 +10,17 @@ func makeCreatureWorldApplication(
         LogRequestsMiddleware(.debug)
     }
     router.get("v1/health") { _, _ in
-        await dependencies.healthService.response()
+        let health = await dependencies.healthService.response()
+        return EditedResponse(
+            status: health.status == "ok" ? .ok : .serviceUnavailable,
+            response: health
+        )
     }
 
     let lifecycleReporter = CreatureWorldLifecycleReporter(logger: dependencies.logger)
     let persistenceServices: [any Service] =
         dependencies.persistence.map {
-            [MongoWorldPersistenceService(cluster: $0.cluster)]
+            [MongoWorldPersistenceService(provider: $0)]
         } ?? []
 
     return Application(

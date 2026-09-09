@@ -5,17 +5,18 @@ struct CreatureWorldDependencies: Sendable {
     let buildInfo: CreatureWorldBuildInfo
     let logger: Logger
     let healthService: HealthService
-    let persistence: MongoWorldPersistence?
+    let persistence: MongoWorldPersistenceProvider?
 
     static func live(
         configuration: CreatureWorldConfiguration,
         logger: Logger,
         buildInfo: CreatureWorldBuildInfo = .current
     ) async throws -> CreatureWorldDependencies {
-        let persistence = try await MongoWorldPersistence.connect(
-            to: configuration.mongoURI,
+        let persistence = MongoWorldPersistenceProvider(
+            uri: configuration.mongoURI,
             logger: logger
         )
+        await persistence.connectIfNeeded()
         return CreatureWorldDependencies(
             configuration: configuration,
             buildInfo: buildInfo,
@@ -31,13 +32,17 @@ struct CreatureWorldDependencies: Sendable {
     static func testing(
         configuration: CreatureWorldConfiguration,
         logger: Logger,
-        buildInfo: CreatureWorldBuildInfo
+        buildInfo: CreatureWorldBuildInfo,
+        readinessCheck: @escaping @Sendable () async -> Bool = { true }
     ) -> CreatureWorldDependencies {
         CreatureWorldDependencies(
             configuration: configuration,
             buildInfo: buildInfo,
             logger: logger,
-            healthService: HealthService(buildInfo: buildInfo),
+            healthService: HealthService(
+                buildInfo: buildInfo,
+                readinessCheck: readinessCheck
+            ),
             persistence: nil
         )
     }
