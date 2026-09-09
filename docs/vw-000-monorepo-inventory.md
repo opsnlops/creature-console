@@ -129,9 +129,9 @@ belong in `WorldCore`/world application targets, while SDK bootstrap remains in 
 |---|---|
 | `.github/workflows/build.yml` | Runs root `swift build` on macOS |
 | `.github/workflows/tests.yml` | Runs `Common` package tests plus macOS and iOS Xcode tests |
-| `.github/workflows/build-deb.yml` | Builds amd64 and arm64 packages in Debian Trixie with Swift 6.3.2 |
-| `debian/control` | Defines `creature-cli`, `creature-mqtt`, and `creature-agent` binary packages |
-| `debian/rules` | Builds and installs all three Swift executables and shell completions |
+| `.github/workflows/build-deb.yml` | Builds amd64 and arm64 packages in Debian Trixie with Swift 6.3.3 |
+| `debian/control` | Defines `creature-cli`, `creature-mqtt`, `creature-agent`, and `creature-world` binary packages |
+| `debian/rules` | Builds and installs all four Swift executables and shell completions |
 | `build_deb.sh` / `clean_deb.sh` | Wrap the existing Debian metadata and cleanup flow |
 
 The Debian workflow currently uploads `.deb` and `.ddeb` artifacts but does not yet perform the

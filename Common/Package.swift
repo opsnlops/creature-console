@@ -161,8 +161,10 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "Metrics", package: "swift-metrics"),
                 .product(name: "MongoKitten", package: "MongoKitten"),
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+                .product(name: "Tracing", package: "swift-distributed-tracing"),
             ],
             path: "Sources/CreatureWorld/"),
         .testTarget(
@@ -187,10 +189,17 @@ let package = Package(
             dependencies: ["WorldCore"]
         ),
         .testTarget(
+            name: "ObservabilityTests",
+            dependencies: ["Observability"]
+        ),
+        .testTarget(
             name: "CreatureWorldTests",
             dependencies: [
                 "creature-world",
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
+                .product(name: "Instrumentation", package: "swift-distributed-tracing"),
+                .product(name: "InMemoryTracing", package: "swift-distributed-tracing"),
+                .product(name: "Tracing", package: "swift-distributed-tracing"),
                 .product(name: "MongoKitten", package: "MongoKitten"),
             ]
         ),

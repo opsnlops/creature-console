@@ -95,7 +95,7 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
   tar zxf swiftly-$(uname -m).tar.gz
   ./swiftly init --quiet-shell-followup
   . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
-  swiftly install 6.3.2
+  swiftly install 6.3.3
   ```
 - Build the .deb (uses existing `debian/` metadata):
   ```bash

@@ -136,6 +136,7 @@ struct MongoWorldPersistence: Sendable {
 
 enum MongoWorldCollection {
     static let events = "world_events"
+    static let eventProcessing = "world_event_processing"
     static let facts = "facts"
     static let timers = "timers"
     static let sourceCheckpoints = "source_checkpoints"

@@ -30,6 +30,14 @@ struct MongoWorldPersistenceTests {
             #expect(eventIndexes.contains { $0.name == "source_event_unique" && $0.unique == true })
             #expect(factIndexes.contains { $0.name == "active_facts" })
             #expect(timerIndexes.contains { $0.name == "pending_timers" })
+            #expect(
+                try await persistence.database[MongoWorldCollection.schemaMigrations]
+                    .findOne(["_id": 1]) != nil
+            )
+            #expect(
+                try await persistence.database[MongoWorldCollection.schemaMigrations]
+                    .findOne(["_id": 2]) != nil
+            )
         }
     }
 
@@ -53,6 +61,20 @@ struct MongoWorldPersistenceTests {
             #expect(duplicateByID.worldSequence == accepted.worldSequence)
             #expect(duplicateBySource.eventID == accepted.eventID)
             #expect(duplicateBySource.worldSequence == accepted.worldSequence)
+
+            #expect(try await !persistence.events.isProcessed(eventID: accepted.eventID))
+            try await persistence.events.markProcessed(
+                eventID: accepted.eventID,
+                processedAt: Date()
+            )
+            #expect(try await persistence.events.isProcessed(eventID: accepted.eventID))
+            let immutableEvent = try await persistence.database[MongoWorldCollection.events]
+                .findOne(["_id": accepted.eventID.rawValue])
+            #expect(immutableEvent?["processed_at"] == nil)
+            #expect(
+                try await persistence.database[MongoWorldCollection.eventProcessing]
+                    .findOne(["_id": accepted.eventID.rawValue]) != nil
+            )
         }
     }
 
@@ -116,6 +138,37 @@ struct MongoWorldPersistenceTests {
         #expect(reloadedFact.subjectID == current.subjectID)
         #expect(reloadedFact.predicate == current.predicate)
         #expect(reloadedFact.value == current.value)
+    }
+
+    @Test("Repeated fact saves replace one durable document")
+    func repeatedFactSavesAreIdempotent() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let factID = try FactID(validating: "fact:\(suffix)")
+            let subjectID = try EntityID(validating: "person:\(suffix)")
+            let original = try Fact(
+                factID: factID,
+                subjectID: subjectID,
+                predicate: "location.current",
+                value: .string("place:workshop"),
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: Date(),
+                derivedFrom: [],
+                producer: FactProducer(kind: "test", id: "mongo", version: "1")
+            )
+            var replacement = original
+            replacement.value = .string("place:stage")
+
+            try await persistence.facts.save(original)
+            try await persistence.facts.save(replacement)
+
+            let documents = try await persistence.database[MongoWorldCollection.facts]
+                .find(["_id": factID.rawValue], as: Fact.self)
+                .drain()
+            let stored = try #require(documents.only)
+            #expect(stored.factID == factID)
+            #expect(stored.value == replacement.value)
+        }
     }
 
     @Test("Timer and source checkpoint repositories round trip")
