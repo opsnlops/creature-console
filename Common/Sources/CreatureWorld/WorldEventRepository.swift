@@ -54,13 +54,24 @@ struct WorldEventRepository: Sendable {
         try await events.findOne(["event_id": eventID.rawValue], as: WorldEventEnvelope.self)
     }
 
-    func events(after sequence: Int64) async throws -> [WorldEventEnvelope] {
+    func events(after sequence: Int64, limit: Int) async throws -> [WorldEventEnvelope] {
+        precondition(limit > 0)
         let greaterThan: Document = ["$gt": Int(sequence)]
         return
             try await events
             .find(["world_sequence": greaterThan], as: WorldEventEnvelope.self)
             .sort(["world_sequence": 1])
+            .limit(limit)
             .drain()
+    }
+
+    func latestSequence() async throws -> Int64 {
+        let event = try await events.find([:], as: WorldEventEnvelope.self)
+            .sort(["world_sequence": -1])
+            .limit(1)
+            .drain()
+            .first
+        return event?.worldSequence ?? 0
     }
 
     func isProcessed(eventID: EventID) async throws -> Bool {

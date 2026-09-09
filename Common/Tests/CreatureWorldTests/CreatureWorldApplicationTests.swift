@@ -13,7 +13,7 @@ struct CreatureWorldApplicationTests {
         let application = try makeApplication()
 
         try await application.test(.router) { client in
-            try await client.execute(uri: "/v1/health", method: .get) { response in
+            try await client.execute(uri: "/world/v1/health", method: .get) { response in
                 #expect(response.status == .ok)
                 let health = try JSONDecoder().decode(HealthResponse.self, from: response.body)
                 #expect(health.status == "ok")
@@ -25,12 +25,15 @@ struct CreatureWorldApplicationTests {
         }
     }
 
-    @Test("Unknown routes return not found")
-    func unknownRoute() async throws {
+    @Test("Unknown and unprefixed routes return not found")
+    func unknownAndUnprefixedRoutes() async throws {
         let application = try makeApplication()
 
         try await application.test(.router) { client in
             try await client.execute(uri: "/missing", method: .get) { response in
+                #expect(response.status == .notFound)
+            }
+            try await client.execute(uri: "/v1/health", method: .get) { response in
                 #expect(response.status == .notFound)
             }
         }
@@ -41,7 +44,7 @@ struct CreatureWorldApplicationTests {
         let application = try makeApplication(readinessCheck: { false })
 
         try await application.test(.router) { client in
-            try await client.execute(uri: "/v1/health", method: .get) { response in
+            try await client.execute(uri: "/world/v1/health", method: .get) { response in
                 #expect(response.status == .serviceUnavailable)
                 let health = try JSONDecoder().decode(HealthResponse.self, from: response.body)
                 #expect(health.status == "unavailable")

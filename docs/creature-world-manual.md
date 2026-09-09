@@ -17,8 +17,9 @@ Console and not part of `creature-server`. It has its own:
 - MongoDB database (`creature_world`);
 - health and readiness lifecycle.
 
-The service currently exposes `GET /v1/health`. Its persistence repositories and authoritative
-`World` actor establish the foundation for later ingestion, query, simulation, and viewer APIs.
+The service exposes a versioned JSON API for event ingestion, durable queries, snapshots, and a
+live Server-Sent Events (SSE) stream. HTTP handlers call one application-service boundary shared
+with future transports; they never access MongoDB directly.
 
 ## Quick start for development
 
@@ -36,7 +37,7 @@ set named `creature-world`. The default service address is `http://127.0.0.1:800
 Check readiness with:
 
 ```bash
-curl --fail-with-body http://127.0.0.1:8000/v1/health
+curl --fail-with-body http://127.0.0.1:8000/world/v1/health
 ```
 
 A ready response is HTTP 200:
@@ -45,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.5",
+  "build_version": "0.1.6",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -77,6 +78,8 @@ systemd service reads `/etc/creature/world.json` by default.
 | HTTP host | `host` | `SERVER_HOSTNAME` | `--host`, `-H` | `127.0.0.1` |
 | HTTP port | `port` | `SERVER_PORT` | `--port`, `-p` | `8000` |
 | MongoDB URI | `mongodb_uri` | `MONGODB_URI` | `--mongodb-uri` | Local replica set |
+| API bearer token | `api_token` | `CREATURE_WORLD_API_TOKEN` | — | None |
+| Browser stream origins | `allowed_origins` | `CREATURE_WORLD_ALLOWED_ORIGINS` | — | None |
 
 Example:
 
@@ -90,6 +93,10 @@ Example:
 
 `--log-level` controls log verbosity and defaults to `debug`. Supported values are `trace`,
 `debug`, `info`, `notice`, `warning`, `error`, and `critical`.
+
+`CREATURE_WORLD_ALLOWED_ORIGINS` is a comma-separated list of exact origins. Keep API tokens out
+of checked-in JSON and command-line options; environment injection avoids both source control and
+the process argument list.
 
 Run `creature-world --help` for the complete command-line reference.
 
@@ -141,14 +148,14 @@ preparation failures leave the running service unready until they are corrected.
 
 ### Health semantics
 
-`GET /v1/health` is a readiness check:
+`GET /world/v1/health` is a readiness check:
 
 - HTTP 200 with `status: "ok"` and `mongodb: "ok"` means the required schema record is readable.
 - HTTP 503 with `status: "unavailable"` and `mongodb: "unavailable"` means callers must not send
   work that depends on persistence.
 
 An HTTP 503 does not mean the process should be restarted. Supervisors should use process exit for
-liveness and `/v1/health` for readiness. This distinction allows Creature World to survive a
+liveness and `/world/v1/health` for readiness. This distinction allows Creature World to survive a
 MongoDB restart or temporary network outage and recover in place.
 
 Example unavailable response:
@@ -157,7 +164,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.5",
+  "build_version": "0.1.6",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -268,22 +275,79 @@ span remains a child of acceptance and its upstream caller.
 
 Span attributes are restricted to controlled event, source, sequence, disposition, and lag fields.
 Event payload values are never attached. Metrics cover received, accepted, rejected, duplicate,
-processed, and failed events, queue depth, subscriber drops, and event lag. Extraction of the
-envelope's W3C headers and reinjection into derived envelopes remains part of VW-009; the actor's
-task boundary is already tested not to break an active context.
+processed, and failed events, queue depth, subscriber drops, and event lag. The HTTP boundary
+extracts W3C `traceparent`, `tracestate`, and `baggage` context. Event ingress also persists a valid
+incoming W3C context in the canonical envelope when the sender did not provide one there.
+Malformed context is rejected before acceptance. The actor's task boundary is tested not to break
+the active context.
 
 Timer operations add `world.timer.schedule`, `world.timer.cancel`, and `world.timer.fire` spans and
 counters for scheduled, canceled, fired, recovered, rejected, and failed timers. Attributes contain
 only the stable timer ID, semantic purpose, disposition, and lateness; timer payload values are not
 attached.
 
+## JSON and live-stream API
+
+All API JSON uses snake-case keys and RFC 3339 timestamps. Event requests require
+`Content-Type: application/json`. Every route begins with `/world/` so ingress can route Creature
+World independently from Creature Server. The canonical production health endpoint on the LAN is
+`https://server.prod.chirpchirp.dev/world/v1/health`.
+`https://proxy.prod.chirpchirp.dev/world/v1/health` provides access from outside the LAN. The
+current endpoints are:
+
+| Method and path | Purpose |
+| --- | --- |
+| `POST /world/v1/events` | Accept one `WorldEventEnvelope`; returns HTTP 202 for a new event or 200 for a duplicate. |
+| `POST /world/v1/events:batch` | Accept up to 100 envelopes in request order and return a disposition for each. |
+| `GET /world/v1/events` | Read ordered history after `after_sequence`. |
+| `GET /world/v1/facts` | Read current facts, optionally filtered by `subject_id`. |
+| `GET /world/v1/timers` | Read timers, optionally filtered by `status`. |
+| `GET /world/v1/snapshot` | Read the latest sequence plus bounded current facts and timers. |
+| `GET /world/v1/stream` | Receive an initial snapshot or resumed history followed by ordered live deltas over SSE. |
+
+History uses `after_sequence`; fact and timer pages use `after_fact_id` and `after_timer_id`.
+Every list accepts `limit`, defaults to 100, and permits at most 500 results. Page responses state
+whether more results exist and provide the cursor for the next request. A snapshot marks facts or
+timers as truncated rather than implying that a bounded result is complete.
+
+Connect to `/world/v1/stream` without a cursor to receive a snapshot before live deltas. Reconnect
+with the standard SSE `Last-Event-ID` header, or `after_sequence`, to receive durable history after
+that sequence before live delivery. Subscribe-before-query ordering prevents a history/live race.
+A slow subscriber is disconnected with `resnapshot_required`; reconnect without a cursor rather
+than continuing from a potentially incomplete view.
+
+Requests are bounded to a 1 MiB body, 100 events per batch, 64 concurrent application operations,
+and a 10-second application deadline. Saturation returns `overloaded`, lag returns an explicit
+resnapshot event, and unavailable persistence returns HTTP 503. Batch acceptance is sequential,
+not transactional; retrying a partially completed batch is safe because event identity makes
+acceptance idempotent.
+
+Example loopback ingestion:
+
+```bash
+curl --fail-with-body \
+  -H 'Content-Type: application/json' \
+  --data @event.json \
+  http://127.0.0.1:8000/world/v1/events
+
+curl --fail-with-body 'http://127.0.0.1:8000/world/v1/events?after_sequence=0&limit=100'
+curl --no-buffer http://127.0.0.1:8000/world/v1/stream
+```
+
 ## Running in production
 
 ### Network exposure
 
 Creature World binds to loopback by default. Set `host` or `SERVER_HOSTNAME` deliberately when a
-reverse proxy, container network, or another host must reach it. Binding to a non-loopback address
-does not add authentication or TLS; provide those controls at the appropriate network boundary.
+reverse proxy, container network, or another host must reach it. A non-loopback bind refuses to
+start unless `CREATURE_WORLD_API_TOKEN` or `api_token` is configured. All endpoints except the
+public readiness check require `Authorization: Bearer <token>` in that mode. The same credential
+currently grants read and write access. Use TLS at the reverse proxy or network boundary; the
+service does not terminate TLS itself.
+
+Browser access to the SSE endpoint additionally requires the request's exact `Origin` in
+`allowed_origins`. Requests without `Origin`, including native applications, are allowed. Creature
+World does not emit permissive cross-origin headers.
 
 Do not expose MongoDB publicly. Use authentication, encrypted connections, and a least-privilege
 database user for non-development deployments. Keep credentials out of the checked-in JSON and
@@ -312,7 +376,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.5_amd64.deb
+sudo apt install ./creature-world_0.1.6_amd64.deb
 ```
 
 The package installs:
@@ -340,7 +404,7 @@ while its internal retry loop reconnects.
 Creature World always writes structured logs to standard error, which systemd captures in the
 journal. It exports logs, traces, and metrics over OTLP only when
 `OTEL_EXPORTER_OTLP_ENDPOINT` is set. The OTLP exporter is not part of the readiness decision, so
-a Honeycomb outage does not stop the service or make `/v1/health` unavailable.
+a Honeycomb outage does not stop the service or make `/world/v1/health` unavailable.
 
 ### Honeycomb
 
@@ -411,7 +475,7 @@ Common checks:
 
 ```bash
 # Is the process serving HTTP?
-curl -i http://127.0.0.1:8000/v1/health
+curl -i http://127.0.0.1:8000/world/v1/health
 
 # Is the development MongoDB process reachable?
 docker compose -f compose.creature-world.json exec mongodb \
@@ -446,7 +510,9 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
 
 The integration suite verifies migrations and indexes, both forms of event deduplication,
 concurrent unique sequencing, idempotent fact upserts, fact survival across a reconnect, timers,
-and source checkpoints.
+source checkpoints, and API persistence across a complete application restart. The focused HTTP
+suite also proves ordered and duplicate acceptance, bounded inputs, authentication, trace
+validation, overload, deadlines, SSE origin enforcement, and gap-free reconnect behavior.
 The tests write uniquely identified records to the `creature_world` database and do not drop the
 database afterward. Use a disposable development or CI deployment, never production.
 
@@ -475,6 +541,9 @@ not changed incidentally:
 | Dedicated `creature_world` database | Preserves service ownership and prevents coupling to Creature Server's `creature_server` data. |
 | MongoDB gates readiness, not process startup | The service remains observable and recovers automatically through database outages. |
 | HTTP 503 for unavailable persistence | Load balancers and operators receive an honest readiness signal. |
+| Versioned JSON plus SSE boundary | Gives native clients a small durable request/response API and an ordered live feed without coupling handlers to MongoDB. |
+| Bearer auth required beyond loopback | Prevents an accidental network bind from exposing world reads and writes without a credential. |
+| Exact browser Origin allowlist | Prevents an arbitrary website from opening an authenticated live stream. |
 | Independent Debian package and version | The repository is a monorepo whose deployable products have separate lifecycles. |
 | One authoritative `World` actor | Preserves deterministic ordering while concurrent tasks keep persistence I/O outside the actor. |
 | Bounded ingress, derivation, and subscription queues | Prevents resource exhaustion and makes overload or resnapshot requirements explicit. |

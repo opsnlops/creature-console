@@ -127,8 +127,8 @@ infrastructure does not make its products one application or one release.
 - Linux builds and package tests use the pinned Swift 6.3.3 release toolchain on every
   architecture.
 - A product's package artifact version must match the version reported by that executable's
-  offline `--version` command. For example, Creature World `0.1.5` produces
-  `creature-world_0.1.5_<architecture>.deb`.
+  offline `--version` command. For example, Creature World `0.1.6` produces
+  `creature-world_0.1.6_<architecture>.deb`.
 - Shared Debian source metadata may retain its established source-package version, but
   `debian/rules` must pass each independently versioned binary package's own version to
   `dh_gencontrol`.

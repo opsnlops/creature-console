@@ -99,4 +99,24 @@ struct WorldTimerRepository: Sendable {
         }
         return try await timers.find(query, as: WorldTimer.self).sort(["due_at": 1]).drain()
     }
+
+    func timers(
+        status: WorldTimerStatus? = nil,
+        after: TimerID? = nil,
+        limit: Int
+    ) async throws -> [WorldTimer] {
+        precondition(limit > 0)
+        var query: Document = [:]
+        if let status {
+            query["status"] = status.rawValue
+        }
+        if let after {
+            let greaterThan: Document = ["$gt": after.rawValue]
+            query["_id"] = greaterThan
+        }
+        return try await timers.find(query, as: WorldTimer.self)
+            .sort(["_id": 1])
+            .limit(limit)
+            .drain()
+    }
 }
