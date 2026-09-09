@@ -68,7 +68,7 @@ swift build --target creature-cli
 swift run creature-cli --help
 ```
 
-### Debian package (creature-cli)
+### Debian packages
 - Host OS: Debian Trixie (CI uses `debian:trixie-slim` containers).
 - Swift toolchain: install via Swiftly:
   ```bash
@@ -86,7 +86,7 @@ swift run creature-cli --help
 - Helper scripts:
   - `build_deb.sh` — wrapper for `dpkg-buildpackage -us -uc -b`.
   - `clean_deb.sh` — runs `dh_clean` to clear `debian/` build outputs (parent artifacts left intact).
-- Package contents: installs `creature-cli` to `/usr/bin` and ships shell completions (bash, zsh, fish) under `/usr/share/bash-completion/completions/creature-cli`, `/usr/share/zsh/vendor-completions/_creature-cli`, and `/usr/share/fish/vendor_completions.d/creature-cli.fish`.
+- Package contents: builds `creature-cli`, `creature-mqtt`, `creature-agent`, and `creature-world` packages. Creature World installs at `/bin/creature-world`, with JSON configuration at `/etc/creature/world.json`, a hardened systemd unit, and bash, zsh, and fish completions under `/usr/share`.
 - When a new Swift release ships:
   1) Update the CLI version in `Common/Sources/CreatureCLI/top.swift`.
   2) Update `debian/changelog` with the new version and entry.
@@ -184,7 +184,7 @@ Importer classes sync server DTOs to SwiftData models automatically.
 
 ### Continuous Integration
 GitHub Actions automatically runs tests on push to `main` and on all pull requests:
-- Debian package CI: `.github/workflows/build-deb.yml` builds creature-cli .deb for amd64 and arm64 in Debian Trixie containers using Swiftly + the Swift static Linux SDK, then uploads the .deb artifacts per architecture.
+- Debian package CI: `.github/workflows/build-deb.yml` builds all Linux executable packages for amd64 and arm64, smoke-tests Creature World in Debian Trixie, and uploads the `.deb` artifacts per architecture.
 
 ## Documentation
 

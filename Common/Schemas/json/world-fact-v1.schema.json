@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/world-fact-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "fact_id",
+    "subject_id",
+    "predicate",
+    "value",
+    "epistemic",
+    "valid_from",
+    "derived_from",
+    "producer"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion"
+    },
+    "fact_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/factID"
+    },
+    "subject_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+    },
+    "predicate": {
+      "type": "string",
+      "minLength": 1
+    },
+    "epistemic": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/epistemic"
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_to": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "derived_from": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "world-definitions-v1.schema.json#/$defs/eventID" },
+          { "$ref": "world-definitions-v1.schema.json#/$defs/factID" }
+        ]
+      }
+    },
+    "producer": {
+      "type": "object",
+      "required": ["kind", "id", "version"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "superseded_by": {
+      "oneOf": [
+        { "$ref": "world-definitions-v1.schema.json#/$defs/factID" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "additionalProperties": true
+}

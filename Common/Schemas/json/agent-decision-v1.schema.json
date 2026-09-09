@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/agent-decision-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "consideration_id",
+    "character_id",
+    "wants_to_react",
+    "confidence",
+    "participants",
+    "urgency"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion"
+    },
+    "consideration_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/considerationID"
+    },
+    "character_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+    },
+    "wants_to_react": { "type": "boolean" },
+    "confidence": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/confidence"
+    },
+    "intent": { "type": ["string", "null"] },
+    "participants": {
+      "type": "array",
+      "items": {
+        "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID"
+      }
+    },
+    "urgency": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/confidence"
+    },
+    "suppression_reason": { "type": ["string", "null"] },
+    "trace": {
+      "oneOf": [
+        { "$ref": "world-definitions-v1.schema.json#/$defs/trace" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "additionalProperties": true
+}

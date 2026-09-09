@@ -1,7 +1,10 @@
 # Repository Guidelines
 
 ## Project Overview
-This is a client application for controlling animatronic creatures via a WebSocket/REST API server.
+This repository is the Swift Creature monorepo. It contains the Creature Console clients,
+shared libraries, command-line tools, bridges, agents, and independently deployed services such
+as Creature World. The repository is a monorepo, not a monolith: sharing source and build
+infrastructure does not make its products one application or one release.
 
 **Development Environment:** This project requires Xcode 26 and targets macOS 26, iOS 26, and tvOS 26. No older versions are supported. Always use the latest APIs and features available.
 
@@ -20,6 +23,7 @@ This is a client application for controlling animatronic creatures via a WebSock
   - `SwiftDataStore` actor provides concurrency-safe access to the ModelContainer
 - `Common/` is a local package dependency shared across targets; review it when updating shared models or protocols.
   - DTOs in Common package must stay in sync with SwiftData models in the app
+  - Executable products in this package are independently buildable, deployable, and versioned.
 - Importer classes (e.g., AnimationMetadataImporter) sync server data to SwiftData models
 - Sound importer writes both transcript and lipsync filename; rely on server cache updates instead of mutating local state optimistically.
 - `Tests/` contains Swift Package tests for the executable target; Xcode-specific suites live under `Creature Console Tests/`.
@@ -114,6 +118,24 @@ This is a client application for controlling animatronic creatures via a WebSock
   3. If modifying UI, test on relevant platforms (macOS, iOS, tvOS)
 - Pull requests should include: a concise summary, testing notes (`swift test`, simulator runs), and screenshots for UI tweaks.
 - Link tracking issues (e.g., `Fixes #123`) and call out risky areas such as concurrency-sensitive actors or server APIs.
+
+## Product Versioning & Packaging
+
+- Treat every deployable executable as an independent product with its own version and release
+  lifecycle. Never inherit `creature-cli`'s version for another product merely because it shares
+  the repository, Swift package, Debian source package, workflow, or build script.
+- A product's package artifact version must match the version reported by that executable's
+  offline `--version` command. For example, Creature World `0.1.0` produces
+  `creature-world_0.1.0_<architecture>.deb`.
+- Shared Debian source metadata may retain its established source-package version, but
+  `debian/rules` must pass each independently versioned binary package's own version to
+  `dh_gencontrol`.
+- Every deployable Linux executable requires its own lowercase, hyphenated `.deb`; adding it to
+  the monorepo does not justify bundling it into another product's package.
+- Extend the existing Debian Trixie packaging path and amd64/arm64 CI matrix. Package tests must
+  inspect contents and permissions, install into clean Trixie, run offline `--version` and
+  `--help`, inspect linkage, validate service/config paths, and preserve administrator config
+  through reinstall and removal.
 
 ## Continuous Integration
 - GitHub Actions runs tests automatically on push to `main` and on all pull requests.

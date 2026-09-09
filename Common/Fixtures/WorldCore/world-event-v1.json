@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "event_id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+  "type": "device.access_point_changed",
+  "occurred_at": "2026-09-08T09:20:11-07:00",
+  "observed_at": "2026-09-08T09:20:12-07:00",
+  "source": {
+    "id": "adapter:home-assistant",
+    "kind": "home_assistant",
+    "source_event_id": "ha-883819"
+  },
+  "subject_ids": ["device:april-phone"],
+  "place_id": "place:workshop",
+  "epistemic": {
+    "type": "observed",
+    "confidence": 0.98
+  },
+  "payload": {
+    "device_id": "device:april-phone",
+    "access_point_id": "device:workshop-ap",
+    "connected": true
+  },
+  "caused_by": [],
+  "trace": {
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "tracestate": null,
+    "baggage": null
+  }
+}

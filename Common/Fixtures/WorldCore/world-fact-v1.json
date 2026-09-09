@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "fact_id": "fact:7a1d6f42-74c4-4dc8-8fea-7a93a38f4330",
+  "subject_id": "person:april",
+  "predicate": "location",
+  "value": { "entity_id": "place:workshop" },
+  "epistemic": {
+    "type": "inferred",
+    "confidence": 0.87
+  },
+  "valid_from": "2026-09-08T09:20:12-07:00",
+  "valid_to": null,
+  "derived_from": ["3f2504e0-4f89-41d3-9a0c-0305e82c3301"],
+  "producer": {
+    "kind": "rule",
+    "id": "presence.location.wifi-v1",
+    "version": "1"
+  },
+  "superseded_by": null
+}

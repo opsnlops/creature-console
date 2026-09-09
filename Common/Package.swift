@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.3
 
 import PackageDescription
 
@@ -14,18 +14,26 @@ let package = Package(
         .library(
             name: "PlaylistRuntime",
             targets: ["PlaylistRuntime"]),
+        .library(
+            name: "WorldCore",
+            targets: ["WorldCore"]),
 
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.1"),
+        .package(
+            url: "https://github.com/hummingbird-project/hummingbird.git",
+            exact: "2.26.0"),
         .package(url: "https://github.com/swift-server-community/mqtt-nio", from: "2.12.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.74.0"),
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.27.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.6"),
+        // Temporary until a tagged Swift OTel release contains the Swift 6.3 crash fix.
+        // Tracking: https://github.com/opsnlops/creature-console/issues/121
         .package(
             url: "https://github.com/swift-otel/swift-otel.git",
-            from: "1.0.0",
+            revision: "1454506613248a57935c42a17beabc2a133fb934",
             traits: ["OTLPHTTP"]),
         .package(
             url: "https://github.com/swift-server/swift-service-lifecycle.git",
@@ -79,6 +87,9 @@ let package = Package(
                 "Common",
                 .product(name: "Logging", package: "swift-log"),
             ]),
+
+        .target(
+            name: "WorldCore"),
 
         .target(
             name: "Observability",
@@ -142,6 +153,17 @@ let package = Package(
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ],
             path: "Sources/CreatureAgent/"),
+        .executableTarget(
+            name: "creature-world",
+            dependencies: [
+                "Observability",
+                "WorldCore",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+            ],
+            path: "Sources/CreatureWorld/"),
         .testTarget(
             name: "CommonTests",
             dependencies: [
@@ -157,6 +179,17 @@ let package = Package(
                 "creature-agent",
                 "creature-mqtt",
                 .product(name: "MetricsTestKit", package: "swift-metrics"),
+            ]
+        ),
+        .testTarget(
+            name: "WorldCoreTests",
+            dependencies: ["WorldCore"]
+        ),
+        .testTarget(
+            name: "CreatureWorldTests",
+            dependencies: [
+                "creature-world",
+                .product(name: "HummingbirdTesting", package: "hummingbird"),
             ]
         ),
     ]

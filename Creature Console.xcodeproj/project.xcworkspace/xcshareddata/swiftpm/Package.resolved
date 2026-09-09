@@ -1,5 +1,5 @@
 {
-  "originHash" : "2253617b2ae936c3f2daba2a8514ebc2b06d8f0df524553a8e9807d11b891798",
+  "originHash" : "462a0e0463914513a22d2ead1e417bb68717e69471b70c71054a9a44d91dec4d",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "b869f3175a66eb518924b66e2598faeee5862af6",
         "version" : "2.7.0"
+      }
+    },
+    {
+      "identity" : "hummingbird",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hummingbird-project/hummingbird.git",
+      "state" : {
+        "revision" : "55bc9025a4825ee2a234b1f82b51b87be6ef74e4",
+        "version" : "2.26.0"
       }
     },
     {
@@ -258,8 +267,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swift-otel/swift-otel.git",
       "state" : {
-        "revision" : "599309ecc03d27f3331bb096c5bdcb4839b3d187",
-        "version" : "1.4.0"
+        "revision" : "1454506613248a57935c42a17beabc2a133fb934"
       }
     },
     {

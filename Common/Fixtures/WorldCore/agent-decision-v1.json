@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "consideration_id": "consideration:0ca76343-466a-45ae-b9f1-7fc3fe952ddd",
+  "character_id": "character:beaky",
+  "wants_to_react": true,
+  "confidence": 0.91,
+  "intent": "Warn April that her departure window has arrived, affectionately but urgently.",
+  "participants": ["character:beaky", "person:april"],
+  "urgency": 0.82,
+  "suppression_reason": null,
+  "trace": {
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-7a9c2f8e6b31d402-01",
+    "tracestate": null,
+    "baggage": null
+  }
+}

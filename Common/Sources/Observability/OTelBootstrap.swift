@@ -57,6 +57,8 @@ package func bootstrapObservability(serviceName: String, exportOTLP: Bool = true
 
     var config = OTel.Configuration.default
     config.serviceName = serviceName
+    // Environment-variable diagnostics can contain exporter authentication headers.
+    config.diagnosticLogger = .custom(Logger(label: "swift-otel", factory: SwiftLogNoOpLogHandler.init))
 
     // Bootstrap traces + metrics via OTel.bootstrap() with logs disabled.
     // This internally calls MetricsSystem.bootstrap() and InstrumentationSystem.bootstrap()
@@ -67,6 +69,9 @@ package func bootstrapObservability(serviceName: String, exportOTLP: Bool = true
     // Get the OTLP log exporter separately so we can combine it with console output.
     var logConfig = OTel.Configuration.default
     logConfig.serviceName = serviceName
+    logConfig.diagnosticLogger = .custom(
+        Logger(label: "swift-otel", factory: SwiftLogNoOpLogHandler.init)
+    )
     logConfig.traces.enabled = false
     logConfig.metrics.enabled = false
     let loggingBackend = try OTel.makeLoggingBackend(configuration: logConfig)
