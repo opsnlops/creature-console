@@ -140,6 +140,37 @@ struct MongoWorldPersistenceTests {
         #expect(reloadedFact.value == current.value)
     }
 
+    @Test("Repeated fact saves replace one durable document")
+    func repeatedFactSavesAreIdempotent() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let factID = try FactID(validating: "fact:\(suffix)")
+            let subjectID = try EntityID(validating: "person:\(suffix)")
+            let original = try Fact(
+                factID: factID,
+                subjectID: subjectID,
+                predicate: "location.current",
+                value: .string("place:workshop"),
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: Date(),
+                derivedFrom: [],
+                producer: FactProducer(kind: "test", id: "mongo", version: "1")
+            )
+            var replacement = original
+            replacement.value = .string("place:stage")
+
+            try await persistence.facts.save(original)
+            try await persistence.facts.save(replacement)
+
+            let documents = try await persistence.database[MongoWorldCollection.facts]
+                .find(["_id": factID.rawValue], as: Fact.self)
+                .drain()
+            let stored = try #require(documents.only)
+            #expect(stored.factID == factID)
+            #expect(stored.value == replacement.value)
+        }
+    }
+
     @Test("Timer and source checkpoint repositories round trip")
     func timerAndCheckpointRoundTrip() async throws {
         try await withPersistence { persistence in

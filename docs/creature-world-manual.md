@@ -411,7 +411,8 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
 ```
 
 The integration suite verifies migrations and indexes, both forms of event deduplication,
-concurrent unique sequencing, fact survival across a reconnect, timers, and source checkpoints.
+concurrent unique sequencing, idempotent fact upserts, fact survival across a reconnect, timers,
+and source checkpoints.
 The tests write uniquely identified records to the `creature_world` database and do not drop the
 database afterward. Use a disposable development or CI deployment, never production.
 

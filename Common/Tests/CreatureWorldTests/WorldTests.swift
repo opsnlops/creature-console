@@ -274,23 +274,37 @@ struct WorldTests {
         #expect(await world.publishedDeltaCount == 0)
     }
 
-    @Test("A partial completion-marker failure cannot hide a derived delta")
-    func partialMarkerFailurePreservesAtLeastOnceDeltas() async throws {
+    @Test("A restart after a partial completion marker preserves idempotent durable state")
+    func restartAfterPartialMarkerFailureIsIdempotent() async throws {
         let store = TestWorldStore(failMarkAttempt: 2)
         let rootType = try WorldEventType(validating: "test.marker-root")
         let derivedType = try WorldEventType(validating: "test.marker-derived")
+        let rootFactID = try FactID(
+            validating: "fact:00000000-0000-0000-0000-000000000153"
+        )
+        let derivedFactID = try FactID(
+            validating: "fact:00000000-0000-0000-0000-000000000154"
+        )
         let derived = try makeEvent(
             eventID: "00000000-0000-0000-0000-000000000054",
             type: derivedType,
             sourceEventID: "marker-child"
         )
-        let reducer = TestWorldReducer(eventTypes: [rootType]) { _ in
-            WorldReduction(derivedEvents: [derived])
+        let rootReducer = TestWorldReducer(eventTypes: [rootType]) { event in
+            WorldReduction(
+                changedFacts: [try makeFact(factID: rootFactID, event: event)],
+                derivedEvents: [derived]
+            )
         }
-        let world = World(
+        let derivedReducer = TestWorldReducer(eventTypes: [derivedType]) { event in
+            WorldReduction(
+                changedFacts: [try makeFact(factID: derivedFactID, event: event)]
+            )
+        }
+        let firstWorld = World(
             eventStore: store,
             factStore: store,
-            reducers: [reducer],
+            reducers: [rootReducer, derivedReducer],
             clock: FixedWorldClock(now: Self.receivedAt)
         )
         let root = try makeEvent(
@@ -300,11 +314,31 @@ struct WorldTests {
         )
 
         await #expect(throws: TestWorldStoreError.markProcessedFailed) {
-            try await world.accept(root)
+            try await firstWorld.accept(root)
         }
-        _ = try await world.accept(root)
+        #expect(await firstWorld.publishedDeltaCount == 2)
+        #expect(await store.processedEventIDsSnapshot == [derived.eventID])
 
-        #expect(await world.publishedDeltaCount == 3)
+        // Reconstructing World simulates a process restart. Only the durable store survives.
+        let restartedWorld = World(
+            eventStore: store,
+            factStore: store,
+            reducers: [rootReducer, derivedReducer],
+            clock: FixedWorldClock(now: Self.receivedAt)
+        )
+        let retried = try await restartedWorld.accept(root)
+
+        #expect(retried.disposition == .duplicateEvent)
+        #expect(await restartedWorld.publishedDeltaCount == 1)
+        #expect(
+            await store.appendedEventIDs == [
+                root.eventID, derived.eventID, root.eventID, derived.eventID,
+            ]
+        )
+        #expect(await store.savedFactIDs == [rootFactID, derivedFactID])
+        #expect(
+            await store.factSaveAttemptIDs == [rootFactID, derivedFactID, rootFactID]
+        )
         #expect(await store.processedEventIDsSnapshot == Set([root.eventID, derived.eventID]))
     }
 
@@ -514,7 +548,9 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
     private var acceptedByEventID: [EventID: WorldEventEnvelope] = [:]
     private var acceptedBySourceEvent: [String: WorldEventEnvelope] = [:]
     private var appendAttempts: [EventID] = []
-    private var facts: [Fact] = []
+    private var factsByID: [FactID: Fact] = [:]
+    private var factInsertionOrder: [FactID] = []
+    private var factSaveAttempts: [FactID] = []
     private var processedEventIDs: Set<EventID> = []
     private var firstAppendReleased = false
     private var markAttempts = 0
@@ -532,7 +568,8 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
 
     var appendAttemptCount: Int { appendAttempts.count }
     var appendedEventIDs: [EventID] { appendAttempts }
-    var savedFactIDs: [FactID] { facts.map(\.factID) }
+    var savedFactIDs: [FactID] { factInsertionOrder }
+    var factSaveAttemptIDs: [FactID] { factSaveAttempts }
     var processedEventIDsSnapshot: Set<EventID> { processedEventIDs }
 
     func append(_ event: WorldEventEnvelope, receivedAt: Date) async throws -> EventAppendResult {
@@ -568,7 +605,11 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
             failFirstFactSave = false
             throw TestWorldStoreError.factSaveFailed
         }
-        facts.append(fact)
+        factSaveAttempts.append(fact.factID)
+        if factsByID[fact.factID] == nil {
+            factInsertionOrder.append(fact.factID)
+        }
+        factsByID[fact.factID] = fact
     }
 
     func isProcessed(eventID: EventID) -> Bool {
