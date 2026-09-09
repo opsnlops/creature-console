@@ -228,29 +228,30 @@
                 }
             )
 
-            var handlers: [EventLoopFuture<Void>] = []
-            if let sslContext {
-                do {
-                    nonisolated(unsafe) let tlsHandler = try NIOSSLClientHandler(
+            do {
+                // ClientBootstrap invokes its channel initializer on the channel's event loop.
+                // Use NIO's synchronous pipeline view there so event-loop-confined handlers do
+                // not have to cross a Sendable boundary.
+                let pipeline = channel.pipeline.syncOperations
+                if let sslContext {
+                    let tlsHandler = try NIOSSLClientHandler(
                         context: sslContext,
                         serverHostname: host
                     )
-                    handlers.append(channel.pipeline.addHandler(tlsHandler))
-                } catch {
-                    return channel.eventLoop.makeFailedFuture(error)
+                    try pipeline.addHandler(tlsHandler)
                 }
+
+                try pipeline.addHTTPClientHandlers(withClientUpgrade: upgradeConfig)
+
+                let requestHandler = HTTPInitialRequestHandler(
+                    host: host, port: port, path: requestPath, headers: headers,
+                    logger: WebSocketClient.logger)
+                try pipeline.addHandler(requestHandler, name: initialHandlerName)
+
+                return channel.eventLoop.makeSucceededFuture(())
+            } catch {
+                return channel.eventLoop.makeFailedFuture(error)
             }
-
-            nonisolated(unsafe) let safeUpgradeConfig = upgradeConfig
-            handlers.append(
-                channel.pipeline.addHTTPClientHandlers(withClientUpgrade: safeUpgradeConfig))
-
-            let requestHandler = HTTPInitialRequestHandler(
-                host: host, port: port, path: requestPath, headers: headers,
-                logger: WebSocketClient.logger)
-            handlers.append(channel.pipeline.addHandler(requestHandler, name: initialHandlerName))
-
-            return EventLoopFuture.andAllSucceed(handlers, on: channel.eventLoop)
         }
 
         fileprivate func handleFrame(_ frame: WebSocketFrame) {

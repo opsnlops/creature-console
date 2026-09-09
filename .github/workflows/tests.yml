@@ -24,6 +24,55 @@ jobs:
         working-directory: Common
         run: swift test
 
+  creature-world-mongodb-tests:
+    name: Creature World MongoDB 8.3 Tests
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Start MongoDB 8.3 replica set
+        run: |
+          docker run --detach --rm \
+            --name creature-world-mongodb-tests \
+            --network host \
+            mongo:8.3.8 \
+            --replSet creature-world --bind_ip_all
+          for attempt in $(seq 1 30); do
+            if docker exec creature-world-mongodb-tests \
+              mongosh --quiet --eval "db.adminCommand('ping').ok" >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs creature-world-mongodb-tests
+              exit 1
+            fi
+            sleep 2
+          done
+          docker exec creature-world-mongodb-tests mongosh --quiet --eval \
+            "rs.initiate({_id: 'creature-world', members: [{_id: 0, host: '127.0.0.1:27017'}]}).ok"
+          for attempt in $(seq 1 30); do
+            if docker exec creature-world-mongodb-tests mongosh --quiet --eval \
+              "db.hello().isWritablePrimary" | grep -q true; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs creature-world-mongodb-tests
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Run MongoDB persistence tests on Swift 6.3
+        run: |
+          docker run --rm --network host \
+            --volume "$PWD:/workspace" \
+            --workdir /workspace/Common \
+            --env 'MONGODB_TEST_URI=mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true' \
+            swift:6.3.2 \
+            swift test --filter MongoWorldPersistenceTests
+
   xcode-tests:
     name: Xcode Tests
     # The app targets macOS 26 / iOS 26, so native macOS tests need a macOS 26 host

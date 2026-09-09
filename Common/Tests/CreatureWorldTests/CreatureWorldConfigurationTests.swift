@@ -10,6 +10,7 @@ struct CreatureWorldConfigurationTests {
         let configuration = try CreatureWorldConfiguration.load(from: nil, environment: [:])
 
         #expect(configuration.host == "127.0.0.1")
+        #expect(configuration.mongoURI == CreatureWorldConfiguration.defaultMongoURI)
         #expect(configuration.port == 8000)
     }
 
@@ -17,8 +18,16 @@ struct CreatureWorldConfigurationTests {
     func configurationLoadsAndOverrides() throws {
         let loaded = try CreatureWorldConfiguration.load(from: fixtureURL, environment: [:])
         let overridden = try loaded.overriding(host: "::1", port: 18_091)
-        let expectedLoaded = try CreatureWorldConfiguration(host: "127.0.0.1", port: 18_090)
-        let expectedOverridden = try CreatureWorldConfiguration(host: "::1", port: 18_091)
+        let expectedLoaded = try CreatureWorldConfiguration(
+            host: "127.0.0.1",
+            port: 18_090,
+            mongoURI: "mongodb://mongo.example:27017/creature_world?replicaSet=world"
+        )
+        let expectedOverridden = try CreatureWorldConfiguration(
+            host: "::1",
+            port: 18_091,
+            mongoURI: expectedLoaded.mongoURI
+        )
 
         #expect(loaded == expectedLoaded)
         #expect(overridden == expectedOverridden)
@@ -30,12 +39,29 @@ struct CreatureWorldConfigurationTests {
             from: fixtureURL,
             environment: [
                 CreatureWorldConfiguration.hostEnvironmentKey: "0.0.0.0",
+                CreatureWorldConfiguration.mongoURIEnvironmentKey:
+                    "mongodb://mongo.internal:27017/creature_world",
                 CreatureWorldConfiguration.portEnvironmentKey: "18092",
             ]
         )
 
         #expect(loaded.host == "0.0.0.0")
+        #expect(loaded.mongoURI == "mongodb://mongo.internal:27017/creature_world")
         #expect(loaded.port == 18_092)
+    }
+
+    @Test("Configuration requires the isolated creature_world database")
+    func rejectsAnotherDatabase() {
+        #expect(
+            throws: CreatureWorldConfigurationError.unexpectedMongoDatabase(
+                expected: "creature_world",
+                actual: "creature_server"
+            )
+        ) {
+            try CreatureWorldConfiguration(
+                mongoURI: "mongodb://127.0.0.1:27017/creature_server"
+            )
+        }
     }
 
     @Test("Invalid server port environment variable fails clearly")

@@ -47,6 +47,10 @@ echo "Build completed successfully!"
 
 mkdir -p "${WORLD_DIR}"
 
-cp "${BIN_DIR}/creature-world" "${WORLD_DIR}/"
+STAGED_BINARY="$(mktemp "${WORLD_DIR}/.creature-world.XXXXXX")"
+trap 'rm -f "${STAGED_BINARY}"' EXIT
+install -m 755 "${BIN_DIR}/creature-world" "${STAGED_BINARY}"
+mv -f "${STAGED_BINARY}" "${WORLD_DIR}/creature-world"
+trap - EXIT
 echo "creature-world copied to ${WORLD_DIR}/creature-world"
 echo "✅ Release build complete!"

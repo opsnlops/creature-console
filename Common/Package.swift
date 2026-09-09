@@ -161,6 +161,7 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "MongoKitten", package: "MongoKitten"),
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ],
             path: "Sources/CreatureWorld/"),
@@ -190,7 +191,15 @@ let package = Package(
             dependencies: [
                 "creature-world",
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
+                .product(name: "MongoKitten", package: "MongoKitten"),
             ]
         ),
     ]
 )
+
+#if os(Linux)
+    // PlaylistRuntime uses Apple's Combine framework and is only consumed by Apple-platform apps.
+    // Omitting it on Linux keeps server-only builds and tests from requiring an unavailable module.
+    package.products.removeAll { $0.name == "PlaylistRuntime" }
+    package.targets.removeAll { $0.name == "PlaylistRuntime" }
+#endif

@@ -10,13 +10,18 @@ func makeCreatureWorldApplication(
         LogRequestsMiddleware(.debug)
     }
     router.get("v1/health") { _, _ in
-        dependencies.healthService.response()
+        let health = await dependencies.healthService.response()
+        return EditedResponse(
+            status: health.status == "ok" ? .ok : .serviceUnavailable,
+            response: health
+        )
     }
 
-    let lifecycleReporter = CreatureWorldLifecycleReporter(
-        buildInfo: dependencies.buildInfo,
-        logger: dependencies.logger
-    )
+    let lifecycleReporter = CreatureWorldLifecycleReporter(logger: dependencies.logger)
+    let persistenceServices: [any Service] =
+        dependencies.persistence.map {
+            [MongoWorldPersistenceService(provider: $0)]
+        } ?? []
 
     return Application(
         router: router,
@@ -27,7 +32,7 @@ func makeCreatureWorldApplication(
             ),
             serverName: "creature-world"
         ),
-        services: services + [lifecycleReporter],
+        services: services + persistenceServices + [lifecycleReporter],
         onServerRunning: { _ in
             dependencies.logger.info(
                 "Creature World is listening",
@@ -35,6 +40,7 @@ func makeCreatureWorldApplication(
                     "build.version": "\(dependencies.buildInfo.version)",
                     "http.host": "\(dependencies.configuration.host)",
                     "http.port": "\(dependencies.configuration.port)",
+                    "mongodb.database": "\(CreatureWorldConfiguration.databaseName)",
                     "world.schema_version": "\(dependencies.buildInfo.schemaVersion)",
                 ]
             )
