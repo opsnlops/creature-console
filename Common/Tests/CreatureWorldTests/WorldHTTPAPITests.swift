@@ -294,6 +294,33 @@ struct WorldHTTPAPITests {
         }
     }
 
+    @Test("SSE subscription failures require a fresh snapshot")
+    func streamFailureRequiresResnapshot() async throws {
+        let service = TestWorldApplicationService()
+        let application = try makeApplication(worldService: service)
+
+        try await application.test(.router) { client in
+            let streamRequest = Task {
+                try await client.execute(uri: "/world/v1/stream", method: .get) { response in
+                    #expect(response.status == .ok)
+                    return String(buffer: response.body)
+                }
+            }
+            while !(await service.snapshotWasRead) {
+                await Task.yield()
+            }
+
+            await service.failSubscriptions(
+                with: WorldSubscriptionError.fellBehind(bufferCapacity: 1)
+            )
+            let body = try await streamRequest.value
+
+            #expect(body.contains("event: snapshot"))
+            #expect(body.contains("event: resnapshot_required"))
+            #expect(body.contains("\"error\":\"stream_unavailable\""))
+        }
+    }
+
     @Test("Unavailable persistence fails without taking down health routing")
     func unavailablePersistence() async throws {
         let application = try makeApplication(
@@ -477,8 +504,13 @@ private actor TestWorldApplicationService: WorldApplicationService {
         finishNewSubscriptions = true
     }
 
-    func finishSubscriptions() {
+    func finishSubscriptions() async {
         subscriber?.finish()
+        subscriber = nil
+    }
+
+    func failSubscriptions(with error: WorldSubscriptionError) {
+        subscriber?.finish(throwing: error)
         subscriber = nil
     }
 
@@ -516,6 +548,8 @@ private struct SlowWorldApplicationService: WorldApplicationService {
     func subscribe() async throws -> WorldDeltaStream {
         throw WorldAPIError.databaseUnavailable
     }
+
+    func finishSubscriptions() async {}
 }
 
 private actor BlockingWorldApplicationService: WorldApplicationService {
@@ -553,6 +587,8 @@ private actor BlockingWorldApplicationService: WorldApplicationService {
     func subscribe() async throws -> WorldDeltaStream {
         throw WorldAPIError.databaseUnavailable
     }
+
+    func finishSubscriptions() async {}
 
     func release() {
         continuation?.resume()

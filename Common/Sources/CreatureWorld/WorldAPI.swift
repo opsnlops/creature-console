@@ -142,6 +142,7 @@ protocol WorldApplicationService: Sendable {
         -> WorldTimerPage
     func snapshot(limit: Int) async throws -> WorldSnapshot
     func subscribe() async throws -> WorldDeltaStream
+    func finishSubscriptions() async
 }
 
 struct UnavailableWorldApplicationService: WorldApplicationService {
@@ -172,6 +173,8 @@ struct UnavailableWorldApplicationService: WorldApplicationService {
     func subscribe() async throws -> WorldDeltaStream {
         throw WorldAPIError.databaseUnavailable
     }
+
+    func finishSubscriptions() async {}
 }
 
 actor WorldAPIConcurrencyLimiter {

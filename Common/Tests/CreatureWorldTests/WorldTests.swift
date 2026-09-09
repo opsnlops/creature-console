@@ -427,6 +427,23 @@ struct WorldTests {
         }
     }
 
+    @Test("Finishing subscriptions releases waiting consumers")
+    func finishingSubscriptionsReleasesConsumers() async throws {
+        let store = TestWorldStore()
+        let world = World(
+            eventStore: store,
+            factStore: store,
+            reducers: [],
+            clock: FixedWorldClock(now: Self.receivedAt)
+        )
+        let stream = try await world.subscribe()
+
+        await world.finishSubscriptions()
+
+        var iterator = stream.makeAsyncIterator()
+        #expect(try await iterator.next() == nil)
+    }
+
     @Test("Processing spans preserve parent context and exclude event payloads")
     func processingTelemetryIsPrivacySafeAndConnected() async throws {
         let tracer = InMemoryTracer()

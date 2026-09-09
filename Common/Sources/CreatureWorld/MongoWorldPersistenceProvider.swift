@@ -11,6 +11,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let timers: @Sendable (WorldTimerStatus?, TimerID?, Int) async throws -> WorldTimerPage
     let snapshot: @Sendable (Int) async throws -> WorldSnapshot
     let subscribe: @Sendable () async throws -> WorldDeltaStream
+    let finishSubscriptions: @Sendable () async -> Void
     let isHealthy: @Sendable () async -> Bool
     let recoverTimers: @Sendable () async throws -> Void
     let scheduleTimer: @Sendable (WorldTimer) async throws -> Void
@@ -93,6 +94,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             )
         }
         subscribe = { try await world.subscribe() }
+        finishSubscriptions = { await world.finishSubscriptions() }
         isHealthy = { await persistence.isHealthy() }
         recoverTimers = { try await timerScheduler.recover() }
         scheduleTimer = { try await timerScheduler.schedule($0) }
@@ -127,6 +129,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         subscribe: @escaping @Sendable () async throws -> WorldDeltaStream = {
             throw WorldAPIError.databaseUnavailable
         },
+        finishSubscriptions: @escaping @Sendable () async -> Void = {},
         isHealthy: @escaping @Sendable () async -> Bool,
         recoverTimers: @escaping @Sendable () async throws -> Void = {},
         scheduleTimer: @escaping @Sendable (WorldTimer) async throws -> Void = { _ in },
@@ -139,6 +142,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.timers = timers
         self.snapshot = snapshot
         self.subscribe = subscribe
+        self.finishSubscriptions = finishSubscriptions
         self.isHealthy = isHealthy
         self.recoverTimers = recoverTimers
         self.scheduleTimer = scheduleTimer
@@ -269,6 +273,10 @@ actor MongoWorldPersistenceProvider {
     func subscribe() async throws -> WorldDeltaStream {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.subscribe()
+    }
+
+    func finishSubscriptions() async {
+        await connection?.finishSubscriptions()
     }
 }
 

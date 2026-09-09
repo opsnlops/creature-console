@@ -195,6 +195,13 @@ actor World {
         subscribers.removeAll()
     }
 
+    func finishSubscriptions() {
+        for continuation in subscribers.values {
+            continuation.finish()
+        }
+        subscribers.removeAll()
+    }
+
     fileprivate static func setEventAttributes(on span: any Span, event: WorldEventEnvelope) {
         span.attributes["world.event.id"] = event.eventID.rawValue
         span.attributes["world.event.type"] = event.type.rawValue

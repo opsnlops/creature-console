@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import ServiceLifecycle
 import WorldCore
 
 struct WorldHTTPAPI: Sendable {
@@ -161,67 +162,19 @@ struct WorldHTTPAPI: Sendable {
                         .cacheControl: "no-cache",
                     ],
                     body: ResponseBody { writer in
-                        var lastSequence = afterSequence ?? 0
-                        do {
-                            if afterSequence == nil {
-                                let snapshot = try await execute {
-                                    try await service.snapshot(limit: maximumPageSize)
-                                }
-                                try await writeSSE(
-                                    event: "snapshot",
-                                    id: String(snapshot.latestSequence),
-                                    value: snapshot,
-                                    writer: &writer
-                                )
-                                lastSequence = snapshot.latestSequence
-                            } else {
-                                var hasMore = true
-                                while hasMore {
-                                    let querySequence = lastSequence
-                                    let page = try await execute {
-                                        try await service.events(
-                                            after: querySequence,
-                                            limit: maximumPageSize
-                                        )
-                                    }
-                                    for event in page.events {
-                                        try await writeSSE(
-                                            event: "event",
-                                            id: event.worldSequence.map(String.init),
-                                            value: event,
-                                            writer: &writer
-                                        )
-                                    }
-                                    lastSequence = page.nextSequence
-                                    hasMore = page.hasMore
-                                }
-                            }
-
-                            for try await delta in stream {
-                                guard let sequence = delta.event.worldSequence,
-                                    sequence > lastSequence
-                                else { continue }
-                                try await writeSSE(
-                                    event: "delta",
-                                    id: String(sequence),
-                                    value: delta,
-                                    writer: &writer
-                                )
-                                lastSequence = sequence
-                            }
-                        } catch {
-                            try? await writeSSE(
-                                event: "resnapshot_required",
-                                id: nil,
-                                value: WorldAPIErrorResponse(
-                                    error: "stream_unavailable",
-                                    message:
-                                        "Reconnect without after_sequence to fetch a new snapshot"
-                                ),
+                        await withGracefulShutdownHandler {
+                            await writeEventStream(
+                                afterSequence: afterSequence,
+                                stream: stream,
+                                maximumPageSize: maximumPageSize,
+                                service: service,
                                 writer: &writer
                             )
+                        } onGracefulShutdown: {
+                            Task {
+                                await service.finishSubscriptions()
+                            }
                         }
-                        try await writer.finish(nil)
                     }
                 )
             }
@@ -400,6 +353,72 @@ struct WorldHTTPAPI: Sendable {
         }
         message += "data: \(String(decoding: data, as: UTF8.self))\n\n"
         try await writer.write(ByteBuffer(string: message))
+    }
+
+    private func writeEventStream(
+        afterSequence: Int64?,
+        stream: WorldDeltaStream,
+        maximumPageSize: Int,
+        service: any WorldApplicationService,
+        writer: inout any ResponseBodyWriter
+    ) async {
+        var lastSequence = afterSequence ?? 0
+        do {
+            if afterSequence == nil {
+                let snapshot = try await execute {
+                    try await service.snapshot(limit: maximumPageSize)
+                }
+                try await writeSSE(
+                    event: "snapshot",
+                    id: String(snapshot.latestSequence),
+                    value: snapshot,
+                    writer: &writer
+                )
+                lastSequence = snapshot.latestSequence
+            } else {
+                var hasMore = true
+                while hasMore {
+                    let querySequence = lastSequence
+                    let page = try await execute {
+                        try await service.events(after: querySequence, limit: maximumPageSize)
+                    }
+                    for event in page.events {
+                        try await writeSSE(
+                            event: "event",
+                            id: event.worldSequence.map(String.init),
+                            value: event,
+                            writer: &writer
+                        )
+                    }
+                    lastSequence = page.nextSequence
+                    hasMore = page.hasMore
+                }
+            }
+
+            for try await delta in stream {
+                guard let sequence = delta.event.worldSequence, sequence > lastSequence else {
+                    continue
+                }
+                try await writeSSE(
+                    event: "delta",
+                    id: String(sequence),
+                    value: delta,
+                    writer: &writer
+                )
+                lastSequence = sequence
+            }
+        } catch {
+            try? await writeSSE(
+                event: "resnapshot_required",
+                id: nil,
+                value: WorldAPIErrorResponse(
+                    error: "stream_unavailable",
+                    message: "Reconnect without after_sequence to fetch a new snapshot"
+                ),
+                writer: &writer
+            )
+        }
+        try? await writer.finish(nil)
     }
 
 }
