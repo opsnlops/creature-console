@@ -17,8 +17,8 @@ Console and not part of `creature-server`. It has its own:
 - MongoDB database (`creature_world`);
 - health and readiness lifecycle.
 
-The service currently exposes `GET /v1/health`. Its persistence repositories and schema establish
-the foundation for later ingestion, query, simulation, and viewer APIs.
+The service currently exposes `GET /v1/health`. Its persistence repositories and authoritative
+`World` actor establish the foundation for later ingestion, query, simulation, and viewer APIs.
 
 ## Quick start for development
 
@@ -165,16 +165,17 @@ Example unavailable response:
 
 ### Collections and indexes
 
-Schema migration 1 creates the following collections and indexes:
+Schema migrations 1 and 2 establish the following collections and indexes:
 
 | Collection | Purpose | Important indexes |
 | --- | --- | --- |
 | `world_events` | Immutable accepted world events | Unique `event_id`; unique `world_sequence`; unique source ID plus source event ID when present; event type/time; subject IDs |
+| `world_event_processing` | Durable completion markers for accepted events | Unique event ID in `_id` |
 | `world_counters` | Atomic sequence allocation | `_id: "world_sequence"` counter document |
 | `facts` | Durable facts and current-state reads | Unique `fact_id`; active facts by subject, predicate, validity, and supersession |
 | `timers` | Durable simulator timers | Unique `timer_id`; pending timers by status and due time |
 | `source_checkpoints` | Per-source cursor or checkpoint state | Unique `source_id` |
-| `schema_migrations` | Applied Creature World schema versions | Migration version in `_id` |
+| `schema_migrations` | Applied Creature World schema versions | Migration version in `_id`; current migration is 2 |
 
 The migrator is idempotent and runs whenever a connection is established. Writes use majority write
 concern.
@@ -190,6 +191,57 @@ Consumers must order by the value, not infer missing events from a gap.
 
 Current facts are records where both `valid_to` and `superseded_by` are null. They are stored in
 MongoDB, so reconnecting or restarting Creature World does not erase the current world state.
+
+## Authoritative event processing
+
+One `World` actor is the serialization point for accepted events and deterministic reducers. An
+acceptance joins an ordered work chain, but MongoDB and fact persistence run in concurrent tasks
+outside the actor. The actor therefore remains responsive while storage is suspended without
+allowing a later event to overtake an earlier event.
+
+Processing is append-first:
+
+1. Append or deduplicate the root event and assign its authoritative sequence.
+2. Run matching reducers in registration order.
+3. Upsert changed facts and append derived events with `caused_by` provenance.
+4. Publish ordered, at-least-once deltas to subscribers.
+5. Mark the causal batch processed from descendants back to its root.
+
+The processing marker distinguishes delivery deduplication from completed reduction. If fact
+persistence or derived processing fails after event acceptance, resubmitting the same event runs
+the unfinished deterministic work again. Fact upserts and deterministic derived event IDs make
+that retry idempotent. Deltas are published before completion markers, and descendants are marked
+before the root. If a marker write fails, a retry may therefore republish a delta but cannot hide a
+previously completed descendant. Subscribers must treat event IDs as idempotency keys and obtain a
+fresh snapshot after reconnecting; an in-memory delta is not a durable acknowledgement.
+
+Reducers are synchronous and side-effect-free. They may calculate facts and proposed derived
+events, but they cannot suspend for MongoDB, HTTP, model inference, or other external I/O. Those
+operations belong outside the actor and return their results as later world events.
+
+### Resource limits and subscriber behavior
+
+The actor enforces finite defaults of 1,024 pending acceptances, 1,024 derived events in one causal
+batch, 256 live subscriptions, and 256 buffered deltas per subscriber. These limits prevent a
+stalled database, erroneous reducer, or collection of slow subscribers from growing memory without
+bound. A full ingress queue rejects new work before acceptance. A causal batch over its derivation
+limit fails while its root remains retryable. Excess subscriptions are rejected, and a subscriber
+that falls behind is disconnected with an explicit resnapshot error; the service never silently
+presents a lossy delta stream as complete.
+
+### Event-processing telemetry
+
+Creature World follows the same instrumentation style as `LocalLLMHealthCheck` in
+`creature-agent`: metric instruments are initialized with the processing component and async work
+is wrapped in semantic `withSpan` operations. The actor emits `world.event.accept` and
+`world.event.process` spans. The off-actor task preserves task-local trace context, so the process
+span remains a child of acceptance and its upstream caller.
+
+Span attributes are restricted to controlled event, source, sequence, disposition, and lag fields.
+Event payload values are never attached. Metrics cover received, accepted, rejected, duplicate,
+processed, and failed events, queue depth, subscriber drops, and event lag. Extraction of the
+envelope's W3C headers and reinjection into derived envelopes remains part of VW-008; the actor's
+task boundary is already tested not to break an active context.
 
 ## Running in production
 
@@ -329,6 +381,10 @@ not changed incidentally:
 | MongoDB gates readiness, not process startup | The service remains observable and recovers automatically through database outages. |
 | HTTP 503 for unavailable persistence | Load balancers and operators receive an honest readiness signal. |
 | Independent Debian package and version | The repository is a monorepo whose deployable products have separate lifecycles. |
+| One authoritative `World` actor | Preserves deterministic ordering while concurrent tasks keep persistence I/O outside the actor. |
+| Bounded ingress, derivation, and subscription queues | Prevents resource exhaustion and makes overload or resnapshot requirements explicit. |
+| Durable processed marker separate from acceptance | Makes failures after append retryable without reducing completed duplicates again. |
+| Privacy-safe event spans and metrics from the first actor slice | Keeps causal telemetry connected without copying private event payloads into Honeycomb. |
 
 Update this manual whenever an implementation change affects configuration, operational behavior,
 persistence guarantees, packaging, or recovery semantics.

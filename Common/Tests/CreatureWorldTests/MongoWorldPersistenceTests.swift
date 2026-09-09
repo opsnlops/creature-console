@@ -30,6 +30,14 @@ struct MongoWorldPersistenceTests {
             #expect(eventIndexes.contains { $0.name == "source_event_unique" && $0.unique == true })
             #expect(factIndexes.contains { $0.name == "active_facts" })
             #expect(timerIndexes.contains { $0.name == "pending_timers" })
+            #expect(
+                try await persistence.database[MongoWorldCollection.schemaMigrations]
+                    .findOne(["_id": 1]) != nil
+            )
+            #expect(
+                try await persistence.database[MongoWorldCollection.schemaMigrations]
+                    .findOne(["_id": 2]) != nil
+            )
         }
     }
 
@@ -53,6 +61,20 @@ struct MongoWorldPersistenceTests {
             #expect(duplicateByID.worldSequence == accepted.worldSequence)
             #expect(duplicateBySource.eventID == accepted.eventID)
             #expect(duplicateBySource.worldSequence == accepted.worldSequence)
+
+            #expect(try await !persistence.events.isProcessed(eventID: accepted.eventID))
+            try await persistence.events.markProcessed(
+                eventID: accepted.eventID,
+                processedAt: Date()
+            )
+            #expect(try await persistence.events.isProcessed(eventID: accepted.eventID))
+            let immutableEvent = try await persistence.database[MongoWorldCollection.events]
+                .findOne(["_id": accepted.eventID.rawValue])
+            #expect(immutableEvent?["processed_at"] == nil)
+            #expect(
+                try await persistence.database[MongoWorldCollection.eventProcessing]
+                    .findOne(["_id": accepted.eventID.rawValue]) != nil
+            )
         }
     }
 

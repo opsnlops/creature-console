@@ -3,7 +3,7 @@ import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     let database: MongoDatabase
     let logger: Logger
@@ -18,22 +18,23 @@ struct MongoWorldMigrator: Sendable {
         logger.debug("Ensuring source checkpoint indexes")
         try await createSourceCheckpointIndexes()
 
-        let insertedValues: Document = [
-            "name": "initial_world_repositories",
-            "applied_at": Date(),
-        ]
-        let migration: Document = ["$setOnInsert": insertedValues]
+        try await recordMigration(version: 1, name: "initial_world_repositories")
+        try await recordMigration(version: 2, name: "world_event_processing")
+        logger.debug(
+            "MongoDB schema migrations recorded",
+            metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
+        )
+    }
+
+    private func recordMigration(version: Int, name: String) async throws {
+        let insertedValues: Document = ["name": name, "applied_at": Date()]
         let builder = database[MongoWorldCollection.schemaMigrations].findOneAndUpdate(
-            where: ["_id": Self.currentVersion],
-            to: migration,
+            where: ["_id": version],
+            to: ["$setOnInsert": insertedValues],
             returnValue: .modified
         )
         builder.command.upsert = true
         _ = try await builder.writeConcern(.majority()).execute()
-        logger.debug(
-            "MongoDB schema migration recorded",
-            metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
-        )
     }
 
     private func createEventIndexes() async throws {

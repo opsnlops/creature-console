@@ -10,10 +10,12 @@ enum EventAppendResult: Equatable, Sendable {
 
 struct WorldEventRepository: Sendable {
     private let events: MongoCollection
+    private let eventProcessing: MongoCollection
     private let counters: MongoCollection
 
     init(database: MongoDatabase) {
         self.events = database[MongoWorldCollection.events]
+        self.eventProcessing = database[MongoWorldCollection.eventProcessing]
         self.counters = database[MongoWorldCollection.counters]
     }
 
@@ -59,6 +61,24 @@ struct WorldEventRepository: Sendable {
             .find(["world_sequence": greaterThan], as: WorldEventEnvelope.self)
             .sort(["world_sequence": 1])
             .drain()
+    }
+
+    func isProcessed(eventID: EventID) async throws -> Bool {
+        try await eventProcessing.findOne(["_id": eventID.rawValue]) != nil
+    }
+
+    func markProcessed(eventID: EventID, processedAt: Date) async throws {
+        let insertedValues: Document = [
+            "event_id": eventID.rawValue,
+            "processed_at": processedAt,
+        ]
+        let builder = eventProcessing.findOneAndUpdate(
+            where: ["_id": eventID.rawValue],
+            to: ["$setOnInsert": insertedValues],
+            returnValue: .modified
+        )
+        builder.command.upsert = true
+        _ = try await builder.writeConcern(.majority()).execute()
     }
 
     private func event(withSource source: EventSource) async throws -> WorldEventEnvelope? {
