@@ -45,7 +45,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.1",
+  "build_version": "0.1.2",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -157,7 +157,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.1",
+  "build_version": "0.1.2",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -278,7 +278,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.1_amd64.deb
+sudo apt install ./creature-world_0.1.2_amd64.deb
 ```
 
 The package installs:
