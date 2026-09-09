@@ -1,15 +1,21 @@
 import Foundation
+import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
     static let currentVersion = 1
 
     let database: MongoDatabase
+    let logger: Logger
 
     func migrate() async throws {
+        logger.debug("Ensuring world event indexes")
         try await createEventIndexes()
+        logger.debug("Ensuring fact indexes")
         try await createFactIndexes()
+        logger.debug("Ensuring timer indexes")
         try await createTimerIndexes()
+        logger.debug("Ensuring source checkpoint indexes")
         try await createSourceCheckpointIndexes()
 
         let insertedValues: Document = [
@@ -24,6 +30,10 @@ struct MongoWorldMigrator: Sendable {
         )
         builder.command.upsert = true
         _ = try await builder.writeConcern(.majority()).execute()
+        logger.debug(
+            "MongoDB schema migration recorded",
+            metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
+        )
     }
 
     private func createEventIndexes() async throws {

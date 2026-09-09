@@ -13,10 +13,7 @@ func makeCreatureWorldApplication(
         await dependencies.healthService.response()
     }
 
-    let lifecycleReporter = CreatureWorldLifecycleReporter(
-        buildInfo: dependencies.buildInfo,
-        logger: dependencies.logger
-    )
+    let lifecycleReporter = CreatureWorldLifecycleReporter(logger: dependencies.logger)
     let persistenceServices: [any Service] =
         dependencies.persistence.map {
             [MongoWorldPersistenceService(cluster: $0.cluster)]
