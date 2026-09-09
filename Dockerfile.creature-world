@@ -1,0 +1,16 @@
+FROM swift:6.3
+
+WORKDIR /workspace/Common
+
+COPY Common/Package.swift ./
+COPY Common/Sources ./Sources
+COPY Common/Tests ./Tests
+
+RUN swift build \
+    --configuration release \
+    --product creature-world
+
+EXPOSE 8000
+
+ENTRYPOINT ["/workspace/Common/.build/release/creature-world"]
+CMD ["--host", "0.0.0.0", "--port", "8000"]

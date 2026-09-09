@@ -127,10 +127,10 @@ public enum WorldJSON {
     }
 }
 
-enum WorldSchema {
-    static let currentVersion = 1
+public enum WorldSchema {
+    public static let currentVersion = 1
 
-    static func validate(_ version: Int) throws {
+    public static func validate(_ version: Int) throws {
         guard version == currentVersion else {
             throw WorldContractError.unsupportedSchemaVersion(
                 expected: currentVersion,

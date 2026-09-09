@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.3
 
 import PackageDescription
 
@@ -22,6 +22,9 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.1"),
+        .package(
+            url: "https://github.com/hummingbird-project/hummingbird.git",
+            exact: "2.26.0"),
         .package(url: "https://github.com/swift-server-community/mqtt-nio", from: "2.12.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.74.0"),
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.27.0"),
@@ -148,6 +151,17 @@ let package = Package(
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ],
             path: "Sources/CreatureAgent/"),
+        .executableTarget(
+            name: "creature-world",
+            dependencies: [
+                "Observability",
+                "WorldCore",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+            ],
+            path: "Sources/CreatureWorld/"),
         .testTarget(
             name: "CommonTests",
             dependencies: [
@@ -168,6 +182,13 @@ let package = Package(
         .testTarget(
             name: "WorldCoreTests",
             dependencies: ["WorldCore"]
+        ),
+        .testTarget(
+            name: "CreatureWorldTests",
+            dependencies: [
+                "creature-world",
+                .product(name: "HummingbirdTesting", package: "hummingbird"),
+            ]
         ),
     ]
 )
