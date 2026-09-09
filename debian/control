@@ -25,3 +25,9 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: OpenAI MQTT agent for Creature Server
  Consumes MQTT alerts, generates responses with OpenAI, and schedules ad-hoc speech animations.
 
+Package: creature-world
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Authoritative shared-world simulator for Creature clients
+ Runs the Creature World HTTP service, which maintains the authoritative shared-world
+ state used by Creature clients and integrations.

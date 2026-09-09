@@ -1,3 +1,10 @@
+creature-cli (2.54.1+vw002.1) unstable; urgency=medium
+
+  * Add the creature-world Debian package, JSON configuration, shell completions,
+    hardened systemd service, and Debian Trixie package smoke tests.
+
+ -- April White <april@creature.engineering>  Tue, 08 Sep 2026 18:37:02 -0700
+
 creature-cli (2.54.1) unstable; urgency=medium
 
   * Fix creature-agent MQTT event handling for ISO 8601 timestamps, including

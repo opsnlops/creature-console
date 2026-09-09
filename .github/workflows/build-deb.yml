@@ -54,6 +54,7 @@ jobs:
           export DEB_BUILD_OPTIONS=nocheck
           SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib" \
           SWIFT_BUILD_FLAGS_MQTT="-c release --product creature-mqtt --static-swift-stdlib" \
+          SWIFT_BUILD_FLAGS_WORLD="-c release --product creature-world --static-swift-stdlib" \
             dpkg-buildpackage -us -uc -b
 
       - name: Collect deb artifacts
@@ -62,9 +63,47 @@ jobs:
           mv ../creature-cli_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-mqtt_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-agent_*_${{ matrix.arch }}.deb artifacts/
+          mv ../creature-world_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-cli-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
           mv ../creature-mqtt-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
           mv ../creature-agent-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
+          mv ../creature-world-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
+
+      - name: Inspect creature-world package
+        run: |
+          package="$(find artifacts -name 'creature-world_*_${{ matrix.arch }}.deb' -print -quit)"
+          test -n "${package}"
+          dpkg-deb --info "${package}"
+          dpkg-deb --contents "${package}"
+          dpkg-deb --contents "${package}" | grep -Eq ' ./bin/creature-world$'
+          dpkg-deb --contents "${package}" | grep -Eq ' ./etc/creature/world.json$'
+          dpkg-deb --contents "${package}" | grep -Eq ' ./usr/lib/systemd/system/creature-world.service$'
+
+      - name: Smoke-test creature-world package in Debian Trixie
+        run: |
+          docker run --rm \
+            --env DEBIAN_FRONTEND=noninteractive \
+            --volume "${PWD}/artifacts:/artifacts:ro" \
+            debian:trixie-slim \
+            bash -euxc '
+              apt-get update
+              apt-get install -y /artifacts/creature-world_*_$(dpkg --print-architecture).deb
+              test "$(stat -c %U:%G /bin/creature-world)" = root:root
+              test "$(stat -c %a /bin/creature-world)" = 755
+              test -f /etc/creature/world.json
+              test -f /usr/lib/systemd/system/creature-world.service
+              grep -Fx "ExecStart=/bin/creature-world --config /etc/creature/world.json" /usr/lib/systemd/system/creature-world.service
+              grep -Fx "DynamicUser=yes" /usr/lib/systemd/system/creature-world.service
+              /bin/creature-world --version
+              /bin/creature-world --help >/dev/null
+              test "$(dpkg-query -W creature-world | cut -f2)" = "$(/bin/creature-world --version)"
+              ldd /bin/creature-world
+              cp /etc/creature/world.json /tmp/world.json.before
+              apt-get install --reinstall -y /artifacts/creature-world_*_$(dpkg --print-architecture).deb
+              cmp /tmp/world.json.before /etc/creature/world.json
+              apt-get remove -y creature-world
+              test -f /etc/creature/world.json
+            '
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v7
