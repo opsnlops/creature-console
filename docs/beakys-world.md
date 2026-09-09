@@ -2013,7 +2013,7 @@ Issue IDs are stable backlog identifiers, not execution order. Use this phase/ap
 | Roadmap phase | Application being started or deepened | Issues |
 |---|---|---|
 | Phase 0 | Shared `WorldCore` foundation | `VW-000`, `VW-001`, packaging inventory from `VW-024` |
-| Phase 1 | Creature World | `VW-002`–`VW-005`, initial `VW-009`, `VW-024` |
+| Phase 1 | Creature World | `VW-002`–`VW-005`, `VW-029`, initial `VW-009`, `VW-024` |
 | Phase 2 | World Viewer and Information Bridge | `VW-010`, `VW-011`, `VW-017`, initial `VW-025` |
 | Phase 3 | Information Bridge: Apple Intelligence, Calendar, Contacts, Mail, Messages | `VW-018`, `VW-020`, `VW-022`, `VW-025`, `VW-026` |
 | Phase 4 | Creature Server perception | `VW-012` |
@@ -2204,6 +2204,28 @@ Add the `CommunicationIntent` contract, deterministic notification policy, Beaky
 Test confirmed-away versus at-home/uncertain presence, notification authorization changes, quiet hours, urgency, topic allowlist, TTL expiry, retry, duplicate intents, APNs rejection, device-token rotation/revocation, offline app actions, duplicate action submission, preview redaction, unauthorized mobile requests, and the distinction between APNs acceptance and user interaction. Use a fake APNs provider for deterministic tests and Apple’s Push Notification Console/development environment for an explicitly enabled device smoke test.
 
 **Done when:** an approved meaningful situation produces exactly one Beaky notification on April’s paired iPhone; April can acknowledge or reply; the response reaches Beaky and the exchange becomes autobiographical memory; the entire decision is explainable in World Viewer/Honeycomb; and suppressed/failed cases do not leak device tokens, signing credentials, or unrelated private context.
+
+### VW-029: Expose the Creature World JSON API and live delta stream
+
+Add the Hummingbird application and query boundary over the authoritative `World` actor and its
+repositories. Implement the initial routes required by adapters and World Viewer: bounded single
+and batch event ingress, ordered event history after a sequence, current-fact queries, timer
+queries, and an ordered live delta stream with reconnect and resnapshot semantics. Reuse
+application services across HTTP and future MCP adapters; transport handlers must not bypass them
+to query MongoDB directly. Keep entity, character perspective, memory, and complete Why?
+provenance routes with the issues that introduce their backing read models.
+
+Preserve the versioned snake-case JSON contracts and idempotent acceptance dispositions. Enforce
+body, batch, concurrency, duration, pagination, and stream-buffer limits; translate overload and
+lag into explicit responses. Keep `/v1/health` public, but authenticate and authorize all event and
+world-state routes when accessed beyond loopback. Validate streaming origins, propagate W3C trace
+context, and never attach event payloads or credentials to telemetry.
+
+**Done when:** a black-box test starts the Linux service, submits a synthetic event, observes its
+ordered live delta, reads it back by sequence, verifies duplicate submission is idempotent, and
+reconnects from the last observed sequence without a gap; the accepted event survives a process
+restart; malformed, oversized, overloaded, lagging, and unauthorized requests fail explicitly;
+and the same contract tests pass with Swift 6.3.3 on Linux.
 
 ---
 
