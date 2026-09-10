@@ -2713,6 +2713,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Beaky-Communicator-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Beaky Communicator";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = Beaky;
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = Beaky;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Beaky Communicator connects to Creature World on your local network.";
@@ -2756,6 +2758,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Beaky-Communicator-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Beaky Communicator";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = Beaky;
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = Beaky;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Beaky Communicator connects to Creature World on your local network.";
