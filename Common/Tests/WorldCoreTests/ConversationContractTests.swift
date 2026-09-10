@@ -43,8 +43,8 @@ struct ConversationContractTests {
                 addresseeIDs: [try EntityID(validating: "character:beaky")],
                 text: "   ",
                 modality: .typed,
-                source: .developmentWizard,
-                sourceID: try SourceID(validating: "wizard:development"),
+                source: .wizardMode,
+                sourceID: try SourceID(validating: "wizard:mode"),
                 occurredAt: Self.now,
                 confidence: 1
             )
@@ -101,8 +101,8 @@ struct ConversationContractTests {
             addresseeIDs: [EntityID(validating: "character:beaky")],
             text: "Can you hear me?",
             modality: .typed,
-            source: .developmentWizard,
-            sourceID: SourceID(validating: "wizard:development"),
+            source: .wizardMode,
+            sourceID: SourceID(validating: "wizard:mode"),
             occurredAt: Self.now,
             confidence: 1
         )

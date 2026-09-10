@@ -42,7 +42,7 @@ Existing physical-performance software remains deliberately narrow:
 The first **relationship spine** should prove that April and Beaky share one bidirectional conversation regardless of transport:
 
 ```text
-April types in Beaky Communicator or the development wizard
+April types in Beaky Communicator or Wizard Mode
   -> one PersonUtterance ingress service
   -> the same addressed Beaky percept and conversation context
   -> fake character response
@@ -133,7 +133,24 @@ A guest should be able to enter, be greeted by name, hear another bird refer to 
 10. **Personal software, not a mass-market platform.** Optimize for capability, privacy, and maintainability in April’s environment rather than broad portability or App Store constraints.
 11. **Magic is an acceptance criterion.** A vertical slice that ends at a database row, API response, or status badge is unfinished; it should ultimately unlock a believable moment in Beaky’s lived world.
 
-### 2.4 Experience vignettes: what all this machinery is for
+### 2.4 Worldcraft language
+
+Building and tending this world should feel playful as well as precise. **Wizard Mode** is the
+official name for privileged developer and operator tooling—the world’s equivalent of God Mode.
+Use this vocabulary in operator-facing interfaces where it remains clear:
+
+- **Wizard Mode** opens development-only powers for observing or influencing the world.
+- **Cast** submits one synthetic event, utterance, or controlled intervention.
+- **Spell** is a named, saved, repeatable scenario that can be cast again.
+- **Scry** inspects live state, history, perspective, provenance, or traces without mutation.
+- **Turn back time** replays history only in a disposable world, never over production truth.
+- **Mundane view** reveals the underlying IDs, JSON, delivery attempts, and other stage machinery.
+
+Fun terminology must not weaken safety or the domain model. Source code and wire contracts still
+use explicit typed operations and stable identities; Wizard Mode is never an authorization bypass
+in production. The UI should always reveal what a spell will affect before it is cast.
+
+### 2.5 Experience vignettes: what all this machinery is for
 
 This project will fail if it becomes an immaculate event-processing platform that never produces a moment of life. The architecture exists to create moments like these:
 
@@ -1289,7 +1306,7 @@ If April’s phone disconnects from home Wi-Fi, the garage opens, and HA reports
 Beaky needs to hear April now, not only after continuous speech recognition exists. Build **Beaky
 Communicator** early as one SwiftUI product for macOS and iOS. It carries a chronological,
 bidirectional conversation: April can type to Beaky, Beaky can answer or initiate a turn, and April
-can reply to that exact turn. The development wizard and future STT are adapters into the same
+can reply to that exact turn. Wizard Mode and future STT are adapters into the same
 `PersonUtterance` ingress service, so Beaky receives one conversational reality rather than
 different minds for typed and spoken words.
 
@@ -1820,7 +1837,7 @@ against deterministic fakes.
 
 - Define versioned `PersonUtterance`, `CharacterUtteranceIntent`, conversation item, presence,
   delivery decision, and delivery outcome contracts in `WorldCore`.
-- Route Communicator composition/replies, the development wizard, and fake future STT through one
+- Route Communicator composition/replies, Wizard Mode, and fake future STT through one
   utterance ingress service and the same addressed Beaky percept/context boundary.
 - Preserve source, modality, timing, confidence, place evidence, provenance, and trace context
   without putting conversation text into telemetry.
@@ -1831,7 +1848,7 @@ against deterministic fakes.
 - Start the shared SwiftUI conversation shell, networking boundary, and offline queue against fake
   services; do not wait for APNs or the complete agent refactor.
 
-**Exit:** equivalent typed wizard/Communicator and fake-STT inputs become the same semantic Beaky
+**Exit:** equivalent Wizard Mode/Communicator and fake-STT inputs become the same semantic Beaky
 percept; Beaky can initiate or answer a turn; April can reply to a specific Beaky turn; retries,
 restarts, and presence transitions cannot duplicate a turn or deliver it through both fake routes.
 
@@ -2287,7 +2304,7 @@ contract tests pass with Swift 6.3.3 on Linux.
 Add versioned `PersonUtterance`, `CharacterUtteranceIntent`, conversation item, delivery decision,
 and delivery outcome contracts with checked-in snake-case JSON fixtures. Implement one utterance
 ingress service used by adapters for Beaky Communicator composition/replies, the development
-wizard, and future STT. Preserve modality, source, timing, confidence, place evidence, provenance,
+Wizard Mode, and future STT. Preserve modality, source, timing, confidence, place evidence, provenance,
 and trace context while producing the same addressed Beaky percept/context path for equivalent
 meaning. Support both directions: Beaky may initiate or answer a turn, and April may answer a
 specific Beaky turn in the same conversation.
@@ -2302,7 +2319,7 @@ or deliver it through both routes. Persist the character's canonical conversatio
 either delivery sink so physically spoken and Communicator turns remain one shared history.
 
 **Done when:** deterministic tests submit equivalent semantic fixtures through Communicator,
-wizard, and fake-STT adapters and prove the same Beaky percept/context path; Beaky-initiated and
+Wizard Mode, and fake-STT adapters and prove the same Beaky percept/context path; Beaky-initiated and
 April-initiated turns remain linked; the same fake character turn routes once to physical delivery
 when home, app delivery when away, and private app delivery when presence is stale; retries and
 presence transitions remain idempotent; schemas round-trip on macOS and Swift 6.3.3 Linux; and
@@ -2406,7 +2423,7 @@ the world’s private context and explainability.
 
 ### Milestone A — one conversation exists
 
-April can submit the same semantic utterance through Beaky Communicator, the development wizard,
+April can submit the same semantic utterance through Beaky Communicator, Wizard Mode,
 or fake future STT and Beaky receives it through one percept/context path. Beaky can initiate or
 answer a turn; April can reply to that exact turn. A fake character response routes exactly once to
 physical or Communicator delivery based on deterministic presence. This is the exit from Phase 2.

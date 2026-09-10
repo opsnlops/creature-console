@@ -277,7 +277,7 @@ public struct PersonUtteranceAdapter: Sendable {
         modality: .typed
     )
     public static let communicatorReply = Self(source: .communicatorReply, modality: .typed)
-    public static let developmentWizard = Self(source: .developmentWizard, modality: .typed)
+    public static let wizardMode = Self(source: .wizardMode, modality: .typed)
     public static let speechToText = Self(source: .speechToText, modality: .spoken)
 
     public func submit(

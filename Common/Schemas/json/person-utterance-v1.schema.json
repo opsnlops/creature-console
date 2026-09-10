@@ -22,7 +22,7 @@
     "modality": { "enum": ["typed", "spoken"] },
     "source": {
       "enum": [
-        "communicator_composition", "communicator_reply", "development_wizard", "speech_to_text"
+        "communicator_composition", "communicator_reply", "wizard_mode", "speech_to_text"
       ]
     },
     "source_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },

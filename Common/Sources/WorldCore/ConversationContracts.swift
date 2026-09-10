@@ -26,7 +26,7 @@ public enum UtteranceModality: String, Hashable, Sendable, Codable, CaseIterable
 public enum UtteranceSource: String, Hashable, Sendable, Codable, CaseIterable {
     case communicatorComposition = "communicator_composition"
     case communicatorReply = "communicator_reply"
-    case developmentWizard = "development_wizard"
+    case wizardMode = "wizard_mode"
     case speechToText = "speech_to_text"
 }
 

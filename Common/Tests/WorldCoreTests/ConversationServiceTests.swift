@@ -5,11 +5,11 @@ import Testing
 
 @Suite("Unified bidirectional conversation pipeline")
 struct ConversationServiceTests {
-    @Test("Typed, wizard, and future spoken adapters share Beaky's percept path")
+    @Test("Communicator, Wizard Mode, and future speech share Beaky's percept path")
     func adaptersShareOnePerceptPath() async throws {
         let adapters: [PersonUtteranceAdapter] = [
             .communicatorComposition,
-            .developmentWizard,
+            .wizardMode,
             .speechToText,
         ]
         var percepts: [PersonUtterancePercept] = []
@@ -44,7 +44,7 @@ struct ConversationServiceTests {
         #expect(Set(semanticInputs).count == 1)
         #expect(
             percepts.map(\.utterance.source) == [
-                .communicatorComposition, .developmentWizard, .speechToText,
+                .communicatorComposition, .wizardMode, .speechToText,
             ])
         #expect(percepts.map(\.utterance.modality) == [.typed, .typed, .spoken])
     }
@@ -54,18 +54,18 @@ struct ConversationServiceTests {
         let repository = TestUtteranceRepository()
         let sink = TestPerceptSink()
         let service = PersonUtteranceIngressService(repository: repository, sink: sink)
-        let first = try makeAdapterInput(sourceID: SourceID(validating: "wizard:development"))
+        let first = try makeAdapterInput(sourceID: SourceID(validating: "wizard:mode"))
         var second = first
         second.utteranceID = try UtteranceID(validating: "utterance:april-2")
         second.text = "I am answering because what you say matters to me."
         second.occurredAt = first.occurredAt.addingTimeInterval(1)
 
-        _ = try await PersonUtteranceAdapter.developmentWizard.submit(
+        _ = try await PersonUtteranceAdapter.wizardMode.submit(
             first,
             context: UtteranceIngressContext(boundary: .trustedLAN),
             to: service
         )
-        _ = try await PersonUtteranceAdapter.developmentWizard.submit(
+        _ = try await PersonUtteranceAdapter.wizardMode.submit(
             second,
             context: UtteranceIngressContext(boundary: .trustedLAN),
             to: service
@@ -83,16 +83,16 @@ struct ConversationServiceTests {
     func ingressRetryAcrossRestartIsIdempotent() async throws {
         let repository = TestUtteranceRepository()
         let sink = TestPerceptSink()
-        let input = try makeAdapterInput(sourceID: SourceID(validating: "wizard:development"))
+        let input = try makeAdapterInput(sourceID: SourceID(validating: "wizard:mode"))
         let firstService = makeIngressService(repository: repository, sink: sink)
 
-        let first = try await PersonUtteranceAdapter.developmentWizard.submit(
+        let first = try await PersonUtteranceAdapter.wizardMode.submit(
             input,
             context: UtteranceIngressContext(boundary: .trustedLAN),
             to: firstService
         )
         let restartedService = makeIngressService(repository: repository, sink: sink)
-        let duplicate = try await PersonUtteranceAdapter.developmentWizard.submit(
+        let duplicate = try await PersonUtteranceAdapter.wizardMode.submit(
             input,
             context: UtteranceIngressContext(boundary: .trustedLAN),
             to: restartedService
@@ -110,17 +110,17 @@ struct ConversationServiceTests {
         let repository = TestUtteranceRepository()
         let sink = TestPerceptSink()
         let service = makeIngressService(repository: repository, sink: sink)
-        let original = try makeAdapterInput(sourceID: SourceID(validating: "wizard:development"))
+        let original = try makeAdapterInput(sourceID: SourceID(validating: "wizard:mode"))
         var conflict = original
         conflict.text = "Different words under the same identity"
 
-        _ = try await PersonUtteranceAdapter.developmentWizard.submit(
+        _ = try await PersonUtteranceAdapter.wizardMode.submit(
             original,
             context: UtteranceIngressContext(boundary: .trustedLAN),
             to: service
         )
         await #expect(throws: WorldContractError.conflictingConversationIdentity) {
-            try await PersonUtteranceAdapter.developmentWizard.submit(
+            try await PersonUtteranceAdapter.wizardMode.submit(
                 conflict,
                 context: UtteranceIngressContext(boundary: .trustedLAN),
                 to: service
@@ -135,11 +135,11 @@ struct ConversationServiceTests {
         let repository = TestUtteranceRepository()
         await repository.failNextCheckpoint()
         let sink = TestPerceptSink()
-        let input = try makeAdapterInput(sourceID: SourceID(validating: "wizard:development"))
+        let input = try makeAdapterInput(sourceID: SourceID(validating: "wizard:mode"))
         let firstService = makeIngressService(repository: repository, sink: sink)
 
         await #expect(throws: TestError.interruptedBeforeCheckpoint) {
-            try await PersonUtteranceAdapter.developmentWizard.submit(
+            try await PersonUtteranceAdapter.wizardMode.submit(
                 input,
                 context: UtteranceIngressContext(boundary: .trustedLAN),
                 to: firstService
@@ -147,7 +147,7 @@ struct ConversationServiceTests {
         }
 
         let restartedService = makeIngressService(repository: repository, sink: sink)
-        let retry = try await PersonUtteranceAdapter.developmentWizard.submit(
+        let retry = try await PersonUtteranceAdapter.wizardMode.submit(
             input,
             context: UtteranceIngressContext(boundary: .trustedLAN),
             to: restartedService
