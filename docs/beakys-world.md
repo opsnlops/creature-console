@@ -1441,6 +1441,11 @@ Prefer an isolated Linux executable/service named `creature-communicator-gateway
 - APNs request ID, response/rejection reason, attempts, expiry, and timestamps;
 - privacy-safe WorldEvents and OTel spans correlated to the initiating event and decision.
 
+The external ingress namespace is `/world/communicator/v1/…`. This distinct path lets the shared
+proxy route the narrow Communicator API to the gateway while `/world/v1/…` continues to route to
+Creature World. Trusted-LAN gateway requests remain open under the repository's LAN trust model;
+off-LAN requests reuse the proxy API key held in the Creature app-family Keychain.
+
 Use token-based APNs authentication over HTTP/2 and TLS. Keep the `.p8` signing key and device tokens out of source control, prompts, ordinary world event payloads, logs, and Honeycomb. APNs acceptance means Apple accepted the request; it is not proof that the device displayed it or April read it. Only an app-originated open/action/reply event can establish user interaction.
 
 For the first personal deployment, prefer a private authenticated network path such as the existing household VPN/Tailscale-style connectivity for app-to-gateway traffic rather than exposing Creature World directly to the internet. If a public relay is later required, it must be a separately threat-modeled narrow gateway. The app never connects to MongoDB and never receives an omniscient world API.

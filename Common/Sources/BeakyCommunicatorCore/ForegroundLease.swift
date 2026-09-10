@@ -122,6 +122,24 @@ public struct ForegroundLease: Equatable, Sendable, Codable {
     }
 }
 
+public struct ForegroundLeaseCommand: Equatable, Sendable, Codable {
+    public var installationID: CommunicatorInstallationID
+    public var sessionID: ForegroundSessionID
+
+    public init(
+        installationID: CommunicatorInstallationID,
+        sessionID: ForegroundSessionID
+    ) {
+        self.installationID = installationID
+        self.sessionID = sessionID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case installationID = "installation_id"
+        case sessionID = "session_id"
+    }
+}
+
 public protocol ForegroundLeaseTransport: Sendable {
     func acquireForegroundLease(
         installationID: CommunicatorInstallationID,

@@ -110,13 +110,21 @@ let package = Package(
         // each app target.
         .target(
             name: "CreatureAppSupport",
-            dependencies: ["Common", "WorldCore"]),
+            dependencies: ["BeakyCommunicatorCore", "Common", "WorldCore"]),
 
         // Transport-neutral state shared by the Beaky apps and the isolated Linux gateway.
         // The gateway owns live leases; Creature World remains the authoritative simulator.
         .target(
             name: "BeakyCommunicatorCore",
             dependencies: ["WorldCore"]),
+
+        .target(
+            name: "CreatureCommunicatorGateway",
+            dependencies: [
+                "BeakyCommunicatorCore",
+                "WorldCore",
+                .product(name: "Hummingbird", package: "hummingbird"),
+            ]),
 
         .target(
             name: "Observability",
@@ -222,6 +230,15 @@ let package = Package(
         .testTarget(
             name: "BeakyCommunicatorCoreTests",
             dependencies: ["BeakyCommunicatorCore", "WorldCore"]
+        ),
+        .testTarget(
+            name: "CreatureCommunicatorGatewayTests",
+            dependencies: [
+                "BeakyCommunicatorCore",
+                "CreatureCommunicatorGateway",
+                "WorldCore",
+                .product(name: "HummingbirdTesting", package: "hummingbird"),
+            ]
         ),
         .testTarget(
             name: "ObservabilityTests",
