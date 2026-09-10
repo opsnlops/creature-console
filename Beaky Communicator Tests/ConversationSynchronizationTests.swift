@@ -21,7 +21,7 @@ struct ConversationSynchronizationTests {
         #expect(items.map(\.authorKind) == [.person, .character])
         #expect(items.map(\.text) == ["Hello over the wire", "Test-only response"])
         #expect(await client.submittedUtteranceIDs.count == 1)
-        #expect(await persistence.pendingUtterances().isEmpty)
+        #expect(await persistence.pendingUtterances(serverURI: "test://world").isEmpty)
     }
 
     @Test("A new device backfills every page of canonical conversation history")
@@ -243,36 +243,42 @@ private actor DeterministicConversationClient: CommunicatorWorldClient {
 }
 
 private actor TestConversationPersistence: ConversationPersistence {
-    private var items: [ConversationItem] = []
-    private var pending: [UtteranceID: PersonUtterance] = [:]
+    private var items: [String: [ConversationItem]] = [:]
+    private var pending: [String: [UtteranceID: PersonUtterance]] = [:]
 
-    func conversation() -> [ConversationItem] {
-        items.sorted { ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue) }
+    func conversation(serverURI: String) -> [ConversationItem] {
+        items[serverURI, default: []].sorted {
+            ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue)
+        }
     }
 
-    func pendingUtterances() -> [PersonUtterance] {
-        pending.values.sorted { $0.occurredAt < $1.occurredAt }
+    func pendingUtterances(serverURI: String) -> [PersonUtterance] {
+        pending[serverURI, default: [:]].values.sorted { $0.occurredAt < $1.occurredAt }
     }
 
-    func latestCachedItemID() -> ConversationItemID? {
-        conversation().last?.itemID
+    func latestCachedItemID(serverURI: String) -> ConversationItemID? {
+        conversation(serverURI: serverURI).last?.itemID
     }
 
-    func enqueue(_ utterance: PersonUtterance, inReplyTo itemID: ConversationItemID?) {
-        pending[utterance.utteranceID] = utterance
+    func enqueue(
+        _ utterance: PersonUtterance,
+        inReplyTo itemID: ConversationItemID?,
+        serverURI: String
+    ) {
+        pending[serverURI, default: [:]][utterance.utteranceID] = utterance
     }
 
-    func accept(_ result: UtteranceIngressResult) {
-        upsert(result.conversationItem)
-        pending[result.percept.utterance.utteranceID] = nil
+    func accept(_ result: UtteranceIngressResult, serverURI: String) {
+        upsert(result.conversationItem, serverURI: serverURI)
+        pending[serverURI, default: [:]][result.percept.utterance.utteranceID] = nil
     }
 
-    func cache(_ items: [ConversationItem]) {
-        for item in items { upsert(item) }
+    func cache(_ items: [ConversationItem], serverURI: String) {
+        for item in items { upsert(item, serverURI: serverURI) }
     }
 
-    private func upsert(_ item: ConversationItem) {
-        items.removeAll { $0.itemID == item.itemID }
-        items.append(item)
+    private func upsert(_ item: ConversationItem, serverURI: String) {
+        items[serverURI, default: []].removeAll { $0.itemID == item.itemID }
+        items[serverURI, default: []].append(item)
     }
 }

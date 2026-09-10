@@ -34,22 +34,31 @@ extension CommunicatorConversationService {
 }
 
 protocol CommunicatorWorldClientProviding: Sendable {
+    func serverURI() async -> String
     func client() async throws -> any CommunicatorWorldClient
 }
 
+extension CommunicatorWorldClientProviding {
+    func serverURI() async -> String { "test://world" }
+}
+
 protocol ConversationPersistence: Sendable {
-    func conversation() async throws -> [ConversationItem]
-    func latestCachedItemID() async throws -> ConversationItemID?
-    func pendingUtterances() async throws -> [PersonUtterance]
-    func enqueue(_ utterance: PersonUtterance, inReplyTo itemID: ConversationItemID?) async throws
-    func accept(_ result: UtteranceIngressResult) async throws
-    func cache(_ items: [ConversationItem]) async throws
+    func conversation(serverURI: String) async throws -> [ConversationItem]
+    func latestCachedItemID(serverURI: String) async throws -> ConversationItemID?
+    func pendingUtterances(serverURI: String) async throws -> [PersonUtterance]
+    func enqueue(
+        _ utterance: PersonUtterance,
+        inReplyTo itemID: ConversationItemID?,
+        serverURI: String
+    ) async throws
+    func accept(_ result: UtteranceIngressResult, serverURI: String) async throws
+    func cache(_ items: [ConversationItem], serverURI: String) async throws
 }
 
 actor LiveCommunicatorConversationService: CommunicatorConversationService {
     private let persistence: any ConversationPersistence
     private let clientProvider: any CommunicatorWorldClientProviding
-    private var completedInitialHistorySync = false
+    private var synchronizedServerURIs: Set<String> = []
 
     init(
         persistence: any ConversationPersistence,
@@ -60,8 +69,9 @@ actor LiveCommunicatorConversationService: CommunicatorConversationService {
     }
 
     func conversation() async throws -> [ConversationItem] {
-        await synchronizeBestEffort()
-        return try await persistence.conversation()
+        let serverURI = await clientProvider.serverURI()
+        await synchronizeBestEffort(serverURI: serverURI)
+        return try await persistence.conversation(serverURI: serverURI)
     }
 
     func submit(text: String, inReplyTo item: ConversationItem?) async throws {
@@ -77,8 +87,13 @@ actor LiveCommunicatorConversationService: CommunicatorConversationService {
             occurredAt: Date(),
             confidence: 1
         )
-        try await persistence.enqueue(utterance, inReplyTo: item?.itemID)
-        await synchronizeBestEffort()
+        let serverURI = await clientProvider.serverURI()
+        try await persistence.enqueue(
+            utterance,
+            inReplyTo: item?.itemID,
+            serverURI: serverURI
+        )
+        await synchronizeBestEffort(serverURI: serverURI)
     }
 
     func updates() async throws -> WorldConversationUpdateStream {
@@ -86,27 +101,38 @@ actor LiveCommunicatorConversationService: CommunicatorConversationService {
         return try client.updates(in: ConversationIdentity.conversationID)
     }
 
-    private func synchronizeBestEffort() async {
+    private func synchronizeBestEffort(serverURI: String) async {
         do {
             let client = try await clientProvider.client()
             // Capture the cursor before flushing the outbox. A remote turn may have arrived while
             // this client was offline; using the newly accepted local item as the cursor would skip
             // that turn.
             let cursor =
-                completedInitialHistorySync
-                ? try await persistence.latestCachedItemID()
+                synchronizedServerURIs.contains(serverURI)
+                ? try await persistence.latestCachedItemID(serverURI: serverURI)
                 : nil
-            for utterance in try await persistence.pendingUtterances() {
-                try await persistence.accept(client.submit(utterance))
+            for utterance in try await persistence.pendingUtterances(serverURI: serverURI) {
+                try await persistence.accept(
+                    client.submit(utterance),
+                    serverURI: serverURI
+                )
             }
             do {
-                try await synchronizeHistory(using: client, after: cursor)
+                try await synchronizeHistory(
+                    using: client,
+                    after: cursor,
+                    serverURI: serverURI
+                )
             } catch  where cursor != nil {
                 // The canonical history may have been replaced while this client was offline.
                 // Starting over is safe because cache writes are idempotent by item ID.
-                try await synchronizeHistory(using: client, after: nil)
+                try await synchronizeHistory(
+                    using: client,
+                    after: nil,
+                    serverURI: serverURI
+                )
             }
-            completedInitialHistorySync = true
+            synchronizedServerURIs.insert(serverURI)
         } catch {
             // The durable outbox and local cache remain available until the next synchronization.
         }
@@ -114,7 +140,8 @@ actor LiveCommunicatorConversationService: CommunicatorConversationService {
 
     private func synchronizeHistory(
         using client: any CommunicatorWorldClient,
-        after initialCursor: ConversationItemID?
+        after initialCursor: ConversationItemID?,
+        serverURI: String
     ) async throws {
         var cursor = initialCursor
         repeat {
@@ -123,7 +150,7 @@ actor LiveCommunicatorConversationService: CommunicatorConversationService {
                 after: cursor,
                 limit: 100
             )
-            try await persistence.cache(page.items)
+            try await persistence.cache(page.items, serverURI: serverURI)
             guard page.hasMore else { break }
             guard let next = page.nextItemID, next != cursor else {
                 throw ConversationSynchronizationError.invalidPaginationCursor
@@ -137,46 +164,72 @@ private enum ConversationSynchronizationError: Error {
     case invalidPaginationCursor
 }
 
+extension Notification.Name {
+    static let communicatorConversationCacheCleared = Notification.Name(
+        "communicatorConversationCacheCleared"
+    )
+}
+
+@MainActor
+enum ConversationCacheMaintenance {
+    static func clear(using modelContext: ModelContext) throws {
+        for item in try modelContext.fetch(FetchDescriptor<ConversationItemModel>()) {
+            modelContext.delete(item)
+        }
+        try modelContext.save()
+        NotificationCenter.default.post(name: .communicatorConversationCacheCleared, object: nil)
+    }
+}
+
 @ModelActor
 actor SwiftDataConversationRepository: ConversationPersistence {
-    func conversation() throws -> [ConversationItem] {
-        let stored = try fetchConversationModels().map { try $0.item }
-        let pending = try fetchPendingModels().map { try provisionalItem(for: $0) }
+    func conversation(serverURI: String) throws -> [ConversationItem] {
+        let stored = try fetchConversationModels(serverURI: serverURI).map { try $0.item }
+        let pending = try fetchPendingModels(serverURI: serverURI).map {
+            try provisionalItem(for: $0)
+        }
         return (stored + pending).sorted(by: Self.ordersBefore)
     }
 
-    func pendingUtterances() throws -> [PersonUtterance] {
-        try fetchPendingModels().map { try $0.utterance }
+    func pendingUtterances(serverURI: String) throws -> [PersonUtterance] {
+        try fetchPendingModels(serverURI: serverURI).map { try $0.utterance }
     }
 
-    func latestCachedItemID() throws -> ConversationItemID? {
+    func latestCachedItemID(serverURI: String) throws -> ConversationItemID? {
         var descriptor = FetchDescriptor<ConversationItemModel>(
+            predicate: #Predicate { $0.serverURI == serverURI },
             sortBy: [
                 SortDescriptor(\ConversationItemModel.createdAt, order: .reverse),
                 SortDescriptor(\ConversationItemModel.id, order: .reverse),
             ]
         )
         descriptor.fetchLimit = 1
-        return try modelContext.fetch(descriptor).first.map {
-            try ConversationItemID(validating: $0.id)
-        }
+        return try modelContext.fetch(descriptor).first.map { try $0.item.itemID }
     }
 
     func enqueue(
         _ utterance: PersonUtterance,
-        inReplyTo itemID: ConversationItemID?
+        inReplyTo itemID: ConversationItemID?,
+        serverURI: String
     ) throws {
         modelContext.insert(
-            try PendingUtteranceModel(utterance: utterance, inReplyToItemID: itemID)
+            try PendingUtteranceModel(
+                utterance: utterance,
+                inReplyToItemID: itemID,
+                serverURI: serverURI
+            )
         )
         try modelContext.save()
     }
 
-    func accept(_ result: UtteranceIngressResult) throws {
-        try upsert(result.conversationItem)
-        let utteranceID = result.percept.utterance.utteranceID.rawValue
+    func accept(_ result: UtteranceIngressResult, serverURI: String) throws {
+        try upsert(result.conversationItem, serverURI: serverURI)
+        let storageID = PendingUtteranceModel.storageID(
+            serverURI: serverURI,
+            utteranceID: result.percept.utterance.utteranceID
+        )
         var descriptor = FetchDescriptor<PendingUtteranceModel>(
-            predicate: #Predicate { $0.id == utteranceID }
+            predicate: #Predicate { $0.id == storageID }
         )
         descriptor.fetchLimit = 1
         if let pending = try modelContext.fetch(descriptor).first {
@@ -185,15 +238,16 @@ actor SwiftDataConversationRepository: ConversationPersistence {
         try modelContext.save()
     }
 
-    func cache(_ items: [ConversationItem]) throws {
+    func cache(_ items: [ConversationItem], serverURI: String) throws {
         for item in items {
-            try upsert(item)
+            try upsert(item, serverURI: serverURI)
         }
         try modelContext.save()
     }
 
-    private func fetchConversationModels() throws -> [ConversationItemModel] {
+    private func fetchConversationModels(serverURI: String) throws -> [ConversationItemModel] {
         let descriptor = FetchDescriptor<ConversationItemModel>(
+            predicate: #Predicate { $0.serverURI == serverURI },
             sortBy: [
                 SortDescriptor(\ConversationItemModel.createdAt),
                 SortDescriptor(\ConversationItemModel.id),
@@ -202,9 +256,10 @@ actor SwiftDataConversationRepository: ConversationPersistence {
         return try modelContext.fetch(descriptor)
     }
 
-    private func fetchPendingModels() throws -> [PendingUtteranceModel] {
+    private func fetchPendingModels(serverURI: String) throws -> [PendingUtteranceModel] {
         try modelContext.fetch(
             FetchDescriptor<PendingUtteranceModel>(
+                predicate: #Predicate { $0.serverURI == serverURI },
                 sortBy: [
                     SortDescriptor(\PendingUtteranceModel.occurredAt),
                     SortDescriptor(\PendingUtteranceModel.id),
@@ -213,16 +268,19 @@ actor SwiftDataConversationRepository: ConversationPersistence {
         )
     }
 
-    private func upsert(_ item: ConversationItem) throws {
-        let itemID = item.itemID.rawValue
+    private func upsert(_ item: ConversationItem, serverURI: String) throws {
+        let storageID = ConversationItemModel.storageID(
+            serverURI: serverURI,
+            itemID: item.itemID
+        )
         var descriptor = FetchDescriptor<ConversationItemModel>(
-            predicate: #Predicate { $0.id == itemID }
+            predicate: #Predicate { $0.id == storageID }
         )
         descriptor.fetchLimit = 1
         if let existing = try modelContext.fetch(descriptor).first {
             try existing.update(with: item)
         } else {
-            modelContext.insert(try ConversationItemModel(item: item))
+            modelContext.insert(try ConversationItemModel(item: item, serverURI: serverURI))
         }
     }
 

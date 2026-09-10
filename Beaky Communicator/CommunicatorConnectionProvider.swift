@@ -15,8 +15,18 @@ final class CommunicatorConnectionProvider: CommunicatorWorldClientProviding, Se
         self.keyStore = keyStore
     }
 
+    func serverURI() -> String {
+        let settings = settings()
+        let scheme = settings.usesTLS ? "https" : "http"
+        return "\(scheme)://\(settings.hostname.lowercased()):\(settings.port)/world/v1"
+    }
+
     func connection() throws -> CreatureServiceConnection {
-        let settings = CreatureServiceSettings(
+        settings().connection(proxyAPIKey: try keyStore?.apiKey())
+    }
+
+    private func settings() -> CreatureServiceSettings {
+        CreatureServiceSettings(
             hostname: defaults.string(forKey: "worldServerAddress") ?? "127.0.0.1",
             port: defaults.object(forKey: "worldServerPort") as? Int ?? 8_000,
             usesTLS: defaults.bool(forKey: "worldServerUseTLS"),
@@ -24,7 +34,6 @@ final class CommunicatorConnectionProvider: CommunicatorWorldClientProviding, Se
             proxyHostname: defaults.string(forKey: "worldServerProxyHost")
                 ?? "proxy.prod.chirpchirp.dev"
         )
-        return settings.connection(proxyAPIKey: try keyStore?.apiKey())
     }
 
     func client() async throws -> any CommunicatorWorldClient {

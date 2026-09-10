@@ -333,6 +333,12 @@ history synchronization pages forward from the durable API. Creature World recor
 in the ordered world-event pipeline; it does not fabricate a Beaky response. A later character
 agent will consume that event and add Beaky's real turn to the same conversation.
 
+The communicator partitions its SwiftData conversation cache and durable outbox by the canonical
+configured Creature World URI. Development, staging, and production history must never be merged,
+and an offline utterance queued for one World must never be submitted to another. Rows created by
+older communicator builds without a server URI remain quarantined and are not assigned to an
+environment by guesswork; the selected server refills its cache from canonical history.
+
 Connect to `/world/v1/stream` without a cursor to receive a snapshot before live deltas. Reconnect
 with the standard SSE `Last-Event-ID` header, or `after_sequence`, to receive durable history after
 that sequence before live delivery. Subscribe-before-query ordering prevents a history/live race.

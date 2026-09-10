@@ -1,3 +1,4 @@
+import Combine
 import CreatureAppSupport
 import SwiftData
 import SwiftUI
@@ -40,6 +41,11 @@ struct ConversationRootView: View {
             guard scenePhase == .active else { return }
             await store.refresh()
             await store.observeUpdates()
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: .communicatorConversationCacheCleared)
+        ) { _ in
+            Task { await store.refresh() }
         }
         .errorAlert($store.errorAlert, dismissLabel: "Okay 😅")
         #if os(iOS)

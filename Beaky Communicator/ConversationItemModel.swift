@@ -8,16 +8,23 @@ import WorldCore
 /// contract fields, including trace context and reply provenance, are not silently discarded.
 @Model
 final class ConversationItemModel {
+    /// SwiftData's unique storage identity. The canonical item ID remains inside `payload`.
     @Attribute(.unique) var id: String
+    var serverURI: String = ""
     var conversationID: String
     var createdAt: Date
     var payload: Data
 
-    init(item: ConversationItem) throws {
-        id = item.itemID.rawValue
+    init(item: ConversationItem, serverURI: String) throws {
+        id = Self.storageID(serverURI: serverURI, itemID: item.itemID)
+        self.serverURI = serverURI
         conversationID = item.conversationID.rawValue
         createdAt = item.createdAt
         payload = try WorldJSON.makeEncoder().encode(item)
+    }
+
+    static func storageID(serverURI: String, itemID: ConversationItemID) -> String {
+        "\(serverURI)\n\(itemID.rawValue)"
     }
 
     func update(with item: ConversationItem) throws {

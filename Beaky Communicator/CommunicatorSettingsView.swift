@@ -1,7 +1,9 @@
 import CreatureAppSupport
+import SwiftData
 import SwiftUI
 
 struct CommunicatorSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
     @AppStorage("worldServerAddress") private var serverAddress = "127.0.0.1"
     @AppStorage("worldServerPort") private var serverPort = 8_000
     @AppStorage("worldServerUseTLS") private var serverUseTLS = false
@@ -10,6 +12,7 @@ struct CommunicatorSettingsView: View {
 
     @State private var proxyAPIKey = ""
     @State private var hasLoadedAPIKey = false
+    @State private var showsClearCacheConfirmation = false
     @State private var errorAlert: ErrorAlert?
 
     private let proxyAPIKeyStore = try? ProxyAPIKeyStore()
@@ -81,10 +84,34 @@ struct CommunicatorSettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
+
+            Section("Application Data") {
+                Button("Clear Conversation Cache", role: .destructive) {
+                    showsClearCacheConfirmation = true
+                }
+
+                Text(
+                    "Deletes downloaded conversation history for every configured World. Pending messages are preserved, and the selected World downloads its canonical history again."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .navigationTitle("Settings")
         .task { loadAPIKey() }
+        .confirmationDialog(
+            "Clear downloaded conversation history?",
+            isPresented: $showsClearCacheConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Conversation Cache", role: .destructive) {
+                clearConversationCache()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Pending messages will not be deleted.")
+        }
         .errorAlert($errorAlert)
     }
 
@@ -127,6 +154,14 @@ struct CommunicatorSettingsView: View {
             try proxyAPIKeyStore.setAPIKey(value)
         } catch {
             errorAlert = ErrorAlert(title: "Couldn’t Save API Key", error: error)
+        }
+    }
+
+    private func clearConversationCache() {
+        do {
+            try ConversationCacheMaintenance.clear(using: modelContext)
+        } catch {
+            errorAlert = ErrorAlert(title: "Couldn’t Clear Conversation Cache", error: error)
         }
     }
 }
