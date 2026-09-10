@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 import Hummingbird
 import ServiceLifecycle
 import WorldCore
@@ -69,6 +70,41 @@ struct WorldHTTPAPI: Sendable {
                         )
                     )
                 }
+            }
+        }
+
+        router.get("v1/conversations/:conversationID/stream") { request, context in
+            await respond {
+                try validateOrigin(request)
+                guard let rawConversationID = context.parameters.get("conversationID") else {
+                    throw WorldAPIError.invalidQuery(name: "conversation_id")
+                }
+                let conversationID = try ConversationID(validating: rawConversationID)
+                let stream = try await execute {
+                    try await conversationService.subscribe(to: conversationID)
+                }
+                var headers: HTTPFields = [
+                    .contentType: "text/event-stream; charset=utf-8",
+                    .cacheControl: "no-cache",
+                ]
+                headers[HTTPField.Name("x-accel-buffering")!] = "no"
+                return Response(
+                    status: .ok,
+                    headers: headers,
+                    body: ResponseBody { writer in
+                        await withGracefulShutdownHandler {
+                            await writeConversationStream(
+                                conversationID: conversationID,
+                                stream: stream,
+                                writer: &writer
+                            )
+                        } onGracefulShutdown: {
+                            Task {
+                                await conversationService.finishConversationSubscriptions()
+                            }
+                        }
+                    }
+                )
             }
         }
 
@@ -352,7 +388,8 @@ struct WorldHTTPAPI: Sendable {
         case WorldAPIError.batchTooLarge:
             status = .contentTooLarge
             code = "batch_too_large"
-        case WorldAPIError.overloaded, WorldProcessingError.queueFull:
+        case WorldAPIError.overloaded, WorldProcessingError.queueFull,
+            WorldSubscriptionError.subscriptionLimitReached:
             status = .serviceUnavailable
             code = "overloaded"
         case WorldAPIError.requestTimedOut:
@@ -476,4 +513,43 @@ struct WorldHTTPAPI: Sendable {
         try? await writer.finish(nil)
     }
 
+    private func writeConversationStream(
+        conversationID: ConversationID,
+        stream: ConversationItemStream,
+        writer: inout any ResponseBodyWriter
+    ) async {
+        do {
+            try await writeSSE(
+                event: "ready",
+                id: nil,
+                value: ConversationStreamReady(conversationID: conversationID),
+                writer: &writer
+            )
+            for await update in stream {
+                switch update {
+                case .item(let item):
+                    try await writeSSE(
+                        event: "item",
+                        id: item.itemID.rawValue,
+                        value: item,
+                        writer: &writer
+                    )
+                case .heartbeat:
+                    try await writer.write(ByteBuffer(string: ": keep-alive\n\n"))
+                }
+            }
+        } catch {
+            // The stream's termination removes its broker subscription.
+        }
+        try? await writer.finish(nil)
+    }
+
+}
+
+private struct ConversationStreamReady: Encodable {
+    let conversationID: ConversationID
+
+    private enum CodingKeys: String, CodingKey {
+        case conversationID = "conversation_id"
+    }
 }

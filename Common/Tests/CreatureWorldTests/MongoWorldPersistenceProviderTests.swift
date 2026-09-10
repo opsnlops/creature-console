@@ -1,5 +1,7 @@
+import Foundation
 import Logging
 import Testing
+import WorldCore
 
 @testable import creature_world
 
@@ -93,6 +95,89 @@ struct MongoWorldPersistenceProviderTests {
 
         #expect(!(await provider.isHealthy()))
         #expect(await shutdowns.value == 1)
+    }
+
+    @Test("Accepted conversation items wake matching subscribers")
+    func acceptedConversationItemPublishesUpdate() async throws {
+        let utterance = try PersonUtterance(
+            utteranceID: UtteranceID(validating: "utterance:provider-stream"),
+            conversationID: ConversationID(validating: "conversation:april-beaky"),
+            speakerID: EntityID(validating: "person:april"),
+            addresseeIDs: [EntityID(validating: "character:beaky")],
+            text: "Hello from another client",
+            modality: .typed,
+            source: .communicatorComposition,
+            sourceID: SourceID(validating: "communicator:test"),
+            occurredAt: Date(timeIntervalSince1970: 1_789_100_002),
+            confidence: 1
+        )
+        let item = try ConversationItem(
+            itemID: ConversationItemID(validating: "conversation-item:provider-stream"),
+            conversationID: utterance.conversationID,
+            authorID: utterance.speakerID,
+            authorKind: .person,
+            text: utterance.text,
+            createdAt: utterance.occurredAt,
+            utteranceID: utterance.utteranceID
+        )
+        let result = UtteranceIngressResult(
+            disposition: .accepted,
+            percept: try PersonUtterancePercept(
+                characterID: utterance.addresseeIDs[0],
+                utterance: utterance,
+                priorConversationItems: []
+            ),
+            conversationItem: item
+        )
+        let provider = MongoWorldPersistenceProvider(
+            uri: CreatureWorldConfiguration.defaultMongoURI,
+            logger: Logger(label: "creature-world-provider-tests"),
+            connector: { _, _ in
+                MongoWorldPersistenceConnection(
+                    isHealthy: { true },
+                    ingestUtterance: { _ in result },
+                    shutdown: {}
+                )
+            }
+        )
+        await provider.connectIfNeeded()
+        let stream = try await provider.subscribe(to: utterance.conversationID)
+        let received = Task<ConversationItem?, Never> {
+            for await update in stream {
+                if case .item(let item) = update {
+                    return item
+                }
+            }
+            return nil
+        }
+
+        _ = try await provider.ingest(utterance)
+
+        #expect(await received.value == item)
+    }
+
+    @Test("Provider shutdown finishes conversation subscriptions")
+    func shutdownFinishesConversationSubscriptions() async throws {
+        let conversationID = try ConversationID(validating: "conversation:april-beaky")
+        let provider = MongoWorldPersistenceProvider(
+            uri: CreatureWorldConfiguration.defaultMongoURI,
+            logger: Logger(label: "creature-world-provider-tests"),
+            connector: { _, _ in
+                MongoWorldPersistenceConnection(
+                    isHealthy: { true },
+                    shutdown: {}
+                )
+            }
+        )
+        await provider.connectIfNeeded()
+        let stream = try await provider.subscribe(to: conversationID)
+        let completion = Task<Void, Never> {
+            for await _ in stream {}
+        }
+
+        await provider.shutdown()
+
+        await completion.value
     }
 }
 

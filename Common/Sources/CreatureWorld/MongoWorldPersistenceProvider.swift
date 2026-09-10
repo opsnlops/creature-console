@@ -192,6 +192,7 @@ actor MongoWorldPersistenceProvider {
     private let connector: Connector
     private let logger: Logger
     private let uri: String
+    private let conversationUpdates = ConversationUpdateBroker()
     private var consecutiveFailures = 0
     private var isConnecting = false
     private var connection: MongoWorldPersistenceConnection?
@@ -262,6 +263,7 @@ actor MongoWorldPersistenceProvider {
     }
 
     func shutdown() async {
+        await conversationUpdates.finish()
         await connection?.shutdown()
         connection = nil
     }
@@ -316,7 +318,11 @@ actor MongoWorldPersistenceProvider {
 
     func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
-        return try await connection.ingestUtterance(utterance)
+        let result = try await connection.ingestUtterance(utterance)
+        if result.disposition == .accepted {
+            await conversationUpdates.publish(result.conversationItem)
+        }
+        return result
     }
 
     func conversationItems(
@@ -326,6 +332,14 @@ actor MongoWorldPersistenceProvider {
     ) async throws -> ConversationItemPage {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.conversationItems(conversationID, itemID, limit)
+    }
+
+    func subscribe(to conversationID: ConversationID) async throws -> ConversationItemStream {
+        try await conversationUpdates.subscribe(to: conversationID)
+    }
+
+    func finishConversationSubscriptions() async {
+        await conversationUpdates.finish()
     }
 }
 

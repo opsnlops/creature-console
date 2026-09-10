@@ -69,6 +69,82 @@ struct WorldHTTPAPITests {
         }
     }
 
+    @Test("Conversation SSE pushes a newly accepted item")
+    func conversationStreamPublishesLiveItem() async throws {
+        let conversationService = TestConversationApplicationService()
+        let application = try makeApplication(
+            worldService: UnavailableWorldApplicationService(),
+            conversationService: conversationService
+        )
+        let utterance = try PersonUtterance(
+            utteranceID: UtteranceID(validating: "utterance:stream-test"),
+            conversationID: ConversationID(validating: "conversation:april-beaky"),
+            speakerID: EntityID(validating: "person:april"),
+            addresseeIDs: [EntityID(validating: "character:beaky")],
+            text: "Wake every connected client",
+            modality: .typed,
+            source: .communicatorComposition,
+            sourceID: SourceID(validating: "communicator:test"),
+            occurredAt: Date(timeIntervalSince1970: 1_789_100_001),
+            confidence: 1
+        )
+
+        try await application.test(.router) { client in
+            let streamRequest = Task {
+                try await client.execute(
+                    uri: "/world/v1/conversations/conversation:april-beaky/stream",
+                    method: .get
+                ) { response in
+                    #expect(response.status == .ok)
+                    #expect(response.headers[.contentType] == "text/event-stream; charset=utf-8")
+                    #expect(response.headers[HTTPField.Name("x-accel-buffering")!] == "no")
+                    return String(buffer: response.body)
+                }
+            }
+            while await conversationService.subscriptionCount == 0 {
+                await Task.yield()
+            }
+
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/utterances",
+                method: .post,
+                headers: [.contentType: "application/json"],
+                body: try encode(utterance)
+            ) { response in
+                #expect(response.status == .accepted)
+            }
+            await conversationService.finishSubscriptions()
+            let body = try await streamRequest.value
+
+            #expect(body.contains("event: ready"))
+            #expect(body.contains("event: item"))
+            #expect(body.contains("id: conversation-item:utterance:stream-test"))
+            #expect(body.contains("Wake every connected client"))
+        }
+    }
+
+    @Test("Conversation SSE browser origins are allowlisted")
+    func conversationStreamOriginValidation() async throws {
+        let configuration = try CreatureWorldConfiguration(
+            allowedOrigins: ["https://communicator.example"]
+        )
+        let application = try makeApplication(
+            configuration: configuration,
+            worldService: UnavailableWorldApplicationService(),
+            conversationService: TestConversationApplicationService()
+        )
+
+        try await application.test(.router) { client in
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/stream",
+                method: .get,
+                headers: [.origin: "https://evil.example"]
+            ) { response in
+                #expect(response.status == .forbidden)
+            }
+        }
+    }
+
     @Test("Event ingress is ordered, queryable, and idempotent over HTTP")
     func eventIngressAndHistory() async throws {
         let service = TestWorldApplicationService()
@@ -494,6 +570,8 @@ struct WorldHTTPAPITests {
 
 private actor TestConversationApplicationService: ConversationApplicationService {
     private var results: [UtteranceID: UtteranceIngressResult] = [:]
+    private var subscribers: [ConversationID: ConversationItemStream.Continuation] = [:]
+    private(set) var subscriptionCount = 0
 
     func ingest(_ utterance: PersonUtterance) throws -> UtteranceIngressResult {
         if let existing = results[utterance.utteranceID] {
@@ -525,6 +603,7 @@ private actor TestConversationApplicationService: ConversationApplicationService
             conversationItem: item
         )
         results[utterance.utteranceID] = result
+        subscribers[utterance.conversationID]?.yield(.item(item))
         return result
     }
 
@@ -542,6 +621,27 @@ private actor TestConversationApplicationService: ConversationApplicationService
             nextItemID: page.last?.itemID,
             hasMore: remaining.count > limit
         )
+    }
+
+    func subscribe(to conversationID: ConversationID) -> ConversationItemStream {
+        let (stream, continuation) = ConversationItemStream.makeStream(
+            bufferingPolicy: .bufferingNewest(1)
+        )
+        subscribers[conversationID] = continuation
+        subscriptionCount = subscribers.count
+        return stream
+    }
+
+    func finishSubscriptions() {
+        for continuation in subscribers.values {
+            continuation.finish()
+        }
+        subscribers.removeAll()
+        subscriptionCount = 0
+    }
+
+    func finishConversationSubscriptions() {
+        finishSubscriptions()
     }
 
     private var orderedItems: [ConversationItem] {

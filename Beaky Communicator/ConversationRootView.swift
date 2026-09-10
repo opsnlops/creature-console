@@ -36,20 +36,10 @@ struct ConversationRootView: View {
                 }
         }
         .task { await store.load() }
-        .task {
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(for: .seconds(2))
-                } catch {
-                    return
-                }
-                guard scenePhase == .active else { continue }
-                await store.refresh()
-            }
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active else { return }
-            Task { await store.refresh() }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            await store.refresh()
+            await store.observeUpdates()
         }
         .errorAlert($store.errorAlert, dismissLabel: "Okay 😅")
         #if os(iOS)
@@ -93,15 +83,21 @@ private struct ConversationView: View {
                 .padding()
             }
             .defaultScrollAnchor(.bottom)
-            .task(id: store.items.last?.itemID) {
-                guard !store.items.isEmpty else { return }
-
-                // Let the lazy stack lay out the new bubble before moving the viewport.
-                await Task.yield()
+            .onChange(of: store.items.last?.itemID, initial: true) { _, itemID in
+                guard itemID != nil else { return }
                 withAnimation(.snappy) {
                     proxy.scrollTo(ScrollTarget.conversationEnd, anchor: .bottom)
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if store.connectionState != .connected {
+                    ConversationConnectionStatus(state: store.connectionState)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.snappy, value: store.connectionState)
         }
         .safeAreaBar(edge: .bottom, spacing: 0) {
             ConversationComposer(store: store)
@@ -127,6 +123,40 @@ private struct ConversationView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
+    }
+}
+
+private struct ConversationConnectionStatus: View {
+    let state: ConversationConnectionState
+
+    var body: some View {
+        Label(message, systemImage: symbolName)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .glassEffect(.regular.tint(.orange.opacity(0.18)), in: .capsule)
+            .accessibilityLabel(message)
+    }
+
+    private var message: String {
+        switch state {
+        case .connecting:
+            "Connecting to Creature World…"
+        case .connected:
+            "Connected to Creature World"
+        case .reconnecting:
+            "Creature World is offline. Reconnecting…"
+        }
+    }
+
+    private var symbolName: String {
+        switch state {
+        case .connecting, .reconnecting:
+            "wifi.exclamationmark"
+        case .connected:
+            "wifi"
+        }
     }
 }
 

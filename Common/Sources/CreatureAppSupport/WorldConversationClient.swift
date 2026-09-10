@@ -17,6 +17,7 @@ public enum WorldConversationClientError: Error, Equatable, LocalizedError, Send
     case invalidBaseURL
     case unexpectedResponse
     case requestFailed(statusCode: Int)
+    case streamingUnavailable
 
     public var errorDescription: String? {
         switch self {
@@ -26,9 +27,13 @@ public enum WorldConversationClientError: Error, Equatable, LocalizedError, Send
             "Creature World returned an invalid response"
         case .requestFailed(let statusCode):
             "Creature World returned HTTP status \(statusCode)"
+        case .streamingUnavailable:
+            "Creature World streaming is unavailable on this platform"
         }
     }
 }
+
+public typealias WorldConversationUpdateStream = AsyncThrowingStream<Void, any Error>
 
 /// Typed HTTP transport for Creature World's canonical conversation API.
 public struct WorldConversationClient: Sendable {
@@ -72,6 +77,45 @@ public struct WorldConversationClient: Sendable {
         return try await response(ConversationItemPage.self, for: request)
     }
 
+    public func updates(in conversationID: ConversationID) throws -> WorldConversationUpdateStream {
+        var proposedRequest = try request(
+            pathComponents: ["conversations", conversationID.rawValue, "stream"]
+        )
+        proposedRequest.httpMethod = "GET"
+        // SSE heartbeats arrive every 15 seconds. Leave enough room for a delayed heartbeat while
+        // retaining a finite idle timeout so the reconnect loop can repair a dead connection.
+        proposedRequest.timeoutInterval = 60
+        let request = proposedRequest
+
+        #if os(macOS) || os(iOS)
+            return WorldConversationUpdateStream(bufferingPolicy: .bufferingNewest(1)) {
+                continuation in
+                let task = Task {
+                    do {
+                        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                        try Self.validate(response)
+                        for try await line in bytes.lines {
+                            guard line == "event: ready" || line == "event: item" else {
+                                continue
+                            }
+                            continuation.yield(())
+                        }
+                        continuation.finish()
+                    } catch is CancellationError {
+                        continuation.finish()
+                    } catch {
+                        continuation.finish(throwing: error)
+                    }
+                }
+                continuation.onTermination = { @Sendable _ in task.cancel() }
+            }
+        #else
+            return WorldConversationUpdateStream {
+                $0.finish(throwing: WorldConversationClientError.streamingUnavailable)
+            }
+        #endif
+    }
+
     private func request(
         pathComponents: [String],
         queryItems: [URLQueryItem] = []
@@ -98,12 +142,16 @@ public struct WorldConversationClient: Sendable {
         for request: URLRequest
     ) async throws -> Value {
         let (data, response) = try await loader.data(for: request)
+        try Self.validate(response)
+        return try WorldJSON.makeDecoder().decode(type, from: data)
+    }
+
+    private static func validate(_ response: URLResponse) throws {
         guard let response = response as? HTTPURLResponse else {
             throw WorldConversationClientError.unexpectedResponse
         }
         guard (200..<300).contains(response.statusCode) else {
             throw WorldConversationClientError.requestFailed(statusCode: response.statusCode)
         }
-        return try WorldJSON.makeDecoder().decode(type, from: data)
     }
 }

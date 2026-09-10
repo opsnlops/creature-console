@@ -1,3 +1,4 @@
+import CreatureAppSupport
 import Foundation
 import Testing
 import WorldCore
@@ -55,6 +56,30 @@ struct ConversationStoreTests {
         #expect(store.items == [first, second])
     }
 
+    @Test("Live updates expose connected and reconnecting states")
+    func reportsConnectionState() async {
+        let service = StreamingConversationService()
+        let store = ConversationStore(service: service)
+        let observation = Task { await store.observeUpdates() }
+
+        await service.signalConnection()
+        await waitUntil { store.connectionState == .connected }
+        #expect(store.connectionState == .connected)
+
+        await service.disconnect()
+        await waitUntil { store.connectionState == .reconnecting }
+        #expect(store.connectionState == .reconnecting)
+
+        observation.cancel()
+        await observation.value
+    }
+
+    private func waitUntil(_ condition: @MainActor () -> Bool) async {
+        for _ in 0..<100 where !condition() {
+            await Task.yield()
+        }
+    }
+
     private func makeCharacterItem(
         text: String,
         suffix: String = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
@@ -72,6 +97,35 @@ struct ConversationStoreTests {
             responseID: .generated(using: responseUUID)
         )
     }
+}
+
+private actor StreamingConversationService: CommunicatorConversationService {
+    private let stream: WorldConversationUpdateStream
+    private let continuation: WorldConversationUpdateStream.Continuation
+
+    init() {
+        (stream, continuation) = WorldConversationUpdateStream.makeStream(
+            bufferingPolicy: .bufferingNewest(1)
+        )
+    }
+
+    func conversation() -> [ConversationItem] { [] }
+
+    func submit(text: String, inReplyTo item: ConversationItem?) {}
+
+    func updates() -> WorldConversationUpdateStream { stream }
+
+    func signalConnection() {
+        continuation.yield(())
+    }
+
+    func disconnect() {
+        continuation.finish(throwing: StreamingTestError.disconnected)
+    }
+}
+
+private enum StreamingTestError: Error {
+    case disconnected
 }
 
 private actor TestConversationService: CommunicatorConversationService {

@@ -6,6 +6,7 @@ import WorldCore
 protocol CommunicatorConversationService: Sendable {
     func conversation() async throws -> [ConversationItem]
     func submit(text: String, inReplyTo item: ConversationItem?) async throws
+    func updates() async throws -> WorldConversationUpdateStream
 }
 
 protocol CommunicatorWorldClient: Sendable {
@@ -15,9 +16,22 @@ protocol CommunicatorWorldClient: Sendable {
         after itemID: ConversationItemID?,
         limit: Int
     ) async throws -> ConversationItemPage
+    func updates(in conversationID: ConversationID) throws -> WorldConversationUpdateStream
 }
 
 extension WorldConversationClient: CommunicatorWorldClient {}
+
+extension CommunicatorWorldClient {
+    func updates(in conversationID: ConversationID) throws -> WorldConversationUpdateStream {
+        WorldConversationUpdateStream { $0.finish() }
+    }
+}
+
+extension CommunicatorConversationService {
+    func updates() async throws -> WorldConversationUpdateStream {
+        WorldConversationUpdateStream { $0.finish() }
+    }
+}
 
 protocol CommunicatorWorldClientProviding: Sendable {
     func client() async throws -> any CommunicatorWorldClient
@@ -65,6 +79,11 @@ actor LiveCommunicatorConversationService: CommunicatorConversationService {
         )
         try await persistence.enqueue(utterance, inReplyTo: item?.itemID)
         await synchronizeBestEffort()
+    }
+
+    func updates() async throws -> WorldConversationUpdateStream {
+        let client = try await clientProvider.client()
+        return try client.updates(in: ConversationIdentity.conversationID)
     }
 
     private func synchronizeBestEffort() async {

@@ -155,6 +155,8 @@ protocol ConversationApplicationService: Sendable {
         after itemID: ConversationItemID?,
         limit: Int
     ) async throws -> ConversationItemPage
+    func subscribe(to conversationID: ConversationID) async throws -> ConversationItemStream
+    func finishConversationSubscriptions() async
 }
 
 struct UnavailableConversationApplicationService: ConversationApplicationService {
@@ -169,6 +171,12 @@ struct UnavailableConversationApplicationService: ConversationApplicationService
     ) async throws -> ConversationItemPage {
         throw WorldAPIError.databaseUnavailable
     }
+
+    func subscribe(to conversationID: ConversationID) async throws -> ConversationItemStream {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func finishConversationSubscriptions() async {}
 }
 
 struct UnavailableWorldApplicationService: WorldApplicationService {

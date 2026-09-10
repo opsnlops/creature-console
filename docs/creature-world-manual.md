@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.10",
+  "build_version": "0.1.11",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -161,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.10",
+  "build_version": "0.1.11",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -314,6 +314,7 @@ current endpoints are:
 | `GET /world/v1/events` | Read ordered history after `after_sequence`. |
 | `POST /world/v1/conversations/{conversation_id}/utterances` | Durably accept one typed `PersonUtterance`; returns 202 when new or 200 when already accepted. |
 | `GET /world/v1/conversations/{conversation_id}/items` | Read canonical conversation items in chronological, stable-ID order. |
+| `GET /world/v1/conversations/{conversation_id}/stream` | Receive an immediate `ready` event followed by live conversation-item notifications over SSE. Reconcile through the items endpoint after connecting. |
 | `GET /world/v1/facts` | Read current facts, optionally filtered by `subject_id`. |
 | `GET /world/v1/timers` | Read timers, optionally filtered by `status`. |
 | `GET /world/v1/snapshot` | Read the latest sequence plus bounded current facts and timers. |
@@ -397,7 +398,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.10_amd64.deb
+sudo apt install ./creature-world_0.1.11_amd64.deb
 ```
 
 The package installs:
