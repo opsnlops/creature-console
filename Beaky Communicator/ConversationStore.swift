@@ -15,8 +15,8 @@ final class ConversationStore {
 
     @ObservationIgnored private let service: any CommunicatorConversationService
 
-    init(service: (any CommunicatorConversationService)? = nil) {
-        self.service = service ?? PreviewConversationService.make()
+    init(service: any CommunicatorConversationService) {
+        self.service = service
     }
 
     func load() async {

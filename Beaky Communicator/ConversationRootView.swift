@@ -1,9 +1,19 @@
 import CreatureAppSupport
+import SwiftData
 import SwiftUI
 import WorldCore
 
 struct ConversationRootView: View {
-    @State private var store = ConversationStore()
+    @State private var store: ConversationStore
+    #if os(iOS)
+        @State private var showsSettings = false
+    #elseif os(macOS)
+        @Environment(\.openSettings) private var openSettings
+    #endif
+
+    init(service: any CommunicatorConversationService) {
+        _store = State(initialValue: ConversationStore(service: service))
+    }
 
     var body: some View {
         NavigationStack {
@@ -13,17 +23,37 @@ struct ConversationRootView: View {
                     .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
+                    ToolbarItemGroup(placement: .primaryAction) {
                         Label("Preview World", systemImage: "sparkles")
                             .font(.caption)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .glassEffect(.regular.tint(.purple.opacity(0.35)), in: .capsule)
+
+                        Button("Settings", systemImage: "gearshape") {
+                            #if os(macOS)
+                                openSettings()
+                            #elseif os(iOS)
+                                showsSettings = true
+                            #endif
+                        }
                     }
                 }
         }
         .task { await store.load() }
         .errorAlert($store.errorAlert, dismissLabel: "Okay 😅")
+        #if os(iOS)
+            .sheet(isPresented: $showsSettings) {
+                NavigationStack {
+                    CommunicatorSettingsView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showsSettings = false }
+                        }
+                    }
+                }
+            }
+        #endif
     }
 }
 
@@ -178,6 +208,33 @@ private struct ConversationComposer: View {
 }
 
 #Preview {
-    ConversationRootView()
-        .frame(width: 640, height: 700)
+    ConversationPreview()
+}
+
+@MainActor
+private struct ConversationPreview: View {
+    private let container: ModelContainer?
+
+    init() {
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        container = try? ModelContainer(
+            for: ConversationItemModel.self,
+            configurations: configuration
+        )
+    }
+
+    var body: some View {
+        if let container {
+            ConversationRootView(
+                service: SwiftDataConversationService(modelContainer: container)
+            )
+            .frame(width: 640, height: 700)
+            .modelContainer(container)
+        } else {
+            ContentUnavailableView(
+                "Preview Unavailable",
+                systemImage: "externaldrive.badge.exclamationmark"
+            )
+        }
+    }
 }

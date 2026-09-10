@@ -1393,6 +1393,14 @@ with APNs, and forward the current app-specific device token over an authenticat
 the gateway. Do not assume a token is permanent; register each launch and update the server
 mapping when it changes.
 
+Keep storage responsibilities explicit. UI and connection preferences belong in `UserDefaults`,
+and the household ingress credential remains in the Creature app-family Keychain. Conversation
+history, locally queued replies, delivery state, and other application data belong in a local,
+file-backed SwiftData store on both platforms; never put chat content in `UserDefaults`. Preserve
+the complete typed conversation DTO in the local model so stable identities, reply relationships,
+provenance, and trace context survive app restarts and can reconcile with the gateway later. Do not
+enable CloudKit for this store.
+
 Declare notification categories and actions at launch. Action selection may launch the app in the background; queue the response locally if the home gateway cannot be reached and submit it when connectivity returns. Use visible alert notifications for user-facing messages. Silent/background notifications may opportunistically refresh conversation state but must never be the only way a message becomes durable because iOS can throttle or omit them.
 
 APNs payloads should contain only what is required to present or locate the notification: a minimal alert (when previews are enabled), category, thread/collapse identifiers, and opaque lowercase notification/message IDs. The complete canonical message and provenance remain on the gateway/world side and are fetched after authentication. Offer two privacy modes:
