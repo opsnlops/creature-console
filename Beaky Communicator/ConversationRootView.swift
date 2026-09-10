@@ -23,13 +23,7 @@ struct ConversationRootView: View {
                     .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar {
-                    ToolbarItemGroup(placement: .primaryAction) {
-                        Label("Preview World", systemImage: "sparkles")
-                            .font(.caption)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .glassEffect(.regular.tint(.purple.opacity(0.35)), in: .capsule)
-
+                    ToolbarItem(placement: .primaryAction) {
                         Button("Settings", systemImage: "gearshape") {
                             #if os(macOS)
                                 openSettings()
