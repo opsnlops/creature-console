@@ -271,10 +271,13 @@ Start with a 30-second heartbeat and a 90-second lease, expressed through an inj
 configuration so expiry, renewal, and boundary races remain deterministic in tests.
 
 “Foreground” means user-attentive, not merely that a process exists. On iOS, only an `.active`
-scene renews its lease. On macOS, the application must be active and have a visible, non-minimized
-conversation window; `.inactive`, hidden, minimized, closed-window, and `.background` states stop
-renewal and attempt an immediate release. A macOS app left running indefinitely must therefore not
-suppress notifications while April is working elsewhere.
+scene on an unlocked device renews its lease. On macOS, the user session and device must be
+unlocked, the application must be active, the conversation window must be visible and
+non-minimized, and recent local input must remain inside a configurable idle threshold. `.inactive`,
+locked, idle, hidden, minimized, closed-window, and `.background` states stop renewal and attempt an
+immediate release. A macOS app left running indefinitely must therefore not suppress notifications
+while April is working elsewhere. Lock and idle evidence stays on the client; the gateway receives
+only the resulting lease operation.
 
 | Component | Owns | Explicitly does not own |
 |---|---|---|
@@ -2310,12 +2313,14 @@ registration/token rotation, an idempotent notification outbox, preview/private 
 actions, replies, renewable per-device foreground leases, and privacy-safe trace correlation. A
 foreground client heartbeats its lease and releases it on backgrounding when possible; expiry is
 authoritative because lifecycle callbacks are not guaranteed. Any live paired-device lease
-suppresses a redundant push. Package the gateway independently for Debian Trixie on amd64 and
-arm64 under `/bin`.
+suppresses a redundant push. Foreground attention includes lock state and, on macOS, configurable
+local idle time; raw input activity never leaves the device. Package the gateway independently for
+Debian Trixie on amd64 and arm64 under `/bin`.
 
 Test full-history pagination, foreground incremental catch-up, multiple simultaneous clients,
-lease renewal/release/expiry, abrupt client loss, macOS active/inactive/hidden/minimized/windowless
-transitions, confirmed-away versus at-home/uncertain presence, notification authorization changes,
+lease renewal/release/expiry, abrupt client loss, iOS/macOS lock transitions, macOS
+active/inactive/idle/hidden/minimized/windowless transitions, confirmed-away versus
+at-home/uncertain presence, notification authorization changes,
 quiet hours, urgency, topic allowlist, TTL expiry, retry, duplicate intents, APNs rejection,
 device-token rotation/revocation, offline app actions, duplicate action submission, preview
 redaction, unauthorized mobile requests, and the distinction between APNs acceptance and user

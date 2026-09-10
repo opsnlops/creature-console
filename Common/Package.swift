@@ -20,6 +20,9 @@ let package = Package(
         .library(
             name: "CreatureAppSupport",
             targets: ["CreatureAppSupport"]),
+        .library(
+            name: "BeakyCommunicatorCore",
+            targets: ["BeakyCommunicatorCore"]),
 
     ],
     dependencies: [
@@ -108,6 +111,12 @@ let package = Package(
         .target(
             name: "CreatureAppSupport",
             dependencies: ["Common", "WorldCore"]),
+
+        // Transport-neutral state shared by the Beaky apps and the isolated Linux gateway.
+        // The gateway owns live leases; Creature World remains the authoritative simulator.
+        .target(
+            name: "BeakyCommunicatorCore",
+            dependencies: ["WorldCore"]),
 
         .target(
             name: "Observability",
@@ -209,6 +218,10 @@ let package = Package(
         .testTarget(
             name: "CreatureAppSupportTests",
             dependencies: ["CreatureAppSupport"]
+        ),
+        .testTarget(
+            name: "BeakyCommunicatorCoreTests",
+            dependencies: ["BeakyCommunicatorCore", "WorldCore"]
         ),
         .testTarget(
             name: "ObservabilityTests",
