@@ -1,9 +1,9 @@
 import Common
+import CreatureAppSupport
 // Needed to configure swift-log (which the Common packages use)
 import Logging
 import LoggingOSLog
 import OSLog
-import SimpleKeychain
 import SwiftData
 import SwiftUI
 
@@ -26,17 +26,17 @@ struct CreatureConsole: App {
         // Configure swift-log for the Common package
         LoggingSystem.bootstrap(LoggingOSLog.init)
 
-        // Fire up simple keychain to get the proxy's API key if needed
-        let simpleKeychain = SimpleKeychain(
-            service: "io.opsnlops.CreatureConsole", synchronizable: true)
-        logger.debug("SimpleKeychain initialized")
+        let proxyAPIKeyStore = try? ProxyAPIKeyStore(migrateLegacyConsoleKey: true)
+        if proxyAPIKeyStore == nil {
+            logger.warning("Shared Creature Keychain access group is not configured")
+        }
 
         /**
          Set up default prefs for static things
          */
         let defaultPreferences: [String: Any] = [
-            "serverHostname": "server.dev.chirpchirp.dev",
-            "serverRestPort": 443,
+            "serverAddress": "server.dev.chirpchirp.dev",
+            "serverPort": 443,
             "serverUseTLS": true,
             "serverProxyHost": "",
             "useProxy": false,
@@ -91,7 +91,7 @@ struct CreatureConsole: App {
                 if let host = proxyHostValue, !host.isEmpty {
                     proxyHost = host
                     // Get API key from keychain
-                    apiKey = try? simpleKeychain.string(forKey: "proxyApiKey")
+                    apiKey = try? proxyAPIKeyStore?.apiKey()
 
                     if apiKey == nil {
                         logger.warning("Proxy is enabled but no API key found in keychain")
@@ -99,13 +99,21 @@ struct CreatureConsole: App {
                 }
             }
 
+            let settings = CreatureServiceSettings(
+                hostname: UserDefaults.standard.string(forKey: "serverAddress") ?? "127.0.0.1",
+                port: UserDefaults.standard.integer(forKey: "serverPort"),
+                usesTLS: UserDefaults.standard.bool(forKey: "serverUseTLS"),
+                usesProxy: proxyHost != nil,
+                proxyHostname: proxyHost ?? ""
+            )
+            let connection = settings.connection(proxyAPIKey: apiKey)
             try CreatureServerClient.shared.connect(
-                serverHostname: UserDefaults.standard.string(forKey: "serverAddress")
-                    ?? "127.0.0.1",
-                serverPort: UserDefaults.standard.integer(forKey: "serverPort"),
-                useTLS: UserDefaults.standard.bool(forKey: "serverUseTLS"),
-                serverProxyHost: proxyHost,
-                apiKey: apiKey)
+                serverHostname: connection.hostname,
+                serverPort: connection.port,
+                useTLS: connection.usesTLS,
+                serverProxyHost: connection.proxyHostname,
+                apiKey: connection.proxyAPIKey
+            )
 
             logger.info("server configuration set")
 

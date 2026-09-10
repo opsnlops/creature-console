@@ -125,28 +125,19 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
     /**
      Returns the URL to our server
-    
+
      @param type Which type of URL to make (http or websocket)
      */
     public func makeBaseURL(_ type: UrlType) -> String {
-
-        var prefix: String
-        switch type {
-        case (.http):
-            prefix = useTLS ? "https://" : "http://"
-        case (.websocket):
-            prefix = useTLS ? "wss://" : "ws://"
-        }
-
-        // Use proxy host if both proxyHost and apiKey are configured
-        let host: String
-        if let proxy = serverProxyHost, apiKey != nil {
-            host = proxy
-        } else {
-            host = "\(serverHostname):\(serverPort)"
-        }
-
-        return "\(prefix)\(host)/api/v1"
+        let transport: CreatureServiceConnection.Transport =
+            switch type {
+            case .http: .http
+            case .websocket: .websocket
+            }
+        return connectionConfiguration.baseURLString(
+            transport: transport,
+            pathPrefix: "/api/v1"
+        )
     }
 
     public func connect(
@@ -188,25 +179,16 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
 
     /**
      Creates a configured URLRequest with proper headers for proxy support
-    
+
      This method ensures all HTTP requests to the server include the necessary headers
      for proxy authentication and routing, regardless of where in the app they originate.
-    
+
      - Parameter url: The URL to create the request for
      - Returns: A URLRequest configured with API key and Host headers as needed
      */
     public func createConfiguredURLRequest(for url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-
-        // Add API key header if configured
-        if let key = apiKey {
-            request.setValue(key, forHTTPHeaderField: "x-acw-api-key")
-        }
-
-        // Set Host header when using proxy
-        if serverProxyHost != nil, apiKey != nil {
-            request.setValue("\(serverHostname):\(serverPort)", forHTTPHeaderField: "Host")
-        }
+        connectionConfiguration.applyProxyHeaders(to: &request)
 
         // Inject W3C Trace Context headers (traceparent, tracestate) for distributed
         // tracing. When OTel is not bootstrapped, the no-op instrument skips injection.
@@ -220,6 +202,16 @@ public final class CreatureServerClient: CreatureServerClientProtocol, Sendable 
         }
 
         return request
+    }
+
+    private var connectionConfiguration: CreatureServiceConnection {
+        CreatureServiceConnection(
+            hostname: serverHostname,
+            port: serverPort,
+            usesTLS: useTLS,
+            proxyHostname: serverProxyHost,
+            proxyAPIKey: apiKey
+        )
     }
 
 

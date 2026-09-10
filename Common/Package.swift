@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "Common",
     platforms: [
-        .macOS(.v15), .iOS(.v26),
+        .macOS(.v26), .iOS(.v26),
     ],
     products: [
         .library(
@@ -17,6 +17,9 @@ let package = Package(
         .library(
             name: "WorldCore",
             targets: ["WorldCore"]),
+        .library(
+            name: "CreatureAppSupport",
+            targets: ["CreatureAppSupport"]),
 
     ],
     dependencies: [
@@ -40,6 +43,7 @@ let package = Package(
             from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-metrics.git", from: "2.5.0"),
         .package(url: "https://github.com/apple/swift-distributed-tracing.git", from: "1.4.0"),
+        .package(url: "https://github.com/apple/swift-service-context.git", from: "1.3.0"),
         .package(url: "https://github.com/orlandos-nl/MongoKitten.git", from: "7.16.0"),
     ],
 
@@ -91,8 +95,19 @@ let package = Package(
         .target(
             name: "WorldCore",
             dependencies: [
-                .product(name: "Tracing", package: "swift-distributed-tracing")
+                .product(name: "Tracing", package: "swift-distributed-tracing"),
+                // Tracing's async span helpers expose ServiceContext through default
+                // arguments. Keep this explicit so Xcode links the package product
+                // correctly when WorldCore is consumed by an app target.
+                .product(name: "ServiceContextModule", package: "swift-service-context"),
             ]),
+
+        // Shared Apple-app infrastructure and visual language for Creature Console,
+        // Beaky Communicator, and Creature Scribe. Product-specific state remains in
+        // each app target.
+        .target(
+            name: "CreatureAppSupport",
+            dependencies: ["Common", "WorldCore"]),
 
         .target(
             name: "Observability",
@@ -192,6 +207,10 @@ let package = Package(
             dependencies: ["WorldCore"]
         ),
         .testTarget(
+            name: "CreatureAppSupportTests",
+            dependencies: ["CreatureAppSupport"]
+        ),
+        .testTarget(
             name: "ObservabilityTests",
             dependencies: ["Observability"]
         ),
@@ -214,4 +233,8 @@ let package = Package(
     // Omitting it on Linux keeps server-only builds and tests from requiring an unavailable module.
     package.products.removeAll { $0.name == "PlaylistRuntime" }
     package.targets.removeAll { $0.name == "PlaylistRuntime" }
+    package.products.removeAll { $0.name == "CreatureAppSupport" }
+    package.targets.removeAll {
+        $0.name == "CreatureAppSupport" || $0.name == "CreatureAppSupportTests"
+    }
 #endif

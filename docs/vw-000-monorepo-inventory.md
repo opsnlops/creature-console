@@ -171,11 +171,12 @@ Recommended additions:
 | `CreatureWorld` / `creature-world` | `Common/Sources/CreatureWorld` | Depends on `WorldCore`, `Observability`, MongoKitten, HTTP/WebSocket implementation |
 | `WorldViewerClient` | `Common/Sources/WorldViewerClient` | Depends on `WorldCore`; contains transport/client logic, not SwiftUI views |
 | `InformationBridgeCore` | `Common/Sources/InformationBridgeCore` | Depends on `WorldCore`; protocols, ledger/outbox, privacy policy, and fakes only |
+| `CreatureAppSupport` | `Common/Sources/CreatureAppSupport` | Apple-only, product-neutral UI, connection, and shared Keychain infrastructure for Console, Communicator, and Scribe |
 | `HomeAssistantWorldAdapter` | `Common/Sources/HomeAssistantWorldAdapter` | Depends on `WorldCore`, `Observability`, and selected WebSocket client |
 | `WorldMCP` | `Common/Sources/WorldMCP` | Depends on world query services; isolates MCP SDK and transport types |
-| `CreatureMessengerGateway` | `Common/Sources/CreatureMessengerGateway` | Future Linux executable; depends on communication contracts and gateway infrastructure |
+| `CreatureCommunicatorGateway` | `Common/Sources/CreatureCommunicatorGateway` | Future Linux executable; depends on communication contracts and gateway infrastructure |
 
-Create World Viewer, Creature Context/`creature-contextd`, and Beaky Messenger as separate Xcode
+Create World Viewer, Creature Scribe/`creature-scribed`, and Beaky Communicator as separate Xcode
 application/daemon targets with their own entitlements and deployment metadata. Their reusable,
 testable logic should live in the package targets above. Do not add world views to Creature Console
 or Apple frameworks to `WorldCore`.
@@ -190,7 +191,7 @@ or Apple frameworks to `WorldCore`.
 4. Simulator repositories depend on MongoKitten; world value types do not.
 5. Viewer and MCP use the same authorized query/application services rather than reading MongoDB
    directly.
-6. Information Bridge helpers feed `creature-contextd`; they do not deliver directly to the
+6. Information Bridge helpers feed `creature-scribed`; they do not deliver directly to the
    simulator or expose raw private data to agents.
 7. Each separately deployed Linux executable must be classified in the Debian product matrix.
 

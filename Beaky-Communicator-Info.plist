@@ -4,12 +4,5 @@
 <dict>
 	<key>CreatureSharedKeychainAccessGroup</key>
 	<string>$(AppIdentifierPrefix)io.opsnlops.CreatureApps</string>
-	<key>GCSupportedGameControllers</key>
-	<array>
-		<dict>
-			<key>ProfileName</key>
-			<string>ExtendedGamepad</string>
-		</dict>
-	</array>
 </dict>
 </plist>
