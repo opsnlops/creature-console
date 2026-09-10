@@ -67,11 +67,11 @@ struct ConversationContractTests {
     func conversationContentIsBounded() throws {
         let oversizedText = String(
             repeating: "🦜",
-            count: ConversationContractLimits.maximumTextUTF8Bytes / 4 + 1
+            count: ConversationContractLimits.maximumTextUnicodeScalars + 1
         )
         #expect(
             throws: WorldContractError.conversationContentTooLarge(
-                maximumUTF8Bytes: ConversationContractLimits.maximumTextUTF8Bytes
+                maximumUnicodeScalars: ConversationContractLimits.maximumTextUnicodeScalars
             )
         ) {
             try PersonUtterance(

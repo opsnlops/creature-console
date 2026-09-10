@@ -105,6 +105,42 @@ struct ValidationTests {
         }
     }
 
+    @Test("Conversation bounds are enforced while decoding untrusted JSON")
+    func conversationBoundsAreEnforcedDuringDecode() throws {
+        let oversizedUtterance = try mutatedFixture("person-utterance-v1") { object in
+            object["text"] = String(
+                repeating: "🦜",
+                count: ConversationContractLimits.maximumTextUnicodeScalars + 1
+            )
+        }
+        #expect(
+            throws: WorldContractError.conversationContentTooLarge(
+                maximumUnicodeScalars: ConversationContractLimits.maximumTextUnicodeScalars
+            )
+        ) {
+            try WorldJSON.makeDecoder().decode(PersonUtterance.self, from: oversizedUtterance)
+        }
+
+        let oversizedContext = try mutatedFixture("person-utterance-percept-v1") { object in
+            let originalItems = object["prior_conversation_items"] as? [[String: Any]] ?? []
+            guard let item = originalItems.first else { return }
+            object["prior_conversation_items"] = Array(
+                repeating: item,
+                count: ConversationContractLimits.maximumContextItems + 1
+            )
+        }
+        #expect(
+            throws: WorldContractError.conversationContextTooLarge(
+                maximumItems: ConversationContractLimits.maximumContextItems
+            )
+        ) {
+            try WorldJSON.makeDecoder().decode(
+                PersonUtterancePercept.self,
+                from: oversizedContext
+            )
+        }
+    }
+
     @Test("Confidence and urgency reject non-finite and out-of-range values")
     func boundedValuesAreValidated() {
         #expect(throws: WorldContractError.self) {
@@ -214,6 +250,16 @@ struct ValidationTests {
         let data = try Data(contentsOf: fixtureURL(fixture))
         var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         object["schema_version"] = version
+        return try JSONSerialization.data(withJSONObject: object)
+    }
+
+    private func mutatedFixture(
+        _ fixture: String,
+        mutation: (inout [String: Any]) -> Void
+    ) throws -> Data {
+        let data = try Data(contentsOf: fixtureURL(fixture))
+        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        mutation(&object)
         return try JSONSerialization.data(withJSONObject: object)
     }
 }

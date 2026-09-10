@@ -15,7 +15,7 @@
     "in_response_to_utterance_id": {
       "$ref": "world-definitions-v1.schema.json#/$defs/utteranceID"
     },
-    "text": { "type": "string", "minLength": 1, "maxLength": 16384 },
+    "text": { "type": "string", "minLength": 1, "maxLength": 4096 },
     "urgency": { "$ref": "world-definitions-v1.schema.json#/$defs/confidence" },
     "created_at": { "type": "string", "format": "date-time" },
     "expires_at": { "type": "string", "format": "date-time" },

@@ -1,8 +1,8 @@
 import Foundation
 
 public enum ConversationContractLimits {
-    /// Bounds sensitive text carried or persisted by a single conversation record.
-    public static let maximumTextUTF8Bytes = 16_384
+    /// Bounds sensitive text consistently with JSON Schema's Unicode-code-point `maxLength`.
+    public static let maximumTextUnicodeScalars = 4_096
     /// Bounds the prior conversation excerpt submitted for one consideration.
     public static let maximumContextItems = 100
 }
@@ -11,9 +11,9 @@ private func validateConversationText(_ text: String) throws {
     guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
         throw WorldContractError.emptyUtterance
     }
-    guard text.utf8.count <= ConversationContractLimits.maximumTextUTF8Bytes else {
+    guard text.unicodeScalars.count <= ConversationContractLimits.maximumTextUnicodeScalars else {
         throw WorldContractError.conversationContentTooLarge(
-            maximumUTF8Bytes: ConversationContractLimits.maximumTextUTF8Bytes
+            maximumUnicodeScalars: ConversationContractLimits.maximumTextUnicodeScalars
         )
     }
 }

@@ -32,6 +32,7 @@ public struct BoundaryUtteranceIngressAuthorizer: UtteranceIngressAuthorizing {
             true
         case .authenticatedGateway:
             context.principalID == utterance.speakerID
+                && [.communicatorComposition, .communicatorReply].contains(utterance.source)
         }
     }
 }

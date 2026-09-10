@@ -14,7 +14,7 @@ public enum WorldContractError: Error, Equatable, Sendable {
     case invalidPersonUtterance
     case invalidConversationItem
     case invalidCharacterUtteranceIntent
-    case conversationContentTooLarge(maximumUTF8Bytes: Int)
+    case conversationContentTooLarge(maximumUnicodeScalars: Int)
     case conversationContextTooLarge(maximumItems: Int)
     case conflictingConversationIdentity
     case invalidPresenceEvidence
@@ -51,8 +51,8 @@ extension WorldContractError: LocalizedError {
             "A conversation item must identify exactly one valid author and contain text"
         case .invalidCharacterUtteranceIntent:
             "A character utterance intent must contain text and valid urgency and expiry"
-        case .conversationContentTooLarge(let maximumUTF8Bytes):
-            "Conversation text exceeds the \(maximumUTF8Bytes)-byte limit"
+        case .conversationContentTooLarge(let maximumUnicodeScalars):
+            "Conversation text exceeds the \(maximumUnicodeScalars)-Unicode-scalar limit"
         case .conversationContextTooLarge(let maximumItems):
             "Conversation context exceeds the \(maximumItems)-item limit"
         case .conflictingConversationIdentity:

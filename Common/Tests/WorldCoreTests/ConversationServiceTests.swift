@@ -105,6 +105,34 @@ struct ConversationServiceTests {
         #expect(await sink.submissionCount == 1)
     }
 
+    @Test("Concurrent ingress accepts one April turn and one duplicate")
+    func concurrentIngressIsIdempotent() async throws {
+        let repository = TestUtteranceRepository()
+        let sink = TestPerceptSink()
+        let firstService = makeIngressService(repository: repository, sink: sink)
+        let secondService = makeIngressService(repository: repository, sink: sink)
+        let input = try makeAdapterInput(sourceID: SourceID(validating: "wizard:mode"))
+        let context = UtteranceIngressContext(boundary: .trustedLAN)
+
+        async let first = PersonUtteranceAdapter.wizardMode.submit(
+            input,
+            context: context,
+            to: firstService
+        )
+        async let second = PersonUtteranceAdapter.wizardMode.submit(
+            input,
+            context: context,
+            to: secondService
+        )
+        let results = try await [first, second]
+
+        #expect(Set(results.map(\.disposition)) == [.accepted, .duplicate])
+        #expect(Set(results.map(\.percept.considerationID)).count == 1)
+        #expect(Set(results.map(\.conversationItem.itemID)).count == 1)
+        #expect(await repository.preparedCount == 1)
+        #expect(await sink.submissionCount == 1)
+    }
+
     @Test("An utterance ID cannot be reused to make Beaky hear different words")
     func conflictingUtteranceIdentityIsRejected() async throws {
         let repository = TestUtteranceRepository()
@@ -177,6 +205,34 @@ struct ConversationServiceTests {
                 to: service
             )
         }
+        #expect(await repository.preparedCount == 0)
+        #expect(await sink.submissionCount == 0)
+    }
+
+    @Test("Authenticated Communicator calls cannot impersonate Wizard Mode or speech")
+    func authenticatedGatewayRejectsPrivilegedSources() async throws {
+        let repository = TestUtteranceRepository()
+        let sink = TestPerceptSink()
+        let service = makeIngressService(repository: repository, sink: sink)
+        let input = try makeAdapterInput(
+            sourceID: SourceID(validating: "communicator:april-iphone")
+        )
+        let context = UtteranceIngressContext(
+            boundary: .authenticatedGateway,
+            principalID: input.speakerID
+        )
+
+        await #expect(throws: WorldContractError.unauthorizedUtteranceIngress) {
+            try await PersonUtteranceAdapter.wizardMode.submit(input, context: context, to: service)
+        }
+        await #expect(throws: WorldContractError.unauthorizedUtteranceIngress) {
+            try await PersonUtteranceAdapter.speechToText.submit(
+                input,
+                context: context,
+                to: service
+            )
+        }
+
         #expect(await repository.preparedCount == 0)
         #expect(await sink.submissionCount == 0)
     }
@@ -254,6 +310,43 @@ struct ConversationServiceTests {
         #expect(first.route == .physicalSpeech)
         #expect(await dependencies.physicalSink.deliveryCount == 1)
         #expect(await dependencies.communicatorSink.deliveryCount == 0)
+    }
+
+    @Test("A concurrent presence transition still chooses only one stage for Beaky")
+    func concurrentPresenceTransitionChoosesOneRoute() async throws {
+        let repository = TestDeliveryRepository()
+        let physicalSink = TestDeliverySink()
+        let communicatorSink = TestDeliverySink()
+        let homeRouter = try makeRouter(
+            dependencies: RouterDependencies(
+                presenceProvider: TestPresenceProvider(presence: try makePresence(testCase: .home)),
+                repository: repository,
+                physicalSink: physicalSink,
+                communicatorSink: communicatorSink
+            )
+        )
+        let awayRouter = try makeRouter(
+            dependencies: RouterDependencies(
+                presenceProvider: TestPresenceProvider(presence: try makePresence(testCase: .away)),
+                repository: repository,
+                physicalSink: physicalSink,
+                communicatorSink: communicatorSink
+            )
+        )
+        let intent = try makeCharacterIntent()
+
+        async let homeResult = homeRouter.route(intent)
+        async let awayResult = awayRouter.route(intent)
+        let outcomes = try await [homeResult, awayResult]
+        let physicalAcceptances = await physicalSink.acceptedAttemptCount
+        let communicatorAcceptances = await communicatorSink.acceptedAttemptCount
+        let physicalDeliveries = await physicalSink.deliveryCount
+        let communicatorDeliveries = await communicatorSink.deliveryCount
+
+        #expect(Set(outcomes.map(\.route)).count == 1)
+        #expect(physicalAcceptances + communicatorAcceptances == 1)
+        #expect((physicalDeliveries == 0) != (communicatorDeliveries == 0))
+        #expect(await repository.preparedCount == 1)
     }
 
     @Test("A response ID cannot be reused for a different Beaky turn")
@@ -564,6 +657,8 @@ private actor TestPresenceProvider: PersonPresenceProviding {
 
 private actor TestDeliveryRepository: CharacterDeliveryRepository {
     private(set) var delivery: StoredCharacterDelivery?
+
+    var preparedCount: Int { delivery == nil ? 0 : 1 }
 
     func delivery(for responseID: ResponseID) -> StoredCharacterDelivery? {
         guard delivery?.intent.responseID == responseID else { return nil }

@@ -12,7 +12,7 @@
     "conversation_id": { "$ref": "world-definitions-v1.schema.json#/$defs/conversationID" },
     "author_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
     "author_kind": { "enum": ["person", "character"] },
-    "text": { "type": "string", "minLength": 1, "maxLength": 16384 },
+    "text": { "type": "string", "minLength": 1, "maxLength": 4096 },
     "created_at": { "type": "string", "format": "date-time" },
     "in_reply_to_item_id": {
       "$ref": "world-definitions-v1.schema.json#/$defs/conversationItemID"
