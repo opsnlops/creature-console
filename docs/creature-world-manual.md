@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.7",
+  "build_version": "0.1.9",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -161,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.7",
+  "build_version": "0.1.9",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -169,7 +169,7 @@ Example unavailable response:
 
 ### Collections and indexes
 
-Schema migrations 1 and 2 establish the following collections and indexes:
+Schema migrations 1 through 3 establish the following collections and indexes:
 
 | Collection | Purpose | Important indexes |
 | --- | --- | --- |
@@ -179,7 +179,9 @@ Schema migrations 1 and 2 establish the following collections and indexes:
 | `facts` | Durable facts and current-state reads | Unique `fact_id`; active facts by subject, predicate, validity, and supersession |
 | `timers` | Durable simulator timers | Unique `timer_id`; recoverable timers by status and due time |
 | `source_checkpoints` | Per-source cursor or checkpoint state | Unique `source_id` |
-| `schema_migrations` | Applied Creature World schema versions | Migration version in `_id`; current migration is 2 |
+| `utterance_ingresses` | Durable, idempotent person-utterance processing records | Unique utterance ID |
+| `conversation_items` | Canonical conversation history shared by clients and characters | Unique item ID; conversation/time/item order |
+| `schema_migrations` | Applied Creature World schema versions | Migration version in `_id`; current migration is 3 |
 
 The migrator is idempotent and runs whenever a connection is established. Writes use majority write
 concern.
@@ -283,6 +285,12 @@ counters for scheduled, canceled, fired, recovered, rejected, and failed timers.
 only the stable timer ID, semantic purpose, disposition, and lateness; timer payload values are not
 attached.
 
+Person utterance ingestion uses the existing `conversation.utterance.ingest` span and records only
+stable IDs, source, modality, boundary, and disposition. Conversation text and proxy credentials
+are never attached to telemetry. The accepted `PersonUtterancePercept` becomes a typed,
+source-idempotent world event so the future character agent consumes the same ordered cognition
+pipeline as every other world event.
+
 ## JSON and live-stream API
 
 All API JSON uses snake-case keys and RFC 3339 timestamps. Event requests require
@@ -297,15 +305,25 @@ current endpoints are:
 | `POST /world/v1/events` | Accept one `WorldEventEnvelope`; returns HTTP 202 for a new event or 200 for a duplicate. |
 | `POST /world/v1/events:batch` | Accept up to 100 envelopes in request order and return a disposition for each. |
 | `GET /world/v1/events` | Read ordered history after `after_sequence`. |
+| `POST /world/v1/conversations/{conversation_id}/utterances` | Durably accept one typed `PersonUtterance`; returns 202 when new or 200 when already accepted. |
+| `GET /world/v1/conversations/{conversation_id}/items` | Read canonical conversation items in chronological, stable-ID order. |
 | `GET /world/v1/facts` | Read current facts, optionally filtered by `subject_id`. |
 | `GET /world/v1/timers` | Read timers, optionally filtered by `status`. |
 | `GET /world/v1/snapshot` | Read the latest sequence plus bounded current facts and timers. |
 | `GET /world/v1/stream` | Receive an initial snapshot or resumed history followed by ordered live deltas over SSE. |
 
-History uses `after_sequence`; fact and timer pages use `after_fact_id` and `after_timer_id`.
+History uses `after_sequence`; conversation, fact, and timer pages use `after_item_id`,
+`after_fact_id`, and `after_timer_id`.
 Every list accepts `limit`, defaults to 100, and permits at most 500 results. Page responses state
 whether more results exist and provide the cursor for the next request. A snapshot marks facts or
 timers as truncated rather than implying that a bounded result is complete.
+
+Beaky writes a typed utterance to its local SwiftData outbox before attempting the POST. Retries
+reuse the same utterance ID, so an interrupted request cannot make Beaky hear April twice. A
+successful response replaces the provisional local item with Creature World's canonical item, and
+history synchronization pages forward from the durable API. Creature World records April's turn
+in the ordered world-event pipeline; it does not fabricate a Beaky response. A later character
+agent will consume that event and add Beaky's real turn to the same conversation.
 
 Connect to `/world/v1/stream` without a cursor to receive a snapshot before live deltas. Reconnect
 with the standard SSE `Last-Event-ID` header, or `after_sequence`, to receive durable history after
@@ -372,7 +390,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.7_amd64.deb
+sudo apt install ./creature-world_0.1.9_amd64.deb
 ```
 
 The package installs:
@@ -506,9 +524,10 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
 
 The integration suite verifies migrations and indexes, both forms of event deduplication,
 concurrent unique sequencing, idempotent fact upserts, fact survival across a reconnect, timers,
-source checkpoints, and API persistence across a complete application restart. The focused HTTP
-suite also proves ordered and duplicate acceptance, bounded inputs, non-loopback access, trace
-validation, overload, deadlines, SSE origin enforcement, and gap-free reconnect behavior.
+source checkpoints, durable ordered conversation ingestion, and API persistence across a complete
+application restart. The focused HTTP suite also proves ordered and duplicate event and utterance
+acceptance, retry safety across changing transport traces, bounded inputs, non-loopback access,
+trace validation, overload, deadlines, SSE origin enforcement, and gap-free reconnect behavior.
 The tests write uniquely identified records to the `creature_world` database and do not drop the
 database afterward. Use a disposable development or CI deployment, never production.
 

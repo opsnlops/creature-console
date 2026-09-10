@@ -16,6 +16,9 @@ struct MongoWorldPersistenceConnection: Sendable {
     let recoverTimers: @Sendable () async throws -> Void
     let scheduleTimer: @Sendable (WorldTimer) async throws -> Void
     let cancelTimer: @Sendable (TimerID) async throws -> Bool
+    let ingestUtterance: @Sendable (PersonUtterance) async throws -> UtteranceIngressResult
+    let conversationItems:
+        @Sendable (ConversationID, ConversationItemID?, Int) async throws -> ConversationItemPage
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -34,6 +37,10 @@ struct MongoWorldPersistenceConnection: Sendable {
             eventSink: world,
             clock: clock,
             logger: logger
+        )
+        let conversationIngress = PersonUtteranceIngressService(
+            repository: persistence.conversations,
+            sink: WorldPersonUtterancePerceptSink(world: world)
         )
         acceptEvent = { try await world.accept($0) }
         events = { sequence, limit in
@@ -99,6 +106,26 @@ struct MongoWorldPersistenceConnection: Sendable {
         recoverTimers = { try await timerScheduler.recover() }
         scheduleTimer = { try await timerScheduler.schedule($0) }
         cancelTimer = { try await timerScheduler.cancel(timerID: $0) }
+        ingestUtterance = {
+            try await conversationIngress.ingest(
+                $0,
+                context: UtteranceIngressContext(boundary: .trustedLAN)
+            )
+        }
+        conversationItems = { conversationID, after, limit in
+            let loaded = try await persistence.conversations.conversationItems(
+                in: conversationID,
+                after: after,
+                limit: limit + 1
+            )
+            let hasMore = loaded.count > limit
+            let pageItems = Array(loaded.prefix(limit))
+            return ConversationItemPage(
+                items: pageItems,
+                nextItemID: pageItems.last?.itemID,
+                hasMore: hasMore
+            )
+        }
         shutdown = {
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
@@ -134,6 +161,12 @@ struct MongoWorldPersistenceConnection: Sendable {
         recoverTimers: @escaping @Sendable () async throws -> Void = {},
         scheduleTimer: @escaping @Sendable (WorldTimer) async throws -> Void = { _ in },
         cancelTimer: @escaping @Sendable (TimerID) async throws -> Bool = { _ in false },
+        ingestUtterance:
+            @escaping @Sendable (PersonUtterance) async throws
+            -> UtteranceIngressResult = { _ in throw WorldAPIError.databaseUnavailable },
+        conversationItems:
+            @escaping @Sendable (ConversationID, ConversationItemID?, Int) async throws
+            -> ConversationItemPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
         shutdown: @escaping @Sendable () async -> Void
     ) {
         self.acceptEvent = acceptEvent
@@ -147,6 +180,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.recoverTimers = recoverTimers
         self.scheduleTimer = scheduleTimer
         self.cancelTimer = cancelTimer
+        self.ingestUtterance = ingestUtterance
+        self.conversationItems = conversationItems
         self.shutdown = shutdown
     }
 }
@@ -277,6 +312,47 @@ actor MongoWorldPersistenceProvider {
 
     func finishSubscriptions() async {
         await connection?.finishSubscriptions()
+    }
+
+    func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.ingestUtterance(utterance)
+    }
+
+    func conversationItems(
+        in conversationID: ConversationID,
+        after itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> ConversationItemPage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.conversationItems(conversationID, itemID, limit)
+    }
+}
+
+extension MongoWorldPersistenceProvider: ConversationApplicationService {}
+
+private struct WorldPersonUtterancePerceptSink: PersonUtterancePerceptSink {
+    let world: World
+
+    func submit(_ percept: PersonUtterancePercept) async throws -> UtterancePerceptAcceptance {
+        let utterance = percept.utterance
+        let envelope = try WorldEventEnvelope(
+            occurredAt: utterance.occurredAt,
+            observedAt: utterance.receivedAt,
+            source: EventSource(
+                id: utterance.sourceID,
+                kind: utterance.source.rawValue,
+                sourceEventID: utterance.utteranceID.rawValue
+            ),
+            subjectIDs: [utterance.speakerID, percept.characterID],
+            placeID: utterance.placeEvidence?.placeID,
+            epistemic: EpistemicState(type: .reported, confidence: utterance.confidence),
+            payload: percept,
+            causedBy: utterance.causedBy,
+            trace: utterance.trace
+        )
+        let acceptance = try await world.accept(envelope)
+        return acceptance.disposition == .accepted ? .accepted : .duplicate
     }
 }
 

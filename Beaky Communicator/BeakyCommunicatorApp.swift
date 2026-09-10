@@ -10,7 +10,7 @@ struct BeakyCommunicatorApp: App {
 
     init() {
         do {
-            let schema = Schema([ConversationItemModel.self])
+            let schema = Schema([ConversationItemModel.self, PendingUtteranceModel.self])
             let configuration: ModelConfiguration
             if Self.isRunningTests {
                 configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -28,7 +28,10 @@ struct BeakyCommunicatorApp: App {
 
             let container = try ModelContainer(for: schema, configurations: configuration)
             modelContainer = container
-            conversationService = SwiftDataConversationService(modelContainer: container)
+            conversationService = LiveCommunicatorConversationService(
+                persistence: SwiftDataConversationRepository(modelContainer: container),
+                clientProvider: CommunicatorConnectionProvider.shared
+            )
         } catch {
             fatalError("Failed to create Beaky Communicator SwiftData store: \(error)")
         }

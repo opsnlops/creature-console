@@ -3,7 +3,7 @@ import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 2
+    static let currentVersion = 3
 
     let database: MongoDatabase
     let logger: Logger
@@ -17,9 +17,12 @@ struct MongoWorldMigrator: Sendable {
         try await createTimerIndexes()
         logger.debug("Ensuring source checkpoint indexes")
         try await createSourceCheckpointIndexes()
+        logger.debug("Ensuring conversation indexes")
+        try await createConversationIndexes()
 
         try await recordMigration(version: 1, name: "initial_world_repositories")
         try await recordMigration(version: 2, name: "world_event_processing")
+        try await recordMigration(version: 3, name: "conversation_ingress")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -108,5 +111,33 @@ struct MongoWorldMigrator: Sendable {
         var sourceID = CreateIndexes.Index(named: "source_id_unique", keys: ["source_id": 1])
         sourceID.unique = true
         try await database[MongoWorldCollection.sourceCheckpoints].createIndexes([sourceID])
+    }
+
+    private func createConversationIndexes() async throws {
+        var utteranceID = CreateIndexes.Index(
+            named: "utterance_id_unique",
+            keys: [
+                "percept.utterance.utterance_id": 1
+            ])
+        utteranceID.unique = true
+
+        var itemID = CreateIndexes.Index(
+            named: "conversation_item_id_unique",
+            keys: [
+                "item_id": 1
+            ])
+        itemID.unique = true
+        let conversationOrder = CreateIndexes.Index(
+            named: "conversation_order",
+            keys: [
+                "conversation_id": 1,
+                "created_at": 1,
+                "_id": 1,
+            ]
+        )
+        try await database[MongoWorldCollection.utteranceIngresses].createIndexes([utteranceID])
+        try await database[MongoWorldCollection.conversationItems].createIndexes([
+            itemID, conversationOrder,
+        ])
     }
 }

@@ -6,16 +6,19 @@ import WorldCore
 struct WorldHTTPAPI: Sendable {
     let configuration: CreatureWorldConfiguration
     let service: any WorldApplicationService
+    let conversationService: any ConversationApplicationService
     let limits: WorldAPIConfiguration
     let concurrencyLimiter: WorldAPIConcurrencyLimiter
 
     init(
         configuration: CreatureWorldConfiguration,
         service: any WorldApplicationService,
+        conversationService: any ConversationApplicationService,
         limits: WorldAPIConfiguration = .default
     ) {
         self.configuration = configuration
         self.service = service
+        self.conversationService = conversationService
         self.limits = limits
         self.concurrencyLimiter = WorldAPIConcurrencyLimiter(
             limit: limits.maximumConcurrentRequests
@@ -23,6 +26,52 @@ struct WorldHTTPAPI: Sendable {
     }
 
     func addRoutes(to router: RouterGroup<BasicRequestContext>) {
+        router.post("v1/conversations/:conversationID/utterances") { request, context in
+            await respond {
+                try requireJSON(request)
+                guard let rawConversationID = context.parameters.get("conversationID") else {
+                    throw WorldAPIError.invalidQuery(name: "conversation_id")
+                }
+                let conversationID = try ConversationID(validating: rawConversationID)
+                return try await execute {
+                    let utterance = try await decode(
+                        PersonUtterance.self,
+                        from: request,
+                        maximumBytes: limits.maximumBodyBytes
+                    )
+                    guard utterance.conversationID == conversationID else {
+                        throw WorldAPIError.conversationIdentityMismatch
+                    }
+                    let result = try await conversationService.ingest(utterance)
+                    let status: HTTPResponse.Status =
+                        result.disposition == .accepted ? .accepted : .ok
+                    return try jsonResponse(result, status: status)
+                }
+            }
+        }
+
+        router.get("v1/conversations/:conversationID/items") { request, context in
+            await respond {
+                guard let rawConversationID = context.parameters.get("conversationID") else {
+                    throw WorldAPIError.invalidQuery(name: "conversation_id")
+                }
+                let conversationID = try ConversationID(validating: rawConversationID)
+                let after = try request.uri.queryParameters["after_item_id"].map {
+                    try ConversationItemID(validating: String($0))
+                }
+                let limit = try pageLimit(request)
+                return try await execute {
+                    try jsonResponse(
+                        await conversationService.conversationItems(
+                            in: conversationID,
+                            after: after,
+                            limit: limit
+                        )
+                    )
+                }
+            }
+        }
+
         router.post("v1/events") { request, _ in
             await respond {
                 try requireJSON(request)
@@ -235,10 +284,13 @@ struct WorldHTTPAPI: Sendable {
         from request: Request,
         to event: inout WorldEventEnvelope
     ) throws {
-        guard event.trace == nil, let traceparent = header("traceparent", from: request) else {
-            return
-        }
-        event.trace = try W3CTraceContext(
+        guard event.trace == nil else { return }
+        event.trace = try traceContext(from: request)
+    }
+
+    private func traceContext(from request: Request) throws -> W3CTraceContext? {
+        guard let traceparent = header("traceparent", from: request) else { return nil }
+        return try W3CTraceContext(
             traceparent: traceparent,
             tracestate: header("tracestate", from: request),
             baggage: header("baggage", from: request)
@@ -294,6 +346,9 @@ struct WorldHTTPAPI: Sendable {
         case WorldAPIError.invalidQuery:
             status = .badRequest
             code = "invalid_query"
+        case WorldAPIError.conversationIdentityMismatch:
+            status = .conflict
+            code = "conversation_identity_mismatch"
         case WorldAPIError.batchTooLarge:
             status = .contentTooLarge
             code = "batch_too_large"

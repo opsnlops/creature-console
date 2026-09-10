@@ -17,12 +17,18 @@ final class ConversationItemModel {
         id = item.itemID.rawValue
         conversationID = item.conversationID.rawValue
         createdAt = item.createdAt
-        payload = try JSONEncoder().encode(item)
+        payload = try WorldJSON.makeEncoder().encode(item)
+    }
+
+    func update(with item: ConversationItem) throws {
+        conversationID = item.conversationID.rawValue
+        createdAt = item.createdAt
+        payload = try WorldJSON.makeEncoder().encode(item)
     }
 
     var item: ConversationItem {
         get throws {
-            try JSONDecoder().decode(ConversationItem.self, from: payload)
+            try WorldJSON.makeDecoder().decode(ConversationItem.self, from: payload)
         }
     }
 }

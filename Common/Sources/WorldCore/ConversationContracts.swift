@@ -269,6 +269,29 @@ public struct ConversationItem: Hashable, Sendable, Codable {
     }
 }
 
+/// A bounded, ordered page of the canonical conversation shared by every Creature client.
+public struct ConversationItemPage: Hashable, Sendable, Codable {
+    public var items: [ConversationItem]
+    public var nextItemID: ConversationItemID?
+    public var hasMore: Bool
+
+    public init(
+        items: [ConversationItem],
+        nextItemID: ConversationItemID?,
+        hasMore: Bool
+    ) {
+        self.items = items
+        self.nextItemID = nextItemID
+        self.hasMore = hasMore
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case items
+        case nextItemID = "next_item_id"
+        case hasMore = "has_more"
+    }
+}
+
 public struct PersonUtterancePercept: Hashable, Sendable, Codable {
     public let schemaVersion: Int
     public var considerationID: ConsiderationID
@@ -318,6 +341,10 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         case utterance
         case priorConversationItems = "prior_conversation_items"
     }
+}
+
+extension PersonUtterancePercept: WorldEventPayload {
+    public static let eventType = WorldEventType(rawValue: "conversation.person_utterance")!
 }
 
 public struct CharacterUtteranceIntent: Hashable, Sendable, Codable {

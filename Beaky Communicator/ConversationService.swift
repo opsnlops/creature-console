@@ -1,3 +1,4 @@
+import CreatureAppSupport
 import Foundation
 import SwiftData
 import WorldCore
@@ -7,57 +8,130 @@ protocol CommunicatorConversationService: Sendable {
     func submit(text: String, inReplyTo item: ConversationItem?) async throws
 }
 
-@ModelActor
-actor SwiftDataConversationService: CommunicatorConversationService {
-    func conversation() throws -> [ConversationItem] {
-        var models = try fetchConversationModels()
-        if models.isEmpty {
-            try seedPreviewConversation()
-            models = try fetchConversationModels()
-        }
-        return try models.map { try $0.item }
+protocol CommunicatorWorldClient: Sendable {
+    func submit(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult
+    func items(
+        in conversationID: ConversationID,
+        after itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> ConversationItemPage
+}
+
+extension WorldConversationClient: CommunicatorWorldClient {}
+
+protocol CommunicatorWorldClientProviding: Sendable {
+    func client() async throws -> any CommunicatorWorldClient
+}
+
+protocol ConversationPersistence: Sendable {
+    func conversation() async throws -> [ConversationItem]
+    func pendingUtterances() async throws -> [PersonUtterance]
+    func enqueue(_ utterance: PersonUtterance, inReplyTo itemID: ConversationItemID?) async throws
+    func accept(_ result: UtteranceIngressResult) async throws
+    func cache(_ items: [ConversationItem]) async throws
+}
+
+actor LiveCommunicatorConversationService: CommunicatorConversationService {
+    private let persistence: any ConversationPersistence
+    private let clientProvider: any CommunicatorWorldClientProviding
+
+    init(
+        persistence: any ConversationPersistence,
+        clientProvider: any CommunicatorWorldClientProviding
+    ) {
+        self.persistence = persistence
+        self.clientProvider = clientProvider
     }
 
-    func submit(text: String, inReplyTo item: ConversationItem?) throws {
-        let conversationID = try ConversationID(validating: "conversation:april-beaky")
-        let aprilID = try EntityID(validating: "person:april")
-        let beakyID = try EntityID(validating: "character:beaky")
-        let sourceID = try SourceID(validating: "communicator:preview")
-        let now = Date()
+    func conversation() async throws -> [ConversationItem] {
+        await synchronizeBestEffort()
+        return try await persistence.conversation()
+    }
+
+    func submit(text: String, inReplyTo item: ConversationItem?) async throws {
         let utterance = try PersonUtterance(
-            conversationID: conversationID,
-            speakerID: aprilID,
-            addresseeIDs: [beakyID],
+            conversationID: ConversationIdentity.conversationID,
+            speakerID: ConversationIdentity.aprilID,
+            addresseeIDs: [ConversationIdentity.beakyID],
             inResponseToResponseID: item?.responseID,
             text: text,
             modality: .typed,
             source: item == nil ? .communicatorComposition : .communicatorReply,
-            sourceID: sourceID,
-            occurredAt: now,
+            sourceID: ConversationIdentity.sourceID,
+            occurredAt: Date(),
             confidence: 1
         )
-        let aprilItem = try ConversationItem(
-            conversationID: conversationID,
-            authorID: aprilID,
-            authorKind: .person,
-            text: utterance.text,
-            createdAt: now,
-            inReplyToItemID: item?.itemID,
-            utteranceID: utterance.utteranceID
-        )
+        try await persistence.enqueue(utterance, inReplyTo: item?.itemID)
+        await synchronizeBestEffort()
+    }
 
-        let beakyReply = try ConversationItem(
-            conversationID: conversationID,
-            authorID: beakyID,
-            authorKind: .character,
-            text: "I heard you. This is where our conversation begins. 🦜",
-            createdAt: now.addingTimeInterval(1),
-            inReplyToItemID: aprilItem.itemID,
-            responseID: .generated()
-        )
+    private func synchronizeBestEffort() async {
+        do {
+            let client = try await clientProvider.client()
+            for utterance in try await persistence.pendingUtterances() {
+                try await persistence.accept(client.submit(utterance))
+            }
+            try await synchronizeHistory(using: client)
+        } catch {
+            // The durable outbox and local cache remain available until the next synchronization.
+        }
+    }
 
-        modelContext.insert(try ConversationItemModel(item: aprilItem))
-        modelContext.insert(try ConversationItemModel(item: beakyReply))
+    private func synchronizeHistory(using client: any CommunicatorWorldClient) async throws {
+        var cursor: ConversationItemID?
+        repeat {
+            let page = try await client.items(
+                in: ConversationIdentity.conversationID,
+                after: cursor,
+                limit: 100
+            )
+            try await persistence.cache(page.items)
+            guard page.hasMore else { break }
+            guard let next = page.nextItemID, next != cursor else { break }
+            cursor = next
+        } while true
+    }
+}
+
+@ModelActor
+actor SwiftDataConversationRepository: ConversationPersistence {
+    func conversation() throws -> [ConversationItem] {
+        let stored = try fetchConversationModels().map { try $0.item }
+        let pending = try fetchPendingModels().map { try provisionalItem(for: $0) }
+        return (stored + pending).sorted(by: Self.ordersBefore)
+    }
+
+    func pendingUtterances() throws -> [PersonUtterance] {
+        try fetchPendingModels().map { try $0.utterance }
+    }
+
+    func enqueue(
+        _ utterance: PersonUtterance,
+        inReplyTo itemID: ConversationItemID?
+    ) throws {
+        modelContext.insert(
+            try PendingUtteranceModel(utterance: utterance, inReplyToItemID: itemID)
+        )
+        try modelContext.save()
+    }
+
+    func accept(_ result: UtteranceIngressResult) throws {
+        try upsert(result.conversationItem)
+        let utteranceID = result.percept.utterance.utteranceID.rawValue
+        var descriptor = FetchDescriptor<PendingUtteranceModel>(
+            predicate: #Predicate { $0.id == utteranceID }
+        )
+        descriptor.fetchLimit = 1
+        if let pending = try modelContext.fetch(descriptor).first {
+            modelContext.delete(pending)
+        }
+        try modelContext.save()
+    }
+
+    func cache(_ items: [ConversationItem]) throws {
+        for item in items {
+            try upsert(item)
+        }
         try modelContext.save()
     }
 
@@ -71,37 +145,55 @@ actor SwiftDataConversationService: CommunicatorConversationService {
         return try modelContext.fetch(descriptor)
     }
 
-    private func seedPreviewConversation() throws {
-        let conversationID = try ConversationID(validating: "conversation:april-beaky")
-        let aprilID = try EntityID(validating: "person:april")
-        let beakyID = try EntityID(validating: "character:beaky")
-        let firstItemID = try ConversationItemID(validating: "conversation-item:preview-beaky-1")
-        let secondItemID = try ConversationItemID(validating: "conversation-item:preview-april-1")
-        let items = [
-            try ConversationItem(
-                itemID: firstItemID,
-                conversationID: conversationID,
-                authorID: beakyID,
-                authorKind: .character,
-                text: "April? I have been saying things all day and wondering what you thought.",
-                createdAt: Date(timeIntervalSince1970: 1_789_001_000),
-                responseID: ResponseID(validating: "response:preview-beaky-1")
-            ),
-            try ConversationItem(
-                itemID: secondItemID,
-                conversationID: conversationID,
-                authorID: aprilID,
-                authorKind: .person,
-                text: "I am here now, Beaky. I can finally answer you.",
-                createdAt: Date(timeIntervalSince1970: 1_789_001_060),
-                inReplyToItemID: firstItemID,
-                utteranceID: UtteranceID(validating: "utterance:preview-april-1")
-            ),
-        ]
+    private func fetchPendingModels() throws -> [PendingUtteranceModel] {
+        try modelContext.fetch(
+            FetchDescriptor<PendingUtteranceModel>(
+                sortBy: [
+                    SortDescriptor(\PendingUtteranceModel.occurredAt),
+                    SortDescriptor(\PendingUtteranceModel.id),
+                ]
+            )
+        )
+    }
 
-        for item in items {
+    private func upsert(_ item: ConversationItem) throws {
+        let itemID = item.itemID.rawValue
+        var descriptor = FetchDescriptor<ConversationItemModel>(
+            predicate: #Predicate { $0.id == itemID }
+        )
+        descriptor.fetchLimit = 1
+        if let existing = try modelContext.fetch(descriptor).first {
+            try existing.update(with: item)
+        } else {
             modelContext.insert(try ConversationItemModel(item: item))
         }
-        try modelContext.save()
     }
+
+    private func provisionalItem(for pending: PendingUtteranceModel) throws -> ConversationItem {
+        let utterance = try pending.utterance
+        return try ConversationItem(
+            itemID: ConversationItemID(
+                validating: "conversation-item:\(utterance.utteranceID.rawValue)"
+            ),
+            conversationID: utterance.conversationID,
+            authorID: utterance.speakerID,
+            authorKind: .person,
+            text: utterance.text,
+            createdAt: utterance.occurredAt,
+            inReplyToItemID: try pending.inReplyToItemID.map(ConversationItemID.init(validating:)),
+            utteranceID: utterance.utteranceID,
+            trace: utterance.trace
+        )
+    }
+
+    private static func ordersBefore(_ lhs: ConversationItem, _ rhs: ConversationItem) -> Bool {
+        (lhs.createdAt, lhs.itemID.rawValue) < (rhs.createdAt, rhs.itemID.rawValue)
+    }
+}
+
+private enum ConversationIdentity {
+    static let conversationID = try! ConversationID(validating: "conversation:april-beaky")
+    static let aprilID = try! EntityID(validating: "person:april")
+    static let beakyID = try! EntityID(validating: "character:beaky")
+    static let sourceID = try! SourceID(validating: "communicator:beaky-app")
 }

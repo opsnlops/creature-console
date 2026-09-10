@@ -123,6 +123,8 @@ private struct SequenceCounter: Decodable, Sendable {
 
 enum WorldPersistenceError: Error, Equatable, Sendable {
     case missingSequenceCounter
+    case missingUtteranceIngress
+    case missingConversationItem
 }
 
 extension Optional {

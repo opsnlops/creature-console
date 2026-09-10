@@ -224,7 +224,7 @@ private struct ConversationPreview: View {
     init() {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         container = try? ModelContainer(
-            for: ConversationItemModel.self,
+            for: ConversationItemModel.self, PendingUtteranceModel.self,
             configurations: configuration
         )
     }
@@ -232,7 +232,10 @@ private struct ConversationPreview: View {
     var body: some View {
         if let container {
             ConversationRootView(
-                service: SwiftDataConversationService(modelContainer: container)
+                service: LiveCommunicatorConversationService(
+                    persistence: SwiftDataConversationRepository(modelContainer: container),
+                    clientProvider: PreviewWorldClientProvider()
+                )
             )
             .frame(width: 640, height: 700)
             .modelContainer(container)
@@ -243,4 +246,14 @@ private struct ConversationPreview: View {
             )
         }
     }
+}
+
+private struct PreviewWorldClientProvider: CommunicatorWorldClientProviding {
+    func client() throws -> any CommunicatorWorldClient {
+        throw PreviewWorldClientError.unavailable
+    }
+}
+
+private enum PreviewWorldClientError: Error {
+    case unavailable
 }

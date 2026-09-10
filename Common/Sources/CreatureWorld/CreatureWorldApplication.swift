@@ -22,6 +22,7 @@ func makeCreatureWorldApplication(
     WorldHTTPAPI(
         configuration: dependencies.configuration,
         service: dependencies.worldService,
+        conversationService: dependencies.conversationService,
         limits: apiConfiguration
     ).addRoutes(to: worldRoutes)
 

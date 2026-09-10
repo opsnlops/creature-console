@@ -10,6 +10,65 @@ import WorldCore
 
 @Suite("Creature World HTTP API")
 struct WorldHTTPAPITests {
+    @Test("Conversation ingress is ordered and idempotent over HTTP")
+    func conversationIngressAndHistory() async throws {
+        let worldService = TestWorldApplicationService()
+        let conversationService = TestConversationApplicationService()
+        let application = try makeApplication(
+            worldService: worldService,
+            conversationService: conversationService
+        )
+        let utterance = try PersonUtterance(
+            utteranceID: UtteranceID(validating: "utterance:http-test"),
+            conversationID: ConversationID(validating: "conversation:april-beaky"),
+            speakerID: EntityID(validating: "person:april"),
+            addresseeIDs: [EntityID(validating: "character:beaky")],
+            text: "Can you hear me?",
+            modality: .typed,
+            source: .communicatorComposition,
+            sourceID: SourceID(validating: "communicator:test"),
+            occurredAt: Date(timeIntervalSince1970: 1_789_100_000),
+            confidence: 1
+        )
+        let body = try encode(utterance)
+        let traceparents = [
+            "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+            "00-4bf92f3577b34da6a3ce929d0e0e4736-11f067aa0ba902b7-01",
+        ]
+
+        try await application.test(.router) { client in
+            for (expectedStatus, traceparent) in zip(
+                [HTTPResponse.Status.accepted, .ok], traceparents
+            ) {
+                var headers = HTTPFields()
+                headers[.contentType] = "application/json"
+                headers[HTTPField.Name("traceparent")!] = traceparent
+                try await client.execute(
+                    uri: "/world/v1/conversations/conversation:april-beaky/utterances",
+                    method: .post,
+                    headers: headers,
+                    body: body
+                ) { response in
+                    #expect(response.status == expectedStatus)
+                    let result = try decode(UtteranceIngressResult.self, response.body)
+                    #expect(result.conversationItem.text == utterance.text)
+                    #expect(result.percept.utterance.trace == nil)
+                }
+            }
+
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/items?limit=10",
+                method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let page = try decode(ConversationItemPage.self, response.body)
+                #expect(page.items.map(\.utteranceID) == [utterance.utteranceID])
+                #expect(page.nextItemID == page.items.last?.itemID)
+                #expect(!page.hasMore)
+            }
+        }
+    }
+
     @Test("Event ingress is ordered, queryable, and idempotent over HTTP")
     func eventIngressAndHistory() async throws {
         let service = TestWorldApplicationService()
@@ -386,6 +445,8 @@ struct WorldHTTPAPITests {
     private func makeApplication(
         configuration: CreatureWorldConfiguration? = nil,
         worldService: any WorldApplicationService,
+        conversationService: any ConversationApplicationService =
+            UnavailableConversationApplicationService(),
         apiConfiguration: WorldAPIConfiguration = .default
     ) throws -> Application<RouterResponder<BasicRequestContext>> {
         let configuration = try configuration ?? CreatureWorldConfiguration(port: 8080)
@@ -393,7 +454,8 @@ struct WorldHTTPAPITests {
             configuration: configuration,
             logger: Logger(label: "creature-world-api-tests"),
             buildInfo: CreatureWorldBuildInfo(version: "api-test", schemaVersion: 1),
-            worldService: worldService
+            worldService: worldService,
+            conversationService: conversationService
         )
         return makeCreatureWorldApplication(
             dependencies: dependencies,
@@ -427,6 +489,65 @@ struct WorldHTTPAPITests {
         -> Value
     {
         try WorldJSON.makeDecoder().decode(type, from: buffer)
+    }
+}
+
+private actor TestConversationApplicationService: ConversationApplicationService {
+    private var results: [UtteranceID: UtteranceIngressResult] = [:]
+
+    func ingest(_ utterance: PersonUtterance) throws -> UtteranceIngressResult {
+        if let existing = results[utterance.utteranceID] {
+            return UtteranceIngressResult(
+                disposition: .duplicate,
+                percept: existing.percept,
+                conversationItem: existing.conversationItem
+            )
+        }
+        let item = try ConversationItem(
+            itemID: ConversationItemID(
+                validating: "conversation-item:\(utterance.utteranceID.rawValue)"),
+            conversationID: utterance.conversationID,
+            authorID: utterance.speakerID,
+            authorKind: .person,
+            text: utterance.text,
+            createdAt: utterance.occurredAt,
+            utteranceID: utterance.utteranceID,
+            trace: utterance.trace
+        )
+        let percept = try PersonUtterancePercept(
+            characterID: utterance.addresseeIDs[0],
+            utterance: utterance,
+            priorConversationItems: orderedItems
+        )
+        let result = UtteranceIngressResult(
+            disposition: .accepted,
+            percept: percept,
+            conversationItem: item
+        )
+        results[utterance.utteranceID] = result
+        return result
+    }
+
+    func conversationItems(
+        in conversationID: ConversationID,
+        after itemID: ConversationItemID?,
+        limit: Int
+    ) -> ConversationItemPage {
+        let all = orderedItems.filter { $0.conversationID == conversationID }
+        let start = itemID.flatMap { id in all.firstIndex { $0.itemID == id } }.map { $0 + 1 } ?? 0
+        let remaining = Array(all.dropFirst(start))
+        let page = Array(remaining.prefix(limit))
+        return ConversationItemPage(
+            items: page,
+            nextItemID: page.last?.itemID,
+            hasMore: remaining.count > limit
+        )
+    }
+
+    private var orderedItems: [ConversationItem] {
+        results.values.map(\.conversationItem).sorted {
+            ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue)
+        }
     }
 }
 

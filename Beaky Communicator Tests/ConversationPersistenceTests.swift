@@ -25,8 +25,8 @@ struct ConversationPersistenceTests {
         #expect(try model.item == item)
     }
 
-    @Test("Conversation survives reopening the on-disk SwiftData store")
-    func conversationSurvivesApplicationRestart() async throws {
+    @Test("Offline outbox survives reopening the on-disk SwiftData store")
+    func outboxSurvivesApplicationRestart() async throws {
         let storeDirectory = FileManager.default.temporaryDirectory.appending(
             path: "beaky-communicator-persistence-\(UUID().uuidString)",
             directoryHint: .isDirectory
@@ -38,35 +38,39 @@ struct ConversationPersistenceTests {
         defer { try? FileManager.default.removeItem(at: storeDirectory) }
 
         let storeURL = storeDirectory.appending(path: "conversation.store")
-        let (initialItemCount, beakyItemID) = try await writeConversation(to: storeURL)
+        try await writeConversation(to: storeURL)
 
         let reopenedContainer = try ModelContainer(
-            for: ConversationItemModel.self,
+            for: ConversationItemModel.self, PendingUtteranceModel.self,
             configurations: ModelConfiguration(url: storeURL)
         )
-        let reopenedService = SwiftDataConversationService(modelContainer: reopenedContainer)
-        let restoredItems = try await reopenedService.conversation()
-        #expect(restoredItems.count == initialItemCount + 2)
-        #expect(
-            restoredItems.suffix(2).map(\.text) == [
-                "Yes, please remember.",
-                "I heard you. This is where our conversation begins. 🦜",
-            ])
-        #expect(restoredItems[restoredItems.count - 2].inReplyToItemID == beakyItemID)
+        let reopenedRepository = SwiftDataConversationRepository(modelContainer: reopenedContainer)
+        let restoredItems = try await reopenedRepository.conversation()
+        #expect(restoredItems.map(\.text) == ["Yes, please remember."])
+        #expect(restoredItems.only?.authorKind == .person)
     }
 
-    private func writeConversation(
-        to storeURL: URL
-    ) async throws -> (initialItemCount: Int, beakyItemID: ConversationItemID) {
+    private func writeConversation(to storeURL: URL) async throws {
         let container = try ModelContainer(
-            for: ConversationItemModel.self,
+            for: ConversationItemModel.self, PendingUtteranceModel.self,
             configurations: ModelConfiguration(url: storeURL)
         )
-        let service = SwiftDataConversationService(modelContainer: container)
-        let initialItems = try await service.conversation()
-        let beakyItem = try #require(initialItems.first)
-
-        try await service.submit(text: "Yes, please remember.", inReplyTo: beakyItem)
-        return (initialItems.count, beakyItem.itemID)
+        let repository = SwiftDataConversationRepository(modelContainer: container)
+        let utterance = try PersonUtterance(
+            conversationID: ConversationID(validating: "conversation:april-beaky"),
+            speakerID: EntityID(validating: "person:april"),
+            addresseeIDs: [EntityID(validating: "character:beaky")],
+            text: "Yes, please remember.",
+            modality: .typed,
+            source: .communicatorComposition,
+            sourceID: SourceID(validating: "communicator:test"),
+            occurredAt: Date(timeIntervalSince1970: 1_789_010_100),
+            confidence: 1
+        )
+        try await repository.enqueue(utterance, inReplyTo: nil)
     }
+}
+
+extension Array {
+    fileprivate var only: Element? { count == 1 ? first : nil }
 }
