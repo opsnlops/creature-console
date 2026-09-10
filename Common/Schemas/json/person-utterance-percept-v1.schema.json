@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/person-utterance-percept-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version", "consideration_id", "character_id", "utterance",
+    "prior_conversation_items"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion" },
+    "consideration_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/considerationID"
+    },
+    "character_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
+    "utterance": { "$ref": "person-utterance-v1.schema.json" },
+    "prior_conversation_items": {
+      "type": "array", "maxItems": 100,
+      "items": { "$ref": "conversation-item-v1.schema.json" }
+    }
+  },
+  "additionalProperties": true
+}

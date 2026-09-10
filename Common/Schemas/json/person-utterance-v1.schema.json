@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/person-utterance-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version", "utterance_id", "conversation_id", "speaker_id", "addressee_ids",
+    "text", "modality", "source", "source_id", "occurred_at", "confidence"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion" },
+    "utterance_id": { "$ref": "world-definitions-v1.schema.json#/$defs/utteranceID" },
+    "conversation_id": { "$ref": "world-definitions-v1.schema.json#/$defs/conversationID" },
+    "speaker_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
+    "addressee_ids": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" }
+    },
+    "in_response_to_response_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/responseID"
+    },
+    "text": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "modality": { "enum": ["typed", "spoken"] },
+    "source": {
+      "enum": [
+        "communicator_composition", "communicator_reply", "wizard_mode", "speech_to_text"
+      ]
+    },
+    "source_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "received_at": { "type": "string", "format": "date-time" },
+    "confidence": { "$ref": "world-definitions-v1.schema.json#/$defs/confidence" },
+    "place_evidence": {
+      "type": "object",
+      "required": ["place_id", "confidence", "observed_at", "valid_until"],
+      "properties": {
+        "place_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
+        "confidence": { "$ref": "world-definitions-v1.schema.json#/$defs/confidence" },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "valid_until": { "type": "string", "format": "date-time" },
+        "provenance": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "caused_by": { "type": "array", "items": { "type": "string" } },
+    "trace": { "$ref": "world-definitions-v1.schema.json#/$defs/trace" }
+  },
+  "additionalProperties": true
+}

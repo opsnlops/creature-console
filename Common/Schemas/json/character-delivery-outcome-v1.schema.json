@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/character-delivery-outcome-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version", "attempt_id", "response_id", "route", "state", "occurred_at"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion" },
+    "attempt_id": { "$ref": "world-definitions-v1.schema.json#/$defs/deliveryAttemptID" },
+    "response_id": { "$ref": "world-definitions-v1.schema.json#/$defs/responseID" },
+    "route": { "enum": ["physical_speech", "communicator"] },
+    "state": { "enum": ["queued", "accepted", "performed", "duplicate", "failed"] },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "provider_reference": { "type": "string" },
+    "error_code": { "type": "string" }
+  },
+  "additionalProperties": true
+}

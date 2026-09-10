@@ -42,6 +42,24 @@ struct ValidationTests {
         let percept = try dataWithSchemaVersion(8, fixture: "perceptual-envelope-v1")
         let decision = try dataWithSchemaVersion(8, fixture: "agent-decision-v1")
         let performance = try dataWithSchemaVersion(8, fixture: "performance-intent-v1")
+        let personUtterance = try dataWithSchemaVersion(8, fixture: "person-utterance-v1")
+        let conversationItem = try dataWithSchemaVersion(8, fixture: "conversation-item-v1")
+        let personPercept = try dataWithSchemaVersion(
+            8,
+            fixture: "person-utterance-percept-v1"
+        )
+        let characterUtterance = try dataWithSchemaVersion(
+            8,
+            fixture: "character-utterance-intent-v1"
+        )
+        let deliveryDecision = try dataWithSchemaVersion(
+            8,
+            fixture: "character-delivery-decision-v1"
+        )
+        let deliveryOutcome = try dataWithSchemaVersion(
+            8,
+            fixture: "character-delivery-outcome-v1"
+        )
 
         #expect(throws: WorldContractError.self) {
             try WorldJSON.makeDecoder().decode(Fact.self, from: fact)
@@ -57,6 +75,69 @@ struct ValidationTests {
         }
         #expect(throws: WorldContractError.self) {
             try WorldJSON.makeDecoder().decode(PerformanceIntent.self, from: performance)
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(PersonUtterance.self, from: personUtterance)
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(ConversationItem.self, from: conversationItem)
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(PersonUtterancePercept.self, from: personPercept)
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(
+                CharacterUtteranceIntent.self,
+                from: characterUtterance
+            )
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(
+                CharacterDeliveryDecision.self,
+                from: deliveryDecision
+            )
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(
+                CharacterDeliveryOutcome.self,
+                from: deliveryOutcome
+            )
+        }
+    }
+
+    @Test("Conversation bounds are enforced while decoding untrusted JSON")
+    func conversationBoundsAreEnforcedDuringDecode() throws {
+        let oversizedUtterance = try mutatedFixture("person-utterance-v1") { object in
+            object["text"] = String(
+                repeating: "🦜",
+                count: ConversationContractLimits.maximumTextUnicodeScalars + 1
+            )
+        }
+        #expect(
+            throws: WorldContractError.conversationContentTooLarge(
+                maximumUnicodeScalars: ConversationContractLimits.maximumTextUnicodeScalars
+            )
+        ) {
+            try WorldJSON.makeDecoder().decode(PersonUtterance.self, from: oversizedUtterance)
+        }
+
+        let oversizedContext = try mutatedFixture("person-utterance-percept-v1") { object in
+            let originalItems = object["prior_conversation_items"] as? [[String: Any]] ?? []
+            guard let item = originalItems.first else { return }
+            object["prior_conversation_items"] = Array(
+                repeating: item,
+                count: ConversationContractLimits.maximumContextItems + 1
+            )
+        }
+        #expect(
+            throws: WorldContractError.conversationContextTooLarge(
+                maximumItems: ConversationContractLimits.maximumContextItems
+            )
+        ) {
+            try WorldJSON.makeDecoder().decode(
+                PersonUtterancePercept.self,
+                from: oversizedContext
+            )
         }
     }
 
@@ -169,6 +250,16 @@ struct ValidationTests {
         let data = try Data(contentsOf: fixtureURL(fixture))
         var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         object["schema_version"] = version
+        return try JSONSerialization.data(withJSONObject: object)
+    }
+
+    private func mutatedFixture(
+        _ fixture: String,
+        mutation: (inout [String: Any]) -> Void
+    ) throws -> Data {
+        let data = try Data(contentsOf: fixtureURL(fixture))
+        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        mutation(&object)
         return try JSONSerialization.data(withJSONObject: object)
     }
 }

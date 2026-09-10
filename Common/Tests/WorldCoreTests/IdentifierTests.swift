@@ -51,4 +51,17 @@ struct IdentifierTests {
             try FactID(validating: "timer:calendar-event-123:departure-due")
         }
     }
+
+    @Test("Conversation pipeline IDs have independent stable namespaces")
+    func conversationPipelineNamespacesAreIndependent() throws {
+        #expect(ConversationID.generated().rawValue.hasPrefix("conversation:"))
+        #expect(ConversationItemID.generated().rawValue.hasPrefix("conversation-item:"))
+        #expect(UtteranceID.generated().rawValue.hasPrefix("utterance:"))
+        #expect(ResponseID.generated().rawValue.hasPrefix("response:"))
+        #expect(DeliveryAttemptID.generated().rawValue.hasPrefix("delivery-attempt:"))
+
+        #expect(throws: WorldIdentifierError.self) {
+            try UtteranceID(validating: "response:beaky-1")
+        }
+    }
 }

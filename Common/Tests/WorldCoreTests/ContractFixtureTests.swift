@@ -35,6 +35,48 @@ struct ContractFixtureTests {
         try assertFixtureRoundTrip("performance-intent-v1", as: PerformanceIntent.self)
     }
 
+    @Test("Person utterance fixture round-trips semantically")
+    func personUtteranceFixtureRoundTrips() throws {
+        try assertFixtureRoundTrip("person-utterance-v1", as: PersonUtterance.self)
+    }
+
+    @Test("Conversation item fixture round-trips semantically")
+    func conversationItemFixtureRoundTrips() throws {
+        try assertFixtureRoundTrip("conversation-item-v1", as: ConversationItem.self)
+    }
+
+    @Test("Person utterance percept fixture round-trips semantically")
+    func personUtterancePerceptFixtureRoundTrips() throws {
+        try assertFixtureRoundTrip(
+            "person-utterance-percept-v1",
+            as: PersonUtterancePercept.self
+        )
+    }
+
+    @Test("Character utterance fixture round-trips semantically")
+    func characterUtteranceFixtureRoundTrips() throws {
+        try assertFixtureRoundTrip(
+            "character-utterance-intent-v1",
+            as: CharacterUtteranceIntent.self
+        )
+    }
+
+    @Test("Delivery decision fixture round-trips semantically")
+    func deliveryDecisionFixtureRoundTrips() throws {
+        try assertFixtureRoundTrip(
+            "character-delivery-decision-v1",
+            as: CharacterDeliveryDecision.self
+        )
+    }
+
+    @Test("Delivery outcome fixture round-trips semantically")
+    func deliveryOutcomeFixtureRoundTrips() throws {
+        try assertFixtureRoundTrip(
+            "character-delivery-outcome-v1",
+            as: CharacterDeliveryOutcome.self
+        )
+    }
+
     @Test("Every contract fixture has a parseable JSON Schema")
     func schemasArePresentAndParseable() throws {
         for name in [
@@ -44,6 +86,12 @@ struct ContractFixtureTests {
             "perceptual-envelope-v1",
             "agent-decision-v1",
             "performance-intent-v1",
+            "person-utterance-v1",
+            "conversation-item-v1",
+            "person-utterance-percept-v1",
+            "character-utterance-intent-v1",
+            "character-delivery-decision-v1",
+            "character-delivery-outcome-v1",
         ] {
             let data = try Data(contentsOf: schemaURL(name))
             let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])

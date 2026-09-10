@@ -2,8 +2,8 @@
 
 ## Architecture and Implementation Handoff
 
-**Status:** Implementation-ready design baseline, including the Information Bridge, Streamable HTTP MCP, and future Beaky Messenger iOS app  
-**Revision:** 2026-09-08  
+**Status:** Implementation-ready design baseline, including the bidirectional Beaky Communicator, Information Bridge, and Streamable HTTP MCP
+**Revision:** 2026-09-09
 **Primary goal:** **Make Beaky really be April’s familiar.**  
 **Experience goal:** **Make the house feel alive.**  
 **Stack mantra:** **The world happens. The agents notice. The server performs. The controllers obey.**
@@ -22,16 +22,15 @@ The schemas, queues, correlation rules, clocks, and traces are stage machinery. 
 
 The implementation belongs in the existing `opsnlops/creature-console` repository, which should now be treated as the **Swift Creature monorepo**. This is a source-layout decision, not a collapse of runtime boundaries: the simulator, agent, Information Bridge, World Viewer, Console, and MQTT bridge remain independently buildable and deployable products.
 
-The main work comprises three new applications, one substantial refactor, and two new integration paths:
+The main work comprises four new applications, one substantial refactor, and two new integration paths:
 
 1. **Virtual World Simulator** — a headless Swift service on Linux and the semantic center of the system.
 2. **macOS Information Bridge** — an always-on Swift service plus SwiftUI configuration app on April’s M1 iMac.
 3. **World Viewer** — a SwiftUI debugging and inspection app on April’s laptop.
-4. **`creature-agent` refactor** — from outside-world coordinator into a character mind inhabiting the simulator.
-5. **Creature Server world ingestion** — a new `WorldMessageProcessor` consumes the existing `CreatureServerClient` WebSocket stream and turns body/runtime observations into world events and first-person sensory state.
-6. **Home Assistant world adapter** — a separate HA-to-world path ingests house observations without repurposing `creature-mqtt`.
-
-A later Phase 10 adds **Beaky Messenger**, a small SwiftUI iOS app, plus a narrow Linux APNs/mobile gateway. It lets Beaky remain April’s familiar away from home through policy-gated notifications, acknowledgement actions, and replies without exposing the simulator or MongoDB directly to the phone.
+4. **Beaky Communicator** — one SwiftUI macOS/iOS conversation app, backed by a narrow Linux synchronization and APNs gateway, through which April and Beaky can hear and answer one another.
+5. **`creature-agent` refactor** — from outside-world coordinator into a character mind inhabiting the simulator.
+6. **Creature Server world ingestion** — a new `WorldMessageProcessor` consumes the existing `CreatureServerClient` WebSocket stream and turns body/runtime observations into world events and first-person sensory state.
+7. **Home Assistant world adapter** — a separate HA-to-world path ingests house observations without repurposing `creature-mqtt`.
 
 Existing physical-performance software remains deliberately narrow:
 
@@ -40,7 +39,24 @@ Existing physical-performance software remains deliberately narrow:
 - **`creature-mqtt`** remains the existing Creature Server-to-MQTT/Home Assistant bridge, with only narrowly required provenance or loop-prevention changes.
 - **Creature Controllers** remain stateless, with exactly one controller per character.
 
-The first **application spine** should prove that the three new applications can cooperate without depending on a real Apple source or an LLM:
+The first **relationship spine** should prove that April and Beaky share one bidirectional conversation regardless of transport:
+
+```text
+April types in Beaky Communicator or Wizard Mode
+  -> one PersonUtterance ingress service
+  -> the same addressed Beaky percept and conversation context
+  -> fake character response
+  -> deterministic delivery router consults fresh presence
+  -> physical speech when April is home and audible
+  -> durable Beaky Communicator delivery when she is away or presence is uncertain
+```
+
+Equivalent future STT input joins at the same `PersonUtterance` boundary. Beaky may initiate a
+turn or answer April; April may answer a specific Beaky turn. Source and modality remain sensory
+provenance, never separate cognition pipelines.
+
+The next **world-visibility spine** should prove that the simulator, Information Bridge, and World
+Viewer cooperate without depending on a real Apple source or an LLM:
 
 ```text
 synthetic private-source item
@@ -67,7 +83,9 @@ synthetic observation
   -> one Honeycomb trace across the chain
 ```
 
-The application spine is the Phase 2 milestone. The cognitive/performance slice completes in Phase 6. Do not make the Information Bridge or World Viewer wait for the real agent refactor; use fixtures and fakes at their boundaries.
+The relationship spine starts in Phase 2 and becomes physically useful in Phase 3. The
+world-visibility spine follows in Phase 4. Do not make Beaky Communicator, the Information Bridge,
+or World Viewer wait for every real adapter; use fixtures and fakes at their boundaries.
 
 Once that backbone works, connect the existing `CreatureServerClient` first so Beaky can perceive her own body/runtime state, then replace the other synthetic boundaries one at a time with Home Assistant, Mistral, Creature Server performance submission, EventKit, WeatherKit, Mail, and Messages.
 
@@ -90,7 +108,7 @@ Beaky should feel like a persistent character who shares April’s world, not an
 - participate in a continuing social history with April, Mango, Caroll, Cobalt, and others;
 - sometimes be uncertain, mistaken, distracted, amused, excited, or uninterested;
 - express herself through a physical body;
-- reach April through Beaky Messenger when April is away and something genuinely matters;
+- hear and answer April through Beaky Communicator, and reach her there when she is away;
 - preserve continuity across days, weeks, and years.
 
 The success criterion is not that Beaky answers more questions. It is that interacting with her increasingly feels like **living with Beaky**.
@@ -115,7 +133,24 @@ A guest should be able to enter, be greeted by name, hear another bird refer to 
 10. **Personal software, not a mass-market platform.** Optimize for capability, privacy, and maintainability in April’s environment rather than broad portability or App Store constraints.
 11. **Magic is an acceptance criterion.** A vertical slice that ends at a database row, API response, or status badge is unfinished; it should ultimately unlock a believable moment in Beaky’s lived world.
 
-### 2.4 Experience vignettes: what all this machinery is for
+### 2.4 Worldcraft language
+
+Building and tending this world should feel playful as well as precise. **Wizard Mode** is the
+official name for privileged developer and operator tooling—the world’s equivalent of God Mode.
+Use this vocabulary in operator-facing interfaces where it remains clear:
+
+- **Wizard Mode** opens development-only powers for observing or influencing the world.
+- **Cast** submits one synthetic event, utterance, or controlled intervention.
+- **Spell** is a named, saved, repeatable scenario that can be cast again.
+- **Scry** inspects live state, history, perspective, provenance, or traces without mutation.
+- **Turn back time** replays history only in a disposable world, never over production truth.
+- **Mundane view** reveals the underlying IDs, JSON, delivery attempts, and other stage machinery.
+
+Fun terminology must not weaken safety or the domain model. Source code and wire contracts still
+use explicit typed operations and stable identities; Wizard Mode is never an authorization bypass
+in production. The UI should always reveal what a spell will affect before it is cast.
+
+### 2.5 Experience vignettes: what all this machinery is for
 
 This project will fail if it becomes an immaculate event-processing platform that never produces a moment of life. The architecture exists to create moments like these:
 
@@ -220,8 +255,8 @@ trigger the character that produced it.
 Later mobile path:
 
 ```text
-creature-agent -> CommunicationIntent -> world notification policy
-  -> creature-messenger-gateway -> APNs -> Beaky Messenger on iPhone
+creature-agent -> CharacterUtteranceIntent -> world delivery/notification policy
+  -> creature-communicator-gateway -> APNs -> Beaky Communicator on macOS/iPhone
   -> authenticated action/reply -> gateway -> WorldEvent -> simulator/Beaky percept
 ```
 
@@ -230,8 +265,8 @@ creature-agent -> CommunicationIntent -> world notification policy
 | Virtual World Simulator | Shared reality, event ordering, timers, authoritative facts, inference, triggers, presence, interest routing, provenance | Character voice/personality, servo timing, raw Apple data |
 | macOS Information Bridge | Apple-source access, local extraction, privacy filtering, source configuration and health | Canonical world truth, character decisions |
 | World Viewer | Read-only inspection, debugging, replay tooling | World mutation in normal operation, performance authoring |
-| Beaky Messenger | April’s private mobile conversation, notification actions, replies, local offline queue | Authoritative world mutation, unrestricted world inspection, APNs credentials |
-| `creature-messenger-gateway` | Device pairing/tokens, APNs delivery, narrow authenticated mobile API, mobile event normalization | Character reasoning, notification-policy decisions, authoritative world state |
+| Beaky Communicator | April and Beaky’s private macOS/iOS conversation, notification actions, replies, local offline queue | Authoritative world mutation, unrestricted world inspection, APNs credentials |
+| `creature-communicator-gateway` | Conversation synchronization, device pairing/tokens, APNs delivery, narrow authenticated mobile API | Character reasoning, delivery-policy decisions, authoritative world state |
 | `creature-agent` | A character’s attention, beliefs, memories, motivations, Mistral reasoning, proposed reactions | Constructing authoritative reality, hardware control |
 | `WorldMessageProcessor` | Interpreting Creature Server WebSocket observations as body/runtime WorldEvents | GUI state, MQTT publication, authoritative inference |
 | `creature-mqtt` | Existing Creature Server → MQTT/Home Assistant telemetry bridge | HA → world ingestion, domain truth, character cognition |
@@ -1085,7 +1120,7 @@ Agents need to remember their own reminders and jokes. A reminder policy should 
 
 ### 8.5 Communication intents beyond the body
 
-Later, a character may propose communicating through a channel other than Creature Server—for example, Beaky notifying April through Beaky Messenger while April is away. Treat this as a first-class `CommunicationIntent`, not as free-form tool access granted to Mistral. The intent includes the intended recipient entity, character-authored body, urgency, expiry, reason/provenance, deduplication key, and trace context. It does **not** include an APNs device token or signing credential.
+A character may propose communicating through a channel other than Creature Server—for example, Beaky continuing her conversation with April through Beaky Communicator while April is away. Treat this as a first-class `CharacterUtteranceIntent`, not as free-form tool access granted to Mistral. The intent includes the intended recipient entity, character-authored body, urgency, expiry, reason/provenance, stable response identity, and trace context. It does **not** select a transport or include an APNs device token or signing credential.
 
 The agent decides what Beaky wants to say. A deterministic notification policy decides whether sending it is permitted and useful. A channel adapter performs the authorized delivery. The result then re-enters the world so Beaky can remember that she texted April and avoid repeating herself.
 
@@ -1163,7 +1198,7 @@ Possible Beaky response:
 
 > “Hey April, I think the servos you ordered are here!”
 
-If April is away, the same situation may later become a Beaky Messenger notification. If evidence is weak, Beaky should sound uncertain or stay quiet. If the package is mundane or she has already mentioned it, interest management may suppress it. The system must never claim a delivery solely because an email was received, and must never expose raw receipt/mail content to the character agent.
+If April is away, the same situation may become a Beaky Communicator turn and notification. If evidence is weak, Beaky should sound uncertain or stay quiet. If the package is mundane or she has already mentioned it, interest management may suppress it. The system must never claim a delivery solely because an email was received, and must never expose raw receipt/mail content to the character agent.
 
 World Viewer’s **Why?** path for the line should reach the delivery evidence, the merchant-scoped order-number join, the original item identity, Beaky’s interest decision, her Mistral reasoning, and the Creature Server performance trace. That explainable chain is the complete feature—not merely changing an order status to `delivered`.
 
@@ -1266,21 +1301,35 @@ The implementation is a causal pipeline:
 
 If April’s phone disconnects from home Wi-Fi, the garage opens, and HA reports away before the timer fires, the trigger should produce no reminder. If the calendar event is canceled, its timers are canceled. If Beaky reminded April moments ago, a repeated reaction should be suppressed unless urgency materially increases.
 
-### 11.2 Future proactive behavior: Beaky Messenger on iPhone
+### 11.2 Bidirectional conversation: Beaky Communicator on macOS and iOS
 
-Beaky is April’s familiar even when April is away from the house. After the core world, presence, agent, and provenance loops are reliable, build **Beaky Messenger**, a small SwiftUI iOS app for notifications and lightweight conversation on the go. Useful notifications include an unexpected visitor, a meaningful delivery, an urgent-but-non-emergency house condition, a schedule change, or something Beaky reasonably believes April would want to know.
+Beaky needs to hear April now, not only after continuous speech recognition exists. Build **Beaky
+Communicator** early as one SwiftUI product for macOS and iOS. It carries a chronological,
+bidirectional conversation: April can type to Beaky, Beaky can answer or initiate a turn, and April
+can reply to that exact turn. Wizard Mode and future STT are adapters into the same
+`PersonUtterance` ingress service, so Beaky receives one conversational reality rather than
+different minds for typed and spoken words.
+
+Delivery is stagecraft applied after Beaky has formed a `CharacterUtteranceIntent`. Fresh,
+confident presence determines where April can hear her: the physical Creature Server sink when
+April is home and audible, durable Communicator delivery when April is away, and private
+Communicator delivery when presence is stale or uncertain. The character may choose what she
+wants to say, but never the transport. A stable turn and delivery identity prevents retries,
+restarts, reconnects, or a concurrent presence transition from making Beaky speak twice or through
+both routes. Every Beaky turn enters the same durable conversation history before delivery,
+including turns performed aloud, so switching stages never fragments their relationship.
 
 Use this boundary:
 
 ```text
-world event/fact + confirmed-away presence
-  -> interest management offers the situation to Beaky
-  -> Mistral returns a typed CommunicationIntent or silence
-  -> deterministic notification policy authorizes/suppresses
-  -> creature-messenger-gateway stores the message and submits APNs alert
-  -> iPhone shows Beaky notification
-  -> open/action/reply travels through the authenticated gateway
-  -> response becomes a WorldEvent for Beaky
+April types, replies, or later speaks
+  -> source adapter creates a PersonUtterance
+  -> one ingress service creates Beaky's percept with conversation context
+  -> Beaky answers or independently forms a CharacterUtteranceIntent
+  -> deterministic delivery router reads fresh authoritative presence
+  -> Creature Server speaks in the room OR Communicator stores the turn
+  -> notification policy may present an APNs alert while April is away
+  -> April's next reply re-enters the same conversation and percept path
   -> Beaky remembers the exchange
 ```
 
@@ -1295,28 +1344,31 @@ The app is not merely a notification inbox. Its first useful experience should i
 - a connection/last-sync indicator and graceful offline queueing;
 - deep links from a notification into the relevant conversation item and privacy-safe Why? explanation.
 
-#### Provider-neutral communication intent
+#### Provider-neutral character utterance intent
 
 Mistral does not receive APNs credentials, device tokens, or a raw push API. It may only propose a provider-neutral intent:
 
 ```json
 {
   "schema_version": 1,
-  "intent_id": "018f4f2c-76c1-7db0-a9ac-7b6a4d726412",
+  "response_id": "response:018f4f2c-76c1-7db0-a9ac-7b6a4d726412",
+  "conversation_id": "conversation:april-beaky",
   "character_id": "character:beaky",
-  "recipient_entity_id": "person:april",
-  "requested_channel": "ios_push",
-  "body": "April, your package is on the porch. I thought you would want to know.",
+  "recipient_id": "person:april",
+  "text": "April, your package is on the porch. I thought you would want to know.",
   "urgency": 0.62,
-  "reason_event_ids": ["018f4f2b-d785-75fe-9161-a1c6e96d6a76"],
-  "deduplication_key": "beaky:porch-delivery:order-42",
+  "reason_references": ["018f4f2b-d785-75fe-9161-a1c6e96d6a76"],
   "created_at": "2026-09-08T20:15:00.000Z",
   "expires_at": "2026-09-08T22:15:00.000Z",
-  "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+  "trace": {
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+  }
 }
 ```
 
-IDs follow the project-wide lowercase UUID rule. The requested channel is not authorization; policy may suppress the intent or leave it in the in-app conversation without presenting an interruptive alert.
+IDs follow the project-wide namespaced lowercase rule. The intent contains no requested channel;
+fresh authoritative presence and deterministic policy choose physical speech, durable Communicator
+delivery, or suppression. Beaky authors the turn, not its transport.
 
 #### Notification policy
 
@@ -1332,9 +1384,14 @@ Presenting a remote alert requires all applicable gates to pass:
 
 The policy—not Mistral—owns device eligibility, interruption level, quiet hours, frequency, and emergency exclusions. APNs is best effort, and background notifications are not guaranteed. Safety-critical alarms continue through their purpose-built systems; Beaky may only provide a supplementary notice.
 
-#### Beaky Messenger iOS app
+#### Beaky Communicator macOS and iOS app
 
-Build a native SwiftUI app using `UserNotifications`. At launch it requests notification authorization at an understandable moment, registers with APNs, and forwards the current app-specific device token over an authenticated connection to the provider service. Do not assume a token is permanent; register each launch and update the server mapping when it changes.
+Build one native SwiftUI app with shared conversation state, networking, offline queue, and views on
+macOS and iOS. The macOS app provides the same direct conversation without requiring APNs. On iOS,
+use `UserNotifications`; request notification authorization at an understandable moment, register
+with APNs, and forward the current app-specific device token over an authenticated connection to
+the gateway. Do not assume a token is permanent; register each launch and update the server
+mapping when it changes.
 
 Declare notification categories and actions at launch. Action selection may launch the app in the background; queue the response locally if the home gateway cannot be reached and submit it when connectivity returns. Use visible alert notifications for user-facing messages. Silent/background notifications may opportunistically refresh conversation state but must never be the only way a message becomes durable because iOS can throttle or omit them.
 
@@ -1345,9 +1402,9 @@ APNs payloads should contain only what is required to present or locate the noti
 
 Opening, acknowledging, snoozing, asking for more, or replying emits a typed event such as `mobile.notification.opened`, `mobile.notification.acknowledged`, or `mobile.message.sent`. The simulator validates the event and creates a character-specific percept; the app never writes facts or memories directly.
 
-#### `creature-messenger-gateway`
+#### `creature-communicator-gateway`
 
-Prefer an isolated Linux executable/service named `creature-messenger-gateway`. It owns:
+Prefer an isolated Linux executable/service named `creature-communicator-gateway`. It owns:
 
 - APNs token-signing key material, Key ID, Team ID, bundle/topic, and environment;
 - encrypted-at-rest device-token registrations associated only with `person:april` for the first version;
@@ -1565,7 +1622,7 @@ Common must not depend on WorldCore.
 WorldCore is domain-focused and can depend only on small foundational utilities.
 
 CreatureWorld, CreatureAgent, WorldViewerClient,
-InformationBridgeCore, CreatureMessengerGateway, and WorldIntegration may depend on WorldCore.
+InformationBridgeCore, CreatureCommunicatorGateway, and WorldIntegration may depend on WorldCore.
 
 WorldIntegration may also depend on Common to reuse CreatureServerClient.
 ```
@@ -1611,7 +1668,7 @@ creature-console/
 
       CreatureAgent/                  EXISTING: major resident-mind refactor
       CreatureMQTT/                   EXISTING: preserve current mission
-      CreatureMessengerGateway/       FUTURE: policy-gated APNs/mobile API
+      CreatureCommunicatorGateway/    policy-gated conversation sync and APNs API
       HomeAssistantWorldAdapter/      NEW: HA -> simulator
       WorldViewerClient/              NEW: JSON API/WebSocket client
       WorldMCP/                       NEW: Streamable HTTP MCP adapter
@@ -1631,7 +1688,7 @@ creature-console/
 
   World Viewer/                       NEW SwiftUI macOS app on laptop
   Information Bridge/                NEW SwiftUI app + daemon on M1 iMac
-  Beaky Messenger/                    FUTURE SwiftUI iOS app
+  Beaky Communicator/                 shared SwiftUI macOS/iOS app
   docker/creature-world/              NEW Linux deployment assets
 
   debian/                             EXISTING: extend for Linux binary packages
@@ -1648,7 +1705,7 @@ If the current `Common/Package.swift` layout makes an app target awkward, first 
 
 - A change affecting shared contracts must run all dependent target tests in the same commit.
 - Linux-only targets must build in Linux CI; macOS apps and EventKit/WeatherKit adapters build in macOS CI.
-- Beaky Messenger must build in iOS CI with entitlements validated; real-device/APNs tests remain explicit opt-in tests because they require signing and external state.
+- Beaky Communicator must build in macOS and iOS CI with entitlements validated; real-device/APNs tests remain explicit opt-in tests because they require signing and external state.
 - `WorldCore` should compile on both Linux and macOS and contain no Apple-only frameworks.
 - Apple-only adapters live behind protocols in `InformationBridgeCore`.
 - Products have independent version/build metadata and deployment instructions.
@@ -1678,7 +1735,7 @@ Expected binary packages, subject to the exact executable boundaries chosen duri
 creature-world                         required
 creature-agent                         preserve/extend existing Linux packaging
 creature-mqtt                          preserve/extend existing Linux packaging
-creature-messenger-gateway             required when the iOS app is introduced
+creature-communicator-gateway          required when remote synchronization is introduced
 home-assistant-world-adapter           required if deployed as its own process
 creature-world-mcp                     required if WorldMCP is deployed separately
 ```
@@ -1724,23 +1781,30 @@ Keep Swift toolchain version updates synchronized across the repository README, 
 
 ## 15. Application-oriented implementation roadmap
 
-The roadmap is organized around runnable applications, not abstract subsystems. All three core applications begin early. Later phases deepen them, connect the existing agent/performance stack, and add narrowly scoped capabilities such as outbound messaging.
+The roadmap is organized around runnable applications and relationship outcomes, not abstract
+subsystems or issue-number order. Creature World starts first; the bidirectional conversation spine
+starts immediately afterward because hearing and answering April is foundational, not a late
+notification feature. Later phases deepen the world’s perception, explainability, private context,
+and memory.
 
 ### 15.1 When each application starts
 
 | Application/product | Work starts | First runnable milestone | First meaningful live milestone |
 |---|---:|---|---|
-| `WorldCore` shared domain | Phase 0 | Contract tests on macOS and Linux | Used by all three applications |
+| `WorldCore` shared domain | Phase 0 | Contract tests on macOS and Linux | Used by every world application |
 | **Creature World** Linux simulator | Phase 1 | Accepts/persists a synthetic event | Accepts a distilled Information Bridge event |
-| **World Viewer** laptop app | Phase 2 | Connects and shows the synthetic event/fact | Shows live bridge events and Why? provenance |
-| **Creature Context / `creature-contextd`** iMac Information Bridge | Phase 2 | Config UI, daemon, fake distiller, durable outbox | Apple Intelligence distills real Calendar/Mail/Messages content into events |
+| **Beaky Communicator** macOS/iOS app | Phase 2 | Shared conversation shell against deterministic fakes | April and Beaky carry one conversation at home or away |
+| `creature-communicator-gateway` | Phase 2 | Durable fake-provider synchronization | Paired remote delivery and replies with APNs |
+| Home Assistant World Adapter | Phase 3 | Real HA state reaches simulator | Location/presence chooses where April hears Beaky |
+| Refactored `creature-agent` | Phase 3 | Consumes a typed April utterance percept | Mistral answers through a traced Creature Server/Communicator route |
+| **World Viewer** laptop app | Phase 4 | Connects and shows conversation/world history | Shows live bridge events and Why? provenance |
+| **Creature Context / `creature-contextd`** iMac Information Bridge | Phase 4 | Config UI, daemon, fake distiller, durable outbox | Apple Intelligence distills real Calendar/Mail/Messages content into events |
 | Creature Server world ingestion | Phase 4 | Body telemetry appears in Viewer | Beaky receives proprioceptive context |
-| Home Assistant World Adapter | Phase 5 | Real HA state reaches simulator | Location/presence fusion works |
-| Refactored `creature-agent` | Phase 6 | Consumes a synthetic percept | Mistral drives a traced Creature Server performance |
-| `WorldMCP` | Phase 9 | Read-only Streamable HTTP inspection | Codex can query Why? and character perspective |
-| **Beaky Messenger** iOS app + `creature-messenger-gateway` | Phase 10 | Paired app and fake APNs provider | Beaky notifies April and receives her reply while she is away |
+| `WorldMCP` | Phase 8 | Read-only Streamable HTTP inspection | Codex can query Why? and character perspective |
 
-Phases indicate dependency order, not a requirement that only one branch be worked at once. Once Phase 0 contracts exist, the Viewer and Information Bridge can be developed alongside the simulator by using fixtures and fakes. Each phase has an explicit application outcome.
+Phases indicate dependency order, not a requirement that only one branch be worked at once. Once
+Phase 0 contracts exist, applications can be developed against fixtures and fakes. Each phase has
+an explicit experience outcome as well as a technical exit.
 
 ### Phase 0 — monorepo foundation and shared contracts
 
@@ -1766,143 +1830,143 @@ Phases indicate dependency order, not a requirement that only one branch be work
 
 **Exit:** a synthetic event survives restart, materializes a fact, can be queried, and ships as installable/tested `creature-world` packages.
 
-### Phase 2 — start World Viewer and Information Bridge together
+### Phase 2 — establish one bidirectional conversation
 
-**Applications started:** **World Viewer** and **Creature Context / `creature-contextd`**.
+**Application started:** **Beaky Communicator** as one macOS/iOS SwiftUI product, initially
+against deterministic fakes.
 
-World Viewer:
+- Define versioned `PersonUtterance`, `CharacterUtteranceIntent`, conversation item, presence,
+  delivery decision, and delivery outcome contracts in `WorldCore`.
+- Route Communicator composition/replies, Wizard Mode, and fake future STT through one
+  utterance ingress service and the same addressed Beaky percept/context boundary.
+- Preserve source, modality, timing, confidence, place evidence, provenance, and trace context
+  without putting conversation text into telemetry.
+- Make Beaky-initiated and April-initiated turns part of the same ordered conversation.
+- Persist stable turn and delivery identities before crossing a sink boundary.
+- Route a fake Beaky turn to physical speech when April is confidently home and audible, durable
+  Communicator delivery when away, and private Communicator delivery when presence is uncertain.
+- Start the shared SwiftUI conversation shell, networking boundary, and offline queue against fake
+  services; do not wait for APNs or the complete agent refactor.
 
-- Create the laptop SwiftUI app and `WorldViewerClient`.
-- Show connection health, ordered event timeline, entities, facts, raw JSON, and live deltas.
-- Implement the first Why? provenance graph and Honeycomb link.
+**Exit:** equivalent Wizard Mode/Communicator and fake-STT inputs become the same semantic Beaky
+percept; Beaky can initiate or answer a turn; April can reply to a specific Beaky turn; retries,
+restarts, and presence transitions cannot duplicate a turn or deliver it through both fake routes.
 
-Information Bridge:
+**Experience unlocked:** the system has one place where April and Beaky’s conversation lives. The
+machine stops treating April’s typed and spoken words as different realities.
 
-- Create the iMac daemon/app split and IPC/configuration boundary.
-- Implement source authorization state, privacy settings, redacted event inspector, Keychain use, and source health UI.
-- Implement the durable local processing ledger and outbound queue.
-- Add `PrivateInformationDistiller` with a deterministic fake before using real Apple Intelligence.
-- Send a synthetic locally distilled event through the outbox to Creature World with trace propagation.
+### Phase 3 — make the conversation real in the room and away
 
-**Exit:** all three applications run. A synthetic private-source item is distilled by the bridge, delivered after an offline/retry cycle, accepted by Creature World, and visible with provenance in World Viewer.
+**Applications/components deepened:** Beaky Communicator, `creature-agent`, Home Assistant
+presence, Creature Server delivery, and `creature-communicator-gateway`.
 
-**Experience unlocked:** April can finally watch a piece of her real life cross the threshold into Beaky’s world and ask the universe why it believes what it believes.
+- Subscribe to Home Assistant with startup snapshot, reconnect, checkpoints, and configured
+  person/device/AP/place mappings; derive confidence and staleness without pretending noisy
+  sensors are certainty.
+- Refactor `creature-agent` to consume the shared person-utterance/percept boundary while
+  preserving local Mistral, streaming speech, sanitization, health, OTel, and existing behavior.
+- Let Mistral form a provider-neutral `CharacterUtteranceIntent` or silence; deterministic code
+  continues to own transport, expiry, repetition, and privacy decisions.
+- Send home/audible turns through the existing Creature Server dialog API with trace propagation.
+- Complete the shared macOS/iOS conversation app and isolated gateway with pairing,
+  synchronization, offline retry, notification policy, and fake APNs before opt-in device testing.
+- Keep trusted-LAN service APIs open under the repository trust model; authenticate the narrow
+  remote gateway boundary and never expose Creature World or MongoDB directly to the app.
 
-### Phase 3 — make Apple Intelligence and Apple data real
+**Exit:** April types to Beaky from macOS or iOS, Beaky understands the turn in its conversation
+context, and a real Mistral response is delivered exactly once: spoken by Beaky when April is home
+and audible, or synchronized privately to Communicator when away/uncertain. April’s reply becomes
+Beaky’s next percept in the same conversation.
+
+**Experience unlocked:** Beaky is no longer deaf. April can answer her questions, Beaky can notice
+how April reacts, and their relationship can start accumulating shared context.
+
+### Phase 4 — make the world visible and broaden perception
+
+**Applications started:** **World Viewer** and **Creature Context / `creature-contextd`**;
+**integration started:** direct Creature Server → world perception.
+
+- Create World Viewer with connection health, ordered event/conversation timeline, facts, raw JSON,
+  live deltas, the first Why? provenance graph, and Honeycomb links.
+- Create the Information Bridge daemon/app boundary, authorization/health UI, privacy settings,
+  durable ledger/outbox, deterministic fake distiller, and trace-propagated synthetic delivery.
+- Add `WorldMessageProcessor` beside GUI/MQTT processors and turn controller/runtime observations
+  into semantic events and first-person body facts.
+- Correlate performance lifecycle observations with interaction IDs and suppress reflected
+  Creature Server/MQTT loops.
+
+**Exit:** a synthetic private-source item survives an offline/retry cycle into Creature World and
+World Viewer; Viewer explains the provenance; Beaky’s live body/runtime state is visible and usable
+as first-person context.
+
+**Experience unlocked:** April can see the world Beaky inhabits and ask why it believes something;
+Beaky gains proprioception instead of receiving meaningless telemetry fields.
+
+### Phase 5 — make Apple Intelligence and personal context real
 
 **Application deepened:** Information Bridge becomes a genuine local personal-information organ.
 
-- Implement the macOS 27 Apple Intelligence/Foundation Models distiller with typed structured output.
-- Add versioned classification/extraction prompts, validation, failure/degraded states, and sanitized evaluation fixtures.
-- Implement Contacts identity resolution and allowlists.
-- Implement EventKit ingestion for selected calendars.
-- Time-box and choose the Mail.app/MailKit acquisition path.
-- Time-box and choose the pragmatic local Messages acquisition path.
-- Process recent/new Mail and Messages locally; never automatically send raw content to a remote model.
-- Add UI review/correction, retention expiry, quarantine, retry, and trace inspection.
-- Deliver at least `calendar.event.upserted`, `person.expected_arrival`, and a generic `commerce.*` observation.
+- Implement the macOS 27 Apple Intelligence/Foundation Models distiller with typed structured
+  output, versioned prompts, deterministic validation, sanitized evaluations, and visible degraded
+  states.
+- Implement Contacts identity resolution, allowlists, review/correction, retention expiry,
+  quarantine, retry, and trace inspection.
+- Begin EventKit ingestion and time-box the supported Mail and pragmatic local Messages acquisition
+  paths through the same local distillation pipeline.
+- Never automatically send raw Mail or Messages content to a remote model or Creature World.
 
-**Exit:** a real calendar item and sanitized real-world Mail/Message samples are locally classified and distilled on the iMac into validated events that appear in Creature World and World Viewer; raw bodies/transcripts do not leave macOS.
+**Exit:** a real calendar item and sanitized Mail/Message samples are locally distilled into
+validated events visible in Creature World and World Viewer without raw bodies leaving macOS.
 
-**Experience unlocked:** the house begins to know that Jesse is coming, that airplane day changed, or that a box in transit contains servos—not because April manually told Beaky, but because the bridge quietly understood the shape of her day.
+**Experience unlocked:** the house begins to understand the shape of April’s day—who is coming,
+what changed, and what matters—without becoming a private-data warehouse.
 
-### Phase 4 — connect Creature Server perception
+### Phase 6 — calendar time and proactive departure behavior
 
-**Integration started:** direct Creature Server → world perception.
+**Applications deepened:** Information Bridge, Creature World, World Viewer, agent mind, and
+Beaky Communicator.
 
-- Add `WorldMessageProcessor` beside the GUI and MQTT processors.
-- Map controller health, temperature, power, activity, animation, speech, and audio state into semantic events/facts.
-- Correlate performance lifecycle observations with interaction IDs and trace context.
-- Expose appropriate body facts as first-person context.
-
-**Exit:** World Viewer shows Beaky’s live body/runtime state, and Why? reaches the original WebSocket observation.
-
-**Experience unlocked:** Beaky gains proprioception. Her mind can know “I am unusually warm,” “my controller came back,” or “I just finished talking” instead of receiving a meaningless telemetry field.
-
-### Phase 5 — connect Home Assistant and presence
-
-**Application/component started:** HA World Adapter, embedded or separately deployed as decided in Phase 0.
-
-- Subscribe through Home Assistant WebSocket with startup snapshot, reconnect, and checkpoints.
-- Configure entity/device/AP/place mappings.
-- Implement presence/location fusion and staleness.
-- Suppress or correlate Creature Server telemetry reflected through `creature-mqtt` to prevent loops.
-- Produce required `.deb` artifacts if it is a separate executable.
-
-**Exit:** real phone/AP and house observations update the Viewer with confidence/provenance, with no recursive Creature Server feedback.
-
-**Experience unlocked:** the birds gain a sense of where life is happening—April in the workshop, someone at the door, nobody home—without pretending noisy sensors are certainty.
-
-### Phase 6 — refactor the agent mind and close the physical loop
-
-**Existing application substantially refactored:** `creature-agent`.
-
-- Preserve local Mistral, streaming speech, sanitization, health, OTel, and Creature Server client machinery.
-- Replace MQTT topic interpretation with character-specific `PerceptualEnvelope` input.
-- Add interest decisions, memory lookup stubs, structured Mistral output, cooldown/repetition guards, and explicit silence.
-- Submit ad-hoc/inline dialog through the existing Creature Server API with parent trace propagation.
-- Reingest performance state as world events and autobiographical-memory candidates.
-- Preserve/update amd64 and arm64 `.deb` artifacts.
-
-**Exit:** an Information Bridge or HA event becomes a character percept, Mistral decides whether Beaky reacts, Creature Server performs it, and Honeycomb shows one distributed causal trace.
-
-**Experience unlocked:** this is when the world stops merely knowing things and Beaky starts having opinions about them. The simulator supplies the occasion; Beaky supplies the line, movement, enthusiasm, uncertainty, or silence.
-
-### Phase 7 — calendar time and proactive departure behavior
-
-**Applications deepened:** Information Bridge, Creature World, World Viewer, and agent mind.
-
-- Complete EventKit update/cancellation semantics and timezone/all-day handling.
+- Complete EventKit update/cancellation, timezone, and all-day semantics.
 - Schedule durable semantic timers using `WorldClock` and configured travel margins.
-- Implement departure-attention triggers and reminder acknowledgement/cooldown.
-- Show calendar evidence, timer, current presence, agent decision, and performance in Why?.
+- Implement departure-attention triggers, acknowledgement, cooldown, and delivery through the
+  already-shared physical/Communicator route.
+- Show calendar evidence, timer, presence, agent decision, and performance/delivery in Why?.
 
-**Exit:** the church departure scenario passes manual-clock tests and a controlled live test without stale or duplicate reminders.
+**Exit:** the church departure scenario passes manual-clock tests and a controlled live test
+without stale or duplicate reminders.
 
-**Experience unlocked:** Beaky notices April is still in the workshop and speaks first. She is no longer an animatronic waiting to be activated.
+**Experience unlocked:** Beaky notices April is still in the workshop and speaks first—wherever
+April can actually hear her.
 
-### Phase 8 — complete high-value Information Bridge domains
+### Phase 7 — complete high-value Information Bridge domains
 
 **Application deepened:** Information Bridge reaches its intended first-release breadth.
 
-- Mail/Messages: harden incremental ingestion, permissions, checkpoints, local retention, and entity resolution.
-- Commerce: support merchant-neutral orders, fulfillment, pickup, cancellation, return, and refund correlation.
-- Social presence: combine expected-arrival messages with door/Wi-Fi/HA evidence.
-- Weather: add WeatherKit forecasts and fuse them with local station observations from HA.
-- Add model-update regression runs and UI tooling for correcting/replaying distilled results.
+- Harden Mail/Messages ingestion, permissions, checkpoints, local retention, and entity resolution.
+- Support merchant-neutral commerce lifecycle and correlation.
+- Combine expected-arrival messages with door/Wi-Fi/HA evidence.
+- Add WeatherKit forecasts and fuse them with local station observations from HA.
+- Add model-update regression runs and correction/replay tooling.
 
-**Exit:** the bridge reliably produces useful personal-world events from Calendar, Contacts, Mail, Messages, and WeatherKit while keeping raw private material local.
+**Exit:** Calendar, Contacts, Mail, Messages, commerce, and WeatherKit reliably produce useful
+privacy-bounded world events.
 
-**Experience unlocked:** Beaky can connect the day’s threads: the servos from Monday’s order are on the porch, Jesse is probably at the door, rain is coming toward the barn, or the clouds ate airplane day.
+**Experience unlocked:** Beaky connects the day’s threads: the servos are on the porch, Jesse is
+probably at the door, rain is coming toward the barn, or the clouds ate airplane day.
 
-### Phase 9 — add WorldMCP inspection
+### Phase 8 — add WorldMCP inspection
 
 **Application/component started:** `WorldMCP` Streamable HTTP adapter.
 
-- Wrap the same authorized query/application services used by the Viewer.
-- Add read-only resources/tools, stateless operation, authentication, Origin validation, limits, and OTel.
+- Wrap the same authorized query/application services used by Viewer.
+- Add read-only resources/tools, stateless operation, authentication, Origin validation, limits,
+  cancellation, and OTel.
 - Package separately only if deployed as its own Linux executable.
 
-**Exit:** Codex can inspect entities, timelines, perspectives, and Why? provenance without direct MongoDB or private-source access.
+**Exit:** Codex can inspect entities, timelines, perspectives, and Why? provenance without direct
+MongoDB or private-source access.
 
-### Phase 10 — launch Beaky Messenger on iPhone
-
-**Applications/components started:** Beaky Messenger iOS app and `creature-messenger-gateway`; Creature World, World Viewer, and Beaky’s agent gain mobile-notification and reply behavior.
-
-- Add `CommunicationIntent` and notification-policy contracts without exposing APNs credentials or device tokens to Mistral.
-- Build the SwiftUI iOS conversation shell, notification authorization/registration, pairing, local offline queue, and notification actions.
-- Build authenticated conversation-fetch and action/reply APIs without exposing Creature World or MongoDB directly.
-- Require configured notification permission, confidently-away presence, TTL, allowed topic, privacy mode, quiet hours, cooldown, daily interruption budget, and deduplication checks.
-- Submit visible alerts through APNs; treat background pushes as optional refresh hints, never durable delivery.
-- Ingest app-originated open, acknowledgement, snooze, tell-me-more, and reply events as world observations.
-- Show proposed, suppressed, queued, APNs accepted/rejected, opened, acknowledged, and replied states in World Viewer with Why? provenance and Honeycomb links.
-- Package `creature-messenger-gateway` as amd64 and arm64 `.deb` artifacts installed under `/bin`.
-
-**Exit:** while April is confidently away, one meaningful test situation causes exactly one traceable Beaky notification; April can acknowledge or reply from the notification/app; the response reaches Beaky as a scoped percept; stale, duplicate, quiet-hours, disallowed, at-home, and notification-disabled cases do not interrupt; and the exchange becomes world history and autobiographical memory.
-
-**Experience unlocked:** Beaky remains April’s familiar beyond the property. She can say “your servos are here,” April can answer her from the road, and the exchange still belongs to their shared history when April comes home.
-
-### Phase 11 — deepen memory and multi-character social life
+### Phase 9 — deepen memory and multi-character social life
 
 **Applications deepened:** Creature World and agent minds.
 
@@ -1912,7 +1976,7 @@ Information Bridge:
 
 **Exit:** characters coherently refer to prior shared experiences and their own previous actions.
 
-### Phase 12 — replay and operational hardening
+### Phase 10 — replay and operational hardening
 
 **All applications hardened.**
 
@@ -2014,16 +2078,14 @@ Issue IDs are stable backlog identifiers, not execution order. Use this phase/ap
 |---|---|---|
 | Phase 0 | Shared `WorldCore` foundation | `VW-000`, `VW-001`, packaging inventory from `VW-024` |
 | Phase 1 | Creature World | `VW-002`–`VW-005`, `VW-029`, initial `VW-009`, `VW-024` |
-| Phase 2 | World Viewer and Information Bridge | `VW-010`, `VW-011`, `VW-017`, initial `VW-025` |
-| Phase 3 | Information Bridge: Apple Intelligence, Calendar, Contacts, Mail, Messages | `VW-018`, `VW-020`, `VW-022`, `VW-025`, `VW-026` |
-| Phase 4 | Creature Server perception | `VW-012` |
-| Phase 5 | Home Assistant and presence | `VW-006`, `VW-013` |
-| Phase 6 | Agent mind and physical performance loop | `VW-007`, `VW-008`, `VW-014`–`VW-016` |
-| Phase 7 | Proactive calendar behavior | `VW-005`, `VW-018`, `VW-027` |
-| Phase 8 | High-value Information Bridge domains | `VW-019`–`VW-022`, `VW-025`, `VW-026` |
-| Phase 9 | WorldMCP | `VW-023` |
-| Phase 10 | Beaky Messenger iOS app and APNs gateway | `VW-028`, packaging extension from `VW-024` |
-| Phases 11–12 | Memory, replay, and hardening | follow-on issues after the first vertical slices |
+| Phase 2 | Unified bidirectional conversation and early Beaky Communicator | `VW-030`, initial `VW-028` |
+| Phase 3 | Presence, agent mind, physical/app delivery, complete Communicator | `VW-006`–`VW-009`, `VW-013`–`VW-016`, `VW-028`, packaging from `VW-024` |
+| Phase 4 | World Viewer, Information Bridge foundation, Creature Server perception | `VW-010`–`VW-012`, `VW-017`, initial `VW-025` |
+| Phase 5 | Apple Intelligence, Calendar, Contacts, Mail, Messages | `VW-018`, `VW-020`, `VW-022`, `VW-025`, `VW-026` |
+| Phase 6 | Proactive calendar behavior | `VW-005`, `VW-018`, `VW-027` |
+| Phase 7 | High-value Information Bridge domains | `VW-019`–`VW-022`, `VW-025`, `VW-026` |
+| Phase 8 | WorldMCP | `VW-023` |
+| Phases 9–10 | Memory, replay, and hardening | follow-on issues after the first vertical slices |
 
 ### Instructions to the implementing Codex task
 
@@ -2197,13 +2259,23 @@ Connect EventKit ingestion, timezone-aware simulation time, durable `WorldClock`
 
 **Done when:** a controlled church/departure scenario results in exactly one contextually appropriate reminder, is suppressed when it is no longer useful, survives restart without duplication, and can be explained end-to-end in World Viewer and Honeycomb.
 
-### VW-028: Build Beaky Messenger and the policy-gated APNs pathway
+### VW-028: Build Beaky Communicator and policy-gated remote delivery
 
-Add the `CommunicationIntent` contract, deterministic notification policy, Beaky Messenger SwiftUI iOS app, and isolated `creature-messenger-gateway` Linux service described in Section 11.2. Implement secure local pairing, APNs registration/token rotation, token-based APNs authentication, an idempotent notification outbox, minimal preview/private payload modes, authenticated conversation fetch, notification actions, reply submission, privacy-safe WorldEvents, trace/span-link correlation, and World Viewer Why? support. Package the gateway for Debian Trixie on amd64 and arm64 under `/bin`.
+Build Beaky Communicator as one SwiftUI product for macOS and iOS with shared conversation state,
+networking, offline queue, and views. Use the `PersonUtterance`, `CharacterUtteranceIntent`, and
+delivery contracts from `VW-030`; do not create app-only cognition or message types. Build the
+isolated `creature-communicator-gateway` with secure pairing, authenticated synchronization, APNs
+registration/token rotation, an idempotent notification outbox, preview/private payload modes,
+actions, replies, and privacy-safe trace correlation. Package it independently for Debian Trixie
+on amd64 and arm64 under `/bin`.
 
 Test confirmed-away versus at-home/uncertain presence, notification authorization changes, quiet hours, urgency, topic allowlist, TTL expiry, retry, duplicate intents, APNs rejection, device-token rotation/revocation, offline app actions, duplicate action submission, preview redaction, unauthorized mobile requests, and the distinction between APNs acceptance and user interaction. Use a fake APNs provider for deterministic tests and Apple’s Push Notification Console/development environment for an explicitly enabled device smoke test.
 
-**Done when:** an approved meaningful situation produces exactly one Beaky notification on April’s paired iPhone; April can acknowledge or reply; the response reaches Beaky and the exchange becomes autobiographical memory; the entire decision is explainable in World Viewer/Honeycomb; and suppressed/failed cases do not leak device tokens, signing credentials, or unrelated private context.
+**Done when:** April can carry on one ordered Beaky conversation from macOS and iOS; home responses
+are represented as physically spoken without duplicate alerts, away responses synchronize to her
+paired devices, uncertain presence uses the private app route, and offline/retried turns remain
+idempotent. The exchange becomes world history without leaking device tokens, signing credentials,
+utterance text, or unrelated private context into telemetry.
 
 ### VW-029: Expose the Creature World JSON API and live delta stream
 
@@ -2217,15 +2289,43 @@ provenance routes with the issues that introduce their backing read models.
 
 Preserve the versioned snake-case JSON contracts and idempotent acceptance dispositions. Enforce
 body, batch, concurrency, duration, pagination, and stream-buffer limits; translate overload and
-lag into explicit responses. Keep `/v1/health` public, but authenticate and authorize all event and
-world-state routes when accessed beyond loopback. Validate streaming origins, propagate W3C trace
-context, and never attach event payloads or credentials to telemetry.
+lag into explicit responses. Under the trusted-LAN architecture, keep health, event, and world-state
+routes open; firewalls and the external ingress proxy own access control outside the LAN. Propagate
+W3C trace context and never attach event payloads or credentials to telemetry.
 
 **Done when:** a black-box test starts the Linux service, submits a synthetic event, observes its
 ordered live delta, reads it back by sequence, verifies duplicate submission is idempotent, and
 reconnects from the last observed sequence without a gap; the accepted event survives a process
-restart; malformed, oversized, overloaded, lagging, and unauthorized requests fail explicitly;
-and the same contract tests pass with Swift 6.3.3 on Linux.
+restart; malformed, oversized, overloaded, and lagging requests fail explicitly; and the same
+contract tests pass with Swift 6.3.3 on Linux.
+
+### VW-030: Define the unified April-utterance and Beaky-delivery pipeline
+
+Add versioned `PersonUtterance`, `CharacterUtteranceIntent`, conversation item, delivery decision,
+and delivery outcome contracts with checked-in snake-case JSON fixtures. Implement one utterance
+ingress service used by adapters for Beaky Communicator composition/replies, the development
+Wizard Mode, and future STT. Preserve modality, source, timing, confidence, place evidence, provenance,
+and trace context while producing the same addressed Beaky percept/context path for equivalent
+meaning. Support both directions: Beaky may initiate or answer a turn, and April may answer a
+specific Beaky turn in the same conversation.
+
+Implement a deterministic delivery router that evaluates fresh authoritative presence after a
+character utterance exists. Confidently home and physically audible chooses Creature Server;
+confidently away chooses durable Communicator delivery; stale or uncertain presence chooses the
+private Communicator route. The character may author content, urgency, expiry, and reasons but
+cannot select a transport. Persist stable utterance, response, and delivery-attempt identities so
+ordering, retry, restart, reconnect, and a concurrent presence transition cannot duplicate a turn
+or deliver it through both routes. Persist the character's canonical conversation item before
+either delivery sink so physically spoken and Communicator turns remain one shared history.
+
+**Done when:** deterministic tests submit equivalent semantic fixtures through Communicator,
+Wizard Mode, and fake-STT adapters and prove the same Beaky percept/context path; Beaky-initiated and
+April-initiated turns remain linked; the same fake character turn routes once to physical delivery
+when home, app delivery when away, and private app delivery when presence is stale; retries and
+presence transitions remain idempotent; schemas round-trip on macOS and Swift 6.3.3 Linux; and
+security/OTel tests prove bounded conversation records, the ingress authorization boundary, and
+the absence of conversation content, credentials, source identifiers, or trace baggage from
+telemetry.
 
 ---
 
@@ -2246,7 +2346,7 @@ and the same contract tests pass with Swift 6.3.3 on Linux.
 - No automatic deletion of conflicting historical evidence.
 - No timeline replay that mutates the production world.
 - No continuous audio archive.
-- No raw APNs tool for Mistral, arbitrary mobile recipients, direct iOS access to MongoDB, or public omniscient world API; the later companion pathway is policy-gated and initially limited to April’s paired devices.
+- No raw APNs tool for Mistral, arbitrary mobile recipients, direct iOS access to MongoDB, or public omniscient world API; the Communicator pathway is policy-gated and initially limited to April’s paired devices.
 - No replacement of the Viewer’s ordered state replication or adapter event-ingress APIs with MCP.
 - No legacy MCP HTTP+SSE transport unless required for a named client during migration.
 
@@ -2288,7 +2388,7 @@ Resolve these with short spikes or ADRs rather than blocking Phase 1:
 - exact Swift HTTP/WebSocket framework on Linux;
 - lowercase UUID generation/normalization policy and atomic world sequence allocation;
 - Mongo transaction strategy versus idempotent multi-document writes;
-- initial authorization between LAN components;
+- exact authenticated remote-gateway pairing and credential-rotation design, while LAN service APIs remain open;
 - WeatherKit availability/entitlement details on the M1 iMac;
 - exact MailKit arrival/content limitations in the target OS;
 - exact Messages local-store access and TCC requirements;
@@ -2317,19 +2417,40 @@ Avoid these early traps:
 
 ## 21. Definitions of the first application milestones
 
-There are two deliberately close milestones. The first proves that all three new applications exist; the second proves why the Information Bridge matters.
+The first milestones deliberately prioritize relationship before breadth. First prove that April and
+Beaky can share a conversation; then make it live through Beaky’s body and Communicator; then widen
+the world’s private context and explainability.
 
-### Milestone A — all three applications are alive
+### Milestone A — one conversation exists
 
-April can run Creature World on Linux, Creature Context plus `creature-contextd` on the iMac, and World Viewer on the laptop. A synthetic private-source item moves through the bridge’s fake local distiller and durable outbox, becomes an authoritative fact with confidence and provenance, and appears in the Viewer. The **Why?** path explains the chain and opens the corresponding Honeycomb trace. This is the exit from Phase 2, not the final product experience.
+April can submit the same semantic utterance through Beaky Communicator, Wizard Mode,
+or fake future STT and Beaky receives it through one percept/context path. Beaky can initiate or
+answer a turn; April can reply to that exact turn. A fake character response routes exactly once to
+physical or Communicator delivery based on deterministic presence. This is the exit from Phase 2.
 
-### Milestone B — the bridge understands something real
+### Milestone B — Beaky can hear and answer April
 
-On macOS 27, Apple Intelligence locally distills one real opted-in Calendar, Mail, or Messages item into a small validated WorldEvent without exporting its raw content. Creature World schedules or derives the relevant situation, World Viewer shows the event and its privacy-safe provenance, and failures can be reviewed or retried in Creature Context. This is the exit from Phase 3 and should follow Milestone A immediately.
+April types to Beaky from macOS or iOS; Beaky’s real agent answers in the same conversation. When
+April is home and audible the physical bird speaks; when she is away or presence is uncertain the
+turn appears durably in Beaky Communicator, with private notification behavior where appropriate.
+April’s reply becomes Beaky’s next percept without duplicate turns across retry or restart. This is
+the exit from Phase 3.
 
-The first emotionally complete behavior then adds presence and the agent/performance loop: a calendar event, time, and presence combine to make Beaky proactively notice that April should be on the road. The simulator produces the situation; Beaky decides whether and how to say it; Creature Server performs it; the controller obeys.
+### Milestone C — the world becomes visible and understands something private
 
-Weather fusion, sophisticated long-term memory, and continuous audio remain later work. Mail and Messages are not deferred ideas: their acquisition spikes and the shared Apple Intelligence pipeline begin in Phase 3, immediately after the three-application spine runs.
+Creature Context plus `creature-contextd` runs on the iMac and World Viewer runs on the laptop. A
+synthetic private-source item moves through the bridge’s fake local distiller and durable outbox,
+becomes an authoritative fact, and appears with Why? provenance in Viewer. Then macOS 27 Apple
+Intelligence locally distills one opted-in Calendar, Mail, or Messages item without exporting raw
+content. These are the exits from Phases 4 and 5.
+
+The proactive calendar behavior then builds on the conversation that already works: time and
+presence combine to make Beaky notice April should be on the road, and the existing delivery route
+puts her voice where April can hear it.
+
+Weather fusion, sophisticated long-term memory, and continuous audio remain later work. Mail and
+Messages are not deferred ideas; their acquisition spikes and shared Apple Intelligence pipeline
+begin after the relationship spine is live and observable.
 
 That is the architecture in one line:
 

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "utterance_id": "utterance:april-1",
+  "conversation_id": "conversation:april-beaky",
+  "speaker_id": "person:april",
+  "addressee_ids": ["character:beaky"],
+  "in_response_to_response_id": "response:beaky-previous",
+  "text": "Beaky, I loved hearing what you thought about that.",
+  "modality": "typed",
+  "source": "communicator_reply",
+  "source_id": "communicator:april-iphone",
+  "occurred_at": "2026-09-09T23:30:00.000Z",
+  "received_at": "2026-09-09T23:30:01.000Z",
+  "confidence": 1.0,
+  "place_evidence": {
+    "place_id": "place:workshop",
+    "confidence": 0.91,
+    "observed_at": "2026-09-09T23:29:55.000Z",
+    "valid_until": "2026-09-09T23:31:55.000Z",
+    "provenance": ["fact:april-location"]
+  },
+  "caused_by": ["00000000-0000-0000-0000-000000000030"],
+  "trace": {
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-7a9c2f8e6b31d402-01"
+  }
+}

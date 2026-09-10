@@ -10,6 +10,16 @@ public enum WorldContractError: Error, Equatable, Sendable {
     case payloadIsNotObject
     case inconsistentAgentDecision
     case invalidPerformanceIntent
+    case emptyUtterance
+    case invalidPersonUtterance
+    case invalidConversationItem
+    case invalidCharacterUtteranceIntent
+    case conversationContentTooLarge(maximumUnicodeScalars: Int)
+    case conversationContextTooLarge(maximumItems: Int)
+    case conflictingConversationIdentity
+    case invalidPresenceEvidence
+    case inconsistentDeliveryDecision
+    case unauthorizedUtteranceIngress
 }
 
 extension WorldContractError: LocalizedError {
@@ -33,6 +43,26 @@ extension WorldContractError: LocalizedError {
             "A reaction requires an intent and participants; silence cannot contain an intent"
         case .invalidPerformanceIntent:
             "A dialog performance requires turns and an animation performance requires an ID"
+        case .emptyUtterance:
+            "An utterance must contain non-whitespace text"
+        case .invalidPersonUtterance:
+            "A person utterance must have one addressee and valid confidence"
+        case .invalidConversationItem:
+            "A conversation item must identify exactly one valid author and contain text"
+        case .invalidCharacterUtteranceIntent:
+            "A character utterance intent must contain text and valid urgency and expiry"
+        case .conversationContentTooLarge(let maximumUnicodeScalars):
+            "Conversation text exceeds the \(maximumUnicodeScalars)-Unicode-scalar limit"
+        case .conversationContextTooLarge(let maximumItems):
+            "Conversation context exceeds the \(maximumItems)-item limit"
+        case .conflictingConversationIdentity:
+            "A conversation identity was reused for different content"
+        case .invalidPresenceEvidence:
+            "Presence evidence must have valid confidence and freshness"
+        case .inconsistentDeliveryDecision:
+            "The selected delivery route and privacy mode are inconsistent"
+        case .unauthorizedUtteranceIngress:
+            "The utterance ingress boundary rejected the caller"
         }
     }
 }

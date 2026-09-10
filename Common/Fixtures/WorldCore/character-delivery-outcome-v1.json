@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "attempt_id": "delivery-attempt:beaky-1",
+  "response_id": "response:beaky-1",
+  "route": "physical_speech",
+  "state": "accepted",
+  "occurred_at": "2026-09-09T23:30:02.200Z",
+  "provider_reference": "interaction:beaky-1"
+}

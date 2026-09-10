@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/character-delivery-decision-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version", "attempt_id", "response_id", "route", "privacy_mode", "reason",
+    "decided_at", "presence"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion" },
+    "attempt_id": { "$ref": "world-definitions-v1.schema.json#/$defs/deliveryAttemptID" },
+    "response_id": { "$ref": "world-definitions-v1.schema.json#/$defs/responseID" },
+    "route": { "enum": ["physical_speech", "communicator"] },
+    "privacy_mode": { "enum": ["not_applicable", "preview", "private"] },
+    "reason": { "enum": ["home_and_audible", "confidently_away", "presence_uncertain"] },
+    "decided_at": { "type": "string", "format": "date-time" },
+    "presence": {
+      "type": "object",
+      "required": [
+        "schema_version", "person_id", "state", "confidence", "observed_at", "valid_until",
+        "physically_audible"
+      ],
+      "properties": {
+        "schema_version": { "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion" },
+        "person_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
+        "state": { "enum": ["home", "away", "unknown"] },
+        "confidence": { "$ref": "world-definitions-v1.schema.json#/$defs/confidence" },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "valid_until": { "type": "string", "format": "date-time" },
+        "physically_audible": { "type": "boolean" },
+        "place_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
+        "provenance": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "route": { "const": "physical_speech" } } },
+      "then": { "properties": { "privacy_mode": { "const": "not_applicable" } } }
+    },
+    {
+      "if": { "properties": { "route": { "const": "communicator" } } },
+      "then": { "properties": { "privacy_mode": { "enum": ["preview", "private"] } } }
+    }
+  ],
+  "additionalProperties": true
+}

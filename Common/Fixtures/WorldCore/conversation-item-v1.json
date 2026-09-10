@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "item_id": "conversation-item:april-1",
+  "conversation_id": "conversation:april-beaky",
+  "author_id": "person:april",
+  "author_kind": "person",
+  "text": "Beaky, I loved hearing what you thought about that.",
+  "created_at": "2026-09-09T23:30:00.000Z",
+  "in_reply_to_item_id": "conversation-item:beaky-previous",
+  "utterance_id": "utterance:april-1",
+  "trace": {
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-7a9c2f8e6b31d402-01"
+  }
+}

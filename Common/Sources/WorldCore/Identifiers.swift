@@ -114,6 +114,26 @@ public enum InteractionIDDomain: FixedNamespaceIDDomain {
     public static let namespace = "interaction"
 }
 
+public enum ConversationIDDomain: FixedNamespaceIDDomain {
+    public static let namespace = "conversation"
+}
+
+public enum ConversationItemIDDomain: FixedNamespaceIDDomain {
+    public static let namespace = "conversation-item"
+}
+
+public enum UtteranceIDDomain: FixedNamespaceIDDomain {
+    public static let namespace = "utterance"
+}
+
+public enum ResponseIDDomain: FixedNamespaceIDDomain {
+    public static let namespace = "response"
+}
+
+public enum DeliveryAttemptIDDomain: FixedNamespaceIDDomain {
+    public static let namespace = "delivery-attempt"
+}
+
 public typealias EntityID = NamespacedID<EntityIDDomain>
 public typealias SourceID = NamespacedID<SourceIDDomain>
 public typealias FactID = NamespacedID<FactIDDomain>
@@ -122,6 +142,11 @@ public typealias ConsiderationID = NamespacedID<ConsiderationIDDomain>
 public typealias MemoryID = NamespacedID<MemoryIDDomain>
 public typealias IntentID = NamespacedID<IntentIDDomain>
 public typealias InteractionID = NamespacedID<InteractionIDDomain>
+public typealias ConversationID = NamespacedID<ConversationIDDomain>
+public typealias ConversationItemID = NamespacedID<ConversationItemIDDomain>
+public typealias UtteranceID = NamespacedID<UtteranceIDDomain>
+public typealias ResponseID = NamespacedID<ResponseIDDomain>
+public typealias DeliveryAttemptID = NamespacedID<DeliveryAttemptIDDomain>
 
 extension NamespacedID where Domain == FactIDDomain {
     public static func generated(using uuid: UUID = UUID()) -> Self {
@@ -158,6 +183,36 @@ extension NamespacedID where Domain == IntentIDDomain {
 extension NamespacedID where Domain == InteractionIDDomain {
     public static func generated(using uuid: UUID = UUID()) -> Self {
         generated(namespace: InteractionIDDomain.namespace, using: uuid)
+    }
+}
+
+extension NamespacedID where Domain == ConversationIDDomain {
+    public static func generated(using uuid: UUID = UUID()) -> Self {
+        generated(namespace: ConversationIDDomain.namespace, using: uuid)
+    }
+}
+
+extension NamespacedID where Domain == ConversationItemIDDomain {
+    public static func generated(using uuid: UUID = UUID()) -> Self {
+        generated(namespace: ConversationItemIDDomain.namespace, using: uuid)
+    }
+}
+
+extension NamespacedID where Domain == UtteranceIDDomain {
+    public static func generated(using uuid: UUID = UUID()) -> Self {
+        generated(namespace: UtteranceIDDomain.namespace, using: uuid)
+    }
+}
+
+extension NamespacedID where Domain == ResponseIDDomain {
+    public static func generated(using uuid: UUID = UUID()) -> Self {
+        generated(namespace: ResponseIDDomain.namespace, using: uuid)
+    }
+}
+
+extension NamespacedID where Domain == DeliveryAttemptIDDomain {
+    public static func generated(using uuid: UUID = UUID()) -> Self {
+        generated(namespace: DeliveryAttemptIDDomain.namespace, using: uuid)
     }
 }
 
