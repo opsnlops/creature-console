@@ -194,6 +194,39 @@ struct MongoWorldPersistenceTests {
         }
     }
 
+    @Test("Typed person-utterance percepts survive MongoDB event persistence")
+    func personUtterancePerceptEventRoundTrips() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let ingress = try makeIngress(
+                suffix: suffix,
+                conversationID: ConversationID(validating: "conversation:\(suffix)"),
+                occurredAt: Date(timeIntervalSince1970: 3_000)
+            )
+            let percept = ingress.percept
+            let event = try WorldEventEnvelope(
+                occurredAt: percept.utterance.occurredAt,
+                source: EventSource(
+                    id: percept.utterance.sourceID,
+                    kind: percept.utterance.source.rawValue,
+                    sourceEventID: percept.utterance.utteranceID.rawValue
+                ),
+                subjectIDs: [percept.utterance.speakerID, percept.characterID],
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: percept
+            )
+
+            let result = try await persistence.events.append(event, receivedAt: Date())
+            let accepted = try #require(result.insertedEvent)
+            let reloaded = try #require(
+                try await persistence.events.event(withID: accepted.eventID)
+            )
+
+            #expect(reloaded.payload == event.payload)
+            #expect(try reloaded.decodePayload(as: PersonUtterancePercept.self) == percept)
+        }
+    }
+
     @Test("Concurrent event appends receive unique increasing sequences")
     func concurrentSequencesAreUnique() async throws {
         try await withPersistence { persistence in
@@ -270,22 +303,27 @@ struct MongoWorldPersistenceTests {
                 factID: factID,
                 subjectID: subjectID,
                 predicate: "location.current",
-                value: .string("place:workshop"),
+                value: .object(["places": .array([])]),
                 epistemic: EpistemicState(type: .observed, confidence: 1),
                 validFrom: Date(),
                 derivedFrom: [],
                 producer: FactProducer(kind: "test", id: "mongo", version: "1")
             )
             var replacement = original
-            replacement.value = .string("place:stage")
+            replacement.value = .object([
+                "places": .array([.string("place:stage")])
+            ])
 
             try await persistence.facts.save(original)
             try await persistence.facts.save(replacement)
 
             let documents = try await persistence.database[MongoWorldCollection.facts]
-                .find(["_id": factID.rawValue], as: Fact.self)
+                .find(["_id": factID.rawValue])
                 .drain()
-            let stored = try #require(documents.only)
+            let stored = try #require(
+                try await persistence.facts.currentFacts(subjectID: subjectID).only
+            )
+            #expect(documents.count == 1)
             #expect(stored.factID == factID)
             #expect(stored.value == replacement.value)
         }
@@ -302,11 +340,16 @@ struct MongoWorldPersistenceTests {
                 dueAt: Date().addingTimeInterval(60),
                 subjectIDs: [],
                 causedBy: [],
-                payload: [:]
+                payload: [
+                    "context": .object(["reasons": .array([])])
+                ]
             )
             let checkpoint = SourceCheckpoint(
                 sourceID: sourceID,
-                value: .string("cursor-42"),
+                value: .object([
+                    "cursor": .string("cursor-42"),
+                    "pages": .array([]),
+                ]),
                 updatedAt: Date()
             )
 
@@ -321,6 +364,7 @@ struct MongoWorldPersistenceTests {
             )
             #expect(reloadedTimer.purpose == timer.purpose)
             #expect(reloadedTimer.status == .pending)
+            #expect(reloadedTimer.payload == timer.payload)
             #expect(reloadedCheckpoint.sourceID == checkpoint.sourceID)
             #expect(reloadedCheckpoint.value == checkpoint.value)
         }

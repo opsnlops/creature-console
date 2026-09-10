@@ -34,7 +34,8 @@ struct WorldTimerRepository: Sendable {
             to: ["$set": values],
             returnValue: .modified
         )
-        return try await builder.writeConcern(.majority()).decode(WorldTimer.self) != nil
+        let document = try await builder.writeConcern(.majority()).execute().value
+        return try document.map(decode) != nil
     }
 
     func recoverable(limit: Int) async throws -> [WorldTimer] {
@@ -42,10 +43,11 @@ struct WorldTimerRepository: Sendable {
         let statuses: Document = [
             "$in": [WorldTimerStatus.pending.rawValue, WorldTimerStatus.firing.rawValue]
         ]
-        return try await timers.find(["status": statuses], as: WorldTimer.self)
+        let documents = try await timers.find(["status": statuses])
             .sort(["due_at": 1, "timer_id": 1])
             .limit(limit)
             .drain()
+        return try documents.map(decode)
     }
 
     func claim(timerID: TimerID, dueAt: Date, firingAt: Date) async throws -> WorldTimer? {
@@ -66,7 +68,8 @@ struct WorldTimerRepository: Sendable {
             to: ["$set": values],
             returnValue: .modified
         )
-        return try await builder.writeConcern(.majority()).decode(WorldTimer.self)
+        let document = try await builder.writeConcern(.majority()).execute().value
+        return try document.map(decode)
     }
 
     func markFired(timerID: TimerID, dueAt: Date, firedAt: Date) async throws -> Bool {
@@ -83,7 +86,8 @@ struct WorldTimerRepository: Sendable {
             to: ["$set": values],
             returnValue: .modified
         )
-        return try await builder.writeConcern(.majority()).decode(WorldTimer.self) != nil
+        let document = try await builder.writeConcern(.majority()).execute().value
+        return try document.map(decode) != nil
     }
 
     // Compatibility alias for existing repository callers.
@@ -97,7 +101,8 @@ struct WorldTimerRepository: Sendable {
             let due: Document = ["$lte": dueBefore]
             query["due_at"] = due
         }
-        return try await timers.find(query, as: WorldTimer.self).sort(["due_at": 1]).drain()
+        let documents = try await timers.find(query).sort(["due_at": 1]).drain()
+        return try documents.map(decode)
     }
 
     func timers(
@@ -114,9 +119,16 @@ struct WorldTimerRepository: Sendable {
             let greaterThan: Document = ["$gt": after.rawValue]
             query["_id"] = greaterThan
         }
-        return try await timers.find(query, as: WorldTimer.self)
+        let documents = try await timers.find(query)
             .sort(["_id": 1])
             .limit(limit)
             .drain()
+        return try documents.map(decode)
+    }
+
+    private func decode(_ document: Document) throws -> WorldTimer {
+        var timer = try BSONDecoder().decode(WorldTimer.self, from: document)
+        timer.payload = try MongoWorldJSON.object(from: document["payload"])
+        return timer
     }
 }

@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.9",
+  "build_version": "0.1.10",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -161,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.9",
+  "build_version": "0.1.10",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -185,6 +185,13 @@ Schema migrations 1 through 3 establish the following collections and indexes:
 
 The migrator is idempotent and runs whenever a connection is established. Writes use majority write
 concern.
+
+MongoKitten represents BSON documents and arrays with the same `Document` type and distinguishes
+them with `isArray`. Creature World therefore reconstructs dynamic `WorldJSONValue` payloads at
+the repository boundary instead of relying on MongoKitten's permissive Codable decoder, which can
+discard object keys or mistake arrays for objects. Event, fact, timer, and source-checkpoint tests
+cover nested objects and empty arrays. Typed person-utterance percepts are decoded again after a
+MongoDB round trip, not merely compared before persistence.
 
 Event ingestion is idempotent in two ways:
 
@@ -390,7 +397,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.9_amd64.deb
+sudo apt install ./creature-world_0.1.10_amd64.deb
 ```
 
 The package installs:

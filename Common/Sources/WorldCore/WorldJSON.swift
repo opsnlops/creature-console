@@ -93,21 +93,47 @@ public enum WorldJSONValue: Hashable, Sendable, Codable {
     }
 
     public func encode(to encoder: any Encoder) throws {
-        var container = encoder.singleValueContainer()
         switch self {
         case .null:
+            var container = encoder.singleValueContainer()
             try container.encodeNil()
         case .bool(let value):
+            var container = encoder.singleValueContainer()
             try container.encode(value)
         case .number(let value):
+            var container = encoder.singleValueContainer()
             try container.encode(value)
         case .string(let value):
+            var container = encoder.singleValueContainer()
             try container.encode(value)
         case .array(let value):
-            try container.encode(value)
+            var container = encoder.unkeyedContainer()
+            for element in value {
+                try container.encode(element)
+            }
         case .object(let value):
-            try container.encode(value)
+            var container = encoder.container(keyedBy: WorldJSONCodingKey.self)
+            for (key, element) in value.sorted(by: { $0.key < $1.key }) {
+                try container.encode(element, forKey: WorldJSONCodingKey(key))
+            }
         }
+    }
+}
+
+private struct WorldJSONCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int? = nil
+
+    init(_ stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    init?(stringValue: String) {
+        self.init(stringValue)
+    }
+
+    init?(intValue: Int) {
+        return nil
     }
 }
 

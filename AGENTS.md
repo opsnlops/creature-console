@@ -135,8 +135,8 @@ is explicitly changed. Firewalls and the external ingress proxy own access contr
 - Linux builds and package tests use the pinned Swift 6.3.3 release toolchain on every
   architecture.
 - A product's package artifact version must match the version reported by that executable's
-  offline `--version` command. For example, Creature World `0.1.9` produces
-  `creature-world_0.1.9_<architecture>.deb`.
+  offline `--version` command. For example, Creature World `0.1.10` produces
+  `creature-world_0.1.10_<architecture>.deb`.
 - Shared Debian source metadata may retain its established source-package version, but
   `debian/rules` must pass each independently versioned binary package's own version to
   `dh_gencontrol`.
