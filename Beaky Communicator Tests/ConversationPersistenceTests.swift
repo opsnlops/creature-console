@@ -10,7 +10,24 @@ import WorldCore
 struct ConversationPersistenceTests {
     @Test("SwiftData model preserves the complete WorldCore conversation item")
     func modelRoundTrip() throws {
-        let item = try ConversationItem(
+        let item = try Self.makeItem()
+
+        let model = try ConversationItemModel(item: item)
+
+        #expect(try model.item == item)
+    }
+
+    @Test("SwiftData model reads conversation rows written before RFC 3339 wire storage")
+    func readsLegacyDateEncoding() throws {
+        let item = try Self.makeItem()
+        let model = try ConversationItemModel(item: item)
+        model.payload = try JSONEncoder().encode(item)
+
+        #expect(try model.item == item)
+    }
+
+    private static func makeItem() throws -> ConversationItem {
+        try ConversationItem(
             itemID: ConversationItemID(validating: "conversation-item:persistence-test"),
             conversationID: ConversationID(validating: "conversation:april-beaky"),
             authorID: EntityID(validating: "character:beaky"),
@@ -19,10 +36,6 @@ struct ConversationPersistenceTests {
             createdAt: Date(timeIntervalSince1970: 1_789_010_000),
             responseID: ResponseID(validating: "response:persistence-test")
         )
-
-        let model = try ConversationItemModel(item: item)
-
-        #expect(try model.item == item)
     }
 
     @Test("Offline outbox survives reopening the on-disk SwiftData store")

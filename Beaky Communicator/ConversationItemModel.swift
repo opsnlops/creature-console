@@ -28,7 +28,12 @@ final class ConversationItemModel {
 
     var item: ConversationItem {
         get throws {
-            try WorldJSON.makeDecoder().decode(ConversationItem.self, from: payload)
+            do {
+                return try WorldJSON.makeDecoder().decode(ConversationItem.self, from: payload)
+            } catch {
+                // Builds before the World API stored Foundation's numeric Date representation.
+                return try JSONDecoder().decode(ConversationItem.self, from: payload)
+            }
         }
     }
 }
