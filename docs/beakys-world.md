@@ -256,9 +256,25 @@ Later mobile path:
 
 ```text
 creature-agent -> CharacterUtteranceIntent -> world delivery/notification policy
-  -> creature-communicator-gateway -> APNs -> Beaky Communicator on macOS/iPhone
+  -> creature-communicator-gateway consults per-device foreground leases
+  -> live synchronization when any paired client is foregrounded, otherwise APNs
+  -> Beaky Communicator on macOS/iPhone
   -> authenticated action/reply -> gateway -> WorldEvent -> simulator/Beaky percept
 ```
+
+Foreground status is a renewable, short-lived lease per paired app installation, not a durable
+boolean. Each active client heartbeats its lease and makes a best-effort release when it enters the
+background. Lease expiry handles suspension, force-quit, crashes, and lost networks where the
+background transition never reaches the gateway. A live lease on any paired device suppresses a
+redundant push; when no lease remains, the gateway uses its durable notification outbox and APNs.
+Start with a 30-second heartbeat and a 90-second lease, expressed through an injectable clock and
+configuration so expiry, renewal, and boundary races remain deterministic in tests.
+
+“Foreground” means user-attentive, not merely that a process exists. On iOS, only an `.active`
+scene renews its lease. On macOS, the application must be active and have a visible, non-minimized
+conversation window; `.inactive`, hidden, minimized, closed-window, and `.background` states stop
+renewal and attempt an immediate release. A macOS app left running indefinitely must therefore not
+suppress notifications while April is working elsewhere.
 
 | Component | Owns | Explicitly does not own |
 |---|---|---|
@@ -1892,6 +1908,9 @@ presence, Creature Server delivery, and `creature-communicator-gateway`.
 - Send home/audible turns through the existing Creature Server dialog API with trace propagation.
 - Complete the shared macOS/iOS conversation app and isolated gateway with pairing,
   synchronization, offline retry, notification policy, and fake APNs before opt-in device testing.
+- Reconcile the complete paginated conversation on first connection, incrementally synchronize
+  foreground clients, and use renewable per-device foreground leases so another connected client
+  sees a new turn promptly while an absent client receives APNs instead.
 - Keep trusted-LAN service APIs open under the repository trust model; authenticate the narrow
   remote gateway boundary and never expose Creature World or MongoDB directly to the app.
 
@@ -2288,16 +2307,27 @@ networking, offline queue, and views. Use the `PersonUtterance`, `CharacterUtter
 delivery contracts from `VW-030`; do not create app-only cognition or message types. Build the
 isolated `creature-communicator-gateway` with secure pairing, authenticated synchronization, APNs
 registration/token rotation, an idempotent notification outbox, preview/private payload modes,
-actions, replies, and privacy-safe trace correlation. Package it independently for Debian Trixie
-on amd64 and arm64 under `/bin`.
+actions, replies, renewable per-device foreground leases, and privacy-safe trace correlation. A
+foreground client heartbeats its lease and releases it on backgrounding when possible; expiry is
+authoritative because lifecycle callbacks are not guaranteed. Any live paired-device lease
+suppresses a redundant push. Package the gateway independently for Debian Trixie on amd64 and
+arm64 under `/bin`.
 
-Test confirmed-away versus at-home/uncertain presence, notification authorization changes, quiet hours, urgency, topic allowlist, TTL expiry, retry, duplicate intents, APNs rejection, device-token rotation/revocation, offline app actions, duplicate action submission, preview redaction, unauthorized mobile requests, and the distinction between APNs acceptance and user interaction. Use a fake APNs provider for deterministic tests and Apple’s Push Notification Console/development environment for an explicitly enabled device smoke test.
+Test full-history pagination, foreground incremental catch-up, multiple simultaneous clients,
+lease renewal/release/expiry, abrupt client loss, macOS active/inactive/hidden/minimized/windowless
+transitions, confirmed-away versus at-home/uncertain presence, notification authorization changes,
+quiet hours, urgency, topic allowlist, TTL expiry, retry, duplicate intents, APNs rejection,
+device-token rotation/revocation, offline app actions, duplicate action submission, preview
+redaction, unauthorized mobile requests, and the distinction between APNs acceptance and user
+interaction. Use a fake APNs provider for deterministic tests and Apple’s Push Notification
+Console/development environment for an explicitly enabled device smoke test.
 
 **Done when:** April can carry on one ordered Beaky conversation from macOS and iOS; home responses
 are represented as physically spoken without duplicate alerts, away responses synchronize to her
-paired devices, uncertain presence uses the private app route, and offline/retried turns remain
-idempotent. The exchange becomes world history without leaking device tokens, signing credentials,
-utterance text, or unrelated private context into telemetry.
+paired devices, a foreground device sees new turns without reopening the app, no push is sent while
+any paired client holds a live foreground lease, uncertain presence uses the private app route, and
+offline/retried turns remain idempotent. The exchange becomes world history without leaking device
+tokens, signing credentials, utterance text, or unrelated private context into telemetry.
 
 ### VW-029: Expose the Creature World JSON API and live delta stream
 

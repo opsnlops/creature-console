@@ -25,6 +25,7 @@ protocol CommunicatorWorldClientProviding: Sendable {
 
 protocol ConversationPersistence: Sendable {
     func conversation() async throws -> [ConversationItem]
+    func latestCachedItemID() async throws -> ConversationItemID?
     func pendingUtterances() async throws -> [PersonUtterance]
     func enqueue(_ utterance: PersonUtterance, inReplyTo itemID: ConversationItemID?) async throws
     func accept(_ result: UtteranceIngressResult) async throws
@@ -34,6 +35,7 @@ protocol ConversationPersistence: Sendable {
 actor LiveCommunicatorConversationService: CommunicatorConversationService {
     private let persistence: any ConversationPersistence
     private let clientProvider: any CommunicatorWorldClientProviding
+    private var completedInitialHistorySync = false
 
     init(
         persistence: any ConversationPersistence,
@@ -68,17 +70,34 @@ actor LiveCommunicatorConversationService: CommunicatorConversationService {
     private func synchronizeBestEffort() async {
         do {
             let client = try await clientProvider.client()
+            // Capture the cursor before flushing the outbox. A remote turn may have arrived while
+            // this client was offline; using the newly accepted local item as the cursor would skip
+            // that turn.
+            let cursor =
+                completedInitialHistorySync
+                ? try await persistence.latestCachedItemID()
+                : nil
             for utterance in try await persistence.pendingUtterances() {
                 try await persistence.accept(client.submit(utterance))
             }
-            try await synchronizeHistory(using: client)
+            do {
+                try await synchronizeHistory(using: client, after: cursor)
+            } catch  where cursor != nil {
+                // The canonical history may have been replaced while this client was offline.
+                // Starting over is safe because cache writes are idempotent by item ID.
+                try await synchronizeHistory(using: client, after: nil)
+            }
+            completedInitialHistorySync = true
         } catch {
             // The durable outbox and local cache remain available until the next synchronization.
         }
     }
 
-    private func synchronizeHistory(using client: any CommunicatorWorldClient) async throws {
-        var cursor: ConversationItemID?
+    private func synchronizeHistory(
+        using client: any CommunicatorWorldClient,
+        after initialCursor: ConversationItemID?
+    ) async throws {
+        var cursor = initialCursor
         repeat {
             let page = try await client.items(
                 in: ConversationIdentity.conversationID,
@@ -87,10 +106,16 @@ actor LiveCommunicatorConversationService: CommunicatorConversationService {
             )
             try await persistence.cache(page.items)
             guard page.hasMore else { break }
-            guard let next = page.nextItemID, next != cursor else { break }
+            guard let next = page.nextItemID, next != cursor else {
+                throw ConversationSynchronizationError.invalidPaginationCursor
+            }
             cursor = next
         } while true
     }
+}
+
+private enum ConversationSynchronizationError: Error {
+    case invalidPaginationCursor
 }
 
 @ModelActor
@@ -103,6 +128,19 @@ actor SwiftDataConversationRepository: ConversationPersistence {
 
     func pendingUtterances() throws -> [PersonUtterance] {
         try fetchPendingModels().map { try $0.utterance }
+    }
+
+    func latestCachedItemID() throws -> ConversationItemID? {
+        var descriptor = FetchDescriptor<ConversationItemModel>(
+            sortBy: [
+                SortDescriptor(\ConversationItemModel.createdAt, order: .reverse),
+                SortDescriptor(\ConversationItemModel.id, order: .reverse),
+            ]
+        )
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first.map {
+            try ConversationItemID(validating: $0.id)
+        }
     }
 
     func enqueue(

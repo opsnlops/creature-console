@@ -5,6 +5,7 @@ import WorldCore
 
 struct ConversationRootView: View {
     @State private var store: ConversationStore
+    @Environment(\.scenePhase) private var scenePhase
     #if os(iOS)
         @State private var showsSettings = false
     #elseif os(macOS)
@@ -35,6 +36,21 @@ struct ConversationRootView: View {
                 }
         }
         .task { await store.load() }
+        .task {
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(2))
+                } catch {
+                    return
+                }
+                guard scenePhase == .active else { continue }
+                await store.refresh()
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            Task { await store.refresh() }
+        }
         .errorAlert($store.errorAlert, dismissLabel: "Okay 😅")
         #if os(iOS)
             .sheet(isPresented: $showsSettings) {

@@ -37,16 +37,38 @@ struct ConversationStoreTests {
         #expect(store.replyingTo == nil)
     }
 
-    private func makeCharacterItem(text: String) throws -> ConversationItem {
+    @Test("Refreshing catches up with conversation changes from another device")
+    func refreshesConversation() async throws {
+        let first = try makeCharacterItem(text: "Hello, April")
+        let second = try makeCharacterItem(
+            text: "I saw your message from the iPhone",
+            suffix: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            createdAt: Date(timeIntervalSince1970: 1_789_000_001)
+        )
+        let service = TestConversationService(items: [first])
+        let store = ConversationStore(service: service)
+        await store.load()
+
+        await service.replaceItems(with: [first, second])
+        await store.refresh()
+
+        #expect(store.items == [first, second])
+    }
+
+    private func makeCharacterItem(
+        text: String,
+        suffix: String = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        createdAt: Date = Date(timeIntervalSince1970: 1_789_000_000)
+    ) throws -> ConversationItem {
         let responseUUID = try #require(
-            UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+            UUID(uuidString: suffix)
         )
         return try ConversationItem(
             conversationID: ConversationID(validating: "conversation:april-beaky"),
             authorID: EntityID(validating: "character:beaky"),
             authorKind: .character,
             text: text,
-            createdAt: Date(timeIntervalSince1970: 1_789_000_000),
+            createdAt: createdAt,
             responseID: .generated(using: responseUUID)
         )
     }
@@ -71,5 +93,9 @@ private actor TestConversationService: CommunicatorConversationService {
 
     func submit(text: String, inReplyTo item: ConversationItem?) {
         submission = Submission(text: text, replyItemID: item?.itemID)
+    }
+
+    func replaceItems(with items: [ConversationItem]) {
+        self.items = items
     }
 }

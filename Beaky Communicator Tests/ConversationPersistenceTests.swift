@@ -61,6 +61,7 @@ struct ConversationPersistenceTests {
         let restoredItems = try await reopenedRepository.conversation()
         #expect(restoredItems.map(\.text) == ["Yes, please remember."])
         #expect(restoredItems.only?.authorKind == .person)
+        #expect(try await reopenedRepository.latestCachedItemID() == nil)
     }
 
     private func writeConversation(to storeURL: URL) async throws {

@@ -14,15 +14,23 @@ final class ConversationStore {
     var errorAlert: ErrorAlert?
 
     @ObservationIgnored private let service: any CommunicatorConversationService
+    @ObservationIgnored private var isRefreshing = false
 
     init(service: any CommunicatorConversationService) {
         self.service = service
     }
 
     func load() async {
-        guard items.isEmpty, !isLoading else { return }
+        guard items.isEmpty else { return }
         isLoading = true
         defer { isLoading = false }
+        await refresh()
+    }
+
+    func refresh() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
         do {
             items = try await service.conversation()
         } catch {
