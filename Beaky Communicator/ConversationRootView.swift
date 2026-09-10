@@ -58,6 +58,10 @@ struct ConversationRootView: View {
 }
 
 private struct ConversationView: View {
+    private enum ScrollTarget: Hashable {
+        case conversationEnd
+    }
+
     @Bindable var store: ConversationStore
 
     var body: some View {
@@ -71,13 +75,22 @@ private struct ConversationView: View {
                         }
                         .id(item.itemID)
                     }
+
+                    Color.clear
+                        .frame(height: 1)
+                        .id(ScrollTarget.conversationEnd)
                 }
                 .padding()
             }
             .defaultScrollAnchor(.bottom)
-            .onChange(of: store.items.count) {
-                guard let lastID = store.items.last?.itemID else { return }
-                withAnimation { proxy.scrollTo(lastID, anchor: .bottom) }
+            .task(id: store.items.last?.itemID) {
+                guard !store.items.isEmpty else { return }
+
+                // Let the lazy stack lay out the new bubble before moving the viewport.
+                await Task.yield()
+                withAnimation(.snappy) {
+                    proxy.scrollTo(ScrollTarget.conversationEnd, anchor: .bottom)
+                }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
