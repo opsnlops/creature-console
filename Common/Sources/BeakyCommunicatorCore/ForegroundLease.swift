@@ -69,12 +69,19 @@ public struct CommunicatorInstallationID: Hashable, Sendable, Codable, RawRepres
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
-        rawValue = try container.decode(UUID.self)
+        let value = try container.decode(String.self)
+        guard let identifier = UUID(uuidString: value) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Communicator installation ID must be a UUID"
+            )
+        }
+        rawValue = identifier
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
+        try container.encode(rawValue.uuidString.lowercased())
     }
 }
 
@@ -91,12 +98,19 @@ public struct ForegroundSessionID: Hashable, Sendable, Codable, RawRepresentable
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
-        rawValue = try container.decode(UUID.self)
+        let value = try container.decode(String.self)
+        guard let identifier = UUID(uuidString: value) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Foreground session ID must be a UUID"
+            )
+        }
+        rawValue = identifier
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
+        try container.encode(rawValue.uuidString.lowercased())
     }
 }
 

@@ -88,7 +88,7 @@ public struct ForegroundLeaseHTTPClient: ForegroundLeaseTransport, Sendable {
             let url = URL(
                 string: connection.baseURLString(
                     transport: .http,
-                    pathPrefix: "/world/communicator/v1/foreground-leases"
+                    pathPrefix: "/communicator/v1/foreground-leases"
                 )
             )
         else {

@@ -1,0 +1,15 @@
+# Creature Communicator Gateway environment overrides.
+#
+# The service reads its non-secret defaults from
+# /etc/creature/communicator-gateway.json. Uncomment values here only when an
+# environment override is preferable. Do not put secrets in this file; use
+# systemd credentials or another host-managed secret store.
+
+#SERVER_HOSTNAME=127.0.0.1
+#SERVER_PORT=8001
+
+# OpenTelemetry (uncomment to enable OTLP export).
+#OTEL_SERVICE_NAME=creature-communicator-gateway
+#OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
+#OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=YOUR_API_KEY_HERE
+#OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf

@@ -28,7 +28,7 @@ struct ForegroundLeaseHTTPAPITests {
 
         try await application.test(.router) { client in
             try await client.execute(
-                uri: "/world/communicator/v1/foreground-leases",
+                uri: "/communicator/v1/foreground-leases",
                 method: .post,
                 headers: [.contentType: "application/json"],
                 body: try encode(command)
@@ -40,7 +40,7 @@ struct ForegroundLeaseHTTPAPITests {
 
             try await clock.advance(by: 30)
             try await client.execute(
-                uri: "/world/communicator/v1/foreground-leases",
+                uri: "/communicator/v1/foreground-leases",
                 method: .put,
                 headers: [.contentType: "application/json"],
                 body: try encode(command)
@@ -51,7 +51,7 @@ struct ForegroundLeaseHTTPAPITests {
             }
 
             try await client.execute(
-                uri: "/world/communicator/v1/foreground-leases",
+                uri: "/communicator/v1/foreground-leases",
                 method: .delete,
                 headers: [.contentType: "application/json"],
                 body: try encode(command)
@@ -63,6 +63,29 @@ struct ForegroundLeaseHTTPAPITests {
         #expect(await !registry.hasActiveLease())
     }
 
+    @Test("Health is exposed only beneath the communicator prefix")
+    func healthRoute() async throws {
+        let application = makeCommunicatorGatewayApplication(
+            registry: ForegroundLeaseRegistry(clock: ManualWorldClock(now: now))
+        )
+
+        try await application.test(.router) { client in
+            try await client.execute(
+                uri: "/communicator/v1/health",
+                method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let health = try decode(CommunicatorGatewayHealthResponse.self, response.body)
+                #expect(health.status == "ok")
+                #expect(health.service == "creature-communicator-gateway")
+                #expect(health.buildVersion == CommunicatorGatewayBuildInfo.current.version)
+            }
+            try await client.execute(uri: "/world/v1/health", method: .get) { response in
+                #expect(response.status == .notFound)
+            }
+        }
+    }
+
     @Test("Expired and unknown sessions cannot renew")
     func unknownRenewal() async throws {
         let application = makeCommunicatorGatewayApplication(
@@ -71,7 +94,7 @@ struct ForegroundLeaseHTTPAPITests {
 
         try await application.test(.router) { client in
             try await client.execute(
-                uri: "/world/communicator/v1/foreground-leases",
+                uri: "/communicator/v1/foreground-leases",
                 method: .put,
                 headers: [.contentType: "application/json"],
                 body: try encode(command)
@@ -91,7 +114,7 @@ struct ForegroundLeaseHTTPAPITests {
 
         try await application.test(.router) { client in
             try await client.execute(
-                uri: "/world/communicator/v1/foreground-leases",
+                uri: "/communicator/v1/foreground-leases",
                 method: .post,
                 body: ByteBuffer(string: "{}")
             ) { response in
@@ -99,7 +122,7 @@ struct ForegroundLeaseHTTPAPITests {
             }
 
             try await client.execute(
-                uri: "/world/communicator/v1/foreground-leases",
+                uri: "/communicator/v1/foreground-leases",
                 method: .post,
                 headers: [.contentType: "application/json"],
                 body: ByteBuffer(repeating: 0x41, count: 4_097)

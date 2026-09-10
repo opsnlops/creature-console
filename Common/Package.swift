@@ -23,6 +23,9 @@ let package = Package(
         .library(
             name: "BeakyCommunicatorCore",
             targets: ["BeakyCommunicatorCore"]),
+        .executable(
+            name: "creature-communicator-gateway",
+            targets: ["creature-communicator-gateway"]),
 
     ],
     dependencies: [
@@ -124,7 +127,21 @@ let package = Package(
                 "BeakyCommunicatorCore",
                 "WorldCore",
                 .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ]),
+
+        .executableTarget(
+            name: "creature-communicator-gateway",
+            dependencies: [
+                "BeakyCommunicatorCore",
+                "CreatureCommunicatorGateway",
+                "Observability",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Sources/CreatureCommunicatorGatewayCommand"),
 
         .target(
             name: "Observability",

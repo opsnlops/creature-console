@@ -175,7 +175,7 @@ Recommended additions:
 | `BeakyCommunicatorCore` | `Common/Sources/BeakyCommunicatorCore` | Platform-neutral lease, synchronization, and delivery building blocks shared by the Beaky apps and gateway |
 | `HomeAssistantWorldAdapter` | `Common/Sources/HomeAssistantWorldAdapter` | Depends on `WorldCore`, `Observability`, and selected WebSocket client |
 | `WorldMCP` | `Common/Sources/WorldMCP` | Depends on world query services; isolates MCP SDK and transport types |
-| `CreatureCommunicatorGateway` | `Common/Sources/CreatureCommunicatorGateway` | Future Linux executable; depends on communication contracts and gateway infrastructure |
+| `CreatureCommunicatorGateway` / `creature-communicator-gateway` | `Common/Sources/CreatureCommunicatorGateway` | Independent Linux service providing the narrow remote Communicator boundary |
 
 Create World Viewer, Creature Scribe/`creature-scribed`, and Beaky Communicator as separate Xcode
 application/daemon targets with their own entitlements and deployment metadata. Their reusable,

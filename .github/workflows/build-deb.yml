@@ -55,6 +55,7 @@ jobs:
           SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib" \
           SWIFT_BUILD_FLAGS_MQTT="-c release --product creature-mqtt --static-swift-stdlib" \
           SWIFT_BUILD_FLAGS_WORLD="-c release --product creature-world --static-swift-stdlib" \
+          SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY="-c release --product creature-communicator-gateway --static-swift-stdlib" \
             dpkg-buildpackage -us -uc -b
 
       - name: Collect deb artifacts
@@ -64,10 +65,12 @@ jobs:
           mv ../creature-mqtt_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-agent_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-world_*_${{ matrix.arch }}.deb artifacts/
+          mv ../creature-communicator-gateway_*_${{ matrix.arch }}.deb artifacts/
           mv ../creature-cli-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
           mv ../creature-mqtt-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
           mv ../creature-agent-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
           mv ../creature-world-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
+          mv ../creature-communicator-gateway-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
 
       - name: Inspect creature-world package
         run: |
@@ -103,6 +106,42 @@ jobs:
               cmp /tmp/world.json.before /etc/creature/world.json
               apt-get remove -y creature-world
               test -f /etc/creature/world.json
+            '
+
+      - name: Inspect creature-communicator-gateway package
+        run: |
+          package="$(find artifacts -name 'creature-communicator-gateway_*_${{ matrix.arch }}.deb' -print -quit)"
+          test -n "${package}"
+          dpkg-deb --info "${package}"
+          dpkg-deb --contents "${package}"
+          dpkg-deb --contents "${package}" | grep -Eq ' ./bin/creature-communicator-gateway$'
+          dpkg-deb --contents "${package}" | grep -Eq ' ./etc/creature/communicator-gateway.json$'
+          dpkg-deb --contents "${package}" | grep -Eq ' ./usr/lib/systemd/system/creature-communicator-gateway.service$'
+
+      - name: Smoke-test creature-communicator-gateway package in Debian Trixie
+        run: |
+          docker run --rm \
+            --env DEBIAN_FRONTEND=noninteractive \
+            --volume "${PWD}/artifacts:/artifacts:ro" \
+            debian:trixie-slim \
+            bash -euxc '
+              apt-get update
+              apt-get install -y /artifacts/creature-communicator-gateway_*_$(dpkg --print-architecture).deb
+              test "$(stat -c %U:%G /bin/creature-communicator-gateway)" = root:root
+              test "$(stat -c %a /bin/creature-communicator-gateway)" = 755
+              test -f /etc/creature/communicator-gateway.json
+              test -f /usr/lib/systemd/system/creature-communicator-gateway.service
+              grep -Fx "ExecStart=/bin/creature-communicator-gateway --config /etc/creature/communicator-gateway.json" /usr/lib/systemd/system/creature-communicator-gateway.service
+              grep -Fx "DynamicUser=yes" /usr/lib/systemd/system/creature-communicator-gateway.service
+              /bin/creature-communicator-gateway --version
+              /bin/creature-communicator-gateway --help >/dev/null
+              test "$(dpkg-query -W creature-communicator-gateway | cut -f2)" = "$(/bin/creature-communicator-gateway --version)"
+              ldd /bin/creature-communicator-gateway
+              cp /etc/creature/communicator-gateway.json /tmp/communicator-gateway.json.before
+              apt-get install --reinstall -y /artifacts/creature-communicator-gateway_*_$(dpkg --print-architecture).deb
+              cmp /tmp/communicator-gateway.json.before /etc/creature/communicator-gateway.json
+              apt-get remove -y creature-communicator-gateway
+              test -f /etc/creature/communicator-gateway.json
             '
 
       - name: Upload .deb artifact

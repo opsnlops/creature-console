@@ -14,7 +14,7 @@ struct ForegroundLeaseHTTPClientTests {
         rawValue: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
     )
 
-    @Test("Proxy requests use the world communicator route and shared proxy headers")
+    @Test("Proxy requests use the communicator route and shared proxy headers")
     func proxyRequest() async throws {
         let loader = LeaseRecordingLoader(statusCodes: [201])
         let client = ForegroundLeaseHTTPClient(
@@ -37,7 +37,7 @@ struct ForegroundLeaseHTTPClientTests {
         #expect(request.httpMethod == "POST")
         #expect(
             request.url?.absoluteString
-                == "https://proxy.prod.chirpchirp.dev/world/communicator/v1/foreground-leases"
+                == "https://proxy.prod.chirpchirp.dev/communicator/v1/foreground-leases"
         )
         #expect(request.value(forHTTPHeaderField: "Host") == "server.prod.chirpchirp.dev:443")
         #expect(request.value(forHTTPHeaderField: "x-acw-api-key") == "secret")

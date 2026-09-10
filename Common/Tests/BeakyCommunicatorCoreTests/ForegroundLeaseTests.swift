@@ -163,13 +163,27 @@ struct ForegroundLeaseTests {
         let data = try encoder.encode(lease)
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-        #expect(object["installation_id"] as? String == installation.rawValue.uuidString)
-        #expect(object["session_id"] as? String == session.rawValue.uuidString)
+        #expect(
+            object["installation_id"] as? String
+                == installation.rawValue.uuidString.lowercased()
+        )
+        #expect(object["session_id"] as? String == session.rawValue.uuidString.lowercased())
         #expect(object["expires_at"] != nil)
         #expect(object["installationID"] == nil)
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         #expect(try decoder.decode(ForegroundLease.self, from: data) == lease)
+    }
+
+    @Test("Malformed wire identifiers are rejected")
+    func invalidWireIdentifiers() {
+        let data = Data(
+            #"{"installation_id":"not-a-uuid","session_id":"also-invalid"}"#.utf8
+        )
+
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ForegroundLeaseCommand.self, from: data)
+        }
     }
 }

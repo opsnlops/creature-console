@@ -2,6 +2,8 @@ import BeakyCommunicatorCore
 import Foundation
 import HTTPTypes
 import Hummingbird
+import Logging
+import ServiceLifecycle
 import WorldCore
 
 public struct CommunicatorGatewayErrorResponse: Equatable, Sendable, Codable {
@@ -162,10 +164,42 @@ public struct ForegroundLeaseHTTPAPI: Sendable {
 }
 
 public func makeCommunicatorGatewayApplication(
-    registry: ForegroundLeaseRegistry
+    registry: ForegroundLeaseRegistry,
+    configuration: CommunicatorGatewayConfiguration = .default,
+    services: [any Service] = [],
+    logger: Logger = Logger(label: "creature-communicator-gateway")
 ) -> Application<RouterResponder<BasicRequestContext>> {
     let router = Router(context: BasicRequestContext.self)
-    let routes = router.group("world/communicator")
+    router.middlewares.add(TracingMiddleware())
+    router.addMiddleware { LogRequestsMiddleware(.debug) }
+    let routes = router.group("communicator")
+    routes.get("v1/health") { _, _ in
+        CommunicatorGatewayHealthResponse(
+            status: "ok",
+            service: "creature-communicator-gateway",
+            buildVersion: CommunicatorGatewayBuildInfo.current.version
+        )
+    }
     ForegroundLeaseHTTPAPI(registry: registry).addRoutes(to: routes)
-    return Application(router: router)
+    return Application(
+        router: router,
+        configuration: .init(
+            address: .hostname(configuration.host, port: configuration.port),
+            serverName: "creature-communicator-gateway"
+        ),
+        services: services + [CommunicatorGatewayLifecycleReporter(logger: logger)],
+        onServerRunning: { _ in
+            logger.info(
+                "Creature Communicator Gateway is listening",
+                metadata: [
+                    "build.version": "\(CommunicatorGatewayBuildInfo.current.version)",
+                    "http.host": "\(configuration.host)",
+                    "http.port": "\(configuration.port)",
+                ]
+            )
+        },
+        logger: logger
+    )
 }
+
+extension CommunicatorGatewayHealthResponse: ResponseEncodable {}

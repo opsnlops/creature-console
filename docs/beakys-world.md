@@ -1418,7 +1418,9 @@ history, locally queued replies, delivery state, and other application data belo
 file-backed SwiftData store on both platforms; never put chat content in `UserDefaults`. Preserve
 the complete typed conversation DTO in the local model so stable identities, reply relationships,
 provenance, and trace context survive app restarts and can reconcile with the gateway later. Do not
-enable CloudKit for this store.
+enable CloudKit for this store. Partition both cached history and the durable outbox by canonical
+server URI so switching between development and production cannot merge their conversations or
+deliver an offline message to the wrong World. Never infer an environment for legacy unscoped rows.
 
 Declare notification categories and actions at launch. Action selection may launch the app in the background; queue the response locally if the home gateway cannot be reached and submit it when connectivity returns. Use visible alert notifications for user-facing messages. Silent/background notifications may opportunistically refresh conversation state but must never be the only way a message becomes durable because iOS can throttle or omit them.
 
@@ -1441,8 +1443,8 @@ Prefer an isolated Linux executable/service named `creature-communicator-gateway
 - APNs request ID, response/rejection reason, attempts, expiry, and timestamps;
 - privacy-safe WorldEvents and OTel spans correlated to the initiating event and decision.
 
-The external ingress namespace is `/world/communicator/v1/…`. This distinct path lets the shared
-proxy route the narrow Communicator API to the gateway while `/world/v1/…` continues to route to
+The external ingress namespace is `/communicator/v1/…`. This distinct path lets the shared proxy
+route the narrow Communicator API to the gateway binary while `/world/v1/…` continues to route to
 Creature World. Trusted-LAN gateway requests remain open under the repository's LAN trust model;
 off-LAN requests reuse the proxy API key held in the Creature app-family Keychain.
 

@@ -137,6 +137,8 @@ is explicitly changed. Firewalls and the external ingress proxy own access contr
 - A product's package artifact version must match the version reported by that executable's
   offline `--version` command. For example, Creature World `0.1.11` produces
   `creature-world_0.1.11_<architecture>.deb`.
+  Likewise, Creature Communicator Gateway `0.1.0` produces
+  `creature-communicator-gateway_0.1.0_<architecture>.deb`.
 - Shared Debian source metadata may retain its established source-package version, but
   `debian/rules` must pass each independently versioned binary package's own version to
   `dh_gencontrol`.
