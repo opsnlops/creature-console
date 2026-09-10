@@ -89,7 +89,10 @@ let package = Package(
             ]),
 
         .target(
-            name: "WorldCore"),
+            name: "WorldCore",
+            dependencies: [
+                .product(name: "Tracing", package: "swift-distributed-tracing")
+            ]),
 
         .target(
             name: "Observability",

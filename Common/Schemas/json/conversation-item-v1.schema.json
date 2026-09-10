@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creature.engineering/schemas/conversation-item-v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version", "item_id", "conversation_id", "author_id", "author_kind", "text",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "world-definitions-v1.schema.json#/$defs/schemaVersion" },
+    "item_id": { "$ref": "world-definitions-v1.schema.json#/$defs/conversationItemID" },
+    "conversation_id": { "$ref": "world-definitions-v1.schema.json#/$defs/conversationID" },
+    "author_id": { "$ref": "world-definitions-v1.schema.json#/$defs/namespacedID" },
+    "author_kind": { "enum": ["person", "character"] },
+    "text": { "type": "string", "minLength": 1, "maxLength": 16384 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "in_reply_to_item_id": {
+      "$ref": "world-definitions-v1.schema.json#/$defs/conversationItemID"
+    },
+    "utterance_id": { "$ref": "world-definitions-v1.schema.json#/$defs/utteranceID" },
+    "response_id": { "$ref": "world-definitions-v1.schema.json#/$defs/responseID" },
+    "trace": { "$ref": "world-definitions-v1.schema.json#/$defs/trace" }
+  },
+  "oneOf": [
+    { "required": ["utterance_id"], "not": { "required": ["response_id"] } },
+    { "required": ["response_id"], "not": { "required": ["utterance_id"] } }
+  ],
+  "additionalProperties": true
+}

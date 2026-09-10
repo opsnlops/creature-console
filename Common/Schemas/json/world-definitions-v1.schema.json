@@ -25,6 +25,26 @@
       "type": "string",
       "pattern": "^interaction:[a-z0-9._:-]+$"
     },
+    "conversationID": {
+      "type": "string",
+      "pattern": "^conversation:[a-z0-9._:-]+$"
+    },
+    "conversationItemID": {
+      "type": "string",
+      "pattern": "^conversation-item:[a-z0-9._:-]+$"
+    },
+    "utteranceID": {
+      "type": "string",
+      "pattern": "^utterance:[a-z0-9._:-]+$"
+    },
+    "responseID": {
+      "type": "string",
+      "pattern": "^response:[a-z0-9._:-]+$"
+    },
+    "deliveryAttemptID": {
+      "type": "string",
+      "pattern": "^delivery-attempt:[a-z0-9._:-]+$"
+    },
     "eventType": {
       "type": "string",
       "pattern": "^[a-z0-9_-]+(?:\\.[a-z0-9_-]+)+$"

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "attempt_id": "delivery-attempt:beaky-1",
+  "response_id": "response:beaky-1",
+  "route": "physical_speech",
+  "privacy_mode": "not_applicable",
+  "reason": "home_and_audible",
+  "decided_at": "2026-09-09T23:30:02.100Z",
+  "presence": {
+    "schema_version": 1,
+    "person_id": "person:april",
+    "state": "home",
+    "confidence": 0.91,
+    "observed_at": "2026-09-09T23:29:55.000Z",
+    "valid_until": "2026-09-09T23:31:55.000Z",
+    "physically_audible": true,
+    "place_id": "place:workshop",
+    "provenance": ["fact:april-location"]
+  }
+}

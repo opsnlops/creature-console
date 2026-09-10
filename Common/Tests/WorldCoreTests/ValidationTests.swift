@@ -42,6 +42,24 @@ struct ValidationTests {
         let percept = try dataWithSchemaVersion(8, fixture: "perceptual-envelope-v1")
         let decision = try dataWithSchemaVersion(8, fixture: "agent-decision-v1")
         let performance = try dataWithSchemaVersion(8, fixture: "performance-intent-v1")
+        let personUtterance = try dataWithSchemaVersion(8, fixture: "person-utterance-v1")
+        let conversationItem = try dataWithSchemaVersion(8, fixture: "conversation-item-v1")
+        let personPercept = try dataWithSchemaVersion(
+            8,
+            fixture: "person-utterance-percept-v1"
+        )
+        let characterUtterance = try dataWithSchemaVersion(
+            8,
+            fixture: "character-utterance-intent-v1"
+        )
+        let deliveryDecision = try dataWithSchemaVersion(
+            8,
+            fixture: "character-delivery-decision-v1"
+        )
+        let deliveryOutcome = try dataWithSchemaVersion(
+            8,
+            fixture: "character-delivery-outcome-v1"
+        )
 
         #expect(throws: WorldContractError.self) {
             try WorldJSON.makeDecoder().decode(Fact.self, from: fact)
@@ -57,6 +75,33 @@ struct ValidationTests {
         }
         #expect(throws: WorldContractError.self) {
             try WorldJSON.makeDecoder().decode(PerformanceIntent.self, from: performance)
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(PersonUtterance.self, from: personUtterance)
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(ConversationItem.self, from: conversationItem)
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(PersonUtterancePercept.self, from: personPercept)
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(
+                CharacterUtteranceIntent.self,
+                from: characterUtterance
+            )
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(
+                CharacterDeliveryDecision.self,
+                from: deliveryDecision
+            )
+        }
+        #expect(throws: WorldContractError.self) {
+            try WorldJSON.makeDecoder().decode(
+                CharacterDeliveryOutcome.self,
+                from: deliveryOutcome
+            )
         }
     }
 
