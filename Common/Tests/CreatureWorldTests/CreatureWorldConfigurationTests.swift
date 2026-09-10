@@ -39,6 +39,8 @@ struct CreatureWorldConfigurationTests {
             from: fixtureURL,
             environment: [
                 CreatureWorldConfiguration.hostEnvironmentKey: "0.0.0.0",
+                CreatureWorldConfiguration.allowedOriginsEnvironmentKey:
+                    "https://viewer.example, https://communicator.example",
                 CreatureWorldConfiguration.mongoURIEnvironmentKey:
                     "mongodb://mongo.internal:27017/creature_world",
                 CreatureWorldConfiguration.portEnvironmentKey: "18092",
@@ -46,6 +48,11 @@ struct CreatureWorldConfigurationTests {
         )
 
         #expect(loaded.host == "0.0.0.0")
+        #expect(
+            loaded.allowedOrigins == [
+                "https://viewer.example", "https://communicator.example",
+            ]
+        )
         #expect(loaded.mongoURI == "mongodb://mongo.internal:27017/creature_world")
         #expect(loaded.port == 18_092)
     }

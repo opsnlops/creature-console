@@ -26,6 +26,7 @@ enum CreatureWorldConfigurationError: Error, Equatable, LocalizedError, Sendable
 
 struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     static let configPathEnvironmentKey = "CREATURE_WORLD_CONFIG"
+    static let allowedOriginsEnvironmentKey = "CREATURE_WORLD_ALLOWED_ORIGINS"
     static let hostEnvironmentKey = "SERVER_HOSTNAME"
     static let mongoURIEnvironmentKey = "MONGODB_URI"
     static let portEnvironmentKey = "SERVER_PORT"
@@ -35,6 +36,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         "mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000"
     static let defaultPort = 8000
 
+    let allowedOrigins: [String]
     let host: String
     let mongoURI: String
     let port: Int
@@ -42,7 +44,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     init(
         host: String = defaultHost,
         port: Int = defaultPort,
-        mongoURI: String = defaultMongoURI
+        mongoURI: String = defaultMongoURI,
+        allowedOrigins: [String] = []
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -63,6 +66,10 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                 actual: settings.targetDatabase
             )
         }
+        self.allowedOrigins =
+            allowedOrigins
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
         self.host = trimmedHost
         self.mongoURI = mongoURI
         self.port = port
@@ -79,7 +86,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             fileConfiguration = try CreatureWorldConfiguration(
                 host: raw.host ?? defaultHost,
                 port: raw.port ?? defaultPort,
-                mongoURI: raw.mongoURI ?? defaultMongoURI
+                mongoURI: raw.mongoURI ?? defaultMongoURI,
+                allowedOrigins: raw.allowedOrigins ?? []
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -94,30 +102,42 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             }
             return port
         }
+        let configuredOrigins = environment[allowedOriginsEnvironmentKey].map {
+            $0.split(separator: ",").map(String.init)
+        }
         return try fileConfiguration.overriding(
             host: environment[hostEnvironmentKey],
             port: environmentPort,
-            mongoURI: environment[mongoURIEnvironmentKey]
+            mongoURI: environment[mongoURIEnvironmentKey],
+            allowedOrigins: configuredOrigins
         )
     }
 
-    func overriding(host: String?, port: Int?, mongoURI: String? = nil) throws
+    func overriding(
+        host: String?,
+        port: Int?,
+        mongoURI: String? = nil,
+        allowedOrigins: [String]? = nil
+    ) throws
         -> CreatureWorldConfiguration
     {
         try CreatureWorldConfiguration(
             host: host ?? self.host,
             port: port ?? self.port,
-            mongoURI: mongoURI ?? self.mongoURI
+            mongoURI: mongoURI ?? self.mongoURI,
+            allowedOrigins: allowedOrigins ?? self.allowedOrigins
         )
     }
 
     private struct RawConfiguration: Decodable {
         let host: String?
+        let allowedOrigins: [String]?
         let mongoURI: String?
         let port: Int?
 
         private enum CodingKeys: String, CodingKey {
             case host
+            case allowedOrigins = "allowed_origins"
             case mongoURI = "mongodb_uri"
             case port
         }

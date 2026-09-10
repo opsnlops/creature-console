@@ -30,4 +30,23 @@ struct FactRepository: Sendable {
         }
         return try await facts.find(query, as: Fact.self).sort(["valid_from": 1]).drain()
     }
+
+    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws -> [Fact] {
+        precondition(limit > 0)
+        var query: Document = [
+            "valid_to": Null(),
+            "superseded_by": Null(),
+        ]
+        if let subjectID {
+            query["subject_id"] = subjectID.rawValue
+        }
+        if let after {
+            let greaterThan: Document = ["$gt": after.rawValue]
+            query["_id"] = greaterThan
+        }
+        return try await facts.find(query, as: Fact.self)
+            .sort(["_id": 1])
+            .limit(limit)
+            .drain()
+    }
 }

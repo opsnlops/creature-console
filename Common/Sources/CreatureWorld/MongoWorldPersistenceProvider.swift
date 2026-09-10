@@ -5,6 +5,13 @@ import ServiceLifecycle
 import WorldCore
 
 struct MongoWorldPersistenceConnection: Sendable {
+    let acceptEvent: @Sendable (WorldEventEnvelope) async throws -> WorldEventAcceptance
+    let events: @Sendable (Int64, Int) async throws -> WorldEventPage
+    let currentFacts: @Sendable (EntityID?, FactID?, Int) async throws -> WorldFactPage
+    let timers: @Sendable (WorldTimerStatus?, TimerID?, Int) async throws -> WorldTimerPage
+    let snapshot: @Sendable (Int) async throws -> WorldSnapshot
+    let subscribe: @Sendable () async throws -> WorldDeltaStream
+    let finishSubscriptions: @Sendable () async -> Void
     let isHealthy: @Sendable () async -> Bool
     let recoverTimers: @Sendable () async throws -> Void
     let scheduleTimer: @Sendable (WorldTimer) async throws -> Void
@@ -28,23 +35,114 @@ struct MongoWorldPersistenceConnection: Sendable {
             clock: clock,
             logger: logger
         )
+        acceptEvent = { try await world.accept($0) }
+        events = { sequence, limit in
+            let loaded = try await persistence.events.events(
+                after: sequence,
+                limit: limit + 1
+            )
+            let hasMore = loaded.count > limit
+            let pageEvents = Array(loaded.prefix(limit))
+            return WorldEventPage(
+                events: pageEvents,
+                nextSequence: pageEvents.last?.worldSequence ?? sequence,
+                hasMore: hasMore
+            )
+        }
+        currentFacts = { subjectID, after, limit in
+            let loaded = try await persistence.facts.currentFacts(
+                subjectID: subjectID,
+                after: after,
+                limit: limit + 1
+            )
+            let hasMore = loaded.count > limit
+            let pageFacts = Array(loaded.prefix(limit))
+            return WorldFactPage(
+                facts: pageFacts,
+                nextFactID: pageFacts.last?.factID,
+                hasMore: hasMore
+            )
+        }
+        timers = { status, after, limit in
+            let loaded = try await persistence.timers.timers(
+                status: status,
+                after: after,
+                limit: limit + 1
+            )
+            let hasMore = loaded.count > limit
+            let pageTimers = Array(loaded.prefix(limit))
+            return WorldTimerPage(
+                timers: pageTimers,
+                nextTimerID: pageTimers.last?.timerID,
+                hasMore: hasMore
+            )
+        }
+        snapshot = { limit in
+            let latestSequence = try await persistence.events.latestSequence()
+            let loadedFacts = try await persistence.facts.currentFacts(
+                subjectID: nil,
+                after: nil,
+                limit: limit + 1
+            )
+            let loadedTimers = try await persistence.timers.timers(limit: limit + 1)
+            return WorldSnapshot(
+                latestSequence: latestSequence,
+                facts: Array(loadedFacts.prefix(limit)),
+                timers: Array(loadedTimers.prefix(limit)),
+                factsTruncated: loadedFacts.count > limit,
+                timersTruncated: loadedTimers.count > limit
+            )
+        }
+        subscribe = { try await world.subscribe() }
+        finishSubscriptions = { await world.finishSubscriptions() }
         isHealthy = { await persistence.isHealthy() }
         recoverTimers = { try await timerScheduler.recover() }
         scheduleTimer = { try await timerScheduler.schedule($0) }
         cancelTimer = { try await timerScheduler.cancel(timerID: $0) }
         shutdown = {
+            await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
             await persistence.cluster.disconnect()
         }
     }
 
     init(
+        acceptEvent: @escaping @Sendable (WorldEventEnvelope) async throws -> WorldEventAcceptance =
+            {
+                _ in throw WorldAPIError.databaseUnavailable
+            },
+        events: @escaping @Sendable (Int64, Int) async throws -> WorldEventPage = {
+            _, _ in throw WorldAPIError.databaseUnavailable
+        },
+        currentFacts: @escaping @Sendable (EntityID?, FactID?, Int) async throws -> WorldFactPage =
+            {
+                _, _, _ in throw WorldAPIError.databaseUnavailable
+            },
+        timers:
+            @escaping @Sendable (WorldTimerStatus?, TimerID?, Int) async throws -> WorldTimerPage =
+            {
+                _, _, _ in throw WorldAPIError.databaseUnavailable
+            },
+        snapshot: @escaping @Sendable (Int) async throws -> WorldSnapshot = {
+            _ in throw WorldAPIError.databaseUnavailable
+        },
+        subscribe: @escaping @Sendable () async throws -> WorldDeltaStream = {
+            throw WorldAPIError.databaseUnavailable
+        },
+        finishSubscriptions: @escaping @Sendable () async -> Void = {},
         isHealthy: @escaping @Sendable () async -> Bool,
         recoverTimers: @escaping @Sendable () async throws -> Void = {},
         scheduleTimer: @escaping @Sendable (WorldTimer) async throws -> Void = { _ in },
         cancelTimer: @escaping @Sendable (TimerID) async throws -> Bool = { _ in false },
         shutdown: @escaping @Sendable () async -> Void
     ) {
+        self.acceptEvent = acceptEvent
+        self.events = events
+        self.currentFacts = currentFacts
+        self.timers = timers
+        self.snapshot = snapshot
+        self.subscribe = subscribe
+        self.finishSubscriptions = finishSubscriptions
         self.isHealthy = isHealthy
         self.recoverTimers = recoverTimers
         self.scheduleTimer = scheduleTimer
@@ -142,7 +240,47 @@ actor MongoWorldPersistenceProvider {
         guard let connection else { throw MongoWorldPersistenceProviderError.unavailable }
         return try await connection.cancelTimer(timerID)
     }
+
+    func accept(_ event: WorldEventEnvelope) async throws -> WorldEventAcceptance {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.acceptEvent(event)
+    }
+
+    func events(after sequence: Int64, limit: Int) async throws -> WorldEventPage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.events(sequence, limit)
+    }
+
+    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws
+        -> WorldFactPage
+    {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.currentFacts(subjectID, after, limit)
+    }
+
+    func timers(status: WorldTimerStatus?, after: TimerID?, limit: Int) async throws
+        -> WorldTimerPage
+    {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.timers(status, after, limit)
+    }
+
+    func snapshot(limit: Int) async throws -> WorldSnapshot {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.snapshot(limit)
+    }
+
+    func subscribe() async throws -> WorldDeltaStream {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.subscribe()
+    }
+
+    func finishSubscriptions() async {
+        await connection?.finishSubscriptions()
+    }
 }
+
+extension MongoWorldPersistenceProvider: WorldApplicationService {}
 
 enum MongoWorldPersistenceProviderError: Error, Equatable, Sendable {
     case unavailable

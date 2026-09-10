@@ -14,7 +14,7 @@ struct WorldEventAcceptance: Equatable, Sendable {
     let event: WorldEventEnvelope
 }
 
-struct WorldDelta: Equatable, Sendable {
+struct WorldDelta: Codable, Equatable, Sendable {
     let event: WorldEventEnvelope
     let changedFacts: [Fact]
 }
@@ -186,6 +186,20 @@ actor World {
                 }
             }
         }
+    }
+
+    func closeSubscriptions(error: WorldAPIError) {
+        for continuation in subscribers.values {
+            continuation.finish(throwing: error)
+        }
+        subscribers.removeAll()
+    }
+
+    func finishSubscriptions() {
+        for continuation in subscribers.values {
+            continuation.finish()
+        }
+        subscribers.removeAll()
     }
 
     fileprivate static func setEventAttributes(on span: any Span, event: WorldEventEnvelope) {

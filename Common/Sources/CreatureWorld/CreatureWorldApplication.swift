@@ -3,19 +3,27 @@ import ServiceLifecycle
 
 func makeCreatureWorldApplication(
     dependencies: CreatureWorldDependencies,
+    apiConfiguration: WorldAPIConfiguration = .default,
     services: [any Service] = []
 ) -> Application<RouterResponder<BasicRequestContext>> {
     let router = Router(context: BasicRequestContext.self)
+    router.middlewares.add(TracingMiddleware())
     router.addMiddleware {
         LogRequestsMiddleware(.debug)
     }
-    router.get("v1/health") { _, _ in
+    let worldRoutes = router.group("world")
+    worldRoutes.get("v1/health") { _, _ in
         let health = await dependencies.healthService.response()
         return EditedResponse(
             status: health.status == "ok" ? .ok : .serviceUnavailable,
             response: health
         )
     }
+    WorldHTTPAPI(
+        configuration: dependencies.configuration,
+        service: dependencies.worldService,
+        limits: apiConfiguration
+    ).addRoutes(to: worldRoutes)
 
     let lifecycleReporter = CreatureWorldLifecycleReporter(logger: dependencies.logger)
     let persistenceServices: [any Service] =

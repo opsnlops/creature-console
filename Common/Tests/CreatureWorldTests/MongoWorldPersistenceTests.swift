@@ -1,4 +1,7 @@
 import Foundation
+import Hummingbird
+import HummingbirdTesting
+import Logging
 import MongoKitten
 import Testing
 import WorldCore
@@ -13,6 +16,56 @@ private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI
     .enabled(if: mongoTestURI != nil, "Set MONGODB_TEST_URI to run MongoDB integration tests")
 )
 struct MongoWorldPersistenceTests {
+    @Test("HTTP event acceptance remains queryable after an application restart")
+    func httpAcceptanceSurvivesRestart() async throws {
+        let uri = try #require(mongoTestURI)
+        let configuration = try CreatureWorldConfiguration(mongoURI: uri)
+        let event = try makeEvent(sourceEventID: UUID().uuidString.lowercased())
+        let requestBody = ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(event))
+
+        let firstDependencies = try await CreatureWorldDependencies.live(
+            configuration: configuration,
+            logger: Logger(label: "creature-world-http-mongodb-tests"),
+            buildInfo: CreatureWorldBuildInfo(version: "http-mongodb-test", schemaVersion: 1)
+        )
+        let firstApplication = makeCreatureWorldApplication(dependencies: firstDependencies)
+        let sequence = try await firstApplication.test(.router) { client in
+            try await client.execute(
+                uri: "/world/v1/events",
+                method: .post,
+                headers: [.contentType: "application/json"],
+                body: requestBody
+            ) { response -> Int64 in
+                #expect(response.status == .accepted)
+                let result = try WorldJSON.makeDecoder().decode(
+                    WorldEventAcceptanceResponse.self,
+                    from: response.body
+                )
+                return try #require(result.event.worldSequence)
+            }
+        }
+
+        let secondDependencies = try await CreatureWorldDependencies.live(
+            configuration: configuration,
+            logger: Logger(label: "creature-world-http-mongodb-tests"),
+            buildInfo: CreatureWorldBuildInfo(version: "http-mongodb-test", schemaVersion: 1)
+        )
+        let secondApplication = makeCreatureWorldApplication(dependencies: secondDependencies)
+        try await secondApplication.test(.router) { client in
+            try await client.execute(
+                uri: "/world/v1/events?after_sequence=\(sequence - 1)&limit=10",
+                method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let page = try WorldJSON.makeDecoder().decode(
+                    WorldEventPage.self,
+                    from: response.body
+                )
+                #expect(page.events.contains { $0.eventID == event.eventID })
+            }
+        }
+    }
+
     @Test("Migration creates the required repository indexes")
     func createsRequiredIndexes() async throws {
         try await withPersistence { persistence in
