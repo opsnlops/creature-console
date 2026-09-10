@@ -66,6 +66,10 @@ is explicitly changed. Firewalls and the external ingress proxy own access contr
 ## Coding Style & Naming Conventions
 - Follow Swift API Design Guidelines; prefer descriptive camelCase for variables/functions and PascalCase for types.
 - Indent with 4 spaces; align trailing closures and guard returns for readability.
+- Prefer native SwiftUI containers, controls, and toolbar placements across Apple-platform apps.
+  Use SwiftUI 26 Liquid Glass APIs whenever they fit the interaction, including `safeAreaBar`,
+  glass button styles, and `glassEffect` for custom surfaces; do not hand-paint replacements for
+  system bars or materials.
 - **IMPORTANT**: Run `swift-format --configuration swift-format.json --in-place <paths>` on ALL modified files before committing.
   - Format single file: `swift-format --configuration swift-format.json --in-place Sources/Common/MyFile.swift`
   - Format directory: `swift-format --configuration swift-format.json --in-place Sources/Common/`

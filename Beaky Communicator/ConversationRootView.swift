@@ -87,7 +87,7 @@ private struct ConversationView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .safeAreaBar(edge: .bottom, spacing: 0) {
             ConversationComposer(store: store)
         }
         .overlay {
@@ -187,7 +187,7 @@ private struct ConversationComposer: View {
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
-                    .panelCard(cornerRadius: 18)
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18))
                     .onSubmit { Task { await store.send() } }
 
                 Button {
@@ -210,7 +210,6 @@ private struct ConversationComposer: View {
             }
         }
         .padding()
-        .background(.background.opacity(0.92))
     }
 }
 
