@@ -259,6 +259,11 @@
 		AA0100000000000000000C02 /* StageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000A02 /* StageImporter.swift */; };
 		B0A5226481B86C3BEFB8D1CE /* DmxFixtureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */; };
 		B0EB4DDC9872D02FBC869667 /* StoryboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54614CD9A93C664522211643 /* StoryboardModel.swift */; };
+		BCA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000015 /* WorldCore */; };
+		BCA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000016 /* CreatureAppSupport */; };
+		BCA00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = BCA00000000000000000001B /* WorldCore */; };
+		BCA00000000000000000001E /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA00000000000000000001D /* CreatureAppSupport */; };
+		BCA000000000000000000021 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000020 /* CreatureAppSupport */; };
 		BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */; };
 		C1B849B58E8EAD7B9E0510B9 /* AudioFileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211450B80E5BBFE2141677F /* AudioFileDocument.swift */; };
 		D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */; };
@@ -306,11 +311,9 @@
 		FEA1B1E70000000000000082 /* DuplicateInstanceGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000081 /* DuplicateInstanceGuard.swift */; };
 		FEA1B1E70000000000000091 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 		FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
-		BCA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000015 /* WorldCore */; };
-		BCA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000016 /* CreatureAppSupport */; };
-		BCA00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = BCA00000000000000000001B /* WorldCore */; };
-		BCA00000000000000000001E /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA00000000000000000001D /* CreatureAppSupport */; };
-		BCA000000000000000000021 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000020 /* CreatureAppSupport */; };
+		WVA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = WVA000000000000000000015 /* WorldCore */; };
+		WVA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = WVA000000000000000000016 /* CreatureAppSupport */; };
+		WVT00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = WVT00000000000000000001B /* WorldCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -341,6 +344,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = BCA000000000000000000001;
 			remoteInfo = "Beaky Communicator";
+		};
+		WVT000000000000000000013 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = WVA000000000000000000001;
+			remoteInfo = "World Viewer";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -413,10 +423,6 @@
 		117C86FE2CA0CC81007B5682 /* Creature TV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature TV.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Creature TVTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Creature TVUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BCA000000000000000000002 /* Beaky Communicator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Beaky Communicator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BCA00000000000000000000B /* Beaky Communicator Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Beaky Communicator Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BCA00000000000000000001F /* Beaky_Communicator.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Beaky_Communicator.entitlements; sourceTree = "<group>"; };
-		BCA000000000000000000022 /* Beaky-Communicator-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Beaky-Communicator-Info.plist"; sourceTree = "<group>"; };
 		1182ED122BEDD28A00E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1183318C2C00577D0017DC2A /* AnimationMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataTests.swift; sourceTree = "<group>"; };
 		1183318E2C0059490017DC2A /* TrackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackTests.swift; sourceTree = "<group>"; };
@@ -569,6 +575,10 @@
 		B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlPanel.swift; sourceTree = "<group>"; };
 		B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternListEditor.swift; sourceTree = "<group>"; };
 		BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixturesTable.swift; sourceTree = "<group>"; };
+		BCA000000000000000000002 /* Beaky Communicator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Beaky Communicator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA00000000000000000000B /* Beaky Communicator Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Beaky Communicator Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA00000000000000000001F /* Beaky_Communicator.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Beaky_Communicator.entitlements; sourceTree = "<group>"; };
+		BCA000000000000000000022 /* Beaky-Communicator-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Beaky-Communicator-Info.plist"; sourceTree = "<group>"; };
 		C211450B80E5BBFE2141677F /* AudioFileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioFileDocument.swift; path = "Sources/Creature Console/View/Dialog/AudioFileDocument.swift"; sourceTree = SOURCE_ROOT; };
 		D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSchema.swift; sourceTree = "<group>"; };
 		D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureImporter.swift; sourceTree = "<group>"; };
@@ -598,6 +608,10 @@
 		FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureRuntimeSummary.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000081 /* DuplicateInstanceGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateInstanceGuard.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocExchangeViews.swift; sourceTree = "<group>"; };
+		WVA000000000000000000002 /* World Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "World Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		WVA00000000000000000001F /* World_Viewer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = World_Viewer.entitlements; sourceTree = "<group>"; };
+		WVA000000000000000000022 /* World-Viewer-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "World-Viewer-Info.plist"; sourceTree = "<group>"; };
+		WVT00000000000000000000B /* World Viewer Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "World Viewer Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -691,6 +705,16 @@
 			path = "Beaky Communicator Tests";
 			sourceTree = "<group>";
 		};
+		WVA000000000000000000003 /* World Viewer */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "World Viewer";
+			sourceTree = "<group>";
+		};
+		WVT00000000000000000000C /* World Viewer Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "World Viewer Tests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -743,6 +767,19 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				BCA00000000000000000001C /* WorldCore in Frameworks */,
+			);
+		};
+		WVA000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				WVA000000000000000000018 /* WorldCore in Frameworks */,
+				WVA000000000000000000019 /* CreatureAppSupport in Frameworks */,
+			);
+		};
+		WVT00000000000000000000E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				WVT00000000000000000001C /* WorldCore in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -941,6 +978,10 @@
 				BCA00000000000000000000C /* Beaky Communicator Tests */,
 				BCA00000000000000000001F /* Beaky_Communicator.entitlements */,
 				BCA000000000000000000022 /* Beaky-Communicator-Info.plist */,
+				WVA000000000000000000003 /* World Viewer */,
+				WVT00000000000000000000C /* World Viewer Tests */,
+				WVA00000000000000000001F /* World_Viewer.entitlements */,
+				WVA000000000000000000022 /* World-Viewer-Info.plist */,
 				1120F1D92EB03A24000342A3 /* Lightweight Console */,
 				1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */,
 				1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */,
@@ -981,6 +1022,8 @@
 				117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */,
 				BCA000000000000000000002 /* Beaky Communicator.app */,
 				BCA00000000000000000000B /* Beaky Communicator Tests.xctest */,
+				WVA000000000000000000002 /* World Viewer.app */,
+				WVT00000000000000000000B /* World Viewer Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1667,6 +1710,52 @@
 			productReference = BCA00000000000000000000B /* Beaky Communicator Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		WVA000000000000000000001 /* World Viewer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = WVA000000000000000000009 /* Build configuration list for PBXNativeTarget "World Viewer" */;
+			buildPhases = (
+				WVA000000000000000000004 /* Sources */,
+				WVA000000000000000000005 /* Frameworks */,
+				WVA000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				WVA000000000000000000003 /* World Viewer */,
+			);
+			name = "World Viewer";
+			packageProductDependencies = (
+				WVA000000000000000000015 /* WorldCore */,
+				WVA000000000000000000016 /* CreatureAppSupport */,
+			);
+			productName = "World Viewer";
+			productReference = WVA000000000000000000002 /* World Viewer.app */;
+			productType = "com.apple.product-type.application";
+		};
+		WVT00000000000000000000A /* World Viewer Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = WVT000000000000000000012 /* Build configuration list for PBXNativeTarget "World Viewer Tests" */;
+			buildPhases = (
+				WVT00000000000000000000D /* Sources */,
+				WVT00000000000000000000E /* Frameworks */,
+				WVT00000000000000000000F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				WVT000000000000000000014 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				WVT00000000000000000000C /* World Viewer Tests */,
+			);
+			name = "World Viewer Tests";
+			packageProductDependencies = (
+				WVT00000000000000000001B /* WorldCore */,
+			);
+			productName = "World Viewer Tests";
+			productReference = WVT00000000000000000000B /* World Viewer Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1702,6 +1791,10 @@
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = BCA000000000000000000001;
 					};
+					WVT00000000000000000000A = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = WVA000000000000000000001;
+					};
 				};
 			};
 			buildConfigurationList = 11703D8329DD197F00EF7E3D /* Build configuration list for PBXProject "Creature Console" */;
@@ -1731,6 +1824,8 @@
 				117C87182CA0CC82007B5682 /* Creature TVUITests */,
 				BCA000000000000000000001 /* Beaky Communicator */,
 				BCA00000000000000000000A /* Beaky Communicator Tests */,
+				WVA000000000000000000001 /* World Viewer */,
+				WVT00000000000000000000A /* World Viewer Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -1774,6 +1869,16 @@
 			);
 		};
 		BCA00000000000000000000F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		WVA000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		WVT00000000000000000000F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -2232,6 +2337,16 @@
 			files = (
 			);
 		};
+		WVA000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		WVT00000000000000000000D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -2254,6 +2369,11 @@
 			isa = PBXTargetDependency;
 			target = BCA000000000000000000001 /* Beaky Communicator */;
 			targetProxy = BCA000000000000000000013 /* PBXContainerItemProxy */;
+		};
+		WVT000000000000000000014 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = WVA000000000000000000001 /* World Viewer */;
+			targetProxy = WVT000000000000000000013 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -2836,6 +2956,115 @@
 			};
 			name = Release;
 		};
+		WVA000000000000000000007 /* Debug configuration for PBXNativeTarget "World Viewer" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = World_Viewer.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "World-Viewer-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "World Viewer";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		WVA000000000000000000008 /* Release configuration for PBXNativeTarget "World Viewer" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = World_Viewer.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "World-Viewer-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "World Viewer";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		WVT000000000000000000010 /* Debug configuration for PBXNativeTarget "World Viewer Tests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/World Viewer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/World Viewer";
+			};
+			name = Debug;
+		};
+		WVT000000000000000000011 /* Release configuration for PBXNativeTarget "World Viewer Tests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/World Viewer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/World Viewer";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -2900,6 +3129,22 @@
 			buildConfigurations = (
 				BCA000000000000000000010 /* Debug configuration for PBXNativeTarget "Beaky Communicator Tests" */,
 				BCA000000000000000000011 /* Release configuration for PBXNativeTarget "Beaky Communicator Tests" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		WVA000000000000000000009 /* Build configuration list for PBXNativeTarget "World Viewer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				WVA000000000000000000007 /* Debug configuration for PBXNativeTarget "World Viewer" */,
+				WVA000000000000000000008 /* Release configuration for PBXNativeTarget "World Viewer" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		WVT000000000000000000012 /* Build configuration list for PBXNativeTarget "World Viewer Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				WVT000000000000000000010 /* Debug configuration for PBXNativeTarget "World Viewer Tests" */,
+				WVT000000000000000000011 /* Release configuration for PBXNativeTarget "World Viewer Tests" */,
 			);
 			defaultConfigurationName = Debug;
 		};
@@ -3014,6 +3259,18 @@
 		BCA000000000000000000020 /* CreatureAppSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CreatureAppSupport;
+		};
+		WVA000000000000000000015 /* WorldCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorldCore;
+		};
+		WVA000000000000000000016 /* CreatureAppSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CreatureAppSupport;
+		};
+		WVT00000000000000000001B /* WorldCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorldCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

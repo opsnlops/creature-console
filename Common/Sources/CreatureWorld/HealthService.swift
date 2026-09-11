@@ -1,20 +1,7 @@
 import Foundation
+import WorldCore
 
-struct HealthResponse: Codable, Equatable, Sendable {
-    let status: String
-    let service: String
-    let buildVersion: String
-    let mongodb: String
-    let schemaVersion: Int
-
-    private enum CodingKeys: String, CodingKey {
-        case status
-        case service
-        case buildVersion = "build_version"
-        case mongodb
-        case schemaVersion = "schema_version"
-    }
-}
+typealias HealthResponse = WorldHealth
 
 struct HealthService: Sendable {
     private let buildInfo: CreatureWorldBuildInfo

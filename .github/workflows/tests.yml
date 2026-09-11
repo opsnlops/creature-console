@@ -87,7 +87,11 @@ jobs:
       fail-fast: false
       matrix:
         platform: [macOS, iOS]
-        scheme: ["Creature Console", "Beaky Communicator"]
+        scheme: ["Creature Console", "Beaky Communicator", "World Viewer"]
+        exclude:
+          # World Viewer is a macOS-only debugging window on Creature World.
+          - platform: iOS
+            scheme: "World Viewer"
 
     steps:
       - name: Checkout code

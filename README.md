@@ -6,7 +6,7 @@ A multi-platform SwiftUI application for controlling animatronic creatures at [A
 
 ## Overview
 
-This repository is the Swift Creature monorepo. It started as Creature Console — the control software for managing animatronic devices ("creatures") through a graphical interface (macOS, iOS, tvOS) and a command-line tool that talk to Creature Server over WebSocket and REST — and now also holds the independently built and deployed products of [Beaky's World](docs/beakys-world.md): the Creature World simulator, the Beaky Communicator app and its gateway, and the character mind in `creature-agent`. Monorepo does not mean monolith: every product has its own version, package, and lifecycle.
+This repository is the Swift Creature monorepo. It started as Creature Console — the control software for managing animatronic devices ("creatures") through a graphical interface (macOS, iOS, tvOS) and a command-line tool that talk to Creature Server over WebSocket and REST — and now also holds the independently built and deployed products of [Beaky's World](docs/beakys-world.md): the Creature World simulator, the Beaky Communicator app and its gateway, the character mind in `creature-agent`, and World Viewer. Monorepo does not mean monolith: every product has its own version, package, and lifecycle.
 
 **What it does:**
 - Control multiple animatronic creatures simultaneously
@@ -43,6 +43,7 @@ creature-console/
 ├── Sources/Creature Console/               # Creature Console GUI application (macOS, iOS)
 ├── Creature TV/                            # tvOS application
 ├── Beaky Communicator/                     # Beaky Communicator app (macOS, iOS)
+├── World Viewer/                           # World Viewer: a read-only window on Creature World (macOS)
 ├── debian/                                 # Debian packaging for every Linux product
 ├── docs/                                   # Manuals, design, and implementation plans
 └── Config/                                 # Server configuration files
@@ -234,6 +235,7 @@ GitHub Actions automatically runs tests on push to `main` and on all pull reques
 - [Creature World Manual](docs/creature-world-manual.md) — the simulator: API, MongoDB, deployment, observability, testing
 - [Creature Communicator Gateway Manual](docs/creature-communicator-gateway-manual.md) — the `/communicator/v1` boundary the Beaky Communicator app talks to
 - [Creature Agent Manual](docs/creature-agent-manual.md) — MQTT mode (production) and world mode (Beaky's mind, development)
+- [World Viewer Manual](docs/world-viewer-manual.md) — watching the world: timeline, conversation and delivery decisions, facts, timers
 - [Lightweight Console User Guide](docs/lightweight-console.md)
 - `docs/*-plan.md` — implementation plans written before each slice of work
 - Swift Package tests (`cd Common && swift test`) and Xcode tests for macOS and iOS

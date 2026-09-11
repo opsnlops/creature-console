@@ -683,3 +683,51 @@ public struct CharacterDeliveryOutcome: Hashable, Sendable, Codable {
         case errorCode = "error_code"
     }
 }
+
+/// One character turn as the world carried it: what the character wanted to say, where the
+/// router decided it could be heard, what happened, and the canonical item in the shared history.
+/// This is the read shape for viewers; the world's own durable record keeps its storage layout.
+public struct CharacterDeliveryRecord: Hashable, Sendable, Codable {
+    public var intent: CharacterUtteranceIntent
+    public var decision: CharacterDeliveryDecision
+    public var outcome: CharacterDeliveryOutcome?
+    public var conversationItem: ConversationItem
+
+    public init(
+        intent: CharacterUtteranceIntent,
+        decision: CharacterDeliveryDecision,
+        outcome: CharacterDeliveryOutcome?,
+        conversationItem: ConversationItem
+    ) {
+        self.intent = intent
+        self.decision = decision
+        self.outcome = outcome
+        self.conversationItem = conversationItem
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case intent
+        case decision
+        case outcome
+        case conversationItem = "conversation_item"
+    }
+}
+
+/// A bounded, ordered page of character deliveries in one conversation.
+public struct CharacterDeliveryPage: Hashable, Sendable, Codable {
+    public var deliveries: [CharacterDeliveryRecord]
+    public var nextResponseID: ResponseID?
+    public var hasMore: Bool
+
+    public init(deliveries: [CharacterDeliveryRecord], nextResponseID: ResponseID?, hasMore: Bool) {
+        self.deliveries = deliveries
+        self.nextResponseID = nextResponseID
+        self.hasMore = hasMore
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case deliveries
+        case nextResponseID = "next_response_id"
+        case hasMore = "has_more"
+    }
+}

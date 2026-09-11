@@ -157,12 +157,28 @@ struct CharacterMindTests {
         let sentence = "Bawk, that is a very long thought about robot parts. "
         let long = String(repeating: sentence, count: 120)
 
-        let validated = CharacterMind.validate(long)
+        let validated = CharacterMind.validate(long, spokenBy: "beaky")
 
         #expect(validated != nil)
         #expect(
             validated!.unicodeScalars.count <= ConversationContractLimits.maximumTextUnicodeScalars)
         #expect(validated!.hasSuffix("."))
+    }
+
+    @Test("A reply written as a script line keeps only her words (#154)")
+    func speakerLabelsAreDropped() {
+        #expect(
+            CharacterMind.validate("Beaky: \"That sounds like fun, April!\"", spokenBy: "beaky")
+                == "That sounds like fun, April!")
+        #expect(
+            CharacterMind.validate("  BEAKY said: Bawk, hello.", spokenBy: "beaky")
+                == "Bawk, hello.")
+        #expect(
+            CharacterMind.validate("Beaky is my name and I like it.", spokenBy: "beaky")
+                == "Beaky is my name and I like it.")
+        #expect(
+            CharacterMind.validate("April: are you there?", spokenBy: "beaky")
+                == "April: are you there?")
     }
 
     // MARK: - Helpers

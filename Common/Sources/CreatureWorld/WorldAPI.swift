@@ -79,58 +79,6 @@ struct WorldEventBatchResponse: Codable, Equatable, Sendable {
     let results: [WorldEventAcceptanceResponse]
 }
 
-struct WorldEventPage: Codable, Equatable, Sendable {
-    let events: [WorldEventEnvelope]
-    let nextSequence: Int64
-    let hasMore: Bool
-
-    private enum CodingKeys: String, CodingKey {
-        case events
-        case nextSequence = "next_sequence"
-        case hasMore = "has_more"
-    }
-}
-
-struct WorldFactPage: Codable, Equatable, Sendable {
-    let facts: [Fact]
-    let nextFactID: FactID?
-    let hasMore: Bool
-
-    private enum CodingKeys: String, CodingKey {
-        case facts
-        case nextFactID = "next_fact_id"
-        case hasMore = "has_more"
-    }
-}
-
-struct WorldTimerPage: Codable, Equatable, Sendable {
-    let timers: [WorldTimer]
-    let nextTimerID: TimerID?
-    let hasMore: Bool
-
-    private enum CodingKeys: String, CodingKey {
-        case timers
-        case nextTimerID = "next_timer_id"
-        case hasMore = "has_more"
-    }
-}
-
-struct WorldSnapshot: Codable, Equatable, Sendable {
-    let latestSequence: Int64
-    let facts: [Fact]
-    let timers: [WorldTimer]
-    let factsTruncated: Bool
-    let timersTruncated: Bool
-
-    private enum CodingKeys: String, CodingKey {
-        case latestSequence = "latest_sequence"
-        case facts
-        case timers
-        case factsTruncated = "facts_truncated"
-        case timersTruncated = "timers_truncated"
-    }
-}
-
 struct WorldAPIErrorResponse: Codable, Equatable, Sendable {
     let error: String
     let message: String
@@ -156,6 +104,11 @@ protocol ConversationApplicationService: Sendable {
         after itemID: ConversationItemID?,
         limit: Int
     ) async throws -> ConversationItemPage
+    func deliveries(
+        in conversationID: ConversationID,
+        after responseID: ResponseID?,
+        limit: Int
+    ) async throws -> CharacterDeliveryPage
     func subscribe(to conversationID: ConversationID) async throws -> ConversationItemStream
     func finishConversationSubscriptions() async
 }
@@ -174,6 +127,14 @@ struct UnavailableConversationApplicationService: ConversationApplicationService
         after itemID: ConversationItemID?,
         limit: Int
     ) async throws -> ConversationItemPage {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func deliveries(
+        in conversationID: ConversationID,
+        after responseID: ResponseID?,
+        limit: Int
+    ) async throws -> CharacterDeliveryPage {
         throw WorldAPIError.databaseUnavailable
     }
 

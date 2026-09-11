@@ -214,6 +214,25 @@ struct MongoWorldPersistenceTests {
             )
             #expect(items == [april.conversationItem, beaky.conversationItem])
             #expect(items.map(\.authorKind) == [.person, .character])
+
+            // Deliveries page in the order Beaky spoke, by response ID.
+            let second = try makeDelivery(
+                suffix: "\(suffix)-beaky-2",
+                conversationID: conversationID,
+                inResponseTo: april.percept.utterance.utteranceID,
+                createdAt: Date(timeIntervalSince1970: 1_010)
+            )
+            _ = try await repository.prepare(second)
+            let firstPage = try await repository.deliveries(
+                in: conversationID, after: nil, limit: 1)
+            #expect(firstPage.map(\.intent.responseID) == [beaky.intent.responseID])
+            let rest = try await repository.deliveries(
+                in: conversationID, after: beaky.intent.responseID, limit: 10)
+            #expect(rest.map(\.intent.responseID) == [second.intent.responseID])
+            await #expect(throws: WorldAPIError.invalidQuery(name: "after_response_id")) {
+                _ = try await repository.deliveries(
+                    in: conversationID, after: .generated(), limit: 10)
+            }
         }
     }
 

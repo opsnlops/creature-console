@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.2.2",
+  "build_version": "0.3.0",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -161,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.2.2",
+  "build_version": "0.3.0",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -320,13 +320,14 @@ current endpoints are:
 | `POST /world/v1/conversations/{conversation_id}/responses` | Carry one `CharacterUtteranceIntent` (a Beaky turn) into the conversation. The deterministic router reads fresh presence, persists the canonical item first, then delivers; returns 202 with `disposition: accepted` when this call handled it or 200 with `disposition: duplicate` when the same `response_id` was already handled. |
 | `GET /world/v1/conversations/{conversation_id}/items` | Read canonical conversation items in chronological, stable-ID order. |
 | `GET /world/v1/conversations/{conversation_id}/stream` | Receive an immediate `ready` event followed by live conversation-item notifications over SSE. Reconcile through the items endpoint after connecting. |
+| `GET /world/v1/conversations/{conversation_id}/deliveries` | Read the router's record for each character turn — the `intent`, the `decision` (route, reason, the presence it saw), the `outcome` if a sink reported one, and the canonical `conversation_item` — in intent order. Added in `0.3.0` for World Viewer. |
 | `GET /world/v1/facts` | Read current facts, optionally filtered by `subject_id`. |
 | `GET /world/v1/timers` | Read timers, optionally filtered by `status`. |
 | `GET /world/v1/snapshot` | Read the latest sequence plus bounded current facts and timers. |
 | `GET /world/v1/stream` | Receive an initial snapshot or resumed history followed by ordered live deltas over SSE. |
 
-History uses `after_sequence`; conversation, fact, and timer pages use `after_item_id`,
-`after_fact_id`, and `after_timer_id`.
+History uses `after_sequence`; conversation, delivery, fact, and timer pages use
+`after_item_id`, `after_response_id`, `after_fact_id`, and `after_timer_id`.
 Every list accepts `limit`, defaults to 100, and permits at most 500 results. Page responses state
 whether more results exist and provide the cursor for the next request. A snapshot marks facts or
 timers as truncated rather than implying that a bounded result is complete.
@@ -426,7 +427,7 @@ package; the Creature World artifact is `creature-world_<version>_<architecture>
 only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.2.2_amd64.deb
+sudo apt install ./creature-world_0.3.0_amd64.deb
 ```
 
 The package installs:
