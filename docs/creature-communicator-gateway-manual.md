@@ -86,7 +86,7 @@ Build a release binary for direct testing with:
 
 On Linux, pass `--static`; the binary is copied atomically to
 `communicator-gateway/creature-communicator-gateway`. `./build_deb.sh` produces the independent
-`creature-communicator-gateway_0.1.2_<architecture>.deb` package alongside the repository.
+`creature-communicator-gateway_0.1.3_<architecture>.deb` package alongside the repository.
 
 ## Observability
 
@@ -100,12 +100,12 @@ attributes.
 ## Deployment handoff
 
 PR #131 introduces a coordinated port and package transition: Creature World `0.1.12` defaults to
-port `8001`, while Creature Communicator Gateway `0.1.2` defaults to port `8002`. Creature Server
+port `8001`, while Creature Communicator Gateway `0.1.3` defaults to port `8002`. Creature Server
 continues to own port `8000`. Install and operate World and the gateway as independent products:
 
 ```bash
 sudo apt install ./creature-world_0.2.1_amd64.deb
-sudo apt install ./creature-communicator-gateway_0.1.2_amd64.deb
+sudo apt install ./creature-communicator-gateway_0.1.3_amd64.deb
 sudo systemctl enable --now creature-world.service
 sudo systemctl enable --now creature-communicator-gateway.service
 ```
@@ -130,5 +130,12 @@ curl --fail-with-body https://server.prod.chirpchirp.dev/communicator/v1/health
 
 The gateway unit uses `After=creature-world.service`, not `Requires=`. It must remain running when
 World is unavailable so clients receive an honest 503 and recover automatically when World returns.
+
+Graceful shutdown (SIGTERM) cuts open Communicator streams itself: the stream handler cancels its
+World relay, the response ends, and clients reconnect and reconcile history. A restart therefore
+completes in well under a second even while a phone holds a stream open. The unit also sets
+`TimeoutStopSec=15` so a regression can never hold a deploy for systemd's default 90 s.
+`CommunicatorGatewayBlackBoxTests` launches the built executable against a World-shaped stub,
+opens a stream, sends SIGTERM, and requires a clean exit within five seconds.
 For the current branch, CI status and remaining product work are recorded in the dated handoff at
 the top of [Beaky Virtual World](beakys-world.md).

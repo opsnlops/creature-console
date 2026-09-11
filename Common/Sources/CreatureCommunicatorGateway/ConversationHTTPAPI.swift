@@ -1,6 +1,7 @@
 import Foundation
 import HTTPTypes
 import Hummingbird
+import ServiceLifecycle
 import WorldCore
 
 enum ConversationGatewayHTTPError: Error {
@@ -63,13 +64,23 @@ public struct ConversationGatewayHTTPAPI: Sendable {
                     status: .ok,
                     headers: headers,
                     body: ResponseBody { writer in
-                        do {
-                            for try await buffer in stream {
-                                try await writer.write(buffer)
+                        // A Communicator holds this stream open for as long as it is foregrounded.
+                        // Graceful shutdown must cut it — cancelling the relay ends the upstream
+                        // stream, whose termination cancels the World request — or a restart
+                        // waits until the phone hangs up, or until systemd kills the process.
+                        let relay = ConversationStreamRelay(stream)
+                        await withGracefulShutdownHandler {
+                            do {
+                                for await buffer in relay.frames {
+                                    try await writer.write(buffer)
+                                }
+                            } catch {
+                                // Closing the response makes clients reconnect and recover.
                             }
-                        } catch {
-                            // Closing the response makes clients reconnect and recover from history.
+                        } onGracefulShutdown: {
+                            relay.cancel()
                         }
+                        relay.cancel()
                         try? await writer.finish(nil)
                     }
                 )
@@ -165,5 +176,36 @@ public struct ConversationGatewayHTTPAPI: Sendable {
             headers: [.contentType: "application/json; charset=utf-8"],
             body: ResponseBody(byteBuffer: ByteBuffer(bytes: data))
         )
+    }
+}
+
+/// Pumps the World SSE byte stream through a task that graceful shutdown can cancel, so the
+/// response writer — which cannot cross a `@Sendable` boundary — simply sees its frames end.
+private final class ConversationStreamRelay: Sendable {
+    let frames: AsyncStream<ByteBuffer>
+    private let task: Task<Void, Never>
+
+    init(_ upstream: GatewayConversationByteStream) {
+        let (frames, continuation) = AsyncStream<ByteBuffer>.makeStream(
+            bufferingPolicy: .bufferingOldest(16)
+        )
+        self.frames = frames
+        task = Task {
+            do {
+                for try await buffer in upstream {
+                    if case .terminated = continuation.yield(buffer) {
+                        break
+                    }
+                }
+            } catch {
+                // Upstream failure ends the relay; the client reconnects and reconciles.
+            }
+            continuation.finish()
+        }
+        continuation.onTermination = { [task] _ in task.cancel() }
+    }
+
+    func cancel() {
+        task.cancel()
     }
 }

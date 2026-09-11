@@ -26,15 +26,16 @@ current in the same commit as the code it describes.**
   [`docs/beaky-mind-plan.md`](beaky-mind-plan.md). `creature-agent` `2.55.0` (cli/mqtt in
   lockstep).
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
-  key), #140 (sanitizer stripped digits — fixed on this branch), #141 (gateway graceful shutdown
-  hangs while a Communicator SSE stream is open; systemd kills it after 90 s).
+  key), #144 (World/gateway packages do not restart the running service on upgrade —
+  `dh_installsystemd --no-start`; tonight's prod upgrade needed manual restarts). #140 and #141 are
+  fixed (PR #142, PR #143).
 
 ### 0.2 What is running now
 
 | Product | Version | Where | Notes |
 | --- | ---: | --- | --- |
-| Creature World | `0.2.0` | fuzzball (`10.69.66.1:8001`) and production | `0.2.1` on `main`, not yet deployed |
-| Communicator Gateway | `0.1.2` | fuzzball `:8002` and production | exporting to Honeycomb `production` since tonight |
+| Creature World | `0.2.1` prod / `0.2.0` fuzzball | production and fuzzball (`10.69.66.1:8001`) | `0.2.1` carries the timer-recovery fix (#138) |
+| Communicator Gateway | `0.1.3` | production and fuzzball `:8002` | shutdown fix (#141) verified on both; exporting to Honeycomb `production` since tonight |
 | Beaky's mind | branch build | **April's Mac**, `mode: world` against fuzzball | not packaged/deployed yet; Mistral Nemo via llama-server at `10.69.66.4:1234` |
 
 **Tonight's firsts, all verified live:**
@@ -91,6 +92,15 @@ thinking in Honeycomb. Presence is still `unknown`, so every reply goes to Commu
 
 ### 0.5 What is not finished
 
+- **There are no facts in the world.** `World.reducers` is empty; Mongo holds no facts, no
+  presence, no body state, no house events. Beaky's prompt contains the persona and the
+  conversation and nothing else, so what she says is whatever the model came up with, not what
+  the world knows. `PerceptualEnvelope.world_facts` and `relevant_memories` exist in the contract
+  and are never filled. Tonight gave her a mouth and ears for April; grounding her is the
+  world-visibility spine — reducers and the first presence fact (VW-006), Creature Server
+  proprioception (VW-012), Home Assistant (VW-013), calendar timers (VW-018/VW-027), then memory
+  (Phase 9). That is the work that turns "an LLM with a persona" into Beaky.
+
 - **The physical stage.** April: most responses are spoken aloud; Communicator is the away/input
   path. VW-016 (#107) must keep sentence streaming to Creature Server's ad-hoc session (ask the
   world for the stage *before* generating), and an `assumed` presence should put Beaky in the
@@ -103,13 +113,14 @@ thinking in Honeycomb. Presence is still `unknown`, so every reply goes to Commu
 
 ### 0.6 Exact next actions
 
-1. Review/merge PR for `vw-014-beaky-mind`; deploy `creature-agent 2.55.0` to fuzzball in world
-   mode with OTel enabled; watch one full trace (phone → gateway → World → mind → model → World).
-2. Deploy World `0.2.1` to fuzzball and production (timer-recovery fix).
-3. Fix #141 (gateway shutdown with open SSE) — small, and it hurts every deploy.
-4. VW-016 + assumed presence: Beaky speaks in the room, streaming sentences, with the turn still
+1. PR #142 (mind) is merged; PR #143 (gateway shutdown) merges when green. Optionally run
+   `creature-agent 2.55.0` on fuzzball in world mode with OTel enabled and watch one full trace
+   (phone → gateway → World → mind → model → World). **Never on production** (see 0.4).
+2. Fix #144 so upgrades restart World and the gateway automatically.
+3. VW-016 + assumed presence: Beaky speaks in the room, streaming sentences, with the turn still
    recorded in the shared history.
-5. Then personalities.
+4. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
+   about something real. Then personalities.
 
 Do not let any deterministic component author Beaky's words; do not copy conversation state into
 the gateway; do not split typed input and future STT into separate cognition pipelines.

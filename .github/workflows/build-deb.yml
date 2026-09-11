@@ -135,6 +135,7 @@ jobs:
               grep -Fx "After=network-online.target creature-world.service" /usr/lib/systemd/system/creature-communicator-gateway.service
               grep -Fx "DynamicUser=yes" /usr/lib/systemd/system/creature-communicator-gateway.service
               grep -Fx "Restart=on-failure" /usr/lib/systemd/system/creature-communicator-gateway.service
+              grep -Fx "TimeoutStopSec=15" /usr/lib/systemd/system/creature-communicator-gateway.service
               grep -F "\"port\": 8002" /etc/creature/communicator-gateway.json
               grep -F "\"world_url\": \"http://127.0.0.1:8001/world/v1\"" /etc/creature/communicator-gateway.json
               /bin/creature-communicator-gateway --version

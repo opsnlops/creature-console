@@ -260,7 +260,9 @@ let package = Package(
             dependencies: [
                 "BeakyCommunicatorCore",
                 "CreatureCommunicatorGateway",
+                "creature-communicator-gateway",
                 "WorldCore",
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
             ]
         ),
