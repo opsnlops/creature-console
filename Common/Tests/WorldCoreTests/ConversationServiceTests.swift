@@ -278,10 +278,13 @@ struct ConversationServiceTests {
         let dependencies = try makeRouterDependencies(testCase: testCase)
         let router = try makeRouter(dependencies: dependencies)
 
-        let outcome = try await router.route(makeCharacterIntent())
+        let result = try await router.route(makeCharacterIntent())
+        let outcome = result.outcome
         let stored = try #require(await dependencies.repository.delivery)
         let expectedIntent = try makeCharacterIntent()
 
+        #expect(result.disposition == .accepted)
+        #expect(result.conversationItem == stored.conversationItem)
         #expect(outcome.route == testCase.expectedRoute)
         #expect(stored.decision.privacyMode == testCase.expectedPrivacy)
         #expect(stored.conversationItem.responseID == outcome.responseID)
@@ -306,8 +309,11 @@ struct ConversationServiceTests {
         let restartedRouter = try makeRouter(dependencies: dependencies)
         let afterRestart = try await restartedRouter.route(intent)
 
-        #expect(first == afterRestart)
-        #expect(first.route == .physicalSpeech)
+        #expect(first.outcome == afterRestart.outcome)
+        #expect(first.conversationItem == afterRestart.conversationItem)
+        #expect(first.disposition == .accepted)
+        #expect(afterRestart.disposition == .duplicate)
+        #expect(first.outcome.route == .physicalSpeech)
         #expect(await dependencies.physicalSink.deliveryCount == 1)
         #expect(await dependencies.communicatorSink.deliveryCount == 0)
     }
@@ -337,7 +343,7 @@ struct ConversationServiceTests {
 
         async let homeResult = homeRouter.route(intent)
         async let awayResult = awayRouter.route(intent)
-        let outcomes = try await [homeResult, awayResult]
+        let outcomes = try await [homeResult, awayResult].map(\.outcome)
         let physicalAcceptances = await physicalSink.acceptedAttemptCount
         let communicatorAcceptances = await communicatorSink.acceptedAttemptCount
         let physicalDeliveries = await physicalSink.deliveryCount
@@ -377,7 +383,8 @@ struct ConversationServiceTests {
         let restartedRouter = try makeRouter(dependencies: dependencies)
         let duplicate = try await restartedRouter.route(intent)
 
-        #expect(duplicate == first)
+        #expect(duplicate.outcome == first.outcome)
+        #expect(duplicate.disposition == .duplicate)
         #expect(await dependencies.presenceProvider.readCount == 1)
         #expect(await dependencies.physicalSink.deliveryCount == 1)
     }
@@ -397,8 +404,11 @@ struct ConversationServiceTests {
         )
 
         let restartedRouter = try makeRouter(dependencies: dependencies)
-        let outcome = try await restartedRouter.route(intent)
+        let result = try await restartedRouter.route(intent)
+        let outcome = result.outcome
 
+        // The retry completes the first attempt; the sink is what recognised the replay.
+        #expect(result.disposition == .accepted)
         #expect(outcome.attemptID == attemptBeforeRestart)
         #expect(outcome.state == .duplicate)
         #expect(await dependencies.communicatorSink.acceptedAttemptCount == 1)

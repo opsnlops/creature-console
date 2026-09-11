@@ -51,6 +51,30 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        router.post("v1/conversations/:conversationID/responses") { request, context in
+            await respond {
+                try requireJSON(request)
+                guard let rawConversationID = context.parameters.get("conversationID") else {
+                    throw WorldAPIError.invalidQuery(name: "conversation_id")
+                }
+                let conversationID = try ConversationID(validating: rawConversationID)
+                return try await execute {
+                    let intent = try await decode(
+                        CharacterUtteranceIntent.self,
+                        from: request,
+                        maximumBytes: limits.maximumBodyBytes
+                    )
+                    guard intent.conversationID == conversationID else {
+                        throw WorldAPIError.conversationIdentityMismatch
+                    }
+                    let result = try await conversationService.respond(intent)
+                    let status: HTTPResponse.Status =
+                        result.disposition == .accepted ? .accepted : .ok
+                    return try jsonResponse(result, status: status)
+                }
+            }
+        }
+
         router.get("v1/conversations/:conversationID/items") { request, context in
             await respond {
                 guard let rawConversationID = context.parameters.get("conversationID") else {

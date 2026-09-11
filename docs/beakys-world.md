@@ -2,135 +2,140 @@
 
 ## Architecture and Implementation Handoff
 
-**Status:** Implementation underway; the World API and first bidirectional Beaky Communicator network slice are operational
-**Revision:** 2026-09-10
+**Status:** Implementation underway; the World API and bidirectional Communicator transport are operational on production; Creature World now accepts character turns (branch #134)
+**Revision:** 2026-09-10 (evening)
 **Primary goal:** **Make Beaky really be April’s familiar.**  
 **Experience goal:** **Make the house feel alive.**  
 **Stack mantra:** **The world happens. The agents notice. The server performs. The controllers obey.**
 
 ---
 
-## 0. Current implementation handoff — 2026-09-10
+## 0. Current implementation handoff — 2026-09-10 (evening)
 
 This section is intentionally operational and time-sensitive. It gives the next engineer or agent
-enough context to continue without reconstructing the implementation from chat history.
+enough context to continue without reconstructing the implementation from chat history. **Keep it
+current in the same commit as the code it describes.**
 
 ### 0.1 Repository and review state
 
-- `main` is at `ed1bd83`, the merge of PR #129 containing the Beaky Communicator foundation.
-- Active branch: `vw-028-gateway-conversation`.
-- Open review: [PR #131](https://github.com/opsnlops/creature-console/pull/131), **Complete
-  Communicator gateway conversation transport**.
-- The branch tip is signed commit `6f28657`. The raw commit contains an SSH signature. Local
-  `git log --show-signature` needs `gpg.ssh.allowedSignersFile` configured before it can verify and
-  display that signature normally.
-- All PR #131 checks were still running when this handoff was written. Do not infer their result
-  from the local results below; inspect the current GitHub check state before merging.
-- The working tree was clean immediately after `6f28657`; this handoff itself is the only expected
-  follow-up change.
+- `main` is at `3cd803b`, the merge of PR #131 (Communicator gateway conversation transport).
+- Active branch: `vw-030-character-response`, tracked by
+  [#134](https://github.com/opsnlops/creature-console/issues/134). Plan:
+  [`docs/character-response-plan.md`](character-response-plan.md).
+- Follow-ups filed from the #131 review: #132 (gateway collapses World 4xx/504 into 503
+  `world_unavailable`) and #133 (`UtteranceIngressResult.conversationItem` is the one camelCase
+  key on a snake_case wire).
+- VW-028 issue #119 was reconciled to the trusted-LAN model: pairing/token-auth/unauthorized-request
+  criteria were removed from its body with an explanatory comment.
 
 ### 0.2 What is running now
 
-The stable service allocation is no longer provisional:
-
-| Product | Version in PR #131 | Default port | API prefix |
+| Product | Version | Default port | API prefix |
 | --- | ---: | ---: | --- |
 | Creature Server | independently versioned | `8000` | existing API |
-| Creature World | `0.1.12` | `8001` | `/world/v1` |
+| Creature World | `0.2.0` on fuzzball; `0.1.12` on production | `8001` | `/world/v1` |
 | Creature Communicator Gateway | `0.1.2` | `8002` | `/communicator/v1` |
 
-Beaky Communicator now targets only the gateway namespace. The gateway performs a real private HTTP
-hop to World for health, typed utterance submission, ordered/paginated history, and live SSE. World
-remains the only MongoDB authority; the gateway has no second conversation database. The default
-upstream is `http://127.0.0.1:8001/world/v1` and can be changed with `world_url`,
-`CREATURE_WORLD_URL`, or `--world-url`.
+World `0.1.12` and gateway `0.1.2` are deployed and verified on **fuzzball** (`10.69.66.1`, dev)
+and **production** (`server.prod.chirpchirp.dev` ingress → 8001/8002). Verified live on
+2026-09-10: health on both ingress routes, history paging, `limit` validation, idempotent
+re-submission (`duplicate`), and a message typed on macOS arriving on an already-open SSE listener
+through production ingress (`"Hello Claude"` at `02:49:34Z`).
 
-The gateway deliberately starts when World is unavailable. Its process remains alive, readiness
-returns 503, conversation calls return a bounded `world_unavailable` response, and connected apps
-reconcile canonical history after reconnect. Its systemd unit orders startup after
-`creature-world.service` but does not use `Requires=`, preserving that failure isolation.
+Milestone A is real: April's typed words travel Communicator → gateway → World →
+`conversation.person_utterance` WorldEvent → live SSE to every other client. Every item in
+`conversation:april-beaky` was `author_kind: person` before this branch.
 
-The local MongoDB 8.3.8 Compose container was healthy and still running when this handoff was
-written. The temporary World and gateway processes used for the smoke test were shut down cleanly.
-The local development database contains a labeled `conversation:gateway-live-test` conversation;
-it is test data, not production data.
+### 0.3 What this branch (#134) adds — Beaky gets a stage
 
-### 0.3 What PR #131 proves
+The `WorldCore` delivery contracts (`CharacterUtteranceIntent`, `CharacterDeliveryRouter`,
+`CharacterDeliveryRepository`, `PersonPresenceProviding`, sinks) existed with 17 tests but nothing
+in `CreatureWorld` used them. This branch wires them:
 
-- The macOS and iOS clients use the same shared typed conversation client and `/communicator/v1`
-  routes.
-- A real Mongo-backed smoke test traversed gateway -> World for readiness, submission, canonical
-  history, and a pushed SSE item to a client that was already connected.
-- The strengthened loopback test uses an actual TCP hop and verifies colon-bearing conversation
-  identifiers are encoded exactly once.
-- Upstream failure and startup cancellation close the gateway HTTP client cleanly. Graceful
-  shutdown closes active streams and the connection pool without the earlier deinitialization
-  abort.
-- Requests, responses, pages, pending SSE frames, and downstream stream buffers are bounded.
-- Configured World URLs accept only HTTP(S), require a host, and reject credentials, queries, and
-  fragments. Utterance text and credentials are not added to logs or telemetry.
-- Hummingbird tracing covers inbound requests and AsyncHTTPClient propagates trace context across
-  the gateway -> World hop.
-- `./build_communicator_gateway.sh` performs a clean release build and atomically writes
-  `communicator-gateway/creature-communicator-gateway`. The verified binary reported `0.1.2`.
-- Debian packaging installs an independently versioned
-  `creature-communicator-gateway_0.1.2_<architecture>.deb`, JSON configuration, shell completions,
-  and a hardened systemd unit. CI checks the unit, restart policy, World ordering, config
-  preservation, linkage, `--version`, and `--help` on Debian Trixie amd64 and arm64.
-- Local quality gates passed: Swift formatting, shell syntax, workflow YAML parsing,
-  `git diff --check`, both Beaky Communicator platform test runs, and all 738 Common tests. The only
-  observed compiler warning was the pre-existing redundant `#require` in `StageTests.swift`.
+- `POST /world/v1/conversations/{id}/responses` accepts a `CharacterUtteranceIntent`. 202 with
+  `disposition: accepted` when this call handled the turn; 200 with `disposition: duplicate` when
+  the same `response_id` was already handled. Body: `{disposition, outcome, conversation_item}`
+  (fixture `Fixtures/CreatureWorld/character-delivery-result-v1.json`).
+- `CharacterDeliveryRouter.route` now returns `CharacterDeliveryResult` (disposition + outcome +
+  canonical item) instead of a bare outcome, mirroring `UtteranceIngressResult`. A local smoke test
+  proved the old shape made the World republish a replayed turn to live listeners.
+- `MongoCharacterDeliveryRepository` (`character_deliveries`, `_id = response_id`, migration v4)
+  persists the canonical `ConversationItem` **before** any sink runs through the same
+  `saveConversationItem` path April's turns use, so both authors share one ordered history.
+- `UnknownPresenceProvider` honestly reports `state: unknown, confidence: 0` until VW-006/VW-013
+  exist, so every turn takes the private Communicator route with reason `presence_uncertain`.
+  No presence is fabricated.
+- `CommunicatorDeliverySink` returns `accepted` (durable app delivery = canonical item exists and
+  live clients were offered it; `performed` is reserved for real user interaction).
+  `NotConnectedPhysicalSpeechSink` records `failed` / `physical_speech_not_connected` rather than
+  throwing, so a turn routed to the room before VW-016 is still durable and visible.
+- The persistence provider publishes every newly durable Beaky item through
+  `ConversationUpdateBroker` regardless of route, so a turn later performed aloud still appears in
+  Communicator history live. Publication is at-least-once; clients upsert by item ID.
+- The Communicator UI already renders `authorKind == .character` bubbles and reply-to; no app
+  change was needed.
+
+**Verified on fuzzball (2026-09-10 ~20:30 PDT):** World `0.2.0` installed from the PR #135 GHA
+artifact; a turn cast with curl at `…/conversation:april-beaky/responses` returned
+`202 accepted` / route `communicator`, the open gateway stream received the item once, and **the
+Beaky bubble appeared live on April's phone** — the first thing Beaky has ever said through this
+path. Production still runs `0.1.12` until #135 merges and is deployed.
+
+Verified locally against Mongo 8.3.8: April's line + Beaky's reply appear in order in history;
+an SSE listener connected before the POST receives Beaky's item exactly once; replay is
+`200 duplicate`; reusing an `utterance_id` under a different conversation is refused (400). All
+747 `Common` tests pass with `MONGODB_TEST_URI` set.
 
 ### 0.4 Deployment handoff
 
-World `0.1.12` changes its default from port 8000 to 8001, so deploy World and update its ingress
-target before assuming the old endpoint still works. Deploy gateway `0.1.2` separately on port
-8002. The Debian packages use `--no-start`; installing a package does not silently start its
-service. See the [Communicator Gateway manual](creature-communicator-gateway-manual.md) for exact
-commands and smoke checks.
+World `0.2.0` is a drop-in over `0.1.12` (same port, additive route, additive migration v4 that
+only creates indexes). Deploy the `.deb` from CI, `systemctl restart creature-world`, confirm
+`build_version: "0.2.0"` on `/world/v1/health`, then cast a turn:
 
-The intended production ingress is:
+```bash
+curl -sS -H 'content-type: application/json' \
+  --data '{"schema_version":1,"response_id":"response:<uuid>","conversation_id":"conversation:april-beaky","character_id":"character:beaky","recipient_id":"person:april","text":"...","urgency":0.5,"created_at":"<rfc3339>"}' \
+  http://10.69.66.1:8001/world/v1/conversations/conversation:april-beaky/responses
+```
 
-- `https://server.prod.chirpchirp.dev/world/v1/...` -> Creature World on port 8001;
-- `https://server.prod.chirpchirp.dev/communicator/v1/...` -> Communicator Gateway on port 8002.
-
-The proxy API key remains the WAN boundary and comes from the existing app-family Keychain entry.
-Direct trusted-LAN service calls remain open. Do **not** add gateway-to-World credentials or require
-an API token merely because a service binds beyond loopback.
+It should appear as a Beaky bubble on every open Communicator without reopening the app. No
+gateway change is needed; the agent will talk to World directly on the trusted LAN.
 
 ### 0.5 What is not finished
 
-- Beaky has transport, history, and presence signaling, but no production character-agent path is
-  generating her real replies yet. The transport must not fabricate cognition to hide that gap.
-- APNs registration, token rotation/revocation, durable notification outbox, notification actions,
-  quiet hours, expiry, retry, and preview/private payload policy remain future VW-028 work.
-- Foreground leases are the shared signal for whether an attentive client exists; they are not yet
-  a complete push-notification system.
-- VW-028 issue #119 predates the explicit trusted-LAN decision and still asks for local pairing and
-  token authentication. The repository rules and this design are newer: the LAN remains open and
-  the external proxy owns access control. Reconcile the issue text before treating it as literal
-  acceptance criteria.
-- VW-030 issue #126 remains open. Shared conversation and delivery contracts plus substantial
-  deterministic service tests exist, but the next agent must compare the production wiring—not
-  merely the types and tests—with every acceptance criterion before closing it.
-- Cache partitioning is by the canonical server identity, intentionally ignoring whether the same
-  production server is reached directly or through its proxy. This prevents dev/prod history from
-  mixing while keeping proxy on/off views of production unified.
+- Beaky still has no mind on this path. The route exists; nothing calls it except a human with
+  curl. The transport must not fabricate cognition to hide that gap.
+- Presence is `unknown` everywhere until VW-006 (#97) / VW-013 (#104). Physical speech (VW-016
+  #107) is a recorded-failure placeholder.
+- APNs registration, outbox, actions, quiet hours, expiry, retry, and preview/private payload
+  policy remain future VW-028 work. Foreground leases exist but are not yet a push system.
+- Stored `occurred_at` on outcomes is BSON millisecond precision; the first HTTP response carries
+  the in-memory sub-millisecond value, so it can differ from a later read by ≤1 ms. Harmless; note
+  it before writing an equality test across that boundary.
+- #132 and #133 remain open.
+- VW-030 issue #126 acceptance criteria should be compared against this branch's production wiring
+  before closing it.
 
 ### 0.6 Exact next actions
 
-1. Check every PR #131 workflow, especially Debian amd64/arm64, MongoDB 8.3, macOS, and iOS.
-2. Fix failures on the same branch, preserving Swift 6 strict concurrency and signed commits.
-3. When all checks are green, review the PR diff and merge; then fast-forward local `main`.
-4. Build/download and deploy World `0.1.12` and gateway `0.1.2` as independent packages. Confirm
-   ports and both ingress routes before changing clients used for production.
-5. Smoke-test health, history catch-up, and live cross-device updates through production ingress.
-6. Reconcile VW-028's stale authentication language, then choose the next vertical slice. The most
-   valuable next magic is the real Beaky agent producing a response into this now-working delivery
-   path; APNs becomes meaningful immediately afterward.
+1. Check the PR for #134: Swift Package tests, macOS/iOS app builds, MongoDB 8.3 tests, Debian
+   amd64/arm64. Fix failures on the branch; keep Swift 6 strict concurrency and signed commits.
+2. Merge, fast-forward `main`, deploy World `0.2.0` to production (fuzzball already done and
+   verified), and cast one turn through production ingress. `./build_debs.sh` (PR #137) builds
+   the `.deb` files locally in ~5 min (arm64 native) instead of waiting for GitHub Actions.
+3. **Give Beaky a mind (slice B):** VW-014 (#105) + VW-015 (#106). A world-resident mode in
+   `creature-agent` behind a flag: subscribe to `/world/v1/stream` (SSE, `Last-Event-ID` resume),
+   take `conversation.person_utterance` deltas addressed to `character:beaky`, build a prompt from
+   facts + `prior_conversation_items` (never raw DTOs), ask the local Mistral/llama-server, produce
+   a `CharacterUtteranceIntent` with `in_response_to_utterance_id`, `POST …/responses`.
+   Idempotent by a stable `response_id` derived from the `consideration_id` so a restart never
+   makes her answer twice. Silence is a recorded decision, not an error. Preserve the existing
+   agent's `LocalLLMClient`, `TextSanitizer`, `ConversationHistory`, and OTel.
+4. Then VW-016 (#107): the physical-speech sink through Creature Server's ad-hoc speech API with
+   trace propagation, and VW-006/VW-013 so presence can choose the stage.
 
-Do not merge PR #131 merely because the local suite is green, do not copy conversation state into
-the gateway, and do not split typed composition and future STT into separate cognition pipelines.
+Do not copy conversation state into the gateway; do not split typed composition and future STT
+into separate cognition pipelines; do not let any deterministic component author Beaky's words.
 
 ## 1. Executive summary
 

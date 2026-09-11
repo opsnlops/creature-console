@@ -69,6 +69,139 @@ struct WorldHTTPAPITests {
         }
     }
 
+    @Test("Beaky's turn joins the conversation over HTTP exactly once")
+    func characterResponseIngressAndHistory() async throws {
+        let conversationService = TestConversationApplicationService()
+        let application = try makeApplication(
+            worldService: TestWorldApplicationService(),
+            conversationService: conversationService
+        )
+        let utterance = try makeUtterance(
+            id: "utterance:http-april",
+            occurredAt: Date(timeIntervalSince1970: 1_789_100_000)
+        )
+        let intent = try makeIntent(
+            id: "response:http-beaky",
+            inResponseTo: utterance.utteranceID,
+            createdAt: Date(timeIntervalSince1970: 1_789_100_005)
+        )
+        let headers: HTTPFields = [.contentType: "application/json"]
+
+        try await application.test(.router) { client in
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/utterances",
+                method: .post,
+                headers: headers,
+                body: try encode(utterance)
+            ) { response in
+                #expect(response.status == .accepted)
+            }
+
+            for expectedStatus in [HTTPResponse.Status.accepted, .ok] {
+                try await client.execute(
+                    uri: "/world/v1/conversations/conversation:april-beaky/responses",
+                    method: .post,
+                    headers: headers,
+                    body: try encode(intent)
+                ) { response in
+                    #expect(response.status == expectedStatus)
+                    let result = try decode(CharacterDeliveryResult.self, response.body)
+                    #expect(result.conversationItem.authorKind == .character)
+                    #expect(result.conversationItem.responseID == intent.responseID)
+                    #expect(result.conversationItem.text == intent.text)
+                    #expect(result.outcome.route == .communicator)
+                    #expect(result.outcome.state == .accepted)
+                    #expect(
+                        result.disposition
+                            == (expectedStatus == .accepted ? .accepted : .duplicate))
+                    let json = try #require(
+                        JSONSerialization.jsonObject(
+                            with: Data(buffer: response.body)) as? [String: Any])
+                    #expect(Set(json.keys) == ["disposition", "outcome", "conversation_item"])
+                }
+            }
+
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/items?limit=10",
+                method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let page = try decode(ConversationItemPage.self, response.body)
+                #expect(page.items.map(\.authorKind) == [.person, .character])
+                #expect(page.items.last?.responseID == intent.responseID)
+            }
+        }
+    }
+
+    @Test("A Beaky turn addressed to another conversation is refused")
+    func characterResponseIdentityMismatchIsRejected() async throws {
+        let application = try makeApplication(
+            worldService: TestWorldApplicationService(),
+            conversationService: TestConversationApplicationService()
+        )
+        let intent = try makeIntent(
+            id: "response:http-mismatch",
+            inResponseTo: nil,
+            createdAt: Date(timeIntervalSince1970: 1_789_100_005)
+        )
+        let headers: HTTPFields = [.contentType: "application/json"]
+
+        try await application.test(.router) { client in
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:someone-else/responses",
+                method: .post,
+                headers: headers,
+                body: try encode(intent)
+            ) { response in
+                #expect(response.status == .conflict)
+                let error = try decode(WorldAPIErrorResponse.self, response.body)
+                #expect(error.error == "conversation_identity_mismatch")
+            }
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/responses",
+                method: .post,
+                headers: headers,
+                body: ByteBuffer(string: #"{"schema_version":1,"text":"not an intent"}"#)
+            ) { response in
+                #expect(response.status == .badRequest)
+            }
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/responses",
+                method: .post,
+                body: try encode(intent)
+            ) { response in
+                #expect(response.status == .unsupportedMediaType)
+            }
+        }
+    }
+
+    @Test("Beaky's turn is unavailable while persistence is down")
+    func characterResponseWithoutPersistence() async throws {
+        let application = try makeApplication(
+            worldService: TestWorldApplicationService(),
+            conversationService: UnavailableConversationApplicationService()
+        )
+        let intent = try makeIntent(
+            id: "response:http-unavailable",
+            inResponseTo: nil,
+            createdAt: Date(timeIntervalSince1970: 1_789_100_005)
+        )
+        let headers: HTTPFields = [.contentType: "application/json"]
+
+        try await application.test(.router) { client in
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/responses",
+                method: .post,
+                headers: headers,
+                body: try encode(intent)
+            ) { response in
+                #expect(response.status == .serviceUnavailable)
+                let error = try decode(WorldAPIErrorResponse.self, response.body)
+                #expect(error.error == "persistence_unavailable")
+            }
+        }
+    }
+
     @Test("Conversation SSE pushes a newly accepted item")
     func conversationStreamPublishesLiveItem() async throws {
         let conversationService = TestConversationApplicationService()
@@ -557,6 +690,38 @@ struct WorldHTTPAPITests {
         )
     }
 
+    private func makeUtterance(id: String, occurredAt: Date) throws -> PersonUtterance {
+        try PersonUtterance(
+            utteranceID: UtteranceID(validating: id),
+            conversationID: ConversationID(validating: "conversation:april-beaky"),
+            speakerID: EntityID(validating: "person:april"),
+            addresseeIDs: [EntityID(validating: "character:beaky")],
+            text: "Can you hear me?",
+            modality: .typed,
+            source: .communicatorComposition,
+            sourceID: SourceID(validating: "communicator:test"),
+            occurredAt: occurredAt,
+            confidence: 1
+        )
+    }
+
+    private func makeIntent(
+        id: String,
+        inResponseTo utteranceID: UtteranceID?,
+        createdAt: Date
+    ) throws -> CharacterUtteranceIntent {
+        try CharacterUtteranceIntent(
+            responseID: ResponseID(validating: id),
+            conversationID: ConversationID(validating: "conversation:april-beaky"),
+            characterID: EntityID(validating: "character:beaky"),
+            recipientID: EntityID(validating: "person:april"),
+            inResponseToUtteranceID: utteranceID,
+            text: "Loud and clear, April!",
+            urgency: 0.4,
+            createdAt: createdAt
+        )
+    }
+
     private func encode<Value: Encodable>(_ value: Value) throws -> ByteBuffer {
         ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(value))
     }
@@ -570,8 +735,45 @@ struct WorldHTTPAPITests {
 
 private actor TestConversationApplicationService: ConversationApplicationService {
     private var results: [UtteranceID: UtteranceIngressResult] = [:]
+    private var responses: [ResponseID: CharacterDeliveryResult] = [:]
     private var subscribers: [ConversationID: ConversationItemStream.Continuation] = [:]
     private(set) var subscriptionCount = 0
+
+    func respond(_ intent: CharacterUtteranceIntent) throws -> CharacterDeliveryResult {
+        if let existing = responses[intent.responseID] {
+            return CharacterDeliveryResult(
+                disposition: .duplicate,
+                outcome: existing.outcome,
+                conversationItem: existing.conversationItem
+            )
+        }
+        let item = try ConversationItem(
+            itemID: ConversationItemID(
+                validating: "conversation-item:\(intent.responseID.rawValue)"),
+            conversationID: intent.conversationID,
+            authorID: intent.characterID,
+            authorKind: .character,
+            text: intent.text,
+            createdAt: intent.createdAt,
+            responseID: intent.responseID,
+            trace: intent.trace
+        )
+        let result = CharacterDeliveryResult(
+            disposition: .accepted,
+            outcome: CharacterDeliveryOutcome(
+                attemptID: try DeliveryAttemptID(
+                    validating: "delivery-attempt:\(intent.responseID.rawValue)"),
+                responseID: intent.responseID,
+                route: .communicator,
+                state: .accepted,
+                occurredAt: intent.createdAt
+            ),
+            conversationItem: item
+        )
+        responses[intent.responseID] = result
+        subscribers[intent.conversationID]?.yield(.item(item))
+        return result
+    }
 
     func ingest(_ utterance: PersonUtterance) throws -> UtteranceIngressResult {
         if let existing = results[utterance.utteranceID] {
@@ -645,7 +847,7 @@ private actor TestConversationApplicationService: ConversationApplicationService
     }
 
     private var orderedItems: [ConversationItem] {
-        results.values.map(\.conversationItem).sorted {
+        (results.values.map(\.conversationItem) + responses.values.map(\.conversationItem)).sorted {
             ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue)
         }
     }

@@ -3,7 +3,7 @@ import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 3
+    static let currentVersion = 4
 
     let database: MongoDatabase
     let logger: Logger
@@ -19,10 +19,13 @@ struct MongoWorldMigrator: Sendable {
         try await createSourceCheckpointIndexes()
         logger.debug("Ensuring conversation indexes")
         try await createConversationIndexes()
+        logger.debug("Ensuring character delivery indexes")
+        try await createCharacterDeliveryIndexes()
 
         try await recordMigration(version: 1, name: "initial_world_repositories")
         try await recordMigration(version: 2, name: "world_event_processing")
         try await recordMigration(version: 3, name: "conversation_ingress")
+        try await recordMigration(version: 4, name: "character_delivery")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -138,6 +141,25 @@ struct MongoWorldMigrator: Sendable {
         try await database[MongoWorldCollection.utteranceIngresses].createIndexes([utteranceID])
         try await database[MongoWorldCollection.conversationItems].createIndexes([
             itemID, conversationOrder,
+        ])
+    }
+
+    private func createCharacterDeliveryIndexes() async throws {
+        var attemptID = CreateIndexes.Index(
+            named: "delivery_attempt_id_unique",
+            keys: [
+                "decision.attempt_id": 1
+            ])
+        attemptID.unique = true
+        let conversationResponses = CreateIndexes.Index(
+            named: "conversation_responses",
+            keys: [
+                "intent.conversation_id": 1,
+                "intent.created_at": 1,
+            ]
+        )
+        try await database[MongoWorldCollection.characterDeliveries].createIndexes([
+            attemptID, conversationResponses,
         ])
     }
 }

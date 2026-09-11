@@ -156,6 +156,76 @@ struct MongoWorldPersistenceProviderTests {
         #expect(await received.value == item)
     }
 
+    @Test("Beaky's newly durable turn reaches a live conversation subscriber")
+    func respondPublishesCharacterItem() async throws {
+        let conversationID = try ConversationID(validating: "conversation:april-beaky")
+        let intent = try CharacterUtteranceIntent(
+            responseID: ResponseID(validating: "response:provider-test"),
+            conversationID: conversationID,
+            characterID: EntityID(validating: "character:beaky"),
+            recipientID: EntityID(validating: "person:april"),
+            text: "I heard you, April.",
+            urgency: 0.3,
+            createdAt: Date(timeIntervalSince1970: 1_789_100_005)
+        )
+        let item = try ConversationItem(
+            itemID: ConversationItemID(validating: "conversation-item:provider-beaky"),
+            conversationID: conversationID,
+            authorID: intent.characterID,
+            authorKind: .character,
+            text: intent.text,
+            createdAt: intent.createdAt,
+            responseID: intent.responseID
+        )
+        let outcome = CharacterDeliveryOutcome(
+            attemptID: try DeliveryAttemptID(validating: "delivery-attempt:provider-beaky"),
+            responseID: intent.responseID,
+            route: .communicator,
+            state: .accepted,
+            occurredAt: intent.createdAt
+        )
+        let calls = ConnectionAttemptCounter()
+        let provider = MongoWorldPersistenceProvider(
+            uri: CreatureWorldConfiguration.defaultMongoURI,
+            logger: Logger(label: "creature-world-provider-tests"),
+            connector: { _, _ in
+                MongoWorldPersistenceConnection(
+                    isHealthy: { true },
+                    respondAsCharacter: { _ in
+                        CharacterDeliveryResult(
+                            disposition: await calls.increment() > 1 ? .duplicate : .accepted,
+                            outcome: outcome,
+                            conversationItem: item
+                        )
+                    },
+                    shutdown: {}
+                )
+            }
+        )
+        await provider.connectIfNeeded()
+        let stream = try await provider.subscribe(to: conversationID)
+        let received = Task<[ConversationItem], Never> {
+            var items: [ConversationItem] = []
+            for await update in stream {
+                if case .item(let item) = update {
+                    items.append(item)
+                    if items.count == 2 { break }
+                }
+            }
+            return items
+        }
+
+        let first = try await provider.respond(intent)
+        let duplicate = try await provider.respond(intent)
+        #expect(first.disposition == .accepted)
+        #expect(duplicate.disposition == .duplicate)
+        #expect(duplicate.outcome == outcome)
+        #expect(duplicate.conversationItem == item)
+
+        await provider.finishConversationSubscriptions()
+        #expect(await received.value == [item])
+    }
+
     @Test("Provider shutdown finishes conversation subscriptions")
     func shutdownFinishesConversationSubscriptions() async throws {
         let conversationID = try ConversationID(validating: "conversation:april-beaky")

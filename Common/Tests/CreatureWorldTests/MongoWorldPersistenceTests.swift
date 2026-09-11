@@ -81,6 +81,9 @@ struct MongoWorldPersistenceTests {
             let conversationIndexes = try await persistence.database[
                 MongoWorldCollection.conversationItems
             ].listIndexes().drain()
+            let deliveryIndexes = try await persistence.database[
+                MongoWorldCollection.characterDeliveries
+            ].listIndexes().drain()
 
             #expect(eventIndexes.contains { $0.name == "event_id_unique" && $0.unique == true })
             #expect(
@@ -98,6 +101,16 @@ struct MongoWorldPersistenceTests {
                 }
             )
             #expect(conversationIndexes.contains { $0.name == "conversation_order" })
+            #expect(
+                deliveryIndexes.contains {
+                    $0.name == "delivery_attempt_id_unique" && $0.unique == true
+                }
+            )
+            #expect(deliveryIndexes.contains { $0.name == "conversation_responses" })
+            #expect(
+                try await persistence.database[MongoWorldCollection.schemaMigrations]
+                    .findOne(["_id": 4]) != nil
+            )
             #expect(
                 try await persistence.database[MongoWorldCollection.schemaMigrations]
                     .findOne(["_id": 1]) != nil
@@ -152,6 +165,71 @@ struct MongoWorldPersistenceTests {
                     first.conversationItem.itemID, second.conversationItem.itemID,
                 ]
             )
+        }
+    }
+
+    @Test("Beaky's turn is durable, idempotent, and ordered with April's")
+    func characterDeliveryIsDurableAndOrdered() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let conversationID = try ConversationID(validating: "conversation:\(suffix)")
+            let april = try makeIngress(
+                suffix: "\(suffix)-april",
+                conversationID: conversationID,
+                occurredAt: Date(timeIntervalSince1970: 1_000)
+            )
+            let beaky = try makeDelivery(
+                suffix: "\(suffix)-beaky",
+                conversationID: conversationID,
+                inResponseTo: april.percept.utterance.utteranceID,
+                createdAt: Date(timeIntervalSince1970: 1_005)
+            )
+            let repository = persistence.characterDeliveries
+
+            #expect(try await repository.delivery(for: beaky.intent.responseID) == nil)
+            _ = try await persistence.conversations.prepare(april)
+            #expect(try await repository.prepare(beaky) == beaky)
+            var conflicting = beaky
+            conflicting.intent.text = "Different words under the same response identity"
+            #expect(try await repository.prepare(conflicting) == beaky)
+
+            let outcome = CharacterDeliveryOutcome(
+                attemptID: beaky.decision.attemptID,
+                responseID: beaky.intent.responseID,
+                route: beaky.decision.route,
+                state: .accepted,
+                occurredAt: Date(timeIntervalSince1970: 1_006)
+            )
+            try await repository.record(outcome)
+
+            let stored = try #require(try await repository.delivery(for: beaky.intent.responseID))
+            #expect(stored.intent == beaky.intent)
+            #expect(stored.decision == beaky.decision)
+            #expect(stored.outcome == outcome)
+
+            let items = try await persistence.conversations.conversationItems(
+                in: conversationID,
+                after: nil,
+                limit: 10
+            )
+            #expect(items == [april.conversationItem, beaky.conversationItem])
+            #expect(items.map(\.authorKind) == [.person, .character])
+        }
+    }
+
+    @Test("Recording an outcome for an unknown Beaky turn fails explicitly")
+    func recordingUnknownDeliveryFails() async throws {
+        try await withPersistence { persistence in
+            let outcome = CharacterDeliveryOutcome(
+                attemptID: .generated(),
+                responseID: .generated(),
+                route: .communicator,
+                state: .accepted,
+                occurredAt: Date()
+            )
+            await #expect(throws: WorldPersistenceError.missingCharacterDelivery) {
+                try await persistence.characterDeliveries.record(outcome)
+            }
         }
     }
 
@@ -481,6 +559,51 @@ struct MongoWorldPersistenceTests {
             epistemic: EpistemicState(type: .observed, confidence: 1),
             payload: [:]
         )
+    }
+
+    private func makeDelivery(
+        suffix: String,
+        conversationID: ConversationID,
+        inResponseTo utteranceID: UtteranceID,
+        createdAt: Date
+    ) throws -> StoredCharacterDelivery {
+        let intent = try CharacterUtteranceIntent(
+            responseID: ResponseID(validating: "response:\(suffix)"),
+            conversationID: conversationID,
+            characterID: EntityID(validating: "character:beaky"),
+            recipientID: EntityID(validating: "person:april"),
+            inResponseToUtteranceID: utteranceID,
+            text: "Beaky answer \(suffix)",
+            urgency: 0.5,
+            createdAt: createdAt
+        )
+        let presence = try PersonPresence(
+            personID: intent.recipientID,
+            state: .unknown,
+            confidence: 0,
+            observedAt: createdAt,
+            validUntil: createdAt,
+            physicallyAudible: false
+        )
+        let decision = try CharacterDeliveryDecision(
+            attemptID: DeliveryAttemptID(validating: "delivery-attempt:\(suffix)"),
+            responseID: intent.responseID,
+            route: .communicator,
+            privacyMode: .private,
+            reason: .presenceUncertain,
+            decidedAt: createdAt,
+            presence: presence
+        )
+        let item = try ConversationItem(
+            itemID: ConversationItemID(validating: "conversation-item:\(suffix)"),
+            conversationID: conversationID,
+            authorID: intent.characterID,
+            authorKind: .character,
+            text: intent.text,
+            createdAt: createdAt,
+            responseID: intent.responseID
+        )
+        return StoredCharacterDelivery(intent: intent, decision: decision, conversationItem: item)
     }
 
     private func makeIngress(

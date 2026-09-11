@@ -17,6 +17,8 @@ struct MongoWorldPersistenceConnection: Sendable {
     let scheduleTimer: @Sendable (WorldTimer) async throws -> Void
     let cancelTimer: @Sendable (TimerID) async throws -> Bool
     let ingestUtterance: @Sendable (PersonUtterance) async throws -> UtteranceIngressResult
+    let respondAsCharacter:
+        @Sendable (CharacterUtteranceIntent) async throws -> CharacterDeliveryResult
     let conversationItems:
         @Sendable (ConversationID, ConversationItemID?, Int) async throws -> ConversationItemPage
     let shutdown: @Sendable () async -> Void
@@ -25,7 +27,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         persistence: MongoWorldPersistence,
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
-    ) {
+    ) throws {
         let world = World(
             eventStore: persistence.events,
             factStore: persistence.facts,
@@ -41,6 +43,13 @@ struct MongoWorldPersistenceConnection: Sendable {
         let conversationIngress = PersonUtteranceIngressService(
             repository: persistence.conversations,
             sink: WorldPersonUtterancePerceptSink(world: world)
+        )
+        let deliveryRouter = try CharacterDeliveryRouter(
+            presenceProvider: UnknownPresenceProvider(clock: clock),
+            repository: persistence.characterDeliveries,
+            physicalSpeechSink: NotConnectedPhysicalSpeechSink(logger: logger),
+            communicatorSink: CommunicatorDeliverySink(),
+            clock: clock
         )
         acceptEvent = { try await world.accept($0) }
         events = { sequence, limit in
@@ -112,6 +121,7 @@ struct MongoWorldPersistenceConnection: Sendable {
                 context: UtteranceIngressContext(boundary: .trustedLAN)
             )
         }
+        respondAsCharacter = { try await deliveryRouter.route($0) }
         conversationItems = { conversationID, after, limit in
             let loaded = try await persistence.conversations.conversationItems(
                 in: conversationID,
@@ -164,6 +174,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         ingestUtterance:
             @escaping @Sendable (PersonUtterance) async throws
             -> UtteranceIngressResult = { _ in throw WorldAPIError.databaseUnavailable },
+        respondAsCharacter:
+            @escaping @Sendable (CharacterUtteranceIntent) async throws
+            -> CharacterDeliveryResult = { _ in throw WorldAPIError.databaseUnavailable },
         conversationItems:
             @escaping @Sendable (ConversationID, ConversationItemID?, Int) async throws
             -> ConversationItemPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
@@ -181,6 +194,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.scheduleTimer = scheduleTimer
         self.cancelTimer = cancelTimer
         self.ingestUtterance = ingestUtterance
+        self.respondAsCharacter = respondAsCharacter
         self.conversationItems = conversationItems
         self.shutdown = shutdown
     }
@@ -202,10 +216,15 @@ actor MongoWorldPersistenceProvider {
         logger: Logger,
         connector: @escaping Connector = { uri, logger in
             let persistence = try await MongoWorldPersistence.connect(to: uri, logger: logger)
-            return MongoWorldPersistenceConnection(
-                persistence: persistence,
-                logger: logger
-            )
+            do {
+                return try MongoWorldPersistenceConnection(
+                    persistence: persistence,
+                    logger: logger
+                )
+            } catch {
+                await persistence.cluster.disconnect()
+                throw error
+            }
         }
     ) {
         self.uri = uri
@@ -319,6 +338,19 @@ actor MongoWorldPersistenceProvider {
     func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         let result = try await connection.ingestUtterance(utterance)
+        if result.disposition == .accepted {
+            await conversationUpdates.publish(result.conversationItem)
+        }
+        return result
+    }
+
+    /// Carries one Beaky turn into the shared conversation. The router decides the stage from
+    /// fresh presence and persists the canonical item first; the item is then offered to every
+    /// live conversation subscriber regardless of route, so a turn performed aloud still appears
+    /// in Communicator history. Live publication is at-least-once; clients upsert by item ID.
+    func respond(_ intent: CharacterUtteranceIntent) async throws -> CharacterDeliveryResult {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        let result = try await connection.respondAsCharacter(intent)
         if result.disposition == .accepted {
             await conversationUpdates.publish(result.conversationItem)
         }

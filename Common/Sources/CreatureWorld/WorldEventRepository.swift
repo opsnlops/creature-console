@@ -136,6 +136,7 @@ enum WorldPersistenceError: Error, Equatable, Sendable {
     case missingSequenceCounter
     case missingUtteranceIngress
     case missingConversationItem
+    case missingCharacterDelivery
 }
 
 extension Optional {

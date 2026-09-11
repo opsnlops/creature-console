@@ -361,6 +361,35 @@ public protocol CharacterDeliveryRepository: Sendable {
     func record(_ outcome: CharacterDeliveryOutcome) async throws
 }
 
+public enum CharacterDeliveryDisposition: String, Hashable, Sendable, Codable {
+    case accepted
+    case duplicate
+}
+
+/// What the world did with one character turn: whether this call handled it or found it already
+/// handled, the recorded delivery outcome, and the canonical item now in the shared history.
+public struct CharacterDeliveryResult: Hashable, Sendable, Codable {
+    public var disposition: CharacterDeliveryDisposition
+    public var outcome: CharacterDeliveryOutcome
+    public var conversationItem: ConversationItem
+
+    public init(
+        disposition: CharacterDeliveryDisposition,
+        outcome: CharacterDeliveryOutcome,
+        conversationItem: ConversationItem
+    ) {
+        self.disposition = disposition
+        self.outcome = outcome
+        self.conversationItem = conversationItem
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case disposition
+        case outcome
+        case conversationItem = "conversation_item"
+    }
+}
+
 public actor CharacterDeliveryRouter {
     public typealias DeliveryAttemptIDGenerator = @Sendable () -> DeliveryAttemptID
     public typealias ConversationItemIDGenerator = @Sendable () -> ConversationItemID
@@ -399,7 +428,7 @@ public actor CharacterDeliveryRouter {
         self.makeConversationItemID = makeConversationItemID
     }
 
-    public func route(_ intent: CharacterUtteranceIntent) async throws -> CharacterDeliveryOutcome {
+    public func route(_ intent: CharacterUtteranceIntent) async throws -> CharacterDeliveryResult {
         try await withSpan("conversation.response.route") { span in
             let stored: StoredCharacterDelivery
             if let existing = try await repository.delivery(for: intent.responseID) {
@@ -446,7 +475,11 @@ public actor CharacterDeliveryRouter {
 
             if let outcome = stored.outcome {
                 span.attributes["conversation.delivery.outcome"] = "duplicate"
-                return outcome
+                return CharacterDeliveryResult(
+                    disposition: .duplicate,
+                    outcome: outcome,
+                    conversationItem: stored.conversationItem
+                )
             }
 
             let sink =
@@ -463,7 +496,11 @@ public actor CharacterDeliveryRouter {
             )
             try await repository.record(outcome)
             span.attributes["conversation.delivery.outcome"] = outcome.state.rawValue
-            return outcome
+            return CharacterDeliveryResult(
+                disposition: .accepted,
+                outcome: outcome,
+                conversationItem: stored.conversationItem
+            )
         }
     }
 
