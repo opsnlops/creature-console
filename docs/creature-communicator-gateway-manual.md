@@ -96,3 +96,39 @@ in the [Creature World manual](creature-world-manual.md). Use a distinct service
 `creature-communicator-gateway`. AsyncHTTPClient propagates the active distributed trace context
 from the gateway request into Creature World. Do not record utterance text or secrets as span
 attributes.
+
+## Deployment handoff
+
+PR #131 introduces a coordinated port and package transition: Creature World `0.1.12` defaults to
+port `8001`, while Creature Communicator Gateway `0.1.2` defaults to port `8002`. Creature Server
+continues to own port `8000`. Install and operate World and the gateway as independent products:
+
+```bash
+sudo apt install ./creature-world_0.1.12_amd64.deb
+sudo apt install ./creature-communicator-gateway_0.1.2_amd64.deb
+sudo systemctl enable --now creature-world.service
+sudo systemctl enable --now creature-communicator-gateway.service
+```
+
+The packages intentionally do not start services during installation. Before enabling them, review
+`/etc/creature/world.json` and `/etc/creature/communicator-gateway.json`. Package reinstall and
+removal preserve administrator configuration.
+
+On a shared host, the packaged loopback defaults are sufficient. If an ingress proxy runs on a
+different trusted-LAN host, bind the gateway and/or World to the required LAN interface and use the
+firewall as the boundary; do not add application-layer LAN authentication. Route `/world` to port
+8001 and `/communicator` to port 8002.
+
+After deployment, verify both private and ingress paths as applicable:
+
+```bash
+curl --fail-with-body http://127.0.0.1:8001/world/v1/health
+curl --fail-with-body http://127.0.0.1:8002/communicator/v1/health
+curl --fail-with-body https://server.prod.chirpchirp.dev/world/v1/health
+curl --fail-with-body https://server.prod.chirpchirp.dev/communicator/v1/health
+```
+
+The gateway unit uses `After=creature-world.service`, not `Requires=`. It must remain running when
+World is unavailable so clients receive an honest 503 and recover automatically when World returns.
+For the current branch, CI status and remaining product work are recorded in the dated handoff at
+the top of [Beaky Virtual World](beakys-world.md).

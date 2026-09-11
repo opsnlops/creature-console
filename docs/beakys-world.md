@@ -2,13 +2,135 @@
 
 ## Architecture and Implementation Handoff
 
-**Status:** Implementation-ready design baseline, including the bidirectional Beaky Communicator, Information Bridge, and Streamable HTTP MCP
-**Revision:** 2026-09-09
+**Status:** Implementation underway; the World API and first bidirectional Beaky Communicator network slice are operational
+**Revision:** 2026-09-10
 **Primary goal:** **Make Beaky really be April’s familiar.**  
 **Experience goal:** **Make the house feel alive.**  
 **Stack mantra:** **The world happens. The agents notice. The server performs. The controllers obey.**
 
 ---
+
+## 0. Current implementation handoff — 2026-09-10
+
+This section is intentionally operational and time-sensitive. It gives the next engineer or agent
+enough context to continue without reconstructing the implementation from chat history.
+
+### 0.1 Repository and review state
+
+- `main` is at `ed1bd83`, the merge of PR #129 containing the Beaky Communicator foundation.
+- Active branch: `vw-028-gateway-conversation`.
+- Open review: [PR #131](https://github.com/opsnlops/creature-console/pull/131), **Complete
+  Communicator gateway conversation transport**.
+- The branch tip is signed commit `6f28657`. The raw commit contains an SSH signature. Local
+  `git log --show-signature` needs `gpg.ssh.allowedSignersFile` configured before it can verify and
+  display that signature normally.
+- All PR #131 checks were still running when this handoff was written. Do not infer their result
+  from the local results below; inspect the current GitHub check state before merging.
+- The working tree was clean immediately after `6f28657`; this handoff itself is the only expected
+  follow-up change.
+
+### 0.2 What is running now
+
+The stable service allocation is no longer provisional:
+
+| Product | Version in PR #131 | Default port | API prefix |
+| --- | ---: | ---: | --- |
+| Creature Server | independently versioned | `8000` | existing API |
+| Creature World | `0.1.12` | `8001` | `/world/v1` |
+| Creature Communicator Gateway | `0.1.2` | `8002` | `/communicator/v1` |
+
+Beaky Communicator now targets only the gateway namespace. The gateway performs a real private HTTP
+hop to World for health, typed utterance submission, ordered/paginated history, and live SSE. World
+remains the only MongoDB authority; the gateway has no second conversation database. The default
+upstream is `http://127.0.0.1:8001/world/v1` and can be changed with `world_url`,
+`CREATURE_WORLD_URL`, or `--world-url`.
+
+The gateway deliberately starts when World is unavailable. Its process remains alive, readiness
+returns 503, conversation calls return a bounded `world_unavailable` response, and connected apps
+reconcile canonical history after reconnect. Its systemd unit orders startup after
+`creature-world.service` but does not use `Requires=`, preserving that failure isolation.
+
+The local MongoDB 8.3.8 Compose container was healthy and still running when this handoff was
+written. The temporary World and gateway processes used for the smoke test were shut down cleanly.
+The local development database contains a labeled `conversation:gateway-live-test` conversation;
+it is test data, not production data.
+
+### 0.3 What PR #131 proves
+
+- The macOS and iOS clients use the same shared typed conversation client and `/communicator/v1`
+  routes.
+- A real Mongo-backed smoke test traversed gateway -> World for readiness, submission, canonical
+  history, and a pushed SSE item to a client that was already connected.
+- The strengthened loopback test uses an actual TCP hop and verifies colon-bearing conversation
+  identifiers are encoded exactly once.
+- Upstream failure and startup cancellation close the gateway HTTP client cleanly. Graceful
+  shutdown closes active streams and the connection pool without the earlier deinitialization
+  abort.
+- Requests, responses, pages, pending SSE frames, and downstream stream buffers are bounded.
+- Configured World URLs accept only HTTP(S), require a host, and reject credentials, queries, and
+  fragments. Utterance text and credentials are not added to logs or telemetry.
+- Hummingbird tracing covers inbound requests and AsyncHTTPClient propagates trace context across
+  the gateway -> World hop.
+- `./build_communicator_gateway.sh` performs a clean release build and atomically writes
+  `communicator-gateway/creature-communicator-gateway`. The verified binary reported `0.1.2`.
+- Debian packaging installs an independently versioned
+  `creature-communicator-gateway_0.1.2_<architecture>.deb`, JSON configuration, shell completions,
+  and a hardened systemd unit. CI checks the unit, restart policy, World ordering, config
+  preservation, linkage, `--version`, and `--help` on Debian Trixie amd64 and arm64.
+- Local quality gates passed: Swift formatting, shell syntax, workflow YAML parsing,
+  `git diff --check`, both Beaky Communicator platform test runs, and all 738 Common tests. The only
+  observed compiler warning was the pre-existing redundant `#require` in `StageTests.swift`.
+
+### 0.4 Deployment handoff
+
+World `0.1.12` changes its default from port 8000 to 8001, so deploy World and update its ingress
+target before assuming the old endpoint still works. Deploy gateway `0.1.2` separately on port
+8002. The Debian packages use `--no-start`; installing a package does not silently start its
+service. See the [Communicator Gateway manual](creature-communicator-gateway-manual.md) for exact
+commands and smoke checks.
+
+The intended production ingress is:
+
+- `https://server.prod.chirpchirp.dev/world/v1/...` -> Creature World on port 8001;
+- `https://server.prod.chirpchirp.dev/communicator/v1/...` -> Communicator Gateway on port 8002.
+
+The proxy API key remains the WAN boundary and comes from the existing app-family Keychain entry.
+Direct trusted-LAN service calls remain open. Do **not** add gateway-to-World credentials or require
+an API token merely because a service binds beyond loopback.
+
+### 0.5 What is not finished
+
+- Beaky has transport, history, and presence signaling, but no production character-agent path is
+  generating her real replies yet. The transport must not fabricate cognition to hide that gap.
+- APNs registration, token rotation/revocation, durable notification outbox, notification actions,
+  quiet hours, expiry, retry, and preview/private payload policy remain future VW-028 work.
+- Foreground leases are the shared signal for whether an attentive client exists; they are not yet
+  a complete push-notification system.
+- VW-028 issue #119 predates the explicit trusted-LAN decision and still asks for local pairing and
+  token authentication. The repository rules and this design are newer: the LAN remains open and
+  the external proxy owns access control. Reconcile the issue text before treating it as literal
+  acceptance criteria.
+- VW-030 issue #126 remains open. Shared conversation and delivery contracts plus substantial
+  deterministic service tests exist, but the next agent must compare the production wiring—not
+  merely the types and tests—with every acceptance criterion before closing it.
+- Cache partitioning is by the canonical server identity, intentionally ignoring whether the same
+  production server is reached directly or through its proxy. This prevents dev/prod history from
+  mixing while keeping proxy on/off views of production unified.
+
+### 0.6 Exact next actions
+
+1. Check every PR #131 workflow, especially Debian amd64/arm64, MongoDB 8.3, macOS, and iOS.
+2. Fix failures on the same branch, preserving Swift 6 strict concurrency and signed commits.
+3. When all checks are green, review the PR diff and merge; then fast-forward local `main`.
+4. Build/download and deploy World `0.1.12` and gateway `0.1.2` as independent packages. Confirm
+   ports and both ingress routes before changing clients used for production.
+5. Smoke-test health, history catch-up, and live cross-device updates through production ingress.
+6. Reconcile VW-028's stale authentication language, then choose the next vertical slice. The most
+   valuable next magic is the real Beaky agent producing a response into this now-working delivery
+   path; APNs becomes meaningful immediately afterward.
+
+Do not merge PR #131 merely because the local suite is green, do not copy conversation state into
+the gateway, and do not split typed composition and future STT into separate cognition pipelines.
 
 ## 1. Executive summary
 
