@@ -133,6 +133,30 @@ struct ConversationServiceTests {
         #expect(await sink.submissionCount == 1)
     }
 
+    @Test("A retry that arrives under a new transport trace is still the same utterance")
+    func retryWithDifferentTraceIsDuplicate() async throws {
+        let repository = TestUtteranceRepository()
+        let sink = TestPerceptSink()
+        let service = makeIngressService(repository: repository, sink: sink)
+        var first = try makeAdapterInput(sourceID: SourceID(validating: "communicator:app"))
+        first.trace = try W3CTraceContext(
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+        var retry = first
+        retry.trace = try W3CTraceContext(
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-11f067aa0ba902b7-01")
+        let context = UtteranceIngressContext(boundary: .trustedLAN)
+
+        let accepted = try await PersonUtteranceAdapter.communicatorComposition.submit(
+            first, context: context, to: service)
+        let duplicate = try await PersonUtteranceAdapter.communicatorComposition.submit(
+            retry, context: context, to: service)
+
+        #expect(accepted.disposition == .accepted)
+        #expect(duplicate.disposition == .duplicate)
+        #expect(duplicate.percept.utterance.trace == first.trace)
+        #expect(await sink.submissionCount == 1)
+    }
+
     @Test("An utterance ID cannot be reused to make Beaky hear different words")
     func conflictingUtteranceIdentityIsRejected() async throws {
         let repository = TestUtteranceRepository()

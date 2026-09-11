@@ -52,7 +52,9 @@ struct WorldHTTPAPITests {
                     #expect(response.status == expectedStatus)
                     let result = try decode(UtteranceIngressResult.self, response.body)
                     #expect(result.conversationItem.text == utterance.text)
-                    #expect(result.percept.utterance.trace == nil)
+                    // The first attempt's transport trace is carried on the utterance so the
+                    // mind can continue April's trace; the retry does not replace it.
+                    #expect(result.percept.utterance.trace?.traceparent == traceparents[0])
                 }
             }
 

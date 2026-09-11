@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.2.1",
+  "build_version": "0.2.2",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -161,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.2.1",
+  "build_version": "0.2.2",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -426,7 +426,7 @@ package; the Creature World artifact is `creature-world_<version>_<architecture>
 only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.2.1_amd64.deb
+sudo apt install ./creature-world_0.2.2_amd64.deb
 ```
 
 The package installs:
