@@ -182,8 +182,18 @@ struct CharacterMind: Sendable {
             )
         }
         turns.append(LocalLLMClient.Message(role: .user, content: percept.utterance.text))
-        transcript.append(contentsOf: Self.coalescingConsecutiveTurns(turns))
+        transcript.append(
+            contentsOf: Self.openingWithTheUser(Self.coalescingConsecutiveTurns(turns)))
         return transcript
+    }
+
+    /// Chat templates such as Mistral's also require the first turn after the system message to
+    /// be the user's. When the bounded window happens to open on one of Beaky's own earlier turns,
+    /// that turn is dropped; the conversation still alternates and still ends with April.
+    static func openingWithTheUser(
+        _ turns: [LocalLLMClient.Message]
+    ) -> [LocalLLMClient.Message] {
+        Array(turns.drop(while: { $0.role == .assistant }))
     }
 
     /// Several messages in a row from the same author become one turn. Chat templates such as

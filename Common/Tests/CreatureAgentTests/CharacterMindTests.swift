@@ -25,11 +25,9 @@ struct CharacterMindTests {
         #expect(transcript.first?.role == .system)
         #expect(transcript.first?.content.contains(CharacterMind.contract) == true)
         #expect(transcript.first?.content.hasPrefix("You are Beaky.") == true)
-        #expect(
-            transcript.dropFirst().map(\.role) == [.assistant, .user, .assistant, .user]
-        )
-        #expect(
-            transcript.dropFirst().map(\.content) == ["two", "three", "four", "What do you think?"])
+        // The window of three opens on Beaky's "two", which is dropped so April speaks first.
+        #expect(transcript.dropFirst().map(\.role) == [.user, .assistant, .user])
+        #expect(transcript.dropFirst().map(\.content) == ["three", "four", "What do you think?"])
     }
 
     @Test("Consecutive messages from one author become one turn so chat templates accept them")
@@ -50,6 +48,26 @@ struct CharacterMindTests {
             turns.map(\.content) == [
                 "Hello\nNice\nYay push is working", "Bawk!\nI mean hello.", "Woot\nHi",
             ])
+    }
+
+    @Test("A context window that opens on Beaky's own turn is trimmed to start with April")
+    func windowOpensWithApril() throws {
+        // Found live on fuzzball: once the bounded window began with a character turn, Mistral's
+        // template rejected the transcript ("roles must alternate") and Beaky fell silent.
+        let mind = makeMind(maximumContextTurns: 3) { _ in "unused" }
+        let percept = try makePercept(
+            text: "Still there?",
+            prior: [
+                ("person", "Hello", 1), ("character", "Hi April!", 2), ("person", "Nice", 3),
+                ("character", "Thanks!", 4),
+            ]
+        )
+
+        let turns = Array(mind.makeTranscript(for: percept).dropFirst())
+
+        #expect(turns.first?.role == .user)
+        #expect(turns.map(\.role) == [.user, .assistant, .user])
+        #expect(turns.map(\.content) == ["Nice", "Thanks!", "Still there?"])
     }
 
     @Test("A reply becomes a turn addressed to April with a stable response identity")
