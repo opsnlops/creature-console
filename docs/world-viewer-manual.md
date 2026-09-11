@@ -46,7 +46,7 @@ trace icon. The search field filters by type, subject, or source.
 
 ### Conversation
 
-The conversation as the World holds it — April's turns and Beaky's, in canonical order. Beneath
+The conversation as the World holds it — April's turns and Beaky's, newest at the top. Beneath
 each of Beaky's turns is the router's **delivery chip**: the route it chose (`communicator` or
 `physical_speech`), its reason (`presence_uncertain`, `confidently_away`, `home_and_audible`),
 the presence it saw (state, confidence, audible or not), and the outcome a sink reported, if

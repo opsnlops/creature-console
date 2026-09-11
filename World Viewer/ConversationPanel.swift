@@ -1,15 +1,15 @@
 import SwiftUI
 import WorldCore
 
-/// The conversation as the World remembers it, with the router's decision beside each of
-/// Beaky's turns: the route it chose, why, and how the delivery went.
+/// The conversation as the World remembers it, newest turn at the top, with the router's
+/// decision beside each of Beaky's turns: the route it chose, why, and how the delivery went.
 struct ConversationPanel: View {
     let store: WorldStore
     @Binding var scried: Scried?
     @State private var selection: ConversationItemID?
 
     var body: some View {
-        List(store.conversationItems, id: \.itemID, selection: $selection) { item in
+        List(store.conversationItems.reversed(), id: \.itemID, selection: $selection) { item in
             ConversationTurnRow(item: item, delivery: delivery(for: item))
         }
         .onChange(of: selection) { _, itemID in
