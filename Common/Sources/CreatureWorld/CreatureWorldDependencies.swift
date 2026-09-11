@@ -7,6 +7,7 @@ struct CreatureWorldDependencies: Sendable {
     let healthService: HealthService
     let persistence: MongoWorldPersistenceProvider?
     let worldService: any WorldApplicationService
+    let conversationService: any ConversationApplicationService
 
     static func live(
         configuration: CreatureWorldConfiguration,
@@ -27,7 +28,8 @@ struct CreatureWorldDependencies: Sendable {
                 readinessCheck: { await persistence.isHealthy() }
             ),
             persistence: persistence,
-            worldService: persistence
+            worldService: persistence,
+            conversationService: persistence
         )
     }
 
@@ -36,7 +38,9 @@ struct CreatureWorldDependencies: Sendable {
         logger: Logger,
         buildInfo: CreatureWorldBuildInfo,
         readinessCheck: @escaping @Sendable () async -> Bool = { true },
-        worldService: any WorldApplicationService = UnavailableWorldApplicationService()
+        worldService: any WorldApplicationService = UnavailableWorldApplicationService(),
+        conversationService: any ConversationApplicationService =
+            UnavailableConversationApplicationService()
     ) -> CreatureWorldDependencies {
         CreatureWorldDependencies(
             configuration: configuration,
@@ -47,7 +51,8 @@ struct CreatureWorldDependencies: Sendable {
                 readinessCheck: readinessCheck
             ),
             persistence: nil,
-            worldService: worldService
+            worldService: worldService,
+            conversationService: conversationService
         )
     }
 }

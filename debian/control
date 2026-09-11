@@ -31,3 +31,10 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Authoritative shared-world simulator for Creature clients
  Runs the Creature World HTTP service, which maintains the authoritative shared-world
  state used by Creature clients and integrations.
+
+Package: creature-communicator-gateway
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Narrow synchronization gateway for Beaky Communicator
+ Runs the independently deployed HTTP gateway for Beaky Communicator client
+ synchronization, foreground leases, and future notification delivery.

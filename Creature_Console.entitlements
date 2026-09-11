@@ -10,5 +10,9 @@
 	<true/>
 	<key>com.apple.developer.spatial-audio.profile-access</key>
 	<true/>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)io.opsnlops.CreatureApps</string>
+	</array>
 </dict>
 </plist>

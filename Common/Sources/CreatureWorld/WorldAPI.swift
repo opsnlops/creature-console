@@ -39,6 +39,7 @@ enum WorldAPIError: Error, Equatable, LocalizedError, Sendable {
     case invalidOrigin
     case unsupportedMediaType
     case invalidQuery(name: String)
+    case conversationIdentityMismatch
     case batchTooLarge(limit: Int)
     case overloaded(limit: Int)
     case requestTimedOut
@@ -53,6 +54,8 @@ enum WorldAPIError: Error, Equatable, LocalizedError, Sendable {
             "Creature World event requests require Content-Type: application/json"
         case .invalidQuery(let name):
             "The query parameter \(name) is invalid"
+        case .conversationIdentityMismatch:
+            "The conversation in the request body does not match the URL"
         case .batchTooLarge(let limit):
             "The event batch exceeds the limit of \(limit)"
         case .overloaded(let limit):
@@ -143,6 +146,37 @@ protocol WorldApplicationService: Sendable {
     func snapshot(limit: Int) async throws -> WorldSnapshot
     func subscribe() async throws -> WorldDeltaStream
     func finishSubscriptions() async
+}
+
+protocol ConversationApplicationService: Sendable {
+    func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult
+    func conversationItems(
+        in conversationID: ConversationID,
+        after itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> ConversationItemPage
+    func subscribe(to conversationID: ConversationID) async throws -> ConversationItemStream
+    func finishConversationSubscriptions() async
+}
+
+struct UnavailableConversationApplicationService: ConversationApplicationService {
+    func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func conversationItems(
+        in conversationID: ConversationID,
+        after itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> ConversationItemPage {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func subscribe(to conversationID: ConversationID) async throws -> ConversationItemStream {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func finishConversationSubscriptions() async {}
 }
 
 struct UnavailableWorldApplicationService: WorldApplicationService {

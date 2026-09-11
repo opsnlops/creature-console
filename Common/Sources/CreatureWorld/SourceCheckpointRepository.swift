@@ -34,9 +34,14 @@ struct SourceCheckpointRepository: Sendable {
     }
 
     func checkpoint(for sourceID: SourceID) async throws -> SourceCheckpoint? {
-        try await checkpoints.findOne(
-            ["source_id": sourceID.rawValue],
-            as: SourceCheckpoint.self
-        )
+        guard let document = try await checkpoints.findOne(["source_id": sourceID.rawValue]) else {
+            return nil
+        }
+        var checkpoint = try BSONDecoder().decode(SourceCheckpoint.self, from: document)
+        guard let value = document["value"] else {
+            throw MongoWorldJSONError.missingObject
+        }
+        checkpoint.value = try MongoWorldJSON.value(from: value)
+        return checkpoint
     }
 }

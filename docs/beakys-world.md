@@ -256,9 +256,28 @@ Later mobile path:
 
 ```text
 creature-agent -> CharacterUtteranceIntent -> world delivery/notification policy
-  -> creature-communicator-gateway -> APNs -> Beaky Communicator on macOS/iPhone
+  -> creature-communicator-gateway consults per-device foreground leases
+  -> live synchronization when any paired client is foregrounded, otherwise APNs
+  -> Beaky Communicator on macOS/iPhone
   -> authenticated action/reply -> gateway -> WorldEvent -> simulator/Beaky percept
 ```
+
+Foreground status is a renewable, short-lived lease per paired app installation, not a durable
+boolean. Each active client heartbeats its lease and makes a best-effort release when it enters the
+background. Lease expiry handles suspension, force-quit, crashes, and lost networks where the
+background transition never reaches the gateway. A live lease on any paired device suppresses a
+redundant push; when no lease remains, the gateway uses its durable notification outbox and APNs.
+Start with a 30-second heartbeat and a 90-second lease, expressed through an injectable clock and
+configuration so expiry, renewal, and boundary races remain deterministic in tests.
+
+“Foreground” means user-attentive, not merely that a process exists. On iOS, only an `.active`
+scene on an unlocked device renews its lease. On macOS, the user session and device must be
+unlocked, the application must be active, the conversation window must be visible and
+non-minimized, and recent local input must remain inside a configurable idle threshold. `.inactive`,
+locked, idle, hidden, minimized, closed-window, and `.background` states stop renewal and attempt an
+immediate release. A macOS app left running indefinitely must therefore not suppress notifications
+while April is working elsewhere. Lock and idle evidence stays on the client; the gateway receives
+only the resulting lease operation.
 
 | Component | Owns | Explicitly does not own |
 |---|---|---|
@@ -758,8 +777,8 @@ The bridge’s core responsibility is:
 
 Run on April’s **M1 iMac** as two cooperating pieces:
 
-- `creature-contextd`: headless, launch-at-login/background service owning adapters, checkpoints, preprocessing, and delivery;
-- **Creature Context**: SwiftUI configuration/diagnostic app that can close without stopping ingestion.
+- `creature-scribed`: headless, launch-at-login/background service owning adapters, checkpoints, preprocessing, and delivery;
+- **Creature Scribe**: SwiftUI configuration/diagnostic app that can close without stopping ingestion.
 
 The bridge is the trusted boundary for highly personal Apple data. It emits normalized, minimized world events, not raw mailbox/chat/calendar mirrors. It must remain useful when the SwiftUI app is closed and after the user session or network connection is interrupted.
 
@@ -769,7 +788,7 @@ Additional helper processes/extensions may be required for source acquisition:
 - a contained Messages-store reader or supported automation adapter;
 - a share extension/browser helper for order-confirmation pages or other user-selected documents.
 
-Those helpers feed `creature-contextd`; none talks directly to the Linux simulator or to a character agent.
+Those helpers feed `creature-scribed`; none talks directly to the Linux simulator or to a character agent.
 
 ### 6.2 Configuration UI
 
@@ -1393,6 +1412,16 @@ with APNs, and forward the current app-specific device token over an authenticat
 the gateway. Do not assume a token is permanent; register each launch and update the server
 mapping when it changes.
 
+Keep storage responsibilities explicit. UI and connection preferences belong in `UserDefaults`,
+and the household ingress credential remains in the Creature app-family Keychain. Conversation
+history, locally queued replies, delivery state, and other application data belong in a local,
+file-backed SwiftData store on both platforms; never put chat content in `UserDefaults`. Preserve
+the complete typed conversation DTO in the local model so stable identities, reply relationships,
+provenance, and trace context survive app restarts and can reconcile with the gateway later. Do not
+enable CloudKit for this store. Partition both cached history and the durable outbox by canonical
+server URI so switching between development and production cannot merge their conversations or
+deliver an offline message to the wrong World. Never infer an environment for legacy unscoped rows.
+
 Declare notification categories and actions at launch. Action selection may launch the app in the background; queue the response locally if the home gateway cannot be reached and submit it when connectivity returns. Use visible alert notifications for user-facing messages. Silent/background notifications may opportunistically refresh conversation state but must never be the only way a message becomes durable because iOS can throttle or omit them.
 
 APNs payloads should contain only what is required to present or locate the notification: a minimal alert (when previews are enabled), category, thread/collapse identifiers, and opaque lowercase notification/message IDs. The complete canonical message and provenance remain on the gateway/world side and are fetched after authentication. Offer two privacy modes:
@@ -1413,6 +1442,11 @@ Prefer an isolated Linux executable/service named `creature-communicator-gateway
 - the narrow mobile APIs for fetching conversation items and submitting actions/replies;
 - APNs request ID, response/rejection reason, attempts, expiry, and timestamps;
 - privacy-safe WorldEvents and OTel spans correlated to the initiating event and decision.
+
+The external ingress namespace is `/communicator/v1/…`. This distinct path lets the shared proxy
+route the narrow Communicator API to the gateway binary while `/world/v1/…` continues to route to
+Creature World. Trusted-LAN gateway requests remain open under the repository's LAN trust model;
+off-LAN requests reuse the proxy API key held in the Creature app-family Keychain.
 
 Use token-based APNs authentication over HTTP/2 and TLS. Keep the `.p8` signing key and device tokens out of source control, prompts, ordinary world event payloads, logs, and Honeycomb. APNs acceptance means Apple accepted the request; it is not proof that the device displayed it or April read it. Only an app-originated open/action/reply event can establish user interaction.
 
@@ -1604,6 +1638,19 @@ Keep `Common` genuinely common to Creature Server clients:
 - generic WebSocket/client machinery;
 - generic observability plumbing where already established.
 
+Create `CreatureAppSupport` for the shared Apple-app family infrastructure used by Creature
+Console, Beaky Communicator, and the future Creature Scribe app:
+
+- the visual language and reusable SwiftUI presentation primitives;
+- typed service connection settings and proxy routing;
+- shared Keychain access to the household ingress credential;
+- product-neutral error presentation and app lifecycle helpers.
+
+Keep feature state, navigation, persistence, and permissions in each application. In particular,
+Mail, Messages, Contacts, Calendar, and other private-source entitlements belong only to Creature
+Scribe; sharing `CreatureAppSupport` must never grant those capabilities to Console or
+Communicator.
+
 Create `WorldCore` for virtual-world concepts:
 
 - `WorldEvent` and event payloads;
@@ -1639,6 +1686,7 @@ creature-console/
     Package.swift
     Sources/
       Common/                         existing shared server client + DTOs
+      CreatureAppSupport/              shared Apple-app UI, connection, and Keychain support
       Observability/                  existing
       MQTTSupport/                    existing
 
@@ -1687,7 +1735,7 @@ creature-console/
     Creature Console/                 EXISTING: unchanged role
 
   World Viewer/                       NEW SwiftUI macOS app on laptop
-  Information Bridge/                NEW SwiftUI app + daemon on M1 iMac
+  Creature Scribe/                   NEW SwiftUI app + `creature-scribed` on M1 iMac
   Beaky Communicator/                 shared SwiftUI macOS/iOS app
   docker/creature-world/              NEW Linux deployment assets
 
@@ -1798,7 +1846,7 @@ and memory.
 | Home Assistant World Adapter | Phase 3 | Real HA state reaches simulator | Location/presence chooses where April hears Beaky |
 | Refactored `creature-agent` | Phase 3 | Consumes a typed April utterance percept | Mistral answers through a traced Creature Server/Communicator route |
 | **World Viewer** laptop app | Phase 4 | Connects and shows conversation/world history | Shows live bridge events and Why? provenance |
-| **Creature Context / `creature-contextd`** iMac Information Bridge | Phase 4 | Config UI, daemon, fake distiller, durable outbox | Apple Intelligence distills real Calendar/Mail/Messages content into events |
+| **Creature Scribe / `creature-scribed`** iMac Information Bridge | Phase 4 | Config UI, daemon, fake distiller, durable outbox | Apple Intelligence distills real Calendar/Mail/Messages content into events |
 | Creature Server world ingestion | Phase 4 | Body telemetry appears in Viewer | Beaky receives proprioceptive context |
 | `WorldMCP` | Phase 8 | Read-only Streamable HTTP inspection | Codex can query Why? and character perspective |
 
@@ -1870,6 +1918,9 @@ presence, Creature Server delivery, and `creature-communicator-gateway`.
 - Send home/audible turns through the existing Creature Server dialog API with trace propagation.
 - Complete the shared macOS/iOS conversation app and isolated gateway with pairing,
   synchronization, offline retry, notification policy, and fake APNs before opt-in device testing.
+- Reconcile the complete paginated conversation on first connection, incrementally synchronize
+  foreground clients, and use renewable per-device foreground leases so another connected client
+  sees a new turn promptly while an absent client receives APNs instead.
 - Keep trusted-LAN service APIs open under the repository trust model; authenticate the narrow
   remote gateway boundary and never expose Creature World or MongoDB directly to the app.
 
@@ -1883,7 +1934,7 @@ how April reacts, and their relationship can start accumulating shared context.
 
 ### Phase 4 — make the world visible and broaden perception
 
-**Applications started:** **World Viewer** and **Creature Context / `creature-contextd`**;
+**Applications started:** **World Viewer** and **Creature Scribe / `creature-scribed`**;
 **integration started:** direct Creature Server → world perception.
 
 - Create World Viewer with connection health, ordered event/conversation timeline, facts, raw JSON,
@@ -2195,7 +2246,7 @@ Translate performance intents to inline dialog turns, pass the active parent tra
 
 ### VW-017: Scaffold macOS bridge and outbox
 
-Start both parts of the Information Bridge: the background `creature-contextd` daemon and the Creature Context SwiftUI application. Define their IPC/configuration boundary; source authorization and health model; Keychain-backed secrets; privacy and retention policy; durable processing ledger; retryable outbound event queue; and a redacted event inspector. Add a fake source and deterministic fake `PrivateInformationDistiller`, and propagate trace context with the resulting synthetic event.
+Start both parts of the Information Bridge: the background `creature-scribed` daemon and the Creature Scribe SwiftUI application. Define their IPC/configuration boundary; source authorization and health model; Keychain-backed secrets; privacy and retention policy; durable processing ledger; retryable outbound event queue; and a redacted event inspector. Add a fake source and deterministic fake `PrivateInformationDistiller`, and propagate trace context with the resulting synthetic event.
 
 **Done when:** the SwiftUI application can close while the daemon continues processing; one synthetic private-source item is visible as it moves through classification, validation, outbox, retry, delivery, and trace states; it safely reaches the Linux simulator after an offline interval; and neither logs nor UI diagnostics expose private source content by default.
 
@@ -2266,16 +2317,29 @@ networking, offline queue, and views. Use the `PersonUtterance`, `CharacterUtter
 delivery contracts from `VW-030`; do not create app-only cognition or message types. Build the
 isolated `creature-communicator-gateway` with secure pairing, authenticated synchronization, APNs
 registration/token rotation, an idempotent notification outbox, preview/private payload modes,
-actions, replies, and privacy-safe trace correlation. Package it independently for Debian Trixie
-on amd64 and arm64 under `/bin`.
+actions, replies, renewable per-device foreground leases, and privacy-safe trace correlation. A
+foreground client heartbeats its lease and releases it on backgrounding when possible; expiry is
+authoritative because lifecycle callbacks are not guaranteed. Any live paired-device lease
+suppresses a redundant push. Foreground attention includes lock state and, on macOS, configurable
+local idle time; raw input activity never leaves the device. Package the gateway independently for
+Debian Trixie on amd64 and arm64 under `/bin`.
 
-Test confirmed-away versus at-home/uncertain presence, notification authorization changes, quiet hours, urgency, topic allowlist, TTL expiry, retry, duplicate intents, APNs rejection, device-token rotation/revocation, offline app actions, duplicate action submission, preview redaction, unauthorized mobile requests, and the distinction between APNs acceptance and user interaction. Use a fake APNs provider for deterministic tests and Apple’s Push Notification Console/development environment for an explicitly enabled device smoke test.
+Test full-history pagination, foreground incremental catch-up, multiple simultaneous clients,
+lease renewal/release/expiry, abrupt client loss, iOS/macOS lock transitions, macOS
+active/inactive/idle/hidden/minimized/windowless transitions, confirmed-away versus
+at-home/uncertain presence, notification authorization changes,
+quiet hours, urgency, topic allowlist, TTL expiry, retry, duplicate intents, APNs rejection,
+device-token rotation/revocation, offline app actions, duplicate action submission, preview
+redaction, unauthorized mobile requests, and the distinction between APNs acceptance and user
+interaction. Use a fake APNs provider for deterministic tests and Apple’s Push Notification
+Console/development environment for an explicitly enabled device smoke test.
 
 **Done when:** April can carry on one ordered Beaky conversation from macOS and iOS; home responses
 are represented as physically spoken without duplicate alerts, away responses synchronize to her
-paired devices, uncertain presence uses the private app route, and offline/retried turns remain
-idempotent. The exchange becomes world history without leaking device tokens, signing credentials,
-utterance text, or unrelated private context into telemetry.
+paired devices, a foreground device sees new turns without reopening the app, no push is sent while
+any paired client holds a live foreground lease, uncertain presence uses the private app route, and
+offline/retried turns remain idempotent. The exchange becomes world history without leaking device
+tokens, signing credentials, utterance text, or unrelated private context into telemetry.
 
 ### VW-029: Expose the Creature World JSON API and live delta stream
 
@@ -2438,7 +2502,7 @@ the exit from Phase 3.
 
 ### Milestone C — the world becomes visible and understands something private
 
-Creature Context plus `creature-contextd` runs on the iMac and World Viewer runs on the laptop. A
+Creature Scribe plus `creature-scribed` runs on the iMac and World Viewer runs on the laptop. A
 synthetic private-source item moves through the bridge’s fake local distiller and durable outbox,
 becomes an authoritative fact, and appears with Why? provenance in Viewer. Then macOS 27 Apple
 Intelligence locally distills one opted-in Calendar, Mail, or Messages item without exporting raw

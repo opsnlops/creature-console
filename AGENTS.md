@@ -66,6 +66,10 @@ is explicitly changed. Firewalls and the external ingress proxy own access contr
 ## Coding Style & Naming Conventions
 - Follow Swift API Design Guidelines; prefer descriptive camelCase for variables/functions and PascalCase for types.
 - Indent with 4 spaces; align trailing closures and guard returns for readability.
+- Prefer native SwiftUI containers, controls, and toolbar placements across Apple-platform apps.
+  Use SwiftUI 26 Liquid Glass APIs whenever they fit the interaction, including `safeAreaBar`,
+  glass button styles, and `glassEffect` for custom surfaces; do not hand-paint replacements for
+  system bars or materials.
 - **IMPORTANT**: Run `swift-format --configuration swift-format.json --in-place <paths>` on ALL modified files before committing.
   - Format single file: `swift-format --configuration swift-format.json --in-place Sources/Common/MyFile.swift`
   - Format directory: `swift-format --configuration swift-format.json --in-place Sources/Common/`
@@ -131,8 +135,10 @@ is explicitly changed. Firewalls and the external ingress proxy own access contr
 - Linux builds and package tests use the pinned Swift 6.3.3 release toolchain on every
   architecture.
 - A product's package artifact version must match the version reported by that executable's
-  offline `--version` command. For example, Creature World `0.1.7` produces
-  `creature-world_0.1.7_<architecture>.deb`.
+  offline `--version` command. For example, Creature World `0.1.11` produces
+  `creature-world_0.1.11_<architecture>.deb`.
+  Likewise, Creature Communicator Gateway `0.1.0` produces
+  `creature-communicator-gateway_0.1.0_<architecture>.deb`.
 - Shared Debian source metadata may retain its established source-package version, but
   `debian/rules` must pass each independently versioned binary package's own version to
   `dh_gencontrol`.

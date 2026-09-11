@@ -51,27 +51,31 @@ struct WorldEventRepository: Sendable {
     }
 
     func event(withID eventID: EventID) async throws -> WorldEventEnvelope? {
-        try await events.findOne(["event_id": eventID.rawValue], as: WorldEventEnvelope.self)
+        guard let document = try await events.findOne(["event_id": eventID.rawValue]) else {
+            return nil
+        }
+        return try decode(document)
     }
 
     func events(after sequence: Int64, limit: Int) async throws -> [WorldEventEnvelope] {
         precondition(limit > 0)
         let greaterThan: Document = ["$gt": Int(sequence)]
-        return
+        let documents =
             try await events
-            .find(["world_sequence": greaterThan], as: WorldEventEnvelope.self)
+            .find(["world_sequence": greaterThan])
             .sort(["world_sequence": 1])
             .limit(limit)
             .drain()
+        return try documents.map(decode)
     }
 
     func latestSequence() async throws -> Int64 {
-        let event = try await events.find([:], as: WorldEventEnvelope.self)
+        let document = try await events.find([:])
             .sort(["world_sequence": -1])
             .limit(1)
             .drain()
             .first
-        return event?.worldSequence ?? 0
+        return try document.map(decode)?.worldSequence ?? 0
     }
 
     func isProcessed(eventID: EventID) async throws -> Bool {
@@ -94,13 +98,20 @@ struct WorldEventRepository: Sendable {
 
     private func event(withSource source: EventSource) async throws -> WorldEventEnvelope? {
         guard let sourceEventID = source.sourceEventID else { return nil }
-        return try await events.findOne(
-            [
-                "source.id": source.id.rawValue,
-                "source.source_event_id": sourceEventID,
-            ],
-            as: WorldEventEnvelope.self
-        )
+        guard
+            let document = try await events.findOne(
+                [
+                    "source.id": source.id.rawValue,
+                    "source.source_event_id": sourceEventID,
+                ])
+        else { return nil }
+        return try decode(document)
+    }
+
+    private func decode(_ document: Document) throws -> WorldEventEnvelope {
+        var event = try BSONDecoder().decode(WorldEventEnvelope.self, from: document)
+        event.payload = try MongoWorldJSON.object(from: document["payload"])
+        return event
     }
 
     private func nextSequence() async throws -> Int64 {
@@ -123,6 +134,8 @@ private struct SequenceCounter: Decodable, Sendable {
 
 enum WorldPersistenceError: Error, Equatable, Sendable {
     case missingSequenceCounter
+    case missingUtteranceIngress
+    case missingConversationItem
 }
 
 extension Optional {

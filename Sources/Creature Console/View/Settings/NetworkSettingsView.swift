@@ -1,32 +1,7 @@
 import Common
+import CreatureAppSupport
 import Foundation
 import SwiftUI
-
-#if canImport(SimpleKeychain)
-    import SimpleKeychain
-    private typealias NetworkSettingsKeychain = SimpleKeychain
-#else
-    private struct NetworkSettingsKeychain {
-        let service: String
-        let synchronizable: Bool
-
-        func set(_ value: String, forKey key: String) throws {
-            UserDefaults.standard.set(value, forKey: namespacedKey(key))
-        }
-
-        func deleteItem(forKey key: String) throws {
-            UserDefaults.standard.removeObject(forKey: namespacedKey(key))
-        }
-
-        func string(forKey key: String) throws -> String? {
-            UserDefaults.standard.string(forKey: namespacedKey(key))
-        }
-
-        private func namespacedKey(_ key: String) -> String {
-            "\(service).\(key)"
-        }
-    }
-#endif
 
 struct NetworkSettingsView: View {
     @AppStorage("serverAddress") private var serverAddress: String = ""
@@ -45,9 +20,7 @@ struct NetworkSettingsView: View {
     @State private var showUniverseClampHint: Bool = false
     @State private var proxyApiKey: String = ""
     private let numericFieldWidth: CGFloat = 200
-    private let keychain = NetworkSettingsKeychain(
-        service: "io.opsnlops.CreatureConsole", synchronizable: true)
-
+    private let proxyAPIKeyStore = try? ProxyAPIKeyStore(migrateLegacyConsoleKey: true)
 
     var body: some View {
         ZStack {
@@ -190,11 +163,7 @@ struct NetworkSettingsView: View {
                                     #endif
                                     .onChange(of: proxyApiKey) { oldValue, newValue in
                                         // Save to keychain whenever it changes
-                                        if newValue.isEmpty {
-                                            try? keychain.deleteItem(forKey: "proxyApiKey")
-                                        } else {
-                                            try? keychain.set(newValue, forKey: "proxyApiKey")
-                                        }
+                                        try? proxyAPIKeyStore?.setAPIKey(newValue)
                                     }
                             }
                         }
@@ -203,7 +172,7 @@ struct NetworkSettingsView: View {
                     }
                     .onAppear {
                         // Load API key from keychain on appear
-                        proxyApiKey = (try? keychain.string(forKey: "proxyApiKey")) ?? ""
+                        proxyApiKey = (try? proxyAPIKeyStore?.apiKey()) ?? ""
                     }
 
                     // Card 4: Network Monitors — the sACN and live-audio monitors both talk

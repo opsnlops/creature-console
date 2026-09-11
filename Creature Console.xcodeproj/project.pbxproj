@@ -173,7 +173,6 @@
 		11B0488A2EB842B3001B73C5 /* LipSyncUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B048872EB842B3001B73C5 /* LipSyncUtilities.swift */; };
 		11B0488D2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B0488B2EB8430E001B73C5 /* ProcessingOverlayView.swift */; };
 		11B0488E2EB8430E001B73C5 /* ProcessingOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B0488B2EB8430E001B73C5 /* ProcessingOverlayView.swift */; };
-		11BC3BAC2E98B4E5002A568C /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = 11BC3BAB2E98B4E5002A568C /* SimpleKeychain */; };
 		11BC3C3A2A0DF62300410F63 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC3C392A0DF62300410F63 /* AudioManager.swift */; };
 		11BF13972E42D32E00728799 /* CreatePlaylistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF13952E42D32E00728799 /* CreatePlaylistView.swift */; };
 		11BF13982E42D32E00728799 /* PlaylistDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF13962E42D32E00728799 /* PlaylistDetail.swift */; };
@@ -307,6 +306,11 @@
 		FEA1B1E70000000000000082 /* DuplicateInstanceGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000081 /* DuplicateInstanceGuard.swift */; };
 		FEA1B1E70000000000000091 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 		FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
+		BCA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000015 /* WorldCore */; };
+		BCA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000016 /* CreatureAppSupport */; };
+		BCA00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = BCA00000000000000000001B /* WorldCore */; };
+		BCA00000000000000000001E /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA00000000000000000001D /* CreatureAppSupport */; };
+		BCA000000000000000000021 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = BCA000000000000000000020 /* CreatureAppSupport */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -330,6 +334,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 117C86FD2CA0CC81007B5682;
 			remoteInfo = "Creature TV";
+		};
+		BCA000000000000000000013 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BCA000000000000000000001;
+			remoteInfo = "Beaky Communicator";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -402,6 +413,10 @@
 		117C86FE2CA0CC81007B5682 /* Creature TV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creature TV.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Creature TVTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Creature TVUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA000000000000000000002 /* Beaky Communicator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Beaky Communicator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA00000000000000000000B /* Beaky Communicator Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Beaky Communicator Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA00000000000000000001F /* Beaky_Communicator.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Beaky_Communicator.entitlements; sourceTree = "<group>"; };
+		BCA000000000000000000022 /* Beaky-Communicator-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Beaky-Communicator-Info.plist"; sourceTree = "<group>"; };
 		1182ED122BEDD28A00E1213F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1183318C2C00577D0017DC2A /* AnimationMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetadataTests.swift; sourceTree = "<group>"; };
 		1183318E2C0059490017DC2A /* TrackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackTests.swift; sourceTree = "<group>"; };
@@ -666,6 +681,16 @@
 			path = Stage;
 			sourceTree = "<group>";
 		};
+		BCA000000000000000000003 /* Beaky Communicator */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Beaky Communicator";
+			sourceTree = "<group>";
+		};
+		BCA00000000000000000000C /* Beaky Communicator Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Beaky Communicator Tests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -678,7 +703,7 @@
 				1110E9652BF035E500FCE26D /* Common in Frameworks */,
 				11DAB24D2EBF199800BF200A /* PlaylistRuntime in Frameworks */,
 				1199D6BD2BF5C463004E0D64 /* LoggingOSLog in Frameworks */,
-				11BC3BAC2E98B4E5002A568C /* SimpleKeychain in Frameworks */,
+				BCA00000000000000000001E /* CreatureAppSupport in Frameworks */,
 			);
 		};
 		11754B6A2C0050AF001A6C83 /* Frameworks */ = {
@@ -694,6 +719,7 @@
 				11DAB24B2EBF198D00BF200A /* PlaylistRuntime in Frameworks */,
 				117C872D2CA0CCCD007B5682 /* Logging in Frameworks */,
 				117C872B2CA0CCB6007B5682 /* Common in Frameworks */,
+				BCA000000000000000000021 /* CreatureAppSupport in Frameworks */,
 			);
 		};
 		117C870C2CA0CC82007B5682 /* Frameworks */ = {
@@ -704,6 +730,19 @@
 		117C87162CA0CC82007B5682 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+			);
+		};
+		BCA000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				BCA000000000000000000018 /* WorldCore in Frameworks */,
+				BCA000000000000000000019 /* CreatureAppSupport in Frameworks */,
+			);
+		};
+		BCA00000000000000000000E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				BCA00000000000000000001C /* WorldCore in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -898,6 +937,10 @@
 				117C86FF2CA0CC81007B5682 /* Creature TV */,
 				117C87122CA0CC82007B5682 /* Creature TVTests */,
 				117C871C2CA0CC82007B5682 /* Creature TVUITests */,
+				BCA000000000000000000003 /* Beaky Communicator */,
+				BCA00000000000000000000C /* Beaky Communicator Tests */,
+				BCA00000000000000000001F /* Beaky_Communicator.entitlements */,
+				BCA000000000000000000022 /* Beaky-Communicator-Info.plist */,
 				1120F1D92EB03A24000342A3 /* Lightweight Console */,
 				1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */,
 				1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */,
@@ -936,6 +979,8 @@
 				117C86FE2CA0CC81007B5682 /* Creature TV.app */,
 				117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */,
 				117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */,
+				BCA000000000000000000002 /* Beaky Communicator.app */,
+				BCA00000000000000000000B /* Beaky Communicator Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1479,7 +1524,7 @@
 				1110E9642BF035E500FCE26D /* Common */,
 				1199D6B92BF5C3A3004E0D64 /* Logging */,
 				1199D6BC2BF5C463004E0D64 /* LoggingOSLog */,
-				11BC3BAB2E98B4E5002A568C /* SimpleKeychain */,
+				BCA00000000000000000001D /* CreatureAppSupport */,
 				11DAB24C2EBF199800BF200A /* PlaylistRuntime */,
 			);
 			productName = "Creature Console";
@@ -1528,6 +1573,7 @@
 				117C872C2CA0CCCD007B5682 /* Logging */,
 				117C872E2CA0CCCD007B5682 /* LoggingOSLog */,
 				11DAB24A2EBF198D00BF200A /* PlaylistRuntime */,
+				BCA000000000000000000020 /* CreatureAppSupport */,
 			);
 			productName = "Creature TV";
 			productReference = 117C86FE2CA0CC81007B5682 /* Creature TV.app */;
@@ -1575,6 +1621,52 @@
 			productReference = 117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		BCA000000000000000000001 /* Beaky Communicator */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCA000000000000000000009 /* Build configuration list for PBXNativeTarget "Beaky Communicator" */;
+			buildPhases = (
+				BCA000000000000000000004 /* Sources */,
+				BCA000000000000000000005 /* Frameworks */,
+				BCA000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				BCA000000000000000000003 /* Beaky Communicator */,
+			);
+			name = "Beaky Communicator";
+			packageProductDependencies = (
+				BCA000000000000000000015 /* WorldCore */,
+				BCA000000000000000000016 /* CreatureAppSupport */,
+			);
+			productName = "Beaky Communicator";
+			productReference = BCA000000000000000000002 /* Beaky Communicator.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BCA00000000000000000000A /* Beaky Communicator Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCA000000000000000000012 /* Build configuration list for PBXNativeTarget "Beaky Communicator Tests" */;
+			buildPhases = (
+				BCA00000000000000000000D /* Sources */,
+				BCA00000000000000000000E /* Frameworks */,
+				BCA00000000000000000000F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BCA000000000000000000014 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BCA00000000000000000000C /* Beaky Communicator Tests */,
+			);
+			name = "Beaky Communicator Tests";
+			packageProductDependencies = (
+				BCA00000000000000000001B /* WorldCore */,
+			);
+			productName = "Beaky Communicator Tests";
+			productReference = BCA00000000000000000000B /* Beaky Communicator Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1603,6 +1695,13 @@
 						CreatedOnToolsVersion = 16.0;
 						TestTargetID = 117C86FD2CA0CC81007B5682;
 					};
+					BCA000000000000000000001 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					BCA00000000000000000000A = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = BCA000000000000000000001;
+					};
 				};
 			};
 			buildConfigurationList = 11703D8329DD197F00EF7E3D /* Build configuration list for PBXProject "Creature Console" */;
@@ -1619,7 +1718,6 @@
 				1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */,
 				1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */,
 				118331982C005BD80017DC2A /* XCRemoteSwiftPackageReference "ViewInspector" */,
-				11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
 			);
 			preferredProjectObjectVersion = 90;
 			productRefGroup = 11703D8929DD197F00EF7E3D /* Products */;
@@ -1631,6 +1729,8 @@
 				117C86FD2CA0CC81007B5682 /* Creature TV */,
 				117C870E2CA0CC82007B5682 /* Creature TVTests */,
 				117C87182CA0CC82007B5682 /* Creature TVUITests */,
+				BCA000000000000000000001 /* Beaky Communicator */,
+				BCA00000000000000000000A /* Beaky Communicator Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -1664,6 +1764,16 @@
 			);
 		};
 		117C87172CA0CC82007B5682 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		BCA000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		BCA00000000000000000000F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -2112,6 +2222,16 @@
 			files = (
 			);
 		};
+		BCA000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		BCA00000000000000000000D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -2129,6 +2249,11 @@
 			isa = PBXTargetDependency;
 			target = 117C86FD2CA0CC81007B5682 /* Creature TV */;
 			targetProxy = 117C871A2CA0CC82007B5682 /* PBXContainerItemProxy */;
+		};
+		BCA000000000000000000014 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BCA000000000000000000001 /* Beaky Communicator */;
+			targetProxy = BCA000000000000000000013 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -2303,7 +2428,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.54.1;
+				MARKETING_VERSION = 2.55.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2358,7 +2483,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.54.1;
+				MARKETING_VERSION = 2.55.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2572,6 +2697,145 @@
 			};
 			name = Release;
 		};
+		BCA000000000000000000007 /* Debug configuration for PBXNativeTarget "Beaky Communicator" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Beaky_Communicator.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Beaky-Communicator-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Beaky Communicator";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = Beaky;
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = Beaky;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Beaky Communicator connects to Creature World on your local network.";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BCA000000000000000000008 /* Release configuration for PBXNativeTarget "Beaky Communicator" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Beaky_Communicator.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Beaky-Communicator-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Beaky Communicator";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = Beaky;
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = Beaky;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Beaky Communicator connects to Creature World on your local network.";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BCA000000000000000000010 /* Debug configuration for PBXNativeTarget "Beaky Communicator Tests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Beaky Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Beaky Communicator";
+			};
+			name = Debug;
+		};
+		BCA000000000000000000011 /* Release configuration for PBXNativeTarget "Beaky Communicator Tests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Beaky Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Beaky Communicator";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -2623,6 +2887,22 @@
 			);
 			defaultConfigurationName = Debug;
 		};
+		BCA000000000000000000009 /* Build configuration list for PBXNativeTarget "Beaky Communicator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BCA000000000000000000007 /* Debug configuration for PBXNativeTarget "Beaky Communicator" */,
+				BCA000000000000000000008 /* Release configuration for PBXNativeTarget "Beaky Communicator" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		BCA000000000000000000012 /* Build configuration list for PBXNativeTarget "Beaky Communicator Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BCA000000000000000000010 /* Debug configuration for PBXNativeTarget "Beaky Communicator Tests" */,
+				BCA000000000000000000011 /* Release configuration for PBXNativeTarget "Beaky Communicator Tests" */,
+			);
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -2648,14 +2928,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.2.2;
-			};
-		};
-		11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/auth0/SimpleKeychain";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.3.0;
 			};
 		};
 		11E7CD8029DD1ACF0029D031 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
@@ -2710,11 +2982,6 @@
 			package = 1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */;
 			productName = LoggingOSLog;
 		};
-		11BC3BAB2E98B4E5002A568C /* SimpleKeychain */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 11BC3BAA2E98B4E5002A568C /* XCRemoteSwiftPackageReference "SimpleKeychain" */;
-			productName = SimpleKeychain;
-		};
 		11DAB24A2EBF198D00BF200A /* PlaylistRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PlaylistRuntime;
@@ -2727,6 +2994,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A0D100000000000000000003 /* XCRemoteSwiftPackageReference "opus-swift" */;
 			productName = YbridOpus;
+		};
+		BCA000000000000000000015 /* WorldCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorldCore;
+		};
+		BCA000000000000000000016 /* CreatureAppSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CreatureAppSupport;
+		};
+		BCA00000000000000000001B /* WorldCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorldCore;
+		};
+		BCA00000000000000000001D /* CreatureAppSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CreatureAppSupport;
+		};
+		BCA000000000000000000020 /* CreatureAppSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CreatureAppSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

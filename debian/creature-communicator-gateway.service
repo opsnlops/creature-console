@@ -1,0 +1,31 @@
+[Unit]
+Description=Creature Communicator synchronization gateway
+Documentation=https://github.com/opsnlops/creature-console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=creature-communicator-gateway
+DynamicUser=yes
+EnvironmentFile=-/etc/default/creature-communicator-gateway
+ExecStart=/bin/creature-communicator-gateway --config /etc/creature/communicator-gateway.json
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

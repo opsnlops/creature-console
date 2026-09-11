@@ -1,5 +1,5 @@
 {
-  "originHash" : "9aaada6f6f40904384c6fe13fa3414751a62c8c93274133e0c15e28bcdc4cb8d",
+  "originHash" : "e086663eb4bb87cf29fef4abd8a529b652f8032551cb3dd43261d0ba02a385d0",
   "pins" : [
     {
       "identity" : "opus-swift",
@@ -8,15 +8,6 @@
       "state" : {
         "revision" : "92e76803ce7efc8e8903433cfd5f7f68938534ba",
         "version" : "0.8.0"
-      }
-    },
-    {
-      "identity" : "simplekeychain",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/auth0/SimpleKeychain",
-      "state" : {
-        "revision" : "776c4a6db74d5c6c143974be91c383680d468630",
-        "version" : "1.3.0"
       }
     },
     {

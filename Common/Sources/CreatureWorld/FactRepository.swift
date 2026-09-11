@@ -28,7 +28,8 @@ struct FactRepository: Sendable {
         if let subjectID {
             query["subject_id"] = subjectID.rawValue
         }
-        return try await facts.find(query, as: Fact.self).sort(["valid_from": 1]).drain()
+        let documents = try await facts.find(query).sort(["valid_from": 1]).drain()
+        return try documents.map(decode)
     }
 
     func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws -> [Fact] {
@@ -44,9 +45,19 @@ struct FactRepository: Sendable {
             let greaterThan: Document = ["$gt": after.rawValue]
             query["_id"] = greaterThan
         }
-        return try await facts.find(query, as: Fact.self)
+        let documents = try await facts.find(query)
             .sort(["_id": 1])
             .limit(limit)
             .drain()
+        return try documents.map(decode)
+    }
+
+    private func decode(_ document: Document) throws -> Fact {
+        var fact = try BSONDecoder().decode(Fact.self, from: document)
+        guard let value = document["value"] else {
+            throw MongoWorldJSONError.missingObject
+        }
+        fact.value = try MongoWorldJSON.value(from: value)
+        return fact
     }
 }

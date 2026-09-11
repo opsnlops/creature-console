@@ -75,6 +75,12 @@ struct MongoWorldPersistenceTests {
                 .listIndexes().drain()
             let timerIndexes = try await persistence.database[MongoWorldCollection.timers]
                 .listIndexes().drain()
+            let ingressIndexes = try await persistence.database[
+                MongoWorldCollection.utteranceIngresses
+            ].listIndexes().drain()
+            let conversationIndexes = try await persistence.database[
+                MongoWorldCollection.conversationItems
+            ].listIndexes().drain()
 
             #expect(eventIndexes.contains { $0.name == "event_id_unique" && $0.unique == true })
             #expect(
@@ -84,12 +90,67 @@ struct MongoWorldPersistenceTests {
             #expect(factIndexes.contains { $0.name == "active_facts" })
             #expect(timerIndexes.contains { $0.name == "pending_timers" })
             #expect(
+                ingressIndexes.contains { $0.name == "utterance_id_unique" && $0.unique == true }
+            )
+            #expect(
+                conversationIndexes.contains {
+                    $0.name == "conversation_item_id_unique" && $0.unique == true
+                }
+            )
+            #expect(conversationIndexes.contains { $0.name == "conversation_order" })
+            #expect(
                 try await persistence.database[MongoWorldCollection.schemaMigrations]
                     .findOne(["_id": 1]) != nil
             )
             #expect(
                 try await persistence.database[MongoWorldCollection.schemaMigrations]
                     .findOne(["_id": 2]) != nil
+            )
+            #expect(
+                try await persistence.database[MongoWorldCollection.schemaMigrations]
+                    .findOne(["_id": 3]) != nil
+            )
+        }
+    }
+
+    @Test("Conversation ingress is durable, ordered, and idempotent")
+    func conversationIngressIsDurableOrderedAndIdempotent() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let conversationID = try ConversationID(validating: "conversation:\(suffix)")
+            let first = try makeIngress(
+                suffix: "\(suffix)-first",
+                conversationID: conversationID,
+                occurredAt: Date(timeIntervalSince1970: 1_000)
+            )
+            let second = try makeIngress(
+                suffix: "\(suffix)-second",
+                conversationID: conversationID,
+                occurredAt: Date(timeIntervalSince1970: 2_000)
+            )
+
+            #expect(try await persistence.conversations.prepare(first) == first)
+            #expect(try await persistence.conversations.prepare(first) == first)
+            #expect(try await persistence.conversations.prepare(second) == second)
+            try await persistence.conversations.markPerceptSubmitted(
+                utteranceID: first.percept.utterance.utteranceID
+            )
+
+            let stored = try #require(
+                try await persistence.conversations.ingress(
+                    for: first.percept.utterance.utteranceID
+                )
+            )
+            let items = try await persistence.conversations.conversationItems(
+                in: conversationID,
+                after: nil,
+                limit: 10
+            )
+            #expect(stored.progress == .perceptSubmitted)
+            #expect(
+                items.map(\.itemID) == [
+                    first.conversationItem.itemID, second.conversationItem.itemID,
+                ]
             )
         }
     }
@@ -130,6 +191,39 @@ struct MongoWorldPersistenceTests {
                 try await persistence.database[MongoWorldCollection.eventProcessing]
                     .findOne(["_id": accepted.eventID.rawValue]) != nil
             )
+        }
+    }
+
+    @Test("Typed person-utterance percepts survive MongoDB event persistence")
+    func personUtterancePerceptEventRoundTrips() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let ingress = try makeIngress(
+                suffix: suffix,
+                conversationID: ConversationID(validating: "conversation:\(suffix)"),
+                occurredAt: Date(timeIntervalSince1970: 3_000)
+            )
+            let percept = ingress.percept
+            let event = try WorldEventEnvelope(
+                occurredAt: percept.utterance.occurredAt,
+                source: EventSource(
+                    id: percept.utterance.sourceID,
+                    kind: percept.utterance.source.rawValue,
+                    sourceEventID: percept.utterance.utteranceID.rawValue
+                ),
+                subjectIDs: [percept.utterance.speakerID, percept.characterID],
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: percept
+            )
+
+            let result = try await persistence.events.append(event, receivedAt: Date())
+            let accepted = try #require(result.insertedEvent)
+            let reloaded = try #require(
+                try await persistence.events.event(withID: accepted.eventID)
+            )
+
+            #expect(reloaded.payload == event.payload)
+            #expect(try reloaded.decodePayload(as: PersonUtterancePercept.self) == percept)
         }
     }
 
@@ -209,22 +303,27 @@ struct MongoWorldPersistenceTests {
                 factID: factID,
                 subjectID: subjectID,
                 predicate: "location.current",
-                value: .string("place:workshop"),
+                value: .object(["places": .array([])]),
                 epistemic: EpistemicState(type: .observed, confidence: 1),
                 validFrom: Date(),
                 derivedFrom: [],
                 producer: FactProducer(kind: "test", id: "mongo", version: "1")
             )
             var replacement = original
-            replacement.value = .string("place:stage")
+            replacement.value = .object([
+                "places": .array([.string("place:stage")])
+            ])
 
             try await persistence.facts.save(original)
             try await persistence.facts.save(replacement)
 
             let documents = try await persistence.database[MongoWorldCollection.facts]
-                .find(["_id": factID.rawValue], as: Fact.self)
+                .find(["_id": factID.rawValue])
                 .drain()
-            let stored = try #require(documents.only)
+            let stored = try #require(
+                try await persistence.facts.currentFacts(subjectID: subjectID).only
+            )
+            #expect(documents.count == 1)
             #expect(stored.factID == factID)
             #expect(stored.value == replacement.value)
         }
@@ -241,11 +340,16 @@ struct MongoWorldPersistenceTests {
                 dueAt: Date().addingTimeInterval(60),
                 subjectIDs: [],
                 causedBy: [],
-                payload: [:]
+                payload: [
+                    "context": .object(["reasons": .array([])])
+                ]
             )
             let checkpoint = SourceCheckpoint(
                 sourceID: sourceID,
-                value: .string("cursor-42"),
+                value: .object([
+                    "cursor": .string("cursor-42"),
+                    "pages": .array([]),
+                ]),
                 updatedAt: Date()
             )
 
@@ -260,6 +364,7 @@ struct MongoWorldPersistenceTests {
             )
             #expect(reloadedTimer.purpose == timer.purpose)
             #expect(reloadedTimer.status == .pending)
+            #expect(reloadedTimer.payload == timer.payload)
             #expect(reloadedCheckpoint.sourceID == checkpoint.sourceID)
             #expect(reloadedCheckpoint.value == checkpoint.value)
         }
@@ -375,6 +480,42 @@ struct MongoWorldPersistenceTests {
             subjectIDs: [],
             epistemic: EpistemicState(type: .observed, confidence: 1),
             payload: [:]
+        )
+    }
+
+    private func makeIngress(
+        suffix: String,
+        conversationID: ConversationID,
+        occurredAt: Date
+    ) throws -> StoredUtteranceIngress {
+        let utterance = try PersonUtterance(
+            utteranceID: UtteranceID(validating: "utterance:\(suffix)"),
+            conversationID: conversationID,
+            speakerID: EntityID(validating: "person:april"),
+            addresseeIDs: [EntityID(validating: "character:beaky")],
+            text: "Message \(suffix)",
+            modality: .typed,
+            source: .communicatorComposition,
+            sourceID: SourceID(validating: "communicator:test"),
+            occurredAt: occurredAt,
+            confidence: 1
+        )
+        let item = try ConversationItem(
+            itemID: ConversationItemID(validating: "conversation-item:\(suffix)"),
+            conversationID: conversationID,
+            authorID: utterance.speakerID,
+            authorKind: .person,
+            text: utterance.text,
+            createdAt: occurredAt,
+            utteranceID: utterance.utteranceID
+        )
+        return StoredUtteranceIngress(
+            percept: try PersonUtterancePercept(
+                characterID: utterance.addresseeIDs[0],
+                utterance: utterance,
+                priorConversationItems: []
+            ),
+            conversationItem: item
         )
     }
 }

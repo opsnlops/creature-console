@@ -17,7 +17,6 @@ let package = Package(
         .package(path: "./Common"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
         .package(url: "https://github.com/chrisaljoudi/swift-log-oslog.git", from: "0.2.2"),
-        .package(url: "https://github.com/auth0/SimpleKeychain", from: "1.3.0"),
         .package(
             url: "https://github.com/ybrid/opus-swift.git",
             exact: "0.8.0"
@@ -28,10 +27,10 @@ let package = Package(
             name: "CreatureConsole",
             dependencies: [
                 .product(name: "Common", package: "Common"),
+                .product(name: "CreatureAppSupport", package: "Common"),
                 .product(name: "PlaylistRuntime", package: "Common"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "LoggingOSLog", package: "swift-log-oslog"),
-                .product(name: "SimpleKeychain", package: "SimpleKeychain"),
                 .product(
                     name: "YbridOpus",
                     package: "opus-swift",
@@ -47,6 +46,7 @@ let package = Package(
             exclude: [
                 "README.md",
                 "Assets.xcassets",
+                "Creature-Console-Info.plist",
                 "Credits.rtfd",
                 // Colocated test files (Xcode test-target only)
                 "Controller/AppStateTests.swift",
