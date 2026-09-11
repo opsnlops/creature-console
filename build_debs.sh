@@ -127,6 +127,9 @@ build_packages() {
                 --exclude "debian/*.substvars" --exclude "debian/tmp" \
                 /source/ /work/creature-console/
             rm -f /work/*.deb /work/*.ddeb /work/*.changes /work/*.buildinfo
+            # Nothing else ever builds in this volume; a lock left by an interrupted run
+            # must not fail the next one.
+            rm -f /work/creature-console/Common/.build/build.db
             cd /work/creature-console
             swift --version
             # Identical to the "Build Debian package" step in .github/workflows/build-deb.yml.
