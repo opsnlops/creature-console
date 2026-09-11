@@ -162,6 +162,19 @@ public struct PersonUtterance: Hashable, Sendable, Codable {
         )
     }
 
+    /// Whether two records describe the same utterance. Trace context and receipt time are
+    /// transport facts: a retry carries a new `traceparent` and arrives at a new time, yet it is
+    /// still the same words from the same person, and must be recognised as such.
+    public func isSameUtterance(as other: PersonUtterance) -> Bool {
+        var mine = self
+        var theirs = other
+        mine.trace = nil
+        theirs.trace = nil
+        mine.receivedAt = nil
+        theirs.receivedAt = nil
+        return mine == theirs
+    }
+
     private enum CodingKeys: String, CodingKey {
         case schemaVersion = "schema_version"
         case utteranceID = "utterance_id"
@@ -418,6 +431,15 @@ public struct CharacterUtteranceIntent: Hashable, Sendable, Codable {
             ) ?? [],
             trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace)
         )
+    }
+
+    /// Whether two records describe the same character turn, ignoring transport trace context.
+    public func isSameIntent(as other: CharacterUtteranceIntent) -> Bool {
+        var mine = self
+        var theirs = other
+        mine.trace = nil
+        theirs.trace = nil
+        return mine == theirs
     }
 
     private enum CodingKeys: String, CodingKey {

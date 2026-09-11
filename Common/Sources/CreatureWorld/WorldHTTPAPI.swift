@@ -35,13 +35,18 @@ struct WorldHTTPAPI: Sendable {
                 }
                 let conversationID = try ConversationID(validating: rawConversationID)
                 return try await execute {
-                    let utterance = try await decode(
+                    var utterance = try await decode(
                         PersonUtterance.self,
                         from: request,
                         maximumBytes: limits.maximumBodyBytes
                     )
                     guard utterance.conversationID == conversationID else {
                         throw WorldAPIError.conversationIdentityMismatch
+                    }
+                    // April's words arrive under the gateway's trace; carrying it on the
+                    // utterance lets the percept, the mind, and Beaky's reply all join it.
+                    if utterance.trace == nil {
+                        utterance.trace = try traceContext(from: request)
                     }
                     let result = try await conversationService.ingest(utterance)
                     let status: HTTPResponse.Status =
@@ -59,13 +64,16 @@ struct WorldHTTPAPI: Sendable {
                 }
                 let conversationID = try ConversationID(validating: rawConversationID)
                 return try await execute {
-                    let intent = try await decode(
+                    var intent = try await decode(
                         CharacterUtteranceIntent.self,
                         from: request,
                         maximumBytes: limits.maximumBodyBytes
                     )
                     guard intent.conversationID == conversationID else {
                         throw WorldAPIError.conversationIdentityMismatch
+                    }
+                    if intent.trace == nil {
+                        intent.trace = try traceContext(from: request)
                     }
                     let result = try await conversationService.respond(intent)
                     let status: HTTPResponse.Status =

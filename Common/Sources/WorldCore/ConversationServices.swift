@@ -141,7 +141,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
             span.attributes["conversation.ingress.authorized"] = true
 
             if let stored = try await repository.ingress(for: utterance.utteranceID) {
-                guard stored.percept.utterance == utterance else {
+                guard stored.percept.utterance.isSameUtterance(as: utterance) else {
                     throw WorldContractError.conflictingConversationIdentity
                 }
                 return try await submitIfNeeded(stored, span: span)
@@ -170,7 +170,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                 )
             )
             let stored = try await repository.prepare(proposed)
-            guard stored.percept.utterance == utterance else {
+            guard stored.percept.utterance.isSameUtterance(as: utterance) else {
                 throw WorldContractError.conflictingConversationIdentity
             }
             return try await submitIfNeeded(stored, span: span)
@@ -432,7 +432,7 @@ public actor CharacterDeliveryRouter {
         try await withSpan("conversation.response.route") { span in
             let stored: StoredCharacterDelivery
             if let existing = try await repository.delivery(for: intent.responseID) {
-                guard existing.intent == intent else {
+                guard existing.intent.isSameIntent(as: intent) else {
                     throw WorldContractError.conflictingConversationIdentity
                 }
                 stored = existing
@@ -461,7 +461,7 @@ public actor CharacterDeliveryRouter {
                         conversationItem: conversationItem
                     )
                 )
-                guard stored.intent == intent else {
+                guard stored.intent.isSameIntent(as: intent) else {
                     throw WorldContractError.conflictingConversationIdentity
                 }
             }
