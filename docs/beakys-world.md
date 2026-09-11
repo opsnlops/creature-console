@@ -76,7 +76,12 @@ current in the same commit as the code it describes.**
 
 ### 0.4 Deployment handoff
 
-Not deployed. To run Beaky's mind on fuzzball: install `creature-agent_2.55.0_amd64.deb`
+**`creature-agent 2.55.0` must not be deployed to production.** Production's agent (2.54.1,
+`mode: mqtt`) is what makes Beaky speak aloud in reaction to house events; world mode can only
+deliver through Communicator until VW-016 gives it the physical stage. It is a dev-only mind
+(April's Mac or fuzzball) for now.
+
+To run Beaky's mind on fuzzball: install `creature-agent_2.55.0_amd64.deb`
 (`./build_debs.sh --arch amd64`), set `/etc/creature-agent.yaml` with `mode: world`,
 `llmBackend: local`, `localLlmHost/Port` → the llama-server, `worldUrl:
 http://127.0.0.1:8001/world/v1`, persona in `llmSystemPrompt` (the unit already passes
