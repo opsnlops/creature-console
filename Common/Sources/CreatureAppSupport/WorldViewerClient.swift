@@ -14,7 +14,9 @@ public struct WorldViewerClient: Sendable {
     private let connection: CreatureServiceConnection
     private let loader: any HTTPDataLoading
 
-    public init(connection: CreatureServiceConnection, loader: any HTTPDataLoading = URLSession.shared) {
+    public init(
+        connection: CreatureServiceConnection, loader: any HTTPDataLoading = URLSession.shared
+    ) {
         self.connection = connection
         self.loader = loader
     }
@@ -111,10 +113,13 @@ public struct WorldViewerClient: Sendable {
             return WorldStreamFrames(bufferingPolicy: .bufferingOldest(256)) { continuation in
                 let task = Task {
                     do {
-                        let (bytes, response) = try await URLSession.shared.bytes(for: streamRequest)
+                        let (bytes, response) = try await URLSession.shared.bytes(
+                            for: streamRequest)
                         try Self.validate(response)
                         var parser = ServerSentEventFrameParser()
-                        for try await line in bytes.lines {
+                        // Not `bytes.lines`: AsyncLineSequence drops the empty line that
+                        // terminates an SSE frame, so a frame would never be delivered.
+                        for try await line in bytes.sseLines {
                             for frame in parser.feed(line: line) {
                                 if let typed = try Self.frame(from: frame) {
                                     continuation.yield(typed)
@@ -131,7 +136,9 @@ public struct WorldViewerClient: Sendable {
                 continuation.onTermination = { @Sendable _ in task.cancel() }
             }
         #else
-            return WorldStreamFrames { $0.finish(throwing: WorldConversationClientError.streamingUnavailable) }
+            return WorldStreamFrames {
+                $0.finish(throwing: WorldConversationClientError.streamingUnavailable)
+            }
         #endif
     }
 
@@ -167,7 +174,8 @@ public struct WorldViewerClient: Sendable {
         queryItems: [URLQueryItem] = []
     ) throws -> URLRequest {
         guard
-            var url = URL(string: connection.baseURLString(transport: .http, pathPrefix: "/world/v1"))
+            var url = URL(
+                string: connection.baseURLString(transport: .http, pathPrefix: "/world/v1"))
         else { throw WorldConversationClientError.invalidBaseURL }
         for component in pathComponents {
             url.append(path: component)
@@ -187,6 +195,36 @@ public struct WorldViewerClient: Sendable {
         }
         guard (200..<300).contains(http.statusCode) else {
             throw WorldConversationClientError.requestFailed(statusCode: http.statusCode)
+        }
+    }
+}
+
+extension AsyncSequence where Element == UInt8, Self: Sendable {
+    /// Splits a byte stream into lines on `\n` (tolerating `\r\n`), **keeping empty lines**,
+    /// because an empty line is what ends a `text/event-stream` frame.
+    var sseLines: AsyncThrowingStream<String, any Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    var buffer: [UInt8] = []
+                    for try await byte in self {
+                        if byte == UInt8(ascii: "\n") {
+                            if buffer.last == UInt8(ascii: "\r") { buffer.removeLast() }
+                            continuation.yield(String(decoding: buffer, as: UTF8.self))
+                            buffer.removeAll(keepingCapacity: true)
+                        } else {
+                            buffer.append(byte)
+                        }
+                    }
+                    if !buffer.isEmpty {
+                        continuation.yield(String(decoding: buffer, as: UTF8.self))
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
         }
     }
 }

@@ -63,6 +63,23 @@ struct WorldViewerClientTests {
         #expect(request.value(forHTTPHeaderField: "Host") == "server.prod.chirpchirp.dev:443")
     }
 
+    @Test("Byte streams split into lines that keep the empty frame terminator")
+    func splitsByteStreamKeepingEmptyLines() async throws {
+        let body = "event: snapshot\r\ndata: {}\n\nevent: delta\ndata: {}\n\n: tail"
+        let bytes = AsyncStream<UInt8> { continuation in
+            for byte in body.utf8 { continuation.yield(byte) }
+            continuation.finish()
+        }
+
+        var lines: [String] = []
+        for try await line in bytes.sseLines {
+            lines.append(line)
+        }
+
+        #expect(
+            lines == ["event: snapshot", "data: {}", "", "event: delta", "data: {}", "", ": tail"])
+    }
+
     @Test("SSE frames become typed stream frames; comments and unknown events are skipped")
     func parsesStreamFrames() throws {
         let snapshot = WorldSnapshot(

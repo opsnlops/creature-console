@@ -8,7 +8,8 @@ enum WorldPanel: String, CaseIterable, Identifiable {
     case facts = "Facts"
     case timers = "Timers"
 
-    var id: String { rawValue }
+    // Sidebar selection is typed `WorldPanel?`, so the row identity must be the panel itself.
+    var id: WorldPanel { self }
 
     var systemImage: String {
         switch self {
