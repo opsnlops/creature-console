@@ -16,6 +16,18 @@ This section is intentionally operational and time-sensitive. It gives the next 
 enough context to continue without reconstructing the implementation from chat history. **Keep it
 current in the same commit as the code it describes.**
 
+### 0.0 Addendum — VW-029 reopened (2026-09-10, branch `vw-029-linux-blackbox`, #124)
+
+Two VW-029 done-when clauses had only ever been checked by hand: a black-box test against the
+real Linux service, and the contract tests passing on Swift 6.3.3 Linux in CI. This branch adds
+`CreatureWorldBlackBoxTests`, which launches the built `creature-world` executable and drives it
+over TCP (snapshot, `202`/live delta, history by sequence, `duplicate_event`, `Last-Event-ID`
+resume without a gap, SIGTERM + relaunch, history intact), and makes the Linux CI job run the whole
+Linux-capable suite (`swift test`, 727+ tests) instead of one persistence filter. Two lessons
+recorded here so nobody re-learns them: AsyncHTTPClient's pool backs off across requests after a
+refused connect (poll a raw socket before using it for readiness), and the shared test database
+means a test may only assert on events from its own `source.id`.
+
 ### 0.1 Repository and review state
 
 - `main` is at `3cd803b`, the merge of PR #131 (Communicator gateway conversation transport).

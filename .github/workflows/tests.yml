@@ -25,7 +25,7 @@ jobs:
         run: swift test
 
   creature-world-mongodb-tests:
-    name: Creature World MongoDB 8.3 Tests
+    name: Linux Tests (Swift 6.3.3, MongoDB 8.3)
     runs-on: ubuntu-24.04
 
     steps:
@@ -64,14 +64,18 @@ jobs:
             sleep 2
           done
 
-      - name: Run MongoDB persistence tests on Swift 6.3.3
+      # Every target that compiles on Linux runs here, not just the MongoDB persistence filter:
+      # WorldCore contract fixtures, the World HTTP API, the Communicator gateway, and the
+      # black-box test that launches the built creature-world executable over TCP. Package.swift
+      # already removes the Apple-only targets on Linux.
+      - name: Run the Linux test suite on Swift 6.3.3
         run: |
           docker run --rm --network host \
             --volume "$PWD:/workspace" \
             --workdir /workspace/Common \
             --env 'MONGODB_TEST_URI=mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true' \
             swift:6.3.3 \
-            swift test --filter MongoWorldPersistenceTests
+            swift test
 
   xcode-tests:
     name: ${{ matrix.scheme }} (${{ matrix.platform }})

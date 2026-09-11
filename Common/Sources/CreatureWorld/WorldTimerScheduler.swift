@@ -133,12 +133,32 @@ actor WorldTimerScheduler {
 
         let now = await clock.now
         for timer in timers {
-            if timer.status == .firing || timer.dueAt <= now {
-                try await performFire(timer, at: now)
-            } else {
+            guard timer.status == .firing || timer.dueAt <= now else {
                 installWait(for: timer, until: timer.dueAt)
+                continue
+            }
+            do {
+                try await performFire(timer, at: now)
+            } catch {
+                // One contested or transiently failing timer must not keep the whole world
+                // offline. The timer stays durable exactly as it would after a steady-state
+                // failure, and the same retry path picks it up again.
+                await retryLater(timer, after: error)
             }
         }
+    }
+
+    private func retryLater(_ timer: WorldTimer, after error: any Error) async {
+        telemetry.failureCounter.increment()
+        logger.error(
+            "World timer firing failed; it remains durable and will retry",
+            metadata: [
+                "error.type": "\(String(reflecting: type(of: error)))",
+                "world.timer.id": "\(timer.timerID.rawValue)",
+            ]
+        )
+        let retryAt = (await clock.now).addingTimeInterval(retryInterval)
+        installWait(for: timer, until: retryAt)
     }
 
     private func performSchedule(_ timer: WorldTimer) async throws {
@@ -212,16 +232,7 @@ actor WorldTimerScheduler {
 
     private func waitFailed(_ timer: WorldTimer, token: UUID, error: any Error) async {
         guard scheduledTasks[timer.timerID]?.token == token, !isShutDown else { return }
-        telemetry.failureCounter.increment()
-        logger.error(
-            "World timer firing failed; it remains durable and will retry",
-            metadata: [
-                "error.type": "\(String(reflecting: type(of: error)))",
-                "world.timer.id": "\(timer.timerID.rawValue)",
-            ]
-        )
-        let retryAt = (await clock.now).addingTimeInterval(retryInterval)
-        installWait(for: timer, until: retryAt)
+        await retryLater(timer, after: error)
     }
 
     private func waitFinished(timerID: TimerID, token: UUID) {
