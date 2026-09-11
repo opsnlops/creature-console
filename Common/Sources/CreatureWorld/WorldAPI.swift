@@ -150,6 +150,7 @@ protocol WorldApplicationService: Sendable {
 
 protocol ConversationApplicationService: Sendable {
     func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult
+    func respond(_ intent: CharacterUtteranceIntent) async throws -> CharacterDeliveryResult
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -161,6 +162,10 @@ protocol ConversationApplicationService: Sendable {
 
 struct UnavailableConversationApplicationService: ConversationApplicationService {
     func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func respond(_ intent: CharacterUtteranceIntent) async throws -> CharacterDeliveryResult {
         throw WorldAPIError.databaseUnavailable
     }
 

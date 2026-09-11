@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.12",
+  "build_version": "0.2.0",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -161,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.12",
+  "build_version": "0.2.0",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -313,6 +313,7 @@ current endpoints are:
 | `POST /world/v1/events:batch` | Accept up to 100 envelopes in request order and return a disposition for each. |
 | `GET /world/v1/events` | Read ordered history after `after_sequence`. |
 | `POST /world/v1/conversations/{conversation_id}/utterances` | Durably accept one typed `PersonUtterance`; returns 202 when new or 200 when already accepted. |
+| `POST /world/v1/conversations/{conversation_id}/responses` | Carry one `CharacterUtteranceIntent` (a Beaky turn) into the conversation. The deterministic router reads fresh presence, persists the canonical item first, then delivers; returns 202 with `disposition: accepted` when this call handled it or 200 with `disposition: duplicate` when the same `response_id` was already handled. |
 | `GET /world/v1/conversations/{conversation_id}/items` | Read canonical conversation items in chronological, stable-ID order. |
 | `GET /world/v1/conversations/{conversation_id}/stream` | Receive an immediate `ready` event followed by live conversation-item notifications over SSE. Reconcile through the items endpoint after connecting. |
 | `GET /world/v1/facts` | Read current facts, optionally filtered by `subject_id`. |
@@ -325,6 +326,17 @@ History uses `after_sequence`; conversation, fact, and timer pages use `after_it
 Every list accepts `limit`, defaults to 100, and permits at most 500 results. Page responses state
 whether more results exist and provide the cursor for the next request. A snapshot marks facts or
 timers as truncated rather than implying that a bounded result is complete.
+
+A character turn is never authored by Creature World; an agent proposes a provider-neutral
+`CharacterUtteranceIntent` and the world decides the stage. Until a presence source is connected
+(Home Assistant adapter, presence reducer) presence is reported as `unknown` with zero confidence,
+so every turn takes the private Communicator route with reason `presence_uncertain`. The
+canonical `ConversationItem` is written before any delivery sink runs and is then offered to every
+live conversation subscriber regardless of route, so a turn later performed aloud still appears in
+Communicator history. The response body is `{ "disposition", "outcome", "conversation_item" }`
+(`Fixtures/CreatureWorld/character-delivery-result-v1.json`). If physical speech is ever chosen
+before the Creature Server sink exists, the outcome is recorded as `failed` with
+`error_code: physical_speech_not_connected` rather than lost.
 
 Beaky writes a typed utterance to its local SwiftData outbox before attempting the POST. Retries
 reuse the same utterance ID, so an interrupted request cannot make Beaky hear April twice. A
@@ -404,7 +416,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.12_amd64.deb
+sudo apt install ./creature-world_0.2.0_amd64.deb
 ```
 
 The package installs:

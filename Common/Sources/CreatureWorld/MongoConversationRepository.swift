@@ -101,7 +101,9 @@ struct MongoConversationRepository: UtteranceIngressRepository, Sendable {
         else { throw WorldPersistenceError.missingUtteranceIngress }
     }
 
-    private func saveConversationItem(_ item: ConversationItem) async throws {
+    /// Persists one canonical conversation item exactly once. Both April's utterances and
+    /// Beaky's responses share this write path so the conversation stays one ordered history.
+    func saveConversationItem(_ item: ConversationItem) async throws {
         var document = try BSONEncoder().encode(item)
         document["_id"] = item.itemID.rawValue
         let builder = items.findOneAndUpdate(

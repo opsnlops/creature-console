@@ -48,6 +48,7 @@ struct MongoWorldPersistence: Sendable {
     let timers: WorldTimerRepository
     let sourceCheckpoints: SourceCheckpointRepository
     let conversations: MongoConversationRepository
+    let characterDeliveries: MongoCharacterDeliveryRepository
 
     static func connect(to uri: String, logger: Logger) async throws -> MongoWorldPersistence {
         let settings = try ConnectionSettings(uri)
@@ -108,7 +109,8 @@ struct MongoWorldPersistence: Sendable {
                 facts: FactRepository(database: database),
                 timers: WorldTimerRepository(database: database),
                 sourceCheckpoints: SourceCheckpointRepository(database: database),
-                conversations: MongoConversationRepository(database: database)
+                conversations: MongoConversationRepository(database: database),
+                characterDeliveries: MongoCharacterDeliveryRepository(database: database)
             )
         } catch {
             logger.error(
@@ -146,4 +148,5 @@ enum MongoWorldCollection {
     static let counters = "world_counters"
     static let utteranceIngresses = "utterance_ingresses"
     static let conversationItems = "conversation_items"
+    static let characterDeliveries = "character_deliveries"
 }
