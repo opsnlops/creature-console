@@ -119,8 +119,15 @@ thinking in Honeycomb. Presence is still `unknown`, so every reply goes to Commu
 2. Fix #144 so upgrades restart World and the gateway automatically.
 3. VW-016 + assumed presence: Beaky speaks in the room, streaming sentences, with the turn still
    recorded in the shared history.
-4. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
-   about something real. Then personalities.
+4. **World Viewer (VW-010 #101, VW-011 #102) — soon, not "Phase 4".** April: "we also have the
+   world viewer app to build so I can debug as well as you." Tonight every look into the world
+   (stream, sequences, percepts, delivery decisions, traces) went through Claude's tooling. A
+   first useful cut: live event timeline, the conversation as the world holds it with both
+   authors, the delivery decision per Beaky turn (route, reason, presence), and a Honeycomb
+   trace link — on the APIs that already exist.
+5. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
+   about something real. Then personalities, and one mind per character with a character lease
+   so minds never collide.
 
 Do not let any deterministic component author Beaky's words; do not copy conversation state into
 the gateway; do not split typed input and future STT into separate cognition pipelines.
