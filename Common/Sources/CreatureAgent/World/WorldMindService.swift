@@ -32,16 +32,17 @@ struct WorldMindService: Service {
     }
 
     func run() async throws {
+        // Graceful shutdown must cancel the stream subscription, not merely note it: the
+        // subscriber otherwise keeps following the world and the service never returns.
+        // Nothing undecided is lost — the cursor only moves after a decision is durable.
         do {
-            try await withGracefulShutdownHandler {
+            try await cancelWhenGracefulShutdown {
                 try await subscriber.run { consideration in
                     try await handle(consideration)
                 }
-            } onGracefulShutdown: {
-                logger.info("Beaky's mind is going to sleep")
             }
         } catch is CancellationError {
-            // Graceful shutdown cancels the stream; nothing undecided is lost.
+            logger.info("Beaky's mind is going to sleep")
         }
         try await client.shutdown()
     }
