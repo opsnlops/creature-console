@@ -34,7 +34,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     static let databaseName = "creature_world"
     static let defaultMongoURI =
         "mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000"
-    static let defaultPort = 8000
+    static let defaultPort = 8001
 
     let allowedOrigins: [String]
     let host: String

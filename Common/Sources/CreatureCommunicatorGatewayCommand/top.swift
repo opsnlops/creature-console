@@ -15,7 +15,7 @@ struct CreatureCommunicatorGatewayCommand: AsyncParsableCommand {
             Runs the narrow synchronization and delivery gateway for Beaky Communicator.
 
             Configuration precedence is command options, SERVER_HOSTNAME and SERVER_PORT,
-            the JSON configuration file, then built-in defaults.
+            CREATURE_WORLD_URL, the JSON configuration file, then built-in defaults.
 
             🦜 Bawk!
             """,
@@ -35,6 +35,9 @@ struct CreatureCommunicatorGatewayCommand: AsyncParsableCommand {
 
     @Option(name: [.customShort("p"), .long], help: "HTTP port (or SERVER_PORT)")
     var port: Int?
+
+    @Option(name: .long, help: "Creature World API URL (or CREATURE_WORLD_URL)")
+    var worldURL: String?
 
     @Option(
         name: .long,
@@ -64,7 +67,16 @@ struct CreatureCommunicatorGatewayCommand: AsyncParsableCommand {
         }
 
         let resolved = try CommunicatorGatewayConfiguration.load(from: configURL)
-            .overriding(host: host, port: port)
+            .overriding(
+                host: host,
+                port: port,
+                worldURL: try worldURL.map { value in
+                    guard let url = URL(string: value) else {
+                        throw CommunicatorGatewayConfigurationError.invalidWorldURL(value)
+                    }
+                    return url
+                }
+            )
         logger.info(
             "Creature Communicator Gateway version \(CommunicatorGatewayBuildInfo.current.version)",
             metadata: ["build.version": "\(CommunicatorGatewayBuildInfo.current.version)"]
@@ -74,13 +86,19 @@ struct CreatureCommunicatorGatewayCommand: AsyncParsableCommand {
             metadata: [
                 "http.host": "\(resolved.host)",
                 "http.port": "\(resolved.port)",
+                "world.url": "\(resolved.worldURL.absoluteString)",
             ]
         )
 
+        let httpClientService = CommunicatorGatewayHTTPClientService(logger: logger)
         let application = makeCommunicatorGatewayApplication(
             registry: ForegroundLeaseRegistry(),
+            upstream: httpClientService.worldUpstream(
+                baseURL: resolved.worldURL,
+                logger: logger
+            ),
             configuration: resolved,
-            services: observabilityServices,
+            services: observabilityServices + [httpClientService],
             logger: logger
         )
         try await application.runService()

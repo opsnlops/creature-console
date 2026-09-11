@@ -165,6 +165,7 @@ public struct ForegroundLeaseHTTPAPI: Sendable {
 
 public func makeCommunicatorGatewayApplication(
     registry: ForegroundLeaseRegistry,
+    upstream: any CommunicatorWorldUpstream,
     configuration: CommunicatorGatewayConfiguration = .default,
     services: [any Service] = [],
     logger: Logger = Logger(label: "creature-communicator-gateway")
@@ -174,13 +175,18 @@ public func makeCommunicatorGatewayApplication(
     router.addMiddleware { LogRequestsMiddleware(.debug) }
     let routes = router.group("communicator")
     routes.get("v1/health") { _, _ in
-        CommunicatorGatewayHealthResponse(
-            status: "ok",
-            service: "creature-communicator-gateway",
-            buildVersion: CommunicatorGatewayBuildInfo.current.version
-        )
+        do {
+            try await upstream.health()
+            return try gatewayHealthResponse(status: "ok", httpStatus: .ok)
+        } catch {
+            return try gatewayHealthResponse(
+                status: "unavailable",
+                httpStatus: .serviceUnavailable
+            )
+        }
     }
     ForegroundLeaseHTTPAPI(registry: registry).addRoutes(to: routes)
+    ConversationGatewayHTTPAPI(upstream: upstream).addRoutes(to: routes)
     return Application(
         router: router,
         configuration: .init(
@@ -199,6 +205,23 @@ public func makeCommunicatorGatewayApplication(
             )
         },
         logger: logger
+    )
+}
+
+private func gatewayHealthResponse(
+    status: String,
+    httpStatus: HTTPResponse.Status
+) throws -> Response {
+    let health = CommunicatorGatewayHealthResponse(
+        status: status,
+        service: "creature-communicator-gateway",
+        buildVersion: CommunicatorGatewayBuildInfo.current.version
+    )
+    let data = try WorldJSON.makeEncoder().encode(health)
+    return Response(
+        status: httpStatus,
+        headers: [.contentType: "application/json; charset=utf-8"],
+        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data))
     )
 }
 

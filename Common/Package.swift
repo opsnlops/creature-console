@@ -50,6 +50,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-metrics.git", from: "2.5.0"),
         .package(url: "https://github.com/apple/swift-distributed-tracing.git", from: "1.4.0"),
         .package(url: "https://github.com/apple/swift-service-context.git", from: "1.3.0"),
+        .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.35.0"),
         .package(url: "https://github.com/orlandos-nl/MongoKitten.git", from: "7.16.0"),
     ],
 
@@ -126,6 +127,7 @@ let package = Package(
             dependencies: [
                 "BeakyCommunicatorCore",
                 "WorldCore",
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),

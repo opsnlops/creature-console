@@ -12,5 +12,6 @@ Common/Package.resolved
 /mqtt
 /agent
 /world
+/communicator-gateway
 /artifacts/
 .claude/

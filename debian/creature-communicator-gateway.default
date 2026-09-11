@@ -6,7 +6,8 @@
 # systemd credentials or another host-managed secret store.
 
 #SERVER_HOSTNAME=127.0.0.1
-#SERVER_PORT=8001
+#SERVER_PORT=8002
+#CREATURE_WORLD_URL=http://127.0.0.1:8001/world/v1
 
 # OpenTelemetry (uncomment to enable OTLP export).
 #OTEL_SERVICE_NAME=creature-communicator-gateway

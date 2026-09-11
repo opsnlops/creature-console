@@ -11,7 +11,7 @@ struct CreatureWorldConfigurationTests {
 
         #expect(configuration.host == "127.0.0.1")
         #expect(configuration.mongoURI == CreatureWorldConfiguration.defaultMongoURI)
-        #expect(configuration.port == 8000)
+        #expect(configuration.port == 8001)
     }
 
     @Test("JSON configuration loads and command values override it")
