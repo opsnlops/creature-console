@@ -1,5 +1,8 @@
 import Foundation
 
+/// Makes text safe for Beaky's voice. Her words are written to be spoken by the ad-hoc speech
+/// pipeline, which drops emoji and symbols; Communicator shows the same text so what she says
+/// aloud and what she writes never differ.
 struct TextSanitizer {
     private static let replacementSpace = " "
 
@@ -40,10 +43,14 @@ struct TextSanitizer {
         if CharacterSet.controlCharacters.contains(scalar) {
             return true
         }
-        if scalar.properties.isEmojiPresentation || scalar.properties.isEmoji {
+        // Unicode marks the ASCII digits, "#", and "*" as Emoji=Yes because they are keycap
+        // bases; only scalars that actually present as emoji, or non-ASCII emoji-capable
+        // scalars, are pictures a voice cannot say.
+        if scalar.properties.isEmojiPresentation || (scalar.properties.isEmoji && !scalar.isASCII) {
             return true
         }
-        if scalar.value == 0xFE0F {
+        // Variation selector and combining keycap: leftovers of emoji sequences.
+        if scalar.value == 0xFE0F || scalar.value == 0x20E3 {
             return true
         }
         if CharacterSet.symbols.contains(scalar) {

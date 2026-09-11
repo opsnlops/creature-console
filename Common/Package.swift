@@ -202,7 +202,9 @@ let package = Package(
                 "Common",
                 "MQTTSupport",
                 "Observability",
+                "WorldCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
             ],
@@ -235,6 +237,9 @@ let package = Package(
             dependencies: [
                 "creature-agent",
                 "creature-mqtt",
+                "WorldCore",
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "HummingbirdTesting", package: "hummingbird"),
                 .product(name: "MetricsTestKit", package: "swift-metrics"),
             ]
         ),

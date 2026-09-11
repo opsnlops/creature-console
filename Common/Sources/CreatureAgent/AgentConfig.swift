@@ -8,7 +8,14 @@ enum LLMBackend: String, Decodable {
     case local
 }
 
+/// Which reality the agent inhabits: the legacy MQTT topic listener, or Creature World.
+enum AgentMode: String, Decodable {
+    case mqtt
+    case world
+}
+
 struct AgentConfig: Decodable {
+    let mode: AgentMode
     let creatureId: CreatureIdentifier
     let llmBackend: LLMBackend
     let llmApiKey: String?
@@ -26,6 +33,26 @@ struct AgentConfig: Decodable {
     let maxConcurrentTasks: Int
     let minSentenceChars: Int
     let areas: [AreaConfig]
+    let world: WorldModeConfig
+
+    /// Settings that only matter when `mode` is `world`.
+    struct WorldModeConfig: Equatable {
+        static let defaultWorldURL = URL(string: "http://127.0.0.1:8001/world/v1")!
+        static let defaultCharacterEntityID = "character:beaky"
+        static let defaultPersonEntityID = "person:april"
+        static let defaultStateDirectory = "/var/lib/creature-agent"
+        static let defaultMaximumReplyAge: TimeInterval = 3_600
+        static let defaultMaximumContextTurns = 20
+        static let defaultLLMTimeout: TimeInterval = 60
+
+        let worldURL: URL
+        let characterEntityID: String
+        let personEntityID: String
+        let stateDirectory: String
+        let maximumReplyAge: TimeInterval
+        let maximumContextTurns: Int
+        let llmTimeout: TimeInterval
+    }
 
     struct AreaConfig: Decodable {
         let area: String
@@ -63,6 +90,7 @@ struct AgentConfig: Decodable {
     }
 
     private enum CodingKeys: String, CodingKey {
+        case mode
         case creatureId
         case llmBackend
         case llmApiKey
@@ -80,6 +108,13 @@ struct AgentConfig: Decodable {
         case maxConcurrentTasks
         case minSentenceChars
         case areas
+        case worldUrl
+        case characterEntityId
+        case personEntityId
+        case stateDirectory
+        case maximumReplyAge
+        case maximumContextTurns
+        case llmTimeoutSeconds
     }
 
     private static let cooldownRegex = try? NSRegularExpression(
@@ -90,6 +125,7 @@ struct AgentConfig: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        mode = try container.decodeIfPresent(AgentMode.self, forKey: .mode) ?? .mqtt
         creatureId = try container.decode(CreatureIdentifier.self, forKey: .creatureId)
         llmBackend =
             try container.decodeIfPresent(LLMBackend.self, forKey: .llmBackend) ?? .openai
@@ -120,7 +156,38 @@ struct AgentConfig: Decodable {
             try container.decodeIfPresent(Int.self, forKey: .maxConcurrentTasks) ?? 3
         minSentenceChars =
             try container.decodeIfPresent(Int.self, forKey: .minSentenceChars) ?? 0
-        areas = try container.decode([AreaConfig].self, forKey: .areas)
+        // The MQTT listener needs topics; the world-resident mind does not.
+        areas =
+            mode == .mqtt
+            ? try container.decode([AreaConfig].self, forKey: .areas)
+            : try container.decodeIfPresent([AreaConfig].self, forKey: .areas) ?? []
+
+        let rawWorldURL = try container.decodeIfPresent(String.self, forKey: .worldUrl)
+        guard let worldURL = rawWorldURL.map(URL.init(string:)) ?? WorldModeConfig.defaultWorldURL
+        else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .worldUrl,
+                in: container,
+                debugDescription: "worldUrl must be an absolute URL"
+            )
+        }
+        world = WorldModeConfig(
+            worldURL: worldURL,
+            characterEntityID: try container.decodeIfPresent(
+                String.self, forKey: .characterEntityId)
+                ?? WorldModeConfig.defaultCharacterEntityID,
+            personEntityID: try container.decodeIfPresent(String.self, forKey: .personEntityId)
+                ?? WorldModeConfig.defaultPersonEntityID,
+            stateDirectory: try container.decodeIfPresent(String.self, forKey: .stateDirectory)
+                ?? WorldModeConfig.defaultStateDirectory,
+            maximumReplyAge: try container.decodeIfPresent(Double.self, forKey: .maximumReplyAge)
+                ?? WorldModeConfig.defaultMaximumReplyAge,
+            maximumContextTurns: try container.decodeIfPresent(
+                Int.self, forKey: .maximumContextTurns)
+                ?? WorldModeConfig.defaultMaximumContextTurns,
+            llmTimeout: try container.decodeIfPresent(Double.self, forKey: .llmTimeoutSeconds)
+                ?? WorldModeConfig.defaultLLMTimeout
+        )
     }
 
     static func load(from url: URL) throws -> AgentConfig {

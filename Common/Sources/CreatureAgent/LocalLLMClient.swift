@@ -42,12 +42,35 @@ struct LocalLLMClient {
         self.history = ConversationHistory(maxExchanges: conversationHistorySize)
     }
 
+    /// One turn of an OpenAI-style chat transcript.
+    struct Message: Equatable, Sendable {
+        enum Role: String, Sendable {
+            case system
+            case user
+            case assistant
+        }
+
+        let role: Role
+        let content: String
+    }
+
     /// Non-streaming response — waits for the full LLM output.
     /// Used when streaming isn't needed or as a fallback.
     func respond(to prompt: String) async throws -> String {
+        try await collect(respondStreaming(to: prompt))
+    }
+
+    /// Non-streaming response to an explicit transcript. The caller owns the conversation
+    /// context — the world-resident mind builds it from canonical conversation items — so this
+    /// path neither reads nor writes the MQTT-mode `ConversationHistory`.
+    func respond(messages: [Message]) async throws -> String {
+        try await collect(respondStreaming(messages: messages, recordingHistoryFor: nil))
+    }
+
+    private func collect(_ sentences: AsyncStream<String>) async throws -> String {
         var fullText = ""
-        for await sentence in respondStreaming(to: prompt) {
-            fullText += sentence
+        for await sentence in sentences {
+            fullText += sentence + " "
         }
 
         let output = LocalLLMClient.stripThinkTags(fullText)
@@ -70,15 +93,45 @@ struct LocalLLMClient {
     /// The full response is also appended to conversation history when
     /// the stream completes.
     func respondStreaming(to prompt: String) -> AsyncStream<String> {
+        let systemPrompt = self.systemPrompt
+        let history = self.history
+        return AsyncStream { continuation in
+            Task {
+                var messages = [Message(role: .system, content: systemPrompt)]
+                for entry in await history.allMessages() {
+                    messages.append(
+                        Message(
+                            role: Message.Role(rawValue: entry.role) ?? .user,
+                            content: entry.content)
+                    )
+                }
+                messages.append(Message(role: .user, content: prompt))
+                for await sentence in respondStreaming(
+                    messages: messages,
+                    recordingHistoryFor: prompt
+                ) {
+                    continuation.yield(sentence)
+                }
+                continuation.finish()
+            }
+        }
+    }
+
+    /// Streams a response to an explicit transcript. When `recordingHistoryFor` is a prompt, the
+    /// exchange is appended to the MQTT-mode conversation history once the stream completes.
+    func respondStreaming(
+        messages transcript: [Message],
+        recordingHistoryFor historyPrompt: String?
+    ) -> AsyncStream<String> {
         let host = self.host
         let port = self.port
         let model = self.model
-        let systemPrompt = self.systemPrompt
         let temperature = self.temperature
         let maxTokens = self.maxTokens
         let logger = self.logger
         let traceResponses = self.traceResponses
         let history = self.history
+        let minSentenceChars = self.minSentenceChars
 
         return AsyncStream { continuation in
             Task {
@@ -90,16 +143,9 @@ struct LocalLLMClient {
                         return
                     }
 
-                    var messages: [[String: String]] = [
-                        ["role": "system", "content": systemPrompt]
-                    ]
-
-                    let historyMessages = await history.allMessages()
-                    for msg in historyMessages {
-                        messages.append(["role": msg.role, "content": msg.content])
+                    let messages: [[String: String]] = transcript.map {
+                        ["role": $0.role.rawValue, "content": $0.content]
                     }
-
-                    messages.append(["role": "user", "content": prompt])
 
                     let body: [String: Any] = [
                         "model": model,
@@ -126,6 +172,7 @@ struct LocalLLMClient {
                         configuration: .default, delegate: sseDelegate, delegateQueue: nil)
                     let task = session.dataTask(with: request)
                     task.resume()
+                    defer { session.finishTasksAndInvalidate() }
 
                     // Parse SSE stream from the delegate's async line sequence
                     var sentenceBuffer = ""
@@ -238,6 +285,12 @@ struct LocalLLMClient {
                         continuation.yield(remaining)
                     }
 
+                    // A rejected request (for example a chat template refusing the transcript)
+                    // has no "data:" lines at all; say why instead of reporting an empty answer.
+                    if let failure = sseDelegate.failureDescription {
+                        logger.error("Local LLM request failed: \(failure)")
+                    }
+
                     if traceResponses {
                         logger.info("LLM full streaming response: \(fullResponse)")
                     }
@@ -246,12 +299,12 @@ struct LocalLLMClient {
                         "LLM streaming complete: \(sentenceCount) sentences, \(fullResponse.count) chars"
                     )
 
-                    // Save to conversation history
+                    // Save to the MQTT-mode conversation history when asked to.
                     let cleanOutput = LocalLLMClient.stripThinkTags(fullResponse)
                         .trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !cleanOutput.isEmpty {
+                    if let historyPrompt, !cleanOutput.isEmpty {
                         await history.append(
-                            userMessage: prompt, assistantMessage: cleanOutput)
+                            userMessage: historyPrompt, assistantMessage: cleanOutput)
                     }
 
                     continuation.finish()
@@ -323,8 +376,23 @@ struct LocalLLMClient {
 private final class SSEDataDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private var lineContinuation: AsyncStream<String>.Continuation?
     private var buffer = ""
+    private var statusCode: Int?
+    private var errorBody = ""
+    private var transportError: Error?
 
     let lines: AsyncStream<String>
+
+    /// Why the request produced no stream, once it has completed; `nil` when it succeeded.
+    var failureDescription: String? {
+        if let transportError {
+            return "\(transportError)"
+        }
+        if let statusCode, !(200..<300).contains(statusCode) {
+            let body = errorBody.trimmingCharacters(in: .whitespacesAndNewlines).prefix(300)
+            return "HTTP \(statusCode)\(body.isEmpty ? "" : ": \(body)")"
+        }
+        return nil
+    }
 
     override init() {
         var cont: AsyncStream<String>.Continuation?
@@ -333,8 +401,22 @@ private final class SSEDataDelegate: NSObject, URLSessionDataDelegate, @unchecke
         self.lineContinuation = cont
     }
 
+    func urlSession(
+        _ session: URLSession,
+        dataTask: URLSessionDataTask,
+        didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+    ) {
+        statusCode = (response as? HTTPURLResponse)?.statusCode
+        completionHandler(.allow)
+    }
+
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         guard let text = String(data: data, encoding: .utf8) else { return }
+        if let statusCode, !(200..<300).contains(statusCode) {
+            errorBody += text
+            return
+        }
         buffer += text
 
         // Split on newlines and yield complete lines
@@ -350,6 +432,7 @@ private final class SSEDataDelegate: NSObject, URLSessionDataDelegate, @unchecke
     func urlSession(
         _ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?
     ) {
+        transportError = error
         // Flush any remaining data in the buffer
         let remaining = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
         if !remaining.isEmpty {
