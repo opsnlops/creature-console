@@ -16,24 +16,30 @@ This section is intentionally operational and time-sensitive. It gives the next 
 enough context to continue without reconstructing the implementation from chat history. **Keep it
 current in the same commit as the code it describes.**
 
-### 0.0 Addendum — VW-029 reopened (2026-09-10, branch `vw-029-linux-blackbox`, #124)
+### 0.0 Addendum — VW-029 reopened (2026-09-10, branch `vw-029-linux-blackbox`, PR #139, #124)
 
 Two VW-029 done-when clauses had only ever been checked by hand: a black-box test against the
-real Linux service, and the contract tests passing on Swift 6.3.3 Linux in CI. This branch adds
+real Linux service, and the contract tests passing on Swift 6.3.3 Linux in CI. PR #139 adds
 `CreatureWorldBlackBoxTests`, which launches the built `creature-world` executable and drives it
 over TCP (snapshot, `202`/live delta, history by sequence, `duplicate_event`, `Last-Event-ID`
-resume without a gap, SIGTERM + relaunch, history intact), and makes the Linux CI job run the whole
-Linux-capable suite (`swift test`, 727+ tests) instead of one persistence filter. Two lessons
-recorded here so nobody re-learns them: AsyncHTTPClient's pool backs off across requests after a
-refused connect (poll a raw socket before using it for readiness), and the shared test database
-means a test may only assert on events from its own `source.id`.
+resume without a gap, April's utterance and Beaky's `…/responses` turn on the conversation
+stream, SIGTERM + relaunch, event and conversation history intact), and makes the Linux CI job
+run the whole Linux-capable suite (`swift test`, 728+ tests) instead of one persistence filter.
+Running everything at once on Linux exposed #138: a completion race on one overdue timer during
+startup recovery aborted the whole MongoDB connect (503 for everyone until the retry). Recovery
+now handles a failed timer like steady-state firing does. World `0.2.1`.
+
+Lessons recorded so nobody re-learns them: AsyncHTTPClient's pool backs off across requests after
+a refused connect (poll a raw socket before using it for readiness); the shared test database
+means a test may only assert on events from its own `source.id`; an ingested utterance is itself
+a `conversation.person_utterance` event under the utterance's source.
 
 ### 0.1 Repository and review state
 
-- `main` is at `3cd803b`, the merge of PR #131 (Communicator gateway conversation transport).
-- Active branch: `vw-030-character-response`, tracked by
-  [#134](https://github.com/opsnlops/creature-console/issues/134). Plan:
+- `main` is at `f8d560d`: PR #135 (Beaky's stage, World `0.2.0`, #134) and PR #137
+  (`./build_debs.sh`, #136) merged 2026-09-10 evening. Plan for #134:
   [`docs/character-response-plan.md`](character-response-plan.md).
+- Active branch: `vw-029-linux-blackbox` (PR #139, see 0.0 above).
 - Follow-ups filed from the #131 review: #132 (gateway collapses World 4xx/504 into 503
   `world_unavailable`) and #133 (`UtteranceIngressResult.conversationItem` is the one camelCase
   key on a snake_case wire).
@@ -45,10 +51,10 @@ means a test may only assert on events from its own `source.id`.
 | Product | Version | Default port | API prefix |
 | --- | ---: | ---: | --- |
 | Creature Server | independently versioned | `8000` | existing API |
-| Creature World | `0.2.0` on fuzzball; `0.1.12` on production | `8001` | `/world/v1` |
+| Creature World | `0.2.0` on fuzzball and production; `0.2.1` on PR #139 | `8001` | `/world/v1` |
 | Creature Communicator Gateway | `0.1.2` | `8002` | `/communicator/v1` |
 
-World `0.1.12` and gateway `0.1.2` are deployed and verified on **fuzzball** (`10.69.66.1`, dev)
+World `0.2.0` and gateway `0.1.2` are deployed and verified on **fuzzball** (`10.69.66.1`, dev)
 and **production** (`server.prod.chirpchirp.dev` ingress → 8001/8002). Verified live on
 2026-09-10: health on both ingress routes, history paging, `limit` validation, idempotent
 re-submission (`duplicate`), and a message typed on macOS arriving on an already-open SSE listener
@@ -91,7 +97,9 @@ in `CreatureWorld` used them. This branch wires them:
 artifact; a turn cast with curl at `…/conversation:april-beaky/responses` returned
 `202 accepted` / route `communicator`, the open gateway stream received the item once, and **the
 Beaky bubble appeared live on April's phone** — the first thing Beaky has ever said through this
-path. Production still runs `0.1.12` until #135 merges and is deployed.
+path. **Verified on production (~21:00 PDT):** World `0.2.0` deployed; a turn cast through
+`server.prod.chirpchirp.dev` in reply to April's "Hello Claude" was accepted and pushed live, and
+April answered "Fun!" from the app — the first complete round trip on the real stage.
 
 Verified locally against Mongo 8.3.8: April's line + Beaky's reply appear in order in history;
 an SSE listener connected before the POST receives Beaky's item exactly once; replay is
@@ -130,11 +138,12 @@ gateway change is needed; the agent will talk to World directly on the trusted L
 
 ### 0.6 Exact next actions
 
-1. Check the PR for #134: Swift Package tests, macOS/iOS app builds, MongoDB 8.3 tests, Debian
-   amd64/arm64. Fix failures on the branch; keep Swift 6 strict concurrency and signed commits.
-2. Merge, fast-forward `main`, deploy World `0.2.0` to production (fuzzball already done and
-   verified), and cast one turn through production ingress. `./build_debs.sh` (PR #137) builds
-   the `.deb` files locally in ~5 min (arm64 native) instead of waiting for GitHub Actions.
+1. Merge PR #139 when its checks are green (the Linux job now runs the full suite and the
+   black-box test), then close #124 and #138. Deploy World `0.2.1` (`./build_debs.sh --arch amd64`
+   builds it locally; fuzzball and production are amd64) so a contested timer can no longer keep a
+   restarting World offline.
+2. Production and fuzzball already run `0.2.0` with the first round trip verified; nothing else
+   is pending on the transport.
 3. **Give Beaky a mind (slice B):** VW-014 (#105) + VW-015 (#106). A world-resident mode in
    `creature-agent` behind a flag: subscribe to `/world/v1/stream` (SSE, `Last-Event-ID` resume),
    take `conversation.person_utterance` deltas addressed to `character:beaky`, build a prompt from

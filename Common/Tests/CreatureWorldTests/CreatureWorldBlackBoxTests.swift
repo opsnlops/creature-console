@@ -86,10 +86,45 @@ struct CreatureWorldBlackBoxTests {
         #expect(thirdDelta.eventID == third.eventID)
         resumedStream.cancel()
 
+        // April speaks and Beaky answers through the same service; both turns become one
+        // ordered conversation and the answer reaches a listener already on the stream.
+        let conversationID = try ConversationID(
+            validating: "conversation:blackbox-\(UUID().uuidString.lowercased())"
+        )
+        let conversationStream = try await api.openConversationStream(conversationID)
+        #expect(try await conversationStream.next().event == "ready")
+        // The utterance becomes a conversation.person_utterance world event under its own
+        // source, so the event assertions above stay scoped to this run's synthetic events.
+        let utterance = try makeUtterance(
+            in: conversationID,
+            sourceID: SourceID(validating: "communicator:blackbox")
+        )
+        let ingress = try await api.post(utterance)
+        #expect(ingress.status == .accepted)
+        #expect(ingress.body.disposition == .accepted)
+        #expect(
+            try await conversationStream.next().id == ingress.body.conversationItem.itemID.rawValue)
+        let intent = try makeIntent(in: conversationID, answering: utterance)
+        let response = try await api.post(intent)
+        #expect(response.status == .accepted)
+        #expect(response.body.disposition == .accepted)
+        #expect(response.body.outcome.route == .communicator)
+        #expect(
+            try await conversationStream.next().id == response.body.conversationItem.itemID.rawValue
+        )
+        let replayedResponse = try await api.post(intent)
+        #expect(replayedResponse.status == .ok)
+        #expect(replayedResponse.body.disposition == .duplicate)
+        conversationStream.cancel()
+
         // Kill the process. Everything accepted before the kill must still be there afterwards.
         try await service.stop()
         try await service.start()
         try await api.waitUntilHealthy()
+
+        let conversation = try await api.conversationItems(in: conversationID)
+        #expect(conversation.map(\.authorKind) == [.person, .character])
+        #expect(conversation.map(\.text) == [utterance.text, intent.text])
 
         let afterRestart = try await api.events(after: firstSequence - 1, from: sourceID)
         #expect(afterRestart.map(\.eventID) == [first.eventID, second.eventID, third.eventID])
@@ -110,6 +145,38 @@ struct CreatureWorldBlackBoxTests {
         caughtUpStream.cancel()
 
         try await service.stop()
+    }
+
+    private func makeUtterance(
+        in conversationID: ConversationID,
+        sourceID: SourceID
+    ) throws -> PersonUtterance {
+        try PersonUtterance(
+            conversationID: conversationID,
+            speakerID: EntityID(validating: "person:april"),
+            addresseeIDs: [EntityID(validating: "character:beaky")],
+            text: "Beaky, are you still there after a restart?",
+            modality: .typed,
+            source: .communicatorComposition,
+            sourceID: sourceID,
+            occurredAt: Date(),
+            confidence: 1
+        )
+    }
+
+    private func makeIntent(
+        in conversationID: ConversationID,
+        answering utterance: PersonUtterance
+    ) throws -> CharacterUtteranceIntent {
+        try CharacterUtteranceIntent(
+            conversationID: conversationID,
+            characterID: utterance.addresseeIDs[0],
+            recipientID: utterance.speakerID,
+            inResponseToUtteranceID: utterance.utteranceID,
+            text: "Still here, April. The world remembers.",
+            urgency: 0.4,
+            createdAt: utterance.occurredAt.addingTimeInterval(1)
+        )
     }
 
     private func makeEvent(sourceID: SourceID) throws -> WorldEventEnvelope {
@@ -282,16 +349,7 @@ private struct WorldServiceAPI {
     func post(_ event: WorldEventEnvelope) async throws -> (
         status: HTTPResponseStatus, body: WorldEventAcceptanceResponse
     ) {
-        var request = HTTPClientRequest(url: "\(base)/events")
-        request.method = .POST
-        request.headers.add(name: "content-type", value: "application/json")
-        request.body = .bytes(try WorldJSON.makeEncoder().encode(event))
-        let response = try await client.execute(request, timeout: .seconds(15))
-        let body = try await response.body.collect(upTo: 1_048_576)
-        return (
-            response.status,
-            try WorldJSON.makeDecoder().decode(WorldEventAcceptanceResponse.self, from: body)
-        )
+        try await postJSON(event, to: "\(base)/events")
     }
 
     /// Reads every event after `sequence` produced by `sourceID`, following pagination.
@@ -312,6 +370,64 @@ private struct WorldServiceAPI {
             guard page.hasMore, page.nextSequence > cursor else { return events }
             cursor = page.nextSequence
         }
+    }
+
+    func post(_ utterance: PersonUtterance) async throws -> (
+        status: HTTPResponseStatus, body: UtteranceIngressResult
+    ) {
+        try await postJSON(
+            utterance,
+            to: "\(base)/conversations/\(utterance.conversationID.rawValue)/utterances"
+        )
+    }
+
+    func post(_ intent: CharacterUtteranceIntent) async throws -> (
+        status: HTTPResponseStatus, body: CharacterDeliveryResult
+    ) {
+        try await postJSON(
+            intent,
+            to: "\(base)/conversations/\(intent.conversationID.rawValue)/responses"
+        )
+    }
+
+    func conversationItems(in conversationID: ConversationID) async throws
+        -> [ConversationItem]
+    {
+        let response = try await client.execute(
+            HTTPClientRequest(
+                url: "\(base)/conversations/\(conversationID.rawValue)/items?limit=100"
+            ),
+            timeout: .seconds(15)
+        )
+        #expect(response.status == .ok)
+        let body = try await response.body.collect(upTo: 1_048_576)
+        return try WorldJSON.makeDecoder().decode(ConversationItemPage.self, from: body).items
+    }
+
+    func openConversationStream(_ conversationID: ConversationID) async throws
+        -> ServerSentEventReader
+    {
+        let response = try await client.execute(
+            HTTPClientRequest(
+                url: "\(base)/conversations/\(conversationID.rawValue)/stream"
+            ),
+            deadline: .distantFuture
+        )
+        #expect(response.status == .ok)
+        return ServerSentEventReader(body: response.body)
+    }
+
+    private func postJSON<Body: Encodable, Reply: Decodable>(
+        _ value: Body,
+        to url: String
+    ) async throws -> (status: HTTPResponseStatus, body: Reply) {
+        var request = HTTPClientRequest(url: url)
+        request.method = .POST
+        request.headers.add(name: "content-type", value: "application/json")
+        request.body = .bytes(try WorldJSON.makeEncoder().encode(value))
+        let response = try await client.execute(request, timeout: .seconds(15))
+        let body = try await response.body.collect(upTo: 1_048_576)
+        return (response.status, try WorldJSON.makeDecoder().decode(Reply.self, from: body))
     }
 
     func openStream(lastEventID: Int64?) async throws -> ServerSentEventReader {
