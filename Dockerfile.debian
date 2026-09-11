@@ -20,10 +20,11 @@ RUN set -eux; \
         debhelper devscripts fakeroot rsync; \
     rm -rf /var/lib/apt/lists/*
 
-# Install Swift toolchain directly from swift.org release tarball.
-# swift.org names x86_64 builds without an architecture suffix ("ubuntu2204",
-# "swift-6.3.3-RELEASE-ubuntu22.04.tar.gz") and aarch64 builds with one
-# ("ubuntu2204-aarch64", "swift-6.3.3-RELEASE-ubuntu22.04-aarch64.tar.gz").
+# Install the Debian Swift toolchain directly from the swift.org release tarball. This is the
+# same toolchain Swiftly selects on Debian; swift.org publishes "debian12" builds (there is no
+# separate trixie build yet) and names x86_64 tarballs without an architecture suffix
+# ("swift-6.3.3-RELEASE-debian12.tar.gz") and aarch64 tarballs with one
+# ("debian12-aarch64", "swift-6.3.3-RELEASE-debian12-aarch64.tar.gz").
 RUN set -eux; \
     ARCH="$(uname -m)"; \
     case "$ARCH" in \
@@ -31,8 +32,8 @@ RUN set -eux; \
       aarch64|arm64) ARCH_SUFFIX="-aarch64" ;; \
       *) echo "Unsupported arch: $ARCH" >&2; exit 1 ;; \
     esac; \
-    OS_TAG="ubuntu22.04"; \
-    PATH_SEG="ubuntu2204${ARCH_SUFFIX}"; \
+    OS_TAG="debian12"; \
+    PATH_SEG="${OS_TAG}${ARCH_SUFFIX}"; \
     TARBALL="swift-${SWIFT_VERSION}-RELEASE-${OS_TAG}${ARCH_SUFFIX}.tar.gz"; \
     URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/${PATH_SEG}/swift-${SWIFT_VERSION}-RELEASE/${TARBALL}"; \
     curl -fL "$URL" -o "$TARBALL"; \

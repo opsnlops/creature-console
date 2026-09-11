@@ -6,7 +6,8 @@
 # This is .github/workflows/build-deb.yml run by hand: the same Debian Trixie base and apt
 # packages, the same pinned Swift release, the same dpkg-buildpackage invocation and build flags,
 # and the same clean-container install, --version, --help, and ldd smoke test. The only
-# difference is that the toolchain comes from the swift.org release tarball instead of Swiftly.
+# difference is where the toolchain runs: the workflow's Swiftly step runs on an Ubuntu runner,
+# while this builds on Debian Trixie itself with swift.org's Debian toolchain tarball.
 #
 # Each architecture builds inside the repository's own Debian Trixie image (Dockerfile.debian)
 # with a persistent, per-architecture build volume, so the first run is a cold Swift release
