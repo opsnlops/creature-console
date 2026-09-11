@@ -20,12 +20,17 @@ enum WorldResponderError: Error, Equatable {
     case unavailable(status: UInt)
 }
 
+/// Something that can carry Beaky's turn to the world.
+protocol WorldTurnResponding: Sendable {
+    func submit(_ intent: CharacterUtteranceIntent) async throws -> WorldResponseOutcome
+}
+
 /// Carries a `CharacterUtteranceIntent` to Creature World and reads back what happened.
 ///
 /// A 5xx or transport failure throws so the caller can retry from the cursor; a 4xx is a
 /// rejection the caller must record and move past — most importantly the identity conflict a
 /// replayed consideration produces when the model phrased its answer differently the second time.
-struct WorldResponder: Sendable {
+struct WorldResponder: WorldTurnResponding {
     private let client: HTTPClient
     private let worldURL: URL
     private let logger: Logger

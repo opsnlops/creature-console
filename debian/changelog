@@ -1,3 +1,11 @@
+creature-cli (2.55.3) unstable; urgency=medium
+
+  * creature-agent: Beaky's reply is delivered inside the same trace her
+    consideration ran in, so Honeycomb shows phone -> gateway -> World ->
+    mind -> model -> reply as one trace instead of two.
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 15:20:00 -0700
+
 creature-cli (2.55.2) unstable; urgency=medium
 
   * creature-agent: a context window that opened on one of Beaky's own turns

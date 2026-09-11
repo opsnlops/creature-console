@@ -65,14 +65,9 @@ struct CharacterMind: Sendable {
 
     func consider(_ consideration: WorldConsideration, now: Date) async -> CharacterDecision {
         let percept = consideration.percept
-        var context = ServiceContext.topLevel
-        if let trace = percept.utterance.trace {
-            InstrumentationSystem.instrument.extract(
-                trace.carrier,
-                into: &context,
-                using: TraceContextExtractor()
-            )
-        }
+        // Inside an `agent.turn` span this nests naturally; on its own it continues the trace
+        // the utterance arrived with.
+        let context = ServiceContext.current ?? Self.traceContext(for: percept)
         return await withSpan("agent.consider", context: context) { span in
             span.attributes["agent.character_id"] = configuration.characterID.rawValue
             span.attributes["agent.consideration_id"] = percept.considerationID.rawValue
@@ -159,6 +154,19 @@ struct CharacterMind: Sendable {
             )
             return .silence(reason: .emptyResponse)
         }
+    }
+
+    /// The trace context the world attached to the utterance, as a span parent.
+    static func traceContext(for percept: PersonUtterancePercept) -> ServiceContext {
+        var context = ServiceContext.topLevel
+        if let trace = percept.utterance.trace {
+            InstrumentationSystem.instrument.extract(
+                trace.carrier,
+                into: &context,
+                using: TraceContextExtractor()
+            )
+        }
+        return context
     }
 
     // MARK: - Prompt

@@ -2,6 +2,7 @@ import AsyncHTTPClient
 import Foundation
 import Logging
 import ServiceLifecycle
+import Tracing
 import WorldCore
 
 /// The world-resident mind as a long-running service: follow the world, consider each percept
@@ -10,7 +11,7 @@ import WorldCore
 struct WorldMindService: Service {
     private let subscriber: WorldPerceptSubscriber
     private let mind: CharacterMind
-    private let responder: WorldResponder
+    private let responder: any WorldTurnResponding
     private let client: HTTPClient
     private let logger: Logger
     private let clock: any WorldClock
@@ -18,7 +19,7 @@ struct WorldMindService: Service {
     init(
         subscriber: WorldPerceptSubscriber,
         mind: CharacterMind,
-        responder: WorldResponder,
+        responder: any WorldTurnResponding,
         client: HTTPClient,
         logger: Logger,
         clock: any WorldClock = SystemWorldClock()
@@ -51,6 +52,20 @@ struct WorldMindService: Service {
     /// move past this percept. Throws only when the world could not be reached, which retries
     /// the same consideration from the cursor.
     func handle(_ consideration: WorldConsideration) async throws {
+        // One turn, one span: thinking and delivering both continue the trace April's words
+        // arrived with, so Honeycomb shows ingress -> mind -> model -> reply as a single line.
+        try await withSpan(
+            "agent.turn",
+            context: CharacterMind.traceContext(for: consideration.percept)
+        ) { span in
+            span.attributes["agent.consideration_id"] =
+                consideration.percept.considerationID.rawValue
+            span.attributes["world.sequence"] = consideration.worldSequence
+            try await decideAndDeliver(consideration)
+        }
+    }
+
+    private func decideAndDeliver(_ consideration: WorldConsideration) async throws {
         let decision = await mind.consider(consideration, now: await clock.now)
         guard case .reply(let intent) = decision else { return }
 

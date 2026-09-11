@@ -4,6 +4,7 @@ import Hummingbird
 import HummingbirdTesting
 import Logging
 import NIOCore
+import ServiceContextModule
 import Testing
 import WorldCore
 
@@ -147,6 +148,52 @@ struct WorldMindServiceTests {
         }
 
         #expect(await stub.responses.isEmpty)
+    }
+
+    @Test("Thinking and delivering happen inside one turn's trace context")
+    func deliveryRunsInsideTheTurnSpan() async throws {
+        // Before agent.turn existed, the POST ran after agent.consider returned and started a
+        // fresh root trace; Honeycomb showed Beaky's reply disconnected from April's message.
+        let percept = try makePercept(text: "Are we tracing?")
+        let consideration = WorldConsideration(
+            worldSequence: 1, envelope: try envelope(for: percept), percept: percept)
+        let responder = ContextRecordingResponder()
+        let client = HTTPClient(eventLoopGroupProvider: .singleton)
+        let service = WorldMindService(
+            subscriber: WorldPerceptSubscriber(
+                worldURL: URL(string: "http://localhost:1/world/v1")!,
+                characterID: beaky,
+                cursor: WorldAgentCursor(
+                    stateDirectory: FileManager.default.temporaryDirectory
+                        .appendingPathComponent("unused-\(UUID().uuidString)"),
+                    worldURL: URL(string: "http://localhost:1/world/v1")!,
+                    logger: logger
+                ),
+                logger: logger
+            ),
+            mind: CharacterMind(
+                configuration: CharacterMind.Configuration(
+                    persona: "You are Beaky.",
+                    characterID: beaky,
+                    personID: april,
+                    maximumReplyAge: 3_600,
+                    maximumContextTurns: 20,
+                    modelTimeout: .seconds(5),
+                    modelName: "test-model"
+                ),
+                respond: { _ in "Yes, together." },
+                logger: logger
+            ),
+            responder: responder,
+            client: client,
+            logger: logger
+        )
+
+        try await service.handle(consideration)
+        try await client.shutdown()
+
+        #expect(await responder.sawTurnContext == true)
+        #expect(await responder.submitted?.text == "Yes, together.")
     }
 
     // MARK: - Fixtures
@@ -298,6 +345,26 @@ private actor CrashingCursor: WorldCursorStore {
 
 private enum CrashingCursorError: Error {
     case simulatedCrash
+}
+
+/// Records whether `submit` ran inside a span context (the turn's) rather than at top level.
+private actor ContextRecordingResponder: WorldTurnResponding {
+    private(set) var sawTurnContext = false
+    private(set) var submitted: CharacterUtteranceIntent?
+
+    func submit(_ intent: CharacterUtteranceIntent) async throws -> WorldResponseOutcome {
+        sawTurnContext = ServiceContext.current != nil
+        submitted = intent
+        return .accepted(
+            CharacterDeliveryOutcome(
+                attemptID: .generated(),
+                responseID: intent.responseID,
+                route: .communicator,
+                state: .accepted,
+                occurredAt: intent.createdAt
+            )
+        )
+    }
 }
 
 private actor PhrasingCounter {
