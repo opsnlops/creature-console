@@ -71,6 +71,7 @@ The CLI tools ship as Debian packages built **on Linux** by CI (`.github/workflo
      swift build --scratch-path /tmp/b --product creature-world'
   ```
   Keep the container's Swift version in step with `SWIFT_VERSION` in `build-deb.yml`. Don't pipe `swift build` through `tail`/`grep` when checking results — that masks the exit code.
+- **To produce deployable `.deb` files without waiting for GitHub Actions**, run `./build_debs.sh` (both architectures) or `./build_debs.sh --arch arm64` (native only on Apple silicon). It runs the workflow's exact steps in `Dockerfile.debian` with a persistent per-architecture cache and leaves the packages in `artifacts/`.
 - A full `swift build` of every target does **not** work on Linux (e.g. `PlaylistRuntime` imports Combine); build the four packaged products, exactly as `debian/rules` does.
 - Each release needs a new `debian/changelog` entry (version must match the git tag).
 

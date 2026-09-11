@@ -103,7 +103,14 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
   SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib" dpkg-buildpackage -us -uc -b
   ```
 - Helper scripts:
-  - `build_deb.sh` — wrapper for `dpkg-buildpackage -us -uc -b`.
+  - `build_debs.sh` — builds the amd64 **and** arm64 packages locally the same way
+    `.github/workflows/build-deb.yml` does (Debian Trixie, pinned Swift, `dpkg-buildpackage`,
+    clean-container install smoke test) and drops them in `artifacts/`, so a deploy never waits
+    on GitHub Actions. Uses `Dockerfile.debian` with a persistent per-architecture build cache;
+    `--arch arm64` builds only the native architecture on Apple silicon, `--clean` forces a cold
+    build, `--no-check` skips the install test.
+  - `build_deb.sh` — wrapper for `dpkg-buildpackage -us -uc -b` on a Linux host that already has
+    the toolchain.
   - `clean_deb.sh` — runs `dh_clean` to clear `debian/` build outputs (parent artifacts left intact).
 - Creature World is packaged independently as `creature-world_<version>_<architecture>.deb`. It
   installs at `/bin/creature-world`, with JSON configuration at `/etc/creature/world.json`, a
@@ -115,7 +122,8 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
 - When a new Swift release ships:
   1) Update the CLI version in `Common/Sources/CreatureCLI/top.swift`.
   2) Update `debian/changelog` with the new version and entry.
-  3) Update the workflow `.github/workflows/build-deb.yml` `SWIFT_VERSION`.
+  3) Update the workflow `.github/workflows/build-deb.yml` `SWIFT_VERSION` and the matching
+     `ARG SWIFT_VERSION` in `Dockerfile.debian`.
   4) Update the README Swift install snippet above with the new version.
   5) Rebuild the .deb (locally or via CI) and verify `ldd /usr/bin/creature-cli` after install.
 
