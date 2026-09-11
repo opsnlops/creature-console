@@ -104,7 +104,9 @@ creature-agent run --config-path agent.yaml --log-level info --host <creature-se
   what she herself said last. Consecutive messages from one author are merged into one turn
   because Mistral's chat template rejects non-alternating roles.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
-  emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud.
+  emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
+  reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the
+  format never enters her context and teaches the next turn to copy it (#154).
 - **It never speaks twice.** The response identity is derived from the world's consideration ID,
   and the cursor advances only after the world accepted (`202`), reported a duplicate (`200`), or
   refused the turn. A crash between posting and recording replays the percept; if the model

@@ -46,6 +46,13 @@ struct CharacterMind: Sendable {
         let maximumContextTurns: Int
         let modelTimeout: Duration
         let modelName: String
+
+        /// The character's plain name, as a model might label her lines: `character:beaky` → `beaky`.
+        var characterName: String {
+            let raw = characterID.rawValue
+            guard let colon = raw.firstIndex(of: ":") else { return raw }
+            return String(raw[raw.index(after: colon)...])
+        }
     }
 
     private let configuration: Configuration
@@ -128,7 +135,7 @@ struct CharacterMind: Sendable {
             return .silence(reason: .modelUnavailable)
         }
 
-        guard let text = Self.validate(raw) else {
+        guard let text = Self.validate(raw, spokenBy: configuration.characterName) else {
             let declined = Self.declinesToSpeak(raw)
             return .silence(reason: declined ? .choseSilence : .emptyResponse)
         }
@@ -236,12 +243,14 @@ struct CharacterMind: Sendable {
     // MARK: - Validation
 
     /// The reply the world may carry, or `nil` when the model produced nothing usable.
-    static func validate(_ raw: String) -> String? {
+    static func validate(_ raw: String, spokenBy characterName: String) -> String? {
         let stripped = LocalLLMClient.stripThinkTags(raw)
         guard !declinesToSpeak(stripped) else { return nil }
         // Her words are written to be spoken: the ad-hoc pipeline drops emoji and symbols, and
         // Communicator shows the same text, so they are removed here once for every stage.
-        let sanitized = TextSanitizer.sanitize(stripped).text
+        let sanitized = TextSanitizer.sanitize(
+            withoutSpeakerLabel(stripped, characterName: characterName)
+        ).text
             .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !sanitized.isEmpty else { return nil }
@@ -249,6 +258,21 @@ struct CharacterMind: Sendable {
             sanitized,
             maximumUnicodeScalars: ConversationContractLimits.maximumTextUnicodeScalars
         )
+    }
+
+    /// A small model sometimes answers as a script — `Beaky: "…"` — especially after being
+    /// addressed by name. Only her words are hers; the label is dropped so the format never
+    /// reaches the conversation and teaches her next turn to copy it (#154).
+    static func withoutSpeakerLabel(_ text: String, characterName: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = characterName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return trimmed }
+        let pattern = "^\\s*\(NSRegularExpression.escapedPattern(for: name))(\\s+said)?\\s*:\\s*"
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive)
+        else { return trimmed }
+        let range = NSRange(trimmed.startIndex..., in: trimmed)
+        return expression.stringByReplacingMatches(
+            in: trimmed, range: range, withTemplate: "")
     }
 
     static func declinesToSpeak(_ raw: String) -> Bool {

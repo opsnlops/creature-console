@@ -1,3 +1,11 @@
+creature-cli (2.55.4) unstable; urgency=medium
+
+  * creature-agent: a reply the model wrote as a script line (Beaky: "...")
+    is stored as her plain words, so the format never enters her context
+    and teaches the next turn to copy it (#154).
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 16:20:00 -0700
+
 creature-cli (2.55.3) unstable; urgency=medium
 
   * creature-agent: Beaky's reply is delivered inside the same trace her

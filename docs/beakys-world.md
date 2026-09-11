@@ -26,6 +26,8 @@ current in the same commit as the code it describes.**
   [`docs/world-viewer-plan.md`](world-viewer-plan.md); manual:
   [`docs/world-viewer-manual.md`](world-viewer-manual.md). Creature World `0.3.0` (adds
   `GET …/conversations/{id}/deliveries`).
+- #154 (replies drifting into `Beaky: "…"` script format) is fixed in `2.55.4`: the mind stores
+  only her words.
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
   key), #144 (World/gateway packages do not restart the running service on upgrade — deliberate
   `--no-start`; restart by hand after `apt install`), #146 (mqtt conffile), #151 (Communicator
@@ -37,7 +39,7 @@ current in the same commit as the code it describes.**
 | --- | ---: | --- | --- |
 | Creature World | `0.2.2` | production and fuzzball (`10.69.66.1:8001`) | `0.3.0` (this branch) adds the deliveries route the Viewer's Conversation panel reads |
 | Communicator Gateway | `0.1.3` | production and fuzzball `:8002` | exporting to Honeycomb `production` |
-| Beaky's mind | `creature-agent 2.55.3`, `mode: world` | **fuzzball only** | Mistral Nemo via llama-server at `10.69.66.4:1234`; production keeps `2.54.1` in `mqtt` mode (see 0.4) |
+| Beaky's mind | `creature-agent 2.55.4`, `mode: world` | **fuzzball only** | Mistral Nemo via llama-server at `10.69.66.4:1234`; production keeps `2.54.1` in `mqtt` mode (see 0.4) |
 | World Viewer | `0.1.0` (this branch) | April's laptop, run from Xcode | read-only; points at fuzzball or production |
 
 **Verified live so far:**
@@ -102,7 +104,7 @@ current in the same commit as the code it describes.**
 deliver through Communicator until VW-016 gives it the physical stage. It is a dev-only mind
 (April's Mac or fuzzball) for now.
 
-To run Beaky's mind on fuzzball: install `creature-agent_2.55.3_amd64.deb`
+To run Beaky's mind on fuzzball: install `creature-agent_2.55.4_amd64.deb`
 (`./build_debs.sh --arch amd64`), set `/etc/creature-agent.yaml` with `mode: world`,
 `llmBackend: local`, `localLlmHost/Port` → the llama-server, `worldUrl:
 http://127.0.0.1:8001/world/v1`, persona in `llmSystemPrompt` (the unit already passes
