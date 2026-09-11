@@ -67,6 +67,30 @@ struct WorldConversationClientTests {
         #expect(request.value(forHTTPHeaderField: "x-acw-api-key") == nil)
     }
 
+    @Test("A caller can select the narrow Communicator gateway namespace")
+    func communicatorGatewayNamespace() async throws {
+        let utterance = try Self.makeUtterance()
+        let result = try Self.makeResult(for: utterance)
+        let loader = RecordingLoader(response: result)
+        let client = WorldConversationClient(
+            connection: CreatureServiceConnection(
+                hostname: "127.0.0.1",
+                port: 8_002,
+                usesTLS: false
+            ),
+            endpoint: .communicatorGateway,
+            loader: loader
+        )
+
+        _ = try await client.submit(utterance)
+
+        let request = try #require(await loader.lastRequest)
+        #expect(
+            request.url?.absoluteString
+                == "http://127.0.0.1:8002/communicator/v1/conversations/conversation:april-beaky/utterances"
+        )
+    }
+
     private static func makeUtterance() throws -> PersonUtterance {
         try PersonUtterance(
             utteranceID: UtteranceID(validating: "utterance:client-test"),

@@ -24,7 +24,10 @@ struct ForegroundLeaseHTTPAPITests {
     func lifecycle() async throws {
         let clock = ManualWorldClock(now: now)
         let registry = ForegroundLeaseRegistry(clock: clock)
-        let application = makeCommunicatorGatewayApplication(registry: registry)
+        let application = makeCommunicatorGatewayApplication(
+            registry: registry,
+            upstream: HealthyWorldUpstream()
+        )
 
         try await application.test(.router) { client in
             try await client.execute(
@@ -66,7 +69,8 @@ struct ForegroundLeaseHTTPAPITests {
     @Test("Health is exposed only beneath the communicator prefix")
     func healthRoute() async throws {
         let application = makeCommunicatorGatewayApplication(
-            registry: ForegroundLeaseRegistry(clock: ManualWorldClock(now: now))
+            registry: ForegroundLeaseRegistry(clock: ManualWorldClock(now: now)),
+            upstream: HealthyWorldUpstream()
         )
 
         try await application.test(.router) { client in
@@ -89,7 +93,8 @@ struct ForegroundLeaseHTTPAPITests {
     @Test("Expired and unknown sessions cannot renew")
     func unknownRenewal() async throws {
         let application = makeCommunicatorGatewayApplication(
-            registry: ForegroundLeaseRegistry(clock: ManualWorldClock(now: now))
+            registry: ForegroundLeaseRegistry(clock: ManualWorldClock(now: now)),
+            upstream: HealthyWorldUpstream()
         )
 
         try await application.test(.router) { client in
@@ -109,7 +114,8 @@ struct ForegroundLeaseHTTPAPITests {
     @Test("Untrusted request bodies are bounded and validated")
     func requestValidation() async throws {
         let application = makeCommunicatorGatewayApplication(
-            registry: ForegroundLeaseRegistry(clock: ManualWorldClock(now: now))
+            registry: ForegroundLeaseRegistry(clock: ManualWorldClock(now: now)),
+            upstream: HealthyWorldUpstream()
         )
 
         try await application.test(.router) { client in
@@ -138,5 +144,27 @@ struct ForegroundLeaseHTTPAPITests {
 
     private func decode<Value: Decodable>(_ type: Value.Type, _ body: ByteBuffer) throws -> Value {
         try WorldJSON.makeDecoder().decode(type, from: body)
+    }
+}
+
+private struct HealthyWorldUpstream: CommunicatorWorldUpstream {
+    func health() async throws {}
+
+    func submit(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
+        fatalError("Not used by foreground lease tests")
+    }
+
+    func items(
+        in conversationID: ConversationID,
+        after itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> ConversationItemPage {
+        fatalError("Not used by foreground lease tests")
+    }
+
+    func conversationStream(
+        for conversationID: ConversationID
+    ) async throws -> GatewayConversationByteStream {
+        GatewayConversationByteStream { $0.finish() }
     }
 }

@@ -24,7 +24,7 @@ struct ConversationPersistenceTests {
         defaults.set(true, forKey: "worldServerUseProxy")
         let proxiedURI = provider.serverURI()
 
-        #expect(directURI == "https://server.prod.chirpchirp.dev:443/world/v1")
+        #expect(directURI == "https://server.prod.chirpchirp.dev:443/communicator/v1")
         #expect(proxiedURI == directURI)
     }
 
@@ -92,8 +92,8 @@ struct ConversationPersistenceTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let repository = SwiftDataConversationRepository(modelContainer: container)
-        let developmentURI = "http://10.69.66.1:8000/world/v1"
-        let productionURI = "https://server.prod.chirpchirp.dev:443/world/v1"
+        let developmentURI = "http://10.69.66.1:8002/communicator/v1"
+        let productionURI = "https://server.prod.chirpchirp.dev:443/communicator/v1"
         var developmentItem = try Self.makeItem()
         developmentItem.text = "Development history"
         var productionItem = developmentItem

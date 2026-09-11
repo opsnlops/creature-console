@@ -5,7 +5,7 @@ import SwiftUI
 struct CommunicatorSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("worldServerAddress") private var serverAddress = "127.0.0.1"
-    @AppStorage("worldServerPort") private var serverPort = 8_000
+    @AppStorage("worldServerPort") private var serverPort = 8_002
     @AppStorage("worldServerUseTLS") private var serverUseTLS = false
     @AppStorage("worldServerUseProxy") private var useProxy = false
     @AppStorage("worldServerProxyHost") private var proxyHost = "proxy.prod.chirpchirp.dev"
@@ -19,7 +19,7 @@ struct CommunicatorSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Creature World") {
+            Section("Communicator Gateway") {
                 TextField("Address", text: $serverAddress)
                     .textContentType(.URL)
                     .autocorrectionDisabled()
@@ -91,7 +91,7 @@ struct CommunicatorSettingsView: View {
                 }
 
                 Text(
-                    "Deletes downloaded conversation history for every configured World. Pending messages are preserved, and the selected World downloads its canonical history again."
+                    "Deletes downloaded conversation history for every configured server. Pending messages are preserved, and the selected server downloads its canonical history again."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -125,7 +125,7 @@ struct CommunicatorSettingsView: View {
         )
         return settings.connection(proxyAPIKey: proxyAPIKey).baseURLString(
             transport: .http,
-            pathPrefix: "/world/v1"
+            pathPrefix: "/communicator/v1"
         )
     }
 

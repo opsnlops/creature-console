@@ -5,7 +5,7 @@
 # this file; use systemd credentials or another host-managed secret store.
 
 #SERVER_HOSTNAME=127.0.0.1
-#SERVER_PORT=8000
+#SERVER_PORT=8001
 #MONGODB_URI=mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000
 
 # OpenTelemetry (uncomment to enable OTLP export).

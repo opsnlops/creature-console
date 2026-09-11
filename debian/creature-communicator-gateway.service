@@ -1,7 +1,7 @@
 [Unit]
 Description=Creature Communicator synchronization gateway
 Documentation=https://github.com/opsnlops/creature-console
-After=network-online.target
+After=network-online.target creature-world.service
 Wants=network-online.target
 
 [Service]

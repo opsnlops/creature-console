@@ -259,7 +259,7 @@ creature-agent -> CharacterUtteranceIntent -> world delivery/notification policy
   -> creature-communicator-gateway consults per-device foreground leases
   -> live synchronization when any paired client is foregrounded, otherwise APNs
   -> Beaky Communicator on macOS/iPhone
-  -> authenticated action/reply -> gateway -> WorldEvent -> simulator/Beaky percept
+  -> proxy-authorized off-LAN action/reply -> gateway -> WorldEvent -> simulator/Beaky percept
 ```
 
 Foreground status is a renewable, short-lived lease per paired app installation, not a durable
@@ -285,7 +285,7 @@ only the resulting lease operation.
 | macOS Information Bridge | Apple-source access, local extraction, privacy filtering, source configuration and health | Canonical world truth, character decisions |
 | World Viewer | Read-only inspection, debugging, replay tooling | World mutation in normal operation, performance authoring |
 | Beaky Communicator | April and Beaky’s private macOS/iOS conversation, notification actions, replies, local offline queue | Authoritative world mutation, unrestricted world inspection, APNs credentials |
-| `creature-communicator-gateway` | Conversation synchronization, device pairing/tokens, APNs delivery, narrow authenticated mobile API | Character reasoning, delivery-policy decisions, authoritative world state |
+| `creature-communicator-gateway` | Conversation synchronization, device pairing/tokens, APNs delivery, narrow proxy-protected off-LAN mobile API | Character reasoning, delivery-policy decisions, authoritative world state |
 | `creature-agent` | A character’s attention, beliefs, memories, motivations, Mistral reasoning, proposed reactions | Constructing authoritative reality, hardware control |
 | `WorldMessageProcessor` | Interpreting Creature Server WebSocket observations as body/runtime WorldEvents | GUI state, MQTT publication, authoritative inference |
 | `creature-mqtt` | Existing Creature Server → MQTT/Home Assistant telemetry bridge | HA → world ingestion, domain truth, character cognition |
@@ -1448,6 +1448,13 @@ route the narrow Communicator API to the gateway binary while `/world/v1/…` co
 Creature World. Trusted-LAN gateway requests remain open under the repository's LAN trust model;
 off-LAN requests reuse the proxy API key held in the Creature app-family Keychain.
 
+The stable local service ports are `8000` for Creature Server, `8001` for Creature World, and
+`8002` for Creature Communicator Gateway. The gateway talks to World over its typed `/world/v1`
+HTTP and SSE API; the default upstream is `http://127.0.0.1:8001/world/v1`, configurable through
+`world_url`, `CREATURE_WORLD_URL`, or `--world-url`. It holds no conversation database: World and
+its `creature_world` MongoDB database remain authoritative. Beaky Communicator talks only to the
+gateway's `/communicator/v1` boundary.
+
 Use token-based APNs authentication over HTTP/2 and TLS. Keep the `.p8` signing key and device tokens out of source control, prompts, ordinary world event payloads, logs, and Honeycomb. APNs acceptance means Apple accepted the request; it is not proof that the device displayed it or April read it. Only an app-originated open/action/reply event can establish user interaction.
 
 For the first personal deployment, prefer a private authenticated network path such as the existing household VPN/Tailscale-style connectivity for app-to-gateway traffic rather than exposing Creature World directly to the internet. If a public relay is later required, it must be a separately threat-modeled narrow gateway. The app never connects to MongoDB and never receives an omniscient world API.
@@ -2315,7 +2322,7 @@ Connect EventKit ingestion, timezone-aware simulation time, durable `WorldClock`
 Build Beaky Communicator as one SwiftUI product for macOS and iOS with shared conversation state,
 networking, offline queue, and views. Use the `PersonUtterance`, `CharacterUtteranceIntent`, and
 delivery contracts from `VW-030`; do not create app-only cognition or message types. Build the
-isolated `creature-communicator-gateway` with secure pairing, authenticated synchronization, APNs
+isolated `creature-communicator-gateway` with secure pairing, proxy-protected off-LAN synchronization, APNs
 registration/token rotation, an idempotent notification outbox, preview/private payload modes,
 actions, replies, renewable per-device foreground leases, and privacy-safe trace correlation. A
 foreground client heartbeats its lease and releases it on backgrounding when possible; expiry is

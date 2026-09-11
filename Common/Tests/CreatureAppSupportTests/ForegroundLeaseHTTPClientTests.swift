@@ -55,7 +55,7 @@ struct ForegroundLeaseHTTPClientTests {
         let client = ForegroundLeaseHTTPClient(
             connection: CreatureServiceConnection(
                 hostname: "10.69.66.1",
-                port: 8_001,
+                port: 8_002,
                 usesTLS: false
             ),
             loader: loader
@@ -88,7 +88,7 @@ struct ForegroundLeaseHTTPClientTests {
         let client = ForegroundLeaseHTTPClient(
             connection: CreatureServiceConnection(
                 hostname: "10.69.66.1",
-                port: 8_001,
+                port: 8_002,
                 usesTLS: false
             ),
             loader: loader

@@ -35,16 +35,31 @@ public enum WorldConversationClientError: Error, Equatable, LocalizedError, Send
 
 public typealias WorldConversationUpdateStream = AsyncThrowingStream<Void, any Error>
 
+public enum ConversationServiceEndpoint: Sendable {
+    case world
+    case communicatorGateway
+
+    fileprivate var pathPrefix: String {
+        switch self {
+        case .world: "/world/v1"
+        case .communicatorGateway: "/communicator/v1"
+        }
+    }
+}
+
 /// Typed HTTP transport for Creature World's canonical conversation API.
 public struct WorldConversationClient: Sendable {
     private let connection: CreatureServiceConnection
     private let loader: any HTTPDataLoading
+    private let pathPrefix: String
 
     public init(
         connection: CreatureServiceConnection,
+        endpoint: ConversationServiceEndpoint = .world,
         loader: any HTTPDataLoading = URLSession.shared
     ) {
         self.connection = connection
+        self.pathPrefix = endpoint.pathPrefix
         self.loader = loader
     }
 
@@ -122,7 +137,7 @@ public struct WorldConversationClient: Sendable {
     ) throws -> URLRequest {
         guard
             var url = URL(
-                string: connection.baseURLString(transport: .http, pathPrefix: "/world/v1")
+                string: connection.baseURLString(transport: .http, pathPrefix: pathPrefix)
             )
         else { throw WorldConversationClientError.invalidBaseURL }
         for component in pathComponents {

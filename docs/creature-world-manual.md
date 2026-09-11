@@ -32,12 +32,12 @@ swift run creature-world
 ```
 
 The Compose project persists MongoDB data in its `mongodb-data` volume and initializes a replica
-set named `creature-world`. The default service address is `http://127.0.0.1:8000`.
+set named `creature-world`. The default service address is `http://127.0.0.1:8001`.
 
 Check readiness with:
 
 ```bash
-curl --fail-with-body http://127.0.0.1:8000/world/v1/health
+curl --fail-with-body http://127.0.0.1:8001/world/v1/health
 ```
 
 A ready response is HTTP 200:
@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.1.11",
+  "build_version": "0.1.12",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -76,7 +76,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Setting | JSON key | Environment | Command option | Default |
 | --- | --- | --- | --- | --- |
 | HTTP host | `host` | `SERVER_HOSTNAME` | `--host`, `-H` | `127.0.0.1` |
-| HTTP port | `port` | `SERVER_PORT` | `--port`, `-p` | `8000` |
+| HTTP port | `port` | `SERVER_PORT` | `--port`, `-p` | `8001` |
 | MongoDB URI | `mongodb_uri` | `MONGODB_URI` | `--mongodb-uri` | Local replica set |
 | Browser stream origins | `allowed_origins` | `CREATURE_WORLD_ALLOWED_ORIGINS` | — | None |
 
@@ -86,7 +86,7 @@ Example:
 {
   "host": "127.0.0.1",
   "mongodb_uri": "mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000",
-  "port": 8000
+  "port": 8001
 }
 ```
 
@@ -161,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.1.11",
+  "build_version": "0.1.12",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -357,10 +357,10 @@ Example loopback ingestion:
 curl --fail-with-body \
   -H 'Content-Type: application/json' \
   --data @event.json \
-  http://127.0.0.1:8000/world/v1/events
+  http://127.0.0.1:8001/world/v1/events
 
-curl --fail-with-body 'http://127.0.0.1:8000/world/v1/events?after_sequence=0&limit=100'
-curl --no-buffer http://127.0.0.1:8000/world/v1/stream
+curl --fail-with-body 'http://127.0.0.1:8001/world/v1/events?after_sequence=0&limit=100'
+curl --no-buffer http://127.0.0.1:8001/world/v1/stream
 ```
 
 ## Running in production
@@ -404,7 +404,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.1.11_amd64.deb
+sudo apt install ./creature-world_0.1.12_amd64.deb
 ```
 
 The package installs:
@@ -503,7 +503,7 @@ Common checks:
 
 ```bash
 # Is the process serving HTTP?
-curl -i http://127.0.0.1:8000/world/v1/health
+curl -i http://127.0.0.1:8001/world/v1/health
 
 # Is the development MongoDB process reachable?
 docker compose -f compose.creature-world.json exec mongodb \
