@@ -12,6 +12,9 @@ EnvironmentFile=-/etc/default/creature-communicator-gateway
 ExecStart=/bin/creature-communicator-gateway --config /etc/creature/communicator-gateway.json
 Restart=on-failure
 RestartSec=5
+# Graceful shutdown cuts open Communicator streams itself; never let a regression hold a
+# deploy for systemd's default 90 s.
+TimeoutStopSec=15
 NoNewPrivileges=yes
 PrivateDevices=yes
 PrivateTmp=yes
