@@ -91,7 +91,7 @@ struct WorldTimerSchedulerTests {
         await scheduler.shutdown()
     }
 
-    @Test("A crash after event acceptance retries the firing idempotently")
+    @Test("A completion race during recovery keeps the world up and the timer durable")
     func firingStateSurvivesRestart() async throws {
         let dueAt = Date(timeIntervalSince1970: 2_000)
         let clock = ManualWorldClock(now: dueAt.addingTimeInterval(3))
@@ -106,11 +106,9 @@ struct WorldTimerSchedulerTests {
             logger: Logger(label: "world-timer-tests"),
             automaticallyWaits: false
         )
-        await #expect(
-            throws: WorldTimerPersistenceError.completionRace(timerID: timer.timerID)
-        ) {
-            try await firstScheduler.recover()
-        }
+        // Recovery completes despite the lost completion race: the connection stays usable, the
+        // timer remains claimed and durable, and the fired event was accepted exactly once.
+        try await firstScheduler.recover()
         #expect(await store.timer(timer.timerID)?.status == .firing)
         #expect(await store.acceptedEventCount == 1)
 

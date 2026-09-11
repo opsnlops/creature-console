@@ -267,6 +267,7 @@ let package = Package(
             name: "CreatureWorldTests",
             dependencies: [
                 "creature-world",
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
                 .product(name: "Instrumentation", package: "swift-distributed-tracing"),
                 .product(name: "InMemoryTracing", package: "swift-distributed-tracing"),

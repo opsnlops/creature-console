@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.2.0",
+  "build_version": "0.2.1",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -161,7 +161,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.2.0",
+  "build_version": "0.2.1",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -416,7 +416,7 @@ Creature World artifact is written beside the repository as
 `creature-world_<version>_<architecture>.deb`. Install only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.2.0_amd64.deb
+sudo apt install ./creature-world_0.2.1_amd64.deb
 ```
 
 The package installs:
@@ -551,11 +551,40 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
 The integration suite verifies migrations and indexes, both forms of event deduplication,
 concurrent unique sequencing, idempotent fact upserts, fact survival across a reconnect, timers,
 source checkpoints, durable ordered conversation ingestion, and API persistence across a complete
-application restart. The focused HTTP suite also proves ordered and duplicate event and utterance
+application restart. The focused in-process HTTP suite also proves ordered and duplicate event and utterance
 acceptance, retry safety across changing transport traces, bounded inputs, non-loopback access,
 trace validation, overload, deadlines, SSE origin enforcement, and gap-free reconnect behavior.
 The tests write uniquely identified records to the `creature_world` database and do not drop the
 database afterward. Use a disposable development or CI deployment, never production.
+
+### Black-box service test
+
+`CreatureWorldBlackBoxTests` launches the **built `creature-world` executable** as a child process
+and drives it over real TCP the way an adapter or World Viewer would: snapshot on a fresh stream,
+`202` acceptance and its live `delta`, history by sequence, `200 duplicate_event`, reconnect with
+`Last-Event-ID` replaying exactly the missed event and then continuing live, **SIGTERM and
+relaunch on the same port**, and history intact afterwards. It is enabled by the same
+`MONGODB_TEST_URI` and runs in well under a second:
+
+```bash
+cd Common
+MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true' \
+  swift test --filter CreatureWorldBlackBoxTests
+```
+
+It finds the executable at `.build/debug/creature-world`; set `CREATURE_WORLD_EXECUTABLE` when
+building with `--scratch-path` or a release configuration. To run it on Linux exactly as CI does:
+
+```bash
+docker run --rm -v "$PWD/Common:/src" -w /src \
+  --add-host=host.docker.internal:host-gateway \
+  -e 'MONGODB_TEST_URI=mongodb://host.docker.internal:27017/creature_world?replicaSet=creature-world&directConnection=true' \
+  swift:6.3.3 swift test
+```
+
+CI's Linux job runs the whole Linux-capable package suite this way on every push — contract
+fixtures, the HTTP API, the Communicator gateway, persistence, and the black-box service test —
+not only the persistence filter.
 
 The normal package suite is:
 

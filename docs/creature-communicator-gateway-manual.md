@@ -104,7 +104,7 @@ port `8001`, while Creature Communicator Gateway `0.1.2` defaults to port `8002`
 continues to own port `8000`. Install and operate World and the gateway as independent products:
 
 ```bash
-sudo apt install ./creature-world_0.2.0_amd64.deb
+sudo apt install ./creature-world_0.2.1_amd64.deb
 sudo apt install ./creature-communicator-gateway_0.1.2_amd64.deb
 sudo systemctl enable --now creature-world.service
 sudo systemctl enable --now creature-communicator-gateway.service
