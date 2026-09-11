@@ -53,6 +53,8 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-mqtt/usr/share/fish/vendor_completions.d; \
 	$$MQTT_BIN --generate-completion-script fish > $(CURDIR)/debian/creature-mqtt/usr/share/fish/vendor_completions.d/creature-mqtt.fish
 
+	install -d $(CURDIR)/debian/creature-agent/etc/default
+	install -m644 $(CURDIR)/debian/creature-agent.default $(CURDIR)/debian/creature-agent/etc/default/creature-agent
 	install -d $(CURDIR)/debian/creature-agent/usr/bin
 	AGENT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_AGENT) --show-bin-path)/creature-agent; \
 		install -m755 $$AGENT_BIN_PATH $(CURDIR)/debian/creature-agent/usr/bin/creature-agent
