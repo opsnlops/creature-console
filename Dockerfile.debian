@@ -2,8 +2,11 @@ FROM debian:trixie-slim
 
 SHELL ["/bin/bash", "-lc"]
 
+# Keep in step with SWIFT_VERSION in .github/workflows/build-deb.yml.
+ARG SWIFT_VERSION=6.3.3
+
 ENV DEBIAN_FRONTEND=noninteractive \
-    SWIFT_VERSION=6.3.3 \
+    SWIFT_VERSION=${SWIFT_VERSION} \
     SWIFT_PREFIX=/opt/swift
 
 # Dependencies mirror the CI deb build job.
@@ -14,22 +17,24 @@ RUN set -eux; \
         libicu-dev libxml2-dev libbsd-dev libcurl4-openssl-dev \
         libssl-dev libsqlite3-dev libzstd-dev libedit-dev zlib1g-dev \
         git cmake ninja-build python3 tar xz-utils build-essential \
-        debhelper devscripts fakeroot; \
+        debhelper devscripts fakeroot rsync; \
     rm -rf /var/lib/apt/lists/*
 
-# Install Swift toolchain directly from swift.org release tarball.
-# Swift download URLs use platform segments like "ubuntu2204-aarch64" and
-# tarballs like "swift-6.3.3-RELEASE-ubuntu22.04-aarch64.tar.gz".
+# Install the Debian Swift toolchain directly from the swift.org release tarball. This is the
+# same toolchain Swiftly selects on Debian; swift.org publishes "debian12" builds (there is no
+# separate trixie build yet) and names x86_64 tarballs without an architecture suffix
+# ("swift-6.3.3-RELEASE-debian12.tar.gz") and aarch64 tarballs with one
+# ("debian12-aarch64", "swift-6.3.3-RELEASE-debian12-aarch64.tar.gz").
 RUN set -eux; \
     ARCH="$(uname -m)"; \
     case "$ARCH" in \
-      x86_64) ARCH_TAG="x86_64" ;; \
-      aarch64|arm64) ARCH_TAG="aarch64" ;; \
+      x86_64) ARCH_SUFFIX="" ;; \
+      aarch64|arm64) ARCH_SUFFIX="-aarch64" ;; \
       *) echo "Unsupported arch: $ARCH" >&2; exit 1 ;; \
     esac; \
-    OS_TAG="ubuntu22.04"; \
-    PATH_SEG="ubuntu2204-${ARCH_TAG}"; \
-    TARBALL="swift-${SWIFT_VERSION}-RELEASE-${OS_TAG}-${ARCH_TAG}.tar.gz"; \
+    OS_TAG="debian12"; \
+    PATH_SEG="${OS_TAG}${ARCH_SUFFIX}"; \
+    TARBALL="swift-${SWIFT_VERSION}-RELEASE-${OS_TAG}${ARCH_SUFFIX}.tar.gz"; \
     URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/${PATH_SEG}/swift-${SWIFT_VERSION}-RELEASE/${TARBALL}"; \
     curl -fL "$URL" -o "$TARBALL"; \
     mkdir -p "${SWIFT_PREFIX}"; \
