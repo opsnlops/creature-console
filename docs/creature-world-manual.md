@@ -169,7 +169,7 @@ Example unavailable response:
 
 ### Collections and indexes
 
-Schema migrations 1 through 3 establish the following collections and indexes:
+Schema migrations 1 through 4 establish the following collections and indexes:
 
 | Collection | Purpose | Important indexes |
 | --- | --- | --- |
@@ -181,7 +181,8 @@ Schema migrations 1 through 3 establish the following collections and indexes:
 | `source_checkpoints` | Per-source cursor or checkpoint state | Unique `source_id` |
 | `utterance_ingresses` | Durable, idempotent person-utterance processing records | Unique utterance ID |
 | `conversation_items` | Canonical conversation history shared by clients and characters | Unique item ID; conversation/time/item order |
-| `schema_migrations` | Applied Creature World schema versions | Migration version in `_id`; current migration is 3 |
+| `character_deliveries` | Durable delivery decision and outcome for each character turn, keyed by `response_id` | Unique `decision.attempt_id`; conversation/time order |
+| `schema_migrations` | Applied Creature World schema versions | Migration version in `_id`; current migration is 4 |
 
 The migrator is idempotent and runs whenever a connection is established. Writes use majority write
 concern.
@@ -236,7 +237,10 @@ state.
 
 ## Authoritative event processing
 
-One `World` actor is the serialization point for accepted events and deterministic reducers. An
+One `World` actor is the serialization point for accepted events and deterministic reducers.
+**No reducers are registered yet**: every accepted event is persisted, sequenced, and published,
+but none currently produces a fact, so the `facts` collection stays empty until the first
+presence reducer (VW-006) lands. Beaky's mind therefore reasons from the conversation alone. An
 acceptance joins an ordered work chain, but MongoDB and fact persistence run in concurrent tasks
 outside the actor. The actor therefore remains responsive while storage is suspended without
 allowing a later event to overtake an earlier event.
@@ -338,12 +342,15 @@ Communicator history. The response body is `{ "disposition", "outcome", "convers
 before the Creature Server sink exists, the outcome is recorded as `failed` with
 `error_code: physical_speech_not_connected` rather than lost.
 
-Beaky writes a typed utterance to its local SwiftData outbox before attempting the POST. Retries
-reuse the same utterance ID, so an interrupted request cannot make Beaky hear April twice. A
-successful response replaces the provisional local item with Creature World's canonical item, and
-history synchronization pages forward from the durable API. Creature World records April's turn
-in the ordered world-event pipeline; it does not fabricate a Beaky response. A later character
-agent will consume that event and add Beaky's real turn to the same conversation.
+Beaky Communicator writes a typed utterance to its local SwiftData outbox before attempting the
+POST. Retries reuse the same utterance ID, so an interrupted request cannot make Beaky hear April
+twice. A successful response replaces the provisional local item with Creature World's canonical
+item, and history synchronization pages forward from the durable API. Creature World records
+April's turn in the ordered world-event pipeline as a `conversation.person_utterance` event whose
+payload is the `PersonUtterancePercept` (the utterance plus the prior conversation items,
+addressed to the character); it does not fabricate a Beaky response. `creature-agent` in world
+mode consumes that event from `/world/v1/stream`, thinks with the local model, and posts Beaky's
+turn to `…/responses` — see the [Creature Agent manual](creature-agent-manual.md).
 
 The communicator partitions its SwiftData conversation cache and durable outbox by the canonical
 configured Creature World URI. Development, staging, and production history must never be merged,
@@ -405,15 +412,18 @@ application. Build a release binary for direct testing with:
 On Linux, `./build_world.sh --static` statically links the Swift standard library. The resulting
 binary is copied atomically to `world/creature-world`.
 
-Build the Debian binary packages from the repository root with:
+Build the Debian binary packages for both architectures on any machine with Docker — the same
+Trixie environment, toolchain, and `dpkg-buildpackage` invocation CI uses — with:
 
 ```bash
-./build_deb.sh
+./build_debs.sh                 # amd64 and arm64, packages land in artifacts/
+./build_debs.sh --arch amd64    # fuzzball and production are amd64
 ```
 
-The shared Debian source build produces each monorepo product as a separate binary package. The
-Creature World artifact is written beside the repository as
-`creature-world_<version>_<architecture>.deb`. Install only that package with:
+(`./build_deb.sh` is the raw `dpkg-buildpackage` wrapper for a Linux host that already has the
+toolchain.) The shared Debian source build produces each monorepo product as a separate binary
+package; the Creature World artifact is `creature-world_<version>_<architecture>.deb`. Install
+only that package with:
 
 ```bash
 sudo apt install ./creature-world_0.2.1_amd64.deb
@@ -438,6 +448,20 @@ journalctl -u creature-world -f
 The unit runs with a dynamic user, restarts on process failure, and applies systemd hardening. A
 MongoDB outage does not cause a process failure, so systemd leaves the degraded service running
 while its internal retry loop reconnects.
+
+**Upgrading does not restart the service** (#144). The package is installed with `--no-start`,
+which also suppresses the restart-on-upgrade behaviour, so after `apt install` of a newer
+`.deb` the previous binary keeps running (or, if the unit was stopped, stays stopped). Until #144
+is fixed, always follow an upgrade with:
+
+```bash
+sudo systemctl restart creature-world
+curl --fail-with-body http://127.0.0.1:8001/world/v1/health   # confirm build_version
+```
+
+Graceful shutdown is fast: SIGTERM closes open subscriptions and streams, and the process exits
+in well under a second even with clients attached. A contested timer during startup recovery no
+longer aborts the MongoDB connect (fixed in `0.2.1`, #138).
 
 ## Observability and troubleshooting
 

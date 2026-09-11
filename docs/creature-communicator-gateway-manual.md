@@ -85,8 +85,8 @@ Build a release binary for direct testing with:
 ```
 
 On Linux, pass `--static`; the binary is copied atomically to
-`communicator-gateway/creature-communicator-gateway`. `./build_deb.sh` produces the independent
-`creature-communicator-gateway_0.1.3_<architecture>.deb` package alongside the repository.
+`communicator-gateway/creature-communicator-gateway`. `./build_debs.sh` produces the independent
+`creature-communicator-gateway_<version>_<architecture>.deb` package in `artifacts/`.
 
 ## Observability
 
@@ -97,15 +97,15 @@ in the [Creature World manual](creature-world-manual.md). Use a distinct service
 from the gateway request into Creature World. Do not record utterance text or secrets as span
 attributes.
 
-## Deployment handoff
+## Deployment
 
-PR #131 introduces a coordinated port and package transition: Creature World `0.1.12` defaults to
-port `8001`, while Creature Communicator Gateway `0.1.3` defaults to port `8002`. Creature Server
-continues to own port `8000`. Install and operate World and the gateway as independent products:
+Creature Server owns port `8000`, Creature World `8001`, and the gateway `8002`. Install and
+operate World and the gateway as independent products; build both with
+[`./build_debs.sh`](../README.md#debian-packages):
 
 ```bash
-sudo apt install ./creature-world_0.2.1_amd64.deb
-sudo apt install ./creature-communicator-gateway_0.1.3_amd64.deb
+sudo apt install ./creature-world_<version>_amd64.deb
+sudo apt install ./creature-communicator-gateway_<version>_amd64.deb
 sudo systemctl enable --now creature-world.service
 sudo systemctl enable --now creature-communicator-gateway.service
 ```
@@ -113,6 +113,12 @@ sudo systemctl enable --now creature-communicator-gateway.service
 The packages intentionally do not start services during installation. Before enabling them, review
 `/etc/creature/world.json` and `/etc/creature/communicator-gateway.json`. Package reinstall and
 removal preserve administrator configuration.
+
+**Upgrading does not restart the service** (#144): after `apt install` of a newer package the
+previous binary keeps running, so always follow an upgrade with
+`sudo systemctl restart creature-world creature-communicator-gateway` and confirm the
+`build_version` on both health endpoints. Restart World first; the gateway tolerates World being
+away and reconnects.
 
 On a shared host, the packaged loopback defaults are sufficient. If an ingress proxy runs on a
 different trusted-LAN host, bind the gateway and/or World to the required LAN interface and use the
