@@ -167,6 +167,17 @@ after, and it is not a "later":
 
 ## After this
 
+- **One mind per character, and they talk to each other.** April: "Beaky will be the leader and
+  most important, but I want her to be able to talk to Mango, Kenny, Caroll, etc without having
+  to assume how they feel." Each character gets its own `creature-agent` process
+  (`characterEntityId`) with its own personality and memories; Beaky never speaks *for* Mango —
+  Mango's mind answers, through the world, as `character.spoke` events and multi-character scenes
+  rendered by Creature Server's dialog pipeline (§8.3). That also means **agent collisions**
+  (April's Second Life scar): two minds for one character are already *safe* today — the same
+  consideration yields the same `response_id`, so the world keeps exactly one turn — but not
+  *coordinated*, and several characters in one room need turn-taking. The world will need a
+  character lease (one mind holds the right to be Beaky, heartbeat-renewed, like the foreground
+  leases) and scene-level turn-taking before a second mind is switched on.
 - **Each character's personality.** Today Beaky's voice is one `llmSystemPrompt` string plus a
   fixed conversation contract. The design wants residents with interests, aversions, relationship
   attitudes, running jokes, and their own memories (§2, §4.10, §8). That is a phase of its own:
