@@ -2,161 +2,112 @@
 
 ## Architecture and Implementation Handoff
 
-**Status:** Implementation underway; the World API and bidirectional Communicator transport are operational on production; Creature World now accepts character turns (branch #134)
-**Revision:** 2026-09-10 (evening)
+**Status:** Implementation underway; World and Communicator transport are on production; Creature World accepts character turns; Beaky answered April with her own words (Mistral Nemo) on fuzzball tonight (branch `vw-014-beaky-mind`)
+**Revision:** 2026-09-10 (late night)
 **Primary goal:** **Make Beaky really be April’s familiar.**  
 **Experience goal:** **Make the house feel alive.**  
 **Stack mantra:** **The world happens. The agents notice. The server performs. The controllers obey.**
 
 ---
 
-## 0. Current implementation handoff — 2026-09-10 (evening)
+## 0. Current implementation handoff — 2026-09-10 (late night)
 
 This section is intentionally operational and time-sensitive. It gives the next engineer or agent
 enough context to continue without reconstructing the implementation from chat history. **Keep it
 current in the same commit as the code it describes.**
 
-### 0.0 Addendum — VW-029 reopened (2026-09-10, branch `vw-029-linux-blackbox`, PR #139, #124)
-
-Two VW-029 done-when clauses had only ever been checked by hand: a black-box test against the
-real Linux service, and the contract tests passing on Swift 6.3.3 Linux in CI. PR #139 adds
-`CreatureWorldBlackBoxTests`, which launches the built `creature-world` executable and drives it
-over TCP (snapshot, `202`/live delta, history by sequence, `duplicate_event`, `Last-Event-ID`
-resume without a gap, April's utterance and Beaky's `…/responses` turn on the conversation
-stream, SIGTERM + relaunch, event and conversation history intact), and makes the Linux CI job
-run the whole Linux-capable suite (`swift test`, 728+ tests) instead of one persistence filter.
-Running everything at once on Linux exposed #138: a completion race on one overdue timer during
-startup recovery aborted the whole MongoDB connect (503 for everyone until the retry). Recovery
-now handles a failed timer like steady-state firing does. World `0.2.1`.
-
-Lessons recorded so nobody re-learns them: AsyncHTTPClient's pool backs off across requests after
-a refused connect (poll a raw socket before using it for readiness); the shared test database
-means a test may only assert on events from its own `source.id`; an ingested utterance is itself
-a `conversation.person_utterance` event under the utterance's source.
-
 ### 0.1 Repository and review state
 
-- `main` is at `f8d560d`: PR #135 (Beaky's stage, World `0.2.0`, #134) and PR #137
-  (`./build_debs.sh`, #136) merged 2026-09-10 evening. Plan for #134:
-  [`docs/character-response-plan.md`](character-response-plan.md).
-- Active branch: `vw-029-linux-blackbox` (PR #139, see 0.0 above).
-- Follow-ups filed from the #131 review: #132 (gateway collapses World 4xx/504 into 503
-  `world_unavailable`) and #133 (`UtteranceIngressResult.conversationItem` is the one camelCase
-  key on a snake_case wire).
-- VW-028 issue #119 was reconciled to the trusted-LAN model: pairing/token-auth/unauthorized-request
-  criteria were removed from its body with an explanatory comment.
+- `main` is at `95485cb`. Merged tonight, in order: PR #135 (Beaky's stage — World accepts
+  character turns, `0.2.0`, #134), PR #137 (`./build_debs.sh`, #136), PR #139 (VW-029 completion:
+  black-box Linux service test, full Linux CI suite, timer-recovery fix #138, World `0.2.1`).
+  #124, #134, #136, #138 are closed.
+- Active branch: `vw-014-beaky-mind` — **Beaky's mind** (VW-014 #105 + VW-015 #106). Plan:
+  [`docs/beaky-mind-plan.md`](beaky-mind-plan.md). `creature-agent` `2.55.0` (cli/mqtt in
+  lockstep).
+- Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
+  key), #140 (sanitizer stripped digits — fixed on this branch), #141 (gateway graceful shutdown
+  hangs while a Communicator SSE stream is open; systemd kills it after 90 s).
 
 ### 0.2 What is running now
 
-| Product | Version | Default port | API prefix |
-| --- | ---: | ---: | --- |
-| Creature Server | independently versioned | `8000` | existing API |
-| Creature World | `0.2.0` on fuzzball and production; `0.2.1` on PR #139 | `8001` | `/world/v1` |
-| Creature Communicator Gateway | `0.1.2` | `8002` | `/communicator/v1` |
+| Product | Version | Where | Notes |
+| --- | ---: | --- | --- |
+| Creature World | `0.2.0` | fuzzball (`10.69.66.1:8001`) and production | `0.2.1` on `main`, not yet deployed |
+| Communicator Gateway | `0.1.2` | fuzzball `:8002` and production | exporting to Honeycomb `production` since tonight |
+| Beaky's mind | branch build | **April's Mac**, `mode: world` against fuzzball | not packaged/deployed yet; Mistral Nemo via llama-server at `10.69.66.4:1234` |
 
-World `0.2.0` and gateway `0.1.2` are deployed and verified on **fuzzball** (`10.69.66.1`, dev)
-and **production** (`server.prod.chirpchirp.dev` ingress → 8001/8002). Verified live on
-2026-09-10: health on both ingress routes, history paging, `limit` validation, idempotent
-re-submission (`duplicate`), and a message typed on macOS arriving on an already-open SSE listener
-through production ingress (`"Hello Claude"` at `02:49:34Z`).
+**Tonight's firsts, all verified live:**
+1. Beaky's first turn on fuzzball, then on production, cast by hand (`POST …/responses`), landed
+   on April's phone live; April answered "Fun!" from the app.
+2. **Beaky's first words of her own.** `creature-agent` in world mode followed fuzzball's stream,
+   thought with Mistral Nemo over the canonical conversation, and answered: "I'd love to see them
+   in action! Can you show me?", then "Hi April! What new servos?", "Let's see them, April!" — no
+   human in the loop. Her mind rode through a World restart on its own (fresh connection, resumed
+   from its cursor).
+3. Honeycomb shows one 16-span trace for an utterance: gateway → World → ingest → accept →
+   process, context propagated across the hop. The mind's spans (`agent.consider`,
+   `llm.mistral.generate`, `creature.world.respond`) are children of that trace but April's Mac
+   was not exporting yet.
 
-Milestone A is real: April's typed words travel Communicator → gateway → World →
-`conversation.person_utterance` WorldEvent → live SSE to every other client. Every item in
-`conversation:april-beaky` was `author_kind: person` before this branch.
+### 0.3 What this branch adds — Beaky's mind (VW-014/VW-015)
 
-### 0.3 What this branch (#134) adds — Beaky gets a stage
-
-The `WorldCore` delivery contracts (`CharacterUtteranceIntent`, `CharacterDeliveryRouter`,
-`CharacterDeliveryRepository`, `PersonPresenceProviding`, sinks) existed with 17 tests but nothing
-in `CreatureWorld` used them. This branch wires them:
-
-- `POST /world/v1/conversations/{id}/responses` accepts a `CharacterUtteranceIntent`. 202 with
-  `disposition: accepted` when this call handled the turn; 200 with `disposition: duplicate` when
-  the same `response_id` was already handled. Body: `{disposition, outcome, conversation_item}`
-  (fixture `Fixtures/CreatureWorld/character-delivery-result-v1.json`).
-- `CharacterDeliveryRouter.route` now returns `CharacterDeliveryResult` (disposition + outcome +
-  canonical item) instead of a bare outcome, mirroring `UtteranceIngressResult`. A local smoke test
-  proved the old shape made the World republish a replayed turn to live listeners.
-- `MongoCharacterDeliveryRepository` (`character_deliveries`, `_id = response_id`, migration v4)
-  persists the canonical `ConversationItem` **before** any sink runs through the same
-  `saveConversationItem` path April's turns use, so both authors share one ordered history.
-- `UnknownPresenceProvider` honestly reports `state: unknown, confidence: 0` until VW-006/VW-013
-  exist, so every turn takes the private Communicator route with reason `presence_uncertain`.
-  No presence is fabricated.
-- `CommunicatorDeliverySink` returns `accepted` (durable app delivery = canonical item exists and
-  live clients were offered it; `performed` is reserved for real user interaction).
-  `NotConnectedPhysicalSpeechSink` records `failed` / `physical_speech_not_connected` rather than
-  throwing, so a turn routed to the room before VW-016 is still durable and visible.
-- The persistence provider publishes every newly durable Beaky item through
-  `ConversationUpdateBroker` regardless of route, so a turn later performed aloud still appears in
-  Communicator history live. Publication is at-least-once; clients upsert by item ID.
-- The Communicator UI already renders `authorKind == .character` bubbles and reply-to; no app
-  change was needed.
-
-**Verified on fuzzball (2026-09-10 ~20:30 PDT):** World `0.2.0` installed from the PR #135 GHA
-artifact; a turn cast with curl at `…/conversation:april-beaky/responses` returned
-`202 accepted` / route `communicator`, the open gateway stream received the item once, and **the
-Beaky bubble appeared live on April's phone** — the first thing Beaky has ever said through this
-path. **Verified on production (~21:00 PDT):** World `0.2.0` deployed; a turn cast through
-`server.prod.chirpchirp.dev` in reply to April's "Hello Claude" was accepted and pushed live, and
-April answered "Fun!" from the app — the first complete round trip on the real stage.
-
-Verified locally against Mongo 8.3.8: April's line + Beaky's reply appear in order in history;
-an SSE listener connected before the POST receives Beaky's item exactly once; replay is
-`200 duplicate`; reusing an `utterance_id` under a different conversation is refused (400). All
-747 `Common` tests pass with `MONGODB_TEST_URI` set.
+- `creature-agent` `mode: world` (default `mqtt` unchanged): `WorldPerceptSubscriber` follows
+  `/world/v1/stream` (snapshot start, `Last-Event-ID` resume, fresh HTTP client per connection
+  with a bounded connect — AsyncHTTPClient's pool backs off across requests after a refused
+  connect and would otherwise hang a World restart), keeps `conversation.person_utterance`
+  percepts for its character; `CharacterMind` runs deterministic guardrails (stale, not
+  addressed), builds the prompt from the persona + contract + canonical
+  `prior_conversation_items` (consecutive same-author turns coalesced — Mistral's template
+  rejects non-alternating roles with HTTP 400), calls the local model with a timeout, validates
+  (`[silence]`, empty, speech sanitizer, sentence-bounded truncation); `WorldResponder` POSTs the
+  `CharacterUtteranceIntent` with `response_id = response:<consideration uuid>`; the durable
+  `WorldAgentCursor` advances only after the world accepted/duplicated/rejected the turn.
+- Silence is a recorded decision (log + `creature_agent.considerations.outcome` metric with
+  `reason`). A replay after a crash re-asks the model; if it phrases differently the world refuses
+  the second identity and the mind treats that as "already answered".
+- `LocalLLMClient.respond(messages:)` takes an explicit transcript (MQTT mode's history untouched);
+  the SSE delegate now surfaces non-2xx responses instead of reporting an empty answer.
+- **Beaky's words are speech-clean at the source** (no emoji/symbols; digits preserved — #140):
+  most replies are spoken via the ad-hoc pipeline, Communicator shows the same text.
+- Tests: `CharacterMindTests`, `WorldMindServiceTests` (stub World on loopback: snapshot start,
+  crash replay never posts twice, outage retries from cursor, silence advances), sanitizer tests.
+  760 tests pass on macOS.
 
 ### 0.4 Deployment handoff
 
-World `0.2.0` is a drop-in over `0.1.12` (same port, additive route, additive migration v4 that
-only creates indexes). Deploy the `.deb` from CI, `systemctl restart creature-world`, confirm
-`build_version: "0.2.0"` on `/world/v1/health`, then cast a turn:
-
-```bash
-curl -sS -H 'content-type: application/json' \
-  --data '{"schema_version":1,"response_id":"response:<uuid>","conversation_id":"conversation:april-beaky","character_id":"character:beaky","recipient_id":"person:april","text":"...","urgency":0.5,"created_at":"<rfc3339>"}' \
-  http://10.69.66.1:8001/world/v1/conversations/conversation:april-beaky/responses
-```
-
-It should appear as a Beaky bubble on every open Communicator without reopening the app. No
-gateway change is needed; the agent will talk to World directly on the trusted LAN.
+Not deployed. To run Beaky's mind on fuzzball: install `creature-agent_2.55.0_amd64.deb`
+(`./build_debs.sh --arch amd64`), set `/etc/creature-agent.yaml` with `mode: world`,
+`llmBackend: local`, `localLlmHost/Port` → the llama-server, `worldUrl:
+http://127.0.0.1:8001/world/v1`, persona in `llmSystemPrompt` (the unit already passes
+`--host/--port` for Creature Server, unused in world mode). The unit now declares
+`StateDirectory=creature-agent`. Enable OTel in `/etc/default/creature-agent` to see her
+thinking in Honeycomb. Presence is still `unknown`, so every reply goes to Communicator.
 
 ### 0.5 What is not finished
 
-- Beaky still has no mind on this path. The route exists; nothing calls it except a human with
-  curl. The transport must not fabricate cognition to hide that gap.
-- Presence is `unknown` everywhere until VW-006 (#97) / VW-013 (#104). Physical speech (VW-016
-  #107) is a recorded-failure placeholder.
-- APNs registration, outbox, actions, quiet hours, expiry, retry, and preview/private payload
-  policy remain future VW-028 work. Foreground leases exist but are not yet a push system.
-- Stored `occurred_at` on outcomes is BSON millisecond precision; the first HTTP response carries
-  the in-memory sub-millisecond value, so it can differ from a later read by ≤1 ms. Harmless; note
-  it before writing an equality test across that boundary.
-- #132 and #133 remain open.
-- VW-030 issue #126 acceptance criteria should be compared against this branch's production wiring
-  before closing it.
+- **The physical stage.** April: most responses are spoken aloud; Communicator is the away/input
+  path. VW-016 (#107) must keep sentence streaming to Creature Server's ad-hoc session (ask the
+  world for the stage *before* generating), and an `assumed` presence should put Beaky in the
+  room until VW-006/VW-013 bring evidence. See the plan's correction section.
+- Character personalities: one persona string today; a phase of its own (per-character
+  definitions, memories, rubric).
+- #141 gateway shutdown hang; #132; #133. VW-015's full validated-JSON decision is deferred until
+  the local model's JSON reliability is measured.
+- APNs, foreground-lease-driven push, quiet hours, etc. remain future VW-028 work.
 
 ### 0.6 Exact next actions
 
-1. Merge PR #139 when its checks are green (the Linux job now runs the full suite and the
-   black-box test), then close #124 and #138. Deploy World `0.2.1` (`./build_debs.sh --arch amd64`
-   builds it locally; fuzzball and production are amd64) so a contested timer can no longer keep a
-   restarting World offline.
-2. Production and fuzzball already run `0.2.0` with the first round trip verified; nothing else
-   is pending on the transport.
-3. **Give Beaky a mind (slice B):** VW-014 (#105) + VW-015 (#106). A world-resident mode in
-   `creature-agent` behind a flag: subscribe to `/world/v1/stream` (SSE, `Last-Event-ID` resume),
-   take `conversation.person_utterance` deltas addressed to `character:beaky`, build a prompt from
-   facts + `prior_conversation_items` (never raw DTOs), ask the local Mistral/llama-server, produce
-   a `CharacterUtteranceIntent` with `in_response_to_utterance_id`, `POST …/responses`.
-   Idempotent by a stable `response_id` derived from the `consideration_id` so a restart never
-   makes her answer twice. Silence is a recorded decision, not an error. Preserve the existing
-   agent's `LocalLLMClient`, `TextSanitizer`, `ConversationHistory`, and OTel.
-4. Then VW-016 (#107): the physical-speech sink through Creature Server's ad-hoc speech API with
-   trace propagation, and VW-006/VW-013 so presence can choose the stage.
+1. Review/merge PR for `vw-014-beaky-mind`; deploy `creature-agent 2.55.0` to fuzzball in world
+   mode with OTel enabled; watch one full trace (phone → gateway → World → mind → model → World).
+2. Deploy World `0.2.1` to fuzzball and production (timer-recovery fix).
+3. Fix #141 (gateway shutdown with open SSE) — small, and it hurts every deploy.
+4. VW-016 + assumed presence: Beaky speaks in the room, streaming sentences, with the turn still
+   recorded in the shared history.
+5. Then personalities.
 
-Do not copy conversation state into the gateway; do not split typed composition and future STT
-into separate cognition pipelines; do not let any deterministic component author Beaky's words.
+Do not let any deterministic component author Beaky's words; do not copy conversation state into
+the gateway; do not split typed input and future STT into separate cognition pipelines.
 
 ## 1. Executive summary
 

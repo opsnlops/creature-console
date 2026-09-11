@@ -1,3 +1,16 @@
+creature-cli (2.55.0) unstable; urgency=medium
+
+  * creature-agent gains a world-resident mode (mode: world): it follows Creature
+    World's conversation stream, thinks with the local model over the canonical
+    conversation, and answers April through the world's delivery router. Restarts
+    resume from a durable cursor and can never make Beaky answer twice; silence is
+    a recorded decision (console#105, console#106).
+  * Fix TextSanitizer deleting every digit, "#" and "*" from speech because
+    Unicode marks them Emoji=Yes; chat surfaces now keep emoji (console#140).
+  * The creature-agent unit declares StateDirectory=creature-agent.
+
+ -- April White <april@creature.engineering>  Wed, 10 Sep 2026 22:40:00 -0700
+
 creature-cli (2.54.1+vw002.1) unstable; urgency=medium
 
   * Add the creature-world Debian package, JSON configuration, shell completions,

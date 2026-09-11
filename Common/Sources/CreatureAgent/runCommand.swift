@@ -1,9 +1,11 @@
 import ArgumentParser
+import AsyncHTTPClient
 import Common
 import Foundation
 import Logging
 import Observability
 import ServiceLifecycle
+import WorldCore
 
 extension CreatureAgent {
     struct Run: AsyncParsableCommand {
@@ -57,6 +59,17 @@ extension CreatureAgent {
             let logger = configuredLogger
 
             let config = try AgentConfig.load(from: URL(fileURLWithPath: configPath))
+            let traceResponses = traceOpenAI || traceOpenAICompat
+
+            if config.mode == .world {
+                try await runWorldMode(
+                    config: config,
+                    logger: logger,
+                    traceResponses: traceResponses,
+                    observabilityServices: otelServices
+                )
+                return
+            }
 
             let mqttHostValue = mqttHost ?? config.mqttHost
             let mqttPortValue = mqttPort ?? config.mqttPort
@@ -83,8 +96,6 @@ extension CreatureAgent {
             logger.debug("LLM backend: \(config.llmBackend)")
             logger.debug("LLM model \(config.llmModel)")
             logger.debug("LLM temperature \(config.llmTemperature)")
-
-            let traceResponses = traceOpenAI || traceOpenAICompat
 
             let respondToPrompt: @Sendable (String) async throws -> String
             var respondToPromptStreaming: (@Sendable (String) -> AsyncStream<String>)?
@@ -259,4 +270,114 @@ private func reportError(_ message: String) {
     if let data = "\(message)\n".data(using: .utf8) {
         FileHandle.standardError.write(data)
     }
+}
+
+// MARK: - World-resident mode
+
+enum WorldModeError: Error, LocalizedError {
+    case requiresLocalModel
+    case invalidEntityID(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .requiresLocalModel:
+            "mode: world requires llmBackend: local; the character mind runs on the local model"
+        case .invalidEntityID(let value):
+            "Invalid world entity identifier in configuration: \(value)"
+        }
+    }
+}
+
+/// Runs the agent as a resident of Creature World: follow the conversation, think with the
+/// local model, answer through the world's delivery router. Nothing here touches MQTT.
+private func runWorldMode(
+    config: AgentConfig,
+    logger: Logger,
+    traceResponses: Bool,
+    observabilityServices: [any Service]
+) async throws {
+    guard config.llmBackend == .local else { throw WorldModeError.requiresLocalModel }
+    let world = config.world
+    guard let characterID = EntityID(rawValue: world.characterEntityID) else {
+        throw WorldModeError.invalidEntityID(world.characterEntityID)
+    }
+    guard let personID = EntityID(rawValue: world.personEntityID) else {
+        throw WorldModeError.invalidEntityID(world.personEntityID)
+    }
+
+    logger.info(
+        "Beaky's mind is waking up in Creature World",
+        metadata: [
+            "world.url": "\(world.worldURL.absoluteString)",
+            "agent.character_id": "\(characterID.rawValue)",
+            "agent.person_id": "\(personID.rawValue)",
+            "agent.state_directory": "\(world.stateDirectory)",
+            "llm.model": "\(config.llmModel)",
+            "agent.prompt_version": "\(CharacterMind.promptVersion)",
+        ]
+    )
+
+    let localLLM = LocalLLMClient(
+        host: config.localLlmHost,
+        port: config.localLlmPort,
+        model: config.llmModel,
+        systemPrompt: config.llmSystemPrompt,
+        temperature: config.llmTemperature,
+        maxTokens: config.localLlmMaxTokens,
+        minSentenceChars: config.minSentenceChars,
+        conversationHistorySize: config.conversationHistorySize,
+        logger: logger,
+        traceResponses: traceResponses
+    )
+    var clientConfiguration = HTTPClient.Configuration()
+    clientConfiguration.timeout = .init(connect: .seconds(10), read: .seconds(120))
+    let client = HTTPClient(
+        eventLoopGroupProvider: .singleton,
+        configuration: clientConfiguration,
+        backgroundActivityLogger: logger
+    )
+    let cursor = WorldAgentCursor(
+        stateDirectory: URL(fileURLWithPath: world.stateDirectory, isDirectory: true),
+        worldURL: world.worldURL,
+        logger: logger
+    )
+    let mind = CharacterMind(
+        configuration: CharacterMind.Configuration(
+            persona: config.llmSystemPrompt,
+            characterID: characterID,
+            personID: personID,
+            maximumReplyAge: world.maximumReplyAge,
+            maximumContextTurns: world.maximumContextTurns,
+            modelTimeout: .seconds(world.llmTimeout),
+            modelName: config.llmModel
+        ),
+        respond: { try await localLLM.respond(messages: $0) },
+        logger: logger
+    )
+    let mindService = WorldMindService(
+        subscriber: WorldPerceptSubscriber(
+            worldURL: world.worldURL,
+            characterID: characterID,
+            cursor: cursor,
+            logger: logger
+        ),
+        mind: mind,
+        responder: WorldResponder(client: client, worldURL: world.worldURL, logger: logger),
+        client: client,
+        logger: logger
+    )
+    let healthCheck = LocalLLMHealthCheck(
+        host: config.localLlmHost,
+        port: config.localLlmPort,
+        intervalSeconds: 120,
+        logger: logger
+    )
+
+    let serviceGroup = ServiceGroup(
+        services: observabilityServices + [mindService, healthCheck],
+        gracefulShutdownSignals: [.sigterm],
+        cancellationSignals: [.sigint],
+        logger: Logger(label: "creature-agent")
+    )
+    try await serviceGroup.run()
 }

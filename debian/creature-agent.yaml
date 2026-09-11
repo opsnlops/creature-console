@@ -36,3 +36,22 @@ areas:
     items:
       - topic: home/alerts/front_door/person
         agentPrompt: front_door person detected
+
+# ---------------------------------------------------------------------------
+# World-resident mode (Beaky's mind). Set mode: world to follow Creature World's
+# conversation instead of MQTT topics; `areas` is then optional. Requires
+# llmBackend: local. Beaky answers April through the world's delivery router,
+# which decides Communicator vs. the room from presence.
+# ---------------------------------------------------------------------------
+# mode: world
+# llmBackend: local
+# localLlmHost: 10.69.66.4
+# localLlmPort: 1234
+# llmModel: mistral-nemo
+# worldUrl: http://127.0.0.1:8001/world/v1
+# characterEntityId: character:beaky
+# personEntityId: person:april
+# stateDirectory: /var/lib/creature-agent
+# maximumReplyAge: 3600       # seconds; older messages become recorded silences
+# maximumContextTurns: 20     # newest prior turns sent to the model
+# llmTimeoutSeconds: 60

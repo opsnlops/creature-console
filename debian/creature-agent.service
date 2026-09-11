@@ -11,6 +11,8 @@ ExecStart=/usr/bin/creature-agent run \
     --port ${CREATURE_SERVER_PORT}
 Restart=on-failure
 RestartSec=5
+# The world-resident mind keeps its place in Creature World's history here (mode: world).
+StateDirectory=creature-agent
 
 [Install]
 WantedBy=multi-user.target

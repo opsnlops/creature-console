@@ -12,6 +12,16 @@ struct TextSanitizerTests {
         #expect(result.removedCharacters > 0)
     }
 
+    @Test("Keeps digits, # and *, which Unicode also marks as emoji keycap bases")
+    func keepsDigitsAndKeycapBases() {
+        let result = TextSanitizer.sanitize("Flight #2 is at 11:30, rated 5* by 3 parrots")
+        #expect(result.text == "Flight #2 is at 11:30, rated 5* by 3 parrots")
+        #expect(result.removedCharacters == 0)
+
+        let keycap = TextSanitizer.sanitize("Option 1\u{FE0F}\u{20E3} please")
+        #expect(keycap.text == "Option 1 please")
+    }
+
     @Test("Preserves common Unicode punctuation")
     func preservesUnicodePunctuation() {
         let input = "April’s here—really."
