@@ -33,7 +33,7 @@ current in the same commit as the code it describes.**
 | Product | Version | Default port | API prefix |
 | --- | ---: | ---: | --- |
 | Creature Server | independently versioned | `8000` | existing API |
-| Creature World | `0.1.12` deployed; **`0.2.0` on this branch** | `8001` | `/world/v1` |
+| Creature World | `0.2.0` on fuzzball; `0.1.12` on production | `8001` | `/world/v1` |
 | Creature Communicator Gateway | `0.1.2` | `8002` | `/communicator/v1` |
 
 World `0.1.12` and gateway `0.1.2` are deployed and verified on **fuzzball** (`10.69.66.1`, dev)
@@ -75,6 +75,12 @@ in `CreatureWorld` used them. This branch wires them:
 - The Communicator UI already renders `authorKind == .character` bubbles and reply-to; no app
   change was needed.
 
+**Verified on fuzzball (2026-09-10 ~20:30 PDT):** World `0.2.0` installed from the PR #135 GHA
+artifact; a turn cast with curl at `…/conversation:april-beaky/responses` returned
+`202 accepted` / route `communicator`, the open gateway stream received the item once, and **the
+Beaky bubble appeared live on April's phone** — the first thing Beaky has ever said through this
+path. Production still runs `0.1.12` until #135 merges and is deployed.
+
 Verified locally against Mongo 8.3.8: April's line + Beaky's reply appear in order in history;
 an SSE listener connected before the POST receives Beaky's item exactly once; replay is
 `200 duplicate`; reusing an `utterance_id` under a different conversation is refused (400). All
@@ -114,8 +120,9 @@ gateway change is needed; the agent will talk to World directly on the trusted L
 
 1. Check the PR for #134: Swift Package tests, macOS/iOS app builds, MongoDB 8.3 tests, Debian
    amd64/arm64. Fix failures on the branch; keep Swift 6 strict concurrency and signed commits.
-2. Merge, fast-forward `main`, deploy World `0.2.0` to fuzzball, cast a Beaky turn with curl, and
-   watch it land on a phone. Then production.
+2. Merge, fast-forward `main`, deploy World `0.2.0` to production (fuzzball already done and
+   verified), and cast one turn through production ingress. `./build_debs.sh` (PR #137) builds
+   the `.deb` files locally in ~5 min (arm64 native) instead of waiting for GitHub Actions.
 3. **Give Beaky a mind (slice B):** VW-014 (#105) + VW-015 (#106). A world-resident mode in
    `creature-agent` behind a flag: subscribe to `/world/v1/stream` (SSE, `Last-Event-ID` resume),
    take `conversation.person_utterance` deltas addressed to `character:beaky`, build a prompt from
