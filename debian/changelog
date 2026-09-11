@@ -1,3 +1,11 @@
+creature-cli (2.55.2) unstable; urgency=medium
+
+  * creature-agent: a context window that opened on one of Beaky's own turns
+    was rejected by Mistral's chat template ("roles must alternate") and she
+    fell silent; the window now always opens with April's turn.
+
+ -- April White <april@creature.engineering>  Wed, 10 Sep 2026 23:20:00 -0700
+
 creature-cli (2.55.1) unstable; urgency=medium
 
   * creature-agent: graceful shutdown in world mode now cancels the world
