@@ -10,7 +10,7 @@
 
 ---
 
-## 0. Current implementation handoff — 2026-09-10 (late night)
+## 0. Current implementation handoff — 2026-09-11
 
 This section is intentionally operational and time-sensitive. It gives the next engineer or agent
 enough context to continue without reconstructing the implementation from chat history. **Keep it
@@ -18,40 +18,60 @@ current in the same commit as the code it describes.**
 
 ### 0.1 Repository and review state
 
-- `main` is at `95485cb`. Merged tonight, in order: PR #135 (Beaky's stage — World accepts
-  character turns, `0.2.0`, #134), PR #137 (`./build_debs.sh`, #136), PR #139 (VW-029 completion:
-  black-box Linux service test, full Linux CI suite, timer-recovery fix #138, World `0.2.1`).
-  #124, #134, #136, #138 are closed.
-- Active branch: `vw-014-beaky-mind` — **Beaky's mind** (VW-014 #105 + VW-015 #106). Plan:
-  [`docs/beaky-mind-plan.md`](beaky-mind-plan.md). `creature-agent` `2.55.0` (cli/mqtt in
-  lockstep).
+- `main` is at `d43fcbc`. Merged since the 2026-09-10 handoff: PR #142 (Beaky's mind), #143
+  (gateway shutdown, #141), #145 (`--no-start` on upgrade), #147 (user guide), #148 (context
+  window opens with April's turn, `2.55.2`), #150 (utterances carry April's trace, #149), #152
+  (Beaky's reply is delivered inside the `agent.turn` span, `2.55.3`).
+- Active branch: `vw-010-world-viewer` — **World Viewer** (VW-010 #101). Plan:
+  [`docs/world-viewer-plan.md`](world-viewer-plan.md); manual:
+  [`docs/world-viewer-manual.md`](world-viewer-manual.md). Creature World `0.3.0` (adds
+  `GET …/conversations/{id}/deliveries`).
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
-  key), #144 (World/gateway packages do not restart the running service on upgrade —
-  `dh_installsystemd --no-start`; tonight's prod upgrade needed manual restarts). #140 and #141 are
-  fixed (PR #142, PR #143).
+  key), #144 (World/gateway packages do not restart the running service on upgrade — deliberate
+  `--no-start`; restart by hand after `apt install`), #146 (mqtt conffile), #151 (Communicator
+  double POST on send).
 
 ### 0.2 What is running now
 
 | Product | Version | Where | Notes |
 | --- | ---: | --- | --- |
-| Creature World | `0.2.1` prod / `0.2.0` fuzzball | production and fuzzball (`10.69.66.1:8001`) | `0.2.1` carries the timer-recovery fix (#138) |
-| Communicator Gateway | `0.1.3` | production and fuzzball `:8002` | shutdown fix (#141) verified on both; exporting to Honeycomb `production` since tonight |
-| Beaky's mind | branch build | **April's Mac**, `mode: world` against fuzzball | not packaged/deployed yet; Mistral Nemo via llama-server at `10.69.66.4:1234` |
+| Creature World | `0.2.2` | production and fuzzball (`10.69.66.1:8001`) | `0.3.0` (this branch) adds the deliveries route the Viewer's Conversation panel reads |
+| Communicator Gateway | `0.1.3` | production and fuzzball `:8002` | exporting to Honeycomb `production` |
+| Beaky's mind | `creature-agent 2.55.3`, `mode: world` | **fuzzball only** | Mistral Nemo via llama-server at `10.69.66.4:1234`; production keeps `2.54.1` in `mqtt` mode (see 0.4) |
+| World Viewer | `0.1.0` (this branch) | April's laptop, run from Xcode | read-only; points at fuzzball or production |
 
-**Tonight's firsts, all verified live:**
-1. Beaky's first turn on fuzzball, then on production, cast by hand (`POST …/responses`), landed
-   on April's phone live; April answered "Fun!" from the app.
-2. **Beaky's first words of her own.** `creature-agent` in world mode followed fuzzball's stream,
-   thought with Mistral Nemo over the canonical conversation, and answered: "I'd love to see them
-   in action! Can you show me?", then "Hi April! What new servos?", "Let's see them, April!" — no
-   human in the loop. Her mind rode through a World restart on its own (fresh connection, resumed
-   from its cursor).
-3. Honeycomb shows one 16-span trace for an utterance: gateway → World → ingest → accept →
-   process, context propagated across the hop. The mind's spans (`agent.consider`,
-   `llm.mistral.generate`, `creature.world.respond`) are children of that trace but April's Mac
-   was not exporting yet.
+**Verified live so far:**
+1. Beaky's first turn (cast by hand) landed on April's phone from fuzzball, then production.
+2. **Beaky's first words of her own** on fuzzball, thinking with Mistral Nemo over the canonical
+   conversation; her mind rode through World restarts on its own. She shrugs (`[silence]`) at
+   things that were not questions to her — April likes that.
+3. One Honeycomb trace per utterance, end to end: phone → gateway → World → `agent.turn`
+   (consider → `llm.mistral.generate` → `creature.world.respond`) → World router.
 
-### 0.3 What this branch adds — Beaky's mind (VW-014/VW-015)
+### 0.3 What this branch adds — World Viewer (VW-010)
+
+- **Target `World Viewer`** (macOS, `io.opsnlops.World-Viewer`), cloned from the Communicator's
+  pbxproj entries under the `WVA…`/`WVT…` ID prefixes, with its own `World Viewer Tests` target
+  and shared scheme; CI's Xcode matrix builds it on macOS. Liquid Glass surfaces; Worldcraft
+  vocabulary in the UI (*Scry again*, *Mundane view*).
+- **Panels:** Timeline (snapshot-seeded ring of the newest 2,000 events, live via
+  `/world/v1/stream`, `Last-Event-ID` resume, `resnapshot_required` handling, sequence · type ·
+  epistemic · subjects · source · lag, filter), Conversation (both authors plus the router's
+  delivery chip per Beaky turn: route, reason, presence seen, outcome), Facts, Timers, and an
+  inspector showing any record as the JSON the World carries.
+- **Creature World `0.3.0`:** `GET /world/v1/conversations/{id}/deliveries` pages
+  `character_deliveries` by intent time (`after_response_id`, `limit`), through the
+  application-service boundary. The wire DTOs (`WorldHealth`, `WorldEventPage`, `WorldFactPage`,
+  `WorldTimerPage`, `WorldSnapshot`, `WorldDelta`, `WorldStreamFrame`, `CharacterDeliveryRecord`,
+  `CharacterDeliveryPage`) moved into `WorldCore` so the server, the agent, and the apps share one
+  definition; `WorldPerceptSubscriber` now decodes `WorldDelta` from there.
+- **`CreatureAppSupport.WorldViewerClient`:** typed reads plus `eventStream(resumeAfter:)` over
+  `URLSession.bytes` with a reusable `ServerSentEventFrameParser`.
+- **`WorldStore`** (`@MainActor @Observable`) follows the world and the conversation stream through
+  a `WorldScrying` seam; `WorldStoreTests` drive it against a scripted world (bound, gap-free
+  resume, resnapshot, delivery join).
+
+### 0.3a Beaky's mind (VW-014/VW-015) — merged, running on fuzzball
 
 - `creature-agent` `mode: world` (default `mqtt` unchanged): `WorldPerceptSubscriber` follows
   `/world/v1/stream` (snapshot start, `Last-Event-ID` resume, fresh HTTP client per connection
@@ -77,18 +97,22 @@ current in the same commit as the code it describes.**
 
 ### 0.4 Deployment handoff
 
-**`creature-agent 2.55.0` must not be deployed to production.** Production's agent (2.54.1,
+**`creature-agent 2.55.x` must not be deployed to production.** Production's agent (2.54.1,
 `mode: mqtt`) is what makes Beaky speak aloud in reaction to house events; world mode can only
 deliver through Communicator until VW-016 gives it the physical stage. It is a dev-only mind
 (April's Mac or fuzzball) for now.
 
-To run Beaky's mind on fuzzball: install `creature-agent_2.55.0_amd64.deb`
+To run Beaky's mind on fuzzball: install `creature-agent_2.55.3_amd64.deb`
 (`./build_debs.sh --arch amd64`), set `/etc/creature-agent.yaml` with `mode: world`,
 `llmBackend: local`, `localLlmHost/Port` → the llama-server, `worldUrl:
 http://127.0.0.1:8001/world/v1`, persona in `llmSystemPrompt` (the unit already passes
 `--host/--port` for Creature Server, unused in world mode). The unit now declares
 `StateDirectory=creature-agent`. Enable OTel in `/etc/default/creature-agent` to see her
 thinking in Honeycomb. Presence is still `unknown`, so every reply goes to Communicator.
+
+To use World Viewer's Conversation panel against fuzzball, deploy Creature World `0.3.0` there
+(`./build_debs.sh --arch amd64`, `sudo apt install ./creature-world_0.3.0_amd64.deb`, then
+`sudo systemctl restart creature-world` — #144). The other panels work against `0.2.2`.
 
 ### 0.5 What is not finished
 
@@ -107,27 +131,22 @@ thinking in Honeycomb. Presence is still `unknown`, so every reply goes to Commu
   room until VW-006/VW-013 bring evidence. See the plan's correction section.
 - Character personalities: one persona string today; a phase of its own (per-character
   definitions, memories, rubric).
-- #141 gateway shutdown hang; #132; #133. VW-015's full validated-JSON decision is deferred until
-  the local model's JSON reliability is measured.
+- World Viewer follow-ups: VW-011 *Why?* (provenance walk, #102), a Honeycomb trace link per
+  event/turn (URL template setting), entities. #132; #133; #151. VW-015's full validated-JSON
+  decision is deferred until the local model's JSON reliability is measured.
 - APNs, foreground-lease-driven push, quiet hours, etc. remain future VW-028 work.
 
 ### 0.6 Exact next actions
 
-1. PR #142 (mind) is merged; PR #143 (gateway shutdown) merges when green. Optionally run
-   `creature-agent 2.55.0` on fuzzball in world mode with OTel enabled and watch one full trace
-   (phone → gateway → World → mind → model → World). **Never on production** (see 0.4).
-2. Fix #144 so upgrades restart World and the gateway automatically.
-3. VW-016 + assumed presence: Beaky speaks in the room, streaming sentences, with the turn still
-   recorded in the shared history.
-4. **World Viewer (VW-010 #101, VW-011 #102) — soon, not "Phase 4".** April: "we also have the
-   world viewer app to build so I can debug as well as you." Tonight every look into the world
-   (stream, sequences, percepts, delivery decisions, traces) went through Claude's tooling. A
-   first useful cut: live event timeline, the conversation as the world holds it with both
-   authors, the delivery decision per Beaky turn (route, reason, presence), and a Honeycomb
-   trace link — on the APIs that already exist.
-5. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
-   about something real. Then personalities, and one mind per character with a character lease
-   so minds never collide.
+1. Merge `vw-010-world-viewer` (PR referencing #101), deploy World `0.3.0` to fuzzball, run the
+   Viewer from Xcode against fuzzball, type to Beaky from the phone, and watch the utterance,
+   her turn, and the router's decision arrive. Then production.
+2. VW-016 + assumed presence: Beaky speaks in the room, streaming sentences, with the turn still
+   recorded in the shared history — now watchable in the Viewer's delivery chips.
+3. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
+   about something real; the Facts panel is waiting. Then personalities, and one mind per
+   character with a character lease so minds never collide.
+4. VW-011 *Why?* in the Viewer once facts have provenance worth walking.
 
 Do not let any deterministic component author Beaky's words; do not copy conversation state into
 the gateway; do not split typed input and future STT into separate cognition pipelines.

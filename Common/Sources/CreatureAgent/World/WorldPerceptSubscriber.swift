@@ -146,7 +146,7 @@ actor WorldPerceptSubscriber {
             let envelope: WorldEventEnvelope
             if frame.event == "delta" {
                 envelope = try WorldJSON.makeDecoder()
-                    .decode(WorldStreamDelta.self, from: Data(frame.data.utf8)).event
+                    .decode(WorldDelta.self, from: Data(frame.data.utf8)).event
             } else {
                 envelope = try WorldJSON.makeDecoder()
                     .decode(WorldEventEnvelope.self, from: Data(frame.data.utf8))
@@ -174,11 +174,6 @@ actor WorldPerceptSubscriber {
             break
         }
     }
-}
-
-/// The part of a `/world/v1/stream` delta the agent reads. Changed facts are ignored here.
-private struct WorldStreamDelta: Decodable {
-    let event: WorldEventEnvelope
 }
 
 private func withTimeout<Value: Sendable>(

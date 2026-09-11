@@ -105,6 +105,28 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        router.get("v1/conversations/:conversationID/deliveries") { request, context in
+            await respond {
+                guard let rawConversationID = context.parameters.get("conversationID") else {
+                    throw WorldAPIError.invalidQuery(name: "conversation_id")
+                }
+                let conversationID = try ConversationID(validating: rawConversationID)
+                let after = try request.uri.queryParameters["after_response_id"].map {
+                    try ResponseID(validating: String($0))
+                }
+                let limit = try pageLimit(request)
+                return try await execute {
+                    try jsonResponse(
+                        await conversationService.deliveries(
+                            in: conversationID,
+                            after: after,
+                            limit: limit
+                        )
+                    )
+                }
+            }
+        }
+
         router.get("v1/conversations/:conversationID/stream") { request, context in
             await respond {
                 try validateOrigin(request)

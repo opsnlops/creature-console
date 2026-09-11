@@ -61,6 +61,34 @@ struct MongoCharacterDeliveryRepository: CharacterDeliveryRepository, Sendable {
         return stored
     }
 
+    /// Deliveries in one conversation in the order the character spoke, paged by response ID.
+    func deliveries(
+        in conversationID: ConversationID,
+        after responseID: ResponseID?,
+        limit: Int
+    ) async throws -> [StoredCharacterDelivery] {
+        precondition(limit > 0)
+        var query: Document = ["intent.conversation_id": conversationID.rawValue]
+        if let responseID {
+            guard
+                let anchor = try await deliveries.findOne(
+                    ["_id": responseID.rawValue],
+                    as: StoredCharacterDelivery.self
+                ), anchor.intent.conversationID == conversationID
+            else { throw WorldAPIError.invalidQuery(name: "after_response_id") }
+            let later: Document = ["intent.created_at": ["$gt": anchor.intent.createdAt]]
+            let sameInstant: Document = [
+                "intent.created_at": anchor.intent.createdAt,
+                "_id": ["$gt": responseID.rawValue],
+            ]
+            query["$or"] = [later, sameInstant]
+        }
+        return try await deliveries.find(query, as: StoredCharacterDelivery.self)
+            .sort(["intent.created_at": 1, "_id": 1])
+            .limit(limit)
+            .drain()
+    }
+
     func record(_ outcome: CharacterDeliveryOutcome) async throws {
         let encoded = try BSONEncoder().encode(outcome)
         let builder = deliveries.findOneAndUpdate(

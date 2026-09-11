@@ -132,6 +132,40 @@ struct WorldHTTPAPITests {
                 #expect(page.items.map(\.authorKind) == [.person, .character])
                 #expect(page.items.last?.responseID == intent.responseID)
             }
+
+            // The Viewer reads what the router decided about each of Beaky's turns.
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/deliveries?limit=10",
+                method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let page = try decode(CharacterDeliveryPage.self, response.body)
+                #expect(page.deliveries.count == 1)
+                #expect(page.deliveries.first?.intent.responseID == intent.responseID)
+                #expect(page.deliveries.first?.decision.reason == .presenceUncertain)
+                #expect(page.deliveries.first?.outcome?.state == .accepted)
+                #expect(page.nextResponseID == intent.responseID)
+                #expect(!page.hasMore)
+                let json = try #require(
+                    JSONSerialization.jsonObject(with: Data(buffer: response.body))
+                        as? [String: Any])
+                #expect(Set(json.keys) == ["deliveries", "next_response_id", "has_more"])
+            }
+            try await client.execute(
+                uri:
+                    "/world/v1/conversations/conversation:april-beaky/deliveries?after_response_id=\(intent.responseID.rawValue)",
+                method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let page = try decode(CharacterDeliveryPage.self, response.body)
+                #expect(page.deliveries.isEmpty)
+            }
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/deliveries?limit=0",
+                method: .get
+            ) { response in
+                #expect(response.status == .badRequest)
+            }
         }
     }
 
@@ -809,6 +843,56 @@ private actor TestConversationApplicationService: ConversationApplicationService
         results[utterance.utteranceID] = result
         subscribers[utterance.conversationID]?.yield(.item(item))
         return result
+    }
+
+    func deliveries(
+        in conversationID: ConversationID,
+        after responseID: ResponseID?,
+        limit: Int
+    ) -> CharacterDeliveryPage {
+        let all = responses.values
+            .filter { $0.conversationItem.conversationID == conversationID }
+            .sorted { $0.conversationItem.createdAt < $1.conversationItem.createdAt }
+        let start =
+            responseID.flatMap { id in all.firstIndex { $0.outcome.responseID == id } }
+            .map { $0 + 1 } ?? 0
+        let remaining = Array(all.dropFirst(start))
+        let page = remaining.prefix(limit).map { result in
+            CharacterDeliveryRecord(
+                intent: try! CharacterUtteranceIntent(
+                    responseID: result.outcome.responseID,
+                    conversationID: conversationID,
+                    characterID: result.conversationItem.authorID,
+                    recipientID: try! EntityID(validating: "person:april"),
+                    text: result.conversationItem.text,
+                    urgency: 0.4,
+                    createdAt: result.conversationItem.createdAt
+                ),
+                decision: try! CharacterDeliveryDecision(
+                    attemptID: result.outcome.attemptID,
+                    responseID: result.outcome.responseID,
+                    route: .communicator,
+                    privacyMode: .private,
+                    reason: .presenceUncertain,
+                    decidedAt: result.conversationItem.createdAt,
+                    presence: PersonPresence(
+                        personID: try! EntityID(validating: "person:april"),
+                        state: .unknown,
+                        confidence: 0,
+                        observedAt: result.conversationItem.createdAt,
+                        validUntil: result.conversationItem.createdAt,
+                        physicallyAudible: false
+                    )
+                ),
+                outcome: result.outcome,
+                conversationItem: result.conversationItem
+            )
+        }
+        return CharacterDeliveryPage(
+            deliveries: page,
+            nextResponseID: page.last?.intent.responseID,
+            hasMore: remaining.count > limit
+        )
     }
 
     func conversationItems(

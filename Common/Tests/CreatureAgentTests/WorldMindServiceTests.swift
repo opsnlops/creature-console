@@ -390,17 +390,13 @@ enum ServerSentFrame: Sendable {
             case .delta(let sequence, let envelope):
                 var stamped = envelope
                 stamped.worldSequence = sequence
-                let payload = try WorldJSON.makeEncoder().encode(StubDelta(event: stamped))
+                let payload = try WorldJSON.makeEncoder().encode(
+                    WorldDelta(event: stamped, changedFacts: []))
                 return
                     "event: delta\nid: \(sequence)\ndata: \(String(decoding: payload, as: UTF8.self))\n\n"
             }
         }
     }
-}
-
-private struct StubDelta: Encodable {
-    let event: WorldEventEnvelope
-    let changedFacts: [Fact] = []
 }
 
 /// Serves scripted `/world/v1/stream` connections and records `/responses` submissions.

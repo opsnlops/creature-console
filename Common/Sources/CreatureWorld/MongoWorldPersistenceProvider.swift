@@ -21,6 +21,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         @Sendable (CharacterUtteranceIntent) async throws -> CharacterDeliveryResult
     let conversationItems:
         @Sendable (ConversationID, ConversationItemID?, Int) async throws -> ConversationItemPage
+    let deliveries:
+        @Sendable (ConversationID, ResponseID?, Int) async throws -> CharacterDeliveryPage
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -136,6 +138,27 @@ struct MongoWorldPersistenceConnection: Sendable {
                 hasMore: hasMore
             )
         }
+        deliveries = { conversationID, after, limit in
+            let loaded = try await persistence.characterDeliveries.deliveries(
+                in: conversationID,
+                after: after,
+                limit: limit + 1
+            )
+            let hasMore = loaded.count > limit
+            let page = loaded.prefix(limit).map {
+                CharacterDeliveryRecord(
+                    intent: $0.intent,
+                    decision: $0.decision,
+                    outcome: $0.outcome,
+                    conversationItem: $0.conversationItem
+                )
+            }
+            return CharacterDeliveryPage(
+                deliveries: page,
+                nextResponseID: page.last?.intent.responseID,
+                hasMore: hasMore
+            )
+        }
         shutdown = {
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
@@ -180,6 +203,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         conversationItems:
             @escaping @Sendable (ConversationID, ConversationItemID?, Int) async throws
             -> ConversationItemPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
+        deliveries:
+            @escaping @Sendable (ConversationID, ResponseID?, Int) async throws
+            -> CharacterDeliveryPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
         shutdown: @escaping @Sendable () async -> Void
     ) {
         self.acceptEvent = acceptEvent
@@ -196,6 +222,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.ingestUtterance = ingestUtterance
         self.respondAsCharacter = respondAsCharacter
         self.conversationItems = conversationItems
+        self.deliveries = deliveries
         self.shutdown = shutdown
     }
 }
@@ -364,6 +391,15 @@ actor MongoWorldPersistenceProvider {
     ) async throws -> ConversationItemPage {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.conversationItems(conversationID, itemID, limit)
+    }
+
+    func deliveries(
+        in conversationID: ConversationID,
+        after responseID: ResponseID?,
+        limit: Int
+    ) async throws -> CharacterDeliveryPage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.deliveries(conversationID, responseID, limit)
     }
 
     func subscribe(to conversationID: ConversationID) async throws -> ConversationItemStream {

@@ -14,11 +14,6 @@ struct WorldEventAcceptance: Equatable, Sendable {
     let event: WorldEventEnvelope
 }
 
-struct WorldDelta: Codable, Equatable, Sendable {
-    let event: WorldEventEnvelope
-    let changedFacts: [Fact]
-}
-
 struct WorldLimits: Equatable, Sendable {
     static let `default` = WorldLimits()
 
