@@ -202,6 +202,35 @@ enum FactPhrasing {
             return "It is \(shown) degrees Celsius \(at)."
         case "humidity_percent":
             return "The humidity \(at) is \(shown) percent."
+        case "wind_mph":
+            // April: "she can remind me when it's windy!"
+            switch value {
+            case ..<3: return "The air is still \(at)."
+            case ..<15: return "There is a light wind \(at), about \(whole) miles per hour."
+            case ..<30: return "It is windy \(at): about \(whole) miles per hour."
+            default:
+                return
+                    "It is very windy \(at): about \(whole) miles per hour. Things may blow around."
+            }
+        case "rain_today_in":
+            if value < 0.01 { return "It has not rained today." }
+            let inches = String(format: "%.1f", value)
+            return "It has rained \(inches) inch\(inches == "1.0" ? "" : "es") today."
+        case "pressure_hpa":
+            return "The barometer reads \(shown) hectopascals."
+        case "pm25_ugm3":
+            let air =
+                switch value {
+                case ..<12: "clean"
+                case ..<35: "a little hazy"
+                case ..<55: "poor; sensitive people should stay in"
+                default: "bad; everyone should stay inside"
+                }
+            return
+                "The air \(at) is \(air) (fine particles about \(whole) micrograms per cubic meter)."
+        case "power_w":
+            let kilowatts = String(format: "%.1f", value / 1_000)
+            return "The house is drawing about \(kilowatts) kilowatts right now."
         default:
             return "\(place): \(predicate.replacingOccurrences(of: "_", with: " ")) is \(shown)."
         }

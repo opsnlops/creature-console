@@ -47,6 +47,12 @@ profile → Security) in `/etc/default/creature-house` as `HA_TOKEN=…` and kee
 | `measurement` | `sensor.*` with a number | → `environment.measurement_changed` with `predicate` and `value`; a move smaller than `minimum_change` **from the last value the world was told** is dropped (so a thermometer creeping 0.2° at a time still gets announced once it has drifted a degree; `0.1.1`) |
 | `detection` | `binary_sensor.<camera>_person_detected` etc. | `on` → `camera.person_seen` / `vehicle_seen` / `animal_seen` (`detects`); `off` is not news, and a camera already seeing something at startup is not news either. At startup the adapter also announces `camera.watching` for each such place (`0.1.2`), so a camera that has seen nothing is a fact the birds can state — "The cameras at the front door and the driveway have seen nobody and nothing in the last ten minutes" — rather than a shrug |
 
+The packaged `house.json` maps April's weather station and power monitor as measurements —
+`humidity_percent`, `wind_mph`, `rain_today_in`, `pressure_hpa`, `pm25_ugm3` on `place:outside`
+and `power_w` on the house — and the agent has words for each ("It is windy outside: about 18
+miles per hour", "It has not rained today", "The air outside is clean", "The house is drawing
+about 2.2 kilowatts right now"). New predicates are just a mapping line plus a phrasing.
+
 Every event is about the mapping's `subject_id` (a `place:` or `person:`), `observed` with
 confidence 1, `occurred_at` = Home Assistant's `last_changed`, `source` =
 `home-assistant:<entity>`, and `source_event_id` = Home Assistant's context id — so a change

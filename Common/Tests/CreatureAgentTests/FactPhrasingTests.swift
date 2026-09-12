@@ -89,6 +89,43 @@ struct FactPhrasingTests {
         #expect(FactPhrasing.placeName(of: outside) == "Outside")
     }
 
+    @Test("Weather and power have words, with the judgement built in")
+    func weatherAndPowerAreSentences() throws {
+        let outside = try EntityID(validating: "place:outside")
+        let house = try EntityID(validating: "house:aprils-nest")
+        func line(_ subject: EntityID, _ predicate: String, _ value: Double) throws -> String? {
+            FactPhrasing.sentence(
+                for: try fact(subject, "environment." + predicate, .number(value), .observed, 1),
+                character: beaky, now: now)
+        }
+        #expect(try line(outside, "wind_mph", 0) == "The air is still outside.")
+        #expect(
+            try line(outside, "wind_mph", 8)
+                == "There is a light wind outside, about 8 miles per hour.")
+        #expect(
+            try line(outside, "wind_mph", 18.4) == "It is windy outside: about 18 miles per hour.")
+        #expect(
+            try line(outside, "wind_mph", 34)
+                == "It is very windy outside: about 34 miles per hour. Things may blow around.")
+        #expect(try line(outside, "rain_today_in", 0) == "It has not rained today.")
+        #expect(try line(outside, "rain_today_in", 0.34) == "It has rained 0.3 inches today.")
+        #expect(try line(outside, "rain_today_in", 1.0) == "It has rained 1.0 inch today.")
+        #expect(
+            try line(outside, "pressure_hpa", 996.3)
+                == "The barometer reads about 996 hectopascals.")
+        #expect(try line(outside, "humidity_percent", 63) == "The humidity outside is 63 percent.")
+        #expect(
+            try line(outside, "pm25_ugm3", 5.3)
+                == "The air outside is clean (fine particles about 5 micrograms per cubic meter).")
+        #expect(
+            try line(outside, "pm25_ugm3", 60)
+                == "The air outside is bad; everyone should stay inside (fine particles about 60 micrograms per cubic meter)."
+        )
+        #expect(
+            try line(house, "power_w", 2244.9)
+                == "The house is drawing about 2.2 kilowatts right now.")
+    }
+
     @Test("A watching camera that has seen nothing is a sentence, not a shrug")
     func quietCamerasAreAFact() throws {
         let frontDoor = try EntityID(validating: "place:front-door")

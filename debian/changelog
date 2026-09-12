@@ -1,3 +1,15 @@
+creature-cli (2.62.5+world0.8.2+house0.1.3) unstable; urgency=medium
+
+  * creature-house 0.1.3: April's weather and power sensors in the packaged
+    house.json - outside humidity, wind (mph), rain today (inches), the
+    barometer, PM2.5, and the whole-house power draw.
+  * creature-agent 2.62.5: words for them, with the judgement built in -
+    "It is windy outside: about 18 miles per hour", "It has not rained
+    today", "The air outside is clean", "The house is drawing about 2.2
+    kilowatts right now".
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 16:30:00 -0700
+
 creature-cli (2.62.4+world0.8.2+house0.1.2) unstable; urgency=medium
 
   * creature-agent 2.62.4: spoken measurements are whole numbers - "about 67
