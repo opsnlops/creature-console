@@ -89,6 +89,34 @@ struct FactPhrasingTests {
         #expect(FactPhrasing.placeName(of: outside) == "Outside")
     }
 
+    @Test("A watching camera that has seen nothing is a sentence, not a shrug")
+    func quietCamerasAreAFact() throws {
+        let frontDoor = try EntityID(validating: "place:front-door")
+        let driveway = try EntityID(validating: "place:driveway")
+        let carport = try EntityID(validating: "place:carport")
+        let watching = [
+            try fact(frontDoor, WorldFacts.cameraWatching, .bool(true), .observed, 1),
+            try fact(driveway, WorldFacts.cameraWatching, .bool(true), .observed, 1),
+            try fact(carport, WorldFacts.cameraWatching, .bool(true), .observed, 1),
+        ]
+
+        #expect(
+            FactPhrasing.lines(for: watching, character: beaky, now: now) == [
+                "The cameras at the front door, the driveway and the carport have seen nobody and nothing in the last ten minutes."
+            ])
+        // One that has seen something drops out of the quiet list.
+        let busy = watching + [try fact(driveway, "seen.vehicle", .bool(true), .observed, 1)]
+        #expect(
+            FactPhrasing.lines(for: busy, character: beaky, now: now) == [
+                "A vehicle was seen at the driveway just now.",
+                "The cameras at the front door and the carport have seen nobody and nothing in the last ten minutes.",
+            ])
+        #expect(
+            FactPhrasing.lines(for: [watching[0]], character: beaky, now: now) == [
+                "The camera at the front door has seen nobody and nothing in the last ten minutes."
+            ])
+    }
+
     @Test("A person the world can only describe is described, and the blank is named")
     func thinPeopleAreMarked() throws {
         let polly = try EntityID(validating: "person:polly")

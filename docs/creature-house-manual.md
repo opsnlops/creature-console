@@ -45,7 +45,7 @@ profile → Security) in `/etc/default/creature-house` as `HA_TOKEN=…` and kee
 | `motion` | `binary_sensor.*` (motion) | `on` → `motion.detected`; `off` → `motion.cleared` |
 | `person` | `person.*` / `device_tracker.*` | `home` → `person.arrived`; anything else → `person.left` (moving between two away zones is neither) |
 | `measurement` | `sensor.*` with a number | → `environment.measurement_changed` with `predicate` and `value`; a move smaller than `minimum_change` **from the last value the world was told** is dropped (so a thermometer creeping 0.2° at a time still gets announced once it has drifted a degree; `0.1.1`) |
-| `detection` | `binary_sensor.<camera>_person_detected` etc. | `on` → `camera.person_seen` / `vehicle_seen` / `animal_seen` (`detects`); `off` is not news, and a camera already seeing something at startup is not news either |
+| `detection` | `binary_sensor.<camera>_person_detected` etc. | `on` → `camera.person_seen` / `vehicle_seen` / `animal_seen` (`detects`); `off` is not news, and a camera already seeing something at startup is not news either. At startup the adapter also announces `camera.watching` for each such place (`0.1.2`), so a camera that has seen nothing is a fact the birds can state — "The cameras at the front door and the driveway have seen nobody and nothing in the last ten minutes" — rather than a shrug |
 
 Every event is about the mapping's `subject_id` (a `place:` or `person:`), `observed` with
 confidence 1, `occurred_at` = Home Assistant's `last_changed`, `source` =

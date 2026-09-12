@@ -26,6 +26,8 @@ public enum WorldFacts {
     /// A camera saw someone or something at a place, for a few minutes: `seen.person`,
     /// `seen.vehicle`, `seen.animal`.
     public static let seenPrefix = "seen."
+    /// A camera watches this place, so nothing seen is itself a fact.
+    public static let cameraWatching = "camera.watching"
     /// A measurement of a place: `environment.<predicate>` (`environment.temperature_f`).
     public static let environmentPrefix = "environment."
     /// The lighting scenes the house offers, on `house:<name>`: an array of names.
@@ -52,6 +54,8 @@ public enum HouseEvents {
     public static let personSeen = WorldEventType(rawValue: "camera.person_seen")!
     public static let vehicleSeen = WorldEventType(rawValue: "camera.vehicle_seen")!
     public static let animalSeen = WorldEventType(rawValue: "camera.animal_seen")!
+    /// The house says a camera watches a place (at startup, per detection mapping).
+    public static let cameraWatching = WorldEventType(rawValue: "camera.watching")!
     public static let personArrived = WorldEventType(rawValue: "person.arrived")!
     public static let personLeft = WorldEventType(rawValue: "person.left")!
     public static let measurementChanged = WorldEventType(

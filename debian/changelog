@@ -1,3 +1,14 @@
+creature-cli (2.62.3+world0.8.2+house0.1.2) unstable; urgency=medium
+
+  * Nothing on the camera is a fact. creature-house 0.1.2 announces which
+    places its cameras watch (camera.watching, at startup, idempotent);
+    creature-world 0.8.2 keeps it as a fact; creature-agent 2.62.3 phrases
+    the quiet ones together: "The cameras at the front door, the driveway
+    and the carport have seen nobody and nothing in the last ten minutes."
+    "Is something outside?" gets an answer instead of a shrug.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 16:05:00 -0700
+
 creature-cli (2.62.2+world0.8.1+house0.1.1) unstable; urgency=medium
 
   * creature-world 0.8.1: a message that is nothing but a scene's name

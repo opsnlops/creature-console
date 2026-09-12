@@ -15,6 +15,22 @@ enum FactPhrasing {
         var lines = facts.compactMap {
             sentence(for: $0, character: character, now: now, pronouns: pronouns)
         }
+        // Cameras that are watching and have seen nothing: silence is a fact, said once for
+        // all of them, so "is something outside?" gets an answer instead of a shrug.
+        let watched = facts.filter { $0.predicate == WorldFacts.cameraWatching }
+            .map(\.subjectID)
+        let seen = Set(
+            facts.filter { $0.predicate.hasPrefix(WorldFacts.seenPrefix) }.map(\.subjectID))
+        let quiet = watched.filter { !seen.contains($0) }
+        if !quiet.isEmpty {
+            let names = quiet.map { placeName(of: $0).lowercased() }
+            let list =
+                names.count == 1
+                ? names[0] : names.dropLast().joined(separator: ", ") + " and " + names.last!
+            lines.append(
+                "The camera\(names.count == 1 ? "" : "s") at \(list) \(names.count == 1 ? "has" : "have") seen nobody and nothing in the last ten minutes."
+            )
+        }
         // A person the world can only describe in one phrase is a blank a small model fills
         // with invention ("Polly lives in Seattle"); say plainly that the blank is a blank.
         let described = facts.filter { $0.predicate == WorldFacts.personDescription }
@@ -52,6 +68,8 @@ enum FactPhrasing {
             return "\(who) is here in the room with you\(certainty)."
         case WorldFacts.characterPronouns:
             return nil  // said alongside the name wherever the character is mentioned.
+        case WorldFacts.cameraWatching:
+            return nil  // said for all the quiet cameras at once, after the facts.
         case WorldFacts.personDescription:
             guard case .string(let description) = fact.value else { return nil }
             return "\(subject) is \(description)."
