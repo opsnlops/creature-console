@@ -1,3 +1,14 @@
+creature-cli (2.62.2+world0.8.1+house0.1.1) unstable; urgency=medium
+
+  * creature-world 0.8.1: a message that is nothing but a scene's name
+    ("@beaky normal evening", "Goodnight, please") is an ask, verb or no
+    verb; a name inside a longer sentence still needs one.
+  * creature-agent 2.62.2: a bird may not claim the lights are changing
+    unless the world told it the house is doing it - Beaky said "Goodnight
+    is set" when nothing had happened.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 15:50:00 -0700
+
 creature-cli (2.62.1+world0.8.0+house0.1.1) unstable; urgency=medium
 
   * creature-agent 2.62.1: OpenAI streaming goes through AsyncHTTPClient.

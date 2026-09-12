@@ -98,7 +98,7 @@ enum FactPhrasing {
                 return nil
             }
             return
-                "You can set the lights to: \(list.joined(separator: ", ")). If April asks for one of these, the house does it the moment she asks; you only need to say so."
+                "The house can set the lights to these scenes: \(list.joined(separator: ", ")). You cannot set them yourself: the house acts when April names one, and you will be told here when it does. Never say the lights are changing unless you are told so below; if April asks and you were not told, say the house did not catch it and ask her to name the scene."
         case WorldFacts.houseSceneRequested:
             guard case .string(let scene) = fact.value else { return nil }
             return

@@ -81,9 +81,12 @@ With `scenes.offer` on, the adapter posts `house.scenes_offered` at startup (the
 of every `scene.*`), which becomes the `house.scenes` fact on `house_id`, phrased to the minds
 as "You can set the lights to: Normal Evening, Movie Time, …". Recognising an ask is a
 **world rule, not a model roll**: at ingress, `SceneRequestRule` matches the words against the
-offered names (case- and punctuation-insensitive, longest name wins, and only with a trigger
-word — set, switch, turn, make, lights, scene, mode, go — so "I love movie time" is a
-mention, not an ask). A match posts `house.scene_requested`; the adapter, following the
+offered names (case- and punctuation-insensitive, longest name wins). A message that is
+*nothing but* a scene's name — "@beaky normal evening", "Goodnight, please" — is an ask; a
+name inside a longer sentence needs a trigger word (set, switch, turn, make, lights, scene,
+mode, go) so "I love movie time" is a mention, not an ask (`0.8.1`). The minds are told they
+cannot set scenes themselves and must not claim the lights are changing unless the world says
+the house is doing it (agent `2.62.2`). A match posts `house.scene_requested`; the adapter, following the
 world's stream, calls `scene.turn_on` and posts `house.scene_activated` → the `house.scene`
 fact. The mind that was asked is told "April just asked for the lights to be set to Normal
 Evening, and the house is doing it right now" in the same percept, so it answers in its own
