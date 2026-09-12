@@ -15,7 +15,7 @@ struct HouseService: Service {
     let delivery: WorldDelivery
     let client: HTTPClient
     let logger: Logger
-    let translator: HouseTranslator
+    let announcer: HouseAnnouncer
     let eventsCounter = Counter(label: "creature_house.events")
 
     static let reconnectDelay: Duration = .seconds(5)
@@ -32,7 +32,8 @@ struct HouseService: Service {
             outboxPath: configuration.outboxPath, logger: logger)
         self.client = client
         self.logger = logger
-        self.translator = HouseTranslator(mappings: configuration.mappings)
+        self.announcer = HouseAnnouncer(
+            translator: HouseTranslator(mappings: configuration.mappings))
     }
 
     func run() async throws {
@@ -92,7 +93,7 @@ struct HouseService: Service {
 
     private func announce(from old: EntityState?, to new: EntityState) async {
         do {
-            for event in try translator.events(from: old, to: new) {
+            for event in try await announcer.events(from: old, to: new) {
                 eventsCounter.increment()
                 logger.info(
                     "The house says",
@@ -226,5 +227,27 @@ struct HouseService: Service {
                 "Could not set the scene",
                 metadata: ["house.scene": "\(name)", "error": "\(error)"])
         }
+    }
+}
+
+/// The translator, plus a memory of what the world was last told per entity. A measurement's
+/// `minimum_change` is measured from there, not from Home Assistant's previous reading: a
+/// thermometer creeping 0.2° at a time would otherwise never be news at all.
+actor HouseAnnouncer {
+    private let translator: HouseTranslator
+    private var announced: [String: EntityState] = [:]
+
+    init(translator: HouseTranslator) {
+        self.translator = translator
+    }
+
+    func events(from old: EntityState?, to new: EntityState) throws -> [WorldEventEnvelope] {
+        let since = announced[new.entityID] ?? old
+        let events = try translator.events(from: since, to: new)
+        // Remember what the world heard: the snapshot always, and any change that was news.
+        if since == nil || !events.isEmpty {
+            announced[new.entityID] = new
+        }
+        return events
     }
 }

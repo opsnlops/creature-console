@@ -44,7 +44,7 @@ profile → Security) in `/etc/default/creature-house` as `HA_TOKEN=…` and kee
 | `door` | `binary_sensor.*` (door class) | `on` → `door.opened`; `off` → `door.closed` |
 | `motion` | `binary_sensor.*` (motion) | `on` → `motion.detected`; `off` → `motion.cleared` |
 | `person` | `person.*` / `device_tracker.*` | `home` → `person.arrived`; anything else → `person.left` (moving between two away zones is neither) |
-| `measurement` | `sensor.*` with a number | → `environment.measurement_changed` with `predicate` and `value`; moves smaller than `minimum_change` are dropped |
+| `measurement` | `sensor.*` with a number | → `environment.measurement_changed` with `predicate` and `value`; a move smaller than `minimum_change` **from the last value the world was told** is dropped (so a thermometer creeping 0.2° at a time still gets announced once it has drifted a degree; `0.1.1`) |
 | `detection` | `binary_sensor.<camera>_person_detected` etc. | `on` → `camera.person_seen` / `vehicle_seen` / `animal_seen` (`detects`); `off` is not news, and a camera already seeing something at startup is not news either |
 
 Every event is about the mapping's `subject_id` (a `place:` or `person:`), `observed` with

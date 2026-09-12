@@ -110,6 +110,37 @@ struct HouseTranslatorTests {
                 .isEmpty)
     }
 
+    @Test("A creeping thermometer crosses minimum_change cumulatively, measured from what was told")
+    func minimumChangeIsCumulative() async throws {
+        let announcer = HouseAnnouncer(translator: translator)
+        // The snapshot is always told.
+        let first = try await announcer.events(
+            from: nil, to: state("sensor.outside_temperature", "68.7"))
+        #expect(first.only?.payload["value"] == .number(68.7))
+        // 0.2° steps: none is news on its own…
+        #expect(
+            try await announcer.events(
+                from: state("sensor.outside_temperature", "68.7"),
+                to: state("sensor.outside_temperature", "68.9")
+            ).isEmpty)
+        #expect(
+            try await announcer.events(
+                from: state("sensor.outside_temperature", "68.9"),
+                to: state("sensor.outside_temperature", "69.4")
+            ).isEmpty)
+        // …until the drift from 68.7 reaches a degree.
+        let crossed = try await announcer.events(
+            from: state("sensor.outside_temperature", "69.4"),
+            to: state("sensor.outside_temperature", "70.1"))
+        #expect(crossed.only?.payload["value"] == .number(70.1))
+        // And the next degree is measured from 70.1.
+        #expect(
+            try await announcer.events(
+                from: state("sensor.outside_temperature", "70.1"),
+                to: state("sensor.outside_temperature", "70.6")
+            ).isEmpty)
+    }
+
     @Test("A camera detection is a moment: only turning on, and never at startup")
     func detections() throws {
         #expect(

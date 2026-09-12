@@ -1,3 +1,15 @@
+creature-cli (2.62.0+world0.8.0+house0.1.1) unstable; urgency=medium
+
+  * creature-house 0.1.1: a measurement's minimum_change is measured from
+    the last value the world was told, not from Home Assistant's previous
+    reading - a thermometer creeping 0.2 degrees at a time never crossed a
+    1-degree threshold, so the outside temperature stayed at the snapshot.
+  * The packaged world.json carries April's real Creature Server URL,
+    assumed presence, and streaming scenes, so a conffile prompt on upgrade
+    cannot leave the world unable to speak.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 15:10:00 -0700
+
 creature-cli (2.62.0+world0.8.0) unstable; urgency=medium
 
   * creature-house 0.1.0 (new): the Home Assistant adapter. Follows HA's
