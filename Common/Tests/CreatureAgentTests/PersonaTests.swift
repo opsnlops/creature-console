@@ -187,6 +187,22 @@ struct PersonaTests {
                 == "Two plus two is four.")
     }
 
+    @Test("The personas the package ships all decode and name themselves")
+    func shippedPersonasDecode() throws {
+        let personas = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("docs/personas")
+        let files = try FileManager.default.contentsOfDirectory(atPath: personas.path)
+            .filter { $0.hasSuffix(".yaml") }.sorted()
+        #expect(files == ["beaky.yaml", "kenny.yaml", "mango.yaml"])
+        for file in files {
+            let persona = try Persona.load(from: personas.appendingPathComponent(file))
+            #expect(persona.name.lowercased() + ".yaml" == file)
+            #expect(persona.pronouns != nil)
+            #expect(!persona.never.isEmpty)
+        }
+    }
+
     private func presence(_ character: EntityID, _ region: WorldJSONValue) throws -> Fact {
         try Fact(
             subjectID: character, predicate: WorldFacts.characterRegion, value: region,
