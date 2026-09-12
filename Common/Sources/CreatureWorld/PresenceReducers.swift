@@ -19,17 +19,33 @@ struct CharacterPresenceReducer: WorldReducer {
             case .string(let rawRegion)? = event.payload["region_id"]
         else { return WorldReduction() }
         let present = event.type == CharacterSessionService.loginEventType
-        let fact = try Fact(
-            subjectID: character,
-            predicate: WorldFacts.characterRegion,
-            value: present ? .string(rawRegion) : .null,
-            epistemic: EpistemicState(type: .observed, confidence: 1),
-            validFrom: event.occurredAt,
-            derivedFrom: [.event(event.eventID)],
-            producer: FactProducer(
-                kind: PresenceFacts.producerKind, id: "character-presence", version: "1")
-        )
-        return WorldReduction(changedFacts: [fact])
+        let producer = FactProducer(
+            kind: PresenceFacts.producerKind, id: "character-presence", version: "2")
+        var facts = [
+            try Fact(
+                subjectID: character,
+                predicate: WorldFacts.characterRegion,
+                value: present ? .string(rawRegion) : .null,
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: event.occurredAt,
+                derivedFrom: [.event(event.eventID)],
+                producer: producer
+            )
+        ]
+        // Who a character is outlasts a login; the fact stays until a later login changes it.
+        if present, case .string(let pronouns)? = event.payload["pronouns"], !pronouns.isEmpty {
+            facts.append(
+                try Fact(
+                    subjectID: character,
+                    predicate: WorldFacts.characterPronouns,
+                    value: .string(pronouns),
+                    epistemic: EpistemicState(type: .observed, confidence: 1),
+                    validFrom: event.occurredAt,
+                    derivedFrom: [.event(event.eventID)],
+                    producer: producer
+                ))
+        }
+        return WorldReduction(changedFacts: facts)
     }
 }
 

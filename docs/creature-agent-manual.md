@@ -153,7 +153,10 @@ creature-agent run --config-path agent.yaml --log-level info --host <creature-se
   persona rendered in sections — who you are, how you talk, what you care about and steer away
   from, *the ones here and how you feel about them* (only the characters the world's presence
   facts or the scene's participants say are present, plus the speaker), running jokes, and
-  `never` rules last — followed by the contract and "What you know". Rendering is deterministic,
+  `never` rules last — followed by the contract and "What you know". A persona's `pronouns`
+  go to the world at login and come back to every other mind as an `identity.pronouns` fact,
+  so the ones here are named with theirs: "Mango (he/him) is here in the room with you",
+  "- Kenny (he/him): Protective…". A bird's pronouns live in that bird's file only. Rendering is deterministic,
   so a persona edit reviews as a diff of what the model reads; `agent.persona_version`
   (`name/version`) is on every `agent.consider` and `agent.scene.consider` span. Restart the
   mind after editing a persona. See [`docs/personas/README.md`](personas/README.md).

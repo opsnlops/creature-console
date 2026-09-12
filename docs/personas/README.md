@@ -10,11 +10,11 @@ and the conversation or scene. Personality lives here and nowhere else (`beakys-
 | --- | --- | --- |
 | `name` | yes | the character's spoken name |
 | `version` | no (1) | bump it when you edit; every span carries `agent.persona_version` = `name/version` |
-| `pronouns` | no | rendered after the name |
+| `pronouns` | no | rendered after the name, and sent to the world at login so the other birds are told them (`identity.pronouns`); never write another bird's pronouns into your file |
 | `about` | yes | who this character is, a paragraph or two |
 | `voice` | no | how they talk: length, tone, tics |
 | `cares_about`, `avoids` | no | lists |
-| `relationships` | no | entity ID → how this character feels about them; **only the ones present are rendered**, from the world's presence facts or the scene's participants |
+| `relationships` | no | entity ID → how this character feels about them, as a string or as `{pronouns, feeling}`; **only the ones present are rendered**, from the world's presence facts or the scene's participants. `pronouns` here is what *this* character believes; the world's `identity.pronouns` fact (from the other bird's own file, at its login) outranks it |
 | `running_jokes` | no | list |
 | `never` | no | hard rules, rendered last |
 

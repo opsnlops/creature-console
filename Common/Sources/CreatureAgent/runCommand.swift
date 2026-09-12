@@ -379,7 +379,8 @@ private func runWorldMode(
             host: ProcessInfo.processInfo.hostName,
             processID: Int(ProcessInfo.processInfo.processIdentifier),
             creatureID: config.creatureId,
-            version: CreatureAgent.configuration.version
+            version: CreatureAgent.configuration.version,
+            pronouns: persona.pronouns
         ),
         logger: logger
     )

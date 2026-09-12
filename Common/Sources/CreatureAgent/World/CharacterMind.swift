@@ -477,8 +477,9 @@ struct CharacterMind: Sendable {
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
-                content: configuration.persona.rendered(present: present) + "\n\n"
-                    + Self.sceneContract(others: others)
+                content: configuration.persona.rendered(
+                    present: present, pronouns: FactPhrasing.pronouns(in: offer.worldFacts))
+                    + "\n\n" + Self.sceneContract(others: others)
                     + knowledgeBlock(offer.worldFacts, now: now)
             )
         ]
@@ -565,8 +566,9 @@ struct CharacterMind: Sendable {
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
-                content: configuration.persona.rendered(present: present) + "\n\n"
-                    + Self.contract(for: route)
+                content: configuration.persona.rendered(
+                    present: present, pronouns: FactPhrasing.pronouns(in: percept.worldFacts))
+                    + "\n\n" + Self.contract(for: route)
                     + knowledgeBlock(percept.worldFacts, now: now)
             )
         ]

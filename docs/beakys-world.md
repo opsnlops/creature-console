@@ -54,7 +54,7 @@ fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn 
 
 ### 0.3 What branch `personas-p1` adds — who each bird is (P1, #168)
 
-Stacked on `facts-f1`. Agent `2.60.0`.
+Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
 
 - **`Persona`** (`CreatureAgent/World/Persona.swift`): `docs/personas/<bird>.yaml` — name,
   version, pronouns, about, voice, cares_about, avoids, relationships (by entity ID),
@@ -70,8 +70,14 @@ Stacked on `facts-f1`. Agent `2.60.0`.
   only a direction is a pass. Tonight: Kenny `*giggles* "I love you all too`, Beaky "With a
   chirpy tone, I say, …" — the persona `never` rules address the narration, the stripper the
   markers.
+- **Pronouns travel (World `0.7.2`):** `CharacterMindInstance.pronouns` at login →
+  `identity.pronouns` fact (outlasts the login) → "Mango (he/him) is here" and
+  "- Kenny (he/him): …" in every other mind's prompt. April: "include the pronouns of the
+  other birds… so that Beaky addresses them correctly" — each bird's pronouns live only in
+  its own file; the world carries them.
 - **`WorldFacts`** (WorldCore) now holds the predicate names shared by World and agent
-  (`presence.region`, `presence.state`, `presence.physically_audible`, `scene.last`).
+  (`presence.region`, `presence.state`, `presence.physically_audible`, `identity.pronouns`,
+  `scene.last`).
 - **Personas written:** Beaky (from the deployed prompt + the doc draft), Mango (draft), Kenny
   (first sketch) — April's to correct. Installed by the package to
   `/etc/creature/agent/personas/` as conffiles; the sample `agent.yaml` shows `personaPath`.

@@ -39,7 +39,9 @@ struct PersonaTests {
             persona.about
                 == "A parrot who has lived with Beaky for years and is not impressed by much.")
         #expect(persona.caresAbout == ["Linux", "being right", "April's parts orders arriving"])
-        #expect(persona.relationships["character:kenny"] == "Protective; Kenny is the youngest.")
+        #expect(
+            persona.relationships["character:kenny"]
+                == Persona.Relationship(feeling: "Protective; Kenny is the youngest."))
         #expect(persona.never.count == 3)
         #expect(persona.versionTag == "mango/2")
 
@@ -86,6 +88,33 @@ struct PersonaTests {
                 """)
         #expect(!rendered.contains("Kenny"))
         #expect(persona.rendered(present: [april, beaky]) == rendered)
+        // With the world's pronoun facts, the ones here are named with them.
+        #expect(
+            persona.rendered(present: [beaky], pronouns: [beaky: "she/her"])
+                .contains("- Beaky (she/her): Affectionate rivalry"))
+    }
+
+    @Test("A relationship may state the other's pronouns; the world's own fact outranks it")
+    func relationshipPronounsAreAFallback() throws {
+        let persona = try Persona.load(
+            from: write(
+                """
+                name: Beaky
+                about: The lead.
+                relationships:
+                  character:mango:
+                    pronouns: he/him
+                    feeling: "Computer geek."
+                  character:kenny: "Not very smart; you are kind to him."
+                """))
+
+        #expect(persona.relationships["character:mango"]?.pronouns == "he/him")
+        #expect(persona.relationships["character:kenny"]?.pronouns == nil)
+        let believed = persona.rendered(present: [mango, kenny])
+        #expect(believed.contains("- Mango (he/him): Computer geek."))
+        #expect(believed.contains("- Kenny: Not very smart; you are kind to him."))
+        let told = persona.rendered(present: [mango], pronouns: [mango: "they/them"])
+        #expect(told.contains("- Mango (they/them): Computer geek."))
         // Nobody with a relationship present: the section is absent, never empty.
         #expect(!persona.rendered(present: []).contains("The ones here"))
     }
@@ -110,12 +139,18 @@ struct PersonaTests {
             priorConversationItems: [], sceneID: nil,
             worldFacts: [
                 try presence(kenny, "region:home"), try presence(beaky, .null),
+                try Fact(
+                    subjectID: kenny, predicate: WorldFacts.characterPronouns,
+                    value: .string("he/him"),
+                    epistemic: EpistemicState(type: .observed, confidence: 1),
+                    validFrom: now, derivedFrom: [],
+                    producer: FactProducer(kind: "reducer", id: "test", version: "1")),
             ])
 
         let system = mind.makeTranscript(for: percept, now: now)[0].content
 
         // Kenny is logged in, Beaky logged out, April is speaking.
-        #expect(system.contains("- Kenny: Protective; Kenny is the youngest."))
+        #expect(system.contains("- Kenny (he/him): Protective; Kenny is the youngest."))
         #expect(system.contains("- April: Fond"))
         #expect(!system.contains("- Beaky:"))
         #expect(system.contains("Never: speak for another bird"))

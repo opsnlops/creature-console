@@ -220,6 +220,7 @@ run on the authoritative event loop, and tells the minds about them. The first r
 | Event | Fact | Epistemic |
 | --- | --- | --- |
 | `character.logged_in` / `logged_out` | `character:<x>` `presence.region` = `region:home` (or `null` on logout) | observed, 1 |
+| `character.logged_in` with `pronouns` (the mind's persona, `0.7.2`) | `character:<x>` `identity.pronouns` = `he/him`; outlasts the login | observed, 1 |
 | `presence.assumed` (announced from `presence.assumed` in `world.json` at startup, idempotent) | `person:april` `presence.state` = `home`, `presence.physically_audible` = `true` | assumed, configured confidence |
 | `scene.performed` | `region:home` `scene.last` = trigger and lines, valid for one hour | observed, 1 |
 

@@ -27,7 +27,22 @@ struct PresenceReducerTests {
         #expect(fact.epistemic.type == .observed)
         #expect(fact.derivedFrom == [.event(login.eventID)])
         #expect(left.first?.value == .null)
+        #expect(left.count == 1)
         #expect(try reducer.reduce(try unrelatedEvent()).changedFacts.isEmpty)
+    }
+
+    @Test("A mind that says its pronouns at login makes them a fact about the character")
+    func pronounsBecomeAFact() throws {
+        var login = try sessionEvent(CharacterSessionService.loginEventType)
+        login.payload["pronouns"] = .string("he/him")
+
+        let facts = try CharacterPresenceReducer().reduce(login).changedFacts
+
+        #expect(
+            facts.map(\.predicate) == [WorldFacts.characterRegion, WorldFacts.characterPronouns])
+        #expect(facts[1].subjectID == mango)
+        #expect(facts[1].value == .string("he/him"))
+        #expect(facts[1].validTo == nil)
     }
 
     @Test("A configured assumption is announced once and becomes an assumed fact")

@@ -18,10 +18,39 @@ struct Persona: Decodable, Equatable, Sendable {
     let avoids: [String]
     /// How this character feels about someone, by entity ID (`character:mango`, `person:april`).
     /// Only the ones actually present are rendered.
-    let relationships: [String: String]
+    let relationships: [String: Relationship]
     let runningJokes: [String]
     /// Hard rules, rendered last so they are the freshest thing the model has read.
     let never: [String]
+
+    /// What this character thinks of someone: the feeling, and — as this character believes
+    /// them — the other's pronouns. The world's own `identity.pronouns` fact, when it has one,
+    /// outranks this: a bird's pronouns are that bird's to state.
+    struct Relationship: Decodable, Equatable, Sendable {
+        let feeling: String
+        let pronouns: String?
+
+        init(feeling: String, pronouns: String? = nil) {
+            self.feeling = feeling
+            self.pronouns = pronouns
+        }
+
+        private enum CodingKeys: String, CodingKey { case feeling, pronouns }
+
+        /// `character:mango: "Computer geek."` or
+        /// `character:mango: {pronouns: he/him, feeling: "Computer geek."}`.
+        init(from decoder: any Decoder) throws {
+            if let feeling = try? decoder.singleValueContainer().decode(String.self) {
+                self.init(feeling: feeling.trimmingCharacters(in: .whitespacesAndNewlines))
+                return
+            }
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.init(
+                feeling: try container.decode(String.self, forKey: .feeling)
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                pronouns: try container.decodeIfPresent(String.self, forKey: .pronouns))
+        }
+    }
 
     /// `name/version`, on every span as `agent.persona_version`.
     var versionTag: String { "\(name.lowercased())/\(version)" }
@@ -37,7 +66,8 @@ struct Persona: Decodable, Equatable, Sendable {
     init(
         name: String, version: Int = 1, pronouns: String? = nil, about: String,
         voice: String? = nil, caresAbout: [String] = [], avoids: [String] = [],
-        relationships: [String: String] = [:], runningJokes: [String] = [], never: [String] = []
+        relationships: [String: Relationship] = [:], runningJokes: [String] = [],
+        never: [String] = []
     ) {
         self.name = name
         self.version = version
@@ -64,7 +94,8 @@ struct Persona: Decodable, Equatable, Sendable {
         caresAbout = try container.decodeIfPresent([String].self, forKey: .caresAbout) ?? []
         avoids = try container.decodeIfPresent([String].self, forKey: .avoids) ?? []
         relationships =
-            try container.decodeIfPresent([String: String].self, forKey: .relationships) ?? [:]
+            try container.decodeIfPresent([String: Relationship].self, forKey: .relationships)
+            ?? [:]
         runningJokes = try container.decodeIfPresent([String].self, forKey: .runningJokes) ?? []
         never = try container.decodeIfPresent([String].self, forKey: .never) ?? []
         guard !name.isEmpty else {
@@ -91,7 +122,7 @@ struct Persona: Decodable, Equatable, Sendable {
     /// actually here: a relationship with someone absent is noise the model would act on.
     /// Deterministic — the same persona and company always render the same text — so a
     /// persona edit reviews as a diff of what the model sees.
-    func rendered(present: [EntityID]) -> String {
+    func rendered(present: [EntityID], pronouns known: [EntityID: String] = [:]) -> String {
         var sections: [String] = []
         var who = "You are \(name)"
         if let pronouns { who += " (\(pronouns))" }
@@ -107,8 +138,9 @@ struct Persona: Decodable, Equatable, Sendable {
             sections.append("You steer away from: " + Self.list(avoids) + ".")
         }
         let company = present.compactMap { id -> String? in
-            guard let feeling = relationships[id.rawValue] else { return nil }
-            return "- \(FactPhrasing.name(of: id)): \(feeling)"
+            guard let relationship = relationships[id.rawValue] else { return nil }
+            let pronouns = known[id] ?? relationship.pronouns
+            return "- \(FactPhrasing.name(of: id, pronouns: pronouns)): \(relationship.feeling)"
         }
         if !company.isEmpty {
             sections.append(
@@ -144,9 +176,16 @@ enum CharacterPersona: Equatable, Sendable {
         }
     }
 
-    func rendered(present: [EntityID]) -> String {
+    var pronouns: String? {
         switch self {
-        case .structured(let persona): persona.rendered(present: present)
+        case .structured(let persona): persona.pronouns
+        case .text: nil
+        }
+    }
+
+    func rendered(present: [EntityID], pronouns: [EntityID: String] = [:]) -> String {
+        switch self {
+        case .structured(let persona): persona.rendered(present: present, pronouns: pronouns)
         case .text(let text): text
         }
     }

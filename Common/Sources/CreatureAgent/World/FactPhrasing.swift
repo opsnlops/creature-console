@@ -11,10 +11,26 @@ enum FactPhrasing {
         character: EntityID,
         now: Date
     ) -> [String] {
-        facts.compactMap { sentence(for: $0, character: character, now: now) }
+        let pronouns = pronouns(in: facts)
+        return facts.compactMap {
+            sentence(for: $0, character: character, now: now, pronouns: pronouns)
+        }
     }
 
-    static func sentence(for fact: Fact, character: EntityID, now: Date) -> String? {
+    /// Who uses which pronouns, from `identity.pronouns` facts.
+    static func pronouns(in facts: [Fact]) -> [EntityID: String] {
+        var pronouns: [EntityID: String] = [:]
+        for fact in facts where fact.predicate == WorldFacts.characterPronouns {
+            if case .string(let value) = fact.value, pronouns[fact.subjectID] == nil {
+                pronouns[fact.subjectID] = value
+            }
+        }
+        return pronouns
+    }
+
+    static func sentence(
+        for fact: Fact, character: EntityID, now: Date, pronouns: [EntityID: String] = [:]
+    ) -> String? {
         let subject = name(of: fact.subjectID)
         let certainty = qualifier(for: fact.epistemic)
         switch fact.predicate {
@@ -23,7 +39,10 @@ enum FactPhrasing {
             guard case .string = fact.value else {
                 return "\(subject) has left."
             }
-            return "\(subject) is here in the room with you\(certainty)."
+            let who = name(of: fact.subjectID, pronouns: pronouns[fact.subjectID])
+            return "\(who) is here in the room with you\(certainty)."
+        case WorldFacts.characterPronouns:
+            return nil  // said alongside the name wherever the character is mentioned.
         case WorldFacts.personState:
             guard case .string(let state) = fact.value else { return nil }
             switch state {
@@ -83,6 +102,12 @@ enum FactPhrasing {
         let raw = entityID.rawValue
         guard let colon = raw.firstIndex(of: ":") else { return raw }
         return String(raw[raw.index(after: colon)...]).capitalized
+    }
+
+    /// "Mango (he/him)" when the world knows the pronouns, "Mango" when it does not.
+    static func name(of entityID: EntityID, pronouns: String?) -> String {
+        guard let pronouns, !pronouns.isEmpty else { return name(of: entityID) }
+        return "\(name(of: entityID)) (\(pronouns))"
     }
 
     private static func qualifier(for epistemic: EpistemicState) -> String {

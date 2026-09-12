@@ -8,6 +8,8 @@ public enum WorldFacts {
     /// Whether a person is home, away, or unknown.
     public static let personState = "presence.state"
     public static let personAudible = "presence.physically_audible"
+    /// A character's pronouns, as its persona states them; told to the world at login.
+    public static let characterPronouns = "identity.pronouns"
     /// What was last said in a region: the trigger and the lines, valid for an hour.
     public static let lastScene = "scene.last"
 }
