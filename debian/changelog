@@ -1,10 +1,13 @@
-creature-cli (2.61.0+world0.7.3) unstable; urgency=medium
+creature-cli (2.61.1+world0.7.3) unstable; urgency=medium
 
   * creature-world 0.7.3: `facts` in world.json states facts outright
     ("Polly is April's sister"; epistemic reported), announced at startup
     and superseded by any later source. Facts about a person named in the
     words ride with the percept (WorldMentions). Migration 8 adds the
     predicate_subjects index on facts.
+  * creature-agent 2.61.1: a mind's login carries its model (backend/model)
+    and World Viewer shows it in the Characters panel. (2.61.0 was a CI
+    build April installed before this landed.)
   * creature-agent 2.61.0: a mind may run on OpenAI in world mode
     (llmBackend: openai, streamed through the Responses API, optional
     openAiReasoningEffort) so one bird can be compared against Mistral

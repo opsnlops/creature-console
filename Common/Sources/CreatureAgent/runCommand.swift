@@ -414,7 +414,8 @@ private func runWorldMode(
             processID: Int(ProcessInfo.processInfo.processIdentifier),
             creatureID: config.creatureId,
             version: CreatureAgent.configuration.version,
-            pronouns: persona.pronouns
+            pronouns: persona.pronouns,
+            model: "\(config.llmBackend.rawValue)/\(config.llmModel)"
         ),
         logger: logger
     )
