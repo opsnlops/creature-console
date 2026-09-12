@@ -81,6 +81,8 @@ systemd service reads `/etc/creature/world.json` by default.
 | Browser stream origins | `allowed_origins` | `CREATURE_WORLD_ALLOWED_ORIGINS` | — | None |
 | Assumed presence | `presence.assumed` | — | — | None (presence is `unknown`) |
 | Creature Server for scenes | `creature_server.url` (+ `proxy_host`, `api_key`) | — | — | None (scenes are recorded as `creature_server_not_configured`) |
+| Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
+| Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.maximum_spoken_seconds`, `scenes.words_per_second` | — | — | `8`, `12`, `90`, `2.5` |
 
 Example:
@@ -151,20 +153,39 @@ a row, at `maximum_turns`, or when the composed speech would exceed `maximum_spo
 (estimated at `words_per_second`); a new scene in the region interrupts an open one. Every spoken
 turn is also a conversation item, so the Communicator shows the exchange as it is composed.
 
-A closed scene with words is performed as one jointly conditioned render through Creature
-Server's ad-hoc dialog pipeline (`POST /api/v1/animation/dialog`, `persistence: "adhoc"`,
-autoplay) — each character speaks through the creature its mind logged in with — and the
-server's job ID is recorded as the performance. Without `creature_server` configured the scene
-is recorded as `abandoned` with `creature_server_not_configured`, visible in World Viewer's
-Scenes panel, never lost. A scene with no words is `abandoned` without a render. Events:
-`scene.opened`, `scene.turn_offered`, `scene.turn`, `scene.closed`, `scene.performed`.
+Two ways to the room, chosen by `scene_performance`:
+
+- **`streaming`** (default; Creature Server 3.46.0+, creature-server#186): when the scene opens
+  the world opens a `dialog-stream` session for the participants on the **stage the region maps
+  to** (`regions.<region>.stage_id`; the server needs placements so the birds look at each
+  other), sends each spoken turn the moment it is composed — it plays ~2 s later while the next
+  bird is still thinking — and on close calls `finish`, which waits for the last turn to play
+  and stitches the exchange into one ad-hoc animation (recorded as the performance). Turns are
+  single-voice renders. If the session cannot be opened (a controller offline, a participant not
+  placed on the stage, no stage mapped for the region) the scene falls back to the complete
+  render below, so it is still heard.
+- **`complete`**: the closed scene is rendered as one jointly conditioned performance through
+  the ad-hoc dialog pipeline (`POST /api/v1/animation/dialog`, `persistence: "adhoc"`,
+  autoplay); the server's job ID is recorded as `queued`. Slower to start, but the voices react
+  to each other in tone.
+
+Each character speaks through the creature its mind logged in with. Without `creature_server`
+configured the scene is recorded as `abandoned` with `creature_server_not_configured`, visible
+in World Viewer's Scenes panel, never lost. A scene with no words is `abandoned` without a
+render. Events: `scene.opened`, `scene.turn_offered`, `scene.turn`, `scene.closed`,
+`scene.performed`.
 
 ```json
 {
   "creature_server": { "url": "https://server.prod.chirpchirp.dev" },
+  "scene_performance": "streaming",
+  "regions": { "region:home": { "stage_id": "0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4" } },
   "scenes": { "floor_seconds": 8, "maximum_turns": 12, "maximum_spoken_seconds": 90 }
 }
 ```
+
+Stages come from `GET /api/v1/stage` on Creature Server; `Mainstage` above has every bird
+placed on it.
 
 ### Local Debian builds under the upgraded Docker Desktop
 

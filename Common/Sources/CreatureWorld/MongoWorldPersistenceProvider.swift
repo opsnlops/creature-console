@@ -45,6 +45,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         presence: PresenceConfiguration = PresenceConfiguration(),
         creatureServer: CreatureServerConfiguration? = nil,
         sceneLimits: SceneLimits = SceneLimits(),
+        scenePerformance: ScenePerformanceMode = .streaming,
+        regions: [EntityID: RegionConfiguration] = [:],
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
@@ -80,13 +82,28 @@ struct MongoWorldPersistenceConnection: Sendable {
         if let creatureServer {
             let client = HTTPClient(eventLoopGroupProvider: .singleton)
             sceneClient = client
-            performer = CreatureServerScenePerformer(
+            let creatures = SessionCreatureResolver(sessions: sessionService)
+            let complete = CreatureServerScenePerformer(
                 configuration: creatureServer,
-                creatures: SessionCreatureResolver(sessions: sessionService),
+                creatures: creatures,
                 client: client,
                 clock: clock,
                 logger: logger
             )
+            switch scenePerformance {
+            case .streaming:
+                performer = StreamingScenePerformer(
+                    configuration: creatureServer,
+                    regions: regions,
+                    creatures: creatures,
+                    fallback: complete,
+                    client: client,
+                    clock: clock,
+                    logger: logger
+                )
+            case .complete:
+                performer = complete
+            }
         } else {
             sceneClient = nil
             performer = NotConnectedScenePerformer(clock: clock)
@@ -390,6 +407,8 @@ actor MongoWorldPersistenceProvider {
         presence: PresenceConfiguration = PresenceConfiguration(),
         creatureServer: CreatureServerConfiguration? = nil,
         sceneLimits: SceneLimits = SceneLimits(),
+        scenePerformance: ScenePerformanceMode = .streaming,
+        regions: [EntityID: RegionConfiguration] = [:],
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -405,6 +424,8 @@ actor MongoWorldPersistenceProvider {
                         presence: presence,
                         creatureServer: creatureServer,
                         sceneLimits: sceneLimits,
+                        scenePerformance: scenePerformance,
+                        regions: regions,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )

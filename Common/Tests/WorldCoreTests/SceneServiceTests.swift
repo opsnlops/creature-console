@@ -72,6 +72,10 @@ struct SceneServiceTests {
         #expect(final.turns.count == 4)
         #expect(final.performance?.providerReference == "animation:scene")
         #expect(await world.performer.performed.map(\.sceneID) == [scene.sceneID])
+        // The performer heard the scene open and each spoken turn as it landed, so a streaming
+        // stage can play them before the scene closes.
+        #expect(await world.performer.opened == [scene.sceneID])
+        #expect(await world.performer.spoken.map(\.characterID) == [beaky, mango])
         #expect(await world.recorded.count == 2)
         #expect(
             await world.announced.types.last(2) == [
@@ -298,12 +302,18 @@ private actor RecordedTurns {
 }
 
 private actor FakePerformer: ScenePerforming {
+    private(set) var opened: [SceneID] = []
+    private(set) var spoken: [SceneTurn] = []
     private(set) var performed: [Scene] = []
     private let fails: Bool
 
     init(fails: Bool) { self.fails = fails }
 
-    func perform(_ scene: Scene) async throws -> ScenePerformance {
+    func sceneOpened(_ scene: Scene) { opened.append(scene.sceneID) }
+
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) { spoken.append(turn) }
+
+    func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         if fails { throw WorldContractError.invalidScene }
         performed.append(scene)
         return ScenePerformance(

@@ -10,9 +10,16 @@ public protocol SceneRepository: Sendable {
     func recentScenes(limit: Int) async throws -> [Scene]
 }
 
-/// Something that can carry a closed scene into the room — Creature Server's dialog pipeline.
+/// Something that can carry a scene into the room. Told when a scene opens, each time a
+/// character speaks, and when the scene closes; a performer may play turns as they arrive
+/// (Creature Server's `dialog-stream`) or render the whole scene at the end (`dialog`).
 public protocol ScenePerforming: Sendable {
-    func perform(_ scene: Scene) async throws -> ScenePerformance
+    /// The scene has opened with these participants. Failure here must not stop the scene.
+    func sceneOpened(_ scene: Scene) async
+    /// A character spoke. Failure here must not stop the scene.
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) async
+    /// The scene has closed with at least one spoken turn; play or finish playing it.
+    func sceneClosed(_ scene: Scene) async throws -> ScenePerformance
 }
 
 /// The world's stage manager: opens a scene when more than one character could answer, gives the
@@ -96,6 +103,7 @@ public actor SceneService {
                         "trigger": .string(trigger.text),
                         "participants": .array(ordered.map { .string($0.rawValue) }),
                     ]))
+            await performer.sceneOpened(scene)
             try await offerFloor(&scene, to: ordered[0], at: now)
             return scene
         }
@@ -169,6 +177,9 @@ public actor SceneService {
         scene.turns.append(turn)
         scene.floor = nil
         try await repository.save(scene)
+        if text != nil {
+            await performer.sceneTurn(scene, turn)
+        }
         try await announce(
             makeEvent(
                 Self.turnEventType, scene: scene, at: now,
@@ -284,7 +295,7 @@ public actor SceneService {
         var scene = rendering
         let performance: ScenePerformance
         do {
-            performance = try await performer.perform(scene)
+            performance = try await performer.sceneClosed(scene)
         } catch {
             performance = ScenePerformance(
                 state: .failed,

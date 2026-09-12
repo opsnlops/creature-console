@@ -79,8 +79,12 @@ current in the same commit as the code it describes.**
 - **World `0.6.0`:** `PresentCharactersScenePlanner` (a scene when >1 character is logged into
   the addressee's region), `MongoSceneRepository` (`scenes`, migration v7), the floor-deadline
   watcher on the world stream, spoken turns saved as conversation items and published to the
-  Communicator, `CreatureServerScenePerformer` (`creature_server` config; ad-hoc dialog render,
-  job ID recorded as `queued`) or `NotConnectedScenePerformer`, routes `POST /scenes/{id}/turns`,
+  Communicator, `StreamingScenePerformer` (server-you shipped `dialog-stream` in creature-server
+  3.46.0 / PR #187 while April shopped: a session per scene on the stage the region maps to via
+  `regions.<region>.stage_id`; each turn plays ~2 s after it is composed; `finish` stitches)
+  falling back to `CreatureServerScenePerformer` (complete ad-hoc dialog render, job ID recorded
+  as `queued`), or `NotConnectedScenePerformer`; `scene_performance` config; routes
+  `POST /scenes/{id}/turns`,
   `GET /scenes`, `GET /scenes/{id}`; `scenes` cutoffs in `world.json`. Black-box test: two
   logins → utterance → scene → turns (an impostor without Mango's session is refused) → closed →
   performance recorded.
@@ -252,10 +256,12 @@ back to the Communicator.
    enable --now creature-agent@beaky creature-agent@mango`, set `localLlmMaxTokens: 400`. Watch
    both appear in the Viewer's Characters panel; start a second Beaky by hand and watch it
    spectate; hand-cast an utterance to `character:mango` and hear Mango.
-2. C2 live: add `"creature_server": {"url": "https://server.prod.chirpchirp.dev"}` to
-   `/etc/creature/world.json`, say "What do you two think is in the box?" from the phone with
-   Beaky and Mango logged in, and watch the Scenes panel hand the floor around, then the dialog
-   render play through both creatures. Then C3, the Communicator for the flock.
+2. C2 live: deploy creature-server 3.46.0 (PR #187); add `"creature_server": {"url":
+   "https://server.prod.chirpchirp.dev"}` and `"regions": {"region:home": {"stage_id":
+   "0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4"}}` (Mainstage) to `/etc/creature/world.json`; say
+   "What do you two think is in the box?" from the phone with Beaky and Mango logged in, and
+   watch the Scenes panel hand the floor around while the birds answer ~2 s apart. Then C3,
+   the Communicator for the flock.
 3. Decide whether production's agent moves to world mode (it would lose MQTT house-event
    reactions until VW-013).
 4. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
