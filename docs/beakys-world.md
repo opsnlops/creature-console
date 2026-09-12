@@ -179,7 +179,7 @@ back to the Communicator.
 
 ### 0.6 Exact next actions
 
-1. Deploy World `0.4.0` + agent `2.56.0` to fuzzball with the assumed-presence block (0.4),
+1. Deploy World `0.4.1` + agent `2.56.0` to fuzzball with the assumed-presence block (0.4),
    hear Beaky answer in the room, confirm the Viewer chip and the single trace. Then decide
    whether production's agent moves to world mode (it would lose MQTT house-event reactions
    until VW-013).
