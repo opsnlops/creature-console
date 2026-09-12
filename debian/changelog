@@ -1,3 +1,51 @@
+creature-cli (2.62.5+world0.8.2+house0.1.3) unstable; urgency=medium
+
+  * creature-house 0.1.3: April's weather and power sensors in the packaged
+    house.json - outside humidity, wind (mph), rain today (inches), the
+    barometer, PM2.5, and the whole-house power draw.
+  * creature-agent 2.62.5: words for them, with the judgement built in -
+    "It is windy outside: about 18 miles per hour", "It has not rained
+    today", "The air outside is clean", "The house is drawing about 2.2
+    kilowatts right now".
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 16:30:00 -0700
+
+creature-cli (2.62.4+world0.8.2+house0.1.2) unstable; urgency=medium
+
+  * creature-agent 2.62.4: spoken measurements are whole numbers - "about 67
+    degrees", not "66.9" - so the house's one-degree threshold is invisible.
+  * Nothing on the camera is a fact. creature-house 0.1.2 announces which
+    places its cameras watch (camera.watching, at startup, idempotent);
+    creature-world 0.8.2 keeps it as a fact; creature-agent 2.62.3 phrases
+    the quiet ones together: "The cameras at the front door, the driveway
+    and the carport have seen nobody and nothing in the last ten minutes."
+    "Is something outside?" gets an answer instead of a shrug.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 16:05:00 -0700
+
+creature-cli (2.62.2+world0.8.1+house0.1.1) unstable; urgency=medium
+
+  * creature-world 0.8.1: a message that is nothing but a scene's name
+    ("@beaky normal evening", "Goodnight, please") is an ask, verb or no
+    verb; a name inside a longer sentence still needs one.
+  * creature-agent 2.62.2: a bird may not claim the lights are changing
+    unless the world told it the house is doing it - Beaky said "Goodnight
+    is set" when nothing had happened.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 15:50:00 -0700
+
+creature-cli (2.62.1+world0.8.0+house0.1.1) unstable; urgency=medium
+
+  * creature-agent 2.62.1: OpenAI streaming goes through AsyncHTTPClient.
+    On Linux a per-request URLSession torn down as an HTTPS stream completed
+    tripped swift-corelibs-foundation's `_MultiHandle deallocated with
+    non-zero retain count` and aborted the process - Beaky died the moment
+    her second sentence landed, four times in ten minutes, and the world
+    only freed the character 30 s later. The HTTP client is shut down on
+    exit.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 15:40:00 -0700
+
 creature-cli (2.62.0+world0.8.0+house0.1.1) unstable; urgency=medium
 
   * creature-house 0.1.1: a measurement's minimum_change is measured from

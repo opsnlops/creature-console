@@ -33,6 +33,11 @@ struct HouseReducerTests {
         #expect(seen.predicate == "seen.vehicle")
         #expect(seen.validTo == now.addingTimeInterval(HouseReducer.motionLifetime))
 
+        let watching = try #require(try reduce(HouseEvents.cameraWatching, driveway))
+        #expect(watching.predicate == WorldFacts.cameraWatching)
+        #expect(watching.value == .bool(true))
+        #expect(watching.validTo == nil)
+
         let motion = try #require(try reduce(HouseEvents.motionDetected, driveway))
         #expect(motion.predicate == WorldFacts.motionActive)
         #expect(motion.validTo != nil)

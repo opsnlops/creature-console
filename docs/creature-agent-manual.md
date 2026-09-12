@@ -160,7 +160,9 @@ OPENAI_API_KEY=sk-...
 ```
 
 Then `sudo systemctl restart creature-agent@beaky`. The log's `Model chosen` line confirms the
-backend; Honeycomb's `llm.model` on `agent.consider` / `agent.scene.consider` lets you compare
+backend. (`2.62.1`: the stream is read with AsyncHTTPClient — on Linux, a `URLSession` built
+per request aborted the process with `_MultiHandle deallocated with non-zero retain count`
+as each HTTPS stream ended.) Honeycomb's `llm.model` on `agent.consider` / `agent.scene.consider` lets you compare
 turn latency, `chose_silence`, and what the sanitizer had to strip, bird by bird. Everything
 else — persona, facts, the clock, streaming to the room — is identical.
 

@@ -15,6 +15,22 @@ enum FactPhrasing {
         var lines = facts.compactMap {
             sentence(for: $0, character: character, now: now, pronouns: pronouns)
         }
+        // Cameras that are watching and have seen nothing: silence is a fact, said once for
+        // all of them, so "is something outside?" gets an answer instead of a shrug.
+        let watched = facts.filter { $0.predicate == WorldFacts.cameraWatching }
+            .map(\.subjectID)
+        let seen = Set(
+            facts.filter { $0.predicate.hasPrefix(WorldFacts.seenPrefix) }.map(\.subjectID))
+        let quiet = watched.filter { !seen.contains($0) }
+        if !quiet.isEmpty {
+            let names = quiet.map { placeName(of: $0).lowercased() }
+            let list =
+                names.count == 1
+                ? names[0] : names.dropLast().joined(separator: ", ") + " and " + names.last!
+            lines.append(
+                "The camera\(names.count == 1 ? "" : "s") at \(list) \(names.count == 1 ? "has" : "have") seen nobody and nothing in the last ten minutes."
+            )
+        }
         // A person the world can only describe in one phrase is a blank a small model fills
         // with invention ("Polly lives in Seattle"); say plainly that the blank is a blank.
         let described = facts.filter { $0.predicate == WorldFacts.personDescription }
@@ -52,6 +68,8 @@ enum FactPhrasing {
             return "\(who) is here in the room with you\(certainty)."
         case WorldFacts.characterPronouns:
             return nil  // said alongside the name wherever the character is mentioned.
+        case WorldFacts.cameraWatching:
+            return nil  // said for all the quiet cameras at once, after the facts.
         case WorldFacts.personDescription:
             guard case .string(let description) = fact.value else { return nil }
             return "\(subject) is \(description)."
@@ -98,7 +116,7 @@ enum FactPhrasing {
                 return nil
             }
             return
-                "You can set the lights to: \(list.joined(separator: ", ")). If April asks for one of these, the house does it the moment she asks; you only need to say so."
+                "The house can set the lights to these scenes: \(list.joined(separator: ", ")). You cannot set them yourself: the house acts when April names one, and you will be told here when it does. Never say the lights are changing unless you are told so below; if April asks and you were not told, say the house did not catch it and ask her to name the scene."
         case WorldFacts.houseSceneRequested:
             guard case .string(let scene) = fact.value else { return nil }
             return
@@ -173,18 +191,46 @@ enum FactPhrasing {
     private static func measurement(_ predicate: String, fact: Fact) -> String? {
         guard case .number(let value) = fact.value else { return nil }
         let place = placeName(of: fact.subjectID)
-        let rounded = value.rounded()
-        let shown = rounded == value ? String(Int(rounded)) : String(format: "%.1f", value)
+        let at = place == place.capitalized ? place.lowercased() : "at " + place.lowercased()
+        // Spoken numbers are whole numbers: a bird says "about 67 degrees", not "66.9".
+        let whole = Int(value.rounded())
+        let shown = (value.rounded() == value ? "" : "about ") + String(whole)
         switch predicate {
         case "temperature_f":
-            return
-                "It is \(shown) degrees \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased())."
+            return "It is \(shown) degrees \(at)."
         case "temperature_c":
-            return
-                "It is \(shown) degrees Celsius \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased())."
+            return "It is \(shown) degrees Celsius \(at)."
         case "humidity_percent":
+            return "The humidity \(at) is \(shown) percent."
+        case "wind_mph":
+            // April: "she can remind me when it's windy!"
+            switch value {
+            case ..<3: return "The air is still \(at)."
+            case ..<15: return "There is a light wind \(at), about \(whole) miles per hour."
+            case ..<30: return "It is windy \(at): about \(whole) miles per hour."
+            default:
+                return
+                    "It is very windy \(at): about \(whole) miles per hour. Things may blow around."
+            }
+        case "rain_today_in":
+            if value < 0.01 { return "It has not rained today." }
+            let inches = String(format: "%.1f", value)
+            return "It has rained \(inches) inch\(inches == "1.0" ? "" : "es") today."
+        case "pressure_hpa":
+            return "The barometer reads \(shown) hectopascals."
+        case "pm25_ugm3":
+            let air =
+                switch value {
+                case ..<12: "clean"
+                case ..<35: "a little hazy"
+                case ..<55: "poor; sensitive people should stay in"
+                default: "bad; everyone should stay inside"
+                }
             return
-                "The humidity \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased()) is \(shown) percent."
+                "The air \(at) is \(air) (fine particles about \(whole) micrograms per cubic meter)."
+        case "power_w":
+            let kilowatts = String(format: "%.1f", value / 1_000)
+            return "The house is drawing about \(kilowatts) kilowatts right now."
         default:
             return "\(place): \(predicate.replacingOccurrences(of: "_", with: " ")) is \(shown)."
         }
