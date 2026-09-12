@@ -9,6 +9,7 @@ struct WorldHTTPAPI: Sendable {
     let service: any WorldApplicationService
     let conversationService: any ConversationApplicationService
     let characterSessionService: any CharacterSessionApplicationService
+    let sceneService: any SceneApplicationService
     let limits: WorldAPIConfiguration
     let concurrencyLimiter: WorldAPIConcurrencyLimiter
 
@@ -18,12 +19,14 @@ struct WorldHTTPAPI: Sendable {
         conversationService: any ConversationApplicationService,
         characterSessionService: any CharacterSessionApplicationService =
             UnavailableCharacterSessionApplicationService(),
+        sceneService: any SceneApplicationService = UnavailableSceneApplicationService(),
         limits: WorldAPIConfiguration = .default
     ) {
         self.configuration = configuration
         self.service = service
         self.conversationService = conversationService
         self.characterSessionService = characterSessionService
+        self.sceneService = sceneService
         self.limits = limits
         self.concurrencyLimiter = WorldAPIConcurrencyLimiter(
             limit: limits.maximumConcurrentRequests
@@ -189,6 +192,54 @@ struct WorldHTTPAPI: Sendable {
                     try jsonResponse(
                         CharacterSessionPage(
                             sessions: await characterSessionService.characterSessions()),
+                        status: .ok)
+                }
+            }
+        }
+
+        router.post("v1/scenes/:sceneID/turns") { request, context in
+            await respond {
+                try requireJSON(request)
+                let sceneID = try sceneID(from: context)
+                return try await execute {
+                    var submission = try await decode(
+                        SceneTurnSubmission.self, from: request,
+                        maximumBytes: limits.maximumBodyBytes)
+                    if submission.trace == nil {
+                        submission.trace = try traceContext(from: request)
+                    }
+                    let result = try await sceneService.submitSceneTurn(submission, to: sceneID)
+                    let status: HTTPResponse.Status =
+                        switch result.disposition {
+                        case .accepted: .accepted
+                        case .duplicate: .ok
+                        case .notYourTurn: .conflict
+                        }
+                    return try jsonResponse(result, status: status)
+                }
+            }
+        }
+
+        router.get("v1/scenes/:sceneID") { _, context in
+            await respond {
+                let sceneID = try sceneID(from: context)
+                return try await execute {
+                    guard let scene = try await sceneService.scene(id: sceneID) else {
+                        return try jsonResponse(
+                            WorldAPIErrorResponse(error: "not_found", message: "No such scene"),
+                            status: .notFound)
+                    }
+                    return try jsonResponse(scene, status: .ok)
+                }
+            }
+        }
+
+        router.get("v1/scenes") { request, _ in
+            await respond {
+                let limit = try pageLimit(request)
+                return try await execute {
+                    try jsonResponse(
+                        ScenePage(scenes: await sceneService.recentScenes(limit: limit)),
                         status: .ok)
                 }
             }
@@ -496,6 +547,13 @@ struct WorldHTTPAPI: Sendable {
             tracestate: header("tracestate", from: request),
             baggage: header("baggage", from: request)
         )
+    }
+
+    private func sceneID(from context: BasicRequestContext) throws -> SceneID {
+        guard let raw = context.parameters.get("sceneID") else {
+            throw WorldAPIError.invalidQuery(name: "scene_id")
+        }
+        return try SceneID(validating: raw)
     }
 
     private func characterID(from context: BasicRequestContext) throws -> EntityID {

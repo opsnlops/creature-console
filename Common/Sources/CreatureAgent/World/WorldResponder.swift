@@ -35,6 +35,8 @@ protocol WorldStaging: Sendable {
 protocol WorldTurnResponding: WorldStaging {
     func submit(_ intent: CharacterUtteranceIntent) async throws -> WorldResponseOutcome
     func record(_ performance: CharacterPerformance) async throws -> WorldResponseOutcome
+    /// Answers the floor in a scene; the world says whether it was still this character's turn.
+    func submit(_ turn: SceneTurnSubmission, to sceneID: SceneID) async throws -> SceneTurnResult
 }
 
 /// Carries a `CharacterUtteranceIntent` to Creature World and reads back what happened.
@@ -94,6 +96,23 @@ struct WorldResponder: WorldTurnResponding {
             let (status, body) = try await post(
                 performance, to: intent.conversationID, route: "performances", span: span)
             return try outcome(status: status, body: body, span: span)
+        }
+    }
+
+    func submit(_ turn: SceneTurnSubmission, to sceneID: SceneID) async throws -> SceneTurnResult {
+        try await withSpan("creature.world.scene_turn", ofKind: .client) { span in
+            span.attributes["scene.id"] = sceneID.rawValue
+            span.attributes["conversation.response.id"] = turn.responseID.rawValue
+            span.attributes["scene.turn.pass"] = turn.text == nil
+            let (status, body) = try await post(
+                turn, path: ["scenes", sceneID.rawValue, "turns"], span: span)
+            // 409 carries the scene with the floor elsewhere; it is an answer, not an error.
+            guard status == 202 || status == 200 || status == 409 else {
+                throw Self.failure(status: status, body: body)
+            }
+            let result = try WorldJSON.makeDecoder().decode(SceneTurnResult.self, from: body)
+            span.attributes["scene.turn.disposition"] = result.disposition.rawValue
+            return result
         }
     }
 

@@ -45,7 +45,7 @@ struct CreatureWorldBlackBoxTests {
         ).write(to: configURL)
         defer { try? FileManager.default.removeItem(at: configURL) }
 
-        var service = try CreatureWorldProcess(port: port, mongoURI: uri, configURL: configURL)
+        let service = try CreatureWorldProcess(port: port, mongoURI: uri, configURL: configURL)
         try await service.start()
         try await api.waitUntilHealthy()
 
@@ -156,14 +156,93 @@ struct CreatureWorldBlackBoxTests {
         #expect(try await api.stage(stagedIntent).disposition == .alreadyDelivered)
         conversationStream.cancel()
 
+        // Two minds log in; April's next words open a scene instead of a solo answer. The world
+        // offers the floor to Beaky, then Mango, records what they say as conversation items,
+        // closes when both pass, and — with no Creature Server configured here — records that
+        // the performance could not happen rather than losing the scene.
+        let beaky = try EntityID(validating: "character:beaky")
+        let mango = try EntityID(validating: "character:mango")
+        let beakySession = try await api.login(beaky, host: "blackbox-beaky")
+        let mangoSession = try await api.login(mango, host: "blackbox-mango")
+        #expect(beakySession.disposition == .loggedIn)
+        #expect(mangoSession.disposition == .loggedIn)
+
+        let sceneUtterance = try makeUtterance(
+            in: conversationID, sourceID: SourceID(validating: "communicator:blackbox"),
+            text: "What do you two think is in the box?")
+        let sceneIngress = try await api.post(sceneUtterance)
+        #expect(sceneIngress.status == .accepted)
+        let sceneID = try #require(sceneIngress.body.percept.sceneID)
+
+        var scene = try #require(try await api.scene(sceneID))
+        #expect(scene.participants == [beaky, mango])
+        #expect(scene.floor?.characterID == beaky)
+        let beakyTurn = try await api.submitTurn(
+            to: sceneID,
+            SceneTurnSubmission(
+                characterID: beaky, responseID: try #require(scene.floor?.responseID),
+                sessionID: beakySession.session.sessionID, text: "Servos, I hope!"))
+        #expect(beakyTurn.status == .accepted)
+        #expect(beakyTurn.body.scene.floor?.characterID == mango)
+
+        // A mind without Mango's session cannot speak as Mango.
+        let impostor = try await api.submitTurnStatus(
+            to: sceneID,
+            SceneTurnSubmission(
+                characterID: mango,
+                responseID: try #require(beakyTurn.body.scene.floor?.responseID),
+                sessionID: nil, text: "It is me, Mango."))
+        #expect(impostor == .conflict)
+
+        let mangoTurn = try await api.submitTurn(
+            to: sceneID,
+            SceneTurnSubmission(
+                characterID: mango,
+                responseID: try #require(beakyTurn.body.scene.floor?.responseID),
+                sessionID: mangoSession.session.sessionID, text: "It is always heat sinks."))
+        scene = mangoTurn.body.scene
+        for _ in 0..<2 {
+            let floor = try #require(scene.floor)
+            let session = floor.characterID == beaky ? beakySession : mangoSession
+            scene = try await api.submitTurn(
+                to: sceneID,
+                SceneTurnSubmission(
+                    characterID: floor.characterID, responseID: floor.responseID,
+                    sessionID: session.session.sessionID, text: nil)
+            ).body.scene
+        }
+        #expect(scene.closeReason == .everyonePassed)
+        #expect(scene.state == .abandoned)
+        #expect(scene.performance?.state == .failed)
+        #expect(scene.performance?.errorCode == "creature_server_not_configured")
+        let spokenResponses = scene.spokenTurns.map(\.responseID)
+        let sceneItems = try await api.conversationItems(in: conversationID).filter {
+            $0.responseID.map(spokenResponses.contains) ?? false
+        }
+        #expect(sceneItems.map(\.authorID) == [beaky, mango])
+        #expect(sceneItems.map(\.text) == ["Servos, I hope!", "It is always heat sinks."])
+        let sceneEvents = try await api.events(
+            after: thirdSequence, from: SourceID(validating: "world:scenes")
+        ).filter { $0.payload["scene_id"] == .string(sceneID.rawValue) }
+        #expect(
+            sceneEvents.map(\.type.rawValue).prefix(3) == [
+                "scene.opened", "scene.turn_offered", "scene.turn",
+            ])
+        #expect(sceneEvents.map(\.type.rawValue).suffix(2) == ["scene.closed", "scene.performed"])
+
         // Kill the process. Everything accepted before the kill must still be there afterwards.
         try await service.stop()
         try await service.start()
         try await api.waitUntilHealthy()
 
         let conversation = try await api.conversationItems(in: conversationID)
-        #expect(conversation.map(\.authorKind) == [.person, .character, .character])
-        #expect(conversation.map(\.text) == [utterance.text, intent.text, stagedIntent.text])
+        #expect(conversation.filter { $0.authorKind == .person }.count == 2)
+        #expect(conversation.filter { $0.authorKind == .character }.count == 4)
+        #expect(
+            Set(conversation.map(\.text)).isSuperset(of: [
+                utterance.text, intent.text, stagedIntent.text, sceneUtterance.text,
+                "Servos, I hope!", "It is always heat sinks.",
+            ]))
 
         let afterRestart = try await api.events(after: firstSequence - 1, from: sourceID)
         #expect(afterRestart.map(\.eventID) == [first.eventID, second.eventID, third.eventID])
@@ -188,13 +267,14 @@ struct CreatureWorldBlackBoxTests {
 
     private func makeUtterance(
         in conversationID: ConversationID,
-        sourceID: SourceID
+        sourceID: SourceID,
+        text: String = "Beaky, are you still there after a restart?"
     ) throws -> PersonUtterance {
         try PersonUtterance(
             conversationID: conversationID,
             speakerID: EntityID(validating: "person:april"),
             addresseeIDs: [EntityID(validating: "character:beaky")],
-            text: "Beaky, are you still there after a restart?",
+            text: text,
             modality: .typed,
             source: .communicatorComposition,
             sourceID: sourceID,
@@ -234,7 +314,9 @@ struct CreatureWorldBlackBoxTests {
 
 // MARK: - Child process
 
-private struct CreatureWorldProcess {
+/// A class so a failed expectation mid-test cannot leave the child World running: it dies with
+/// the handle.
+private final class CreatureWorldProcess {
     private let executable: URL
     private let port: Int
     private let mongoURI: String
@@ -252,7 +334,7 @@ private struct CreatureWorldProcess {
         self.configURL = configURL
     }
 
-    mutating func start() async throws {
+    func start() async throws {
         let process = Process()
         process.executableURL = executable
         process.arguments = [
@@ -277,7 +359,7 @@ private struct CreatureWorldProcess {
 
     /// SIGTERM is one of the service's graceful-shutdown signals; a clean exit is part of the
     /// contract because open SSE streams must be closed rather than abandoned.
-    mutating func stop() async throws {
+    func stop() async throws {
         guard let process else { return }
         self.process = nil
         process.terminate()
@@ -290,6 +372,10 @@ private struct CreatureWorldProcess {
             try await Task.sleep(for: .milliseconds(50))
         }
         #expect(process.terminationStatus == 0)
+    }
+
+    deinit {
+        process?.terminate()
     }
 }
 
@@ -456,6 +542,39 @@ private struct WorldServiceAPI {
         )
     }
 
+    func login(_ characterID: EntityID, host: String) async throws -> CharacterLoginResult {
+        try await postJSON(
+            CharacterLoginRequest(
+                regionID: try EntityID(validating: "region:home"),
+                instance: CharacterMindInstance(host: host, processID: 1, creatureID: "u")),
+            to: "\(base)/characters/\(characterID.rawValue)/login"
+        ).body
+    }
+
+    func scene(_ sceneID: SceneID) async throws -> Scene? {
+        let response = try await client.execute(
+            HTTPClientRequest(url: "\(base)/scenes/\(sceneID.rawValue)"), timeout: .seconds(15))
+        guard response.status == .ok else { return nil }
+        let body = try await response.body.collect(upTo: 1_048_576)
+        return try WorldJSON.makeDecoder().decode(Scene.self, from: body)
+    }
+
+    func submitTurn(to sceneID: SceneID, _ submission: SceneTurnSubmission) async throws -> (
+        status: HTTPResponseStatus, body: SceneTurnResult
+    ) {
+        try await postJSON(submission, to: "\(base)/scenes/\(sceneID.rawValue)/turns")
+    }
+
+    func submitTurnStatus(to sceneID: SceneID, _ submission: SceneTurnSubmission) async throws
+        -> HTTPResponseStatus
+    {
+        var request = HTTPClientRequest(url: "\(base)/scenes/\(sceneID.rawValue)/turns")
+        request.method = .POST
+        request.headers.add(name: "content-type", value: "application/json")
+        request.body = .bytes(try WorldJSON.makeEncoder().encode(submission))
+        return try await client.execute(request, timeout: .seconds(15)).status
+    }
+
     func conversationItems(in conversationID: ConversationID) async throws
         -> [ConversationItem]
     {
@@ -493,7 +612,13 @@ private struct WorldServiceAPI {
         request.body = .bytes(try WorldJSON.makeEncoder().encode(value))
         let response = try await client.execute(request, timeout: .seconds(15))
         let body = try await response.body.collect(upTo: 1_048_576)
-        return (response.status, try WorldJSON.makeDecoder().decode(Reply.self, from: body))
+        do {
+            return (response.status, try WorldJSON.makeDecoder().decode(Reply.self, from: body))
+        } catch {
+            throw BlackBoxError.unexpectedReply(
+                url: url, status: response.status.code,
+                body: String(buffer: body))
+        }
     }
 
     func openStream(lastEventID: Int64?) async throws -> ServerSentEventReader {
@@ -651,6 +776,7 @@ private actor FrameQueue {
 }
 
 private enum BlackBoxError: Error {
+    case unexpectedReply(url: String, status: UInt, body: String)
     case missingExecutable(String)
     case noFreePort
     case processDidNotExit

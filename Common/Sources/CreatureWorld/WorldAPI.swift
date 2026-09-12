@@ -140,6 +140,30 @@ protocol CharacterSessionApplicationService: Sendable {
 
 extension CharacterSessionService: CharacterSessionApplicationService {}
 
+/// Scenes: the world's record of who spoke when, and the door a mind answers an offer through.
+protocol SceneApplicationService: Sendable {
+    func submitSceneTurn(_ submission: SceneTurnSubmission, to sceneID: SceneID) async throws
+        -> SceneTurnResult
+    func scene(id: SceneID) async throws -> Scene?
+    func recentScenes(limit: Int) async throws -> [Scene]
+}
+
+struct UnavailableSceneApplicationService: SceneApplicationService {
+    func submitSceneTurn(_ submission: SceneTurnSubmission, to sceneID: SceneID) async throws
+        -> SceneTurnResult
+    {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func scene(id: SceneID) async throws -> Scene? {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func recentScenes(limit: Int) async throws -> [Scene] {
+        throw WorldAPIError.databaseUnavailable
+    }
+}
+
 struct UnavailableCharacterSessionApplicationService: CharacterSessionApplicationService {
     func login(
         _ characterID: EntityID, _ request: CharacterLoginRequest

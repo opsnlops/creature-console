@@ -1,3 +1,20 @@
+creature-cli (2.58.0) unstable; urgency=medium
+
+  * creature-agent: scenes. When the world offers this character the floor
+    (scene.turn_offered), the mind continues the scene with its own line
+    or passes; an utterance the world put into a scene is not answered
+    solo. Answers go to POST /world/v1/scenes/{id}/turns.
+  * creature-world 0.6.0: scenes. An utterance addressed to a character
+    while other characters are logged into the same region opens a scene;
+    the world gives the floor to one character at a time (deadline as a
+    world timer, a missed deadline is a pass), closes on April's cutoffs
+    (everyone passed, max turns, max spoken seconds) and renders the
+    scene through Creature Server's ad-hoc dialog pipeline when
+    creature_server is configured. Scenes are readable at
+    GET /world/v1/scenes.
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 20:30:00 -0700
+
 creature-cli (2.57.0) unstable; urgency=medium
 
   * creature-agent: several minds on one host. The template unit

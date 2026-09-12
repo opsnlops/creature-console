@@ -1,6 +1,6 @@
 # The Flock — Several Minds in One World
 
-**Status:** proposal, 2026-09-11 evening, written off-script after Beaky first spoke in the room.
+**Status:** C1 in PR #159; C2 built on `flock-c2-scenes` (2026-09-11 night); C3 next.
 **Design:** [`beakys-world.md`](beakys-world.md) §8.3 (multi-character scenes), §8.5, §11.2,
 Phase 9; the "one mind per character" and "agent collisions" notes in
 [`beaky-mind-plan.md`](beaky-mind-plan.md#after-this).

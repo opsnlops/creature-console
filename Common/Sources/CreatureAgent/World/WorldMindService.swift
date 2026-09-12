@@ -100,8 +100,40 @@ struct WorldMindService: Service {
     }
 
     private func follow() async throws {
-        try await subscriber.run { consideration in
-            try await handle(consideration)
+        try await subscriber.run(
+            handlers: WorldPerceptSubscriber.Handlers(
+                utterance: { consideration in try await handle(consideration) },
+                sceneOffer: { offer in try await handle(offer) }
+            ))
+    }
+
+    /// The world offered this character the floor. Decide, then answer the world — a turn or a
+    /// pass — before the cursor moves on. Throws only when the world could not be reached.
+    func handle(_ offer: WorldSceneConsideration) async throws {
+        try await withSpan(
+            "agent.scene_turn",
+            context: CharacterMind.traceContext(for: offer.envelope)
+        ) { span in
+            span.attributes["scene.id"] = offer.offer.sceneID.rawValue
+            span.attributes["world.sequence"] = offer.worldSequence
+            var submission: SceneTurnSubmission
+            switch await mind.consider(offer, now: await clock.now) {
+            case .turn(let turn):
+                submission = turn
+            case .pass(let pass, let reason):
+                submission = pass
+                span.attributes["agent.suppression_reason"] = reason.rawValue
+            }
+            submission.sessionID = await session?.sessionID
+            let result = try await responder.submit(submission, to: offer.offer.sceneID)
+            logger.info(
+                submission.text == nil ? "Passed the floor" : "Took a turn in the scene",
+                metadata: [
+                    "scene.id": "\(offer.offer.sceneID.rawValue)",
+                    "scene.turn.disposition": "\(result.disposition.rawValue)",
+                    "scene.state": "\(result.scene.state.rawValue)",
+                ]
+            )
         }
     }
 

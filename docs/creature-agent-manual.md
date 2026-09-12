@@ -66,6 +66,14 @@ are world events (`character.logged_in` / `character.logged_out`) and appear in 
 Characters panel. Stage and performance requests carry the session, so the world refuses turns
 from a mind that does not hold the character.
 
+**Scenes.** When the world opens a scene for April's words (more than one character is logged
+into the region), the addressee's mind does not answer on its own — the percept carries a
+`scene_id` and the mind records `in_scene`. Each mind is offered the floor in turn
+(`scene.turn_offered`); it continues the scene with one or two sentences of its own, in its own
+voice, or passes (`[silence]`), and answers the world at `POST /world/v1/scenes/{id}/turns` with
+its session. The world performs the whole scene once it closes; nothing is streamed to Creature
+Server for a scene turn.
+
 ## Configuration (`/etc/creature/agent.yaml`)
 
 Shared keys:

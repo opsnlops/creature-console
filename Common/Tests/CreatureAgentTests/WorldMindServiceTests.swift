@@ -194,6 +194,70 @@ struct WorldMindServiceTests {
         #expect(await stub.logouts == 1)
     }
 
+    @Test("Offered the floor in a scene, the mind answers the world with its own line")
+    func takesATurnInAScene() async throws {
+        let stub = StubWorld()
+        let responseID = ResponseID.generated()
+        let (scene, offerEnvelope) = try await stub.openScene(
+            trigger: "What do you two think is in the box?", responseID: responseID)
+        await stub.script(connection: 0) { _ in
+            [.snapshot(latestSequence: 50), .delta(sequence: 51, envelope: offerEnvelope)]
+        }
+        await stub.script(connection: 1) { _ in [] }
+        try await Harness.run(
+            stub: stub,
+            logger: logger,
+            logsIn: true,
+            respond: { transcript in
+                let script = transcript.last?.content ?? ""
+                #expect(
+                    transcript.first?.content.contains("In the room with you and April: Mango")
+                        == true)
+                #expect(script.contains("April: What do you two think is in the box?"))
+                #expect(script.hasSuffix("Beaky:"))
+                return "Servos, I hope!"
+            }
+        ) { harness in
+            try await harness.runUntil {
+                let answered = await stub.sceneTurns.count == 1
+                let advanced = await harness.cursorAt() == 51
+                return answered && advanced
+            }
+        }
+
+        let turn = try #require(await stub.sceneTurns.first)
+        #expect(turn.responseID == responseID)
+        #expect(turn.text == "Servos, I hope!")
+        #expect(turn.sessionID != nil)
+        #expect(await stub.responses.isEmpty)
+        _ = scene
+    }
+
+    @Test("An utterance the world put into a scene is not answered on its own")
+    func sceneUtteranceIsLeftToTheScene() async throws {
+        let stub = StubWorld()
+        var percept = try makePercept(text: "Beaky, what is in the box?")
+        percept.sceneID = .generated()
+        let inScene = percept
+        await stub.script(connection: 0) { _ in
+            [
+                .snapshot(latestSequence: 60),
+                .delta(sequence: 61, envelope: try self.envelope(for: inScene)),
+            ]
+        }
+        await stub.script(connection: 1) { _ in [] }
+        try await Harness.run(
+            stub: stub, logger: logger,
+            respond: { _ in
+                Issue.record("the mind must not answer solo inside a scene")
+                return "unused"
+            }
+        ) { harness in
+            try await harness.runUntil { await harness.cursorAt() == 61 }
+        }
+        #expect(await stub.responses.isEmpty)
+    }
+
     @Test("A restart after the world accepted a turn never makes Beaky say it twice")
     func replayAfterCrashIsRecognised() async throws {
         let stub = StubWorld()
@@ -506,6 +570,10 @@ private actor ContextRecordingResponder: WorldTurnResponding {
         throw WorldResponderError.unavailable(status: 503)
     }
 
+    func submit(_ turn: SceneTurnSubmission, to sceneID: SceneID) async throws -> SceneTurnResult {
+        throw WorldResponderError.unavailable(status: 503)
+    }
+
     func submit(_ intent: CharacterUtteranceIntent) async throws -> WorldResponseOutcome {
         sawTurnContext = ServiceContext.current != nil
         submitted = intent
@@ -561,7 +629,67 @@ actor StubWorld {
     private(set) var responses: [CharacterUtteranceIntent] = []
     private(set) var performances: [CharacterPerformance] = []
     private(set) var stageRequests: [CharacterStageRequest] = []
+    private(set) var sceneTurns: [SceneTurnSubmission] = []
+    private var scenes: [SceneID: Scene] = [:]
     private(set) var logins: [CharacterLoginRequest] = []
+
+    /// A scene the world has opened with the floor offered to Beaky; returns the offer event.
+    func openScene(trigger text: String, responseID: ResponseID) throws -> (
+        Scene, WorldEventEnvelope
+    ) {
+        let now = Date(timeIntervalSince1970: 1_789_400_000)
+        let beaky = try EntityID(validating: "character:beaky")
+        let mango = try EntityID(validating: "character:mango")
+        let trigger = SceneTrigger(
+            kind: .personUtterance, eventID: .generated(), utteranceID: .generated(),
+            speakerID: try EntityID(validating: "person:april"), addresseeID: beaky, text: text)
+        let scene = try Scene(
+            regionID: EntityID(validating: "region:home"),
+            conversationID: ConversationID(validating: "conversation:april-house"),
+            trigger: trigger, participants: [beaky, mango],
+            floor: SceneFloor(
+                characterID: beaky, responseID: responseID, offeredAt: now,
+                deadline: now.addingTimeInterval(3_600)),
+            openedAt: now)
+        scenes[scene.sceneID] = scene
+        let offer = SceneTurnOffer(
+            sceneID: scene.sceneID, characterID: beaky, responseID: responseID,
+            deadline: now.addingTimeInterval(3_600), trigger: trigger,
+            participants: scene.participants, turns: [])
+        let envelope = try WorldEventEnvelope(
+            occurredAt: now,
+            source: EventSource(id: SourceID(validating: "world:scenes"), kind: "world"),
+            subjectIDs: [beaky], epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: offer)
+        return (scene, envelope)
+    }
+
+    private func sceneTurn(_ submission: SceneTurnSubmission, sceneID: SceneID) throws -> (
+        HTTPResponse.Status, Data
+    ) {
+        sceneTurns.append(submission)
+        guard var scene = scenes[sceneID] else {
+            return (.badRequest, Data(#"{"error":"invalid_request","message":"no scene"}"#.utf8))
+        }
+        guard scene.floor?.responseID == submission.responseID else {
+            return (
+                .conflict,
+                try WorldJSON.makeEncoder().encode(
+                    SceneTurnResult(disposition: .notYourTurn, scene: scene))
+            )
+        }
+        scene.turns.append(
+            SceneTurn(
+                characterID: submission.characterID, responseID: submission.responseID,
+                text: submission.text, offeredAt: scene.openedAt, answeredAt: scene.openedAt))
+        scene.floor = nil
+        scenes[sceneID] = scene
+        return (
+            .accepted,
+            try WorldJSON.makeEncoder().encode(
+                SceneTurnResult(disposition: .accepted, scene: scene))
+        )
+    }
     private(set) var heartbeats = 0
     private(set) var logouts = 0
     private var holder: CharacterSession?
@@ -777,6 +905,16 @@ actor StubWorld {
             let reference = try WorldJSON.makeDecoder().decode(
                 CharacterSessionReference.self, from: body)
             let (status, data) = try await self.logout(reference)
+            return Response(
+                status: status, headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
+        }
+        router.post("world/v1/scenes/:sceneID/turns") { request, context in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let submission = try WorldJSON.makeDecoder().decode(
+                SceneTurnSubmission.self, from: body)
+            let sceneID = try SceneID(validating: context.parameters.get("sceneID") ?? "")
+            let (status, data) = try await self.sceneTurn(submission, sceneID: sceneID)
             return Response(
                 status: status, headers: [.contentType: "application/json"],
                 body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))

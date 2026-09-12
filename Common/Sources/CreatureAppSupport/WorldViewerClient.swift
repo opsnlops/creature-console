@@ -83,6 +83,14 @@ public struct WorldViewerClient: Sendable {
         )
     }
 
+    /// The most recent scenes: who spoke, in what order, and how each played.
+    public func scenes(limit: Int = 50) async throws -> ScenePage {
+        precondition(limit > 0)
+        return try await get(
+            ScenePage.self, pathComponents: ["scenes"],
+            queryItems: [URLQueryItem(name: "limit", value: String(limit))])
+    }
+
     /// Every character's most recent session: who is logged in, where, from which host.
     public func characters() async throws -> CharacterSessionPage {
         try await get(CharacterSessionPage.self, pathComponents: ["characters"])

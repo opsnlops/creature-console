@@ -106,6 +106,22 @@ public protocol PersonUtteranceIngress: Sendable {
     ) async throws -> UtteranceIngressResult
 }
 
+/// Decides, before a percept is made durable, whether an utterance becomes a scene — because
+/// more than one character could answer — and if so, which scene.
+public protocol ScenePlanning: Sendable {
+    func planScene(for utterance: PersonUtterance, addressee: EntityID) async throws -> SceneID?
+}
+
+/// The world before scenes existed: every utterance is answered solo.
+public struct NoScenePlanner: ScenePlanning {
+    public init() {}
+    public func planScene(for utterance: PersonUtterance, addressee: EntityID) async throws
+        -> SceneID?
+    {
+        nil
+    }
+}
+
 public actor PersonUtteranceIngressService: PersonUtteranceIngress {
     public typealias ConsiderationIDGenerator = @Sendable () -> ConsiderationID
     public typealias ConversationItemIDGenerator = @Sendable () -> ConversationItemID
@@ -113,6 +129,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
     private let repository: any UtteranceIngressRepository
     private let sink: any PersonUtterancePerceptSink
     private let authorizer: any UtteranceIngressAuthorizing
+    private let scenePlanner: any ScenePlanning
     private let makeConsiderationID: ConsiderationIDGenerator
     private let makeConversationItemID: ConversationItemIDGenerator
 
@@ -120,12 +137,14 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
         repository: any UtteranceIngressRepository,
         sink: any PersonUtterancePerceptSink,
         authorizer: any UtteranceIngressAuthorizing = BoundaryUtteranceIngressAuthorizer(),
+        scenePlanner: any ScenePlanning = NoScenePlanner(),
         makeConsiderationID: @escaping ConsiderationIDGenerator = { .generated() },
         makeConversationItemID: @escaping ConversationItemIDGenerator = { .generated() }
     ) {
         self.repository = repository
         self.sink = sink
         self.authorizer = authorizer
+        self.scenePlanner = scenePlanner
         self.makeConsiderationID = makeConsiderationID
         self.makeConversationItemID = makeConversationItemID
     }
@@ -156,12 +175,15 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                 limit: ConversationContractLimits.maximumContextItems
             )
             let characterID = utterance.addresseeIDs[0]
+            let sceneID = try await scenePlanner.planScene(for: utterance, addressee: characterID)
+            span.attributes["scene.id"] = sceneID?.rawValue
             let proposed = try StoredUtteranceIngress(
                 percept: PersonUtterancePercept(
                     considerationID: makeConsiderationID(),
                     characterID: characterID,
                     utterance: utterance,
-                    priorConversationItems: priorItems
+                    priorConversationItems: priorItems,
+                    sceneID: sceneID
                 ),
                 conversationItem: ConversationItem(
                     itemID: makeConversationItemID(),
