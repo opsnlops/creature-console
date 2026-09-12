@@ -5,7 +5,11 @@ struct OpenAIResponseParser {
     /// `output_text.delta` event (lifecycle events, blank lines, `[DONE]`).
     static func streamedDelta(from line: String) -> String? {
         guard line.hasPrefix("data: ") else { return nil }
-        let json = String(line.dropFirst(6))
+        return streamedDelta(fromData: String(line.dropFirst(6)))
+    }
+
+    /// The same, for a frame's `data` payload once the SSE framing has been removed.
+    static func streamedDelta(fromData json: String) -> String? {
         guard json != "[DONE]", let data = json.data(using: .utf8),
             let event = try? JSONDecoder().decode(StreamEvent.self, from: data),
             event.type == "response.output_text.delta"

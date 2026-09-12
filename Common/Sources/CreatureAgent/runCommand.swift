@@ -347,6 +347,12 @@ private func runWorldMode(
 
     // The model behind this mind. Nemo on the LAN, or OpenAI so one bird can be compared
     // against the local model live; either way the mind sees sentences as they are composed.
+    // OpenAI streams through AsyncHTTPClient (a per-request URLSession aborts on Linux).
+    var modelClientConfiguration = HTTPClient.Configuration()
+    modelClientConfiguration.timeout = .init(connect: .seconds(10), read: .seconds(120))
+    let modelClient = HTTPClient(
+        eventLoopGroupProvider: .singleton, configuration: modelClientConfiguration,
+        backgroundActivityLogger: logger)
     let respond: CharacterMind.Respond
     let respondStreaming: CharacterMind.RespondStreaming
     switch config.llmBackend {
@@ -380,6 +386,7 @@ private func runWorldMode(
             reasoningEffort: config.llmReasoningEffort,
             serviceTier: config.llmServiceTier,
             minSentenceChars: config.minSentenceChars,
+            streamingClient: modelClient,
             logger: logger,
             traceResponses: traceResponses
         )
@@ -480,5 +487,11 @@ private func runWorldMode(
         cancellationSignals: [.sigint],
         logger: Logger(label: "creature-agent")
     )
-    try await serviceGroup.run()
+    do {
+        try await serviceGroup.run()
+    } catch {
+        try? await modelClient.shutdown()
+        throw error
+    }
+    try? await modelClient.shutdown()
 }

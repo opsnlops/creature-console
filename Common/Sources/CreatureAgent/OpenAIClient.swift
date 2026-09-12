@@ -1,5 +1,8 @@
+import AsyncHTTPClient
 import Foundation
 import Logging
+import NIOCore
+import WorldCore
 
 #if canImport(FoundationNetworking)
     import FoundationNetworking
@@ -25,6 +28,10 @@ struct OpenAIClient: Sendable {
     /// `fast` for lower latency at a premium; nil for the default tier.
     private let serviceTier: String?
     private let minSentenceChars: Int
+    /// Streaming goes through AsyncHTTPClient: on Linux, a per-request `URLSession` torn down
+    /// as an HTTPS stream completes trips swift-corelibs-foundation's `_MultiHandle` retain
+    /// check and aborts the process — Beaky died mid-sentence four times on 2026-09-12.
+    private let streamingClient: HTTPClient?
 
     init(
         apiKey: String,
@@ -35,10 +42,12 @@ struct OpenAIClient: Sendable {
         serviceTier: String? = nil,
         minSentenceChars: Int = 0,
         endpoint: URL = OpenAIClient.defaultEndpoint,
+        streamingClient: HTTPClient? = nil,
         logger: Logger,
         traceResponses: Bool
     ) {
         self.endpoint = endpoint
+        self.streamingClient = streamingClient
         self.apiKey = apiKey
         self.model = model
         self.systemPrompt = systemPrompt
@@ -91,41 +100,51 @@ struct OpenAIClient: Sendable {
         let model = self.model
         let traceResponses = self.traceResponses
         let minSentenceChars = self.minSentenceChars
+        let client = streamingClient
         return AsyncStream { continuation in
             Task {
                 logger.debug("Starting streaming OpenAI request (model: \(model))")
-                let sseDelegate = SSEDataDelegate()
-                let session = URLSession(
-                    configuration: .default, delegate: sseDelegate, delegateQueue: nil)
-                session.dataTask(with: request).resume()
-                defer { session.finishTasksAndInvalidate() }
-
                 var assembler = SentenceAssembler(minimumCharacters: minSentenceChars)
                 var fullResponse = ""
                 var sentenceCount = 0
-                for await line in sseDelegate.lines {
-                    guard let delta = OpenAIResponseParser.streamedDelta(from: line) else {
-                        continue
-                    }
-                    for sentence in assembler.feed(delta) {
-                        sentenceCount += 1
-                        fullResponse += sentence + " "
-                        logger.info(
-                            "LLM sentence \(sentenceCount): \"\(sentence)\" (\(sentence.count) chars)"
-                        )
-                        continuation.yield(sentence)
-                    }
-                }
-                if let remaining = assembler.flush() {
+                func emit(_ sentence: String, final: Bool) {
                     sentenceCount += 1
-                    fullResponse += remaining
+                    fullResponse += sentence + " "
                     logger.info(
-                        "LLM sentence \(sentenceCount) (final): \"\(remaining)\" (\(remaining.count) chars)"
+                        "LLM sentence \(sentenceCount)\(final ? " (final)" : ""): \"\(sentence)\" (\(sentence.count) chars)"
                     )
-                    continuation.yield(remaining)
+                    continuation.yield(sentence)
                 }
-                if let failure = sseDelegate.failureDescription {
-                    logger.error("OpenAI request failed: \(failure)")
+                do {
+                    guard let client else { throw OpenAIClientError.streamingUnavailable }
+                    var streamRequest = HTTPClientRequest(url: request.url!.absoluteString)
+                    streamRequest.method = .POST
+                    for (name, value) in request.allHTTPHeaderFields ?? [:] {
+                        streamRequest.headers.add(name: name, value: value)
+                    }
+                    streamRequest.body = .bytes(request.httpBody ?? Data())
+                    let response = try await client.execute(streamRequest, timeout: .seconds(60))
+                    guard response.status == .ok else {
+                        let body = try await response.body.collect(upTo: 65_536)
+                        throw OpenAIClientError.httpError(
+                            code: Int(response.status.code), body: String(buffer: body))
+                    }
+                    var parser = ServerSentEventParser()
+                    for try await buffer in response.body {
+                        for frame in parser.feed(String(buffer: buffer)) {
+                            guard
+                                let delta = OpenAIResponseParser.streamedDelta(fromData: frame.data)
+                            else { continue }
+                            for sentence in assembler.feed(delta) {
+                                emit(sentence, final: false)
+                            }
+                        }
+                    }
+                    if let remaining = assembler.flush() {
+                        emit(remaining, final: true)
+                    }
+                } catch {
+                    logger.error("OpenAI request failed: \(error)")
                 }
                 if traceResponses {
                     logger.info("LLM full streaming response: \(fullResponse)")
@@ -222,6 +241,7 @@ enum OpenAIClientError: Error, LocalizedError {
     case invalidResponse
     case httpError(code: Int, body: String)
     case missingOutputText
+    case streamingUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -236,6 +256,8 @@ enum OpenAIClientError: Error, LocalizedError {
             return "OpenAI API returned status \(code): \(body)"
         case .missingOutputText:
             return "OpenAI response did not include output text"
+        case .streamingUnavailable:
+            return "OpenAI streaming needs an HTTP client; none was configured"
         }
     }
 }

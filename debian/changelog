@@ -1,3 +1,15 @@
+creature-cli (2.62.1+world0.8.0+house0.1.1) unstable; urgency=medium
+
+  * creature-agent 2.62.1: OpenAI streaming goes through AsyncHTTPClient.
+    On Linux a per-request URLSession torn down as an HTTPS stream completed
+    tripped swift-corelibs-foundation's `_MultiHandle deallocated with
+    non-zero retain count` and aborted the process - Beaky died the moment
+    her second sentence landed, four times in ten minutes, and the world
+    only freed the character 30 s later. The HTTP client is shut down on
+    exit.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 15:40:00 -0700
+
 creature-cli (2.62.0+world0.8.0+house0.1.1) unstable; urgency=medium
 
   * creature-house 0.1.1: a measurement's minimum_change is measured from
