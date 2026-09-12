@@ -257,8 +257,8 @@ back to the Communicator.
    both appear in the Viewer's Characters panel; start a second Beaky by hand and watch it
    spectate; hand-cast an utterance to `character:mango` and hear Mango.
 2. C2 live: deploy creature-server 3.46.0 (PR #187); add `"creature_server": {"url":
-   "https://server.prod.chirpchirp.dev"}` and `"regions": {"region:home": {"stage_id":
-   "0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4"}}` (Mainstage) to `/etc/creature/world.json`; say
+   "https://server.prod.chirpchirp.dev"}` to `/etc/creature/world.json` (`region:home` →
+   Mainstage is in the packaged config; dpkg will offer the new conffile on upgrade); say
    "What do you two think is in the box?" from the phone with Beaky and Mango logged in, and
    watch the Scenes panel hand the floor around while the birds answer ~2 s apart. Then C3,
    the Communicator for the flock.

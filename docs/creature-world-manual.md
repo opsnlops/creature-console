@@ -184,8 +184,9 @@ render. Events: `scene.opened`, `scene.turn_offered`, `scene.turn`, `scene.close
 }
 ```
 
-Stages come from `GET /api/v1/stage` on Creature Server; `Mainstage` above has every bird
-placed on it.
+Stages come from `GET /api/v1/stage` on Creature Server. The packaged `world.json` maps
+`region:home` to **Mainstage** (`0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4`), which has every bird
+placed on it; the characters' new building will get its own region and stage when it exists.
 
 ### Local Debian builds under the upgraded Docker Desktop
 

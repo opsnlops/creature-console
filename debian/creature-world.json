@@ -1,5 +1,10 @@
 {
   "host": "127.0.0.1",
   "mongodb_uri": "mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000",
-  "port": 8001
+  "port": 8001,
+  "regions": {
+    "region:home": {
+      "stage_id": "0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4"
+    }
+  }
 }
