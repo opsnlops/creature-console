@@ -26,7 +26,7 @@ current in the same commit as the code it describes.**
   is verified live against fuzzball. Manual: [`docs/world-viewer-manual.md`](world-viewer-manual.md).
 - Active branch: `vw-016-physical-stage` — **Beaky's voice in the room** (VW-016 #107 +
   assumed presence). Plan: [`docs/vw-016-physical-stage-plan.md`](vw-016-physical-stage-plan.md).
-  Creature World `0.4.2`, `creature-agent` `2.56.0`.
+  Creature World `0.4.2`, `creature-agent` `2.56.1`.
 - **April's definition of done (2026-09-11):** a feature is complete only when it works live
   *and* is viewable in World Viewer. Plan the Viewer surface into every slice.
 - #154 (replies drifting into `Beaky: "…"` script format) is fixed in `2.55.4`: the mind stores
@@ -146,7 +146,7 @@ http://127.0.0.1:8001/world/v1`, persona in `llmSystemPrompt` (the unit already 
 `StateDirectory=creature-agent`. Enable OTel in `/etc/default/creature-agent` to see her
 thinking in Honeycomb. Presence is still `unknown`, so every reply goes to Communicator.
 
-To put Beaky's voice in the room on fuzzball: deploy World `0.4.1` and agent `2.56.0`
+To put Beaky's voice in the room on fuzzball: deploy World `0.4.1` and agent `2.56.1`
 (`./build_debs.sh --arch amd64`, `apt install`, restart both by hand — #144); add
 `"presence": {"assumed": {"person:april": {"state": "home", "physically_audible": true}}}` to
 `/etc/creature/world.json` and restart World; make sure `/etc/default/creature-agent` (or the

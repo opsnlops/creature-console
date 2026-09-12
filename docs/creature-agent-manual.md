@@ -50,7 +50,7 @@ Shared keys:
 | `llmSystemPrompt` | required | the character's persona |
 | `llmTemperature` | `1.0` | |
 | `localLlmHost` / `localLlmPort` | `10.69.66.4` / `1234` | llama-server (OpenAI-compatible) |
-| `localLlmMaxTokens` | `100` | |
+| `localLlmMaxTokens` | `100` | enough for a short reply; set `400` or so in world mode so a story fits. If the model is cut off by this cap, the unfinished last sentence is dropped rather than spoken (#157) |
 
 MQTT mode keys (`mqttHost`, `mqttPort`, `mqttReconnectBackoff`, `fallbackSpeech`,
 `maxConcurrentTasks`, `minSentenceChars`, `areas`) are documented in the sample file. `areas` is
@@ -73,13 +73,13 @@ A minimal world-mode file:
 
 ```yaml
 mode: world
-creatureId: 00000000-0000-0000-0000-000000000000
+creatureId: 4754fc0e-1706-11ef-931d-bbb95a696e2e
 llmBackend: local
 localLlmHost: 10.69.66.4
 localLlmPort: 1234
 llmModel: mistral-nemo
 llmTemperature: 0.9
-localLlmMaxTokens: 160
+localLlmMaxTokens: 400
 worldUrl: http://10.69.66.1:8001/world/v1
 characterEntityId: character:beaky
 personEntityId: person:april

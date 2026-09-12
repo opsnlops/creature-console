@@ -1,3 +1,11 @@
+creature-cli (2.56.1) unstable; urgency=medium
+
+  * creature-agent: a reply the model could not finish within
+    localLlmMaxTokens ends on its last complete sentence instead of
+    speaking the cut-off fragment (#157).
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 18:40:00 -0700
+
 creature-cli (2.56.0) unstable; urgency=medium
 
   * creature-agent (world mode): Beaky can speak in the room. Before each
