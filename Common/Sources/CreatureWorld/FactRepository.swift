@@ -20,6 +20,24 @@ struct FactRepository: Sendable {
         .execute()
     }
 
+    func supersede(by fact: Fact) async throws {
+        _ = try await facts.updateMany(
+            where: [
+                "subject_id": fact.subjectID.rawValue,
+                "predicate": fact.predicate,
+                "valid_to": Null(),
+                "superseded_by": Null(),
+                "_id": ["$ne": fact.factID.rawValue],
+            ],
+            to: [
+                "$set": [
+                    "valid_to": fact.validFrom,
+                    "superseded_by": fact.factID.rawValue,
+                ] as Document
+            ]
+        )
+    }
+
     func currentFacts(subjectID: EntityID? = nil) async throws -> [Fact] {
         var query: Document = [
             "valid_to": Null(),
@@ -29,6 +47,22 @@ struct FactRepository: Sendable {
             query["subject_id"] = subjectID.rawValue
         }
         let documents = try await facts.find(query).sort(["valid_from": 1]).drain()
+        return try documents.map(decode)
+    }
+
+    /// Current facts about any of `subjects`, newest first, bounded.
+    func currentFacts(about subjects: [EntityID], limit: Int) async throws -> [Fact] {
+        precondition(limit > 0)
+        guard !subjects.isEmpty else { return [] }
+        let query: Document = [
+            "subject_id": ["$in": subjects.map(\.rawValue)] as Document,
+            "valid_to": Null(),
+            "superseded_by": Null(),
+        ]
+        let documents = try await facts.find(query)
+            .sort(["valid_from": -1, "_id": -1])
+            .limit(limit)
+            .drain()
         return try documents.map(decode)
     }
 

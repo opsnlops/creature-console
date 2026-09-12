@@ -55,7 +55,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         let world = World(
             eventStore: persistence.events,
             factStore: persistence.facts,
-            reducers: [],
+            reducers: [
+                CharacterPresenceReducer(), AssumedPersonPresenceReducer(), SceneMemoryReducer(),
+            ],
             clock: clock
         )
         let timerScheduler = WorldTimerScheduler(
@@ -110,11 +112,14 @@ struct MongoWorldPersistenceConnection: Sendable {
             performer = NotConnectedScenePerformer(clock: clock)
         }
         let conversations = persistence.conversations
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, sessions: sessionService)
         let sceneService = SceneService(
             repository: persistence.scenes,
             clock: clock,
             limits: sceneLimits,
             performer: performer,
+            knowledge: knowledge,
             announce: { _ = try await world.accept($0) },
             scheduleDeadline: { try await timerScheduler.schedule($0) },
             recordTurn: { scene, turn in
@@ -140,8 +145,36 @@ struct MongoWorldPersistenceConnection: Sendable {
                 world: world, sessions: sessionService, scenes: sceneService),
             scenePlanner: PresentCharactersScenePlanner(sessions: sessionService),
             addresseeResolver: PresentCharactersAddresseeResolver(
-                sessions: sessionService, rule: LeadAddresseeRule(lead: leadCharacter))
+                sessions: sessionService, rule: LeadAddresseeRule(lead: leadCharacter)),
+            knowledge: knowledge
         )
+        // What the world assumes about people is a fact with provenance, announced at startup
+        // (idempotent: the same assumption is the same event on every restart).
+        let assumptionAnnouncer = Task {
+            do {
+                for event in try AssumedPresenceAnnouncement.events(
+                    for: presence, at: await clock.now)
+                {
+                    _ = try await world.accept(event)
+                }
+            } catch {
+                logger.warning(
+                    "Could not announce presence assumptions", metadata: ["error": "\(error)"])
+            }
+        }
+        // A mind whose heartbeat stopped is logged out by the world, so presence facts follow.
+        let sessionSweeper = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(15))
+                do {
+                    try await sessionService.sweepExpired()
+                } catch {
+                    logger.warning(
+                        "Could not sweep expired character sessions",
+                        metadata: ["error": "\(error)"])
+                }
+            }
+        }
         // Floor deadlines fire as world timers; the scene service hears them from the stream.
         let floorWatcher = Task {
             do {
@@ -288,6 +321,8 @@ struct MongoWorldPersistenceConnection: Sendable {
             )
         }
         shutdown = {
+            assumptionAnnouncer.cancel()
+            sessionSweeper.cancel()
             floorWatcher.cancel()
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
@@ -666,6 +701,27 @@ extension MongoWorldPersistenceProvider: ConversationApplicationService {}
 extension MongoWorldPersistenceProvider: CharacterSessionApplicationService {}
 extension MongoWorldPersistenceProvider: SceneApplicationService {}
 
+/// What the world knows that bears on a moment: facts about the subjects asked for, plus the
+/// region the character is in and everyone logged into it — so "who is here with you" and
+/// "what was just said in this room" ride along without the caller knowing about regions.
+private struct PresentWorldKnowledge: WorldKnowledgeProviding {
+    let facts: FactRepository
+    let sessions: CharacterSessionService
+
+    func currentFacts(about subjects: [EntityID], limit: Int) async throws -> [Fact] {
+        var expanded = subjects
+        for subject in subjects {
+            guard let session = try await sessions.liveSession(for: subject) else { continue }
+            expanded.append(session.regionID)
+            expanded.append(
+                contentsOf: try await sessions.present(in: session.regionID).map(\.characterID))
+        }
+        var seen: Set<EntityID> = []
+        let unique = expanded.filter { seen.insert($0).inserted }
+        return try await facts.currentFacts(about: unique, limit: limit)
+    }
+}
+
 /// Which creature a character speaks through: the one its mind logged in with.
 private struct SessionCreatureResolver: CharacterCreatureResolving {
     let sessions: CharacterSessionService
@@ -695,14 +751,14 @@ private struct PresentCharactersAddresseeResolver: AddresseeResolving {
     }
 }
 
-/// A remark to the room, with more than one character logged into the region, means a scene:
-/// the world will hand out the floor. A bird April names by name answers alone — her word
-/// with Beaky stays between them.
+/// With more than one character logged into the region, a remark means a scene: the world
+/// hands the floor to the addressee first and the others may chime in. A bird April whispers
+/// to ("@beaky …") answers alone — her word with Beaky stays between them.
 private struct PresentCharactersScenePlanner: ScenePlanning {
     let sessions: CharacterSessionService
 
     func planScene(for utterance: PersonUtterance, addressee: Addressee) async throws -> SceneID? {
-        guard !addressee.named,
+        guard !addressee.alone,
             let session = try await sessions.liveSession(for: addressee.characterID)
         else { return nil }
         let present = try await sessions.present(in: session.regionID)

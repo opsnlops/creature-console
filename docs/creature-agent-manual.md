@@ -141,10 +141,18 @@ creature-agent run --config-path agent.yaml --log-level info --host <creature-se
   and answers anything it missed, except messages older than `maximumReplyAge`, which become
   recorded `stale` silences.
 - **It reads the canonical conversation.** The prompt is the persona, a fixed conversation
-  contract (`prompt_version` `world-conversation-v1`, recorded on every span), and the prior
+  contract (`prompt_version` `world-conversation-v2`, recorded on every span), and the prior
   conversation items the world attached to the percept — both authors, in order — so Beaky sees
   what she herself said last. Consecutive messages from one author are merged into one turn
   because Mistral's chat template rejects non-alternating roles.
+- **It is told what the world knows** (`2.59.0`). The `world_facts` on an utterance percept or
+  a scene floor offer are phrased as plain sentences — "Mango is here in the room with you",
+  "April is home (you assume; nobody has checked)", "5 minutes ago, in this room: Mango said
+  …" — in a "What you know right now, from the world itself" block ahead of the conversation,
+  and the prompt says to trust it over guesses. `FactPhrasing` maps predicates to sentences,
+  so the model never sees `presence.region`; a predicate it has no words for is left out
+  rather than dumped. With no facts the block is absent. The Viewer's Mundane view of the
+  percept shows exactly which facts a bird was told.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
   emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the

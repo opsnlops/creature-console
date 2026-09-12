@@ -515,6 +515,75 @@ struct MongoWorldPersistenceTests {
         }
     }
 
+    @Test("A newer fact about the same subject and predicate closes the older one")
+    func newerFactSupersedesOlder() async throws {
+        try await withPersistence { persistence in
+            let subjectID = try EntityID(validating: "character:\(UUID().uuidString.lowercased())")
+            let start = Date(timeIntervalSince1970: 1_789_600_000)
+            func fact(_ region: String, at offset: TimeInterval) throws -> Fact {
+                try Fact(
+                    subjectID: subjectID,
+                    predicate: "presence.region",
+                    value: .string(region),
+                    epistemic: EpistemicState(type: .observed, confidence: 1),
+                    validFrom: start.addingTimeInterval(offset),
+                    derivedFrom: [],
+                    producer: FactProducer(kind: "test", id: "mongo", version: "1")
+                )
+            }
+            let workshop = try fact("region:workshop", at: 0)
+            let home = try fact("region:home", at: 60)
+            let unrelated = try Fact(
+                subjectID: subjectID, predicate: "presence.state", value: .string("awake"),
+                epistemic: EpistemicState(type: .observed, confidence: 1), validFrom: start,
+                derivedFrom: [], producer: FactProducer(kind: "test", id: "mongo", version: "1"))
+
+            try await persistence.facts.save(workshop)
+            try await persistence.facts.save(unrelated)
+            try await persistence.facts.supersede(by: home)
+            try await persistence.facts.save(home)
+            // Saving the same fact again must not close it against itself.
+            try await persistence.facts.supersede(by: home)
+            try await persistence.facts.save(home)
+
+            let current = try await persistence.facts.currentFacts(
+                about: [subjectID], limit: WorldKnowledgeLimits.maximumFacts)
+            #expect(current.map(\.factID) == [home.factID, unrelated.factID])
+            let closed = try #require(
+                try await persistence.database[MongoWorldCollection.facts]
+                    .findOne(["_id": workshop.factID.rawValue]))
+            #expect(closed["superseded_by"] as? String == home.factID.rawValue)
+            #expect(closed["valid_to"] as? Date == home.validFrom)
+        }
+    }
+
+    @Test("Facts for a percept are bounded and newest first across several subjects")
+    func factsForAPerceptAreBounded() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let subjects = try (0..<3).map { try EntityID(validating: "entity:\(suffix)-\($0)") }
+            let start = Date(timeIntervalSince1970: 1_789_600_000)
+            for index in 0..<6 {
+                try await persistence.facts.save(
+                    Fact(
+                        subjectID: subjects[index % 3],
+                        predicate: "test.predicate-\(index)",
+                        value: .number(Double(index)),
+                        epistemic: EpistemicState(type: .observed, confidence: 1),
+                        validFrom: start.addingTimeInterval(Double(index)),
+                        derivedFrom: [],
+                        producer: FactProducer(kind: "test", id: "mongo", version: "1")))
+            }
+
+            let facts = try await persistence.facts.currentFacts(
+                about: Array(subjects[0...1]), limit: 3)
+
+            // Subject 2's facts (indices 2, 5) are excluded; the newest three of the rest remain.
+            #expect(facts.map(\.value) == [.number(4), .number(3), .number(1)])
+            #expect(try await persistence.facts.currentFacts(about: [], limit: 3).isEmpty)
+        }
+    }
+
     @Test("Timer and source checkpoint repositories round trip")
     func timerAndCheckpointRoundTrip() async throws {
         try await withPersistence { persistence in

@@ -122,12 +122,15 @@ scene: { scene_id, opened_by (event / utterance), participants: [character_id],
   the rename is fine, "we're just playing around"). `conversation:april-beaky` stays readable.
   Items already carry `author_id`; the app shows the author's name and colour per character
   (`0.2.0`).
-- **Addressing.** April's message names a character or not: "Mango, …" / "@Mango" → Mango;
-  otherwise Beaky, by the leadership rule. The addressee resolution is a world rule
-  (`PersonUtteranceIngress`), not a gateway or app rule, so STT later gets it for free.
-  *Decision while building (April):* a **named** bird answers alone — "Beaky, …" is a word with
-  her familiar and nobody else — while an **unaddressed** remark is for the room and opens a
-  scene (C2) so whoever is present may chime in, Beaky first.
+- **Addressing.** April's message names a character or not: "Mango, …" → Mango first;
+  "@Mango …" → Mango alone; otherwise Beaky first, by the leadership rule. The addressee
+  resolution is a world rule (`PersonUtteranceIngress`), not a gateway or app rule, so STT
+  later gets it for free.
+  *Decisions while building (April):* first, a named bird answers alone; then, after hearing
+  the flock pile in on "Beaky, I love you" — "I'm kinda liking the way everyone else chimes
+  in" — **@-addressing means one bird and one bird only**, while **"Beaky, …" means she
+  answers first and the others may respond**. An unaddressed remark is for the room and opens
+  a scene (C2), Beaky first.
 - Beaky Communicator's title, icon, and settings stop assuming one bird; the app subscribes to
   the house conversation and shows who is speaking. Push and quiet hours (later VW-028 work)
   apply per person, not per character.

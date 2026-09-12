@@ -39,6 +39,34 @@ struct WorldStoreTests {
         #expect(store.health?.buildVersion == "0.3.0")
     }
 
+    @Test("A newer fact about the same thing replaces the older one as the delta arrives")
+    func deltaSupersedesOlderFact() async throws {
+        let assumed = try makeFact()
+        var observed = try makeFact()
+        observed.factID = .generated()
+        observed.value = .string("home")
+        observed.epistemic = try EpistemicState(type: .observed, confidence: 1)
+        var unrelated = try makeFact()
+        unrelated.factID = .generated()
+        unrelated.predicate = "presence.physically_audible"
+        let world = ScriptedWorld(history: [])
+        await world.script([
+            .snapshot(
+                WorldSnapshot(
+                    latestSequence: 0, facts: [assumed, unrelated], timers: [],
+                    factsTruncated: false, timersTruncated: false)),
+            .delta(WorldDelta(event: try makeEvent(sequence: 1), changedFacts: [observed])),
+            .hold,
+        ])
+        let store = makeStore(world)
+
+        store.start()
+        defer { store.stop() }
+        try await settle { store.events.count == 1 }
+
+        #expect(store.facts == [unrelated, observed])
+    }
+
     @Test("A dropped stream resumes after the last sequence seen, without gaps or repeats")
     func resumesWithoutGap() async throws {
         let world = ScriptedWorld(history: [])
@@ -185,6 +213,7 @@ struct WorldStoreTests {
 enum ScriptedFrame {
     case snapshot(WorldSnapshot)
     case event(WorldEventEnvelope)
+    case delta(WorldDelta)
     case resnapshotRequired
     case end
     case hold
@@ -279,6 +308,7 @@ struct ScriptedScryer: WorldScrying {
                     switch frame {
                     case .snapshot(let snapshot): continuation.yield(.snapshot(snapshot))
                     case .event(let event): continuation.yield(.event(event))
+                    case .delta(let delta): continuation.yield(.delta(delta))
                     case .resnapshotRequired: continuation.yield(.resnapshotRequired)
                     case .end: continuation.finish()
                     case .hold: return

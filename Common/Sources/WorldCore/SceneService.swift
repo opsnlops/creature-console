@@ -41,6 +41,7 @@ public actor SceneService {
     private let scheduleDeadline: @Sendable (WorldTimer) async throws -> Void
     private let recordTurn: @Sendable (Scene, SceneTurn) async throws -> ConversationItemID
     private let performer: any ScenePerforming
+    private let knowledge: any WorldKnowledgeProviding
     private let makeResponseID: @Sendable () -> ResponseID
 
     public init(
@@ -48,6 +49,7 @@ public actor SceneService {
         clock: any WorldClock,
         limits: SceneLimits = SceneLimits(),
         performer: any ScenePerforming,
+        knowledge: any WorldKnowledgeProviding = NoWorldKnowledge(),
         announce: @escaping @Sendable (WorldEventEnvelope) async throws -> Void,
         scheduleDeadline: @escaping @Sendable (WorldTimer) async throws -> Void,
         recordTurn: @escaping @Sendable (Scene, SceneTurn) async throws -> ConversationItemID,
@@ -57,6 +59,7 @@ public actor SceneService {
         self.clock = clock
         self.limits = limits
         self.performer = performer
+        self.knowledge = knowledge
         self.announce = announce
         self.scheduleDeadline = scheduleDeadline
         self.recordTurn = recordTurn
@@ -211,6 +214,10 @@ public actor SceneService {
         )
         scene.floor = floor
         try await repository.save(scene)
+        var subjects = [characterID, scene.regionID] + scene.participants
+        if let speaker = scene.trigger.speakerID {
+            subjects.append(speaker)
+        }
         let offer = SceneTurnOffer(
             sceneID: scene.sceneID,
             characterID: characterID,
@@ -218,7 +225,9 @@ public actor SceneService {
             deadline: floor.deadline,
             trigger: scene.trigger,
             participants: scene.participants,
-            turns: scene.turns
+            turns: scene.turns,
+            worldFacts: try await knowledge.currentFacts(
+                about: subjects, limit: WorldKnowledgeLimits.maximumFacts)
         )
         try await announce(
             WorldEventEnvelope(
@@ -314,6 +323,15 @@ public actor SceneService {
                     "provider_reference": performance.providerReference.map { .string($0) }
                         ?? .null,
                     "error_code": performance.errorCode.map { .string($0) } ?? .null,
+                    "trigger": .string(scene.trigger.text),
+                    // What was said, so a reducer can keep it as the region's last scene.
+                    "lines": .array(
+                        scene.spokenTurns.map {
+                            .object([
+                                "character_id": .string($0.characterID.rawValue),
+                                "text": .string($0.text ?? ""),
+                            ])
+                        }),
                 ]))
     }
 

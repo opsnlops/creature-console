@@ -347,6 +347,7 @@ private actor TestTimerStore: WorldTimerStore, WorldEventStore, WorldFactStore {
     }
 
     func save(_: Fact) {}
+    func supersede(by _: Fact) {}
 }
 
 private enum TestTimerStoreError: Error {

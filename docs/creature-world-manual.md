@@ -144,15 +144,23 @@ describe the deployed replica set or managed MongoDB cluster instead.
 
 ### Addressing
 
-Who April is talking to is a world rule (`0.6.2`), so typed words and spoken ones later are
-addressed the same way. At ingress the world looks at the start of the message: a character
-named there — "Mango, …", "Hey Kenny …", "@caroll …" — who is logged in gets it, **alone**: a
-named bird answers by itself and no scene opens, so April can have a word with just her
-familiar ("Beaky, how was your day?"). Everything else is for the room: it goes to the lead
-(`lead_character`, default `character:beaky`), and if others are logged in the world opens a
-scene so they may chime in. The sender's addressee (the app always says Beaky) is only a hint;
-the utterance is stored as sent and the percept carries the world's choice. A name mentioned
-later in the sentence ("I think Mango is right") does not redirect it. `conversation:april-house` is the house conversation (from Communicator
+Who April is talking to is a world rule (`0.6.2`, refined in `0.7.0`), so typed words and
+spoken ones later are addressed the same way. At ingress the world looks at the start of the
+message:
+
+- **A whisper, "@beaky …"** — an @-name of a character who is logged in is for that character
+  **alone**: it answers by itself and no scene opens, so April can have a word with just her
+  familiar.
+- **A name, "Beaky, …" / "Hey Kenny …"** — that character answers **first**; if others are
+  logged in the world opens a scene so they may chime in (April: "I'm kinda liking the way
+  everyone else chimes in when I say I love Beaky").
+- **Anything else** is for the room: it goes to the lead (`lead_character`, default
+  `character:beaky`) first, and likewise opens a scene when others are present.
+
+The sender's addressee (the app always says Beaky) is only a hint; the utterance is stored as
+sent and the percept carries the world's choice, with `conversation.addressee.alone` on the
+ingest span. A name mentioned later in the sentence ("I think Mango is right") does not
+redirect it. `conversation:april-house` is the house conversation (from Communicator
 `0.3.0` and Viewer defaults): every character speaks in it. `conversation:april-beaky` holds the
 history from before the flock and stays readable.
 
@@ -202,6 +210,31 @@ render. Events: `scene.opened`, `scene.turn_offered`, `scene.turn`, `scene.close
 Stages come from `GET /api/v1/stage` on Creature Server. The packaged `world.json` maps
 `region:home` to **Mainstage** (`0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4`), which has every bird
 placed on it; the characters' new building will get its own region and stage when it exists.
+
+### Facts: what the world knows
+
+From `0.7.0` the world turns what it sees into **facts** (`fact` records: subject, predicate,
+value, epistemic state, validity window, provenance back to the event) through pure reducers
+run on the authoritative event loop, and tells the minds about them. The first reducers:
+
+| Event | Fact | Epistemic |
+| --- | --- | --- |
+| `character.logged_in` / `logged_out` | `character:<x>` `presence.region` = `region:home` (or `null` on logout) | observed, 1 |
+| `presence.assumed` (announced from `presence.assumed` in `world.json` at startup, idempotent) | `person:april` `presence.state` = `home`, `presence.physically_audible` = `true` | assumed, configured confidence |
+| `scene.performed` | `region:home` `scene.last` = trigger and lines, valid for one hour | observed, 1 |
+
+A newer fact about the same subject and predicate **supersedes** the older one: the old
+document gets `valid_to` and `superseded_by`, so `GET /world/v1/facts` and the Viewer's Facts
+panel always show the current world and the history stays queryable. The world also **sweeps
+expired character sessions** every 15 s and announces the logout itself, so a mind that died
+without saying goodbye leaves the room in the facts too.
+
+Every percept a mind receives carries `world_facts`: the current facts (newest first, at most
+40) whose subject is the addressee, the region it is in, everyone logged into that region, or
+the speaker. `PersonUtterancePercept` gets them at ingress and `SceneTurnOffer` gets them with
+each floor offer, so both are in the event payload and visible in the Viewer's Mundane view —
+the Timeline row shows **knows N** for any percept that carried facts. Minds never fetch facts;
+they are told (`docs/facts-and-personas-plan.md`).
 
 ### Local Debian builds under the upgraded Docker Desktop
 

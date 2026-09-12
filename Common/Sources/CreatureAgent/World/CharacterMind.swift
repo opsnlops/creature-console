@@ -71,7 +71,7 @@ struct CharacterMind: Sendable {
     }
 
     /// Bumped whenever the prompt contract changes so evaluations stay comparable.
-    static let promptVersion = "world-conversation-v1"
+    static let promptVersion = "world-conversation-v2"
     /// The one reserved reply: the model may decline to speak.
     static let silenceToken = "[silence]"
 
@@ -202,7 +202,7 @@ struct CharacterMind: Sendable {
                 consideration, decision: decision, responseID: responseID, stage: stage, now: now)
         }
 
-        let transcript = makeTranscript(for: consideration.percept, route: .communicator)
+        let transcript = makeTranscript(for: consideration.percept, route: .communicator, now: now)
         let raw: String
         do {
             raw = try await withSpan("llm.mistral.generate") { span in
@@ -250,7 +250,8 @@ struct CharacterMind: Sendable {
         stage: Stage,
         now: Date
     ) async -> CharacterDecision {
-        let transcript = makeTranscript(for: consideration.percept, route: .physicalSpeech)
+        let transcript = makeTranscript(
+            for: consideration.percept, route: .physicalSpeech, now: now)
         let (sentenceStream, continuation) = AsyncStream<String>.makeStream()
         let name = configuration.characterName
 
@@ -427,7 +428,7 @@ struct CharacterMind: Sendable {
                 reason: reason)
         }
         guard now <= offer.deadline else { return pass(.stale) }
-        let transcript = makeSceneTranscript(for: offer)
+        let transcript = makeSceneTranscript(for: offer, now: now)
         let raw: String
         do {
             raw = try await withSpan("llm.mistral.generate") { span in
@@ -461,13 +462,16 @@ struct CharacterMind: Sendable {
 
     /// The persona, the scene contract, then the scene so far as a script the model continues:
     /// the trigger as April's (or the world's) line, each turn as "Name: words".
-    func makeSceneTranscript(for offer: SceneTurnOffer) -> [LocalLLMClient.Message] {
+    func makeSceneTranscript(for offer: SceneTurnOffer, now: Date = Date())
+        -> [LocalLLMClient.Message]
+    {
         let others = offer.participants.filter { $0 != configuration.characterID }
             .map(Self.name(of:))
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
                 content: configuration.persona + "\n\n" + Self.sceneContract(others: others)
+                    + knowledgeBlock(offer.worldFacts, now: now)
             )
         ]
         var script = ""
@@ -488,9 +492,16 @@ struct CharacterMind: Sendable {
     }
 
     static func name(of entityID: EntityID) -> String {
-        let raw = entityID.rawValue
-        guard let colon = raw.firstIndex(of: ":") else { return raw }
-        return String(raw[raw.index(after: colon)...]).capitalized
+        FactPhrasing.name(of: entityID)
+    }
+
+    /// "What you know": the world's facts in plain words, or nothing at all when the world has
+    /// nothing to say — never an empty heading the model might fill in.
+    func knowledgeBlock(_ facts: [Fact], now: Date) -> String {
+        let lines = FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
+        guard !lines.isEmpty else { return "" }
+        return "\n\nWhat you know right now, from the world itself (trust this over guesses):\n"
+            + lines.map { "- " + $0 }.joined(separator: "\n")
     }
 
     static func sceneContract(others: [String]) -> String {
@@ -534,12 +545,14 @@ struct CharacterMind: Sendable {
     /// April's turns as `user`, Beaky's own earlier turns as `assistant`, newest last.
     func makeTranscript(
         for percept: PersonUtterancePercept,
-        route: CharacterDeliveryRoute = .communicator
+        route: CharacterDeliveryRoute = .communicator,
+        now: Date = Date()
     ) -> [LocalLLMClient.Message] {
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
                 content: configuration.persona + "\n\n" + Self.contract(for: route)
+                    + knowledgeBlock(percept.worldFacts, now: now)
             )
         ]
         let prior = percept.priorConversationItems

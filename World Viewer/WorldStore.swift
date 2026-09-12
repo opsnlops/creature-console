@@ -262,8 +262,15 @@ final class WorldStore {
         }
     }
 
+    /// A delta carries the fact that changed, not the one it replaced: the world closes the
+    /// older fact about the same subject and predicate as it saves the new one, so the Viewer
+    /// applies the same rule rather than showing two "current" answers until a refresh.
     private func apply(changedFacts: [Fact]) {
         for fact in changedFacts {
+            facts.removeAll {
+                $0.factID != fact.factID && $0.subjectID == fact.subjectID
+                    && $0.predicate == fact.predicate
+            }
             if let index = facts.firstIndex(where: { $0.factID == fact.factID }) {
                 facts[index] = fact
             } else {

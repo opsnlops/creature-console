@@ -251,6 +251,8 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
     public var trigger: SceneTrigger
     public var participants: [EntityID]
     public var turns: [SceneTurn]
+    /// What the world knows that bears on the scene, for this character.
+    public var worldFacts: [Fact]
 
     public init(
         sceneID: SceneID,
@@ -259,7 +261,8 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         deadline: Date,
         trigger: SceneTrigger,
         participants: [EntityID],
-        turns: [SceneTurn]
+        turns: [SceneTurn],
+        worldFacts: [Fact] = []
     ) {
         self.sceneID = sceneID
         self.characterID = characterID
@@ -268,6 +271,21 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         self.trigger = trigger
         self.participants = participants
         self.turns = turns
+        self.worldFacts = worldFacts
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            sceneID: try container.decode(SceneID.self, forKey: .sceneID),
+            characterID: try container.decode(EntityID.self, forKey: .characterID),
+            responseID: try container.decode(ResponseID.self, forKey: .responseID),
+            deadline: try container.decode(Date.self, forKey: .deadline),
+            trigger: try container.decode(SceneTrigger.self, forKey: .trigger),
+            participants: try container.decode([EntityID].self, forKey: .participants),
+            turns: try container.decode([SceneTurn].self, forKey: .turns),
+            worldFacts: try container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? []
+        )
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -278,6 +296,7 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         case trigger
         case participants
         case turns
+        case worldFacts = "world_facts"
     }
 }
 

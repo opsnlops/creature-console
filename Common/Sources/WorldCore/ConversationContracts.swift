@@ -314,13 +314,17 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
     /// Set when the world opened a scene for this utterance: the character will be offered the
     /// floor there and must not answer on its own.
     public var sceneID: SceneID?
+    /// What the world knows that bears on this moment: facts about the character, the speaker,
+    /// the region, and whoever is present. Bounded; newest first.
+    public var worldFacts: [Fact]
 
     public init(
         considerationID: ConsiderationID = .generated(),
         characterID: EntityID,
         utterance: PersonUtterance,
         priorConversationItems: [ConversationItem],
-        sceneID: SceneID? = nil
+        sceneID: SceneID? = nil,
+        worldFacts: [Fact] = []
     ) throws {
         guard priorConversationItems.count <= ConversationContractLimits.maximumContextItems else {
             throw WorldContractError.conversationContextTooLarge(
@@ -333,6 +337,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         self.utterance = utterance
         self.priorConversationItems = priorConversationItems
         self.sceneID = sceneID
+        self.worldFacts = worldFacts
     }
 
     public init(from decoder: any Decoder) throws {
@@ -349,7 +354,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
             characterID: container.decode(EntityID.self, forKey: .characterID),
             utterance: container.decode(PersonUtterance.self, forKey: .utterance),
             priorConversationItems: priorConversationItems,
-            sceneID: container.decodeIfPresent(SceneID.self, forKey: .sceneID)
+            sceneID: container.decodeIfPresent(SceneID.self, forKey: .sceneID),
+            worldFacts: container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? []
         )
     }
 
@@ -360,6 +366,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         case utterance
         case priorConversationItems = "prior_conversation_items"
         case sceneID = "scene_id"
+        case worldFacts = "world_facts"
     }
 }
 
