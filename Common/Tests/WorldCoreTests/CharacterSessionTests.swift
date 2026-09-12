@@ -117,7 +117,8 @@ struct CharacterSessionTests {
         let (service, announced, _) = makeService()
         let mango = try EntityID(validating: "character:mango")
         let mind = CharacterMindInstance(
-            host: "fuzzball", processID: 3, creatureID: "u2", pronouns: "he/him")
+            host: "fuzzball", processID: 3, creatureID: "u2", pronouns: "he/him",
+            model: "openai/gpt-6-astra")
 
         _ = try await service.login(mango, CharacterLoginRequest(regionID: home, instance: mind))
         _ = try await service.login(
@@ -130,6 +131,9 @@ struct CharacterSessionTests {
             JSONSerialization.jsonObject(with: WorldJSON.makeEncoder().encode(mind))
                 as? [String: Any])
         #expect(json["pronouns"] as? String == "he/him")
+        #expect(json["model"] as? String == "openai/gpt-6-astra")
+        let stored = try #require(try await service.liveSession(for: mango))
+        #expect(stored.instance.model == "openai/gpt-6-astra")
     }
 
     @Test("Sessions round-trip through the snake_case wire contract")

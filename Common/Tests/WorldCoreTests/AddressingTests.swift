@@ -78,6 +78,17 @@ struct AddressingTests {
         #expect(result.percept.utterance.addresseeIDs == [beaky])
     }
 
+    @Test("A person the world knows is mentioned when their name is a word in the text")
+    func mentionsAreWholeWords() throws {
+        let polly = try EntityID(validating: "person:polly")
+        let april = try EntityID(validating: "person:april")
+        let known = [polly, april]
+        #expect(WorldMentions.mentioned(in: "Who is Polly?", among: known) == [polly])
+        #expect(WorldMentions.mentioned(in: "tell POLLY and april hi", among: known) == known)
+        #expect(WorldMentions.mentioned(in: "Pollyanna is a book", among: known).isEmpty)
+        #expect(WorldMentions.mentioned(in: "", among: known).isEmpty)
+    }
+
     @Test("The percept carries what the world knows about the character and the speaker")
     func ingressGathersWorldFacts() async throws {
         let april = try EntityID(validating: "person:april")
@@ -112,6 +123,7 @@ struct AddressingTests {
         #expect(result.percept.worldFacts == knowledge.facts)
         #expect(await knowledge.requests == [[beaky, april]])
         #expect(await knowledge.limits == [WorldKnowledgeLimits.maximumFacts])
+        #expect(await knowledge.texts == ["Is anyone there?"])
         // The facts ride the wire under their own key, and an older world without them decodes.
         let encoded = try WorldJSON.makeEncoder().encode(result.percept)
         let json = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
@@ -133,8 +145,11 @@ private actor RecordingKnowledge: WorldKnowledgeProviding {
         self.facts = facts
     }
 
-    func currentFacts(about subjects: [EntityID], limit: Int) -> [Fact] {
+    private(set) var texts: [String?] = []
+
+    func currentFacts(about subjects: [EntityID], mentionedIn text: String?, limit: Int) -> [Fact] {
         requests.append(subjects)
+        texts.append(text)
         limits.append(limit)
         return facts
     }

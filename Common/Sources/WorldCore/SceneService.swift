@@ -227,7 +227,8 @@ public actor SceneService {
             participants: scene.participants,
             turns: scene.turns,
             worldFacts: try await knowledge.currentFacts(
-                about: subjects, limit: WorldKnowledgeLimits.maximumFacts)
+                about: subjects, mentionedIn: scene.trigger.text,
+                limit: WorldKnowledgeLimits.maximumFacts)
         )
         try await announce(
             WorldEventEnvelope(

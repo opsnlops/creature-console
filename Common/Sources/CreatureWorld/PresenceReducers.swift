@@ -145,3 +145,57 @@ struct SceneMemoryReducer: WorldReducer {
         return WorldReduction(changedFacts: [fact])
     }
 }
+
+/// Facts April states in `world.json` ("Polly is April's sister"), announced as world events at
+/// startup so they have provenance like any other fact and a real source can supersede them.
+struct GivenFactAnnouncement {
+    static let eventType = WorldEventType(rawValue: "facts.given")!
+    static let sourceID = try! SourceID(validating: "world:given-facts")
+
+    static func events(for facts: [GivenFact], at now: Date) throws -> [WorldEventEnvelope] {
+        try facts.map { fact in
+            let value = String(
+                decoding: try WorldJSON.makeEncoder().encode(fact.value), as: UTF8.self)
+            return try WorldEventEnvelope(
+                type: eventType,
+                occurredAt: now,
+                source: EventSource(
+                    id: sourceID, kind: "world",
+                    // The same statement on every restart is the same event.
+                    sourceEventID: "\(fact.subjectID.rawValue):\(fact.predicate):\(value)"),
+                subjectIDs: [fact.subjectID],
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: [
+                    "subject_id": .string(fact.subjectID.rawValue),
+                    "predicate": .string(fact.predicate),
+                    "value": fact.value,
+                ]
+            )
+        }
+    }
+}
+
+/// `facts.given` → the fact, as stated.
+struct GivenFactReducer: WorldReducer {
+    let eventTypes: Set<WorldEventType> = [GivenFactAnnouncement.eventType]
+
+    func reduce(_ event: WorldEventEnvelope) throws -> WorldReduction {
+        guard case .string(let rawSubject)? = event.payload["subject_id"],
+            let subject = EntityID(rawValue: rawSubject),
+            case .string(let predicate)? = event.payload["predicate"],
+            let value = event.payload["value"]
+        else { return WorldReduction() }
+        return WorldReduction(changedFacts: [
+            try Fact(
+                subjectID: subject,
+                predicate: predicate,
+                value: value,
+                epistemic: event.epistemic,
+                validFrom: event.occurredAt,
+                derivedFrom: [.event(event.eventID)],
+                producer: FactProducer(
+                    kind: PresenceFacts.producerKind, id: "given-facts", version: "1")
+            )
+        ])
+    }
+}

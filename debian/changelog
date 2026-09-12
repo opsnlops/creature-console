@@ -1,3 +1,24 @@
+creature-cli (2.61.1+world0.7.3) unstable; urgency=medium
+
+  * creature-world 0.7.3: `facts` in world.json states facts outright
+    ("Polly is April's sister"; epistemic reported), announced at startup
+    and superseded by any later source. Facts about a person named in the
+    words ride with the percept (WorldMentions). Migration 8 adds the
+    predicate_subjects index on facts.
+  * creature-agent 2.61.1: a mind's login carries its model (backend/model)
+    and World Viewer shows it in the Characters panel. (2.61.0 was a CI
+    build April installed before this landed.)
+  * creature-agent 2.61.0: a mind may run on OpenAI in world mode
+    (llmBackend: openai, streamed through the Responses API, optional
+    openAiReasoningEffort) so one bird can be compared against Mistral
+    live. "That is all you know about Polly; do not make up more" for a
+    person the world can only describe. A mid-line self-label ("... Mango:
+    Better on Linux.") keeps only the bird's own words. The world-stream
+    HTTP client is shut down on the same task, so a stop no longer traps
+    in AsyncHTTPClient (#170).
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 13:30:00 -0700
+
 creature-cli (2.60.1+world0.7.2) unstable; urgency=medium
 
   * creature-agent 2.60.1: in a scene, a line that opens by hailing the

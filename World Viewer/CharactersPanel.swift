@@ -62,6 +62,12 @@ struct CharacterRow: View {
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                if let model = session.instance.model {
+                    // Which bird is thinking on what: the spike compares them side by side.
+                    Label(model, systemImage: "brain")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 HStack(spacing: 8) {
                     Text(
                         "in since \(session.loggedInAt, format: .dateTime.hour().minute().second())"

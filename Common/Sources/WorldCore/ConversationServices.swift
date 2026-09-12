@@ -193,6 +193,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
             // so the mind reasons from facts, never from what it can fetch or invent.
             let worldFacts = try await knowledge.currentFacts(
                 about: [characterID, utterance.speakerID],
+                mentionedIn: utterance.text,
                 limit: WorldKnowledgeLimits.maximumFacts)
             span.attributes["world.facts"] = worldFacts.count
             let proposed = try StoredUtteranceIngress(

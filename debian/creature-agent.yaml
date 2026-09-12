@@ -44,7 +44,8 @@ areas:
 # which decides Communicator vs. the room from presence.
 # ---------------------------------------------------------------------------
 # mode: world
-# llmBackend: local
+# llmBackend: local          # or openai (OPENAI_API_KEY in /etc/default/creature-agent-<instance>)
+# llmReasoningEffort: low    # OpenAI reasoning models only
 # localLlmHost: 10.69.66.4
 # localLlmPort: 1234
 # llmModel: mistral-nemo

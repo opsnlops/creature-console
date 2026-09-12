@@ -65,6 +65,45 @@ struct PresenceReducerTests {
         #expect(facts[1].value == .bool(true))
     }
 
+    @Test("A fact April states in world.json is announced once and becomes a reported fact")
+    func givenFactsBecomeFacts() throws {
+        let json = """
+            { "facts": [
+                { "subject_id": "person:polly", "predicate": "person.description",
+                  "value": "April's sister" }
+            ] }
+            """
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "creature-world-\(UUID().uuidString).json")
+        try Data(json.utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let configuration = try CreatureWorldConfiguration.load(from: url, environment: [:])
+        let polly = try EntityID(validating: "person:polly")
+        #expect(
+            configuration.givenFacts == [
+                GivenFact(
+                    subjectID: polly, predicate: WorldFacts.personDescription,
+                    value: .string("April's sister"))
+            ])
+
+        let events = try GivenFactAnnouncement.events(for: configuration.givenFacts, at: now)
+        let again = try GivenFactAnnouncement.events(
+            for: configuration.givenFacts, at: now + 60)
+        #expect(events.count == 1)
+        #expect(events[0].source.sourceEventID == again[0].source.sourceEventID)
+        #expect(events[0].epistemic.type == .reported)
+
+        let facts = try GivenFactReducer().reduce(events[0]).changedFacts
+        let fact = try #require(facts.first)
+        #expect(fact.subjectID == polly)
+        #expect(fact.predicate == WorldFacts.personDescription)
+        #expect(fact.value == .string("April's sister"))
+        #expect(fact.epistemic.type == .reported)
+        #expect(fact.derivedFrom == [.event(events[0].eventID)])
+        #expect(try GivenFactReducer().reduce(try unrelatedEvent()).changedFacts.isEmpty)
+        #expect(try CreatureWorldConfiguration().givenFacts.isEmpty)
+    }
+
     @Test("A performed scene becomes the room's last scene for an hour")
     func performedSceneIsRemembered() throws {
         let event = try WorldEventEnvelope(

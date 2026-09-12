@@ -107,6 +107,8 @@ World mode keys:
 | `llmTimeoutSeconds` | `60` | model call deadline |
 | `regionEntityId` | `region:home` | the region this mind logs into; a character is in one region at a time |
 | `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
+| `llmBackend` | `local` | `local` (Mistral on the LAN) or `openai` (`2.61.0`): a mind may run on OpenAI's Responses API, streamed sentence by sentence like the local model, so one bird can be compared against Mistral live (`llm.model` is on every span). The key comes from `OPENAI_API_KEY` in `/etc/default/creature-agent-<instance>` (never in git) or `llmApiKey` |
+| `llmReasoningEffort` | none | `low`, `medium`, or `high` for OpenAI reasoning models; when set, no `temperature` is sent |
 | `personaPath` | none | a persona file (`docs/personas/<bird>.yaml`, installed under `/etc/creature/agent/personas/`); with it the mind *is* that persona and `llmSystemPrompt` is ignored in world mode (`2.60.0`) |
 | `timeZone` | the host's zone | an IANA identifier such as `America/Los_Angeles`; the mind is told the local time in words every turn ("It is 11:45 PM on Friday, September 11."). Set it — a server's clock is usually UTC and a model cannot convert zones (`2.59.0`) |
 
@@ -137,6 +139,28 @@ Run it by hand for development:
 ```bash
 creature-agent run --config-path agent.yaml --log-level info --host <creature-server> --port 8000 --insecure
 ```
+
+### Running one bird on a frontier model
+
+The spike April asked for on 2026-09-12 ("compare a frontier model vs Mistral… GPT 6 on a low
+effort"): switch a single mind's backend and leave the others on Mistral.
+
+```yaml
+# /etc/creature/agent/beaky.yaml
+llmBackend: openai
+llmModel: gpt-6-astra
+llmReasoningEffort: low
+```
+
+```
+# /etc/default/creature-agent-beaky
+OPENAI_API_KEY=sk-...
+```
+
+Then `sudo systemctl restart creature-agent@beaky`. The log's `Model chosen` line confirms the
+backend; Honeycomb's `llm.model` on `agent.consider` / `agent.scene.consider` lets you compare
+turn latency, `chose_silence`, and what the sanitizer had to strip, bird by bird. Everything
+else — persona, facts, the clock, streaming to the room — is identical.
 
 ## How world mode behaves
 

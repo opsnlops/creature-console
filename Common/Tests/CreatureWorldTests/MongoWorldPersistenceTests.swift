@@ -91,6 +91,7 @@ struct MongoWorldPersistenceTests {
             )
             #expect(eventIndexes.contains { $0.name == "source_event_unique" && $0.unique == true })
             #expect(factIndexes.contains { $0.name == "active_facts" })
+            #expect(factIndexes.contains { $0.name == "predicate_subjects" })
             #expect(timerIndexes.contains { $0.name == "pending_timers" })
             #expect(
                 ingressIndexes.contains { $0.name == "utterance_id_unique" && $0.unique == true }
@@ -582,6 +583,32 @@ struct MongoWorldPersistenceTests {
             #expect(facts.map(\.value) == [.number(4), .number(3), .number(1)])
             #expect(
                 try await persistence.facts.currentFacts(about: [], limit: 3, at: start).isEmpty)
+        }
+    }
+
+    @Test("The subjects that carry a predicate are listed, current ones only")
+    func subjectsWithPredicate() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let polly = try EntityID(validating: "person:polly-\(suffix)")
+            let gone = try EntityID(validating: "person:gone-\(suffix)")
+            let start = Date(timeIntervalSince1970: 1_789_600_000)
+            func describe(_ who: EntityID, validTo: Date? = nil) throws -> Fact {
+                try Fact(
+                    subjectID: who, predicate: WorldFacts.personDescription,
+                    value: .string("someone"),
+                    epistemic: EpistemicState(type: .reported, confidence: 1),
+                    validFrom: start, validTo: validTo, derivedFrom: [],
+                    producer: FactProducer(kind: "test", id: "mongo", version: "1"))
+            }
+            try await persistence.facts.save(try describe(polly))
+            try await persistence.facts.save(try describe(gone, validTo: start + 1))
+
+            let subjects = try await persistence.facts.subjects(
+                withPredicate: WorldFacts.personDescription, at: start + 60)
+
+            #expect(subjects.contains(polly))
+            #expect(!subjects.contains(gone))
         }
     }
 

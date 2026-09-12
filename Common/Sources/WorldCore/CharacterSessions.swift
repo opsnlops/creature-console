@@ -11,16 +11,20 @@ public struct CharacterMindInstance: Hashable, Sendable, Codable {
     /// The character's pronouns, from its persona: the mind tells the world at login so the
     /// others can be told ("Mango (he/him) is here").
     public var pronouns: String?
+    /// The model behind the mind, `backend/model` ("local/mistral-nemo", "openai/gpt-6-astra"),
+    /// so the Viewer shows which bird is thinking on what.
+    public var model: String?
 
     public init(
         host: String, processID: Int, creatureID: String? = nil, version: String? = nil,
-        pronouns: String? = nil
+        pronouns: String? = nil, model: String? = nil
     ) {
         self.host = host
         self.processID = processID
         self.creatureID = creatureID
         self.version = version
         self.pronouns = pronouns
+        self.model = model
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -29,6 +33,7 @@ public struct CharacterMindInstance: Hashable, Sendable, Codable {
         case creatureID = "creature_id"
         case version
         case pronouns
+        case model
     }
 }
 

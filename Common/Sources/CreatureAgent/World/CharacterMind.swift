@@ -669,12 +669,21 @@ struct CharacterMind: Sendable {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let name = characterName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return trimmed }
-        let pattern = "^\\s*\(NSRegularExpression.escapedPattern(for: name))(\\s+said)?\\s*:\\s*"
-        guard let expression = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive)
+        let escaped = NSRegularExpression.escapedPattern(for: name)
+        // At the start, "Beaky:" / "Beaky said:" is a label. Later in the line — "Mango, what
+        // do you think? Mango: Better on Linux." — the model interviewed itself, and only what
+        // follows its own label is its line.
+        let leading = "^\\s*\(escaped)(?:\\s+said)?\\s*:\\s*"
+        let midline = "^.*?(?:^|[\\s\"'(])\(escaped)\\s*:\\s+"
+        guard
+            let expression = try? NSRegularExpression(
+                pattern: "(?:\(leading))|(?:\(midline))", options: .caseInsensitive)
         else { return trimmed }
         let range = NSRange(trimmed.startIndex..., in: trimmed)
-        return expression.stringByReplacingMatches(
+        let stripped = expression.stringByReplacingMatches(
             in: trimmed, range: range, withTemplate: "")
+        guard !stripped.isEmpty, stripped != trimmed else { return trimmed }
+        return stripped.prefix(1).uppercased() + stripped.dropFirst()
     }
 
     /// The model was asked for exactly `[silence]`; a small model writes `Silence`, `*silence*`

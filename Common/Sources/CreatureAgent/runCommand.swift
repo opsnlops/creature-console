@@ -112,6 +112,7 @@ extension CreatureAgent {
                     model: config.llmModel,
                     systemPrompt: config.llmSystemPrompt,
                     temperature: config.llmTemperature,
+                    reasoningEffort: config.llmReasoningEffort,
                     logger: logger,
                     traceResponses: traceResponses
                 )
@@ -276,16 +277,16 @@ private func reportError(_ message: String) {
 // MARK: - World-resident mode
 
 enum WorldModeError: Error, LocalizedError {
-    case requiresLocalModel
+    case missingAPIKey
     case invalidEntityID(String)
     case personaUnreadable(String, any Error)
 
     var errorDescription: String? {
         switch self {
+        case .missingAPIKey:
+            "llmBackend: openai needs OPENAI_API_KEY in the environment (/etc/default/creature-agent-<instance>) or llmApiKey in the config"
         case .personaUnreadable(let path, let error):
             "personaPath \(path) could not be loaded: \(error)"
-        case .requiresLocalModel:
-            "mode: world requires llmBackend: local; the character mind runs on the local model"
         case .invalidEntityID(let value):
             "Invalid world entity identifier in configuration: \(value)"
         }
@@ -301,7 +302,6 @@ private func runWorldMode(
     traceResponses: Bool,
     observabilityServices: [any Service]
 ) async throws {
-    guard config.llmBackend == .local else { throw WorldModeError.requiresLocalModel }
     let world = config.world
     guard let characterID = EntityID(rawValue: world.characterEntityID) else {
         throw WorldModeError.invalidEntityID(world.characterEntityID)
@@ -345,18 +345,52 @@ private func runWorldMode(
         ]
     )
 
-    let localLLM = LocalLLMClient(
-        host: config.localLlmHost,
-        port: config.localLlmPort,
-        model: config.llmModel,
-        systemPrompt: config.llmSystemPrompt,
-        temperature: config.llmTemperature,
-        maxTokens: config.localLlmMaxTokens,
-        minSentenceChars: config.minSentenceChars,
-        conversationHistorySize: config.conversationHistorySize,
-        logger: logger,
-        traceResponses: traceResponses
-    )
+    // The model behind this mind. Nemo on the LAN, or OpenAI so one bird can be compared
+    // against the local model live; either way the mind sees sentences as they are composed.
+    let respond: CharacterMind.Respond
+    let respondStreaming: CharacterMind.RespondStreaming
+    switch config.llmBackend {
+    case .local:
+        let localLLM = LocalLLMClient(
+            host: config.localLlmHost,
+            port: config.localLlmPort,
+            model: config.llmModel,
+            systemPrompt: config.llmSystemPrompt,
+            temperature: config.llmTemperature,
+            maxTokens: config.localLlmMaxTokens,
+            minSentenceChars: config.minSentenceChars,
+            conversationHistorySize: config.conversationHistorySize,
+            logger: logger,
+            traceResponses: traceResponses
+        )
+        respond = { try await localLLM.respond(messages: $0) }
+        respondStreaming = { localLLM.respondStreaming(messages: $0, recordingHistoryFor: nil) }
+    case .openai:
+        // The key comes from the environment (`/etc/default/creature-agent-<instance>`) or
+        // the config file; never from the persona.
+        guard
+            let apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? config.llmApiKey,
+            !apiKey.isEmpty
+        else { throw WorldModeError.missingAPIKey }
+        let openAI = OpenAIClient(
+            apiKey: apiKey,
+            model: config.llmModel,
+            systemPrompt: config.llmSystemPrompt,
+            temperature: config.llmTemperature,
+            reasoningEffort: config.llmReasoningEffort,
+            minSentenceChars: config.minSentenceChars,
+            logger: logger,
+            traceResponses: traceResponses
+        )
+        respond = { try await openAI.respond(messages: $0) }
+        respondStreaming = { openAI.respondStreaming(messages: $0) }
+    }
+    logger.info(
+        "Model chosen",
+        metadata: [
+            "llm.backend": "\(config.llmBackend.rawValue)", "llm.model": "\(config.llmModel)",
+            "llm.reasoning_effort": "\(config.llmReasoningEffort ?? "none")",
+        ])
     var clientConfiguration = HTTPClient.Configuration()
     clientConfiguration.timeout = .init(connect: .seconds(10), read: .seconds(120))
     let client = HTTPClient(
@@ -380,7 +414,8 @@ private func runWorldMode(
             processID: Int(ProcessInfo.processInfo.processIdentifier),
             creatureID: config.creatureId,
             version: CreatureAgent.configuration.version,
-            pronouns: persona.pronouns
+            pronouns: persona.pronouns,
+            model: "\(config.llmBackend.rawValue)/\(config.llmModel)"
         ),
         logger: logger
     )
@@ -395,9 +430,7 @@ private func runWorldMode(
                     creatureID: config.creatureId,
                     logger: logger
                 ),
-                respondStreaming: {
-                    localLLM.respondStreaming(messages: $0, recordingHistoryFor: nil)
-                },
+                respondStreaming: respondStreaming,
                 session: { await session.sessionID }
             )
         case .communicatorOnly:
@@ -414,7 +447,7 @@ private func runWorldMode(
             modelName: config.llmModel,
             timeZone: world.timeZone
         ),
-        respond: { try await localLLM.respond(messages: $0) },
+        respond: respond,
         stage: stage,
         logger: logger
     )

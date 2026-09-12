@@ -12,9 +12,18 @@ enum FactPhrasing {
         now: Date
     ) -> [String] {
         let pronouns = pronouns(in: facts)
-        return facts.compactMap {
+        var lines = facts.compactMap {
             sentence(for: $0, character: character, now: now, pronouns: pronouns)
         }
+        // A person the world can only describe in one phrase is a blank a small model fills
+        // with invention ("Polly lives in Seattle"); say plainly that the blank is a blank.
+        let described = facts.filter { $0.predicate == WorldFacts.personDescription }
+        for fact in described
+        where facts.filter({ $0.subjectID == fact.subjectID }).count == 1 {
+            lines.append(
+                "That is all you know about \(name(of: fact.subjectID)); do not make up more.")
+        }
+        return lines
     }
 
     /// Who uses which pronouns, from `identity.pronouns` facts.
@@ -43,6 +52,9 @@ enum FactPhrasing {
             return "\(who) is here in the room with you\(certainty)."
         case WorldFacts.characterPronouns:
             return nil  // said alongside the name wherever the character is mentioned.
+        case WorldFacts.personDescription:
+            guard case .string(let description) = fact.value else { return nil }
+            return "\(subject) is \(description)."
         case WorldFacts.personState:
             guard case .string(let state) = fact.value else { return nil }
             switch state {

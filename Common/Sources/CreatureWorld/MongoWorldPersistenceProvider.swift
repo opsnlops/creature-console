@@ -48,6 +48,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
+        givenFacts: [GivenFact] = [],
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
@@ -57,6 +58,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             factStore: persistence.facts,
             reducers: [
                 CharacterPresenceReducer(), AssumedPersonPresenceReducer(), SceneMemoryReducer(),
+                GivenFactReducer(),
             ],
             clock: clock
         )
@@ -152,8 +154,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         // (idempotent: the same assumption is the same event on every restart).
         let assumptionAnnouncer = Task {
             do {
-                for event in try AssumedPresenceAnnouncement.events(
-                    for: presence, at: await clock.now)
+                let now = await clock.now
+                for event in try AssumedPresenceAnnouncement.events(for: presence, at: now)
+                    + GivenFactAnnouncement.events(for: givenFacts, at: now)
                 {
                     _ = try await world.accept(event)
                 }
@@ -450,6 +453,7 @@ actor MongoWorldPersistenceProvider {
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
+        givenFacts: [GivenFact] = [],
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -468,6 +472,7 @@ actor MongoWorldPersistenceProvider {
                         scenePerformance: scenePerformance,
                         regions: regions,
                         leadCharacter: leadCharacter,
+                        givenFacts: givenFacts,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )
@@ -711,7 +716,10 @@ private struct PresentWorldKnowledge: WorldKnowledgeProviding {
     let sessions: CharacterSessionService
     let clock: any WorldClock
 
-    func currentFacts(about subjects: [EntityID], limit: Int) async throws -> [Fact] {
+    func currentFacts(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
+        async throws -> [Fact]
+    {
+        let now = await clock.now
         var expanded = subjects
         for subject in subjects {
             guard let session = try await sessions.liveSession(for: subject) else { continue }
@@ -719,9 +727,15 @@ private struct PresentWorldKnowledge: WorldKnowledgeProviding {
             expanded.append(
                 contentsOf: try await sessions.present(in: session.regionID).map(\.characterID))
         }
+        // Anyone the world can describe who is named in the words: "Who is Polly?".
+        if let text, !text.isEmpty {
+            let known = try await facts.subjects(
+                withPredicate: WorldFacts.personDescription, at: now)
+            expanded.append(contentsOf: WorldMentions.mentioned(in: text, among: known))
+        }
         var seen: Set<EntityID> = []
         let unique = expanded.filter { seen.insert($0).inserted }
-        return try await facts.currentFacts(about: unique, limit: limit, at: await clock.now)
+        return try await facts.currentFacts(about: unique, limit: limit, at: now)
     }
 }
 

@@ -88,6 +88,24 @@ struct AgentConfigTests {
         #expect(throws: DecodingError.self) { try load("timeZone: Whidbey/Island") }
     }
 
+    @Test("A reasoning effort is low, medium, or high")
+    func parsesReasoningEffort() throws {
+        func load(_ extra: String) throws -> AgentConfig {
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmSystemPrompt: system
+                        llmModel: gpt-6
+                        areas: []
+                        \(extra)
+                        """))
+        }
+        #expect(try load("llmReasoningEffort: low").llmReasoningEffort == "low")
+        #expect(try load("").llmReasoningEffort == nil)
+        #expect(throws: DecodingError.self) { try load("llmReasoningEffort: max") }
+    }
+
     @Test("Uses default values for optional local LLM fields")
     func usesDefaultsForOptionalFields() throws {
         let yaml = """

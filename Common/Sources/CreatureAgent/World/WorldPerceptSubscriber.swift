@@ -123,11 +123,26 @@ actor WorldPerceptSubscriber {
         // requests after a refused connect, which would turn a World restart into a hang.
         let client = HTTPClient(
             eventLoopGroupProvider: .singleton, backgroundActivityLogger: logger)
-        defer { Task { try? await client.shutdown() } }
-        let streamRequest = request
+        // The client is shut down on this task, not in a detached one: on process exit a
+        // detached shutdown loses the race with deinit and AsyncHTTPClient traps (#170).
+        do {
+            try await follow(request, with: client, resumeAfter: resumeAfter, handlers: handlers)
+        } catch {
+            try? await client.shutdown()
+            throw error
+        }
+        try? await client.shutdown()
+    }
+
+    private func follow(
+        _ request: HTTPClientRequest,
+        with client: HTTPClient,
+        resumeAfter: Int64?,
+        handlers: Handlers
+    ) async throws {
         let logger = self.logger
         let response = try await withTimeout(Self.connectTimeout) {
-            try await client.execute(streamRequest, deadline: .distantFuture, logger: logger)
+            try await client.execute(request, deadline: .distantFuture, logger: logger)
         }
         guard response.status == .ok else {
             throw WorldPerceptSubscriberError.unexpectedStatus(UInt(response.status.code))

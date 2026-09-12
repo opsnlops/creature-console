@@ -62,8 +62,9 @@ item.
 
 The flock as the world sees it: every character's most recent login — active (green), expired
 (orange, the heartbeat stopped), or logged out — with its region, the host and pid of the mind
-holding it, the `creature-agent` version, when it logged in, and its last heartbeat. The
-sidebar badge counts the active ones. Refreshed when `character.logged_in` /
+holding it, the `creature-agent` version, **the model the mind is thinking on**
+(`local/mistral-nemo`, `openai/gpt-6-astra`; agent `2.61.1`, World `0.7.3`), when it logged in, and its last
+heartbeat. The sidebar badge counts the active ones. Refreshed when `character.logged_in` /
 `character.logged_out` events arrive and on demand.
 
 ### Scenes

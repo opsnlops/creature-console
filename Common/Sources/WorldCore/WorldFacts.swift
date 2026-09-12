@@ -12,4 +12,7 @@ public enum WorldFacts {
     public static let characterPronouns = "identity.pronouns"
     /// What was last said in a region: the trigger and the lines, valid for an hour.
     public static let lastScene = "scene.last"
+    /// Who a person is, in a phrase April would use: "April's sister". Stated in `world.json`
+    /// until a source (the address book, through the Bridge) can say more.
+    public static let personDescription = "person.description"
 }
