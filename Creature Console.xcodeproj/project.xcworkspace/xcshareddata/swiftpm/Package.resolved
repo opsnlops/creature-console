@@ -1,5 +1,5 @@
 {
-  "originHash" : "baa3179faae8f0312fef67713ebdf39b3cc49e1ae4f894a53ca9dca3e3737af6",
+  "originHash" : "beb14e25ed2cde1f073493aa20e40810cd25e529d532804140c9daa7811624d6",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -40,10 +40,9 @@
     {
       "identity" : "mongokitten",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/orlandos-nl/MongoKitten.git",
+      "location" : "https://github.com/opsnlops/MongoKitten.git",
       "state" : {
-        "revision" : "e3ba79a943e6751a4903d831f861fb85211a495e",
-        "version" : "7.16.3"
+        "revision" : "56025001042605f20791e16065e90199c081f478"
       }
     },
     {

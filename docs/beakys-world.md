@@ -26,7 +26,7 @@ current in the same commit as the code it describes.**
   is verified live against fuzzball. Manual: [`docs/world-viewer-manual.md`](world-viewer-manual.md).
 - Active branch: `vw-016-physical-stage` — **Beaky's voice in the room** (VW-016 #107 +
   assumed presence). Plan: [`docs/vw-016-physical-stage-plan.md`](vw-016-physical-stage-plan.md).
-  Creature World `0.4.1`, `creature-agent` `2.56.0`.
+  Creature World `0.4.2`, `creature-agent` `2.56.0`.
 - **April's definition of done (2026-09-11):** a feature is complete only when it works live
   *and* is viewable in World Viewer. Plan the Viewer surface into every slice.
 - #154 (replies drifting into `Beaky: "…"` script format) is fixed in `2.55.4`: the mind stores
@@ -43,7 +43,7 @@ current in the same commit as the code it describes.**
 
 | Product | Version | Where | Notes |
 | --- | ---: | --- | --- |
-| Creature World | `0.3.0` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | `0.4.1` (this branch) adds `/stage`, `/performances`, and assumed presence |
+| Creature World | `0.3.0` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | `0.4.2` (this branch) adds `/stage`, `/performances`, and assumed presence |
 | Communicator Gateway | `0.1.3` | production and fuzzball `:8002` | exporting to Honeycomb `production` |
 | Beaky's mind | `creature-agent 2.55.4`, `mode: world` | **fuzzball only** | Mistral Nemo via llama-server at `10.69.66.4:1234`; `2.56.0` (this branch) can speak in the room; production keeps `2.54.1` in `mqtt` mode (see 0.4) |
 | World Viewer | `0.1.0` | April's laptop, run from Xcode | read-only; points at fuzzball or production; delivery chips show route · reason · presence (basis) · outcome |
