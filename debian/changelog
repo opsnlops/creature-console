@@ -1,3 +1,13 @@
+creature-cli (2.60.1+world0.7.2) unstable; urgency=medium
+
+  * creature-agent 2.60.1: in a scene, a line that opens by hailing the
+    person who started it ("April, ...") loses the hail - the flock said
+    her name sixty times in a row - and the scene contract says to speak
+    to whoever you are answering. Kenny may talk about himself by name;
+    April likes it.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 12:05:00 -0700
+
 creature-cli (2.60.0+world0.7.2) unstable; urgency=medium
 
   * creature-world 0.7.2: a mind's pronouns travel with its login and become

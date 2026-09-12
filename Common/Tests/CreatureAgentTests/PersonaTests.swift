@@ -187,6 +187,27 @@ struct PersonaTests {
                 == "Two plus two is four.")
     }
 
+    @Test("In a scene, a line that opens by hailing April loses the hail; nothing else moves")
+    func openingVocativeIsDropped() {
+        #expect(
+            CharacterMind.withoutOpeningVocative("April, pizza sounds delightful!", name: "April")
+                == "Pizza sounds delightful!")
+        #expect(
+            CharacterMind.withoutOpeningVocative("april! Kenny's hungry!", name: "April")
+                == "Kenny's hungry!")
+        #expect(
+            CharacterMind.withoutOpeningVocative("Oh, April, you missed it.", name: "April")
+                == "Oh, April, you missed it.")
+        #expect(
+            CharacterMind.withoutOpeningVocative("Beaky, don't exaggerate.", name: "April")
+                == "Beaky, don't exaggerate.")
+        #expect(
+            CharacterMind.withoutOpeningVocative("April is a purple rabbit.", name: "April")
+                == "April is a purple rabbit.")
+        // Only the hail: the line stays as it was rather than becoming nothing.
+        #expect(CharacterMind.withoutOpeningVocative("April!", name: "April") == "April!")
+    }
+
     @Test("The personas the package ships all decode and name themselves")
     func shippedPersonasDecode() throws {
         let personas = URL(fileURLWithPath: #filePath)

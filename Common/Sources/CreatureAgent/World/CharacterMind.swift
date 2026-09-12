@@ -446,8 +446,11 @@ struct CharacterMind: Sendable {
                 "The model did not answer the scene", metadata: ["error": "\(error)"])
             return pass(.modelUnavailable)
         }
-        guard let text = Self.validate(raw, spokenBy: configuration.characterName) else {
+        guard var text = Self.validate(raw, spokenBy: configuration.characterName) else {
             return pass(Self.declinesToSpeak(raw) ? .choseSilence : .emptyResponse)
+        }
+        if let speaker = offer.trigger.speakerID {
+            text = Self.withoutOpeningVocative(text, name: Self.name(of: speaker))
         }
         do {
             return .turn(
@@ -523,9 +526,11 @@ struct CharacterMind: Sendable {
         return """
             \(company) A scene is unfolding and it is your turn. The exchange so far is written \
             below as a script; continue it with only your own next line, in your own voice, in one \
-            or two short sentences, spoken aloud. Do not write anyone else's line and do not prefix \
-            your words with your name. If you have nothing to add, reply with exactly \
-            \(silenceToken) and nothing else. Never use emoji or symbols. Do not describe actions.
+            or two short sentences, spoken aloud. Speak to whoever you are answering, a bird or \
+            April, and do not begin your line with anyone's name unless you are singling them out. \
+            Do not write anyone else's line and do not prefix your words with your name. If you \
+            have nothing to add, reply with exactly \(silenceToken) and nothing else. Never use \
+            emoji or symbols. Do not describe actions.
             """
     }
 
@@ -687,6 +692,21 @@ struct CharacterMind: Sendable {
                 of: #"\s{2,}"#, with: " ", options: .regularExpression
             )
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// In a scene a small model opens every line with the human's name — "April, pizza or
+    /// Linux?" sixty times in a row. Everyone in the room knows she is there, so a line that
+    /// begins by hailing the person who started the scene loses the hail; a name later in the
+    /// line, or anyone else's name, is left alone. Solo replies are not touched.
+    static func withoutOpeningVocative(_ text: String, name: String) -> String {
+        let pattern = "^\\s*\(NSRegularExpression.escapedPattern(for: name))\\s*[,!:;\u{2014}-]\\s*"
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive)
+        else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        let stripped = expression.stringByReplacingMatches(in: text, range: range, withTemplate: "")
+        guard !stripped.isEmpty, stripped != text else { return text }
+        // "April, pizza sounds delightful" → "Pizza sounds delightful".
+        return stripped.prefix(1).uppercased() + stripped.dropFirst()
     }
 
     static func declinesToSpeak(_ raw: String) -> Bool {
