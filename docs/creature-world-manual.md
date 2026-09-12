@@ -176,6 +176,17 @@ a row, at `maximum_turns`, or when the composed speech would exceed `maximum_spo
 (estimated at `words_per_second`); a new scene in the region interrupts an open one. Every spoken
 turn is also a conversation item, so the Communicator shows the exchange as it is composed.
 
+**A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model
+submits `{ "text": "Not quite, Kenny.", "piece": 0 }`, `{ …, "piece": 1 }`, … and finally
+`{ "text": null }` (or a last sentence with no `piece`) for "that was the whole line". Each
+piece is spoken the moment it lands (`scene.turn_piece`; the streaming performer sends it as
+a `dialog-stream` turn — creature-server#192 asks for a `continues` flag so consecutive pieces
+keep the pose and prosody), the floor's deadline moves out by `floor_seconds` with each, a
+stale floor timer is ignored, a retried piece is a `duplicate`, and the pieces are joined
+into one turn — recorded once — when the line is done. A line that goes quiet becomes the
+line so far when the floor expires. This is what lets a frontier model's longer line start
+playing after its first sentence instead of its last.
+
 Two ways to the room, chosen by `scene_performance`:
 
 - **`streaming`** (default; Creature Server 3.46.0+, creature-server#186): when the scene opens

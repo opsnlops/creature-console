@@ -52,7 +52,32 @@ two-bird scene (21:21, twelve turns, streamed through `dialog-stream`, floor alt
 the Viewer); the first three-bird scene (22:09, Kenny joined — "April, you think pizza could
 fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn end to end.
 
-### 0.3 F2 — the house (`creature-house 0.1.0`, World `0.8.0`, agent `2.62.0`, gateway `0.1.5`)
+### 0.3 Evening of 2026-09-12 — after F2 landed (branch `scene-streaming`, #175)
+
+Merged after F2: #176 (crash fix: OpenAI streaming over AsyncHTTPClient — a per-request
+`URLSession` aborted on Linux with `_MultiHandle deallocated with non-zero retain count`;
+bare scene names are asks; a bird may not claim a scene it was not told about; quiet cameras
+are a fact; "about 67 degrees"; April's weather + power sensors). fuzzball: World `0.8.2`,
+agent `2.62.5`, house `0.1.3` (agent `2.62.1`+ since 15:40 — the crash is gone; a normal
+restart releases the character within a second, only crashes left sessions hanging).
+
+**#175 — scene turns stream sentence by sentence (World `0.9.0`, agent `2.63.0`):**
+`SceneTurnSubmission.piece`, `SceneFloor.pieces`, `SceneService.submit` accumulates pieces
+(deadline moves out, stale timer ignored, duplicates by index), `joinedLine` on the final
+submission, `ScenePerforming.sceneTurnPiece` + `sceneTurn(streamed:)`; the mind's
+`consider(offer, speak:)` streams through `StreamedLine` (first sentence decides silence,
+per-sentence cleaning, `llm.first_sentence_ms`), `WorldMindService.handle` submits pieces;
+Viewer shows the line filling in. Server ask creature-server#192 (`continues` flag) — the
+server also found TTS is the floor and is switching to `eleven_flash_v2_5` (no console
+change). Beaky on `openai/gpt-5.6-sol` + fast: 1.9 s whole-line p50 vs Nemo 0.85 s; with
+streamed turns the first sentence is what matters.
+
+**Next:** "both places" (publish spoken words when final, record the performance after —
+April asked; today the Communicator sees a spoken reply only after she finishes speaking);
+re-measure `creature.server.perform` after the Flash switch; the squirrel rule (prefer
+`animal_detected` where a camera has both).
+
+### 0.3a F2 — the house (`creature-house 0.1.0`, World `0.8.0`, agent `2.62.0`, gateway `0.1.5`)
 
 Branch `house-f2`, stacked on `sweep-and-model-spike` (#172). April gave a Home Assistant
 token (`HA_TOKEN` in this laptop's environment; HA at `http://10.3.2.5:8123`, "April's Nest",
@@ -104,7 +129,7 @@ token (`HA_TOKEN` in this laptop's environment; HA at `http://10.3.2.5:8123`, "A
   April's mapping), `systemctl enable --now creature-house`; World `0.8.0` first (the
   packaged `world.json` now lists `region:home`'s places); agents `2.62.0`.
 
-### 0.3a The quality sweep and the model spike — 2026-09-12 afternoon (World `0.7.3`, agent `2.61.0`, PR #172)
+### 0.3b The quality sweep and the model spike — 2026-09-12 afternoon (World `0.7.3`, agent `2.61.0`, PR #172)
 
 Merged today before this: #167 (F1), #169 (P1), #171 (no hailing April; Polly rule). Live on
 fuzzball: World `0.7.2`, agent `2.60.1`, personas `beaky/4` `mango/3` `kenny/4`, all three
@@ -128,7 +153,7 @@ minds announcing pronouns.
   because a small model never passes. Options in the manual's Scenes section are not yet
   written; April wants the model comparison first.
 
-### 0.3b What branch `personas-p1` added — who each bird is (P1, #168, merged)
+### 0.3c What branch `personas-p1` added — who each bird is (P1, #168, merged)
 
 Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
 
@@ -165,7 +190,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   repo's `docs/personas/beaky.yaml`. fuzzball's `creature-agent@beaky` is stopped. Mango and
   Kenny stay on fuzzball at `2.58.2`. "Beaky what time is it" → "It's almost midnight." (23:52).
 
-### 0.3c What branch `facts-f1` added — the world's first facts (F1, #167, merged)
+### 0.3d What branch `facts-f1` added — the world's first facts (F1, #167, merged)
 
 - **Reducers (World `0.7.0`, `PresenceReducers.swift`):** `CharacterPresenceReducer`
   (`character.logged_in`/`logged_out` → `character:<x>` `presence.region`, `null` on logout),
@@ -200,7 +225,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   `world_facts` should list Mango and Kenny in `region:home` and April `home (assumed)`; ask
   "who is here with you?" and Beaky should name them from the facts, not guess.
 
-### 0.3d What PR #161 added — the flock, C2: scenes (merged)
+### 0.3e What PR #161 added — the flock, C2: scenes (merged)
 
 - **WorldCore:** `Scene`, `SceneTrigger`, `SceneTurn`, `SceneFloor`, `SceneTurnOffer` (event
   `scene.turn_offered`), `SceneTurnSubmission`, `SceneLimits`, and `SceneService` — opens
@@ -234,7 +259,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   the house conversation and addressing rule (C3). The Communicator does show each author's
   own name and colour per bubble since `0.2.0` (this branch).
 
-### 0.3e What PR #159 added — the flock, C1: many minds on one host (merged)
+### 0.3f What PR #159 added — the flock, C1: many minds on one host (merged)
 
 - **Character login in the World (`0.5.0`).** `POST /world/v1/characters/{id}/login` with a
   region and the mind's instance (host, pid, creature, version); 30 s sessions kept alive by
@@ -255,7 +280,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   heartbeat), refreshed from `character.*` events.
 - **Personas** as versioned files under `docs/personas/` (Beaky, Mango draft).
 
-### 0.3f What PR #155 added — Beaky's voice in the room (VW-016), merged
+### 0.3g What PR #155 added — Beaky's voice in the room (VW-016), merged
 
 - **The world decides, the mind performs.** `POST …/stage` gives the mind a durable, idempotent
   `CharacterDeliveryDecision` per `response_id` *before* it generates (MongoDB TTL-expires
@@ -283,7 +308,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   stage→perform→stream with an assumed-presence config, mind streaming/silence/failure/
   already-delivered, service records a performance through the stub World.
 
-### 0.3g What PR #153 added — World Viewer (VW-010), merged
+### 0.3h What PR #153 added — World Viewer (VW-010), merged
 
 - **Target `World Viewer`** (macOS, `io.opsnlops.World-Viewer`), cloned from the Communicator's
   pbxproj entries under the `WVA…`/`WVT…` ID prefixes, with its own `World Viewer Tests` target
@@ -306,7 +331,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   a `WorldScrying` seam; `WorldStoreTests` drive it against a scripted world (bound, gap-free
   resume, resnapshot, delivery join).
 
-### 0.3h Beaky's mind (VW-014/VW-015) — merged, running on fuzzball
+### 0.3i Beaky's mind (VW-014/VW-015) — merged, running on fuzzball
 
 - `creature-agent` `mode: world` (default `mqtt` unchanged): `WorldPerceptSubscriber` follows
   `/world/v1/stream` (snapshot start, `Last-Event-ID` resume, fresh HTTP client per connection

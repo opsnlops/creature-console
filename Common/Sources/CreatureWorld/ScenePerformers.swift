@@ -72,7 +72,7 @@ struct NotConnectedScenePerformer: ScenePerforming, Sendable {
     let clock: any WorldClock
 
     func sceneOpened(_ scene: Scene) async {}
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) async {}
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {}
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         ScenePerformance(state: .failed, errorCode: Self.errorCode, occurredAt: await clock.now)
@@ -108,7 +108,7 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
     }
 
     func sceneOpened(_ scene: Scene) async {}
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) async {}
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {}
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         try await withSpan("creature.server.dialog", ofKind: .client) { span in
@@ -273,13 +273,29 @@ actor StreamingScenePerformer: ScenePerforming {
         }
     }
 
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) async {
-        guard let sessionID = sessions[scene.sceneID], let text = turn.text else { return }
+    /// A sentence of a line still being composed goes to the room the moment it lands; the
+    /// server queues turns per creature in arrival order (creature-server#192 will let it
+    /// keep the pose and prosody across them).
+    func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String)
+        async
+    {
+        await speak(scene, character: character, text: text, piece: true)
+    }
+
+    /// A whole line — unless it was streamed, in which case the room has already heard it.
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {
+        guard !streamed, let text = turn.text else { return }
+        await speak(scene, character: turn.characterID, text: text, piece: false)
+    }
+
+    private func speak(_ scene: Scene, character: EntityID, text: String, piece: Bool) async {
+        guard let sessionID = sessions[scene.sceneID] else { return }
         await withSpan("creature.server.dialog_stream.turn", ofKind: .client) { span in
             span.attributes["scene.id"] = scene.sceneID.rawValue
             span.attributes["streaming.session_id"] = sessionID
-            span.attributes["agent.character_id"] = turn.characterID.rawValue
-            guard let creatureID = try? await creatures.creatureID(for: turn.characterID) else {
+            span.attributes["agent.character_id"] = character.rawValue
+            span.attributes["scene.turn.piece"] = piece
+            guard let creatureID = try? await creatures.creatureID(for: character) else {
                 return
             }
             do {

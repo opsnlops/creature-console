@@ -458,6 +458,7 @@ private func runWorldMode(
             modelLabel: "\(config.llmBackend.rawValue)/\(config.llmModel)"
         ),
         respond: respond,
+        respondStreaming: respondStreaming,
         stage: stage,
         logger: logger
     )

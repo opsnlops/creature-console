@@ -107,6 +107,87 @@ struct SceneServiceTests {
         #expect(again.scene.turns.count == 1)
     }
 
+    @Test("A line may arrive sentence by sentence: spoken as it lands, joined when it is done")
+    func streamedTurn() async throws {
+        let world = makeWorld()
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let responseID = try #require(scene.floor?.responseID)
+        let firstDeadline = try #require(scene.floor?.deadline)
+
+        try await world.clock.advance(by: 3)
+        let first = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: responseID, text: "Not quite, Kenny.", piece: 0),
+            to: scene.sceneID)
+        #expect(first.disposition == .accepted)
+        #expect(first.scene.floor?.pieces == ["Not quite, Kenny."])
+        // The deadline moved out with the sentence, so the rest may follow.
+        #expect(try #require(first.scene.floor?.deadline) > firstDeadline)
+        // The room heard it already.
+        #expect(await world.performer.pieces.map(\.1) == ["Not quite, Kenny."])
+        // A retry of the same piece is a duplicate; skipping ahead is not this turn.
+        #expect(
+            try await world.service.submit(
+                SceneTurnSubmission(
+                    characterID: beaky, responseID: responseID, text: "Not quite, Kenny.", piece: 0),
+                to: scene.sceneID
+            ).disposition == .duplicate)
+        #expect(
+            try await world.service.submit(
+                SceneTurnSubmission(
+                    characterID: beaky, responseID: responseID, text: "?", piece: 5),
+                to: scene.sceneID
+            ).disposition == .notYourTurn)
+        // An early timer from the first deadline changes nothing.
+        try await world.service.floorExpired(sceneID: scene.sceneID, responseID: responseID)
+        #expect(try await world.service.scene(id: scene.sceneID)?.floor?.responseID == responseID)
+
+        _ = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: responseID, text: "The door was unlocked,",
+                piece: 1),
+            to: scene.sceneID)
+        // "That was the whole line": the pieces become the turn, recorded once, and the
+        // performer is told it was streamed so it does not say it twice.
+        let done = try await world.service.submit(
+            SceneTurnSubmission(characterID: beaky, responseID: responseID, text: nil),
+            to: scene.sceneID)
+        #expect(done.disposition == .accepted)
+        let turn = try #require(done.scene.turns.first)
+        #expect(turn.text == "Not quite, Kenny. The door was unlocked,")
+        #expect(turn.isPass == false)
+        #expect(
+            await world.recorded.turns.map(\.text) == ["Not quite, Kenny. The door was unlocked,"])
+        #expect(await world.performer.streamedTurns.count == 1)
+        #expect(await world.performer.spoken.isEmpty)
+        #expect(done.scene.floor?.characterID == mango)
+        let types = await world.announced.events.map(\.type)
+        #expect(types.filter { $0 == SceneService.turnPieceEventType }.count == 2)
+        #expect(types.contains(SceneService.turnEventType))
+    }
+
+    @Test("A streamed line that goes quiet is the line so far when the floor expires")
+    func streamedLineExpires() async throws {
+        let world = makeWorld()
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let responseID = try #require(scene.floor?.responseID)
+        _ = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: responseID, text: "Servos, I hope!", piece: 0),
+            to: scene.sceneID)
+        try await world.clock.advance(by: SceneLimits().floorSeconds + 1)
+
+        try await world.service.floorExpired(sceneID: scene.sceneID, responseID: responseID)
+
+        let current = try #require(try await world.service.scene(id: scene.sceneID))
+        #expect(current.turns.first?.text == "Servos, I hope!")
+        #expect(current.floor?.characterID == mango)
+    }
+
     @Test("A floor nobody answers by the deadline counts as a pass")
     func deadlineIsAPass() async throws {
         let world = makeWorld()
@@ -115,6 +196,10 @@ struct SceneServiceTests {
             trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
         let offered = try #require(scene.floor?.responseID)
 
+        // The timer fires early by mistake: the floor is still open, nothing happens.
+        try await world.service.floorExpired(sceneID: scene.sceneID, responseID: offered)
+        #expect(try await world.service.scene(id: scene.sceneID)?.floor?.responseID == offered)
+        try await world.clock.advance(by: SceneLimits().floorSeconds)
         try await world.service.floorExpired(sceneID: scene.sceneID, responseID: offered)
         // A late answer to an expired floor is not this character's turn any more.
         let late = try await world.service.submit(
@@ -224,6 +309,7 @@ struct SceneServiceTests {
         let timers: ScheduledTimers
         let recorded: RecordedTurns
         let performer: FakePerformer
+        let clock: ManualWorldClock
     }
 
     private func makeWorld(limits: SceneLimits = SceneLimits(), performerFails: Bool = false)
@@ -233,9 +319,10 @@ struct SceneServiceTests {
         let timers = ScheduledTimers()
         let recorded = RecordedTurns()
         let performer = FakePerformer(fails: performerFails)
+        let clock = ManualWorldClock(now: Self.now)
         let service = SceneService(
             repository: InMemoryScenes(),
-            clock: ManualWorldClock(now: Self.now),
+            clock: clock,
             limits: limits,
             performer: performer,
             announce: { await announced.record($0) },
@@ -247,7 +334,7 @@ struct SceneServiceTests {
         )
         return TestWorld(
             service: service, announced: announced, timers: timers, recorded: recorded,
-            performer: performer)
+            performer: performer, clock: clock)
     }
 
     private func makeTrigger(addressee: EntityID) -> SceneTrigger {
@@ -311,7 +398,14 @@ private actor FakePerformer: ScenePerforming {
 
     func sceneOpened(_ scene: Scene) { opened.append(scene.sceneID) }
 
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) { spoken.append(turn) }
+    private(set) var pieces: [(ResponseID, String)] = []
+    func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String) {
+        pieces.append((responseID, text))
+    }
+    private(set) var streamedTurns: [SceneTurn] = []
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) {
+        if streamed { streamedTurns.append(turn) } else { spoken.append(turn) }
+    }
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         if fails { throw WorldContractError.invalidScene }

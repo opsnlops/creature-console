@@ -82,6 +82,16 @@ struct SceneRow: View {
                     }
                 }
             }
+            if let floor = scene.floor, !floor.pieces.isEmpty {
+                // A line still being composed: the sentences the room has heard so far.
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(CharacterName.of(floor.characterID))
+                        .font(.caption.weight(.semibold))
+                    Text(floor.pieces.joined(separator: " ") + " …")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
             if let performance = scene.performance {
                 Text(
                     performance.state == .failed

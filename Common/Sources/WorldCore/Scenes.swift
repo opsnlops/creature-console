@@ -106,12 +106,19 @@ public struct SceneFloor: Hashable, Sendable, Codable {
     public var responseID: ResponseID
     public var offeredAt: Date
     public var deadline: Date
+    /// The sentences of the line so far, when the mind is streaming its turn: each one is
+    /// spoken as it lands, and the whole becomes the turn when the mind says it is done.
+    public var pieces: [String]
 
-    public init(characterID: EntityID, responseID: ResponseID, offeredAt: Date, deadline: Date) {
+    public init(
+        characterID: EntityID, responseID: ResponseID, offeredAt: Date, deadline: Date,
+        pieces: [String] = []
+    ) {
         self.characterID = characterID
         self.responseID = responseID
         self.offeredAt = offeredAt
         self.deadline = deadline
+        self.pieces = pieces
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -119,6 +126,16 @@ public struct SceneFloor: Hashable, Sendable, Codable {
         case responseID = "response_id"
         case offeredAt = "offered_at"
         case deadline
+        case pieces
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        characterID = try container.decode(EntityID.self, forKey: .characterID)
+        responseID = try container.decode(ResponseID.self, forKey: .responseID)
+        offeredAt = try container.decode(Date.self, forKey: .offeredAt)
+        deadline = try container.decode(Date.self, forKey: .deadline)
+        pieces = try container.decodeIfPresent([String].self, forKey: .pieces) ?? []
     }
 }
 
@@ -309,24 +326,38 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
     public var characterID: EntityID
     public var responseID: ResponseID
     public var sessionID: CharacterSessionID?
-    /// `nil` passes the floor.
+    /// The line, or one sentence of it when `piece` is set. `nil` with no piece passes the
+    /// floor; `nil` after pieces were sent means "that was the whole line".
     public var text: String?
+    /// The index of this sentence in a streamed line (0, 1, 2, …), so a retry is recognised;
+    /// `nil` means the turn is complete with this submission.
+    public var piece: Int?
     public var trace: W3CTraceContext?
+
+    public var isPartial: Bool { piece != nil }
 
     public init(
         characterID: EntityID,
         responseID: ResponseID,
         sessionID: CharacterSessionID? = nil,
         text: String?,
+        piece: Int? = nil,
         trace: W3CTraceContext? = nil
     ) throws {
         if let text {
             try validateConversationText(text)
         }
+        if let piece {
+            guard piece >= 0 else { throw WorldContractError.invalidScene }
+            guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw WorldContractError.invalidScene
+            }
+        }
         self.characterID = characterID
         self.responseID = responseID
         self.sessionID = sessionID
         self.text = text
+        self.piece = piece
         self.trace = trace
     }
 
@@ -337,6 +368,7 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
             responseID: container.decode(ResponseID.self, forKey: .responseID),
             sessionID: container.decodeIfPresent(CharacterSessionID.self, forKey: .sessionID),
             text: container.decodeIfPresent(String.self, forKey: .text),
+            piece: container.decodeIfPresent(Int.self, forKey: .piece),
             trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace)
         )
     }
@@ -346,6 +378,7 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
         case responseID = "response_id"
         case sessionID = "session_id"
         case text
+        case piece
         case trace
     }
 }
