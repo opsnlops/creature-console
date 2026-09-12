@@ -160,6 +160,10 @@ creature-agent run --config-path agent.yaml --log-level info --host <creature-se
   so a persona edit reviews as a diff of what the model reads; `agent.persona_version`
   (`name/version`) is on every `agent.consider` and `agent.scene.consider` span. Restart the
   mind after editing a persona. See [`docs/personas/README.md`](personas/README.md).
+- **Nobody hails April every line** (`2.60.1`). In a scene, a turn that opens with the name of
+  the person who started it as a vocative ("April, pizza or Linux?") loses the vocative; a
+  name later in the line, or another bird's name, is kept, and solo replies are untouched.
+  The scene contract also says to speak to whoever you are answering.
 - **Stage directions are never spoken** (`2.60.0`). `*giggles*`, `(chuckles)`, `[flaps wings]`
   are removed from every reply before it is stored or spoken; a reply that was nothing but a
   direction is a pass. The persona's `never` rules make narration rare; this makes it impossible.
