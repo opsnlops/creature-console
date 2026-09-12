@@ -124,10 +124,10 @@ scene: { scene_id, opened_by (event / utterance), participants: [character_id],
   (`0.2.0`).
 - **Addressing.** April's message names a character or not: "Mango, …" / "@Mango" → Mango;
   otherwise Beaky, by the leadership rule. The addressee resolution is a world rule
-  (`PersonUtteranceIngress`), not a gateway or app rule, so STT later gets it for free. A message
-  to one character while others are present opens a scene (C2) so the others may chime in; the
-  world keeps the answer count sane (the addressee always gets the floor; others may add at most
-  one turn).
+  (`PersonUtteranceIngress`), not a gateway or app rule, so STT later gets it for free.
+  *Decision while building (April):* a **named** bird answers alone — "Beaky, …" is a word with
+  her familiar and nobody else — while an **unaddressed** remark is for the room and opens a
+  scene (C2) so whoever is present may chime in, Beaky first.
 - Beaky Communicator's title, icon, and settings stop assuming one bird; the app subscribes to
   the house conversation and shows who is speaking. Push and quiet hours (later VW-028 work)
   apply per person, not per character.

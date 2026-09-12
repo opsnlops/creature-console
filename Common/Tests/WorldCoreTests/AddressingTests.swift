@@ -12,21 +12,29 @@ struct AddressingTests {
 
     @Test("A character named at the start gets the message")
     func namedCharacterIsAddressed() {
-        #expect(rule.addressee(in: "Mango, what is in the box?", present: present) == mango)
-        #expect(rule.addressee(in: "hey kenny what's up", present: present) == kenny)
-        #expect(rule.addressee(in: "@Mango are you there", present: present) == mango)
-        #expect(rule.addressee(in: "Okay Mango. Tell me.", present: present) == mango)
-        #expect(rule.addressee(in: "MANGO!", present: present) == mango)
+        let toMango = Addressee(characterID: mango, named: true)
+        #expect(rule.addressee(in: "Mango, what is in the box?", present: present) == toMango)
+        #expect(
+            rule.addressee(in: "hey kenny what's up", present: present)
+                == Addressee(characterID: kenny, named: true))
+        #expect(rule.addressee(in: "@Mango are you there", present: present) == toMango)
+        #expect(rule.addressee(in: "Okay Mango. Tell me.", present: present) == toMango)
+        #expect(rule.addressee(in: "MANGO!", present: present) == toMango)
+        // Naming Beaky is a word with the familiar alone.
+        #expect(
+            rule.addressee(in: "Beaky, how was your day?", present: present)
+                == Addressee(characterID: beaky, named: true))
     }
 
     @Test("Everything else goes to the lead, including a name mentioned later or not present")
     func unaddressedGoesToTheLead() {
+        let room = Addressee(characterID: beaky, named: false)
         #expect(
-            rule.addressee(in: "What do you all think of the package?", present: present) == beaky)
-        #expect(rule.addressee(in: "I think Mango is right.", present: present) == beaky)
-        #expect(rule.addressee(in: "Caroll, are you there?", present: present) == beaky)
-        #expect(rule.addressee(in: "", present: present) == beaky)
-        #expect(rule.addressee(in: "Mango", present: [:]) == beaky)
+            rule.addressee(in: "What do you all think of the package?", present: present) == room)
+        #expect(rule.addressee(in: "I think Mango is right.", present: present) == room)
+        #expect(rule.addressee(in: "Caroll, are you there?", present: present) == room)
+        #expect(rule.addressee(in: "", present: present) == room)
+        #expect(rule.addressee(in: "Mango", present: [:]) == room)
     }
 
     @Test("The ingress asks the resolver, not the sender, who the words are for")
@@ -60,8 +68,8 @@ struct AddressingTests {
 
 private struct FixedResolver: AddresseeResolving {
     let answer: EntityID
-    func addressee(for utterance: PersonUtterance, hinted: EntityID) async throws -> EntityID {
-        answer
+    func addressee(for utterance: PersonUtterance, hinted: EntityID) async throws -> Addressee {
+        Addressee(characterID: answer, named: true)
     }
 }
 

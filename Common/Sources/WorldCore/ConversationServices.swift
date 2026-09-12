@@ -109,13 +109,13 @@ public protocol PersonUtteranceIngress: Sendable {
 /// Decides, before a percept is made durable, whether an utterance becomes a scene — because
 /// more than one character could answer — and if so, which scene.
 public protocol ScenePlanning: Sendable {
-    func planScene(for utterance: PersonUtterance, addressee: EntityID) async throws -> SceneID?
+    func planScene(for utterance: PersonUtterance, addressee: Addressee) async throws -> SceneID?
 }
 
 /// The world before scenes existed: every utterance is answered solo.
 public struct NoScenePlanner: ScenePlanning {
     public init() {}
-    public func planScene(for utterance: PersonUtterance, addressee: EntityID) async throws
+    public func planScene(for utterance: PersonUtterance, addressee: Addressee) async throws
         -> SceneID?
     {
         nil
@@ -179,10 +179,12 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
             )
             // Who this is for is the world's call (the leadership rule); the sender's addressee
             // is a hint.
-            let characterID = try await addresseeResolver.addressee(
+            let addressee = try await addresseeResolver.addressee(
                 for: utterance, hinted: utterance.addresseeIDs[0])
+            let characterID = addressee.characterID
             span.attributes["agent.character_id"] = characterID.rawValue
-            let sceneID = try await scenePlanner.planScene(for: utterance, addressee: characterID)
+            span.attributes["conversation.addressee.named"] = addressee.named
+            let sceneID = try await scenePlanner.planScene(for: utterance, addressee: addressee)
             span.attributes["scene.id"] = sceneID?.rawValue
             let proposed = try StoredUtteranceIngress(
                 percept: PersonUtterancePercept(

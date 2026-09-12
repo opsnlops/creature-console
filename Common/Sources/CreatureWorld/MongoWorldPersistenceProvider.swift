@@ -681,7 +681,7 @@ private struct PresentCharactersAddresseeResolver: AddresseeResolving {
     let sessions: CharacterSessionService
     let rule: LeadAddresseeRule
 
-    func addressee(for utterance: PersonUtterance, hinted: EntityID) async throws -> EntityID {
+    func addressee(for utterance: PersonUtterance, hinted: EntityID) async throws -> Addressee {
         let now = Date()
         let present = try await sessions.characterSessions().filter { $0.isLive(at: now) }
         var names: [String: EntityID] = [:]
@@ -695,13 +695,16 @@ private struct PresentCharactersAddresseeResolver: AddresseeResolving {
     }
 }
 
-/// More than one character logged into the addressee's region means a scene: the world will
-/// hand out the floor, and the addressee must not answer on its own.
+/// A remark to the room, with more than one character logged into the region, means a scene:
+/// the world will hand out the floor. A bird April names by name answers alone — her word
+/// with Beaky stays between them.
 private struct PresentCharactersScenePlanner: ScenePlanning {
     let sessions: CharacterSessionService
 
-    func planScene(for utterance: PersonUtterance, addressee: EntityID) async throws -> SceneID? {
-        guard let session = try await sessions.liveSession(for: addressee) else { return nil }
+    func planScene(for utterance: PersonUtterance, addressee: Addressee) async throws -> SceneID? {
+        guard !addressee.named,
+            let session = try await sessions.liveSession(for: addressee.characterID)
+        else { return nil }
         let present = try await sessions.present(in: session.regionID)
         return present.count > 1 ? .generated() : nil
     }

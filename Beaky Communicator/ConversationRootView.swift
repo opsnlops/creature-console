@@ -123,7 +123,7 @@ private struct ConversationView: View {
             Text("The house conversation")
                 .font(.title2.bold())
             Text(
-                "Beaky and whoever else is home. Name a bird to talk to them — \"Mango, …\" — or just talk, and Beaky answers."
+                "Beaky and whoever else is home. Name a bird to talk to just them — \"Beaky, …\" — or talk to the room and they all may answer, Beaky first."
             )
             .font(.callout)
             .foregroundStyle(.secondary)

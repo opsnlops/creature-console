@@ -146,11 +146,13 @@ describe the deployed replica set or managed MongoDB cluster instead.
 
 Who April is talking to is a world rule (`0.6.2`), so typed words and spoken ones later are
 addressed the same way. At ingress the world looks at the start of the message: a character
-named there — "Mango, …", "Hey Kenny …", "@caroll …" — who is logged in gets it; everything
-else goes to the lead (`lead_character`, default `character:beaky`). The sender's addressee
-(the app always says Beaky) is only a hint; the utterance is stored as sent and the percept
-carries the world's choice. A name mentioned later in the sentence ("I think Mango is right")
-does not redirect it. `conversation:april-house` is the house conversation (from Communicator
+named there — "Mango, …", "Hey Kenny …", "@caroll …" — who is logged in gets it, **alone**: a
+named bird answers by itself and no scene opens, so April can have a word with just her
+familiar ("Beaky, how was your day?"). Everything else is for the room: it goes to the lead
+(`lead_character`, default `character:beaky`), and if others are logged in the world opens a
+scene so they may chime in. The sender's addressee (the app always says Beaky) is only a hint;
+the utterance is stored as sent and the percept carries the world's choice. A name mentioned
+later in the sentence ("I think Mango is right") does not redirect it. `conversation:april-house` is the house conversation (from Communicator
 `0.3.0` and Viewer defaults): every character speaks in it. `conversation:april-beaky` holds the
 history from before the flock and stays readable.
 
