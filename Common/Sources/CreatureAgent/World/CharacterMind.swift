@@ -8,7 +8,12 @@ import WorldCore
 
 /// What Beaky decided to do about one thing the world offered her.
 enum CharacterDecision: Equatable, Sendable {
+    /// Words for the world to carry on the stage it chooses.
     case reply(CharacterUtteranceIntent)
+    /// Words she already said herself, in the room, on the stage the world decided.
+    case performed(CharacterPerformance)
+    /// The world had already carried this turn (a replay after a crash); nothing more to do.
+    case alreadyDelivered(ResponseID)
     case silence(reason: SilenceReason)
 
     enum SilenceReason: String, Equatable, Sendable {
@@ -32,6 +37,15 @@ enum CharacterDecision: Equatable, Sendable {
 /// did not put in the percept.
 struct CharacterMind: Sendable {
     typealias Respond = @Sendable ([LocalLLMClient.Message]) async throws -> String
+    /// The model's answer as sentences, in order, as they are produced.
+    typealias RespondStreaming = @Sendable ([LocalLLMClient.Message]) -> AsyncStream<String>
+
+    /// Where the world put Beaky for this turn, and what she has to perform it with.
+    struct Stage: Sendable {
+        let stager: any WorldStaging
+        let room: any PhysicalSpeechStaging
+        let respondStreaming: RespondStreaming
+    }
 
     /// Bumped whenever the prompt contract changes so evaluations stay comparable.
     static let promptVersion = "world-conversation-v1"
@@ -57,6 +71,7 @@ struct CharacterMind: Sendable {
 
     private let configuration: Configuration
     private let respond: Respond
+    private let stage: Stage?
     private let logger: Logger
     private let considerationCounter = Counter(label: "creature_agent.considerations")
     private let replyCounter = Counter(
@@ -64,18 +79,30 @@ struct CharacterMind: Sendable {
         dimensions: [("outcome", "reply")]
     )
 
-    init(configuration: Configuration, respond: @escaping Respond, logger: Logger) {
+    /// Without a `stage`, every reply goes to the world for routing (the Communicator path).
+    /// With one, the mind asks the world where April can hear her before generating and, if the
+    /// answer is the room, speaks sentence by sentence while the model is still thinking.
+    init(
+        configuration: Configuration,
+        respond: @escaping Respond,
+        stage: Stage? = nil,
+        logger: Logger
+    ) {
         self.configuration = configuration
         self.respond = respond
+        self.stage = stage
         self.logger = logger
     }
 
-    func consider(_ consideration: WorldConsideration, now: Date) async -> CharacterDecision {
+    /// Throws only when the world could not be asked for the stage, so the caller retries the
+    /// same consideration from its cursor; every other trouble becomes a recorded decision.
+    func consider(_ consideration: WorldConsideration, now: Date) async throws -> CharacterDecision
+    {
         let percept = consideration.percept
         // Inside an `agent.turn` span this nests naturally; on its own it continues the trace
         // the utterance arrived with.
         let context = ServiceContext.current ?? Self.traceContext(for: percept)
-        return await withSpan("agent.consider", context: context) { span in
+        return try await withSpan("agent.consider", context: context) { span in
             span.attributes["agent.character_id"] = configuration.characterID.rawValue
             span.attributes["agent.consideration_id"] = percept.considerationID.rawValue
             span.attributes["conversation.id"] = percept.utterance.conversationID.rawValue
@@ -85,11 +112,17 @@ struct CharacterMind: Sendable {
             span.attributes["llm.model"] = configuration.modelName
             considerationCounter.increment()
 
-            let decision = await decide(consideration, now: now)
+            let decision = try await decide(consideration, now: now)
             switch decision {
             case .reply:
                 span.attributes["agent.reaction"] = "reply"
                 replyCounter.increment()
+            case .performed(let performance):
+                span.attributes["agent.reaction"] = "performed"
+                span.attributes["conversation.delivery.state"] = performance.outcome.state.rawValue
+                replyCounter.increment()
+            case .alreadyDelivered:
+                span.attributes["agent.reaction"] = "already_delivered"
             case .silence(let reason):
                 span.attributes["agent.reaction"] = "silence"
                 span.attributes["agent.suppression_reason"] = reason.rawValue
@@ -103,7 +136,9 @@ struct CharacterMind: Sendable {
         }
     }
 
-    private func decide(_ consideration: WorldConsideration, now: Date) async -> CharacterDecision {
+    private func decide(_ consideration: WorldConsideration, now: Date) async throws
+        -> CharacterDecision
+    {
         let utterance = consideration.percept.utterance
 
         // Deterministic guardrails come before any model call.
@@ -114,7 +149,32 @@ struct CharacterMind: Sendable {
             return .silence(reason: .stale)
         }
 
-        let transcript = makeTranscript(for: consideration.percept)
+        let responseID = Self.responseID(for: consideration.percept.considerationID)
+
+        // Ask the world where April can hear Beaky *before* thinking, so a turn for the room can
+        // be spoken as it is produced instead of after it is complete.
+        var decision: CharacterDeliveryDecision?
+        if let stage {
+            let staged = try await stage.stager.stage(
+                CharacterStageRequest(
+                    responseID: responseID,
+                    characterID: configuration.characterID,
+                    recipientID: utterance.speakerID
+                ),
+                in: utterance.conversationID
+            )
+            guard staged.disposition == .decided else {
+                return .alreadyDelivered(responseID)
+            }
+            decision = staged.decision
+        }
+
+        if let stage, let decision, decision.route == .physicalSpeech {
+            return await performInTheRoom(
+                consideration, decision: decision, responseID: responseID, stage: stage, now: now)
+        }
+
+        let transcript = makeTranscript(for: consideration.percept, route: .communicator)
         let raw: String
         do {
             raw = try await withSpan("llm.mistral.generate") { span in
@@ -141,19 +201,8 @@ struct CharacterMind: Sendable {
         }
 
         do {
-            let intent = try CharacterUtteranceIntent(
-                responseID: Self.responseID(for: consideration.percept.considerationID),
-                conversationID: utterance.conversationID,
-                characterID: configuration.characterID,
-                recipientID: utterance.speakerID,
-                inResponseToUtteranceID: utterance.utteranceID,
-                text: text,
-                urgency: 0.3,
-                createdAt: now,
-                reasonReferences: [.event(consideration.envelope.eventID)],
-                trace: currentTraceContext() ?? utterance.trace
-            )
-            return .reply(intent)
+            return .reply(
+                try makeIntent(text: text, for: consideration, responseID: responseID, now: now))
         } catch {
             logger.error(
                 "Beaky's answer did not form a valid turn",
@@ -161,6 +210,154 @@ struct CharacterMind: Sendable {
             )
             return .silence(reason: .emptyResponse)
         }
+    }
+
+    /// Speaks in the room while the model generates: each sentence is validated the moment it
+    /// exists and handed to the physical stage, which opens Creature Server's session on the
+    /// first one. The recorded turn is exactly the sentences that were offered to the room.
+    private func performInTheRoom(
+        _ consideration: WorldConsideration,
+        decision: CharacterDeliveryDecision,
+        responseID: ResponseID,
+        stage: Stage,
+        now: Date
+    ) async -> CharacterDecision {
+        let transcript = makeTranscript(for: consideration.percept, route: .physicalSpeech)
+        let (sentenceStream, continuation) = AsyncStream<String>.makeStream()
+        let name = configuration.characterName
+
+        // The room and the model run together; the room finishes when the sentences do.
+        async let performance: Result<String?, any Error> = {
+            do {
+                return .success(try await stage.room.perform(sentenceStream))
+            } catch {
+                return .failure(error)
+            }
+        }()
+
+        let spoken = SpokenSentences(room: continuation)
+        var modelFailed = false
+        do {
+            try await withSpan("llm.mistral.generate") { span in
+                span.attributes["llm.model"] = configuration.modelName
+                span.attributes["llm.transcript.turns"] = transcript.count
+                span.attributes["llm.streaming"] = true
+                // A timeout cancels the model loop; whatever was already offered to the room
+                // stays spoken and recorded.
+                try await withTimeout(configuration.modelTimeout) {
+                    for await raw in stage.respondStreaming(transcript) {
+                        guard await spoken.offer(raw, characterName: name) else { break }
+                    }
+                }
+                span.attributes["speech.sentences"] = await spoken.sentences.count
+            }
+        } catch {
+            modelFailed = true
+            logger.error(
+                "Beaky's model did not answer",
+                metadata: [
+                    "error": "\(error)",
+                    "agent.consideration_id": "\(consideration.percept.considerationID.rawValue)",
+                ]
+            )
+        }
+        let sentences = await spoken.sentences
+        let declined = await spoken.declined
+        continuation.finish()
+        let performed = await performance
+
+        guard !sentences.isEmpty else {
+            if modelFailed { return .silence(reason: .modelUnavailable) }
+            return .silence(reason: declined ? .choseSilence : .emptyResponse)
+        }
+        let outcome: CharacterPerformanceReport
+        do {
+            switch performed {
+            case .success(let reference):
+                outcome = try CharacterPerformanceReport(
+                    state: .performed, providerReference: reference)
+            case .failure(let error as PhysicalSpeechStageError):
+                logger.error("Beaky could not speak in the room", metadata: ["error": "\(error)"])
+                outcome = try CharacterPerformanceReport(state: .failed, errorCode: error.code)
+            case .failure(let error):
+                logger.error("Beaky could not speak in the room", metadata: ["error": "\(error)"])
+                outcome = try CharacterPerformanceReport(
+                    state: .failed, errorCode: "physical_speech_unavailable")
+            }
+            let intent = try makeIntent(
+                text: sentences.joined(separator: " "), for: consideration,
+                responseID: responseID, now: now)
+            return .performed(
+                CharacterPerformance(
+                    intent: intent, attemptID: decision.attemptID, outcome: outcome))
+        } catch {
+            logger.error(
+                "Beaky's answer did not form a valid turn",
+                metadata: ["error": "\(error)"]
+            )
+            return .silence(reason: .emptyResponse)
+        }
+    }
+
+    /// The sentences offered to the room so far, validated one at a time as the model produces
+    /// them: the first decides silence and loses any speaker label, every one is speech-clean,
+    /// and the turn stops at the world's length limit.
+    private actor SpokenSentences {
+        private(set) var sentences: [String] = []
+        private(set) var declined = false
+        private let room: AsyncStream<String>.Continuation
+
+        init(room: AsyncStream<String>.Continuation) {
+            self.room = room
+        }
+
+        /// Returns `false` when the turn is over: silence was chosen or the limit was reached.
+        func offer(_ raw: String, characterName: String) -> Bool {
+            let stripped = LocalLLMClient.stripThinkTags(raw)
+            if sentences.isEmpty, CharacterMind.declinesToSpeak(stripped) {
+                declined = true
+                return false
+            }
+            let candidate =
+                sentences.isEmpty
+                ? CharacterMind.withoutSpeakerLabel(stripped, characterName: characterName)
+                : stripped
+            let clean = TextSanitizer.sanitize(candidate).text
+                .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !clean.isEmpty else { return true }
+            guard CharacterMind.fits(sentences + [clean]) else { return false }
+            sentences.append(clean)
+            room.yield(clean)
+            return true
+        }
+    }
+
+    private func makeIntent(
+        text: String,
+        for consideration: WorldConsideration,
+        responseID: ResponseID,
+        now: Date
+    ) throws -> CharacterUtteranceIntent {
+        let utterance = consideration.percept.utterance
+        return try CharacterUtteranceIntent(
+            responseID: responseID,
+            conversationID: utterance.conversationID,
+            characterID: configuration.characterID,
+            recipientID: utterance.speakerID,
+            inResponseToUtteranceID: utterance.utteranceID,
+            text: text,
+            urgency: 0.3,
+            createdAt: now,
+            reasonReferences: [.event(consideration.envelope.eventID)],
+            trace: currentTraceContext() ?? utterance.trace
+        )
+    }
+
+    /// Whether the sentences so far fit the world's limit on one turn.
+    static func fits(_ sentences: [String]) -> Bool {
+        sentences.joined(separator: " ").unicodeScalars.count
+            <= ConversationContractLimits.maximumTextUnicodeScalars
     }
 
     /// The trace context the world attached to the utterance, as a span parent.
@@ -180,11 +377,14 @@ struct CharacterMind: Sendable {
 
     /// The persona, the conversation contract, then the canonical conversation as it happened:
     /// April's turns as `user`, Beaky's own earlier turns as `assistant`, newest last.
-    func makeTranscript(for percept: PersonUtterancePercept) -> [LocalLLMClient.Message] {
+    func makeTranscript(
+        for percept: PersonUtterancePercept,
+        route: CharacterDeliveryRoute = .communicator
+    ) -> [LocalLLMClient.Message] {
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
-                content: configuration.persona + "\n\n" + Self.contract
+                content: configuration.persona + "\n\n" + Self.contract(for: route)
             )
         ]
         let prior = percept.priorConversationItems
@@ -231,14 +431,26 @@ struct CharacterMind: Sendable {
         return merged
     }
 
-    static let contract = """
-        You are talking with April through the Beaky Communicator app on her phone or Mac. \
-        The conversation so far is shown above; the newest message is hers. Answer her in your \
-        own voice in one to three short sentences. If you truly have nothing to add, reply with \
-        exactly \(silenceToken) and nothing else. Your words are spoken aloud by your voice, so \
-        never use emoji or symbols. Do not describe actions and do not mention that you are a \
-        program.
-        """
+    static let contract = contract(for: .communicator)
+
+    /// The same contract on either stage; only the first sentence says where April is.
+    static func contract(for route: CharacterDeliveryRoute) -> String {
+        let setting =
+            switch route {
+            case .physicalSpeech:
+                "April is in the room with you and hears you speak aloud with your own voice."
+            case .communicator:
+                "You are talking with April through the Beaky Communicator app on her phone or Mac."
+            }
+        return """
+            \(setting) \
+            The conversation so far is shown above; the newest message is hers. Answer her in your \
+            own voice in one to three short sentences. If you truly have nothing to add, reply with \
+            exactly \(silenceToken) and nothing else. Your words are spoken aloud by your voice, so \
+            never use emoji or symbols. Do not describe actions and do not mention that you are a \
+            program.
+            """
+    }
 
     // MARK: - Validation
 
@@ -312,6 +524,20 @@ struct CharacterMind: Sendable {
         case .reply(let intent):
             metadata["conversation.response.id"] = "\(intent.responseID.rawValue)"
             logger.info("Beaky has something to say", metadata: metadata)
+        case .performed(let performance):
+            metadata["conversation.response.id"] = "\(performance.intent.responseID.rawValue)"
+            metadata["conversation.delivery.state"] = "\(performance.outcome.state.rawValue)"
+            if let code = performance.outcome.errorCode {
+                metadata["error.type"] = "\(code)"
+            }
+            if performance.outcome.state == .performed {
+                logger.info("Beaky spoke in the room", metadata: metadata)
+            } else {
+                logger.warning("Beaky could not speak in the room", metadata: metadata)
+            }
+        case .alreadyDelivered(let responseID):
+            metadata["conversation.response.id"] = "\(responseID.rawValue)"
+            logger.info("Beaky had already answered this", metadata: metadata)
         case .silence(let reason):
             metadata["agent.suppression_reason"] = "\(reason.rawValue)"
             logger.info("Beaky stays quiet", metadata: metadata)

@@ -19,6 +19,10 @@ struct MongoWorldPersistenceConnection: Sendable {
     let ingestUtterance: @Sendable (PersonUtterance) async throws -> UtteranceIngressResult
     let respondAsCharacter:
         @Sendable (CharacterUtteranceIntent) async throws -> CharacterDeliveryResult
+    let stageCharacter:
+        @Sendable (CharacterStageRequest, ConversationID) async throws -> CharacterStageResult
+    let recordPerformance:
+        @Sendable (CharacterPerformance, ConversationID) async throws -> CharacterDeliveryResult
     let conversationItems:
         @Sendable (ConversationID, ConversationItemID?, Int) async throws -> ConversationItemPage
     let deliveries:
@@ -27,6 +31,7 @@ struct MongoWorldPersistenceConnection: Sendable {
 
     init(
         persistence: MongoWorldPersistence,
+        presence: PresenceConfiguration = PresenceConfiguration(),
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
     ) throws {
@@ -47,7 +52,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             sink: WorldPersonUtterancePerceptSink(world: world)
         )
         let deliveryRouter = try CharacterDeliveryRouter(
-            presenceProvider: UnknownPresenceProvider(clock: clock),
+            presenceProvider: AssumedPresenceProvider(configuration: presence, clock: clock),
             repository: persistence.characterDeliveries,
             physicalSpeechSink: NotConnectedPhysicalSpeechSink(logger: logger),
             communicatorSink: CommunicatorDeliverySink(),
@@ -124,6 +129,8 @@ struct MongoWorldPersistenceConnection: Sendable {
             )
         }
         respondAsCharacter = { try await deliveryRouter.route($0) }
+        stageCharacter = { try await deliveryRouter.stage($0, in: $1) }
+        recordPerformance = { try await deliveryRouter.recordPerformance($0, in: $1) }
         conversationItems = { conversationID, after, limit in
             let loaded = try await persistence.conversations.conversationItems(
                 in: conversationID,
@@ -200,6 +207,12 @@ struct MongoWorldPersistenceConnection: Sendable {
         respondAsCharacter:
             @escaping @Sendable (CharacterUtteranceIntent) async throws
             -> CharacterDeliveryResult = { _ in throw WorldAPIError.databaseUnavailable },
+        stageCharacter:
+            @escaping @Sendable (CharacterStageRequest, ConversationID) async throws
+            -> CharacterStageResult = { _, _ in throw WorldAPIError.databaseUnavailable },
+        recordPerformance:
+            @escaping @Sendable (CharacterPerformance, ConversationID) async throws
+            -> CharacterDeliveryResult = { _, _ in throw WorldAPIError.databaseUnavailable },
         conversationItems:
             @escaping @Sendable (ConversationID, ConversationItemID?, Int) async throws
             -> ConversationItemPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
@@ -221,6 +234,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.cancelTimer = cancelTimer
         self.ingestUtterance = ingestUtterance
         self.respondAsCharacter = respondAsCharacter
+        self.stageCharacter = stageCharacter
+        self.recordPerformance = recordPerformance
         self.conversationItems = conversationItems
         self.deliveries = deliveries
         self.shutdown = shutdown
@@ -240,23 +255,26 @@ actor MongoWorldPersistenceProvider {
 
     init(
         uri: String,
+        presence: PresenceConfiguration = PresenceConfiguration(),
         logger: Logger,
-        connector: @escaping Connector = { uri, logger in
-            let persistence = try await MongoWorldPersistence.connect(to: uri, logger: logger)
-            do {
-                return try MongoWorldPersistenceConnection(
-                    persistence: persistence,
-                    logger: logger
-                )
-            } catch {
-                await persistence.cluster.disconnect()
-                throw error
-            }
-        }
+        connector: Connector? = nil
     ) {
         self.uri = uri
         self.logger = logger
-        self.connector = connector
+        self.connector =
+            connector ?? { uri, logger in
+                let persistence = try await MongoWorldPersistence.connect(to: uri, logger: logger)
+                do {
+                    return try MongoWorldPersistenceConnection(
+                        persistence: persistence,
+                        presence: presence,
+                        logger: logger
+                    )
+                } catch {
+                    await persistence.cluster.disconnect()
+                    throw error
+                }
+            }
     }
 
     func connectIfNeeded() async {
@@ -378,6 +396,29 @@ actor MongoWorldPersistenceProvider {
     func respond(_ intent: CharacterUtteranceIntent) async throws -> CharacterDeliveryResult {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         let result = try await connection.respondAsCharacter(intent)
+        if result.disposition == .accepted {
+            await conversationUpdates.publish(result.conversationItem)
+        }
+        return result
+    }
+
+    func stage(
+        _ request: CharacterStageRequest,
+        in conversationID: ConversationID
+    ) async throws -> CharacterStageResult {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.stageCharacter(request, conversationID)
+    }
+
+    /// Records a turn the mind performed on a stage the world decided; the canonical item is
+    /// then offered to every live conversation subscriber, so what Beaky said aloud shows up in
+    /// Communicator history exactly like a routed turn.
+    func perform(
+        _ performance: CharacterPerformance,
+        in conversationID: ConversationID
+    ) async throws -> CharacterDeliveryResult {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        let result = try await connection.recordPerformance(performance, conversationID)
         if result.disposition == .accepted {
             await conversationUpdates.publish(result.conversationItem)
         }

@@ -1,5 +1,6 @@
 import Foundation
 import MongoKitten
+import WorldCore
 
 enum CreatureWorldConfigurationError: Error, Equatable, LocalizedError, Sendable {
     case emptyHost
@@ -40,12 +41,14 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let host: String
     let mongoURI: String
     let port: Int
+    let presence: PresenceConfiguration
 
     init(
         host: String = defaultHost,
         port: Int = defaultPort,
         mongoURI: String = defaultMongoURI,
-        allowedOrigins: [String] = []
+        allowedOrigins: [String] = [],
+        presence: PresenceConfiguration = PresenceConfiguration()
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -73,6 +76,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.host = trimmedHost
         self.mongoURI = mongoURI
         self.port = port
+        self.presence = presence
     }
 
     static func load(
@@ -87,7 +91,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                 host: raw.host ?? defaultHost,
                 port: raw.port ?? defaultPort,
                 mongoURI: raw.mongoURI ?? defaultMongoURI,
-                allowedOrigins: raw.allowedOrigins ?? []
+                allowedOrigins: raw.allowedOrigins ?? [],
+                presence: try PresenceConfiguration(raw: raw.presence)
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -125,7 +130,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             host: host ?? self.host,
             port: port ?? self.port,
             mongoURI: mongoURI ?? self.mongoURI,
-            allowedOrigins: allowedOrigins ?? self.allowedOrigins
+            allowedOrigins: allowedOrigins ?? self.allowedOrigins,
+            presence: presence
         )
     }
 
@@ -134,12 +140,76 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let allowedOrigins: [String]?
         let mongoURI: String?
         let port: Int?
+        let presence: RawPresenceConfiguration?
 
         private enum CodingKeys: String, CodingKey {
             case host
             case allowedOrigins = "allowed_origins"
             case mongoURI = "mongodb_uri"
             case port
+            case presence
         }
+    }
+
+    struct RawPresenceConfiguration: Decodable {
+        let assumed: [String: RawAssumedPresence]?
+    }
+
+    struct RawAssumedPresence: Decodable {
+        let state: PersonPresenceState
+        let physicallyAudible: Bool?
+        let confidence: Double?
+
+        private enum CodingKeys: String, CodingKey {
+            case state
+            case physicallyAudible = "physically_audible"
+            case confidence
+        }
+    }
+}
+
+/// Where the world's presence beliefs come from until real evidence (VW-006/VW-013) exists.
+///
+/// An assumption is an honest, configured default: "April is home and can hear Beaky". Every
+/// decision made on it records `basis: assumed`, so the Viewer shows it and evidence can later
+/// replace it without anything downstream changing. No assumption means presence is `unknown`.
+struct PresenceConfiguration: Codable, Equatable, Sendable {
+    struct AssumedPresence: Codable, Equatable, Sendable {
+        var state: PersonPresenceState
+        var physicallyAudible: Bool
+        var confidence: Double
+
+        init(state: PersonPresenceState, physicallyAudible: Bool, confidence: Double) throws {
+            guard confidence.isFinite, (0...1).contains(confidence) else {
+                throw WorldContractError.invalidConfidence(confidence)
+            }
+            self.state = state
+            self.physicallyAudible = physicallyAudible
+            self.confidence = confidence
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case state
+            case physicallyAudible = "physically_audible"
+            case confidence
+        }
+    }
+
+    var assumed: [EntityID: AssumedPresence]
+
+    init(assumed: [EntityID: AssumedPresence] = [:]) {
+        self.assumed = assumed
+    }
+
+    init(raw: CreatureWorldConfiguration.RawPresenceConfiguration?) throws {
+        var assumed: [EntityID: AssumedPresence] = [:]
+        for (rawPersonID, entry) in raw?.assumed ?? [:] {
+            assumed[try EntityID(validating: rawPersonID)] = try AssumedPresence(
+                state: entry.state,
+                physicallyAudible: entry.physicallyAudible ?? false,
+                confidence: entry.confidence ?? 1
+            )
+        }
+        self.init(assumed: assumed)
     }
 }

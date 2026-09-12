@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.3.0",
+  "build_version": "0.4.0",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -79,6 +79,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | HTTP port | `port` | `SERVER_PORT` | `--port`, `-p` | `8001` |
 | MongoDB URI | `mongodb_uri` | `MONGODB_URI` | `--mongodb-uri` | Local replica set |
 | Browser stream origins | `allowed_origins` | `CREATURE_WORLD_ALLOWED_ORIGINS` | — | None |
+| Assumed presence | `presence.assumed` | — | — | None (presence is `unknown`) |
 
 Example:
 
@@ -89,6 +90,28 @@ Example:
   "port": 8001
 }
 ```
+
+### Assumed presence
+
+Until a presence source exists (VW-006/VW-013), the world can be told to *assume* where a person
+is. This is what puts Beaky's voice in the room today:
+
+```json
+{
+  "presence": {
+    "assumed": {
+      "person:april": { "state": "home", "physically_audible": true, "confidence": 0.9 }
+    }
+  }
+}
+```
+
+`state` is `home`, `away`, or `unknown`; `physically_audible` defaults to `false`; `confidence`
+defaults to `1` and must reach the router's minimum (`0.8`) for the assumption to choose a
+stage. Every decision made on an assumption records the presence with `basis: assumed`, so
+World Viewer shows exactly why a turn went where it did. Remove the block and the next turn goes
+back to the Communicator with `presence_uncertain`; nothing else changes. People without an
+entry are `unknown`.
 
 `--log-level` controls log verbosity and defaults to `debug`. Supported values are `trace`,
 `debug`, `info`, `notice`, `warning`, `error`, and `critical`.
@@ -161,7 +184,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.3.0",
+  "build_version": "0.4.0",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -320,6 +343,8 @@ current endpoints are:
 | `POST /world/v1/conversations/{conversation_id}/responses` | Carry one `CharacterUtteranceIntent` (a Beaky turn) into the conversation. The deterministic router reads fresh presence, persists the canonical item first, then delivers; returns 202 with `disposition: accepted` when this call handled it or 200 with `disposition: duplicate` when the same `response_id` was already handled. |
 | `GET /world/v1/conversations/{conversation_id}/items` | Read canonical conversation items in chronological, stable-ID order. |
 | `GET /world/v1/conversations/{conversation_id}/stream` | Receive an immediate `ready` event followed by live conversation-item notifications over SSE. Reconcile through the items endpoint after connecting. |
+| `POST /world/v1/conversations/{conversation_id}/stage` | A mind asks where a turn it is about to produce should be performed: `{ "response_id", "character_id", "recipient_id" }`. The router reads presence once and persists a `CharacterDeliveryDecision` for that `response_id` (expired by MongoDB after five minutes if never used). Asking again returns the same decision; a turn already carried answers `already_delivered` with the record so it is never performed twice. Added in `0.4.0`. |
+| `POST /world/v1/conversations/{conversation_id}/performances` | A mind records a turn it performed itself on a staged decision: `{ "intent", "attempt_id", "outcome": { "state": "performed" \| "failed", "provider_reference"?, "error_code"? } }`. The canonical item, decision, and outcome are stored in one step and the item is published to conversation subscribers; returns the same body as `/responses`. A performance the world never staged is refused with 400. Added in `0.4.0`. |
 | `GET /world/v1/conversations/{conversation_id}/deliveries` | Read the router's record for each character turn — the `intent`, the `decision` (route, reason, the presence it saw), the `outcome` if a sink reported one, and the canonical `conversation_item` — in intent order. Added in `0.3.0` for World Viewer. |
 | `GET /world/v1/facts` | Read current facts, optionally filtered by `subject_id`. |
 | `GET /world/v1/timers` | Read timers, optionally filtered by `status`. |
@@ -333,9 +358,12 @@ whether more results exist and provide the cursor for the next request. A snapsh
 timers as truncated rather than implying that a bounded result is complete.
 
 A character turn is never authored by Creature World; an agent proposes a provider-neutral
-`CharacterUtteranceIntent` and the world decides the stage. Until a presence source is connected
-(Home Assistant adapter, presence reducer) presence is reported as `unknown` with zero confidence,
-so every turn takes the private Communicator route with reason `presence_uncertain`. The
+`CharacterUtteranceIntent` and the world decides the stage. Presence is `unknown` with zero
+confidence unless the world is configured to assume otherwise (see *Assumed presence*), so
+without an assumption every turn takes the private Communicator route with reason
+`presence_uncertain`. A mind that wants to speak *while* it thinks asks `/stage` first and
+performs the turn itself (see the [Creature Agent manual](creature-agent-manual.md)); a turn
+posted to `/responses` after a stage decision is routed exactly as that decision said. The
 canonical `ConversationItem` is written before any delivery sink runs and is then offered to every
 live conversation subscriber regardless of route, so a turn later performed aloud still appears in
 Communicator history. The response body is `{ "disposition", "outcome", "conversation_item" }`
@@ -427,7 +455,7 @@ package; the Creature World artifact is `creature-world_<version>_<architecture>
 only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.3.0_amd64.deb
+sudo apt install ./creature-world_0.4.0_amd64.deb
 ```
 
 The package installs:

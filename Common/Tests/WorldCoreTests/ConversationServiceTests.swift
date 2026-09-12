@@ -413,6 +413,104 @@ struct ConversationServiceTests {
         #expect(await dependencies.physicalSink.deliveryCount == 1)
     }
 
+    @Test("The stage is decided once, before the words exist, and the same answer is repeated")
+    func stageDecisionIsDurableAndIdempotent() async throws {
+        let dependencies = try makeRouterDependencies(testCase: .home)
+        let router = try makeRouter(dependencies: dependencies)
+        let request = try makeStageRequest()
+
+        let first = try await router.stage(request, in: Self.conversationID)
+        try await dependencies.presenceProvider.setPresence(makePresence(testCase: .away))
+        let again = try await makeRouter(dependencies: dependencies).stage(
+            request, in: Self.conversationID)
+
+        #expect(first.disposition == .decided)
+        #expect(first.decision.route == .physicalSpeech)
+        #expect(first.decision.reason == .homeAndAudible)
+        #expect(again == first)
+        #expect(await dependencies.presenceProvider.readCount == 1)
+        #expect(await dependencies.repository.stage?.expiresAt == Self.now.addingTimeInterval(300))
+    }
+
+    @Test("A performed turn is recorded on the stage the world decided, once")
+    func performanceIsRecordedOnStagedDecision() async throws {
+        let dependencies = try makeRouterDependencies(testCase: .home)
+        let router = try makeRouter(dependencies: dependencies)
+        let request = try makeStageRequest()
+        let staged = try await router.stage(request, in: Self.conversationID)
+        let performance = try CharacterPerformance(
+            intent: makeCharacterIntent(),
+            attemptID: staged.decision.attemptID,
+            outcome: CharacterPerformanceReport(state: .performed, providerReference: "anim-42")
+        )
+
+        let result = try await router.recordPerformance(
+            performance, in: Self.conversationID)
+        let replay = try await makeRouter(dependencies: dependencies).recordPerformance(
+            performance, in: Self.conversationID)
+
+        #expect(result.disposition == .accepted)
+        #expect(result.outcome.state == .performed)
+        #expect(result.outcome.providerReference == "anim-42")
+        #expect(result.outcome.route == .physicalSpeech)
+        #expect(result.conversationItem.text == performance.intent.text)
+        #expect(replay.disposition == .duplicate)
+        #expect(replay.outcome == result.outcome)
+        // The world never speaks for a mind that performed itself.
+        #expect(await dependencies.physicalSink.deliveryCount == 0)
+        #expect(await dependencies.communicatorSink.deliveryCount == 0)
+    }
+
+    @Test("A performance the world never staged is refused")
+    func unstagedPerformanceIsRefused() async throws {
+        let dependencies = try makeRouterDependencies(testCase: .home)
+        let router = try makeRouter(dependencies: dependencies)
+        let performance = try CharacterPerformance(
+            intent: makeCharacterIntent(),
+            attemptID: DeliveryAttemptID(validating: "delivery-attempt:nobody-asked"),
+            outcome: CharacterPerformanceReport(state: .performed)
+        )
+
+        await #expect(throws: WorldContractError.unstagedPerformance) {
+            try await router.recordPerformance(
+                performance, in: performance.intent.conversationID)
+        }
+        #expect(await dependencies.repository.delivery == nil)
+    }
+
+    @Test("Asking for the stage of a turn already carried says so, so it is never performed twice")
+    func stageReportsAlreadyDelivered() async throws {
+        let dependencies = try makeRouterDependencies(testCase: .away)
+        let router = try makeRouter(dependencies: dependencies)
+        let intent = try makeCharacterIntent()
+        let delivered = try await router.route(intent)
+
+        let stage = try await router.stage(
+            makeStageRequest(), in: intent.conversationID)
+
+        #expect(stage.disposition == .alreadyDelivered)
+        #expect(stage.decision.attemptID == delivered.outcome.attemptID)
+        #expect(stage.delivery?.outcome == delivered.outcome)
+        #expect(stage.delivery?.conversationItem == delivered.conversationItem)
+    }
+
+    @Test("A routed turn honours the stage the mind was told, even if presence moved")
+    func routeHonoursPriorStageDecision() async throws {
+        let dependencies = try makeRouterDependencies(testCase: .away)
+        let router = try makeRouter(dependencies: dependencies)
+        let request = try makeStageRequest()
+        let staged = try await router.stage(request, in: Self.conversationID)
+        try await dependencies.presenceProvider.setPresence(makePresence(testCase: .home))
+
+        let result = try await router.route(makeCharacterIntent())
+
+        #expect(staged.decision.route == .communicator)
+        #expect(result.outcome.route == .communicator)
+        #expect(result.outcome.attemptID == staged.decision.attemptID)
+        #expect(await dependencies.presenceProvider.readCount == 1)
+        #expect(await dependencies.communicatorSink.deliveryCount == 1)
+    }
+
     @Test("A crash after sink acceptance retries the same stable attempt")
     func deliveryRetryUsesStableAttemptIdentity() async throws {
         let dependencies = try makeRouterDependencies(testCase: .away)
@@ -502,6 +600,14 @@ struct ConversationServiceTests {
         )
     }
 
+    private func makeStageRequest() throws -> CharacterStageRequest {
+        try CharacterStageRequest(
+            responseID: ResponseID(validating: "response:beaky-1"),
+            characterID: EntityID(validating: "character:beaky"),
+            recipientID: EntityID(validating: "person:april")
+        )
+    }
+
     private func makePresence(testCase: RoutingCase) throws -> PersonPresence {
         try PersonPresence(
             personID: EntityID(validating: "person:april"),
@@ -544,6 +650,7 @@ struct ConversationServiceTests {
     }
 
     private static let now = Date(timeIntervalSince1970: 1_789_042_000)
+    private static let conversationID = try! ConversationID(validating: "conversation:april-beaky")
 }
 
 private struct SemanticPercept: Hashable {
@@ -691,8 +798,22 @@ private actor TestPresenceProvider: PersonPresenceProviding {
 
 private actor TestDeliveryRepository: CharacterDeliveryRepository {
     private(set) var delivery: StoredCharacterDelivery?
+    private(set) var stage: StoredStageDecision?
 
     var preparedCount: Int { delivery == nil ? 0 : 1 }
+
+    func stageDecision(for responseID: ResponseID) -> StoredStageDecision? {
+        guard stage?.decision.responseID == responseID else { return nil }
+        return stage
+    }
+
+    func prepareStage(_ proposed: StoredStageDecision) -> StoredStageDecision {
+        if let stage {
+            return stage
+        }
+        stage = proposed
+        return proposed
+    }
 
     func delivery(for responseID: ResponseID) -> StoredCharacterDelivery? {
         guard delivery?.intent.responseID == responseID else { return nil }

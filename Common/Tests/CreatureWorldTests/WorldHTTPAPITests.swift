@@ -169,6 +169,100 @@ struct WorldHTTPAPITests {
         }
     }
 
+    @Test("A staged turn is performed by the mind and recorded over HTTP exactly once")
+    func stagedPerformanceOverHTTP() async throws {
+        let conversationService = TestConversationApplicationService()
+        let application = try makeApplication(
+            worldService: TestWorldApplicationService(),
+            conversationService: conversationService
+        )
+        let intent = try makeIntent(
+            id: "response:http-staged",
+            inResponseTo: UtteranceID(validating: "utterance:http-april"),
+            createdAt: Date(timeIntervalSince1970: 1_789_100_005)
+        )
+        let stageRequest = CharacterStageRequest(
+            responseID: intent.responseID,
+            characterID: intent.characterID,
+            recipientID: intent.recipientID
+        )
+        let headers: HTTPFields = [.contentType: "application/json"]
+
+        try await application.test(.router) { client in
+            var attemptID: DeliveryAttemptID?
+            for _ in 0..<2 {
+                try await client.execute(
+                    uri: "/world/v1/conversations/conversation:april-beaky/stage",
+                    method: .post,
+                    headers: headers,
+                    body: try encode(stageRequest)
+                ) { response in
+                    #expect(response.status == .ok)
+                    let stage = try decode(CharacterStageResult.self, response.body)
+                    #expect(stage.disposition == .decided)
+                    #expect(stage.decision.route == .physicalSpeech)
+                    #expect(stage.decision.presence.basis == .assumed)
+                    #expect(attemptID == nil || attemptID == stage.decision.attemptID)
+                    attemptID = stage.decision.attemptID
+                    let json = try #require(
+                        JSONSerialization.jsonObject(
+                            with: Data(buffer: response.body)) as? [String: Any])
+                    #expect(Set(json.keys) == ["disposition", "decision"])
+                }
+            }
+
+            let performance = try CharacterPerformance(
+                intent: intent,
+                attemptID: #require(attemptID),
+                outcome: CharacterPerformanceReport(
+                    state: .performed, providerReference: "animation:42")
+            )
+            for expectedStatus in [HTTPResponse.Status.accepted, .ok] {
+                try await client.execute(
+                    uri: "/world/v1/conversations/conversation:april-beaky/performances",
+                    method: .post,
+                    headers: headers,
+                    body: try encode(performance)
+                ) { response in
+                    #expect(response.status == expectedStatus)
+                    let result = try decode(CharacterDeliveryResult.self, response.body)
+                    #expect(result.outcome.route == .physicalSpeech)
+                    #expect(result.outcome.state == .performed)
+                    #expect(result.outcome.providerReference == "animation:42")
+                    #expect(result.conversationItem.text == intent.text)
+                }
+            }
+
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/stage",
+                method: .post,
+                headers: headers,
+                body: try encode(stageRequest)
+            ) { response in
+                #expect(response.status == .ok)
+                let stage = try decode(CharacterStageResult.self, response.body)
+                #expect(stage.disposition == .alreadyDelivered)
+            }
+
+            let unstaged = try CharacterPerformance(
+                intent: makeIntent(
+                    id: "response:http-unstaged",
+                    inResponseTo: UtteranceID(validating: "utterance:http-april"),
+                    createdAt: Date(timeIntervalSince1970: 1_789_100_006)),
+                attemptID: DeliveryAttemptID(validating: "delivery-attempt:nobody-asked"),
+                outcome: CharacterPerformanceReport(state: .performed)
+            )
+            try await client.execute(
+                uri: "/world/v1/conversations/conversation:april-beaky/performances",
+                method: .post,
+                headers: headers,
+                body: try encode(unstaged)
+            ) { response in
+                #expect(response.status == .badRequest)
+            }
+        }
+    }
+
     @Test("A Beaky turn addressed to another conversation is refused")
     func characterResponseIdentityMismatchIsRejected() async throws {
         let application = try makeApplication(
@@ -809,6 +903,91 @@ private actor TestConversationApplicationService: ConversationApplicationService
         responses[intent.responseID] = result
         subscribers[intent.conversationID]?.yield(.item(item))
         return result
+    }
+
+    private var stages: [ResponseID: CharacterDeliveryDecision] = [:]
+
+    func stage(
+        _ request: CharacterStageRequest,
+        in conversationID: ConversationID
+    ) throws -> CharacterStageResult {
+        if let existing = responses[request.responseID] {
+            let decision = try makeDecision(
+                responseID: request.responseID, recipientID: request.recipientID,
+                attemptID: existing.outcome.attemptID)
+            return CharacterStageResult(
+                disposition: .alreadyDelivered, decision: decision, delivery: nil)
+        }
+        if let decision = stages[request.responseID] {
+            return CharacterStageResult(disposition: .decided, decision: decision)
+        }
+        let decision = try makeDecision(
+            responseID: request.responseID, recipientID: request.recipientID,
+            attemptID: DeliveryAttemptID(
+                validating: "delivery-attempt:\(request.responseID.rawValue)"))
+        stages[request.responseID] = decision
+        return CharacterStageResult(disposition: .decided, decision: decision)
+    }
+
+    func perform(
+        _ performance: CharacterPerformance,
+        in conversationID: ConversationID
+    ) throws -> CharacterDeliveryResult {
+        let intent = performance.intent
+        if let existing = responses[intent.responseID] {
+            return CharacterDeliveryResult(
+                disposition: .duplicate,
+                outcome: existing.outcome,
+                conversationItem: existing.conversationItem
+            )
+        }
+        guard let decision = stages[intent.responseID],
+            decision.attemptID == performance.attemptID
+        else { throw WorldContractError.unstagedPerformance }
+        let item = try ConversationItem(
+            itemID: ConversationItemID(
+                validating: "conversation-item:\(intent.responseID.rawValue)"),
+            conversationID: intent.conversationID,
+            authorID: intent.characterID,
+            authorKind: .character,
+            text: intent.text,
+            createdAt: intent.createdAt,
+            responseID: intent.responseID,
+            trace: intent.trace
+        )
+        let result = CharacterDeliveryResult(
+            disposition: .accepted,
+            outcome: CharacterDeliveryOutcome(
+                attemptID: decision.attemptID,
+                responseID: intent.responseID,
+                route: decision.route,
+                state: performance.outcome.state,
+                occurredAt: intent.createdAt,
+                providerReference: performance.outcome.providerReference,
+                errorCode: performance.outcome.errorCode
+            ),
+            conversationItem: item
+        )
+        responses[intent.responseID] = result
+        subscribers[intent.conversationID]?.yield(.item(item))
+        return result
+    }
+
+    private func makeDecision(
+        responseID: ResponseID, recipientID: EntityID, attemptID: DeliveryAttemptID
+    ) throws -> CharacterDeliveryDecision {
+        let now = Date(timeIntervalSince1970: 1_789_100_000)
+        return try CharacterDeliveryDecision(
+            attemptID: attemptID,
+            responseID: responseID,
+            route: .physicalSpeech,
+            privacyMode: .notApplicable,
+            reason: .homeAndAudible,
+            decidedAt: now,
+            presence: PersonPresence(
+                personID: recipientID, state: .home, confidence: 1, observedAt: now,
+                validUntil: now, physicallyAudible: true, basis: .assumed)
+        )
     }
 
     func ingest(_ utterance: PersonUtterance) throws -> UtteranceIngressResult {

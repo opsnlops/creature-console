@@ -149,4 +149,5 @@ enum MongoWorldCollection {
     static let utteranceIngresses = "utterance_ingresses"
     static let conversationItems = "conversation_items"
     static let characterDeliveries = "character_deliveries"
+    static let characterStageDecisions = "character_stage_decisions"
 }

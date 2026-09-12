@@ -11,11 +11,49 @@ import WorldCore
 /// Communicator share one ordered history with April's utterances.
 struct MongoCharacterDeliveryRepository: CharacterDeliveryRepository, Sendable {
     private let deliveries: MongoCollection
+    private let stageDecisions: MongoCollection
     private let conversations: MongoConversationRepository
 
     init(database: MongoDatabase) {
         deliveries = database[MongoWorldCollection.characterDeliveries]
+        stageDecisions = database[MongoWorldCollection.characterStageDecisions]
         conversations = MongoConversationRepository(database: database)
+    }
+
+    func stageDecision(for responseID: ResponseID) async throws -> StoredStageDecision? {
+        try await stageDecisions.findOne(
+            ["_id": responseID.rawValue],
+            as: StoredStageDecision.self
+        )
+    }
+
+    func prepareStage(_ proposed: StoredStageDecision) async throws -> StoredStageDecision {
+        let responseID = proposed.decision.responseID
+        var insertedValues = try BSONEncoder().encode(proposed)
+        insertedValues["_id"] = responseID.rawValue
+        let builder = stageDecisions.findOneAndUpdate(
+            where: ["_id": responseID.rawValue],
+            to: ["$setOnInsert": insertedValues],
+            returnValue: .modified
+        )
+        builder.command.upsert = true
+        do {
+            guard
+                let accepted = try await builder.writeConcern(.majority()).decode(
+                    StoredStageDecision.self
+                )
+            else { throw WorldPersistenceError.missingCharacterDelivery }
+            return accepted
+        } catch {
+            // A concurrent upsert may have won the unique response-ID race.
+            guard
+                let accepted = try await stageDecisions.findOne(
+                    ["_id": responseID.rawValue],
+                    as: StoredStageDecision.self
+                )
+            else { throw error }
+            return accepted
+        }
     }
 
     func delivery(for responseID: ResponseID) async throws -> StoredCharacterDelivery? {

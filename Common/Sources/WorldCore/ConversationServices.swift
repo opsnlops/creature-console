@@ -353,12 +353,48 @@ public struct StoredCharacterDelivery: Hashable, Sendable, Codable {
     }
 }
 
+/// A stage decision the world made before the words existed, so a mind can perform while it
+/// generates. Short-lived: it is only a promise about *where*, and presence may move on.
+public struct StoredStageDecision: Hashable, Sendable, Codable {
+    public var conversationID: ConversationID
+    public var characterID: EntityID
+    public var recipientID: EntityID
+    public var decision: CharacterDeliveryDecision
+    public var expiresAt: Date
+
+    public init(
+        conversationID: ConversationID,
+        characterID: EntityID,
+        recipientID: EntityID,
+        decision: CharacterDeliveryDecision,
+        expiresAt: Date
+    ) {
+        self.conversationID = conversationID
+        self.characterID = characterID
+        self.recipientID = recipientID
+        self.decision = decision
+        self.expiresAt = expiresAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case conversationID = "conversation_id"
+        case characterID = "character_id"
+        case recipientID = "recipient_id"
+        case decision
+        case expiresAt = "expires_at"
+    }
+}
+
 public protocol CharacterDeliveryRepository: Sendable {
     /// Returns a durable decision before mutable presence is consulted again.
     func delivery(for responseID: ResponseID) async throws -> StoredCharacterDelivery?
     /// Atomically returns the existing record or persists and returns `delivery`.
     func prepare(_ delivery: StoredCharacterDelivery) async throws -> StoredCharacterDelivery
     func record(_ outcome: CharacterDeliveryOutcome) async throws
+    /// The stage decision made for a turn that has not been carried yet, if any.
+    func stageDecision(for responseID: ResponseID) async throws -> StoredStageDecision?
+    /// Atomically returns the existing stage decision or persists and returns `stage`.
+    func prepareStage(_ stage: StoredStageDecision) async throws -> StoredStageDecision
 }
 
 public enum CharacterDeliveryDisposition: String, Hashable, Sendable, Codable {
@@ -400,6 +436,7 @@ public actor CharacterDeliveryRouter {
     private let communicatorSink: any CharacterDeliverySink
     private let clock: any WorldClock
     private let minimumPresenceConfidence: Double
+    private let stageDecisionLifetime: TimeInterval
     private let makeAttemptID: DeliveryAttemptIDGenerator
     private let makeConversationItemID: ConversationItemIDGenerator
 
@@ -410,6 +447,7 @@ public actor CharacterDeliveryRouter {
         communicatorSink: any CharacterDeliverySink,
         clock: any WorldClock,
         minimumPresenceConfidence: Double = 0.8,
+        stageDecisionLifetime: TimeInterval = 300,
         makeAttemptID: @escaping DeliveryAttemptIDGenerator = { .generated() },
         makeConversationItemID: @escaping ConversationItemIDGenerator = { .generated() }
     ) throws {
@@ -418,14 +456,148 @@ public actor CharacterDeliveryRouter {
         else {
             throw WorldContractError.invalidConfidence(minimumPresenceConfidence)
         }
+        precondition(stageDecisionLifetime > 0)
         self.presenceProvider = presenceProvider
         self.repository = repository
         self.physicalSpeechSink = physicalSpeechSink
         self.communicatorSink = communicatorSink
         self.clock = clock
         self.minimumPresenceConfidence = minimumPresenceConfidence
+        self.stageDecisionLifetime = stageDecisionLifetime
         self.makeAttemptID = makeAttemptID
         self.makeConversationItemID = makeConversationItemID
+    }
+
+    /// Decides the stage for a turn before its words exist, durably, so the mind can perform
+    /// while it generates. Asking again for the same `response_id` returns the same decision;
+    /// a turn that was already carried is reported as such so it is never performed twice.
+    public func stage(
+        _ request: CharacterStageRequest,
+        in conversationID: ConversationID
+    ) async throws -> CharacterStageResult {
+        try await withSpan("conversation.response.stage") { span in
+            span.attributes["conversation.id"] = conversationID.rawValue
+            span.attributes["conversation.response.id"] = request.responseID.rawValue
+            if let delivered = try await repository.delivery(for: request.responseID) {
+                guard delivered.intent.conversationID == conversationID,
+                    delivered.intent.characterID == request.characterID,
+                    delivered.intent.recipientID == request.recipientID
+                else { throw WorldContractError.conflictingConversationIdentity }
+                let disposition: CharacterStageDisposition =
+                    delivered.outcome == nil ? .decided : .alreadyDelivered
+                span.attributes["conversation.stage.disposition"] = disposition.rawValue
+                return CharacterStageResult(
+                    disposition: disposition,
+                    decision: delivered.decision,
+                    delivery: CharacterDeliveryRecord(
+                        intent: delivered.intent,
+                        decision: delivered.decision,
+                        outcome: delivered.outcome,
+                        conversationItem: delivered.conversationItem
+                    )
+                )
+            }
+            let stored: StoredStageDecision
+            if let existing = try await repository.stageDecision(for: request.responseID) {
+                stored = existing
+            } else {
+                // Presence is read before the clock so evidence observed "now" is never a hair
+                // in the future of the decision that uses it.
+                let presence = try await presenceProvider.presence(for: request.recipientID)
+                guard presence.personID == request.recipientID else {
+                    throw WorldContractError.invalidPresenceEvidence
+                }
+                let now = await clock.now
+                stored = try await repository.prepareStage(
+                    StoredStageDecision(
+                        conversationID: conversationID,
+                        characterID: request.characterID,
+                        recipientID: request.recipientID,
+                        decision: try makeDecision(
+                            responseID: request.responseID, presence: presence, now: now),
+                        expiresAt: now.addingTimeInterval(stageDecisionLifetime)
+                    )
+                )
+            }
+            guard stored.conversationID == conversationID,
+                stored.characterID == request.characterID,
+                stored.recipientID == request.recipientID
+            else { throw WorldContractError.conflictingConversationIdentity }
+            span.attributes["conversation.stage.disposition"] =
+                CharacterStageDisposition.decided.rawValue
+            span.attributes["conversation.delivery.route"] = stored.decision.route.rawValue
+            span.attributes["conversation.delivery.reason"] = stored.decision.reason.rawValue
+            return CharacterStageResult(disposition: .decided, decision: stored.decision)
+        }
+    }
+
+    /// Records a turn the mind performed itself on a stage the world decided: the canonical item,
+    /// the decision it was performed on, and the outcome, in one step. Idempotent by
+    /// `response_id`; a performance the world never staged is refused.
+    public func recordPerformance(
+        _ performance: CharacterPerformance,
+        in conversationID: ConversationID
+    ) async throws -> CharacterDeliveryResult {
+        try await withSpan("conversation.response.perform") { span in
+            let intent = performance.intent
+            guard intent.conversationID == conversationID else {
+                throw WorldContractError.conflictingConversationIdentity
+            }
+            let stored: StoredCharacterDelivery
+            if let existing = try await repository.delivery(for: intent.responseID) {
+                guard existing.intent.isSameIntent(as: intent),
+                    existing.decision.attemptID == performance.attemptID
+                else { throw WorldContractError.conflictingConversationIdentity }
+                stored = existing
+            } else {
+                guard let staged = try await repository.stageDecision(for: intent.responseID),
+                    staged.decision.attemptID == performance.attemptID,
+                    staged.conversationID == conversationID,
+                    staged.characterID == intent.characterID,
+                    staged.recipientID == intent.recipientID
+                else { throw WorldContractError.unstagedPerformance }
+                stored = try await repository.prepare(
+                    StoredCharacterDelivery(
+                        intent: intent,
+                        decision: staged.decision,
+                        conversationItem: try makeConversationItem(for: intent)
+                    )
+                )
+                guard stored.intent.isSameIntent(as: intent) else {
+                    throw WorldContractError.conflictingConversationIdentity
+                }
+            }
+            for (key, value) in ConversationTelemetry.deliveryAttributes(
+                intent: stored.intent,
+                decision: stored.decision
+            ) {
+                span.attributes[key] = value
+            }
+            if let outcome = stored.outcome {
+                span.attributes["conversation.delivery.outcome"] = "duplicate"
+                return CharacterDeliveryResult(
+                    disposition: .duplicate,
+                    outcome: outcome,
+                    conversationItem: stored.conversationItem
+                )
+            }
+            let outcome = CharacterDeliveryOutcome(
+                attemptID: stored.decision.attemptID,
+                responseID: stored.intent.responseID,
+                route: stored.decision.route,
+                state: performance.outcome.state,
+                occurredAt: await clock.now,
+                providerReference: performance.outcome.providerReference,
+                errorCode: performance.outcome.errorCode
+            )
+            try await repository.record(outcome)
+            span.attributes["conversation.delivery.outcome"] = outcome.state.rawValue
+            return CharacterDeliveryResult(
+                disposition: .accepted,
+                outcome: outcome,
+                conversationItem: stored.conversationItem
+            )
+        }
     }
 
     public func route(_ intent: CharacterUtteranceIntent) async throws -> CharacterDeliveryResult {
@@ -437,28 +609,28 @@ public actor CharacterDeliveryRouter {
                 }
                 stored = existing
             } else {
-                let now = await clock.now
-                let presence = try await presenceProvider.presence(for: intent.recipientID)
-                guard presence.personID == intent.recipientID else {
-                    throw WorldContractError.invalidPresenceEvidence
+                // A mind that asked for the stage first is routed exactly as it was told.
+                let proposedDecision: CharacterDeliveryDecision
+                if let staged = try await repository.stageDecision(for: intent.responseID),
+                    staged.conversationID == intent.conversationID,
+                    staged.characterID == intent.characterID,
+                    staged.recipientID == intent.recipientID
+                {
+                    proposedDecision = staged.decision
+                } else {
+                    let presence = try await presenceProvider.presence(for: intent.recipientID)
+                    guard presence.personID == intent.recipientID else {
+                        throw WorldContractError.invalidPresenceEvidence
+                    }
+                    let now = await clock.now
+                    proposedDecision = try makeDecision(
+                        responseID: intent.responseID, presence: presence, now: now)
                 }
-                let proposedDecision = try makeDecision(
-                    intent: intent, presence: presence, now: now)
-                let conversationItem = try ConversationItem(
-                    itemID: makeConversationItemID(),
-                    conversationID: intent.conversationID,
-                    authorID: intent.characterID,
-                    authorKind: .character,
-                    text: intent.text,
-                    createdAt: intent.createdAt,
-                    responseID: intent.responseID,
-                    trace: intent.trace
-                )
                 stored = try await repository.prepare(
                     StoredCharacterDelivery(
                         intent: intent,
                         decision: proposedDecision,
-                        conversationItem: conversationItem
+                        conversationItem: try makeConversationItem(for: intent)
                     )
                 )
                 guard stored.intent.isSameIntent(as: intent) else {
@@ -504,8 +676,23 @@ public actor CharacterDeliveryRouter {
         }
     }
 
+    private func makeConversationItem(for intent: CharacterUtteranceIntent) throws
+        -> ConversationItem
+    {
+        try ConversationItem(
+            itemID: makeConversationItemID(),
+            conversationID: intent.conversationID,
+            authorID: intent.characterID,
+            authorKind: .character,
+            text: intent.text,
+            createdAt: intent.createdAt,
+            responseID: intent.responseID,
+            trace: intent.trace
+        )
+    }
+
     private func makeDecision(
-        intent: CharacterUtteranceIntent,
+        responseID: ResponseID,
         presence: PersonPresence,
         now: Date
     ) throws -> CharacterDeliveryDecision {
@@ -531,7 +718,7 @@ public actor CharacterDeliveryRouter {
 
         return try CharacterDeliveryDecision(
             attemptID: makeAttemptID(),
-            responseID: intent.responseID,
+            responseID: responseID,
             route: route,
             privacyMode: privacyMode,
             reason: reason,

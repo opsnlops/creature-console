@@ -107,6 +107,18 @@ struct MongoWorldPersistenceTests {
                 }
             )
             #expect(deliveryIndexes.contains { $0.name == "conversation_responses" })
+            let stageIndexes = try await persistence.database[
+                MongoWorldCollection.characterStageDecisions
+            ].listIndexes().drain()
+            #expect(
+                stageIndexes.contains {
+                    $0.name == "stage_decision_expiry" && $0.expireAfterSeconds == 0
+                }
+            )
+            #expect(
+                try await persistence.database[MongoWorldCollection.schemaMigrations]
+                    .findOne(["_id": 5]) != nil
+            )
             #expect(
                 try await persistence.database[MongoWorldCollection.schemaMigrations]
                     .findOne(["_id": 4]) != nil
@@ -233,6 +245,47 @@ struct MongoWorldPersistenceTests {
                 _ = try await repository.deliveries(
                     in: conversationID, after: .generated(), limit: 10)
             }
+        }
+    }
+
+    @Test("A stage decision is durable and the first one wins")
+    func stageDecisionIsDurable() async throws {
+        try await withPersistence { persistence in
+            let now = Date(timeIntervalSince1970: 1_789_100_000)
+            let responseID = ResponseID.generated()
+            let april = try EntityID(validating: "person:april")
+            func makeStage(route: CharacterDeliveryRoute) throws -> StoredStageDecision {
+                let home = route == .physicalSpeech
+                return StoredStageDecision(
+                    conversationID: try ConversationID(validating: "conversation:april-beaky"),
+                    characterID: try EntityID(validating: "character:beaky"),
+                    recipientID: april,
+                    decision: try CharacterDeliveryDecision(
+                        responseID: responseID,
+                        route: route,
+                        privacyMode: home ? .notApplicable : .private,
+                        reason: home ? .homeAndAudible : .presenceUncertain,
+                        decidedAt: now,
+                        presence: PersonPresence(
+                            personID: april, state: home ? .home : .unknown,
+                            confidence: home ? 1 : 0, observedAt: now, validUntil: now,
+                            physicallyAudible: home, basis: home ? .assumed : .inferred)
+                    ),
+                    expiresAt: now.addingTimeInterval(300)
+                )
+            }
+
+            #expect(try await persistence.characterDeliveries.stageDecision(for: responseID) == nil)
+            let first = try await persistence.characterDeliveries.prepareStage(
+                makeStage(route: .physicalSpeech))
+            let second = try await persistence.characterDeliveries.prepareStage(
+                makeStage(route: .communicator))
+            let read = try await persistence.characterDeliveries.stageDecision(for: responseID)
+
+            #expect(first.decision.route == .physicalSpeech)
+            #expect(second == first)
+            #expect(read == first)
+            #expect(read?.decision.presence.basis == .assumed)
         }
     }
 

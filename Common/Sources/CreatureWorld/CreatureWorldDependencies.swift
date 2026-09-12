@@ -16,6 +16,7 @@ struct CreatureWorldDependencies: Sendable {
     ) async throws -> CreatureWorldDependencies {
         let persistence = MongoWorldPersistenceProvider(
             uri: configuration.mongoURI,
+            presence: configuration.presence,
             logger: logger
         )
         await persistence.connectIfNeeded()

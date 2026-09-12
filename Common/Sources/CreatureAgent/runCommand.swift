@@ -64,6 +64,7 @@ extension CreatureAgent {
             if config.mode == .world {
                 try await runWorldMode(
                     config: config,
+                    globalOptions: globalOptions,
                     logger: logger,
                     traceResponses: traceResponses,
                     observabilityServices: otelServices
@@ -292,6 +293,7 @@ enum WorldModeError: Error, LocalizedError {
 /// local model, answer through the world's delivery router. Nothing here touches MQTT.
 private func runWorldMode(
     config: AgentConfig,
+    globalOptions: GlobalOptions,
     logger: Logger,
     traceResponses: Bool,
     observabilityServices: [any Service]
@@ -314,6 +316,8 @@ private func runWorldMode(
             "agent.state_directory": "\(world.stateDirectory)",
             "llm.model": "\(config.llmModel)",
             "agent.prompt_version": "\(CharacterMind.promptVersion)",
+            "agent.stage": "\(world.stage.rawValue)",
+            "creature.id": "\(config.creatureId)",
         ]
     )
 
@@ -341,6 +345,25 @@ private func runWorldMode(
         worldURL: world.worldURL,
         logger: logger
     )
+    let responder = WorldResponder(client: client, worldURL: world.worldURL, logger: logger)
+    // The room is Creature Server, reached exactly as the MQTT agent reaches it.
+    let stage: CharacterMind.Stage? =
+        switch world.stage {
+        case .physical:
+            CharacterMind.Stage(
+                stager: responder,
+                room: CreatureServerSpeechStage(
+                    server: getServer(config: globalOptions),
+                    creatureID: config.creatureId,
+                    logger: logger
+                ),
+                respondStreaming: {
+                    localLLM.respondStreaming(messages: $0, recordingHistoryFor: nil)
+                }
+            )
+        case .communicatorOnly:
+            nil
+        }
     let mind = CharacterMind(
         configuration: CharacterMind.Configuration(
             persona: config.llmSystemPrompt,
@@ -352,6 +375,7 @@ private func runWorldMode(
             modelName: config.llmModel
         ),
         respond: { try await localLLM.respond(messages: $0) },
+        stage: stage,
         logger: logger
     )
     let mindService = WorldMindService(
@@ -362,7 +386,7 @@ private func runWorldMode(
             logger: logger
         ),
         mind: mind,
-        responder: WorldResponder(client: client, worldURL: world.worldURL, logger: logger),
+        responder: responder,
         client: client,
         logger: logger
     )

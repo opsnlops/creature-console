@@ -38,6 +38,70 @@ struct CharacterDeliveryTests {
         #expect(await communicator.deliveries == 1)
     }
 
+    @Test("An assumed presence puts Beaky in the room and says it was assumed")
+    func assumedPresencePutsBeakyInTheRoom() async throws {
+        let clock = ManualWorldClock(now: Date(timeIntervalSince1970: 1_789_100_000))
+        let april = try EntityID(validating: "person:april")
+        let configuration = PresenceConfiguration(
+            assumed: [
+                april: try PresenceConfiguration.AssumedPresence(
+                    state: .home, physicallyAudible: true, confidence: 0.9)
+            ]
+        )
+        let provider = AssumedPresenceProvider(configuration: configuration, clock: clock)
+        let repository = InMemoryDeliveryRepository()
+        let router = try CharacterDeliveryRouter(
+            presenceProvider: provider,
+            repository: repository,
+            physicalSpeechSink: RecordingSink(state: .performed),
+            communicatorSink: RecordingSink(state: .accepted),
+            clock: clock
+        )
+
+        let stage = try await router.stage(
+            CharacterStageRequest(
+                responseID: makeIntent().responseID,
+                characterID: makeIntent().characterID,
+                recipientID: april
+            ),
+            in: makeIntent().conversationID
+        )
+        let stranger = try await provider.presence(for: EntityID(validating: "person:mango"))
+
+        #expect(stage.disposition == .decided)
+        #expect(stage.decision.route == .physicalSpeech)
+        #expect(stage.decision.reason == .homeAndAudible)
+        #expect(stage.decision.presence.basis == .assumed)
+        #expect(stage.decision.presence.confidence == 0.9)
+        #expect(stranger.state == .unknown)
+        #expect(stranger.basis == .inferred)
+    }
+
+    @Test("Presence assumptions are read from the world configuration")
+    func presenceConfigurationIsParsed() throws {
+        let json = """
+            {
+              "presence": {
+                "assumed": {
+                  "person:april": { "state": "home", "physically_audible": true, "confidence": 0.9 }
+                }
+              }
+            }
+            """
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "creature-world-\(UUID().uuidString).json")
+        try Data(json.utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let configuration = try CreatureWorldConfiguration.load(from: url, environment: [:])
+        let april = try EntityID(validating: "person:april")
+
+        #expect(configuration.presence.assumed[april]?.state == .home)
+        #expect(configuration.presence.assumed[april]?.physicallyAudible == true)
+        #expect(configuration.presence.assumed[april]?.confidence == 0.9)
+        #expect(try CreatureWorldConfiguration().presence.assumed.isEmpty)
+    }
+
     @Test("The unconnected physical stage records failure instead of losing the turn")
     func physicalPlaceholderRecordsFailure() async throws {
         let intent = try makeIntent()
@@ -121,6 +185,20 @@ private actor InMemoryDeliveryRepository: CharacterDeliveryRepository {
 
     func record(_ outcome: CharacterDeliveryOutcome) {
         stored[outcome.responseID]?.outcome = outcome
+    }
+
+    private var stages: [ResponseID: StoredStageDecision] = [:]
+
+    func stageDecision(for responseID: ResponseID) -> StoredStageDecision? {
+        stages[responseID]
+    }
+
+    func prepareStage(_ stage: StoredStageDecision) -> StoredStageDecision {
+        if let existing = stages[stage.decision.responseID] {
+            return existing
+        }
+        stages[stage.decision.responseID] = stage
+        return stage
     }
 }
 

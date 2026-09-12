@@ -83,6 +83,55 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        router.post("v1/conversations/:conversationID/stage") { request, context in
+            await respond {
+                try requireJSON(request)
+                guard let rawConversationID = context.parameters.get("conversationID") else {
+                    throw WorldAPIError.invalidQuery(name: "conversation_id")
+                }
+                let conversationID = try ConversationID(validating: rawConversationID)
+                return try await execute {
+                    let stageRequest = try await decode(
+                        CharacterStageRequest.self,
+                        from: request,
+                        maximumBytes: limits.maximumBodyBytes
+                    )
+                    return try jsonResponse(
+                        await conversationService.stage(stageRequest, in: conversationID),
+                        status: .ok
+                    )
+                }
+            }
+        }
+
+        router.post("v1/conversations/:conversationID/performances") { request, context in
+            await respond {
+                try requireJSON(request)
+                guard let rawConversationID = context.parameters.get("conversationID") else {
+                    throw WorldAPIError.invalidQuery(name: "conversation_id")
+                }
+                let conversationID = try ConversationID(validating: rawConversationID)
+                return try await execute {
+                    var performance = try await decode(
+                        CharacterPerformance.self,
+                        from: request,
+                        maximumBytes: limits.maximumBodyBytes
+                    )
+                    guard performance.intent.conversationID == conversationID else {
+                        throw WorldAPIError.conversationIdentityMismatch
+                    }
+                    if performance.intent.trace == nil {
+                        performance.intent.trace = try traceContext(from: request)
+                    }
+                    let result = try await conversationService.perform(
+                        performance, in: conversationID)
+                    let status: HTTPResponse.Status =
+                        result.disposition == .accepted ? .accepted : .ok
+                    return try jsonResponse(result, status: status)
+                }
+            }
+        }
+
         router.get("v1/conversations/:conversationID/items") { request, context in
             await respond {
                 guard let rawConversationID = context.parameters.get("conversationID") else {

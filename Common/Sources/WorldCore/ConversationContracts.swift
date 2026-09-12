@@ -474,6 +474,9 @@ public struct PersonPresence: Hashable, Sendable, Codable {
     public var physicallyAudible: Bool
     public var placeID: EntityID?
     public var provenance: [ProvenanceReference]
+    /// How the world came to believe this: `assumed` for a configured default, `inferred` when
+    /// it is derived (or, with zero confidence, simply not known), `observed` for a sensor.
+    public var basis: EpistemicType
 
     public init(
         personID: EntityID,
@@ -483,7 +486,8 @@ public struct PersonPresence: Hashable, Sendable, Codable {
         validUntil: Date,
         physicallyAudible: Bool,
         placeID: EntityID? = nil,
-        provenance: [ProvenanceReference] = []
+        provenance: [ProvenanceReference] = [],
+        basis: EpistemicType = .inferred
     ) throws {
         guard confidence.isFinite, (0...1).contains(confidence), validUntil >= observedAt else {
             throw WorldContractError.invalidPresenceEvidence
@@ -497,6 +501,7 @@ public struct PersonPresence: Hashable, Sendable, Codable {
         self.physicallyAudible = physicallyAudible
         self.placeID = placeID
         self.provenance = provenance
+        self.basis = basis
     }
 
     public init(from decoder: any Decoder) throws {
@@ -512,7 +517,8 @@ public struct PersonPresence: Hashable, Sendable, Codable {
             physicallyAudible: container.decode(Bool.self, forKey: .physicallyAudible),
             placeID: container.decodeIfPresent(EntityID.self, forKey: .placeID),
             provenance: container.decodeIfPresent([ProvenanceReference].self, forKey: .provenance)
-                ?? []
+                ?? [],
+            basis: container.decodeIfPresent(EpistemicType.self, forKey: .basis) ?? .inferred
         )
     }
 
@@ -526,6 +532,7 @@ public struct PersonPresence: Hashable, Sendable, Codable {
         case physicallyAudible = "physically_audible"
         case placeID = "place_id"
         case provenance
+        case basis
     }
 }
 
@@ -729,5 +736,106 @@ public struct CharacterDeliveryPage: Hashable, Sendable, Codable {
         case deliveries
         case nextResponseID = "next_response_id"
         case hasMore = "has_more"
+    }
+}
+
+/// A mind asking the world where a turn it is about to produce should be performed.
+public struct CharacterStageRequest: Hashable, Sendable, Codable {
+    public var responseID: ResponseID
+    public var characterID: EntityID
+    public var recipientID: EntityID
+
+    public init(responseID: ResponseID, characterID: EntityID, recipientID: EntityID) {
+        self.responseID = responseID
+        self.characterID = characterID
+        self.recipientID = recipientID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case responseID = "response_id"
+        case characterID = "character_id"
+        case recipientID = "recipient_id"
+    }
+}
+
+public enum CharacterStageDisposition: String, Hashable, Sendable, Codable {
+    /// The world decided (or had already decided) the stage; the mind may perform on it.
+    case decided
+    /// This turn was already carried and has an outcome; the mind must not perform it again.
+    case alreadyDelivered = "already_delivered"
+}
+
+/// The world's answer to a stage request.
+public struct CharacterStageResult: Hashable, Sendable, Codable {
+    public var disposition: CharacterStageDisposition
+    public var decision: CharacterDeliveryDecision
+    public var delivery: CharacterDeliveryRecord?
+
+    public init(
+        disposition: CharacterStageDisposition,
+        decision: CharacterDeliveryDecision,
+        delivery: CharacterDeliveryRecord? = nil
+    ) {
+        self.disposition = disposition
+        self.decision = decision
+        self.delivery = delivery
+    }
+}
+
+/// What happened when a mind performed a staged turn itself.
+public struct CharacterPerformanceReport: Hashable, Sendable, Codable {
+    public var state: CharacterDeliveryOutcomeState
+    public var providerReference: String?
+    public var errorCode: String?
+
+    public init(
+        state: CharacterDeliveryOutcomeState,
+        providerReference: String? = nil,
+        errorCode: String? = nil
+    ) throws {
+        guard state == .performed || state == .failed else {
+            throw WorldContractError.invalidPerformanceReport
+        }
+        self.state = state
+        self.providerReference = providerReference
+        self.errorCode = errorCode
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try self.init(
+            state: container.decode(CharacterDeliveryOutcomeState.self, forKey: .state),
+            providerReference: container.decodeIfPresent(String.self, forKey: .providerReference),
+            errorCode: container.decodeIfPresent(String.self, forKey: .errorCode)
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case state
+        case providerReference = "provider_reference"
+        case errorCode = "error_code"
+    }
+}
+
+/// A performed turn: the words, the stage decision it was performed on, and how it went.
+public struct CharacterPerformance: Hashable, Sendable, Codable {
+    public var intent: CharacterUtteranceIntent
+    public var attemptID: DeliveryAttemptID
+    public var outcome: CharacterPerformanceReport
+
+    public init(
+        intent: CharacterUtteranceIntent,
+        attemptID: DeliveryAttemptID,
+        outcome: CharacterPerformanceReport
+    ) {
+        self.intent = intent
+        self.attemptID = attemptID
+        self.outcome = outcome
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case intent
+        case attemptID = "attempt_id"
+        case outcome
     }
 }

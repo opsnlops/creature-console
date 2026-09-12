@@ -34,7 +34,18 @@ struct CreatureWorldBlackBoxTests {
         defer { Task { try? await client.shutdown() } }
         let sourceID = try SourceID(validating: "blackbox:\(UUID().uuidString.lowercased())")
 
-        var service = try CreatureWorldProcess(port: port, mongoURI: uri)
+        // The world is told to assume April is home and audible, as a deployment would be until
+        // real presence exists, so a staged turn goes to the physical stage.
+        let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "creature-world-blackbox-\(UUID().uuidString).json")
+        try Data(
+            """
+            {"presence": {"assumed": {"person:april": {"state": "home", "physically_audible": true}}}}
+            """.utf8
+        ).write(to: configURL)
+        defer { try? FileManager.default.removeItem(at: configURL) }
+
+        var service = try CreatureWorldProcess(port: port, mongoURI: uri, configURL: configURL)
         try await service.start()
         try await api.waitUntilHealthy()
 
@@ -108,13 +119,41 @@ struct CreatureWorldBlackBoxTests {
         let response = try await api.post(intent)
         #expect(response.status == .accepted)
         #expect(response.body.disposition == .accepted)
-        #expect(response.body.outcome.route == .communicator)
+        // With April assumed home, a hand-cast turn is put on the physical stage; the world has
+        // no voice of its own, so the outcome is an honest failure and the words still reach
+        // conversation subscribers.
+        #expect(response.body.outcome.route == .physicalSpeech)
+        #expect(response.body.outcome.state == .failed)
+        #expect(response.body.outcome.errorCode == "physical_speech_not_connected")
         #expect(
             try await conversationStream.next().id == response.body.conversationItem.itemID.rawValue
         )
         let replayedResponse = try await api.post(intent)
         #expect(replayedResponse.status == .ok)
         #expect(replayedResponse.body.disposition == .duplicate)
+
+        // A mind that asks for the stage first is put in the room (assumed presence), performs
+        // the turn itself, and records it; the words still reach conversation subscribers.
+        let stagedIntent = try makeIntent(
+            in: conversationID, answering: utterance, text: "And I can say it out loud.",
+            secondsLater: 2)
+        let stage = try await api.stage(stagedIntent)
+        #expect(stage.disposition == .decided)
+        #expect(stage.decision.route == .physicalSpeech)
+        #expect(stage.decision.presence.basis == .assumed)
+        let performance = try CharacterPerformance(
+            intent: stagedIntent,
+            attemptID: stage.decision.attemptID,
+            outcome: CharacterPerformanceReport(state: .performed, providerReference: "animation:1")
+        )
+        let performed = try await api.post(performance)
+        #expect(performed.status == .accepted)
+        #expect(performed.body.outcome.route == .physicalSpeech)
+        #expect(performed.body.outcome.state == .performed)
+        #expect(
+            try await conversationStream.next().id
+                == performed.body.conversationItem.itemID.rawValue)
+        #expect(try await api.stage(stagedIntent).disposition == .alreadyDelivered)
         conversationStream.cancel()
 
         // Kill the process. Everything accepted before the kill must still be there afterwards.
@@ -123,8 +162,8 @@ struct CreatureWorldBlackBoxTests {
         try await api.waitUntilHealthy()
 
         let conversation = try await api.conversationItems(in: conversationID)
-        #expect(conversation.map(\.authorKind) == [.person, .character])
-        #expect(conversation.map(\.text) == [utterance.text, intent.text])
+        #expect(conversation.map(\.authorKind) == [.person, .character, .character])
+        #expect(conversation.map(\.text) == [utterance.text, intent.text, stagedIntent.text])
 
         let afterRestart = try await api.events(after: firstSequence - 1, from: sourceID)
         #expect(afterRestart.map(\.eventID) == [first.eventID, second.eventID, third.eventID])
@@ -166,16 +205,18 @@ struct CreatureWorldBlackBoxTests {
 
     private func makeIntent(
         in conversationID: ConversationID,
-        answering utterance: PersonUtterance
+        answering utterance: PersonUtterance,
+        text: String = "Still here, April. The world remembers.",
+        secondsLater: TimeInterval = 1
     ) throws -> CharacterUtteranceIntent {
         try CharacterUtteranceIntent(
             conversationID: conversationID,
             characterID: utterance.addresseeIDs[0],
             recipientID: utterance.speakerID,
             inResponseToUtteranceID: utterance.utteranceID,
-            text: "Still here, April. The world remembers.",
+            text: text,
             urgency: 0.4,
-            createdAt: utterance.occurredAt.addingTimeInterval(1)
+            createdAt: utterance.occurredAt.addingTimeInterval(secondsLater)
         )
     }
 
@@ -197,9 +238,10 @@ private struct CreatureWorldProcess {
     private let executable: URL
     private let port: Int
     private let mongoURI: String
+    private let configURL: URL?
     private var process: Process?
 
-    init(port: Int, mongoURI: String) throws {
+    init(port: Int, mongoURI: String, configURL: URL? = nil) throws {
         let candidate = builtExecutable
         guard FileManager.default.isExecutableFile(atPath: candidate.path) else {
             throw BlackBoxError.missingExecutable(candidate.path)
@@ -207,6 +249,7 @@ private struct CreatureWorldProcess {
         executable = candidate
         self.port = port
         self.mongoURI = mongoURI
+        self.configURL = configURL
     }
 
     mutating func start() async throws {
@@ -222,6 +265,9 @@ private struct CreatureWorldProcess {
         var environment = ProcessInfo.processInfo.environment
         environment.removeValue(forKey: "OTEL_EXPORTER_OTLP_ENDPOINT")
         environment.removeValue(forKey: "CREATURE_WORLD_CONFIG")
+        if let configURL {
+            environment["CREATURE_WORLD_CONFIG"] = configURL.path
+        }
         process.environment = environment
         process.standardOutput = FileHandle.standardError
         process.standardError = FileHandle.standardError
@@ -387,6 +433,26 @@ private struct WorldServiceAPI {
         try await postJSON(
             intent,
             to: "\(base)/conversations/\(intent.conversationID.rawValue)/responses"
+        )
+    }
+
+    func stage(_ intent: CharacterUtteranceIntent) async throws -> CharacterStageResult {
+        try await postJSON(
+            CharacterStageRequest(
+                responseID: intent.responseID,
+                characterID: intent.characterID,
+                recipientID: intent.recipientID
+            ),
+            to: "\(base)/conversations/\(intent.conversationID.rawValue)/stage"
+        ).body
+    }
+
+    func post(_ performance: CharacterPerformance) async throws -> (
+        status: HTTPResponseStatus, body: CharacterDeliveryResult
+    ) {
+        try await postJSON(
+            performance,
+            to: "\(base)/conversations/\(performance.intent.conversationID.rawValue)/performances"
         )
     }
 

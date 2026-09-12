@@ -49,8 +49,10 @@ trace icon. The search field filters by type, subject, or source.
 The conversation as the World holds it — April's turns and Beaky's, newest at the top. Beneath
 each of Beaky's turns is the router's **delivery chip**: the route it chose (`communicator` or
 `physical_speech`), its reason (`presence_uncertain`, `confidently_away`, `home_and_audible`),
-the presence it saw (state, confidence, audible or not), and the outcome a sink reported, if
-any. Hover for the attempt ID and decision time. A turn with no chip was cast by hand or
+the presence it saw (state, confidence, its basis — `assumed` until real evidence exists —
+and audible or not), and the outcome: `performed` when Beaky spoke in the room, `accepted` for
+the Communicator, or `failed: <error_code>`. Hover for the attempt ID, decision time, and the
+Creature Server animation ID of a performance. A turn with no chip was cast by hand or
 pre-dates the router. This panel refreshes whenever the conversation stream announces a new
 item.
 
