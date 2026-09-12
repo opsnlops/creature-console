@@ -191,18 +191,17 @@ enum FactPhrasing {
     private static func measurement(_ predicate: String, fact: Fact) -> String? {
         guard case .number(let value) = fact.value else { return nil }
         let place = placeName(of: fact.subjectID)
-        let rounded = value.rounded()
-        let shown = rounded == value ? String(Int(rounded)) : String(format: "%.1f", value)
+        let at = place == place.capitalized ? place.lowercased() : "at " + place.lowercased()
+        // Spoken numbers are whole numbers: a bird says "about 67 degrees", not "66.9".
+        let whole = Int(value.rounded())
+        let shown = (value.rounded() == value ? "" : "about ") + String(whole)
         switch predicate {
         case "temperature_f":
-            return
-                "It is \(shown) degrees \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased())."
+            return "It is \(shown) degrees \(at)."
         case "temperature_c":
-            return
-                "It is \(shown) degrees Celsius \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased())."
+            return "It is \(shown) degrees Celsius \(at)."
         case "humidity_percent":
-            return
-                "The humidity \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased()) is \(shown) percent."
+            return "The humidity \(at) is \(shown) percent."
         default:
             return "\(place): \(predicate.replacingOccurrences(of: "_", with: " ")) is \(shown)."
         }

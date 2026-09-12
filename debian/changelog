@@ -1,5 +1,7 @@
-creature-cli (2.62.3+world0.8.2+house0.1.2) unstable; urgency=medium
+creature-cli (2.62.4+world0.8.2+house0.1.2) unstable; urgency=medium
 
+  * creature-agent 2.62.4: spoken measurements are whole numbers - "about 67
+    degrees", not "66.9" - so the house's one-degree threshold is invisible.
   * Nothing on the camera is a fact. creature-house 0.1.2 announces which
     places its cameras watch (camera.watching, at startup, idempotent);
     creature-world 0.8.2 keeps it as a fact; creature-agent 2.62.3 phrases

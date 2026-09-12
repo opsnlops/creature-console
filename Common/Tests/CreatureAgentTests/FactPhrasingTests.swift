@@ -78,7 +78,7 @@ struct FactPhrasingTests {
             lines == [
                 "The front door was unlocked just now.",
                 "Someone moved in the entryway 1 minute ago.",
-                "It is 68.3 degrees outside.",
+                "It is about 68 degrees outside.",
                 "A person was seen at the front door just now.",
                 "A vehicle was seen at the driveway 3 minutes ago.",
                 "The house can set the lights to these scenes: Normal Evening, Movie Time. You cannot set them yourself: the house acts when April names one, and you will be told here when it does. Never say the lights are changing unless you are told so below; if April asks and you were not told, say the house did not catch it and ask her to name the scene.",
