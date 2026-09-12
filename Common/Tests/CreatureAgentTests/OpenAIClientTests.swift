@@ -19,14 +19,22 @@ struct OpenAIClientTests {
     @Test("The transcript becomes instructions plus input items; effort replaces temperature")
     func requestBodyShape() throws {
         let plain = try body(reasoningEffort: nil)
-        #expect(plain["model"] as? String == "gpt-6")
-        #expect(plain["instructions"] as? String == "You are Beaky.")
-        let input = try #require(plain["input"] as? [[String: String]])
-        #expect(input.map { $0["role"]! } == ["user", "assistant", "user"])
-        #expect(input.last?["content"] == "April: what time is it?")
+        #expect(plain["model"] as? String == "gpt-6-astra")
+        #expect(plain["instructions"] == nil)
+        let input = try #require(plain["input"] as? [[String: Any]])
+        #expect(input.map { $0["role"] as? String } == ["developer", "user", "assistant", "user"])
+        let contents = input.map { ($0["content"] as? [[String: String]])?.first }
+        #expect(contents[0]?["type"] == "input_text")
+        #expect(contents[0]?["text"] == "You are Beaky.")
+        #expect(contents[2]?["type"] == "output_text")
+        #expect(contents[2]?["text"] == "Hello April.")
+        #expect(contents[3]?["text"] == "April: what time is it?")
         #expect(plain["temperature"] as? Double == 0.9)
         #expect(plain["reasoning"] == nil)
         #expect(plain["stream"] as? Bool == true)
+        #expect(plain["store"] as? Bool == false)
+        #expect(
+            ((plain["text"] as? [String: Any])?["format"] as? [String: String])?["type"] == "text")
 
         let reasoning = try body(reasoningEffort: "low")
         #expect((reasoning["reasoning"] as? [String: String])?["effort"] == "low")
@@ -73,7 +81,7 @@ struct OpenAIClientTests {
         let sentences: [String] = try await application.test(.live) { liveClient in
             let port = try #require(liveClient.port)
             let client = OpenAIClient(
-                apiKey: "sk-test", model: "gpt-6", systemPrompt: "You are Beaky.",
+                apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "You are Beaky.",
                 temperature: 1, reasoningEffort: "low",
                 endpoint: URL(string: "http://localhost:\(port)/v1/responses")!,
                 logger: Logger(label: "openai-tests"), traceResponses: false)
@@ -89,7 +97,7 @@ struct OpenAIClientTests {
 
     private func body(reasoningEffort: String?) throws -> [String: Any] {
         let client = OpenAIClient(
-            apiKey: "sk-test", model: "gpt-6", systemPrompt: "unused", temperature: 0.9,
+            apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "unused", temperature: 0.9,
             reasoningEffort: reasoningEffort, logger: Logger(label: "openai-tests"),
             traceResponses: false)
         let request = client.makeRequest(for: transcript, stream: true)

@@ -147,34 +147,58 @@ struct OpenAIClient: Sendable {
     }
 }
 
-/// The Responses API body: `instructions` is the system message; the rest of the transcript
-/// is `input` as role/content items.
+/// The Responses API body, in the shape April pasted from the OpenAI console (2026-09-12):
+/// the system message as a `developer` item, April's and the bird's own lines as `user` /
+/// `assistant` items with typed content (`input_text` in, `output_text` out), reasoning
+/// effort when set, and nothing stored on OpenAI's side.
 struct ResponseRequest: Encodable {
     struct Item: Encodable {
+        struct Content: Encodable {
+            let type: String
+            let text: String
+        }
         let role: String
-        let content: String
+        let content: [Content]
+
+        init(_ message: LocalLLMClient.Message) {
+            switch message.role {
+            case .system:
+                role = "developer"
+                content = [Content(type: "input_text", text: message.content)]
+            case .user:
+                role = "user"
+                content = [Content(type: "input_text", text: message.content)]
+            case .assistant:
+                role = "assistant"
+                content = [Content(type: "output_text", text: message.content)]
+            }
+        }
     }
     struct Reasoning: Encodable {
         let effort: String
     }
+    /// Plain words, not JSON: the reply is spoken sentence by sentence as it streams.
+    struct Text: Encodable {
+        struct Format: Encodable {
+            let type = "text"
+        }
+        let format = Format()
+    }
 
     let model: String
-    let instructions: String?
     let input: [Item]
     let temperature: Double?
     let reasoning: Reasoning?
+    let text = Text()
     let stream: Bool
+    let store = false
 
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
         reasoningEffort: String?, stream: Bool
     ) {
         self.model = model
-        let system = transcript.filter { $0.role == .system }.map(\.content)
-        self.instructions = system.isEmpty ? nil : system.joined(separator: "\n\n")
-        self.input = transcript.filter { $0.role != .system }.map {
-            Item(role: $0.role.rawValue, content: $0.content)
-        }
+        self.input = transcript.map(Item.init)
         // Reasoning models refuse a temperature; send one or the other.
         self.reasoning = reasoningEffort.map(Reasoning.init(effort:))
         self.temperature = reasoningEffort == nil ? temperature : nil

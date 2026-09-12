@@ -148,7 +148,7 @@ effort"): switch a single mind's backend and leave the others on Mistral.
 ```yaml
 # /etc/creature/agent/beaky.yaml
 llmBackend: openai
-llmModel: gpt-6
+llmModel: gpt-6-astra
 llmReasoningEffort: low
 ```
 
