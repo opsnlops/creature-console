@@ -113,7 +113,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         }
         let conversations = persistence.conversations
         let knowledge = PresentWorldKnowledge(
-            facts: persistence.facts, sessions: sessionService)
+            facts: persistence.facts, sessions: sessionService, clock: clock)
         let sceneService = SceneService(
             repository: persistence.scenes,
             clock: clock,
@@ -210,7 +210,8 @@ struct MongoWorldPersistenceConnection: Sendable {
             let loaded = try await persistence.facts.currentFacts(
                 subjectID: subjectID,
                 after: after,
-                limit: limit + 1
+                limit: limit + 1,
+                at: await clock.now
             )
             let hasMore = loaded.count > limit
             let pageFacts = Array(loaded.prefix(limit))
@@ -239,7 +240,8 @@ struct MongoWorldPersistenceConnection: Sendable {
             let loadedFacts = try await persistence.facts.currentFacts(
                 subjectID: nil,
                 after: nil,
-                limit: limit + 1
+                limit: limit + 1,
+                at: await clock.now
             )
             let loadedTimers = try await persistence.timers.timers(limit: limit + 1)
             return WorldSnapshot(
@@ -707,6 +709,7 @@ extension MongoWorldPersistenceProvider: SceneApplicationService {}
 private struct PresentWorldKnowledge: WorldKnowledgeProviding {
     let facts: FactRepository
     let sessions: CharacterSessionService
+    let clock: any WorldClock
 
     func currentFacts(about subjects: [EntityID], limit: Int) async throws -> [Fact] {
         var expanded = subjects
@@ -718,7 +721,7 @@ private struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         var seen: Set<EntityID> = []
         let unique = expanded.filter { seen.insert($0).inserted }
-        return try await facts.currentFacts(about: unique, limit: limit)
+        return try await facts.currentFacts(about: unique, limit: limit, at: await clock.now)
     }
 }
 

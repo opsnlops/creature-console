@@ -277,7 +277,8 @@ final class WorldStore {
                 facts.append(fact)
             }
         }
-        facts.removeAll { $0.validTo != nil || $0.supersededBy != nil }
+        let now = Date()
+        facts.removeAll { $0.supersededBy != nil || ($0.validTo.map { $0 <= now } ?? false) }
     }
 
     /// Beaky's turns arrive on the conversation stream, not the world stream: her mind posts

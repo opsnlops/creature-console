@@ -547,7 +547,7 @@ struct MongoWorldPersistenceTests {
             try await persistence.facts.save(home)
 
             let current = try await persistence.facts.currentFacts(
-                about: [subjectID], limit: WorldKnowledgeLimits.maximumFacts)
+                about: [subjectID], limit: WorldKnowledgeLimits.maximumFacts, at: start)
             #expect(current.map(\.factID) == [home.factID, unrelated.factID])
             let closed = try #require(
                 try await persistence.database[MongoWorldCollection.facts]
@@ -576,11 +576,54 @@ struct MongoWorldPersistenceTests {
             }
 
             let facts = try await persistence.facts.currentFacts(
-                about: Array(subjects[0...1]), limit: 3)
+                about: Array(subjects[0...1]), limit: 3, at: start)
 
             // Subject 2's facts (indices 2, 5) are excluded; the newest three of the rest remain.
             #expect(facts.map(\.value) == [.number(4), .number(3), .number(1)])
-            #expect(try await persistence.facts.currentFacts(about: [], limit: 3).isEmpty)
+            #expect(
+                try await persistence.facts.currentFacts(about: [], limit: 3, at: start).isEmpty)
+        }
+    }
+
+    @Test("A fact with a validity window is current until the window closes, then simply gone")
+    func windowedFactsExpire() async throws {
+        try await withPersistence { persistence in
+            let room = try EntityID(validating: "region:\(UUID().uuidString.lowercased())")
+            let start = Date(timeIntervalSince1970: 1_789_600_000)
+            func lastScene(_ text: String, at offset: TimeInterval) throws -> Fact {
+                try Fact(
+                    subjectID: room, predicate: "scene.last", value: .string(text),
+                    epistemic: EpistemicState(type: .observed, confidence: 1),
+                    validFrom: start.addingTimeInterval(offset),
+                    validTo: start.addingTimeInterval(offset + 3_600), derivedFrom: [],
+                    producer: FactProducer(kind: "test", id: "mongo", version: "1"))
+            }
+            let towel = try lastScene("the towel", at: 0)
+            try await persistence.facts.supersede(by: towel)
+            try await persistence.facts.save(towel)
+
+            // Within the hour it is what the room remembers; afterwards nothing is, and the
+            // API's paged listing agrees with the percept query.
+            let soon = start.addingTimeInterval(600)
+            let later = start.addingTimeInterval(3_601)
+            #expect(
+                try await persistence.facts.currentFacts(about: [room], limit: 10, at: soon)
+                    .map(\.factID) == [towel.factID])
+            #expect(
+                try await persistence.facts.currentFacts(
+                    subjectID: room, after: nil, limit: 10, at: soon
+                ).map(\.factID) == [towel.factID])
+            #expect(
+                try await persistence.facts.currentFacts(about: [room], limit: 10, at: later)
+                    .isEmpty)
+
+            // A newer scene replaces the older memory even though its window was still open.
+            let pants = try lastScene("the purple pants", at: 60)
+            try await persistence.facts.supersede(by: pants)
+            try await persistence.facts.save(pants)
+            #expect(
+                try await persistence.facts.currentFacts(about: [room], limit: 10, at: soon)
+                    .map(\.factID) == [pants.factID])
         }
     }
 

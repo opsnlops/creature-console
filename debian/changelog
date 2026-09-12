@@ -1,3 +1,12 @@
+creature-cli (2.59.0+world0.7.1) unstable; urgency=medium
+
+  * creature-world 0.7.1: a fact with a validity window (scene.last, an
+    hour) is current until the window closes. 0.7.0 treated any valid_to
+    as expired, so the room's last scene never reached the minds or the
+    Viewer. A newer windowed fact also supersedes the older one.
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 23:55:00 -0700
+
 creature-cli (2.59.0+world0.7.0) unstable; urgency=medium
 
   * creature-world 0.7.0: the world's first facts. Character logins and

@@ -22,8 +22,12 @@ current in the same commit as the code it describes.**
   VW-010), #155 (Beaky's voice in the room, VW-016), #159 (the flock C1: many minds), #161
   (the flock C2: scenes), #163 (#162 silence, #144 restart-on-upgrade, Communicator names),
   #165 (the flock C3: the house conversation and addressing as a world rule).
-- **Branch `facts-f1`** (this handoff): F1 of `docs/facts-and-personas-plan.md` — World
-  `0.7.0`, agent `2.59.0`, Viewer facts count; see 0.3 below. Also refines C3's addressing
+- **Branch `facts-f1`** (this handoff, PR #167): F1 of `docs/facts-and-personas-plan.md` — World
+  `0.7.1`, agent `2.59.0`, Viewer facts count; see 0.3 below. April installed the CI build of
+  `0.7.0` at 23:36 and the facts appeared: three birds in `region:home`, April `home (assumed)`;
+  `@beaky` answered alone, "Beaky, bring me a towel!" put her first and the flock followed.
+  `scene.last` was missing — `0.7.1` fixes the current-facts query (a validity window is not
+  an expiry). Also refines C3's addressing
   after April heard the flock pile in on "Beaky, I love you" and liked it: `@beaky` is a
   whisper (alone), "Beaky, …" puts her first and lets the room join.
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
@@ -37,7 +41,7 @@ current in the same commit as the code it describes.**
 
 | Product | Version | Where | Notes |
 | --- | ---: | --- | --- |
-| Creature World | `0.6.2` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | scenes, logins, `region:home` → Mainstage, assumed presence for April, addressing rule (an early `0.6.2` build: named birds still open scenes), restart-on-upgrade |
+| Creature World | `0.7.0` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | facts (presence, assumption), `@`/name addressing, scenes, `region:home` → Mainstage, restart-on-upgrade. `0.7.1` (this branch) fixes `scene.last` never being current |
 | Communicator Gateway | `0.1.4` fuzzball / `0.1.3` prod | `:8002` | |
 | Minds | `creature-agent 2.58.2` × 3 | fuzzball: `creature-agent@beaky`, `@mango`, `@kenny` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
 | World Viewer | `0.1.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts, Timers, Mundane view |
@@ -273,8 +277,8 @@ memory and personality to stay so — the cutoffs exist for a reason.
 
 ### 0.6 Exact next actions
 
-1. Land `facts-f1` (World `0.7.0`, agent `2.59.0`): install the CI packages on fuzzball,
-   restart the three minds, verify the facts in the Viewer and in Beaky's words.
+1. Land `facts-f1` (World `0.7.1`, agent `2.59.0`): install the CI packages on fuzzball,
+   restart the three minds, verify `scene.last` in the Viewer and in the birds' words.
 2. **Then P1** (`docs/facts-and-personas-plan.md`): structured `docs/personas/<bird>.yaml`
    with voice, relationships, running jokes, and *never* rules — tonight's transcript showed
    Kenny writing `*giggles* "` stage directions and Mango speaking of himself in the third

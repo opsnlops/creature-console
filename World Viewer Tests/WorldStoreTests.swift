@@ -67,6 +67,34 @@ struct WorldStoreTests {
         #expect(store.facts == [unrelated, observed])
     }
 
+    @Test("A fact whose window is still open stays; one whose window closed goes")
+    func windowedFactsInDeltas() async throws {
+        var stillTrue = try makeFact()
+        stillTrue.predicate = "scene.last"
+        stillTrue.validTo = Date().addingTimeInterval(3_600)
+        var over = try makeFact()
+        over.factID = .generated()
+        over.predicate = "scene.previous"
+        over.validTo = Date().addingTimeInterval(-1)
+        let world = ScriptedWorld(history: [])
+        await world.script([
+            .snapshot(
+                WorldSnapshot(
+                    latestSequence: 0, facts: [], timers: [], factsTruncated: false,
+                    timersTruncated: false)),
+            .delta(
+                WorldDelta(event: try makeEvent(sequence: 1), changedFacts: [stillTrue, over])),
+            .hold,
+        ])
+        let store = makeStore(world)
+
+        store.start()
+        defer { store.stop() }
+        try await settle { store.events.count == 1 }
+
+        #expect(store.facts == [stillTrue])
+    }
+
     @Test("A dropped stream resumes after the last sequence seen, without gaps or repeats")
     func resumesWithoutGap() async throws {
         let world = ScriptedWorld(history: [])

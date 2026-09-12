@@ -1,3 +1,4 @@
+import Foundation
 import MongoKitten
 import WorldCore
 
@@ -6,6 +7,18 @@ struct FactRepository: Sendable {
 
     init(database: MongoDatabase) {
         self.facts = database[MongoWorldCollection.facts]
+    }
+
+    /// A fact is current when nothing has replaced it and its validity window, if it has one,
+    /// has not closed: `scene.last` is true for an hour and then simply stops being so.
+    private func currentQuery(at now: Date) -> Document {
+        [
+            "superseded_by": Null(),
+            "$or": [
+                ["valid_to": Null()] as Document,
+                ["valid_to": ["$gt": now] as Document] as Document,
+            ] as Document,
+        ]
     }
 
     func save(_ fact: Fact) async throws {
@@ -25,7 +38,6 @@ struct FactRepository: Sendable {
             where: [
                 "subject_id": fact.subjectID.rawValue,
                 "predicate": fact.predicate,
-                "valid_to": Null(),
                 "superseded_by": Null(),
                 "_id": ["$ne": fact.factID.rawValue],
             ],
@@ -38,11 +50,8 @@ struct FactRepository: Sendable {
         )
     }
 
-    func currentFacts(subjectID: EntityID? = nil) async throws -> [Fact] {
-        var query: Document = [
-            "valid_to": Null(),
-            "superseded_by": Null(),
-        ]
+    func currentFacts(subjectID: EntityID? = nil, at now: Date = Date()) async throws -> [Fact] {
+        var query = currentQuery(at: now)
         if let subjectID {
             query["subject_id"] = subjectID.rawValue
         }
@@ -51,14 +60,13 @@ struct FactRepository: Sendable {
     }
 
     /// Current facts about any of `subjects`, newest first, bounded.
-    func currentFacts(about subjects: [EntityID], limit: Int) async throws -> [Fact] {
+    func currentFacts(about subjects: [EntityID], limit: Int, at now: Date) async throws
+        -> [Fact]
+    {
         precondition(limit > 0)
         guard !subjects.isEmpty else { return [] }
-        let query: Document = [
-            "subject_id": ["$in": subjects.map(\.rawValue)] as Document,
-            "valid_to": Null(),
-            "superseded_by": Null(),
-        ]
+        var query = currentQuery(at: now)
+        query["subject_id"] = ["$in": subjects.map(\.rawValue)] as Document
         let documents = try await facts.find(query)
             .sort(["valid_from": -1, "_id": -1])
             .limit(limit)
@@ -66,12 +74,11 @@ struct FactRepository: Sendable {
         return try documents.map(decode)
     }
 
-    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws -> [Fact] {
+    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int, at now: Date)
+        async throws -> [Fact]
+    {
         precondition(limit > 0)
-        var query: Document = [
-            "valid_to": Null(),
-            "superseded_by": Null(),
-        ]
+        var query = currentQuery(at: now)
         if let subjectID {
             query["subject_id"] = subjectID.rawValue
         }
