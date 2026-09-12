@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.6.0",
+  "build_version": "0.6.1",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -257,7 +257,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.6.0",
+  "build_version": "0.6.1",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -543,7 +543,7 @@ package; the Creature World artifact is `creature-world_<version>_<architecture>
 only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.6.0_amd64.deb
+sudo apt install ./creature-world_0.6.1_amd64.deb
 ```
 
 The package installs:
@@ -566,13 +566,13 @@ The unit runs with a dynamic user, restarts on process failure, and applies syst
 MongoDB outage does not cause a process failure, so systemd leaves the degraded service running
 while its internal retry loop reconnects.
 
-**Upgrading does not restart the service** (#144). The package is installed with `--no-start`,
-which also suppresses the restart-on-upgrade behaviour, so after `apt install` of a newer
-`.deb` the previous binary keeps running (or, if the unit was stopped, stays stopped). Until #144
-is fixed, always follow an upgrade with:
+**Upgrading restarts a running service** (since `0.6.1`, #144): the package's `postinst` calls
+`deb-systemd-invoke restart creature-world` when a previous version was installed and the unit
+is active, so the new build answers as soon as `apt install` returns. A fresh install still does
+not start the service — review `/etc/creature/world.json` first, then `sudo systemctl enable
+--now creature-world`. Confirm an upgrade with:
 
 ```bash
-sudo systemctl restart creature-world
 curl --fail-with-body http://127.0.0.1:8001/world/v1/health   # confirm build_version
 ```
 

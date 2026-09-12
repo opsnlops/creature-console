@@ -1,3 +1,23 @@
+creature-cli (2.58.2) unstable; urgency=medium
+
+  * creature-agent: "Beaky: [Silence]" is silence too - a script-style
+    speaker label in front of the silence token no longer lets the word
+    through to the room (#162, seen again in the first three-bird scene).
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 22:15:00 -0700
+
+creature-cli (2.58.1) unstable; urgency=medium
+
+  * creature-agent: a reply that is nothing but the word "silence" - in
+    any case, brackets, asterisks or parentheses - is a pass, never spoken
+    aloud. The first two-bird scene had both birds say "Silence" (#162).
+  * creature-world 0.6.1, creature-communicator-gateway 0.1.4, creature-agent: upgrading
+    a running service restarts it on the new version; the minds running as
+    creature-agent@<instance> are restarted too. A fresh install still
+    leaves the World and gateway for the operator to enable (#144).
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 21:30:00 -0700
+
 creature-cli (2.58.0) unstable; urgency=medium
 
   * creature-agent: scenes. When the world offers this character the floor

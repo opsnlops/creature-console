@@ -43,10 +43,11 @@ current in the same commit as the code it describes.**
 - #156 (World refused every utterance once `conversation:april-beaky` passed 100 items — the
   percept carried the whole history into a 100-item contract) is fixed on this branch: the
   ingress now carries the newest 100.
+- #144 fixed on `fix/162-bare-silence` (World `0.6.1`, gateway `0.1.4`, agent `2.58.1`):
+  upgrading a running service restarts it, template instances included; fresh installs of
+  World/gateway still wait for the operator.
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
-  key), #144 (World/gateway packages do not restart the running service on upgrade — deliberate
-  `--no-start`; restart by hand after `apt install`), #146 (mqtt conffile), #151 (Communicator
-  double POST on send).
+  key), #146 (mqtt conffile), #151 (Communicator double POST on send).
 
 ### 0.2 What is running now
 
@@ -96,7 +97,8 @@ current in the same commit as the code it describes.**
   performance), refreshed on `scene.*` events.
 - **Not yet:** scenes triggered by world events (the box) — only person utterances open scenes
   until VW-013 brings house events; job completion tracking (the render is recorded `queued`);
-  the Communicator still shows one bird's name (C3).
+  the house conversation and addressing rule (C3). The Communicator does show each author's
+  own name and colour per bubble since `0.2.0` (this branch).
 
 ### 0.3a What PR #159 adds — the flock, C1: many minds on one host (#158)
 
@@ -216,6 +218,16 @@ To put Beaky's voice in the room on fuzzball: deploy World `0.4.1` and agent `2.
 unit) points `--host/--port` at the Creature Server whose creature `creatureId` names. Type to
 her from the phone and she answers through the creature. Remove the `presence` block to send her
 back to the Communicator.
+
+### 0.4b The first scene — 2026-09-11 21:21 PDT
+
+"What do y'all think of the package that just got delivered?" from the phone, Beaky and Mango
+logged into `region:home`, creature-server 3.46.0 streaming: a twelve-turn scene (closed on
+`maximum_turns`), the floor alternating Beaky → Mango, performed and stitched
+(`7014b5d2…`), all of it visible turn by turn in the Viewer's Scenes panel. Two things learned:
+the small model writes "Silence" instead of `[silence]` and both birds said the word aloud
+(#162, fixed in `2.58.1`); and twelve turns of birdseed-versus-Linux is charming once and needs
+memory and personality to stay so — the cutoffs exist for a reason.
 
 ### 0.5 What is not finished
 

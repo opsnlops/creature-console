@@ -166,25 +166,49 @@ private struct ConversationConnectionStatus: View {
     }
 }
 
+/// Every resident gets a name and a colour of their own; the flock is not one bird.
+enum ResidentStyle {
+    /// `character:beaky` → "Beaky", `person:april` → "April".
+    static func name(of author: EntityID) -> String {
+        let raw = author.rawValue
+        guard let colon = raw.firstIndex(of: ":") else { return raw }
+        return String(raw[raw.index(after: colon)...]).capitalized
+    }
+
+    static func color(of author: EntityID) -> Color {
+        switch name(of: author).lowercased() {
+        case "beaky": .purple
+        case "mango": .orange
+        case "kenny": .green
+        case "caroll": .pink
+        case "cobalt": .blue
+        case "crow": .gray
+        default: .teal
+        }
+    }
+}
+
 private struct ConversationBubble: View {
     let item: ConversationItem
     let replyAction: () -> Void
 
     private var isApril: Bool { item.authorKind == .person }
+    private var name: String { ResidentStyle.name(of: item.authorID) }
+    private var tint: Color { ResidentStyle.color(of: item.authorID) }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
             if isApril { Spacer(minLength: 48) }
             if !isApril {
                 Image(systemName: "bird.fill")
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(tint)
                     .frame(width: 28, height: 28)
             }
 
             VStack(alignment: isApril ? .trailing : .leading, spacing: 5) {
-                Text(isApril ? "April" : "Beaky")
+                Text(name)
                     .font(.caption.bold())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isApril ? AnyShapeStyle(.secondary) : AnyShapeStyle(tint))
                 Text(item.text)
                     .textSelection(.enabled)
                     .padding(.horizontal, 14)
@@ -217,7 +241,7 @@ private struct ConversationComposer: View {
             if let reply = store.replyingTo {
                 HStack(spacing: 8) {
                     Image(systemName: "arrowshape.turn.up.left.fill")
-                    Text("Replying to \(reply.authorKind == .person ? "April" : "Beaky")")
+                    Text("Replying to \(ResidentStyle.name(of: reply.authorID))")
                         .font(.caption.bold())
                     Text(reply.text)
                         .font(.caption)

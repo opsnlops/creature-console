@@ -36,8 +36,9 @@ the optional `OTEL_*` exporter settings); upgrades preserve local edits to all o
 keep the local version. The unit declares `StateDirectory=creature-agent`, so
 `/var/lib/creature-agent` exists and is writable for the world-mode cursor. Build packages
 locally with [`./build_debs.sh`](../README.md#debian-packages) instead of waiting for CI.
-Installing does not start or restart the service (#144); `sudo systemctl restart creature-agent`
-after every install.
+Upgrading restarts whatever is running — `creature-agent.service` and every active
+`creature-agent@<instance>` — on the new version (#144, since `2.58.1`); a fresh install starts
+`creature-agent.service` as before (debhelper's default for this package).
 
 ## Several minds on one host: `creature-agent@<instance>`
 

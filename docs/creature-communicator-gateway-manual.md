@@ -114,11 +114,11 @@ The packages intentionally do not start services during installation. Before ena
 `/etc/creature/world.json` and `/etc/creature/communicator-gateway.json`. Package reinstall and
 removal preserve administrator configuration.
 
-**Upgrading does not restart the service** (#144): after `apt install` of a newer package the
-previous binary keeps running, so always follow an upgrade with
-`sudo systemctl restart creature-world creature-communicator-gateway` and confirm the
-`build_version` on both health endpoints. Restart World first; the gateway tolerates World being
-away and reconnects.
+**Upgrading restarts a running service** (since World `0.6.1` / gateway `0.1.4`, #144): the
+package's `postinst` restarts the unit when a previous version was installed and the unit is
+active; a fresh install still leaves it for the operator to review and enable. Confirm the
+`build_version` on the health endpoint after an upgrade. The gateway tolerates World being away
+and reconnects, so the order of upgrades does not matter.
 
 On a shared host, the packaged loopback defaults are sufficient. If an ingress proxy runs on a
 different trusted-LAN host, bind the gateway and/or World to the required LAN interface and use the
