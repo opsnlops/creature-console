@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+# debhelper restarts creature-agent.service on upgrade, but not the minds running as
+# instances of the template unit (creature-agent@beaky, creature-agent@mango, ...). Restart
+# every active instance so the flock comes back on the new version (#144).
+if [ "$1" = "configure" ] && [ -n "$2" ] && [ -d /run/systemd/system ]; then
+    for unit in $(systemctl list-units --plain --no-legend --state=active 'creature-agent@*.service' 2>/dev/null | awk '{print $1}'); do
+        deb-systemd-invoke restart "$unit" >/dev/null || true
+    done
+fi
+
+exit 0

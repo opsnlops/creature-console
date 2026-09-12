@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+# A fresh install leaves the service for the operator to review and enable; an upgrade of a
+# running service restarts it so the new version answers without a hand on the box (#144).
+if [ "$1" = "configure" ] && [ -n "$2" ] && [ -d /run/systemd/system ]; then
+    if systemctl is-active --quiet creature-communicator-gateway.service; then
+        deb-systemd-invoke restart creature-communicator-gateway.service >/dev/null || true
+    fi
+fi
+
+exit 0

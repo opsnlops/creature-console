@@ -43,10 +43,11 @@ current in the same commit as the code it describes.**
 - #156 (World refused every utterance once `conversation:april-beaky` passed 100 items — the
   percept carried the whole history into a 100-item contract) is fixed on this branch: the
   ingress now carries the newest 100.
+- #144 fixed on `fix/162-bare-silence` (World `0.6.0`+, gateway `0.1.4`, agent `2.58.1`):
+  upgrading a running service restarts it, template instances included; fresh installs of
+  World/gateway still wait for the operator.
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
-  key), #144 (World/gateway packages do not restart the running service on upgrade — deliberate
-  `--no-start`; restart by hand after `apt install`), #146 (mqtt conffile), #151 (Communicator
-  double POST on send).
+  key), #146 (mqtt conffile), #151 (Communicator double POST on send).
 
 ### 0.2 What is running now
 

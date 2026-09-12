@@ -3,6 +3,10 @@ creature-cli (2.58.1) unstable; urgency=medium
   * creature-agent: a reply that is nothing but the word "silence" - in
     any case, brackets, asterisks or parentheses - is a pass, never spoken
     aloud. The first two-bird scene had both birds say "Silence" (#162).
+  * creature-world, creature-communicator-gateway, creature-agent: upgrading
+    a running service restarts it on the new version; the minds running as
+    creature-agent@<instance> are restarted too. A fresh install still
+    leaves the World and gateway for the operator to enable (#144).
 
  -- April White <april@creature.engineering>  Thu, 11 Sep 2026 21:30:00 -0700
 
