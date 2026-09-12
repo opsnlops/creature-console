@@ -12,6 +12,13 @@ struct WorldConsideration: Sendable {
     let percept: PersonUtterancePercept
 }
 
+/// The world offering this character the floor in a scene.
+struct WorldSceneConsideration: Sendable {
+    let worldSequence: Int64
+    let envelope: WorldEventEnvelope
+    let offer: SceneTurnOffer
+}
+
 enum WorldPerceptSubscriberError: Error, Equatable {
     case invalidURL
     case unexpectedStatus(UInt)
@@ -56,9 +63,29 @@ actor WorldPerceptSubscriber {
         self.reconnectDelay = reconnectDelay
     }
 
-    /// Runs until cancelled. `handle` must make its decision durable before returning; the
-    /// cursor is advanced past the event only after it does.
-    func run(handle: @Sendable (WorldConsideration) async throws -> Void) async throws {
+    /// What the mind does with each thing the world offers it. Each must make its decision
+    /// durable before returning; the cursor is advanced past the event only after it does.
+    struct Handlers: Sendable {
+        let utterance: @Sendable (WorldConsideration) async throws -> Void
+        let sceneOffer: @Sendable (WorldSceneConsideration) async throws -> Void
+
+        init(
+            utterance: @escaping @Sendable (WorldConsideration) async throws -> Void,
+            sceneOffer: @escaping @Sendable (WorldSceneConsideration) async throws -> Void = {
+                _ in
+            }
+        ) {
+            self.utterance = utterance
+            self.sceneOffer = sceneOffer
+        }
+    }
+
+    /// Runs until cancelled.
+    func run(handle: @escaping @Sendable (WorldConsideration) async throws -> Void) async throws {
+        try await run(handlers: Handlers(utterance: handle))
+    }
+
+    func run(handlers: Handlers) async throws {
         var attempt = 0
         while !Task.isCancelled {
             let resumeAfter = await cursor.current()
@@ -66,7 +93,7 @@ actor WorldPerceptSubscriber {
                 if attempt > 0 {
                     reconnectCounter.increment()
                 }
-                try await consume(resumeAfter: resumeAfter, handle: handle)
+                try await consume(resumeAfter: resumeAfter, handlers: handlers)
                 logger.info("World stream ended; reconnecting from the cursor")
             } catch is CancellationError {
                 throw CancellationError()
@@ -86,7 +113,7 @@ actor WorldPerceptSubscriber {
 
     private func consume(
         resumeAfter: Int64?,
-        handle: @Sendable (WorldConsideration) async throws -> Void
+        handlers: Handlers
     ) async throws {
         var request = HTTPClientRequest(url: streamURL.absoluteString)
         if let resumeAfter {
@@ -125,7 +152,7 @@ actor WorldPerceptSubscriber {
                 throw WorldPerceptSubscriberError.frameTooLarge
             }
             for frame in frames {
-                try await process(frame, handle: handle)
+                try await process(frame, handlers: handlers)
             }
         }
         throw WorldPerceptSubscriberError.streamEnded
@@ -133,7 +160,7 @@ actor WorldPerceptSubscriber {
 
     private func process(
         _ frame: ServerSentEvent,
-        handle: @Sendable (WorldConsideration) async throws -> Void
+        handlers: Handlers
     ) async throws {
         switch frame.event {
         case "snapshot":
@@ -157,11 +184,23 @@ actor WorldPerceptSubscriber {
                 let percept = try envelope.decodePayload(as: PersonUtterancePercept.self)
                 if percept.characterID == characterID {
                     perceptCounter.increment()
-                    try await handle(
+                    try await handlers.utterance(
                         WorldConsideration(
                             worldSequence: sequence,
                             envelope: envelope,
                             percept: percept
+                        )
+                    )
+                }
+            } else if envelope.type == SceneTurnOffer.eventType {
+                let offer = try envelope.decodePayload(as: SceneTurnOffer.self)
+                if offer.characterID == characterID {
+                    perceptCounter.increment()
+                    try await handlers.sceneOffer(
+                        WorldSceneConsideration(
+                            worldSequence: sequence,
+                            envelope: envelope,
+                            offer: offer
                         )
                     )
                 }

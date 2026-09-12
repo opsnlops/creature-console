@@ -298,7 +298,9 @@ struct MongoWorldPersistenceTests {
         try await withPersistence { persistence in
             let now = Date(timeIntervalSince1970: 1_789_300_000)
             let beaky = try EntityID(validating: "character:\(UUID().uuidString.lowercased())")
-            let home = try EntityID(validating: "region:home")
+            // A region of its own: the shared test database also hosts the black-box service
+            // test, whose scenes count whoever is logged into region:home.
+            let home = try EntityID(validating: "region:test-\(UUID().uuidString.lowercased())")
             let older = try CharacterSession(
                 characterID: beaky, regionID: home,
                 instance: CharacterMindInstance(host: "fuzzball", processID: 1),

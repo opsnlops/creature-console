@@ -27,7 +27,15 @@ enum CharacterDecision: Equatable, Sendable {
         case emptyResponse = "empty_response"
         /// The model did not answer in time or failed.
         case modelUnavailable = "model_unavailable"
+        /// The world opened a scene for this utterance; the floor comes separately.
+        case inScene = "in_scene"
     }
+}
+
+/// What a character does when the world offers it the floor in a scene.
+enum SceneDecision: Equatable, Sendable {
+    case turn(SceneTurnSubmission)
+    case pass(SceneTurnSubmission, reason: CharacterDecision.SilenceReason)
 }
 
 /// The character's reasoning over one percept: deterministic guardrails, a bounded prompt
@@ -162,6 +170,10 @@ struct CharacterMind: Sendable {
         }
         guard now.timeIntervalSince(utterance.occurredAt) <= configuration.maximumReplyAge else {
             return .silence(reason: .stale)
+        }
+        // The world opened a scene for these words; it will offer the floor separately.
+        guard consideration.percept.sceneID == nil else {
+            return .silence(reason: .inScene)
         }
 
         let responseID = Self.responseID(for: consideration.percept.considerationID)
@@ -377,10 +389,136 @@ struct CharacterMind: Sendable {
             <= ConversationContractLimits.maximumTextUnicodeScalars
     }
 
+    // MARK: - Scenes
+
+    /// The world has offered this character the floor: something to add, or a pass. Composed as
+    /// text only — the world performs the whole scene once it closes.
+    func consider(_ offer: WorldSceneConsideration, now: Date) async -> SceneDecision {
+        let context = ServiceContext.current ?? Self.traceContext(for: offer.envelope)
+        return await withSpan("agent.scene.consider", context: context) { span in
+            span.attributes["agent.character_id"] = configuration.characterID.rawValue
+            span.attributes["scene.id"] = offer.offer.sceneID.rawValue
+            span.attributes["world.sequence"] = offer.worldSequence
+            span.attributes["llm.model"] = configuration.modelName
+            considerationCounter.increment()
+            let decision = await decideTurn(offer.offer, now: now)
+            switch decision {
+            case .turn:
+                span.attributes["agent.reaction"] = "turn"
+                replyCounter.increment()
+            case .pass(_, let reason):
+                span.attributes["agent.reaction"] = "pass"
+                span.attributes["agent.suppression_reason"] = reason.rawValue
+                Counter(
+                    label: "creature_agent.considerations.outcome",
+                    dimensions: [("outcome", "pass"), ("reason", reason.rawValue)]
+                ).increment()
+            }
+            return decision
+        }
+    }
+
+    private func decideTurn(_ offer: SceneTurnOffer, now: Date) async -> SceneDecision {
+        func pass(_ reason: CharacterDecision.SilenceReason) -> SceneDecision {
+            .pass(
+                try! SceneTurnSubmission(
+                    characterID: configuration.characterID, responseID: offer.responseID,
+                    sessionID: nil, text: nil),
+                reason: reason)
+        }
+        guard now <= offer.deadline else { return pass(.stale) }
+        let transcript = makeSceneTranscript(for: offer)
+        let raw: String
+        do {
+            raw = try await withSpan("llm.mistral.generate") { span in
+                span.attributes["llm.model"] = configuration.modelName
+                span.attributes["llm.transcript.turns"] = transcript.count
+                return try await withTimeout(configuration.modelTimeout) {
+                    try await respond(transcript)
+                }
+            }
+        } catch {
+            logger.error(
+                "The model did not answer the scene", metadata: ["error": "\(error)"])
+            return pass(.modelUnavailable)
+        }
+        guard let text = Self.validate(raw, spokenBy: configuration.characterName) else {
+            return pass(Self.declinesToSpeak(raw) ? .choseSilence : .emptyResponse)
+        }
+        do {
+            return .turn(
+                try SceneTurnSubmission(
+                    characterID: configuration.characterID,
+                    responseID: offer.responseID,
+                    sessionID: nil,
+                    text: text,
+                    trace: currentTraceContext()
+                ))
+        } catch {
+            return pass(.emptyResponse)
+        }
+    }
+
+    /// The persona, the scene contract, then the scene so far as a script the model continues:
+    /// the trigger as April's (or the world's) line, each turn as "Name: words".
+    func makeSceneTranscript(for offer: SceneTurnOffer) -> [LocalLLMClient.Message] {
+        let others = offer.participants.filter { $0 != configuration.characterID }
+            .map(Self.name(of:))
+        var transcript = [
+            LocalLLMClient.Message(
+                role: .system,
+                content: configuration.persona + "\n\n" + Self.sceneContract(others: others)
+            )
+        ]
+        var script = ""
+        switch offer.trigger.kind {
+        case .personUtterance:
+            let speaker = offer.trigger.speakerID.map(Self.name(of:)) ?? "April"
+            script += "\(speaker): \(offer.trigger.text)\n"
+        case .worldEvent:
+            script += "(\(offer.trigger.text))\n"
+        }
+        for turn in offer.turns {
+            guard let text = turn.text else { continue }
+            script += "\(Self.name(of: turn.characterID)): \(text)\n"
+        }
+        script += "\(configuration.characterName.capitalized):"
+        transcript.append(LocalLLMClient.Message(role: .user, content: script))
+        return transcript
+    }
+
+    static func name(of entityID: EntityID) -> String {
+        let raw = entityID.rawValue
+        guard let colon = raw.firstIndex(of: ":") else { return raw }
+        return String(raw[raw.index(after: colon)...]).capitalized
+    }
+
+    static func sceneContract(others: [String]) -> String {
+        let company =
+            others.isEmpty
+            ? "You are alone with April in the room."
+            : "In the room with you and April: \(others.joined(separator: ", ")). They speak for themselves; never speak for them."
+        return """
+            \(company) A scene is unfolding and it is your turn. The exchange so far is written \
+            below as a script; continue it with only your own next line, in your own voice, in one \
+            or two short sentences, spoken aloud. Do not write anyone else's line and do not prefix \
+            your words with your name. If you have nothing to add, reply with exactly \
+            \(silenceToken) and nothing else. Never use emoji or symbols. Do not describe actions.
+            """
+    }
+
     /// The trace context the world attached to the utterance, as a span parent.
     static func traceContext(for percept: PersonUtterancePercept) -> ServiceContext {
+        traceContext(from: percept.utterance.trace)
+    }
+
+    static func traceContext(for envelope: WorldEventEnvelope) -> ServiceContext {
+        traceContext(from: envelope.trace)
+    }
+
+    private static func traceContext(from trace: W3CTraceContext?) -> ServiceContext {
         var context = ServiceContext.topLevel
-        if let trace = percept.utterance.trace {
+        if let trace {
             InstrumentationSystem.instrument.extract(
                 trace.carrier,
                 into: &context,

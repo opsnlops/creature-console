@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.5.0",
+  "build_version": "0.6.0",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -80,6 +80,10 @@ systemd service reads `/etc/creature/world.json` by default.
 | MongoDB URI | `mongodb_uri` | `MONGODB_URI` | `--mongodb-uri` | Local replica set |
 | Browser stream origins | `allowed_origins` | `CREATURE_WORLD_ALLOWED_ORIGINS` | — | None |
 | Assumed presence | `presence.assumed` | — | — | None (presence is `unknown`) |
+| Creature Server for scenes | `creature_server.url` (+ `proxy_host`, `api_key`) | — | — | None (scenes are recorded as `creature_server_not_configured`) |
+| Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
+| Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
+| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.maximum_spoken_seconds`, `scenes.words_per_second` | — | — | `8`, `12`, `90`, `2.5` |
 
 Example:
 
@@ -136,6 +140,53 @@ mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnect
 
 `directConnection=true` is appropriate for the single-node local setup. A production URI should
 describe the deployed replica set or managed MongoDB cluster instead.
+
+### Scenes
+
+When April speaks to a character while other characters are logged into the same region, the
+world does not let the addressee answer alone: it opens a **scene** and gives the floor to one
+character at a time — the addressee first, then the others in a round — with a
+`scene.turn_offered` event for each offer. A mind answers with a line or a pass through
+`POST /world/v1/scenes/{scene_id}/turns`; a floor nobody answers by `floor_seconds` is a pass
+(the deadline is a world timer, `scene.floor_expired`). The scene closes when everyone passes in
+a row, at `maximum_turns`, or when the composed speech would exceed `maximum_spoken_seconds`
+(estimated at `words_per_second`); a new scene in the region interrupts an open one. Every spoken
+turn is also a conversation item, so the Communicator shows the exchange as it is composed.
+
+Two ways to the room, chosen by `scene_performance`:
+
+- **`streaming`** (default; Creature Server 3.46.0+, creature-server#186): when the scene opens
+  the world opens a `dialog-stream` session for the participants on the **stage the region maps
+  to** (`regions.<region>.stage_id`; the server needs placements so the birds look at each
+  other), sends each spoken turn the moment it is composed — it plays ~2 s later while the next
+  bird is still thinking — and on close calls `finish`, which waits for the last turn to play
+  and stitches the exchange into one ad-hoc animation (recorded as the performance). Turns are
+  single-voice renders. If the session cannot be opened (a controller offline, a participant not
+  placed on the stage, no stage mapped for the region) the scene falls back to the complete
+  render below, so it is still heard.
+- **`complete`**: the closed scene is rendered as one jointly conditioned performance through
+  the ad-hoc dialog pipeline (`POST /api/v1/animation/dialog`, `persistence: "adhoc"`,
+  autoplay); the server's job ID is recorded as `queued`. Slower to start, but the voices react
+  to each other in tone.
+
+Each character speaks through the creature its mind logged in with. Without `creature_server`
+configured the scene is recorded as `abandoned` with `creature_server_not_configured`, visible
+in World Viewer's Scenes panel, never lost. A scene with no words is `abandoned` without a
+render. Events: `scene.opened`, `scene.turn_offered`, `scene.turn`, `scene.closed`,
+`scene.performed`.
+
+```json
+{
+  "creature_server": { "url": "https://server.prod.chirpchirp.dev" },
+  "scene_performance": "streaming",
+  "regions": { "region:home": { "stage_id": "0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4" } },
+  "scenes": { "floor_seconds": 8, "maximum_turns": 12, "maximum_spoken_seconds": 90 }
+}
+```
+
+Stages come from `GET /api/v1/stage` on Creature Server. The packaged `world.json` maps
+`region:home` to **Mainstage** (`0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4`), which has every bird
+placed on it; the characters' new building will get its own region and stage when it exists.
 
 ### Local Debian builds under the upgraded Docker Desktop
 
@@ -206,7 +257,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.5.0",
+  "build_version": "0.6.0",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -371,6 +422,9 @@ current endpoints are:
 | `POST /world/v1/characters/{character_id}/heartbeat` | `{ "session_id" }` keeps the session alive (30 s lifetime); 409 `logged_in_elsewhere` once it has lapsed. |
 | `POST /world/v1/characters/{character_id}/logout` | `{ "session_id" }` ends the session and frees the character. |
 | `GET /world/v1/characters` | Every character's most recent session (`active`, `expired`, or `logged_out`) — the flock as the world sees it; World Viewer's Characters panel. |
+| `POST /world/v1/scenes/{scene_id}/turns` | A mind answers the floor: `{ "character_id", "response_id", "session_id", "text" }` — `text` absent is a pass. 202 `accepted`, 200 `duplicate`, 409 `not_your_turn` (the floor moved on) or `logged_in_elsewhere`. Added in `0.6.0`. |
+| `GET /world/v1/scenes` | The most recent scenes (`limit`), newest first: trigger, participants, floor, turns, close reason, performance. |
+| `GET /world/v1/scenes/{scene_id}` | One scene. |
 | `GET /world/v1/conversations/{conversation_id}/deliveries` | Read the router's record for each character turn — the `intent`, the `decision` (route, reason, the presence it saw), the `outcome` if a sink reported one, and the canonical `conversation_item` — in intent order. Added in `0.3.0` for World Viewer. |
 | `GET /world/v1/facts` | Read current facts, optionally filtered by `subject_id`. |
 | `GET /world/v1/timers` | Read timers, optionally filtered by `status`. |
@@ -489,7 +543,7 @@ package; the Creature World artifact is `creature-world_<version>_<architecture>
 only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.5.0_amd64.deb
+sudo apt install ./creature-world_0.6.0_amd64.deb
 ```
 
 The package installs:

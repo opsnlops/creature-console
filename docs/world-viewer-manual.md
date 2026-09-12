@@ -64,6 +64,13 @@ holding it, the `creature-agent` version, when it logged in, and its last heartb
 sidebar badge counts the active ones. Refreshed when `character.logged_in` /
 `character.logged_out` events arrive and on demand.
 
+### Scenes
+
+Every scene the world has run, newest first: what set it off, who was in the room, who holds the
+floor and until when (orange while open), each character's line or pass in order, why the scene
+closed, and how it was performed (the Creature Server job, or a red failure code). Refreshed on
+every `scene.*` event, so you can watch the floor move between Beaky and Mango as they compose.
+
 ### Facts and Timers
 
 What the World currently believes, and what it has scheduled. Both are seeded from the snapshot

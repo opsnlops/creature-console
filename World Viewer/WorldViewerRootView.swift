@@ -6,6 +6,7 @@ enum WorldPanel: String, CaseIterable, Identifiable {
     case timeline = "Timeline"
     case conversation = "Conversation"
     case characters = "Characters"
+    case scenes = "Scenes"
     case facts = "Facts"
     case timers = "Timers"
 
@@ -17,6 +18,7 @@ enum WorldPanel: String, CaseIterable, Identifiable {
         case .timeline: "clock.arrow.trianglehead.counterclockwise.rotate.90"
         case .conversation: "bubble.left.and.bubble.right"
         case .characters: "bird"
+        case .scenes: "theatermasks"
         case .facts: "sparkles.rectangle.stack"
         case .timers: "hourglass"
         }
@@ -53,6 +55,7 @@ struct WorldViewerRootView: View {
                 case .timeline: TimelinePanel(store: store, scried: $scried)
                 case .conversation: ConversationPanel(store: store, scried: $scried)
                 case .characters: CharactersPanel(store: store, scried: $scried)
+                case .scenes: ScenesPanel(store: store, scried: $scried)
                 case .facts: FactsPanel(store: store, scried: $scried)
                 case .timers: TimersPanel(store: store, scried: $scried)
                 }
@@ -91,6 +94,7 @@ struct WorldViewerRootView: View {
         case .timeline: store.events.count
         case .conversation: store.conversationItems.count
         case .characters: store.characters.filter { $0.state == .active }.count
+        case .scenes: store.scenes.filter { $0.state == .open }.count
         case .facts: store.facts.count
         case .timers: store.timers.count
         }

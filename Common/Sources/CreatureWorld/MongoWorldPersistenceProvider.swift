@@ -1,3 +1,4 @@
+import AsyncHTTPClient
 import Foundation
 import Logging
 import Observability
@@ -34,11 +35,19 @@ struct MongoWorldPersistenceConnection: Sendable {
     let logoutCharacter:
         @Sendable (EntityID, CharacterSessionReference) async throws -> CharacterSession
     let characterSessions: @Sendable () async throws -> [CharacterSession]
+    let submitSceneTurn: @Sendable (SceneTurnSubmission, SceneID) async throws -> SceneTurnResult
+    let scene: @Sendable (SceneID) async throws -> Scene?
+    let recentScenes: @Sendable (Int) async throws -> [Scene]
     let shutdown: @Sendable () async -> Void
 
     init(
         persistence: MongoWorldPersistence,
         presence: PresenceConfiguration = PresenceConfiguration(),
+        creatureServer: CreatureServerConfiguration? = nil,
+        sceneLimits: SceneLimits = SceneLimits(),
+        scenePerformance: ScenePerformanceMode = .streaming,
+        regions: [EntityID: RegionConfiguration] = [:],
+        publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
     ) throws {
@@ -54,10 +63,6 @@ struct MongoWorldPersistenceConnection: Sendable {
             clock: clock,
             logger: logger
         )
-        let conversationIngress = PersonUtteranceIngressService(
-            repository: persistence.conversations,
-            sink: WorldPersonUtterancePerceptSink(world: world)
-        )
         let deliveryRouter = try CharacterDeliveryRouter(
             presenceProvider: AssumedPresenceProvider(configuration: presence, clock: clock),
             repository: persistence.characterDeliveries,
@@ -70,6 +75,87 @@ struct MongoWorldPersistenceConnection: Sendable {
             clock: clock,
             announce: { _ = try await world.accept($0) }
         )
+        // Scenes are performed through Creature Server's dialog pipeline when one is configured;
+        // the characters speak through the creatures their minds logged in with.
+        let performer: any ScenePerforming
+        let sceneClient: HTTPClient?
+        if let creatureServer {
+            let client = HTTPClient(eventLoopGroupProvider: .singleton)
+            sceneClient = client
+            let creatures = SessionCreatureResolver(sessions: sessionService)
+            let complete = CreatureServerScenePerformer(
+                configuration: creatureServer,
+                creatures: creatures,
+                client: client,
+                clock: clock,
+                logger: logger
+            )
+            switch scenePerformance {
+            case .streaming:
+                performer = StreamingScenePerformer(
+                    configuration: creatureServer,
+                    regions: regions,
+                    creatures: creatures,
+                    fallback: complete,
+                    client: client,
+                    clock: clock,
+                    logger: logger
+                )
+            case .complete:
+                performer = complete
+            }
+        } else {
+            sceneClient = nil
+            performer = NotConnectedScenePerformer(clock: clock)
+        }
+        let conversations = persistence.conversations
+        let sceneService = SceneService(
+            repository: persistence.scenes,
+            clock: clock,
+            limits: sceneLimits,
+            performer: performer,
+            announce: { _ = try await world.accept($0) },
+            scheduleDeadline: { try await timerScheduler.schedule($0) },
+            recordTurn: { scene, turn in
+                // A spoken turn is a conversation item like any other, so the Communicator and
+                // history show the exchange as it is composed.
+                let item = try ConversationItem(
+                    conversationID: scene.conversationID,
+                    authorID: turn.characterID,
+                    authorKind: .character,
+                    text: turn.text ?? "",
+                    createdAt: turn.answeredAt,
+                    responseID: turn.responseID,
+                    trace: scene.trace
+                )
+                try await conversations.saveConversationItem(item)
+                await publishConversationItem(item)
+                return item.itemID
+            }
+        )
+        let conversationIngress = PersonUtteranceIngressService(
+            repository: persistence.conversations,
+            sink: WorldPersonUtterancePerceptSink(
+                world: world, sessions: sessionService, scenes: sceneService),
+            scenePlanner: PresentCharactersScenePlanner(sessions: sessionService)
+        )
+        // Floor deadlines fire as world timers; the scene service hears them from the stream.
+        let floorWatcher = Task {
+            do {
+                for try await delta in try await world.subscribe() {
+                    guard delta.event.type == SceneService.floorExpiredEventType,
+                        case .string(let rawScene)? = delta.event.payload["scene_id"],
+                        case .string(let rawResponse)? = delta.event.payload["response_id"],
+                        let sceneID = SceneID(rawValue: rawScene),
+                        let responseID = ResponseID(rawValue: rawResponse)
+                    else { continue }
+                    try await sceneService.floorExpired(sceneID: sceneID, responseID: responseID)
+                }
+            } catch {
+                logger.warning(
+                    "Stopped watching for scene floor deadlines", metadata: ["error": "\(error)"])
+            }
+        }
         acceptEvent = { try await world.accept($0) }
         events = { sequence, limit in
             let loaded = try await persistence.events.events(
@@ -156,6 +242,13 @@ struct MongoWorldPersistenceConnection: Sendable {
         heartbeatCharacter = { try await sessionService.heartbeat($0, $1) }
         logoutCharacter = { try await sessionService.logout($0, $1) }
         characterSessions = { try await sessionService.characterSessions() }
+        submitSceneTurn = { submission, sceneID in
+            try await sessionService.requireHolder(
+                of: submission.characterID, sessionID: submission.sessionID)
+            return try await sceneService.submit(submission, to: sceneID)
+        }
+        scene = { try await sceneService.scene(id: $0) }
+        recentScenes = { try await sceneService.recentScenes(limit: $0) }
         conversationItems = { conversationID, after, limit in
             let loaded = try await persistence.conversations.conversationItems(
                 in: conversationID,
@@ -192,8 +285,10 @@ struct MongoWorldPersistenceConnection: Sendable {
             )
         }
         shutdown = {
+            floorWatcher.cancel()
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
+            try? await sceneClient?.shutdown()
             await persistence.cluster.disconnect()
         }
     }
@@ -256,6 +351,16 @@ struct MongoWorldPersistenceConnection: Sendable {
         characterSessions: @escaping @Sendable () async throws -> [CharacterSession] = {
             throw WorldAPIError.databaseUnavailable
         },
+        submitSceneTurn:
+            @escaping @Sendable (SceneTurnSubmission, SceneID) async throws -> SceneTurnResult = {
+                _, _ in throw WorldAPIError.databaseUnavailable
+            },
+        scene: @escaping @Sendable (SceneID) async throws -> Scene? = {
+            _ in throw WorldAPIError.databaseUnavailable
+        },
+        recentScenes: @escaping @Sendable (Int) async throws -> [Scene] = {
+            _ in throw WorldAPIError.databaseUnavailable
+        },
         shutdown: @escaping @Sendable () async -> Void
     ) {
         self.acceptEvent = acceptEvent
@@ -279,6 +384,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.heartbeatCharacter = heartbeatCharacter
         self.logoutCharacter = logoutCharacter
         self.characterSessions = characterSessions
+        self.submitSceneTurn = submitSceneTurn
+        self.scene = scene
+        self.recentScenes = recentScenes
         self.shutdown = shutdown
     }
 }
@@ -297,11 +405,16 @@ actor MongoWorldPersistenceProvider {
     init(
         uri: String,
         presence: PresenceConfiguration = PresenceConfiguration(),
+        creatureServer: CreatureServerConfiguration? = nil,
+        sceneLimits: SceneLimits = SceneLimits(),
+        scenePerformance: ScenePerformanceMode = .streaming,
+        regions: [EntityID: RegionConfiguration] = [:],
         logger: Logger,
         connector: Connector? = nil
     ) {
         self.uri = uri
         self.logger = logger
+        let conversationUpdates = self.conversationUpdates
         self.connector =
             connector ?? { uri, logger in
                 let persistence = try await MongoWorldPersistence.connect(to: uri, logger: logger)
@@ -309,6 +422,11 @@ actor MongoWorldPersistenceProvider {
                     return try MongoWorldPersistenceConnection(
                         persistence: persistence,
                         presence: presence,
+                        creatureServer: creatureServer,
+                        sceneLimits: sceneLimits,
+                        scenePerformance: scenePerformance,
+                        regions: regions,
+                        publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )
                 } catch {
@@ -495,6 +613,23 @@ actor MongoWorldPersistenceProvider {
         return try await connection.characterSessions()
     }
 
+    func submitSceneTurn(_ submission: SceneTurnSubmission, to sceneID: SceneID) async throws
+        -> SceneTurnResult
+    {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.submitSceneTurn(submission, sceneID)
+    }
+
+    func scene(id: SceneID) async throws -> Scene? {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.scene(id)
+    }
+
+    func recentScenes(limit: Int) async throws -> [Scene] {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.recentScenes(limit)
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -524,12 +659,43 @@ actor MongoWorldPersistenceProvider {
 
 extension MongoWorldPersistenceProvider: ConversationApplicationService {}
 extension MongoWorldPersistenceProvider: CharacterSessionApplicationService {}
+extension MongoWorldPersistenceProvider: SceneApplicationService {}
+
+/// Which creature a character speaks through: the one its mind logged in with.
+private struct SessionCreatureResolver: CharacterCreatureResolving {
+    let sessions: CharacterSessionService
+
+    func creatureID(for characterID: EntityID) async throws -> String? {
+        try await sessions.liveSession(for: characterID)?.instance.creatureID
+    }
+}
+
+/// More than one character logged into the addressee's region means a scene: the world will
+/// hand out the floor, and the addressee must not answer on its own.
+private struct PresentCharactersScenePlanner: ScenePlanning {
+    let sessions: CharacterSessionService
+
+    func planScene(for utterance: PersonUtterance, addressee: EntityID) async throws -> SceneID? {
+        guard let session = try await sessions.liveSession(for: addressee) else { return nil }
+        let present = try await sessions.present(in: session.regionID)
+        return present.count > 1 ? .generated() : nil
+    }
+}
 
 private struct WorldPersonUtterancePerceptSink: PersonUtterancePerceptSink {
     let world: World
+    let sessions: CharacterSessionService
+    let scenes: SceneService
 
     func submit(_ percept: PersonUtterancePercept) async throws -> UtterancePerceptAcceptance {
         let utterance = percept.utterance
+        var sceneToOpen: (region: EntityID, participants: [EntityID])?
+        if percept.sceneID != nil,
+            let addressee = try await sessions.liveSession(for: percept.characterID)
+        {
+            let present = try await sessions.present(in: addressee.regionID).map(\.characterID)
+            sceneToOpen = (addressee.regionID, present)
+        }
         let envelope = try WorldEventEnvelope(
             occurredAt: utterance.occurredAt,
             observedAt: utterance.receivedAt,
@@ -546,6 +712,23 @@ private struct WorldPersonUtterancePerceptSink: PersonUtterancePerceptSink {
             trace: utterance.trace
         )
         let acceptance = try await world.accept(envelope)
+        if acceptance.disposition == .accepted, let sceneToOpen, let sceneID = percept.sceneID {
+            _ = try await scenes.open(
+                sceneID: sceneID,
+                regionID: sceneToOpen.region,
+                conversationID: utterance.conversationID,
+                trigger: SceneTrigger(
+                    kind: .personUtterance,
+                    eventID: envelope.eventID,
+                    utteranceID: utterance.utteranceID,
+                    speakerID: utterance.speakerID,
+                    addresseeID: percept.characterID,
+                    text: utterance.text
+                ),
+                participants: sceneToOpen.participants,
+                trace: utterance.trace
+            )
+        }
         return acceptance.disposition == .accepted ? .accepted : .duplicate
     }
 }

@@ -24,6 +24,7 @@ func makeCreatureWorldApplication(
         service: dependencies.worldService,
         conversationService: dependencies.conversationService,
         characterSessionService: dependencies.characterSessionService,
+        sceneService: dependencies.sceneService,
         limits: apiConfiguration
     ).addRoutes(to: worldRoutes)
 

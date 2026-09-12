@@ -267,6 +267,10 @@ struct ScriptedScryer: WorldScrying {
         CharacterSessionPage(sessions: [])
     }
 
+    func scenes(limit: Int) async throws -> ScenePage {
+        ScenePage(scenes: [])
+    }
+
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames {
         let world = world
         return WorldStreamFrames { continuation in

@@ -218,6 +218,7 @@ let package = Package(
                 "Observability",
                 "WorldCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Metrics", package: "swift-metrics"),

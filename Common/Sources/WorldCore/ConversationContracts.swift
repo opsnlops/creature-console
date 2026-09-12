@@ -7,7 +7,7 @@ public enum ConversationContractLimits {
     public static let maximumContextItems = 100
 }
 
-private func validateConversationText(_ text: String) throws {
+func validateConversationText(_ text: String) throws {
     guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
         throw WorldContractError.emptyUtterance
     }
@@ -311,12 +311,16 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
     public var characterID: EntityID
     public var utterance: PersonUtterance
     public var priorConversationItems: [ConversationItem]
+    /// Set when the world opened a scene for this utterance: the character will be offered the
+    /// floor there and must not answer on its own.
+    public var sceneID: SceneID?
 
     public init(
         considerationID: ConsiderationID = .generated(),
         characterID: EntityID,
         utterance: PersonUtterance,
-        priorConversationItems: [ConversationItem]
+        priorConversationItems: [ConversationItem],
+        sceneID: SceneID? = nil
     ) throws {
         guard priorConversationItems.count <= ConversationContractLimits.maximumContextItems else {
             throw WorldContractError.conversationContextTooLarge(
@@ -328,6 +332,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         self.characterID = characterID
         self.utterance = utterance
         self.priorConversationItems = priorConversationItems
+        self.sceneID = sceneID
     }
 
     public init(from decoder: any Decoder) throws {
@@ -343,7 +348,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
             considerationID: container.decode(ConsiderationID.self, forKey: .considerationID),
             characterID: container.decode(EntityID.self, forKey: .characterID),
             utterance: container.decode(PersonUtterance.self, forKey: .utterance),
-            priorConversationItems: priorConversationItems
+            priorConversationItems: priorConversationItems,
+            sceneID: container.decodeIfPresent(SceneID.self, forKey: .sceneID)
         )
     }
 
@@ -353,6 +359,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         case characterID = "character_id"
         case utterance
         case priorConversationItems = "prior_conversation_items"
+        case sceneID = "scene_id"
     }
 }
 

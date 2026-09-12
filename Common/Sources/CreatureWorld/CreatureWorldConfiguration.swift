@@ -42,13 +42,21 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let mongoURI: String
     let port: Int
     let presence: PresenceConfiguration
+    let creatureServer: CreatureServerConfiguration?
+    let scenes: SceneLimits
+    let scenePerformance: ScenePerformanceMode
+    let regions: [EntityID: RegionConfiguration]
 
     init(
         host: String = defaultHost,
         port: Int = defaultPort,
         mongoURI: String = defaultMongoURI,
         allowedOrigins: [String] = [],
-        presence: PresenceConfiguration = PresenceConfiguration()
+        presence: PresenceConfiguration = PresenceConfiguration(),
+        creatureServer: CreatureServerConfiguration? = nil,
+        scenes: SceneLimits = SceneLimits(),
+        scenePerformance: ScenePerformanceMode = .streaming,
+        regions: [EntityID: RegionConfiguration] = [:]
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -77,6 +85,10 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.mongoURI = mongoURI
         self.port = port
         self.presence = presence
+        self.creatureServer = creatureServer
+        self.scenes = scenes
+        self.scenePerformance = scenePerformance
+        self.regions = regions
     }
 
     static func load(
@@ -92,7 +104,14 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                 port: raw.port ?? defaultPort,
                 mongoURI: raw.mongoURI ?? defaultMongoURI,
                 allowedOrigins: raw.allowedOrigins ?? [],
-                presence: try PresenceConfiguration(raw: raw.presence)
+                presence: try PresenceConfiguration(raw: raw.presence),
+                creatureServer: raw.creatureServer,
+                scenes: raw.scenes ?? SceneLimits(),
+                scenePerformance: raw.scenePerformance ?? .streaming,
+                regions: try Dictionary(
+                    uniqueKeysWithValues: (raw.regions ?? [:]).map {
+                        (try EntityID(validating: $0.key), $0.value)
+                    })
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -131,7 +150,11 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             port: port ?? self.port,
             mongoURI: mongoURI ?? self.mongoURI,
             allowedOrigins: allowedOrigins ?? self.allowedOrigins,
-            presence: presence
+            presence: presence,
+            creatureServer: creatureServer,
+            scenes: scenes,
+            scenePerformance: scenePerformance,
+            regions: regions
         )
     }
 
@@ -141,6 +164,10 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let mongoURI: String?
         let port: Int?
         let presence: RawPresenceConfiguration?
+        let creatureServer: CreatureServerConfiguration?
+        let scenes: SceneLimits?
+        let scenePerformance: ScenePerformanceMode?
+        let regions: [String: RegionConfiguration]?
 
         private enum CodingKeys: String, CodingKey {
             case host
@@ -148,6 +175,10 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case mongoURI = "mongodb_uri"
             case port
             case presence
+            case creatureServer = "creature_server"
+            case scenes
+            case scenePerformance = "scene_performance"
+            case regions
         }
     }
 

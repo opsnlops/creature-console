@@ -9,6 +9,7 @@ struct CreatureWorldDependencies: Sendable {
     let worldService: any WorldApplicationService
     let conversationService: any ConversationApplicationService
     let characterSessionService: any CharacterSessionApplicationService
+    let sceneService: any SceneApplicationService
 
     static func live(
         configuration: CreatureWorldConfiguration,
@@ -18,6 +19,10 @@ struct CreatureWorldDependencies: Sendable {
         let persistence = MongoWorldPersistenceProvider(
             uri: configuration.mongoURI,
             presence: configuration.presence,
+            creatureServer: configuration.creatureServer,
+            sceneLimits: configuration.scenes,
+            scenePerformance: configuration.scenePerformance,
+            regions: configuration.regions,
             logger: logger
         )
         await persistence.connectIfNeeded()
@@ -32,7 +37,8 @@ struct CreatureWorldDependencies: Sendable {
             persistence: persistence,
             worldService: persistence,
             conversationService: persistence,
-            characterSessionService: persistence
+            characterSessionService: persistence,
+            sceneService: persistence
         )
     }
 
@@ -45,7 +51,8 @@ struct CreatureWorldDependencies: Sendable {
         conversationService: any ConversationApplicationService =
             UnavailableConversationApplicationService(),
         characterSessionService: any CharacterSessionApplicationService =
-            UnavailableCharacterSessionApplicationService()
+            UnavailableCharacterSessionApplicationService(),
+        sceneService: any SceneApplicationService = UnavailableSceneApplicationService()
     ) -> CreatureWorldDependencies {
         CreatureWorldDependencies(
             configuration: configuration,
@@ -58,7 +65,8 @@ struct CreatureWorldDependencies: Sendable {
             persistence: nil,
             worldService: worldService,
             conversationService: conversationService,
-            characterSessionService: characterSessionService
+            characterSessionService: characterSessionService,
+            sceneService: sceneService
         )
     }
 }

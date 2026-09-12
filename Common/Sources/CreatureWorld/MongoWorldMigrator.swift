@@ -3,7 +3,7 @@ import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 6
+    static let currentVersion = 7
 
     let database: MongoDatabase
     let logger: Logger
@@ -25,6 +25,8 @@ struct MongoWorldMigrator: Sendable {
         try await createCharacterStageDecisionIndexes()
         logger.debug("Ensuring character session indexes")
         try await createCharacterSessionIndexes()
+        logger.debug("Ensuring scene indexes")
+        try await createSceneIndexes()
 
         try await recordMigration(version: 1, name: "initial_world_repositories")
         try await recordMigration(version: 2, name: "world_event_processing")
@@ -32,6 +34,7 @@ struct MongoWorldMigrator: Sendable {
         try await recordMigration(version: 4, name: "character_delivery")
         try await recordMigration(version: 5, name: "character_stage_decision")
         try await recordMigration(version: 6, name: "character_session")
+        try await recordMigration(version: 7, name: "scene")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -175,6 +178,15 @@ struct MongoWorldMigrator: Sendable {
             keys: ["character_id": 1, "logged_in_at": -1]
         )
         try await database[MongoWorldCollection.characterSessions].createIndexes([byCharacter])
+    }
+
+    private func createSceneIndexes() async throws {
+        let openInRegion = CreateIndexes.Index(
+            named: "scenes_open_in_region",
+            keys: ["region_id": 1, "state": 1, "opened_at": 1]
+        )
+        let recent = CreateIndexes.Index(named: "scenes_recent", keys: ["opened_at": -1])
+        try await database[MongoWorldCollection.scenes].createIndexes([openInRegion, recent])
     }
 
     /// Stage decisions are promises about *where*, made before the words exist; MongoDB expires

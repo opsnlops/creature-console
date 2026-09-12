@@ -30,8 +30,12 @@ current in the same commit as the code it describes.**
   boring; four parrots (Beaky, Mango, Kenny, Caroll) should inhabit it, Beaky leading. Plan:
   [`docs/flock-plan.md`](flock-plan.md) (principles, slices C1–C3, April's decisions, the
   server streaming-dialog spec at creature-server#186).
-- Active branch: `flock-c1-many-minds` — **C1, many minds on one host** (#158). Creature World
-  `0.5.0`, `creature-agent` `2.57.0`.
+- PR #159 — **C1, many minds on one host** (#158): Creature World `0.5.0`, `creature-agent`
+  `2.57.0`. Green except one Viewer test double the C2 branch also fixes (uncommitted in a
+  worktree at the time of writing; needs April's key).
+- Active branch: `flock-c2-scenes` (stacked on C1) — **C2, scenes: the world gives the floor**.
+  Creature World `0.6.0`, `creature-agent` `2.58.0`. Built and tested while April was at the
+  store; not yet committed (YubiKey).
 - **April's definition of done (2026-09-11):** a feature is complete only when it works live
   *and* is viewable in World Viewer. Plan the Viewer surface into every slice.
 - #154 (replies drifting into `Beaky: "…"` script format) is fixed in `2.55.4`: the mind stores
@@ -61,7 +65,40 @@ current in the same commit as the code it describes.**
 3. One Honeycomb trace per utterance, end to end: phone → gateway → World → `agent.turn`
    (consider → `llm.mistral.generate` → `creature.world.respond`) → World router.
 
-### 0.3 What this branch adds — the flock, C1: many minds on one host (#158)
+### 0.3 What this branch adds — the flock, C2: scenes (`flock-c2-scenes`)
+
+- **WorldCore:** `Scene`, `SceneTrigger`, `SceneTurn`, `SceneFloor`, `SceneTurnOffer` (event
+  `scene.turn_offered`), `SceneTurnSubmission`, `SceneLimits`, and `SceneService` — opens
+  (addressee first, then the others), offers the floor with a world-timer deadline
+  (`scene.floor_expired` → pass), accepts a turn or a pass (idempotent by `response_id`;
+  `not_your_turn` when the floor moved), closes on the cutoffs (everyone passed / max turns /
+  max spoken seconds), interrupts an open scene when a new one opens in the region, and hands
+  closed scenes to a `ScenePerforming`. `PersonUtterancePercept.scene_id`; `ScenePlanning` at
+  the ingress decides scene-or-solo *before* the percept is stored. Dates the world stamps go
+  through `WorldJSON.wireDate` (millisecond) so identity checks survive MongoDB.
+- **World `0.6.0`:** `PresentCharactersScenePlanner` (a scene when >1 character is logged into
+  the addressee's region), `MongoSceneRepository` (`scenes`, migration v7), the floor-deadline
+  watcher on the world stream, spoken turns saved as conversation items and published to the
+  Communicator, `StreamingScenePerformer` (server-you shipped `dialog-stream` in creature-server
+  3.46.0 / PR #187 while April shopped: a session per scene on the stage the region maps to via
+  `regions.<region>.stage_id`; each turn plays ~2 s after it is composed; `finish` stitches)
+  falling back to `CreatureServerScenePerformer` (complete ad-hoc dialog render, job ID recorded
+  as `queued`), or `NotConnectedScenePerformer`; `scene_performance` config; routes
+  `POST /scenes/{id}/turns`,
+  `GET /scenes`, `GET /scenes/{id}`; `scenes` cutoffs in `world.json`. Black-box test: two
+  logins → utterance → scene → turns (an impostor without Mango's session is refused) → closed →
+  performance recorded.
+- **Agent `2.58.0`:** subscriber delivers `scene.turn_offered` for its character;
+  `CharacterMind.consider(offer)` builds a script-style transcript (persona + scene contract +
+  "April: … / Mango: … / Beaky:") and returns a turn or a pass; utterances with `scene_id` are
+  `in_scene` silences; `WorldMindService` posts the turn with the session.
+- **Viewer:** Scenes panel (trigger, participants, floor + deadline, turns/passes, close reason,
+  performance), refreshed on `scene.*` events.
+- **Not yet:** scenes triggered by world events (the box) — only person utterances open scenes
+  until VW-013 brings house events; job completion tracking (the render is recorded `queued`);
+  the Communicator still shows one bird's name (C3).
+
+### 0.3a What PR #159 adds — the flock, C1: many minds on one host (#158)
 
 - **Character login in the World (`0.5.0`).** `POST /world/v1/characters/{id}/login` with a
   region and the mind's instance (host, pid, creature, version); 30 s sessions kept alive by
@@ -82,7 +119,7 @@ current in the same commit as the code it describes.**
   heartbeat), refreshed from `character.*` events.
 - **Personas** as versioned files under `docs/personas/` (Beaky, Mango draft).
 
-### 0.3a What PR #155 added — Beaky's voice in the room (VW-016), merged
+### 0.3b What PR #155 added — Beaky's voice in the room (VW-016), merged
 
 - **The world decides, the mind performs.** `POST …/stage` gives the mind a durable, idempotent
   `CharacterDeliveryDecision` per `response_id` *before* it generates (MongoDB TTL-expires
@@ -110,7 +147,7 @@ current in the same commit as the code it describes.**
   stage→perform→stream with an assumed-presence config, mind streaming/silence/failure/
   already-delivered, service records a performance through the stub World.
 
-### 0.3b What PR #153 added — World Viewer (VW-010), merged
+### 0.3c What PR #153 added — World Viewer (VW-010), merged
 
 - **Target `World Viewer`** (macOS, `io.opsnlops.World-Viewer`), cloned from the Communicator's
   pbxproj entries under the `WVA…`/`WVT…` ID prefixes, with its own `World Viewer Tests` target
@@ -209,7 +246,9 @@ back to the Communicator.
 
 ### 0.6 Exact next actions
 
-1. Finish C1 (#158): deploy World `0.5.0` + agent `2.57.0` to fuzzball (CI artifacts — local
+0. Commit the C1 Viewer test fix (worktree `scratchpad/c1`) and the C2 branch; merge #159,
+   then open C2's PR. Both need April's YubiKey.
+1. Finish C1 (#158): deploy World `0.6.0` + agent `2.58.0` to fuzzball (CI artifacts — local
    `build_debs.sh` hangs under the upgraded Docker Desktop, see the World manual); move
    `/etc/creature-agent.yaml` → `/etc/creature/agent/beaky.yaml`, write `mango.yaml`
    (`characterEntityId: character:mango`, Mango's `creatureId`
@@ -217,8 +256,12 @@ back to the Communicator.
    enable --now creature-agent@beaky creature-agent@mango`, set `localLlmMaxTokens: 400`. Watch
    both appear in the Viewer's Characters panel; start a second Beaky by hand and watch it
    spectate; hand-cast an utterance to `character:mango` and hear Mango.
-2. C2 — scenes: the world gives the floor (`docs/flock-plan.md`). Then C3, the Communicator
-   for the flock.
+2. C2 live: deploy creature-server 3.46.0 (PR #187); add `"creature_server": {"url":
+   "https://server.prod.chirpchirp.dev"}` to `/etc/creature/world.json` (`region:home` →
+   Mainstage is in the packaged config; dpkg will offer the new conffile on upgrade); say
+   "What do you two think is in the box?" from the phone with Beaky and Mango logged in, and
+   watch the Scenes panel hand the floor around while the birds answer ~2 s apart. Then C3,
+   the Communicator for the flock.
 3. Decide whether production's agent moves to world mode (it would lose MQTT house-event
    reactions until VW-013).
 4. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is

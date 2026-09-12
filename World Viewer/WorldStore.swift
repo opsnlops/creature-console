@@ -43,6 +43,7 @@ final class WorldStore {
     private(set) var factsTruncated = false
     private(set) var timers: [WorldTimer] = []
     private(set) var characters: [CharacterSession] = []
+    private(set) var scenes: [WorldCore.Scene] = []
     private(set) var conversationItems: [ConversationItem] = []
     private(set) var deliveries: [ResponseID: CharacterDeliveryRecord] = [:]
     private(set) var conversationID: ConversationID
@@ -86,6 +87,7 @@ final class WorldStore {
         conversationItems = []
         deliveries = [:]
         characters = []
+        scenes = []
         health = nil
         streamTask = Task { await followWorld() }
         conversationTask = Task { await followConversation() }
@@ -116,6 +118,20 @@ final class WorldStore {
         } catch {
             lastError = ErrorAlert(title: "The Characters Are Out Of Reach", error: error)
         }
+    }
+
+    func refreshScenes() async {
+        do {
+            try await loadScenes()
+        } catch {
+            lastError = ErrorAlert(title: "The Scenes Are Out Of Reach", error: error)
+        }
+    }
+
+    private func loadScenes() async throws {
+        let page = try await makeScryer().scenes(limit: 50)
+        guard !Task.isCancelled else { return }
+        scenes = page.scenes
     }
 
     private func loadCharacters() async throws {
@@ -175,6 +191,7 @@ final class WorldStore {
                         timers = snapshot.timers
                         try await loadRecentHistory(using: scryer, upTo: snapshot.latestSequence)
                         try await loadCharacters()
+                        try await loadScenes()
                         streamState = .live
                     case .event(let event):
                         append(event)
@@ -239,6 +256,9 @@ final class WorldStore {
         latestSequence = max(latestSequence ?? 0, sequence)
         if event.type.rawValue.hasPrefix("character.") {
             Task { try? await loadCharacters() }
+        }
+        if event.type.rawValue.hasPrefix("scene.") {
+            Task { try? await loadScenes() }
         }
     }
 

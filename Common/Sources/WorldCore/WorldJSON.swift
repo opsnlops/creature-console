@@ -23,6 +23,7 @@ public enum WorldContractError: Error, Equatable, Sendable {
     case invalidPerformanceReport
     case unstagedPerformance
     case characterSessionNotLive
+    case invalidScene
 }
 
 extension WorldContractError: LocalizedError {
@@ -72,6 +73,8 @@ extension WorldContractError: LocalizedError {
             "A performance must be recorded against the stage decision the world made for it"
         case .characterSessionNotLive:
             "This mind does not hold a live session for the character"
+        case .invalidScene:
+            "A scene needs at least one participant and no participant twice"
         }
     }
 }
@@ -171,6 +174,12 @@ public enum WorldJSON {
             return date
         }
         return decoder
+    }
+
+    /// The instant as it survives the wire and MongoDB: millisecond precision. Anything the
+    /// world compares for identity after a round trip must be rounded first.
+    public static func wireDate(_ date: Date) -> Date {
+        Date(timeIntervalSince1970: (date.timeIntervalSince1970 * 1_000).rounded() / 1_000)
     }
 
     public static func timestamp(_ date: Date) -> String {
