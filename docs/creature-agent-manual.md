@@ -26,10 +26,12 @@ though every release packages both.
 sudo apt install ./creature-agent_<version>_<architecture>.deb
 ```
 
-The package installs `/usr/bin/creature-agent`, the unit `creature-agent.service`, the sample
-configuration `/etc/creature-agent.yaml`, and the conffile `/etc/default/creature-agent`
-(Creature Server host/port for the unit's `--host`/`--port`, and the optional `OTEL_*` exporter
-settings); upgrades preserve local edits to both. On a host that already had a hand-made
+The package installs `/usr/bin/creature-agent`, the units `creature-agent.service` and
+`creature-agent@.service`, the sample configuration `/etc/creature/agent.yaml` (moved from
+`/etc/creature-agent.yaml` in `2.57.0`; dpkg carries a locally edited file across), the
+directory `/etc/creature/agent/` for per-character configurations, and the conffile
+`/etc/default/creature-agent` (Creature Server host/port for the unit's `--host`/`--port`, and
+the optional `OTEL_*` exporter settings); upgrades preserve local edits to all of them. On a host that already had a hand-made
 `/etc/default/creature-agent` before `2.55.1`, dpkg asks about the conffile on the first upgrade —
 keep the local version. The unit declares `StateDirectory=creature-agent`, so
 `/var/lib/creature-agent` exists and is writable for the world-mode cursor. Build packages
@@ -37,7 +39,34 @@ locally with [`./build_debs.sh`](../README.md#debian-packages) instead of waitin
 Installing does not start or restart the service (#144); `sudo systemctl restart creature-agent`
 after every install.
 
-## Configuration (`/etc/creature-agent.yaml`)
+## Several minds on one host: `creature-agent@<instance>`
+
+Every character is its own process (`docs/flock-plan.md`, principle 1). The template unit runs
+one mind per instance name:
+
+```bash
+sudo vim /etc/creature/agent/mango.yaml            # mode: world, characterEntityId: character:mango, creatureId, persona
+sudo vim /etc/default/creature-agent-mango         # optional: overrides of /etc/default/creature-agent
+sudo systemctl enable --now creature-agent@beaky creature-agent@mango
+```
+
+Each instance reads `/etc/creature/agent/<instance>.yaml`, the shared `/etc/default/creature-agent`
+and then `/etc/default/creature-agent-<instance>`, and keeps its own cursor in
+`/var/lib/creature-agent/<instance>` (systemd's `STATE_DIRECTORY`, used when `stateDirectory` is
+not set). `creature-agent.service` (`/etc/creature/agent.yaml`) remains for the single-agent
+MQTT-mode deployment on production; do not run it alongside `creature-agent@beaky` for the same
+character.
+
+**Logging in.** In world mode a mind logs into Creature World as its character, in its region
+(`regionEntityId`, default `region:home`), and heartbeats every 10 s. The world allows one mind
+per character: a second process for the same character is told it is *logged in elsewhere* and
+spectates — it logs, exports metrics, follows nothing and says nothing — retrying every 15 s
+until the holder logs out or its session lapses (30 s without a heartbeat). Logins and logouts
+are world events (`character.logged_in` / `character.logged_out`) and appear in World Viewer's
+Characters panel. Stage and performance requests carry the session, so the world refuses turns
+from a mind that does not hold the character.
+
+## Configuration (`/etc/creature/agent.yaml`)
 
 Shared keys:
 
@@ -67,6 +96,7 @@ World mode keys:
 | `maximumReplyAge` | `3600` | seconds; older messages become recorded `stale` silences |
 | `maximumContextTurns` | `20` | newest prior turns sent to the model |
 | `llmTimeoutSeconds` | `60` | model call deadline |
+| `regionEntityId` | `region:home` | the region this mind logs into; a character is in one region at a time |
 | `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
 
 A minimal world-mode file:

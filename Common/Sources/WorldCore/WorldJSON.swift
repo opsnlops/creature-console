@@ -22,6 +22,7 @@ public enum WorldContractError: Error, Equatable, Sendable {
     case unauthorizedUtteranceIngress
     case invalidPerformanceReport
     case unstagedPerformance
+    case characterSessionNotLive
 }
 
 extension WorldContractError: LocalizedError {
@@ -69,6 +70,8 @@ extension WorldContractError: LocalizedError {
             "A performance report must be performed or failed"
         case .unstagedPerformance:
             "A performance must be recorded against the stage decision the world made for it"
+        case .characterSessionNotLive:
+            "This mind does not hold a live session for the character"
         }
     }
 }

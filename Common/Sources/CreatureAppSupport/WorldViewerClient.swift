@@ -83,6 +83,11 @@ public struct WorldViewerClient: Sendable {
         )
     }
 
+    /// Every character's most recent session: who is logged in, where, from which host.
+    public func characters() async throws -> CharacterSessionPage {
+        try await get(CharacterSessionPage.self, pathComponents: ["characters"])
+    }
+
     public func deliveries(
         in conversationID: ConversationID,
         after responseID: ResponseID? = nil,

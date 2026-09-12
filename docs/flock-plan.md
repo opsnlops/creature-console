@@ -53,8 +53,9 @@ Or April, on the couch, says "Mango, what do you think of the new servos?" and M
 ### C1 — Many minds on one host (agent `2.57`, World `0.5`)
 
 - **systemd template unit** `creature-agent@.service`: `creature-agent@beaky`,
-  `creature-agent@mango`, … each reading `/etc/creature-agent/<instance>.yaml` and
-  `/etc/default/creature-agent-<instance>` (falling back to the shared default file), with
+  `creature-agent@mango`, … each reading `/etc/creature/agent/<instance>.yaml` (agent
+  configuration moves beside the World's under `/etc/creature`) and
+  `/etc/default/creature-agent-<instance>` (after the shared default file), with
   `StateDirectory=creature-agent/%i` so each mind keeps its own cursor. The existing
   `creature-agent.service` stays for MQTT mode on production; the package ships both.
 - **Character login.** `POST /world/v1/characters/{character_id}/login` with the mind's

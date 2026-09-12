@@ -8,6 +8,7 @@ enum Scried: Hashable, Identifiable {
     case turn(ConversationItem, CharacterDeliveryRecord?)
     case fact(Fact)
     case timer(WorldTimer)
+    case character(CharacterSession)
 
     var id: String {
         switch self {
@@ -15,6 +16,7 @@ enum Scried: Hashable, Identifiable {
         case .turn(let item, _): "item:\(item.itemID.rawValue)"
         case .fact(let fact): "fact:\(fact.factID.rawValue)"
         case .timer(let timer): "timer:\(timer.timerID.rawValue)"
+        case .character(let session): "session:\(session.sessionID.rawValue)"
         }
     }
 
@@ -24,6 +26,7 @@ enum Scried: Hashable, Identifiable {
         case .turn(let item, _): item.authorID.rawValue
         case .fact(let fact): fact.predicate
         case .timer(let timer): timer.purpose.rawValue
+        case .character(let session): session.characterID.rawValue
         }
     }
 
@@ -39,6 +42,7 @@ enum Scried: Hashable, Identifiable {
                 data = try encoder.encode(ScriedTurn(item: item, delivery: delivery))
             case .fact(let fact): data = try encoder.encode(fact)
             case .timer(let timer): data = try encoder.encode(timer)
+            case .character(let session): data = try encoder.encode(session)
             }
             return String(decoding: data, as: UTF8.self)
         } catch {

@@ -8,6 +8,7 @@ struct WorldHTTPAPI: Sendable {
     let configuration: CreatureWorldConfiguration
     let service: any WorldApplicationService
     let conversationService: any ConversationApplicationService
+    let characterSessionService: any CharacterSessionApplicationService
     let limits: WorldAPIConfiguration
     let concurrencyLimiter: WorldAPIConcurrencyLimiter
 
@@ -15,11 +16,14 @@ struct WorldHTTPAPI: Sendable {
         configuration: CreatureWorldConfiguration,
         service: any WorldApplicationService,
         conversationService: any ConversationApplicationService,
+        characterSessionService: any CharacterSessionApplicationService =
+            UnavailableCharacterSessionApplicationService(),
         limits: WorldAPIConfiguration = .default
     ) {
         self.configuration = configuration
         self.service = service
         self.conversationService = conversationService
+        self.characterSessionService = characterSessionService
         self.limits = limits
         self.concurrencyLimiter = WorldAPIConcurrencyLimiter(
             limit: limits.maximumConcurrentRequests
@@ -128,6 +132,64 @@ struct WorldHTTPAPI: Sendable {
                     let status: HTTPResponse.Status =
                         result.disposition == .accepted ? .accepted : .ok
                     return try jsonResponse(result, status: status)
+                }
+            }
+        }
+
+        router.post("v1/characters/:characterID/login") { request, context in
+            await respond {
+                try requireJSON(request)
+                let characterID = try characterID(from: context)
+                return try await execute {
+                    let login = try await decode(
+                        CharacterLoginRequest.self, from: request,
+                        maximumBytes: limits.maximumBodyBytes)
+                    let result = try await characterSessionService.login(characterID, login)
+                    return try jsonResponse(
+                        result,
+                        status: result.disposition == .loggedInElsewhere ? .conflict : .ok
+                    )
+                }
+            }
+        }
+
+        router.post("v1/characters/:characterID/heartbeat") { request, context in
+            await respond {
+                try requireJSON(request)
+                let characterID = try characterID(from: context)
+                return try await execute {
+                    let reference = try await decode(
+                        CharacterSessionReference.self, from: request,
+                        maximumBytes: limits.maximumBodyBytes)
+                    return try jsonResponse(
+                        await characterSessionService.heartbeat(characterID, reference),
+                        status: .ok)
+                }
+            }
+        }
+
+        router.post("v1/characters/:characterID/logout") { request, context in
+            await respond {
+                try requireJSON(request)
+                let characterID = try characterID(from: context)
+                return try await execute {
+                    let reference = try await decode(
+                        CharacterSessionReference.self, from: request,
+                        maximumBytes: limits.maximumBodyBytes)
+                    return try jsonResponse(
+                        await characterSessionService.logout(characterID, reference),
+                        status: .ok)
+                }
+            }
+        }
+
+        router.get("v1/characters") { _, _ in
+            await respond {
+                try await execute {
+                    try jsonResponse(
+                        CharacterSessionPage(
+                            sessions: await characterSessionService.characterSessions()),
+                        status: .ok)
                 }
             }
         }
@@ -436,6 +498,13 @@ struct WorldHTTPAPI: Sendable {
         )
     }
 
+    private func characterID(from context: BasicRequestContext) throws -> EntityID {
+        guard let raw = context.parameters.get("characterID") else {
+            throw WorldAPIError.invalidQuery(name: "character_id")
+        }
+        return try EntityID(validating: raw)
+    }
+
     private func header(_ name: String, from request: Request) -> String? {
         request.headers.first { $0.name.canonicalName == name }?.value
     }
@@ -506,6 +575,9 @@ struct WorldHTTPAPI: Sendable {
         where responseError.status == .contentTooLarge:
             status = .contentTooLarge
             code = "body_too_large"
+        case WorldContractError.characterSessionNotLive:
+            status = .conflict
+            code = "logged_in_elsewhere"
         case is DecodingError, is WorldContractError, is WorldIdentifierError:
             status = .badRequest
             code = "invalid_request"

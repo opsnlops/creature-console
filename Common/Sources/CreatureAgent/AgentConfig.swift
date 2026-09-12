@@ -40,6 +40,7 @@ struct AgentConfig: Decodable {
         static let defaultWorldURL = URL(string: "http://127.0.0.1:8001/world/v1")!
         static let defaultCharacterEntityID = "character:beaky"
         static let defaultPersonEntityID = "person:april"
+        static let defaultRegionEntityID = "region:home"
         static let defaultStateDirectory = "/var/lib/creature-agent"
         static let defaultMaximumReplyAge: TimeInterval = 3_600
         static let defaultMaximumContextTurns = 20
@@ -48,6 +49,8 @@ struct AgentConfig: Decodable {
         let worldURL: URL
         let characterEntityID: String
         let personEntityID: String
+        /// The region this mind logs into; a character is in one region at a time.
+        let regionEntityID: String
         let stateDirectory: String
         let maximumReplyAge: TimeInterval
         let maximumContextTurns: Int
@@ -119,6 +122,7 @@ struct AgentConfig: Decodable {
         case areas
         case worldUrl
         case stage
+        case regionEntityId
         case characterEntityId
         case personEntityId
         case stateDirectory
@@ -188,7 +192,12 @@ struct AgentConfig: Decodable {
                 ?? WorldModeConfig.defaultCharacterEntityID,
             personEntityID: try container.decodeIfPresent(String.self, forKey: .personEntityId)
                 ?? WorldModeConfig.defaultPersonEntityID,
+            regionEntityID: try container.decodeIfPresent(String.self, forKey: .regionEntityId)
+                ?? WorldModeConfig.defaultRegionEntityID,
+            // systemd exports STATE_DIRECTORY for the unit (per instance for creature-agent@),
+            // so several minds on one host never share a cursor.
             stateDirectory: try container.decodeIfPresent(String.self, forKey: .stateDirectory)
+                ?? ProcessInfo.processInfo.environment["STATE_DIRECTORY"]
                 ?? WorldModeConfig.defaultStateDirectory,
             maximumReplyAge: try container.decodeIfPresent(Double.self, forKey: .maximumReplyAge)
                 ?? WorldModeConfig.defaultMaximumReplyAge,

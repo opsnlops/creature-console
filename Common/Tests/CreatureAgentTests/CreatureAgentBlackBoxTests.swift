@@ -3,6 +3,7 @@ import Hummingbird
 import HummingbirdTesting
 import NIOCore
 import Testing
+import WorldCore
 
 /// Drives the built `creature-agent` executable in world mode. The mind holds a stream to the
 /// world open for its whole life; `systemctl stop` must not wait for that stream.
@@ -23,6 +24,10 @@ struct CreatureAgentBlackBoxTests {
             let elapsed = ContinuousClock.now - started
             #expect(exit == 0, "agent did not exit cleanly on SIGTERM while following the world")
             #expect(elapsed < .seconds(5), "agent took \(elapsed) to stop")
+            // The mind logged in as its character before following, and logged out on the way
+            // out so the world knows the character is free.
+            #expect(await stub.logins == 1)
+            #expect(await stub.logouts == 1)
         }
     }
 
@@ -31,6 +36,31 @@ struct CreatureAgentBlackBoxTests {
         -> Application<RouterResponder<BasicRequestContext>>
     {
         let router = Router(context: BasicRequestContext.self)
+        router.post("world/v1/characters/:characterID/login") { _, _ in
+            await holder.loggedIn()
+            let now = Date()
+            let session = try CharacterSession(
+                characterID: EntityID(validating: "character:beaky"),
+                regionID: EntityID(validating: "region:home"),
+                instance: CharacterMindInstance(host: "blackbox", processID: 1),
+                loggedInAt: now, lastHeartbeatAt: now, expiresAt: now.addingTimeInterval(30))
+            let body = try WorldJSON.makeEncoder().encode(
+                CharacterLoginResult(disposition: .loggedIn, session: session))
+            return Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: .init(byteBuffer: ByteBuffer(bytes: body)))
+        }
+        router.post("world/v1/characters/:characterID/heartbeat") { _, _ in
+            Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: .init(byteBuffer: ByteBuffer(string: "{}")))
+        }
+        router.post("world/v1/characters/:characterID/logout") { _, _ in
+            await holder.loggedOut()
+            return Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: .init(byteBuffer: ByteBuffer(string: "{}")))
+        }
         router.get("world/v1/stream") { _, _ in
             await holder.subscribed()
             return Response(
@@ -78,6 +108,11 @@ struct CreatureAgentBlackBoxTests {
 private actor StreamHolder {
     private var subscribers = 0
     private var waiters: [CheckedContinuation<Void, Never>] = []
+    private(set) var logins = 0
+    private(set) var logouts = 0
+
+    func loggedIn() { logins += 1 }
+    func loggedOut() { logouts += 1 }
 
     func subscribed() {
         subscribers += 1

@@ -56,6 +56,14 @@ Creature Server animation ID of a performance. A turn with no chip was cast by h
 pre-dates the router. This panel refreshes whenever the conversation stream announces a new
 item.
 
+### Characters
+
+The flock as the world sees it: every character's most recent login — active (green), expired
+(orange, the heartbeat stopped), or logged out — with its region, the host and pid of the mind
+holding it, the `creature-agent` version, when it logged in, and its last heartbeat. The
+sidebar badge counts the active ones. Refreshed when `character.logged_in` /
+`character.logged_out` events arrive and on demand.
+
 ### Facts and Timers
 
 What the World currently believes, and what it has scheduled. Both are seeded from the snapshot

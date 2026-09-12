@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.4.2",
+  "build_version": "0.5.0",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -206,7 +206,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.4.2",
+  "build_version": "0.5.0",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -367,6 +367,10 @@ current endpoints are:
 | `GET /world/v1/conversations/{conversation_id}/stream` | Receive an immediate `ready` event followed by live conversation-item notifications over SSE. Reconcile through the items endpoint after connecting. |
 | `POST /world/v1/conversations/{conversation_id}/stage` | A mind asks where a turn it is about to produce should be performed: `{ "response_id", "character_id", "recipient_id" }`. The router reads presence once and persists a `CharacterDeliveryDecision` for that `response_id` (expired by MongoDB after five minutes if never used). Asking again returns the same decision; a turn already carried answers `already_delivered` with the record so it is never performed twice. Added in `0.4.0`. |
 | `POST /world/v1/conversations/{conversation_id}/performances` | A mind records a turn it performed itself on a staged decision: `{ "intent", "attempt_id", "outcome": { "state": "performed" \| "failed", "provider_reference"?, "error_code"? } }`. The canonical item, decision, and outcome are stored in one step and the item is published to conversation subscribers; returns the same body as `/responses`. A performance the world never staged is refused with 400. Added in `0.4.0`. |
+| `POST /world/v1/characters/{character_id}/login` | A mind logs in as a character in a region: `{ "region_id", "instance": { "host", "process_id", "creature_id"?, "version"? } }`. Returns 200 with `disposition: logged_in` (or `renewed` for the same instance) and the session; 409 with `disposition: logged_in_elsewhere` and the session that holds the character. A character is in one region at a time. Added in `0.5.0`. |
+| `POST /world/v1/characters/{character_id}/heartbeat` | `{ "session_id" }` keeps the session alive (30 s lifetime); 409 `logged_in_elsewhere` once it has lapsed. |
+| `POST /world/v1/characters/{character_id}/logout` | `{ "session_id" }` ends the session and frees the character. |
+| `GET /world/v1/characters` | Every character's most recent session (`active`, `expired`, or `logged_out`) — the flock as the world sees it; World Viewer's Characters panel. |
 | `GET /world/v1/conversations/{conversation_id}/deliveries` | Read the router's record for each character turn — the `intent`, the `decision` (route, reason, the presence it saw), the `outcome` if a sink reported one, and the canonical `conversation_item` — in intent order. Added in `0.3.0` for World Viewer. |
 | `GET /world/v1/facts` | Read current facts, optionally filtered by `subject_id`. |
 | `GET /world/v1/timers` | Read timers, optionally filtered by `status`. |
@@ -378,6 +382,13 @@ History uses `after_sequence`; conversation, delivery, fact, and timer pages use
 Every list accepts `limit`, defaults to 100, and permits at most 500 results. Page responses state
 whether more results exist and provide the cursor for the next request. A snapshot marks facts or
 timers as truncated rather than implying that a bounded result is complete.
+
+Logins are the world's first character presence: `character.logged_in` / `character.logged_out`
+world events are emitted (source `world:character-sessions`, subjects the character and the
+region), and once any mind holds a character, `/stage` and `/performances` for that character
+must carry its `session_id` or they are refused with 409 `logged_in_elsewhere` — the world
+never lets two processes be Beaky. A character nobody is logged in as may still be spoken for
+by hand.
 
 A character turn is never authored by Creature World; an agent proposes a provider-neutral
 `CharacterUtteranceIntent` and the world decides the stage. Presence is `unknown` with zero
@@ -478,7 +489,7 @@ package; the Creature World artifact is `creature-world_<version>_<architecture>
 only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.4.2_amd64.deb
+sudo apt install ./creature-world_0.5.0_amd64.deb
 ```
 
 The package installs:

@@ -1,0 +1,22 @@
+[Unit]
+Description=Creature Agent (%i)
+Documentation=https://github.com/opsnlops/creature-console/blob/main/docs/creature-agent-manual.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# One mind per character: creature-agent@beaky, creature-agent@mango, ...
+# Shared settings first, then the instance's own overrides.
+EnvironmentFile=-/etc/default/creature-agent
+EnvironmentFile=-/etc/default/creature-agent-%i
+ExecStart=/usr/bin/creature-agent run \
+    --config-path /etc/creature/agent/%i.yaml \
+    --host ${CREATURE_SERVER_HOST} \
+    --port ${CREATURE_SERVER_PORT}
+Restart=on-failure
+RestartSec=5
+# Each mind keeps its own place in Creature World's history (STATE_DIRECTORY is exported).
+StateDirectory=creature-agent/%i
+
+[Install]
+WantedBy=multi-user.target

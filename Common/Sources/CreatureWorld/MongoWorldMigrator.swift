@@ -3,7 +3,7 @@ import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 5
+    static let currentVersion = 6
 
     let database: MongoDatabase
     let logger: Logger
@@ -23,12 +23,15 @@ struct MongoWorldMigrator: Sendable {
         try await createCharacterDeliveryIndexes()
         logger.debug("Ensuring character stage decision indexes")
         try await createCharacterStageDecisionIndexes()
+        logger.debug("Ensuring character session indexes")
+        try await createCharacterSessionIndexes()
 
         try await recordMigration(version: 1, name: "initial_world_repositories")
         try await recordMigration(version: 2, name: "world_event_processing")
         try await recordMigration(version: 3, name: "conversation_ingress")
         try await recordMigration(version: 4, name: "character_delivery")
         try await recordMigration(version: 5, name: "character_stage_decision")
+        try await recordMigration(version: 6, name: "character_session")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -164,6 +167,14 @@ struct MongoWorldMigrator: Sendable {
         try await database[MongoWorldCollection.characterDeliveries].createIndexes([
             attemptID, conversationResponses,
         ])
+    }
+
+    private func createCharacterSessionIndexes() async throws {
+        let byCharacter = CreateIndexes.Index(
+            named: "character_sessions_by_character",
+            keys: ["character_id": 1, "logged_in_at": -1]
+        )
+        try await database[MongoWorldCollection.characterSessions].createIndexes([byCharacter])
     }
 
     /// Stage decisions are promises about *where*, made before the words exist; MongoDB expires

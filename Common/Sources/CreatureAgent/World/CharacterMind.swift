@@ -45,6 +45,21 @@ struct CharacterMind: Sendable {
         let stager: any WorldStaging
         let room: any PhysicalSpeechStaging
         let respondStreaming: RespondStreaming
+        /// The session this mind holds for its character, so the world can tell it from a
+        /// second copy of the same character. `nil` when the world has no logins yet.
+        let session: @Sendable () async -> CharacterSessionID?
+
+        init(
+            stager: any WorldStaging,
+            room: any PhysicalSpeechStaging,
+            respondStreaming: @escaping RespondStreaming,
+            session: @escaping @Sendable () async -> CharacterSessionID? = { nil }
+        ) {
+            self.stager = stager
+            self.room = room
+            self.respondStreaming = respondStreaming
+            self.session = session
+        }
     }
 
     /// Bumped whenever the prompt contract changes so evaluations stay comparable.
@@ -159,7 +174,8 @@ struct CharacterMind: Sendable {
                 CharacterStageRequest(
                     responseID: responseID,
                     characterID: configuration.characterID,
-                    recipientID: utterance.speakerID
+                    recipientID: utterance.speakerID,
+                    sessionID: await stage.session()
                 ),
                 in: utterance.conversationID
             )
@@ -289,7 +305,8 @@ struct CharacterMind: Sendable {
                 responseID: responseID, now: now)
             return .performed(
                 CharacterPerformance(
-                    intent: intent, attemptID: decision.attemptID, outcome: outcome))
+                    intent: intent, attemptID: decision.attemptID, outcome: outcome,
+                    sessionID: await stage.session()))
         } catch {
             logger.error(
                 "Beaky's answer did not form a valid turn",
