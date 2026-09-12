@@ -121,6 +121,49 @@ protocol ConversationApplicationService: Sendable {
     func finishConversationSubscriptions() async
 }
 
+/// Character login: which mind is which character, and where.
+protocol CharacterSessionApplicationService: Sendable {
+    func login(
+        _ characterID: EntityID,
+        _ request: CharacterLoginRequest
+    ) async throws -> CharacterLoginResult
+    func heartbeat(
+        _ characterID: EntityID,
+        _ reference: CharacterSessionReference
+    ) async throws -> CharacterSession
+    func logout(
+        _ characterID: EntityID,
+        _ reference: CharacterSessionReference
+    ) async throws -> CharacterSession
+    func characterSessions() async throws -> [CharacterSession]
+}
+
+extension CharacterSessionService: CharacterSessionApplicationService {}
+
+struct UnavailableCharacterSessionApplicationService: CharacterSessionApplicationService {
+    func login(
+        _ characterID: EntityID, _ request: CharacterLoginRequest
+    ) async throws -> CharacterLoginResult {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func heartbeat(
+        _ characterID: EntityID, _ reference: CharacterSessionReference
+    ) async throws -> CharacterSession {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func logout(
+        _ characterID: EntityID, _ reference: CharacterSessionReference
+    ) async throws -> CharacterSession {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func characterSessions() async throws -> [CharacterSession] {
+        throw WorldAPIError.databaseUnavailable
+    }
+}
+
 struct UnavailableConversationApplicationService: ConversationApplicationService {
     func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
         throw WorldAPIError.databaseUnavailable

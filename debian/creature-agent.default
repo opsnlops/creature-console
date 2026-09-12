@@ -1,7 +1,7 @@
 # Creature Agent environment. This file is a conffile: package upgrades preserve local edits.
 #
 # Creature Server, passed to the unit's --host/--port. MQTT mode speaks through it; world mode
-# (mode: world in /etc/creature-agent.yaml) does not use it yet but the unit still needs values.
+# (mode: world in /etc/creature/agent.yaml) does not use it yet but the unit still needs values.
 CREATURE_SERVER_HOST=server.prod.chirpchirp.dev
 CREATURE_SERVER_PORT=443
 

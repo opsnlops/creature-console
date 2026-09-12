@@ -134,6 +134,10 @@ public enum DeliveryAttemptIDDomain: FixedNamespaceIDDomain {
     public static let namespace = "delivery-attempt"
 }
 
+public enum CharacterSessionIDDomain: FixedNamespaceIDDomain {
+    public static let namespace = "character-session"
+}
+
 public typealias EntityID = NamespacedID<EntityIDDomain>
 public typealias SourceID = NamespacedID<SourceIDDomain>
 public typealias FactID = NamespacedID<FactIDDomain>
@@ -147,6 +151,7 @@ public typealias ConversationItemID = NamespacedID<ConversationItemIDDomain>
 public typealias UtteranceID = NamespacedID<UtteranceIDDomain>
 public typealias ResponseID = NamespacedID<ResponseIDDomain>
 public typealias DeliveryAttemptID = NamespacedID<DeliveryAttemptIDDomain>
+public typealias CharacterSessionID = NamespacedID<CharacterSessionIDDomain>
 
 extension NamespacedID where Domain == FactIDDomain {
     public static func generated(using uuid: UUID = UUID()) -> Self {
@@ -263,5 +268,11 @@ public struct EventID: RawRepresentable, Hashable, Sendable, Codable, CustomStri
             }
         }
         return true
+    }
+}
+
+extension NamespacedID where Domain == CharacterSessionIDDomain {
+    public static func generated(using uuid: UUID = UUID()) -> Self {
+        generated(namespace: CharacterSessionIDDomain.namespace, using: uuid)
     }
 }

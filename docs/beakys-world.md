@@ -24,9 +24,14 @@ current in the same commit as the code it describes.**
   (Beaky's reply is delivered inside the `agent.turn` span, `2.55.3`).
 - PR #153 (World Viewer, VW-010 #101, World `0.3.0`) merged 2026-09-11 afternoon; the Viewer
   is verified live against fuzzball. Manual: [`docs/world-viewer-manual.md`](world-viewer-manual.md).
-- Active branch: `vw-016-physical-stage` — **Beaky's voice in the room** (VW-016 #107 +
-  assumed presence). Plan: [`docs/vw-016-physical-stage-plan.md`](vw-016-physical-stage-plan.md).
-  Creature World `0.4.2`, `creature-agent` `2.56.1`.
+- PR #155 (Beaky's voice in the room, VW-016 #107, World `0.4.2`, agent `2.56.1`, the
+  MongoKitten fork, #156, #157) merged 2026-09-11 evening; Beaky is heard on fuzzball.
+- **Off script since 2026-09-11 evening: the flock.** April: a world with one character is
+  boring; four parrots (Beaky, Mango, Kenny, Caroll) should inhabit it, Beaky leading. Plan:
+  [`docs/flock-plan.md`](flock-plan.md) (principles, slices C1–C3, April's decisions, the
+  server streaming-dialog spec at creature-server#186).
+- Active branch: `flock-c1-many-minds` — **C1, many minds on one host** (#158). Creature World
+  `0.5.0`, `creature-agent` `2.57.0`.
 - **April's definition of done (2026-09-11):** a feature is complete only when it works live
   *and* is viewable in World Viewer. Plan the Viewer surface into every slice.
 - #154 (replies drifting into `Beaky: "…"` script format) is fixed in `2.55.4`: the mind stores
@@ -56,7 +61,28 @@ current in the same commit as the code it describes.**
 3. One Honeycomb trace per utterance, end to end: phone → gateway → World → `agent.turn`
    (consider → `llm.mistral.generate` → `creature.world.respond`) → World router.
 
-### 0.3 What this branch adds — Beaky's voice in the room (VW-016)
+### 0.3 What this branch adds — the flock, C1: many minds on one host (#158)
+
+- **Character login in the World (`0.5.0`).** `POST /world/v1/characters/{id}/login` with a
+  region and the mind's instance (host, pid, creature, version); 30 s sessions kept alive by
+  `…/heartbeat`; `…/logout`; `GET /world/v1/characters`. One mind per character, one region per
+  character (Second Life style; `region:home` today, the characters' new building later).
+  A second process is told `logged_in_elsewhere` (409). `character.logged_in` /
+  `character.logged_out` world events. `/stage` and `/performances` carry `session_id` and are
+  refused for a mind that does not hold the character — collisions are impossible by
+  construction. `CharacterSessionService` (WorldCore), `character_sessions` collection
+  (migration v6).
+- **Agent `2.57.0`.** `WorldCharacterSession` logs in before the mind follows the world,
+  heartbeats every 10 s, spectates (follows nothing, says nothing, retries every 15 s) when the
+  character is held elsewhere, logs out on shutdown. `regionEntityId` config. Template unit
+  `creature-agent@<instance>` (`/etc/creature/agent/<instance>.yaml`,
+  `/etc/default/creature-agent-<instance>`, `STATE_DIRECTORY` per instance); agent config
+  moves to `/etc/creature/agent.yaml` beside the World's (conffile carried across).
+- **Viewer:** Characters panel (active/expired/logged-out, region, host, pid, version,
+  heartbeat), refreshed from `character.*` events.
+- **Personas** as versioned files under `docs/personas/` (Beaky, Mango draft).
+
+### 0.3a What PR #155 added — Beaky's voice in the room (VW-016), merged
 
 - **The world decides, the mind performs.** `POST …/stage` gives the mind a durable, idempotent
   `CharacterDeliveryDecision` per `response_id` *before* it generates (MongoDB TTL-expires
@@ -139,7 +165,7 @@ deliver through Communicator until VW-016 gives it the physical stage. It is a d
 (April's Mac or fuzzball) for now.
 
 To run Beaky's mind on fuzzball: install `creature-agent_2.55.4_amd64.deb`
-(`./build_debs.sh --arch amd64`), set `/etc/creature-agent.yaml` with `mode: world`,
+(`./build_debs.sh --arch amd64`), set `/etc/creature/agent.yaml` with `mode: world`,
 `llmBackend: local`, `localLlmHost/Port` → the llama-server, `worldUrl:
 http://127.0.0.1:8001/world/v1`, persona in `llmSystemPrompt` (the unit already passes
 `--host/--port` for Creature Server, unused in world mode). The unit now declares
@@ -183,15 +209,22 @@ back to the Communicator.
 
 ### 0.6 Exact next actions
 
-1. Merge `vw-016-physical-stage` (PR #155). Fuzzball runs World `0.4.2` + agent `2.56.0` with
-   the assumption and Beaky is heard; install agent `2.56.1` (#157, from the `build-deb` CI
-   artifact — local `build_debs.sh` hangs under the upgraded Docker Desktop, see the World
-   manual) and set `localLlmMaxTokens: 400`. Decide whether production's agent moves to world
-   mode (it would lose MQTT house-event reactions until VW-013).
-2. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
-   about something real; the Facts panel is waiting. Then personalities, and one mind per
-   character with a character lease so minds never collide.
-3. VW-011 *Why?* in the Viewer once facts have provenance worth walking.
+1. Finish C1 (#158): deploy World `0.5.0` + agent `2.57.0` to fuzzball (CI artifacts — local
+   `build_debs.sh` hangs under the upgraded Docker Desktop, see the World manual); move
+   `/etc/creature-agent.yaml` → `/etc/creature/agent/beaky.yaml`, write `mango.yaml`
+   (`characterEntityId: character:mango`, Mango's `creatureId`
+   `e93b9a7a-1704-11ef-84b9-3b37dddeb225`, persona from `docs/personas/mango.md`), `systemctl
+   enable --now creature-agent@beaky creature-agent@mango`, set `localLlmMaxTokens: 400`. Watch
+   both appear in the Viewer's Characters panel; start a second Beaky by hand and watch it
+   spectate; hand-cast an utterance to `character:mango` and hear Mango.
+2. C2 — scenes: the world gives the floor (`docs/flock-plan.md`). Then C3, the Communicator
+   for the flock.
+3. Decide whether production's agent moves to world mode (it would lose MQTT house-event
+   reactions until VW-013).
+4. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
+   about something real; the Facts panel is waiting. The box has to be a world event before
+   Beaky and Mango can argue about it.
+5. VW-011 *Why?* in the Viewer once facts have provenance worth walking.
 
 Do not let any deterministic component author Beaky's words; do not copy conversation state into
 the gateway; do not split typed input and future STT into separate cognition pipelines.

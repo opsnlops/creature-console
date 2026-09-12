@@ -124,6 +124,76 @@ struct WorldMindServiceTests {
         #expect(await stub.acceptedTexts == ["Loud and clear, April. Bawk!"])
     }
 
+    @Test("A mind logs in before it follows the world, carries its session, and logs out")
+    func logsInBeforeFollowing() async throws {
+        let stub = StubWorld()
+        await stub.putBeaky(on: .physicalSpeech)
+        let percept = try makePercept(text: "Beaky, are you logged in?")
+        await stub.script(connection: 0) { _ in
+            [
+                .snapshot(latestSequence: 30),
+                .delta(sequence: 31, envelope: try self.envelope(for: percept)),
+            ]
+        }
+        await stub.script(connection: 1) { _ in [] }
+        let room = RecordingRoom()
+        try await Harness.run(
+            stub: stub,
+            logger: logger,
+            room: room,
+            respondStreaming: { _ in
+                AsyncStream { continuation in
+                    continuation.yield("Logged in and listening.")
+                    continuation.finish()
+                }
+            },
+            logsIn: true,
+            respond: { _ in "unused" }
+        ) { harness in
+            try await harness.runUntil {
+                let performed = await stub.performances.count == 1
+                let beating = await stub.heartbeats >= 1
+                return performed && beating
+            }
+        }
+
+        let login = try #require(await stub.logins.first)
+        #expect(login.regionID.rawValue == "region:home")
+        #expect(login.instance.host == "test")
+        let stagedWith = await stub.stageRequests.first?.sessionID
+        let held = try #require(stagedWith)
+        #expect(await stub.performances.first?.sessionID == held)
+        #expect(await stub.logouts == 1)
+    }
+
+    @Test("A mind whose character is held elsewhere spectates until the world lets it in")
+    func spectatesWhileHeldElsewhere() async throws {
+        let stub = StubWorld()
+        try await stub.beakyHeldElsewhere()
+        await stub.script(connection: 0) { _ in [.snapshot(latestSequence: 40)] }
+        await stub.script(connection: 1) { _ in [] }
+        try await Harness.run(
+            stub: stub, logger: logger, logsIn: true, respond: { _ in "unused" }
+        ) { harness in
+            let run = Task { try await harness.service.run() }
+            try await Task.sleep(for: .milliseconds(250))
+            let loginsWhileHeld = await stub.logins.count
+            #expect(loginsWhileHeld >= 2)
+            #expect(await stub.connections.isEmpty)
+
+            await stub.releaseBeaky()
+            let deadline = ContinuousClock.now + .seconds(5)
+            while await stub.connections.isEmpty, ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            run.cancel()
+            _ = try? await run.value
+        }
+
+        #expect(await stub.connections.count >= 1)
+        #expect(await stub.logouts == 1)
+    }
+
     @Test("A restart after the world accepted a turn never makes Beaky say it twice")
     func replayAfterCrashIsRecognised() async throws {
         let stub = StubWorld()
@@ -302,6 +372,7 @@ private struct Harness {
         failFirstCursorWrite: Bool = false,
         room: (any PhysicalSpeechStaging)? = nil,
         respondStreaming: CharacterMind.RespondStreaming? = nil,
+        logsIn: Bool = false,
         respond: @escaping CharacterMind.Respond,
         body: @escaping @Sendable (Harness) async throws -> Void
     ) async throws {
@@ -317,11 +388,23 @@ private struct Harness {
             let client = HTTPClient(eventLoopGroupProvider: .singleton)
             let beaky = try EntityID(validating: "character:beaky")
             let responder = WorldResponder(client: client, worldURL: worldURL, logger: logger)
+            let session: WorldCharacterSession? =
+                logsIn
+                ? WorldCharacterSession(
+                    client: responder,
+                    characterID: beaky,
+                    regionID: try EntityID(validating: "region:home"),
+                    instance: CharacterMindInstance(host: "test", processID: 1),
+                    heartbeatInterval: .milliseconds(50),
+                    logger: logger
+                )
+                : nil
             let stage = room.map { room in
                 CharacterMind.Stage(
                     stager: responder,
                     room: room,
-                    respondStreaming: respondStreaming ?? { _ in AsyncStream { $0.finish() } }
+                    respondStreaming: respondStreaming ?? { _ in AsyncStream { $0.finish() } },
+                    session: { await session?.sessionID }
                 )
             }
             let service = WorldMindService(
@@ -347,8 +430,10 @@ private struct Harness {
                     logger: logger
                 ),
                 responder: responder,
+                session: session,
                 client: client,
-                logger: logger
+                logger: logger,
+                spectateDelay: .milliseconds(50)
             )
             try await body(Harness(cursor: cursor, service: service, client: client))
         }
@@ -476,6 +561,71 @@ actor StubWorld {
     private(set) var responses: [CharacterUtteranceIntent] = []
     private(set) var performances: [CharacterPerformance] = []
     private(set) var stageRequests: [CharacterStageRequest] = []
+    private(set) var logins: [CharacterLoginRequest] = []
+    private(set) var heartbeats = 0
+    private(set) var logouts = 0
+    private var holder: CharacterSession?
+    private var otherHolder: CharacterSession?
+
+    /// Another mind holds Beaky until `releaseBeaky()`.
+    func beakyHeldElsewhere() throws {
+        let now = Date(timeIntervalSince1970: 1_789_300_000)
+        otherHolder = try CharacterSession(
+            characterID: EntityID(validating: "character:beaky"),
+            regionID: EntityID(validating: "region:home"),
+            instance: CharacterMindInstance(host: "laptop", processID: 7),
+            loggedInAt: now, lastHeartbeatAt: now, expiresAt: now.addingTimeInterval(30))
+    }
+
+    func releaseBeaky() { otherHolder = nil }
+
+    var heldSessionID: CharacterSessionID? { holder?.sessionID }
+
+    private func login(_ request: CharacterLoginRequest) throws -> (HTTPResponse.Status, Data) {
+        logins.append(request)
+        if let otherHolder {
+            return (
+                .conflict,
+                try WorldJSON.makeEncoder().encode(
+                    CharacterLoginResult(disposition: .loggedInElsewhere, session: otherHolder))
+            )
+        }
+        let now = Date(timeIntervalSince1970: 1_789_300_000)
+        let session = try CharacterSession(
+            characterID: EntityID(validating: "character:beaky"),
+            regionID: request.regionID, instance: request.instance,
+            loggedInAt: now, lastHeartbeatAt: now, expiresAt: now.addingTimeInterval(30))
+        holder = session
+        return (
+            .ok,
+            try WorldJSON.makeEncoder().encode(
+                CharacterLoginResult(disposition: .loggedIn, session: session))
+        )
+    }
+
+    private func heartbeat(_ reference: CharacterSessionReference) throws -> (
+        HTTPResponse.Status, Data
+    ) {
+        guard let holder, holder.sessionID == reference.sessionID else {
+            let error = #"{"error":"logged_in_elsewhere","message":"not live"}"#
+            return (.conflict, Data(error.utf8))
+        }
+        heartbeats += 1
+        return (.ok, try WorldJSON.makeEncoder().encode(holder))
+    }
+
+    private func logout(_ reference: CharacterSessionReference) throws -> (
+        HTTPResponse.Status, Data
+    ) {
+        guard var holder, holder.sessionID == reference.sessionID else {
+            let error = #"{"error":"logged_in_elsewhere","message":"not live"}"#
+            return (.conflict, Data(error.utf8))
+        }
+        logouts += 1
+        holder.state = .loggedOut
+        self.holder = nil
+        return (.ok, try WorldJSON.makeEncoder().encode(holder))
+    }
     private(set) var acceptedTexts: [String] = []
     private var scripts: [Int: Script] = [:]
     private var pendingFailure: HTTPResponse.Status?
@@ -604,6 +754,32 @@ actor StubWorld {
                     try await writer.finish(nil)
                 }
             )
+        }
+        router.post("world/v1/characters/:characterID/login") { request, _ in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let login = try WorldJSON.makeDecoder().decode(CharacterLoginRequest.self, from: body)
+            let (status, data) = try await self.login(login)
+            return Response(
+                status: status, headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
+        }
+        router.post("world/v1/characters/:characterID/heartbeat") { request, _ in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let reference = try WorldJSON.makeDecoder().decode(
+                CharacterSessionReference.self, from: body)
+            let (status, data) = try await self.heartbeat(reference)
+            return Response(
+                status: status, headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
+        }
+        router.post("world/v1/characters/:characterID/logout") { request, _ in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let reference = try WorldJSON.makeDecoder().decode(
+                CharacterSessionReference.self, from: body)
+            let (status, data) = try await self.logout(reference)
+            return Response(
+                status: status, headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
         }
         router.post("world/v1/conversations/:conversationID/stage") { request, _ in
             let body = try await request.body.collect(upTo: 1_048_576)

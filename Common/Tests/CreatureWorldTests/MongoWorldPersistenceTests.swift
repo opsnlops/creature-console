@@ -117,6 +117,10 @@ struct MongoWorldPersistenceTests {
             )
             #expect(
                 try await persistence.database[MongoWorldCollection.schemaMigrations]
+                    .findOne(["_id": 6]) != nil
+            )
+            #expect(
+                try await persistence.database[MongoWorldCollection.schemaMigrations]
                     .findOne(["_id": 5]) != nil
             )
             #expect(
@@ -286,6 +290,36 @@ struct MongoWorldPersistenceTests {
             #expect(second == first)
             #expect(read == first)
             #expect(read?.decision.presence.basis == .assumed)
+        }
+    }
+
+    @Test("Character sessions are durable and the latest per character is what the world sees")
+    func characterSessionsAreDurable() async throws {
+        try await withPersistence { persistence in
+            let now = Date(timeIntervalSince1970: 1_789_300_000)
+            let beaky = try EntityID(validating: "character:\(UUID().uuidString.lowercased())")
+            let home = try EntityID(validating: "region:home")
+            let older = try CharacterSession(
+                characterID: beaky, regionID: home,
+                instance: CharacterMindInstance(host: "fuzzball", processID: 1),
+                state: .loggedOut, loggedInAt: now, lastHeartbeatAt: now,
+                expiresAt: now.addingTimeInterval(30), endedAt: now.addingTimeInterval(10))
+            let newer = try CharacterSession(
+                characterID: beaky, regionID: home,
+                instance: CharacterMindInstance(host: "fuzzball", processID: 2),
+                loggedInAt: now.addingTimeInterval(60), lastHeartbeatAt: now.addingTimeInterval(60),
+                expiresAt: now.addingTimeInterval(90))
+
+            try await persistence.characterSessions.save(older)
+            try await persistence.characterSessions.save(newer)
+            var renewed = newer
+            renewed.expiresAt = now.addingTimeInterval(120)
+            try await persistence.characterSessions.save(renewed)
+
+            #expect(try await persistence.characterSessions.session(for: beaky) == renewed)
+            #expect(try await persistence.characterSessions.session(id: older.sessionID) == older)
+            let latest = try await persistence.characterSessions.latestSessions()
+            #expect(latest.filter { $0.characterID == beaky } == [renewed])
         }
     }
 

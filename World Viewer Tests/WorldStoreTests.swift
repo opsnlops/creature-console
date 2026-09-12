@@ -263,6 +263,10 @@ struct ScriptedScryer: WorldScrying {
             deliveries: await world.conversation().1, nextResponseID: nil, hasMore: false)
     }
 
+    func characters() async throws -> CharacterSessionPage {
+        CharacterSessionPage(sessions: [])
+    }
+
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames {
         let world = world
         return WorldStreamFrames { continuation in

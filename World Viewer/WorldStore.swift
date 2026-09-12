@@ -42,6 +42,7 @@ final class WorldStore {
     private(set) var facts: [Fact] = []
     private(set) var factsTruncated = false
     private(set) var timers: [WorldTimer] = []
+    private(set) var characters: [CharacterSession] = []
     private(set) var conversationItems: [ConversationItem] = []
     private(set) var deliveries: [ResponseID: CharacterDeliveryRecord] = [:]
     private(set) var conversationID: ConversationID
@@ -84,6 +85,7 @@ final class WorldStore {
         timers = []
         conversationItems = []
         deliveries = [:]
+        characters = []
         health = nil
         streamTask = Task { await followWorld() }
         conversationTask = Task { await followConversation() }
@@ -105,6 +107,21 @@ final class WorldStore {
         } catch {
             lastError = ErrorAlert(title: "The Conversation Is Out Of Reach", error: error)
         }
+    }
+
+    /// User-initiated refresh of who is logged in.
+    func refreshCharacters() async {
+        do {
+            try await loadCharacters()
+        } catch {
+            lastError = ErrorAlert(title: "The Characters Are Out Of Reach", error: error)
+        }
+    }
+
+    private func loadCharacters() async throws {
+        let page = try await makeScryer().characters()
+        guard !Task.isCancelled else { return }
+        characters = page.sessions
     }
 
     func refreshFactsAndTimers() async {
@@ -157,6 +174,7 @@ final class WorldStore {
                         factsTruncated = snapshot.factsTruncated
                         timers = snapshot.timers
                         try await loadRecentHistory(using: scryer, upTo: snapshot.latestSequence)
+                        try await loadCharacters()
                         streamState = .live
                     case .event(let event):
                         append(event)
@@ -219,6 +237,9 @@ final class WorldStore {
             events.removeFirst(events.count - Self.maximumEvents)
         }
         latestSequence = max(latestSequence ?? 0, sequence)
+        if event.type.rawValue.hasPrefix("character.") {
+            Task { try? await loadCharacters() }
+        }
     }
 
     private func apply(changedFacts: [Fact]) {

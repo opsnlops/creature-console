@@ -13,6 +13,7 @@ protocol WorldScrying: Sendable {
     func timers(limit: Int) async throws -> WorldTimerPage
     func conversationItems(in conversationID: ConversationID, limit: Int) async throws
         -> ConversationItemPage
+    func characters() async throws -> CharacterSessionPage
     func deliveries(in conversationID: ConversationID, limit: Int) async throws
         -> CharacterDeliveryPage
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames
@@ -51,6 +52,10 @@ struct LiveWorldScryer: WorldScrying {
         -> CharacterDeliveryPage
     {
         try await viewer.deliveries(in: conversationID, limit: limit)
+    }
+
+    func characters() async throws -> CharacterSessionPage {
+        try await viewer.characters()
     }
 
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames {

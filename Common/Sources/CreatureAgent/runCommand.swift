@@ -306,6 +306,9 @@ private func runWorldMode(
     guard let personID = EntityID(rawValue: world.personEntityID) else {
         throw WorldModeError.invalidEntityID(world.personEntityID)
     }
+    guard let regionID = EntityID(rawValue: world.regionEntityID) else {
+        throw WorldModeError.invalidEntityID(world.regionEntityID)
+    }
 
     logger.info(
         "Beaky's mind is waking up in Creature World",
@@ -318,6 +321,7 @@ private func runWorldMode(
             "agent.prompt_version": "\(CharacterMind.promptVersion)",
             "agent.stage": "\(world.stage.rawValue)",
             "creature.id": "\(config.creatureId)",
+            "world.region_id": "\(regionID.rawValue)",
         ]
     )
 
@@ -346,6 +350,19 @@ private func runWorldMode(
         logger: logger
     )
     let responder = WorldResponder(client: client, worldURL: world.worldURL, logger: logger)
+    // This process is one mind for one character in one region; the world holds it to that.
+    let session = WorldCharacterSession(
+        client: responder,
+        characterID: characterID,
+        regionID: regionID,
+        instance: CharacterMindInstance(
+            host: ProcessInfo.processInfo.hostName,
+            processID: Int(ProcessInfo.processInfo.processIdentifier),
+            creatureID: config.creatureId,
+            version: CreatureAgent.configuration.version
+        ),
+        logger: logger
+    )
     // The room is Creature Server, reached exactly as the MQTT agent reaches it.
     let stage: CharacterMind.Stage? =
         switch world.stage {
@@ -359,7 +376,8 @@ private func runWorldMode(
                 ),
                 respondStreaming: {
                     localLLM.respondStreaming(messages: $0, recordingHistoryFor: nil)
-                }
+                },
+                session: { await session.sessionID }
             )
         case .communicatorOnly:
             nil
@@ -387,6 +405,7 @@ private func runWorldMode(
         ),
         mind: mind,
         responder: responder,
+        session: session,
         client: client,
         logger: logger
     )

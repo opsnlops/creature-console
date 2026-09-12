@@ -744,17 +744,27 @@ public struct CharacterStageRequest: Hashable, Sendable, Codable {
     public var responseID: ResponseID
     public var characterID: EntityID
     public var recipientID: EntityID
+    /// The session the asking mind holds for this character. Required once any mind is logged
+    /// in as the character; a mind without the live session is told it is logged in elsewhere.
+    public var sessionID: CharacterSessionID?
 
-    public init(responseID: ResponseID, characterID: EntityID, recipientID: EntityID) {
+    public init(
+        responseID: ResponseID,
+        characterID: EntityID,
+        recipientID: EntityID,
+        sessionID: CharacterSessionID? = nil
+    ) {
         self.responseID = responseID
         self.characterID = characterID
         self.recipientID = recipientID
+        self.sessionID = sessionID
     }
 
     private enum CodingKeys: String, CodingKey {
         case responseID = "response_id"
         case characterID = "character_id"
         case recipientID = "recipient_id"
+        case sessionID = "session_id"
     }
 }
 
@@ -822,20 +832,24 @@ public struct CharacterPerformance: Hashable, Sendable, Codable {
     public var intent: CharacterUtteranceIntent
     public var attemptID: DeliveryAttemptID
     public var outcome: CharacterPerformanceReport
+    public var sessionID: CharacterSessionID?
 
     public init(
         intent: CharacterUtteranceIntent,
         attemptID: DeliveryAttemptID,
-        outcome: CharacterPerformanceReport
+        outcome: CharacterPerformanceReport,
+        sessionID: CharacterSessionID? = nil
     ) {
         self.intent = intent
         self.attemptID = attemptID
         self.outcome = outcome
+        self.sessionID = sessionID
     }
 
     private enum CodingKeys: String, CodingKey {
         case intent
         case attemptID = "attempt_id"
         case outcome
+        case sessionID = "session_id"
     }
 }

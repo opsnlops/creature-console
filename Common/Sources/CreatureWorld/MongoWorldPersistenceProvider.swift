@@ -27,6 +27,13 @@ struct MongoWorldPersistenceConnection: Sendable {
         @Sendable (ConversationID, ConversationItemID?, Int) async throws -> ConversationItemPage
     let deliveries:
         @Sendable (ConversationID, ResponseID?, Int) async throws -> CharacterDeliveryPage
+    let loginCharacter:
+        @Sendable (EntityID, CharacterLoginRequest) async throws -> CharacterLoginResult
+    let heartbeatCharacter:
+        @Sendable (EntityID, CharacterSessionReference) async throws -> CharacterSession
+    let logoutCharacter:
+        @Sendable (EntityID, CharacterSessionReference) async throws -> CharacterSession
+    let characterSessions: @Sendable () async throws -> [CharacterSession]
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -57,6 +64,11 @@ struct MongoWorldPersistenceConnection: Sendable {
             physicalSpeechSink: NotConnectedPhysicalSpeechSink(logger: logger),
             communicatorSink: CommunicatorDeliverySink(),
             clock: clock
+        )
+        let sessionService = CharacterSessionService(
+            repository: persistence.characterSessions,
+            clock: clock,
+            announce: { _ = try await world.accept($0) }
         )
         acceptEvent = { try await world.accept($0) }
         events = { sequence, limit in
@@ -129,8 +141,21 @@ struct MongoWorldPersistenceConnection: Sendable {
             )
         }
         respondAsCharacter = { try await deliveryRouter.route($0) }
-        stageCharacter = { try await deliveryRouter.stage($0, in: $1) }
-        recordPerformance = { try await deliveryRouter.recordPerformance($0, in: $1) }
+        // A mind must hold the character's live session to perform as it, once anyone does.
+        stageCharacter = { request, conversationID in
+            try await sessionService.requireHolder(
+                of: request.characterID, sessionID: request.sessionID)
+            return try await deliveryRouter.stage(request, in: conversationID)
+        }
+        recordPerformance = { performance, conversationID in
+            try await sessionService.requireHolder(
+                of: performance.intent.characterID, sessionID: performance.sessionID)
+            return try await deliveryRouter.recordPerformance(performance, in: conversationID)
+        }
+        loginCharacter = { try await sessionService.login($0, $1) }
+        heartbeatCharacter = { try await sessionService.heartbeat($0, $1) }
+        logoutCharacter = { try await sessionService.logout($0, $1) }
+        characterSessions = { try await sessionService.characterSessions() }
         conversationItems = { conversationID, after, limit in
             let loaded = try await persistence.conversations.conversationItems(
                 in: conversationID,
@@ -219,6 +244,18 @@ struct MongoWorldPersistenceConnection: Sendable {
         deliveries:
             @escaping @Sendable (ConversationID, ResponseID?, Int) async throws
             -> CharacterDeliveryPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
+        loginCharacter:
+            @escaping @Sendable (EntityID, CharacterLoginRequest) async throws
+            -> CharacterLoginResult = { _, _ in throw WorldAPIError.databaseUnavailable },
+        heartbeatCharacter:
+            @escaping @Sendable (EntityID, CharacterSessionReference) async throws
+            -> CharacterSession = { _, _ in throw WorldAPIError.databaseUnavailable },
+        logoutCharacter:
+            @escaping @Sendable (EntityID, CharacterSessionReference) async throws
+            -> CharacterSession = { _, _ in throw WorldAPIError.databaseUnavailable },
+        characterSessions: @escaping @Sendable () async throws -> [CharacterSession] = {
+            throw WorldAPIError.databaseUnavailable
+        },
         shutdown: @escaping @Sendable () async -> Void
     ) {
         self.acceptEvent = acceptEvent
@@ -238,6 +275,10 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.recordPerformance = recordPerformance
         self.conversationItems = conversationItems
         self.deliveries = deliveries
+        self.loginCharacter = loginCharacter
+        self.heartbeatCharacter = heartbeatCharacter
+        self.logoutCharacter = logoutCharacter
+        self.characterSessions = characterSessions
         self.shutdown = shutdown
     }
 }
@@ -425,6 +466,35 @@ actor MongoWorldPersistenceProvider {
         return result
     }
 
+    func login(
+        _ characterID: EntityID,
+        _ request: CharacterLoginRequest
+    ) async throws -> CharacterLoginResult {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.loginCharacter(characterID, request)
+    }
+
+    func heartbeat(
+        _ characterID: EntityID,
+        _ reference: CharacterSessionReference
+    ) async throws -> CharacterSession {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.heartbeatCharacter(characterID, reference)
+    }
+
+    func logout(
+        _ characterID: EntityID,
+        _ reference: CharacterSessionReference
+    ) async throws -> CharacterSession {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.logoutCharacter(characterID, reference)
+    }
+
+    func characterSessions() async throws -> [CharacterSession] {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.characterSessions()
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -453,6 +523,7 @@ actor MongoWorldPersistenceProvider {
 }
 
 extension MongoWorldPersistenceProvider: ConversationApplicationService {}
+extension MongoWorldPersistenceProvider: CharacterSessionApplicationService {}
 
 private struct WorldPersonUtterancePerceptSink: PersonUtterancePerceptSink {
     let world: World

@@ -12,24 +12,32 @@ struct WorldMindService: Service {
     private let subscriber: WorldPerceptSubscriber
     private let mind: CharacterMind
     private let responder: any WorldTurnResponding
+    private let session: WorldCharacterSession?
     private let client: HTTPClient
     private let logger: Logger
     private let clock: any WorldClock
+    private let spectateDelay: Duration
 
+    /// Without a `session` the mind follows the world unconditionally (no login desk — the
+    /// pre-0.5 world). With one it must hold its character before it follows anything.
     init(
         subscriber: WorldPerceptSubscriber,
         mind: CharacterMind,
         responder: any WorldTurnResponding,
+        session: WorldCharacterSession? = nil,
         client: HTTPClient,
         logger: Logger,
-        clock: any WorldClock = SystemWorldClock()
+        clock: any WorldClock = SystemWorldClock(),
+        spectateDelay: Duration = .seconds(15)
     ) {
         self.subscriber = subscriber
         self.mind = mind
         self.responder = responder
+        self.session = session
         self.client = client
         self.logger = logger
         self.clock = clock
+        self.spectateDelay = spectateDelay
     }
 
     func run() async throws {
@@ -38,14 +46,63 @@ struct WorldMindService: Service {
         // Nothing undecided is lost — the cursor only moves after a decision is durable.
         do {
             try await cancelWhenGracefulShutdown {
-                try await subscriber.run { consideration in
-                    try await handle(consideration)
+                if let session {
+                    try await runAsCharacter(session)
+                } else {
+                    try await follow()
                 }
             }
         } catch is CancellationError {
             logger.info("Beaky's mind is going to sleep")
         }
+        // Log out even when this task was cancelled outright (SIGINT, tests): the request runs
+        // in its own task so the world learns the character is free instead of waiting for the
+        // session to lapse.
+        if let session {
+            await Task { await session.logout() }.value
+        }
         try await client.shutdown()
+    }
+
+    /// Log in, follow the world while the heartbeat holds, spectate when another mind has the
+    /// character, and try again whenever the session is lost.
+    private func runAsCharacter(_ session: WorldCharacterSession) async throws {
+        while !Task.isCancelled {
+            do {
+                try await session.login()
+            } catch WorldCharacterSessionError.loggedInElsewhere {
+                try await Task.sleep(for: spectateDelay)
+                continue
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                logger.warning(
+                    "Could not reach the world's login desk; trying again",
+                    metadata: ["error": "\(error)"])
+                try await Task.sleep(for: spectateDelay)
+                continue
+            }
+            do {
+                try await withThrowingTaskGroup(of: Void.self) { group in
+                    group.addTask { try await session.keepAlive() }
+                    group.addTask { try await follow() }
+                    // Whichever ends first — a lost session or a failed follow — ends both.
+                    try await group.next()
+                    group.cancelAll()
+                }
+            } catch WorldCharacterSessionError.sessionLost {
+                logger.warning(
+                    "Lost the character; stopping until the world lets this mind back in")
+            } catch is CancellationError {
+                throw CancellationError()
+            }
+        }
+    }
+
+    private func follow() async throws {
+        try await subscriber.run { consideration in
+            try await handle(consideration)
+        }
     }
 
     /// Decides, then makes the decision durable in the world before returning so the cursor can

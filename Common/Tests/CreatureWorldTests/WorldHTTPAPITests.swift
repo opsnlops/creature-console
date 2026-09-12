@@ -263,6 +263,69 @@ struct WorldHTTPAPITests {
         }
     }
 
+    @Test("A mind logs in as a character over HTTP; a second one is told it is logged in elsewhere")
+    func characterLoginOverHTTP() async throws {
+        let sessions = CharacterSessionService(
+            repository: InMemorySessionRepository(),
+            clock: ManualWorldClock(now: Date(timeIntervalSince1970: 1_789_300_000)),
+            announce: { _ in }
+        )
+        let application = try makeApplication(
+            worldService: TestWorldApplicationService(),
+            characterSessionService: sessions
+        )
+        let headers: HTTPFields = [.contentType: "application/json"]
+        let fuzzball = CharacterLoginRequest(
+            regionID: try EntityID(validating: "region:home"),
+            instance: CharacterMindInstance(host: "fuzzball", processID: 1))
+        let laptop = CharacterLoginRequest(
+            regionID: try EntityID(validating: "region:home"),
+            instance: CharacterMindInstance(host: "laptop", processID: 2))
+
+        try await application.test(.router) { client in
+            var sessionID: CharacterSessionID?
+            try await client.execute(
+                uri: "/world/v1/characters/character:beaky/login", method: .post,
+                headers: headers, body: try encode(fuzzball)
+            ) { response in
+                #expect(response.status == .ok)
+                let result = try decode(CharacterLoginResult.self, response.body)
+                #expect(result.disposition == .loggedIn)
+                sessionID = result.session.sessionID
+            }
+            try await client.execute(
+                uri: "/world/v1/characters/character:beaky/login", method: .post,
+                headers: headers, body: try encode(laptop)
+            ) { response in
+                #expect(response.status == .conflict)
+                let result = try decode(CharacterLoginResult.self, response.body)
+                #expect(result.disposition == .loggedInElsewhere)
+                #expect(result.session.instance.host == "fuzzball")
+            }
+            let reference = CharacterSessionReference(sessionID: try #require(sessionID))
+            try await client.execute(
+                uri: "/world/v1/characters/character:beaky/heartbeat", method: .post,
+                headers: headers, body: try encode(reference)
+            ) { response in
+                #expect(response.status == .ok)
+            }
+            try await client.execute(uri: "/world/v1/characters", method: .get) { response in
+                #expect(response.status == .ok)
+                let page = try decode(CharacterSessionPage.self, response.body)
+                #expect(page.sessions.map(\.characterID.rawValue) == ["character:beaky"])
+                #expect(page.sessions.first?.state == .active)
+            }
+            try await client.execute(
+                uri: "/world/v1/characters/character:beaky/logout", method: .post,
+                headers: headers, body: try encode(reference)
+            ) { response in
+                #expect(response.status == .ok)
+                let ended = try decode(CharacterSession.self, response.body)
+                #expect(ended.state == .loggedOut)
+            }
+        }
+    }
+
     @Test("A Beaky turn addressed to another conversation is refused")
     func characterResponseIdentityMismatchIsRejected() async throws {
         let application = try makeApplication(
@@ -786,6 +849,8 @@ struct WorldHTTPAPITests {
         worldService: any WorldApplicationService,
         conversationService: any ConversationApplicationService =
             UnavailableConversationApplicationService(),
+        characterSessionService: any CharacterSessionApplicationService =
+            UnavailableCharacterSessionApplicationService(),
         apiConfiguration: WorldAPIConfiguration = .default
     ) throws -> Application<RouterResponder<BasicRequestContext>> {
         let configuration = try configuration ?? CreatureWorldConfiguration(port: 8080)
@@ -794,7 +859,8 @@ struct WorldHTTPAPITests {
             logger: Logger(label: "creature-world-api-tests"),
             buildInfo: CreatureWorldBuildInfo(version: "api-test", schemaVersion: 1),
             worldService: worldService,
-            conversationService: conversationService
+            conversationService: conversationService,
+            characterSessionService: characterSessionService
         )
         return makeCreatureWorldApplication(
             dependencies: dependencies,
@@ -1289,5 +1355,25 @@ extension HTTPFields {
         var fields = self
         fields[.contentType] = "application/json"
         return fields
+    }
+}
+
+private actor InMemorySessionRepository: CharacterSessionRepository {
+    private var sessions: [CharacterSessionID: CharacterSession] = [:]
+
+    func session(for characterID: EntityID) -> CharacterSession? {
+        sessions.values.filter { $0.characterID == characterID }.max {
+            $0.loggedInAt < $1.loggedInAt
+        }
+    }
+
+    func session(id: CharacterSessionID) -> CharacterSession? { sessions[id] }
+
+    func save(_ session: CharacterSession) { sessions[session.sessionID] = session }
+
+    func latestSessions() -> [CharacterSession] {
+        Dictionary(grouping: sessions.values, by: \.characterID).values.compactMap {
+            $0.max { $0.loggedInAt < $1.loggedInAt }
+        }
     }
 }

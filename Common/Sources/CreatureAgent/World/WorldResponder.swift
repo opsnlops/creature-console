@@ -18,6 +18,8 @@ enum WorldResponseOutcome: Equatable, Sendable {
 
 enum WorldResponderError: Error, Equatable {
     case unavailable(status: UInt)
+    /// The world refused for good (4xx); retrying the same request would not help.
+    case rejected(code: String, message: String)
 }
 
 /// Something that can ask the world where a turn should be performed, before the words exist.
@@ -62,7 +64,7 @@ struct WorldResponder: WorldTurnResponding {
             let (status, body) = try await post(
                 stageRequest, to: conversationID, route: "stage", span: span)
             guard status == 200 else {
-                throw WorldResponderError.unavailable(status: status)
+                throw Self.failure(status: status, body: body)
             }
             let result = try WorldJSON.makeDecoder().decode(CharacterStageResult.self, from: body)
             span.attributes["conversation.stage.disposition"] = result.disposition.rawValue
@@ -101,11 +103,22 @@ struct WorldResponder: WorldTurnResponding {
         route: String,
         span: any Span
     ) async throws -> (status: UInt, body: Data) {
-        let url =
-            worldURL
-            .appending(path: "conversations")
-            .appending(path: conversationID.rawValue)
-            .appending(path: route)
+        try await post(
+            payload,
+            path: ["conversations", conversationID.rawValue, route],
+            span: span
+        )
+    }
+
+    private func post<Body: Encodable>(
+        _ payload: Body,
+        path: [String],
+        span: any Span
+    ) async throws -> (status: UInt, body: Data) {
+        var url = worldURL
+        for component in path {
+            url.append(path: component)
+        }
         var request = HTTPClientRequest(url: url.absoluteString)
         request.method = .POST
         request.headers.add(name: "content-type", value: "application/json")
@@ -145,6 +158,57 @@ struct WorldResponder: WorldTurnResponding {
         default:
             throw WorldResponderError.unavailable(status: status)
         }
+    }
+
+    /// A 4xx becomes a rejection the caller can reason about; anything else is the world away.
+    private static func failure(status: UInt, body: Data) -> WorldResponderError {
+        guard (400..<500).contains(status) else {
+            return .unavailable(status: status)
+        }
+        let error =
+            (try? WorldJSON.makeDecoder().decode(WorldErrorBody.self, from: body))
+            ?? WorldErrorBody(error: "rejected", message: "HTTP \(status)")
+        return .rejected(code: error.error, message: error.message)
+    }
+}
+
+extension WorldResponder: WorldSessionClient {
+    func login(_ characterID: EntityID, _ loginRequest: CharacterLoginRequest) async throws
+        -> CharacterLoginResult
+    {
+        try await withSpan("creature.world.login", ofKind: .client) { span in
+            let (status, body) = try await post(
+                loginRequest, path: ["characters", characterID.rawValue, "login"], span: span)
+            // 409 carries the session that holds the character; it is an answer, not an error.
+            guard status == 200 || status == 409 else {
+                throw Self.failure(status: status, body: body)
+            }
+            return try WorldJSON.makeDecoder().decode(CharacterLoginResult.self, from: body)
+        }
+    }
+
+    func heartbeat(_ characterID: EntityID, _ reference: CharacterSessionReference) async throws
+        -> CharacterSession
+    {
+        let (status, body) = try await withSpan("creature.world.heartbeat", ofKind: .client) {
+            span in
+            try await post(
+                reference, path: ["characters", characterID.rawValue, "heartbeat"], span: span)
+        }
+        guard status == 200 else { throw Self.failure(status: status, body: body) }
+        return try WorldJSON.makeDecoder().decode(CharacterSession.self, from: body)
+    }
+
+    func logout(_ characterID: EntityID, _ reference: CharacterSessionReference) async throws
+        -> CharacterSession
+    {
+        let (status, body) = try await withSpan("creature.world.logout", ofKind: .client) {
+            span in
+            try await post(
+                reference, path: ["characters", characterID.rawValue, "logout"], span: span)
+        }
+        guard status == 200 else { throw Self.failure(status: status, body: body) }
+        return try WorldJSON.makeDecoder().decode(CharacterSession.self, from: body)
     }
 }
 

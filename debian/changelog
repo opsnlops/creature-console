@@ -1,3 +1,18 @@
+creature-cli (2.57.0) unstable; urgency=medium
+
+  * creature-agent: several minds on one host. The template unit
+    creature-agent@<instance> reads /etc/creature/agent/<instance>.yaml and
+    keeps its own cursor under /var/lib/creature-agent/<instance>. In world
+    mode a mind logs into Creature World as its character, in a region, and
+    heartbeats; a second process for the same character spectates until the
+    holder is gone. Agent configuration moves to /etc/creature/agent.yaml
+    (the conffile is carried across).
+  * creature-world 0.5.0: character login (POST .../characters/{id}/login,
+    heartbeat, logout; GET .../characters), character.logged_in/out world
+    events, and stage/performance requests bound to the holder's session.
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 19:40:00 -0700
+
 creature-cli (2.56.1) unstable; urgency=medium
 
   * creature-agent: a reply the model could not finish within
