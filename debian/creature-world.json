@@ -2,6 +2,13 @@
   "host": "127.0.0.1",
   "mongodb_uri": "mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000",
   "port": 8001,
+  "creature_server": { "url": "https://server.prod.chirpchirp.dev" },
+  "scene_performance": "streaming",
+  "presence": {
+    "assumed": {
+      "person:april": { "state": "home", "physically_audible": true, "confidence": 0.9 }
+    }
+  },
   "regions": {
     "region:home": {
       "stage_id": "0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4",

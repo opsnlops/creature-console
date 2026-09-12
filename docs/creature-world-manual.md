@@ -207,7 +207,12 @@ render. Events: `scene.opened`, `scene.turn_offered`, `scene.turn`, `scene.close
 }
 ```
 
-Stages come from `GET /api/v1/stage` on Creature Server. The packaged `world.json` maps
+**The packaged `world.json` is April's real configuration** — Creature Server's URL, the
+assumed presence, `region:home` with its stage and places, the given facts — so that when an
+upgrade changes the file and dpkg asks which version to keep, either answer works. (On
+2026-09-12 the package's copy won and it had no `creature_server`; every scene then failed
+with `creature_server_not_configured` until the block was put back.) Stages come from
+`GET /api/v1/stage` on Creature Server. The packaged `world.json` maps
 `region:home` to **Mainstage** (`0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4`), which has every bird
 placed on it; the characters' new building will get its own region and stage when it exists.
 
