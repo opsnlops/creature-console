@@ -75,6 +75,10 @@ struct TimelineRow: View {
                         Image(systemName: "point.3.connected.trianglepath.dotted")
                             .help("Carries a W3C trace context")
                     }
+                    if let knownFacts {
+                        Label("knows \(knownFacts)", systemImage: "lightbulb")
+                            .help("Facts the world told the mind with this percept")
+                    }
                 }
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.tertiary)
@@ -90,6 +94,13 @@ struct TimelineRow: View {
 
     private var lag: Double? {
         event.receivedAt.map { $0.timeIntervalSince(event.occurredAt) * 1_000 }
+    }
+
+    /// A percept (an utterance for a mind, a floor offer) carries what the world knew at that
+    /// moment; the exact facts are in the Mundane view.
+    private var knownFacts: Int? {
+        guard case .array(let facts)? = event.payload["world_facts"] else { return nil }
+        return facts.count
     }
 }
 

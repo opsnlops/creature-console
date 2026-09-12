@@ -42,7 +42,9 @@ Every world event, newest at the top, seeded from the snapshot (the newest 2,000
 advanced live from `/world/v1/stream`. Each row shows the world sequence, event type, epistemic
 state and confidence, subjects, source, when it occurred, and the **lag** between `occurred_at`
 and `received_at` (orange when over two seconds). Rows with a trace context show a small
-trace icon. The search field filters by type, subject, or source.
+trace icon; a percept that carried facts to a mind (an utterance or a floor offer) shows
+**knows N** — Scry it and the Mundane view lists exactly those facts under `world_facts`. The
+search field filters by type, subject, or source.
 
 ### Conversation
 
@@ -74,8 +76,10 @@ every `scene.*` event, so you can watch the floor move between Beaky and Mango a
 ### Facts and Timers
 
 What the World currently believes, and what it has scheduled. Both are seeded from the snapshot
-and updated from stream deltas; the toolbar's refresh re-reads them. Until the first reducer
-lands, Facts is empty and says so — the Viewer never invents a fact to fill the space.
+and updated from stream deltas; the toolbar's refresh re-reads them. Since World `0.7.0`,
+Facts holds who is logged into which region, April's assumed presence, and the room's last
+scene; a superseded fact leaves the list the moment its replacement arrives. When the world
+knows nothing, Facts is empty and says so — the Viewer never invents a fact to fill the space.
 
 ### Mundane view
 

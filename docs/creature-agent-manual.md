@@ -107,6 +107,7 @@ World mode keys:
 | `llmTimeoutSeconds` | `60` | model call deadline |
 | `regionEntityId` | `region:home` | the region this mind logs into; a character is in one region at a time |
 | `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
+| `timeZone` | the host's zone | an IANA identifier such as `America/Los_Angeles`; the mind is told the local time in words every turn ("It is 11:45 PM on Friday, September 11."). Set it — a server's clock is usually UTC and a model cannot convert zones (`2.59.0`) |
 
 A minimal world-mode file:
 
@@ -123,6 +124,7 @@ worldUrl: http://10.69.66.1:8001/world/v1
 characterEntityId: character:beaky
 personEntityId: person:april
 stateDirectory: /var/lib/creature-agent
+timeZone: America/Los_Angeles
 llmSystemPrompt: |
   You are Beaky, an animatronic parrot who lives in April's house and is her familiar. ...
 areas: []
@@ -141,10 +143,19 @@ creature-agent run --config-path agent.yaml --log-level info --host <creature-se
   and answers anything it missed, except messages older than `maximumReplyAge`, which become
   recorded `stale` silences.
 - **It reads the canonical conversation.** The prompt is the persona, a fixed conversation
-  contract (`prompt_version` `world-conversation-v1`, recorded on every span), and the prior
+  contract (`prompt_version` `world-conversation-v2`, recorded on every span), and the prior
   conversation items the world attached to the percept — both authors, in order — so Beaky sees
   what she herself said last. Consecutive messages from one author are merged into one turn
   because Mistral's chat template rejects non-alternating roles.
+- **It is told what the world knows** (`2.59.0`). The block begins with the local time in words
+  (`timeZone`) — Beaky answered "high noon" at 11:45 PM before this — and the `world_facts` on
+  an utterance percept or a scene floor offer follow, phrased as plain sentences — "Mango is here in the room with you",
+  "April is home (you assume; nobody has checked)", "5 minutes ago, in this room: Mango said
+  …" — in a "What you know right now, from the world itself" block ahead of the conversation,
+  and the prompt says to trust it over guesses. `FactPhrasing` maps predicates to sentences,
+  so the model never sees `presence.region`; a predicate it has no words for is left out
+  rather than dumped. With no facts the block is absent. The Viewer's Mundane view of the
+  percept shows exactly which facts a bird was told.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
   emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the

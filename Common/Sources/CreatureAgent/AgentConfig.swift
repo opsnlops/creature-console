@@ -56,6 +56,10 @@ struct AgentConfig: Decodable {
         let maximumContextTurns: Int
         let llmTimeout: TimeInterval
         let stage: StagePolicy
+        /// The clock the character lives by. A model cannot do time-zone arithmetic, so it is
+        /// told the local wall-clock time in words; the host's zone (often UTC on a server) is
+        /// rarely the house's.
+        let timeZone: TimeZone
 
         /// Whether the mind may perform in the room. `physical` asks the world for the stage
         /// before each turn and streams to Creature Server when the answer is the room;
@@ -123,6 +127,7 @@ struct AgentConfig: Decodable {
         case worldUrl
         case stage
         case regionEntityId
+        case timeZone
         case characterEntityId
         case personEntityId
         case stateDirectory
@@ -207,7 +212,17 @@ struct AgentConfig: Decodable {
             llmTimeout: try container.decodeIfPresent(Double.self, forKey: .llmTimeoutSeconds)
                 ?? WorldModeConfig.defaultLLMTimeout,
             stage: try container.decodeIfPresent(
-                WorldModeConfig.StagePolicy.self, forKey: .stage) ?? .physical
+                WorldModeConfig.StagePolicy.self, forKey: .stage) ?? .physical,
+            timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone).map {
+                guard let zone = TimeZone(identifier: $0) else {
+                    throw DecodingError.dataCorruptedError(
+                        forKey: .timeZone, in: container,
+                        debugDescription:
+                            "timeZone must be an identifier such as America/Los_Angeles"
+                    )
+                }
+                return zone
+            } ?? TimeZone.current
         )
     }
 

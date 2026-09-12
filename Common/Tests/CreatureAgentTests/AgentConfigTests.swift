@@ -64,6 +64,30 @@ struct AgentConfigTests {
         #expect(config.conversationHistorySize == 20)
     }
 
+    @Test("A world-mode mind lives in the house's time zone, not the host's")
+    func parsesWorldTimeZone() throws {
+        func load(_ extra: String) throws -> AgentConfig {
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        mode: world
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmBackend: local
+                        llmSystemPrompt: system
+                        llmModel: mistral-nemo
+                        worldUrl: http://127.0.0.1:8001/world/v1
+                        areas: []
+                        \(extra)
+                        """))
+        }
+
+        #expect(
+            try load("timeZone: America/Los_Angeles").world.timeZone.identifier
+                == "America/Los_Angeles")
+        #expect(try load("").world.timeZone == TimeZone.current)
+        #expect(throws: DecodingError.self) { try load("timeZone: Whidbey/Island") }
+    }
+
     @Test("Uses default values for optional local LLM fields")
     func usesDefaultsForOptionalFields() throws {
         let yaml = """

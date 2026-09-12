@@ -629,6 +629,16 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
         factsByID[fact.factID] = fact
     }
 
+    func supersede(by fact: Fact) {
+        for (id, existing) in factsByID
+        where existing.subjectID == fact.subjectID && existing.predicate == fact.predicate
+            && id != fact.factID && existing.supersededBy == nil
+        {
+            factsByID[id]?.validTo = fact.validFrom
+            factsByID[id]?.supersededBy = fact.factID
+        }
+    }
+
     func isProcessed(eventID: EventID) -> Bool {
         processedEventIDs.contains(eventID)
     }

@@ -1,3 +1,32 @@
+creature-cli (2.59.0+world0.7.1) unstable; urgency=medium
+
+  * creature-world 0.7.1: a fact with a validity window (scene.last, an
+    hour) is current until the window closes. 0.7.0 treated any valid_to
+    as expired, so the room's last scene never reached the minds or the
+    Viewer. A newer windowed fact also supersedes the older one.
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 23:55:00 -0700
+
+creature-cli (2.59.0+world0.7.0) unstable; urgency=medium
+
+  * creature-world 0.7.0: the world's first facts. Character logins and
+    logouts become presence.region facts, the configured presence
+    assumption becomes a presence.state fact with provenance, and every
+    performed scene leaves a scene.last fact for an hour. A newer fact
+    about the same subject and predicate supersedes the older one. Utterance
+    percepts and scene floor offers carry world_facts (bounded to 40) about
+    the character, its region, everyone present, and the speaker. Expired
+    character sessions are swept and logged out by the world. Addressing
+    refined: "@beaky ..." is for Beaky alone; "Beaky, ..." puts her first
+    and lets the room chime in.
+  * creature-agent 2.59.0: the mind is told what the world knows. Facts are
+    phrased as plain sentences in a "What you know right now" block before
+    the conversation (prompt world-conversation-v2), which always begins
+    with the local time in words (new `timeZone` key; a model cannot
+    convert zones and Beaky said "high noon" at 11:45 PM).
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 23:15:00 -0700
+
 creature-cli (2.58.2+world0.6.2) unstable; urgency=medium
 
   * creature-world 0.6.2: addressing is a world rule. A character named at

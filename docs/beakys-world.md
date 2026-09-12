@@ -2,8 +2,8 @@
 
 ## Architecture and Implementation Handoff
 
-**Status:** Implementation underway; World and Communicator transport are on production; Creature World accepts character turns; Beaky answered April with her own words (Mistral Nemo) on fuzzball tonight (branch `vw-014-beaky-mind`)
-**Revision:** 2026-09-10 (late night)
+**Status:** Implementation underway; World and Communicator transport are on production; the flock (Beaky, Mango, Kenny) talks in scenes on fuzzball; the world's first facts are on branch `facts-f1`
+**Revision:** 2026-09-11 (late night)
 **Primary goal:** **Make Beaky really be April’s familiar.**  
 **Experience goal:** **Make the house feel alive.**  
 **Stack mantra:** **The world happens. The agents notice. The server performs. The controllers obey.**
@@ -18,33 +18,76 @@ current in the same commit as the code it describes.**
 
 ### 0.1 Repository and review state
 
-- `main` is at `a75da2a`. Merged today, in order: #150/#152 (traces), #153 (World Viewer,
+- `main` is at `1c3e5cb`. Merged today, in order: #150/#152 (traces), #153 (World Viewer,
   VW-010), #155 (Beaky's voice in the room, VW-016), #159 (the flock C1: many minds), #161
-  (the flock C2: scenes), #163 (#162 silence, #144 restart-on-upgrade, Communicator names).
-- **The flock** (`docs/flock-plan.md`): C1 and C2 are live on fuzzball. C3 (one house
-  conversation, "Mango, …" addressing as a world rule, the app's title/composer no longer
-  "Beaky") is next; then personas and memory so the birds stop looping on birdseed and Linux.
+  (the flock C2: scenes), #163 (#162 silence, #144 restart-on-upgrade, Communicator names),
+  #165 (the flock C3: the house conversation and addressing as a world rule).
+- **Branch `facts-f1`** (this handoff, PR #167): F1 of `docs/facts-and-personas-plan.md` — World
+  `0.7.1`, agent `2.59.0`, Viewer facts count; see 0.3 below. April installed the CI build of
+  `0.7.0` at 23:36 and the facts appeared: three birds in `region:home`, April `home (assumed)`;
+  `@beaky` answered alone, "Beaky, bring me a towel!" put her first and the flock followed.
+  `scene.last` was missing — `0.7.1` fixes the current-facts query (a validity window is not
+  an expiry). Also refines C3's addressing
+  after April heard the flock pile in on "Beaky, I love you" and liked it: `@beaky` is a
+  whisper (alone), "Beaky, …" puts her first and lets the room join.
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
   key), #146 (mqtt conffile), #151 (Communicator double POST), #160 (C2 tracking — job
   completion for complete renders; scenes from world events need VW-013), creature-server#186
   (streaming dialog, shipped 3.46.0, live).
+- **Lesson from tonight:** three CI builds of C3 all carried `0.6.2`; the one April
+  installed lacked the last commit. Every packaged change bumps the version, no exceptions.
 
 ### 0.2 What is running now
 
 | Product | Version | Where | Notes |
 | --- | ---: | --- | --- |
-| Creature World | `0.6.1` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | scenes, logins, `region:home` → Mainstage, assumed presence for April, restart-on-upgrade |
+| Creature World | `0.7.0` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | facts (presence, assumption), `@`/name addressing, scenes, `region:home` → Mainstage, restart-on-upgrade. `0.7.1` (this branch) fixes `scene.last` never being current |
 | Communicator Gateway | `0.1.4` fuzzball / `0.1.3` prod | `:8002` | |
 | Minds | `creature-agent 2.58.2` × 3 | fuzzball: `creature-agent@beaky`, `@mango`, `@kenny` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
 | World Viewer | `0.1.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts, Timers, Mundane view |
-| Beaky Communicator | `0.2.0` | April's Mac/phone | names and colours per author; title still "Beaky" (C3) |
+| Beaky Communicator | `0.3.0` | April's Mac/phone | "The Flock", the house conversation, names and colours per author |
 
 **Verified live tonight:** Beaky's first words in the room from her own mind (17:32); the first
 two-bird scene (21:21, twelve turns, streamed through `dialog-stream`, floor alternating, all in
 the Viewer); the first three-bird scene (22:09, Kenny joined — "April, you think pizza could
 fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn end to end.
 
-### 0.3 What PR #161 added — the flock, C2: scenes (merged)
+### 0.3 What branch `facts-f1` adds — the world's first facts (F1)
+
+- **Reducers (World `0.7.0`, `PresenceReducers.swift`):** `CharacterPresenceReducer`
+  (`character.logged_in`/`logged_out` → `character:<x>` `presence.region`, `null` on logout),
+  `AssumedPersonPresenceReducer` (the configured assumption is announced at startup as an
+  idempotent `presence.assumed` event from `world:presence-assumptions` and becomes
+  `person:april` `presence.state` / `presence.physically_audible` with `assumed` epistemic),
+  `SceneMemoryReducer` (`scene.performed` → `region:home` `scene.last`, valid one hour; the
+  event payload now carries `trigger` and `lines`). `World` calls `factStore.supersede(by:)`
+  before `save`, so a newer fact about the same subject+predicate closes the older
+  (`valid_to`, `superseded_by`). `CharacterSessionService.sweepExpired()` runs every 15 s and
+  announces logouts for minds that stopped heartbeating.
+- **Facts into percepts:** `WorldKnowledgeProviding` (WorldCore) → `PresentWorldKnowledge`
+  (World: subjects + their region + everyone present) → `PersonUtterancePercept.world_facts`
+  at ingress and `SceneTurnOffer.world_facts` at each floor offer, newest first, at most 40
+  (`WorldKnowledgeLimits`). Both are in the event payload, so the Viewer's Mundane view shows
+  exactly what a bird was told.
+- **Agent `2.59.0`:** `FactPhrasing` turns predicates into sentences; `CharacterMind` adds a
+  "What you know right now, from the world itself (trust this over guesses)" block to both the
+  conversation and the scene transcript, always beginning with the local time in words
+  (`timeZone` in `agent.yaml` — set `America/Los_Angeles` on fuzzball, whose clock is UTC;
+  Beaky answered "high noon" at 11:45 PM tonight); `prompt_version` `world-conversation-v2`.
+- **Addressing refined:** `Addressee.alone` replaces `named` (`@name` → alone, no scene; a
+  plain name → that bird first, scene may open; span attribute
+  `conversation.addressee.alone`).
+- **Viewer:** Timeline rows show **knows N** for percepts that carried facts; the store
+  supersedes facts on deltas the way the world does (a delta carries only the new fact).
+- **Tests (826 in Common, all green with local Mongo 7):** reducers, supersession and bounded
+  multi-subject queries in Mongo, ingress assembly + wire key, phrasing + knowledge block,
+  black-box two logins → `/facts` → facts in the utterance percept; Viewer store supersession.
+  Linux builds of `creature-agent` and `creature-world` verified in the Swift 6.3.3 container.
+- **Verify live after deploy:** log in three minds, Scry the next utterance percept — its
+  `world_facts` should list Mango and Kenny in `region:home` and April `home (assumed)`; ask
+  "who is here with you?" and Beaky should name them from the facts, not guess.
+
+### 0.3e What PR #161 added — the flock, C2: scenes (merged)
 
 - **WorldCore:** `Scene`, `SceneTrigger`, `SceneTurn`, `SceneFloor`, `SceneTurnOffer` (event
   `scene.turn_offered`), `SceneTurnSubmission`, `SceneLimits`, and `SceneService` — opens
@@ -236,15 +279,17 @@ memory and personality to stay so — the cutoffs exist for a reason.
 
 ### 0.6 Exact next actions
 
-1. C3 (#164, branch `flock-c3-communicator`): addressing as a world rule (`LeadAddresseeRule`,
-   `lead_character`, World `0.6.2`), `conversation:april-house` is the house conversation,
-   the app's title/composer/empty state no longer assume one bird (Communicator `0.3.0`).
-   Verify live: "Mango, what's in the box?" → Mango first; unaddressed → Beaky.
-2. Personas and memory: `docs/personas/` becomes what each mind is; scene transcripts get the
-   birds' relationships; memories from the world (Phase 9) so "the box" is remembered
-   tomorrow. The cutoffs keep scenes from running on until then.
-3. Facts (VW-006/VW-013): the box has to be a world event before Beaky and Mango can argue
-   about it unprompted; scenes triggered by world events follow.
+1. Land `facts-f1` (World `0.7.1`, agent `2.59.0`): install the CI packages on fuzzball,
+   restart the three minds, verify `scene.last` in the Viewer and in the birds' words.
+2. **Then P1** (`docs/facts-and-personas-plan.md`): structured `docs/personas/<bird>.yaml`
+   with voice, relationships, running jokes, and *never* rules — tonight's transcript showed
+   Kenny writing `*giggles* "` stage directions and Mango speaking of himself in the third
+   person; both are persona work. Then F2 `creature-house` (needs April's HA URL, token in
+   `/etc/default/creature-house`, entity IDs for the front door, an outdoor temperature, her
+   phone), F3 scenes from world events (the box).
+3. **The Information Bridge before STT** (April: "the information bridge is when things get
+   interesting because Beaky can start learning from things like my text messages"; typing is
+   fine for now). Then memory (Phase 9).
 4. Decide whether production's agent moves to world mode (it would lose MQTT house-event
    reactions until VW-013).
 

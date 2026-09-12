@@ -9,6 +9,9 @@ protocol WorldEventStore: Sendable {
 
 protocol WorldFactStore: Sendable {
     func save(_ fact: Fact) async throws
+    /// Closes every current fact with the same subject and predicate as `fact`, marking each
+    /// as superseded by it, so a subject has one current value per predicate.
+    func supersede(by fact: Fact) async throws
 }
 
 protocol WorldTimerStore: Sendable {

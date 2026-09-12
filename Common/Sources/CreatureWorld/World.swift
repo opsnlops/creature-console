@@ -309,6 +309,9 @@ private struct WorldEventProcessor: Sendable {
                     }
                     let reduction = try await reduce(acceptedEvent)
                     for fact in reduction.changedFacts {
+                        // One current value per subject and predicate: the newer fact closes
+                        // the older, and the older points at what replaced it.
+                        try await factStore.supersede(by: fact)
                         try await factStore.save(fact)
                     }
                     return reduction

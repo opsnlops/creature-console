@@ -131,6 +131,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
     private let authorizer: any UtteranceIngressAuthorizing
     private let scenePlanner: any ScenePlanning
     private let addresseeResolver: any AddresseeResolving
+    private let knowledge: any WorldKnowledgeProviding
     private let makeConsiderationID: ConsiderationIDGenerator
     private let makeConversationItemID: ConversationItemIDGenerator
 
@@ -140,6 +141,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
         authorizer: any UtteranceIngressAuthorizing = BoundaryUtteranceIngressAuthorizer(),
         scenePlanner: any ScenePlanning = NoScenePlanner(),
         addresseeResolver: any AddresseeResolving = HintedAddresseeResolver(),
+        knowledge: any WorldKnowledgeProviding = NoWorldKnowledge(),
         makeConsiderationID: @escaping ConsiderationIDGenerator = { .generated() },
         makeConversationItemID: @escaping ConversationItemIDGenerator = { .generated() }
     ) {
@@ -148,6 +150,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
         self.authorizer = authorizer
         self.scenePlanner = scenePlanner
         self.addresseeResolver = addresseeResolver
+        self.knowledge = knowledge
         self.makeConsiderationID = makeConsiderationID
         self.makeConversationItemID = makeConversationItemID
     }
@@ -183,16 +186,23 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                 for: utterance, hinted: utterance.addresseeIDs[0])
             let characterID = addressee.characterID
             span.attributes["agent.character_id"] = characterID.rawValue
-            span.attributes["conversation.addressee.named"] = addressee.named
+            span.attributes["conversation.addressee.alone"] = addressee.alone
             let sceneID = try await scenePlanner.planScene(for: utterance, addressee: addressee)
             span.attributes["scene.id"] = sceneID?.rawValue
+            // What the world knows about the people in this moment travels with the percept,
+            // so the mind reasons from facts, never from what it can fetch or invent.
+            let worldFacts = try await knowledge.currentFacts(
+                about: [characterID, utterance.speakerID],
+                limit: WorldKnowledgeLimits.maximumFacts)
+            span.attributes["world.facts"] = worldFacts.count
             let proposed = try StoredUtteranceIngress(
                 percept: PersonUtterancePercept(
                     considerationID: makeConsiderationID(),
                     characterID: characterID,
                     utterance: utterance,
                     priorConversationItems: priorItems,
-                    sceneID: sceneID
+                    sceneID: sceneID,
+                    worldFacts: worldFacts
                 ),
                 conversationItem: ConversationItem(
                     itemID: makeConversationItemID(),

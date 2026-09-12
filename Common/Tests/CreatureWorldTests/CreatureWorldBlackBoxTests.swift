@@ -167,12 +167,31 @@ struct CreatureWorldBlackBoxTests {
         #expect(beakySession.disposition == .loggedIn)
         #expect(mangoSession.disposition == .loggedIn)
 
+        // Logging in is something the world now knows: each login becomes a presence fact, and
+        // the next thing April says carries those facts (and her own assumed presence) to the
+        // mind that hears it.
+        let mangoPresence = try await api.waitForFact(
+            about: mango, predicate: PresenceFacts.characterRegion)
+        #expect(mangoPresence.value == .string("region:home"))
+        #expect(mangoPresence.epistemic.type == .observed)
+        _ = try await api.waitForFact(about: beaky, predicate: PresenceFacts.characterRegion)
+
         let sceneUtterance = try makeUtterance(
             in: conversationID, sourceID: SourceID(validating: "communicator:blackbox"),
             text: "What do you two think is in the box?")
         let sceneIngress = try await api.post(sceneUtterance)
         #expect(sceneIngress.status == .accepted)
         let sceneID = try #require(sceneIngress.body.percept.sceneID)
+        let known = sceneIngress.body.percept.worldFacts
+        #expect(known.count <= WorldKnowledgeLimits.maximumFacts)
+        #expect(
+            Set(known.map { "\($0.subjectID.rawValue) \($0.predicate)" }).isSuperset(of: [
+                "character:beaky \(PresenceFacts.characterRegion)",
+                "character:mango \(PresenceFacts.characterRegion)",
+                "person:april \(PresenceFacts.personState)",
+            ]))
+        #expect(
+            known.first { $0.subjectID == sceneUtterance.speakerID }?.epistemic.type == .assumed)
 
         var scene = try #require(try await api.scene(sceneID))
         #expect(scene.participants == [beaky, mango])
@@ -589,6 +608,31 @@ private struct WorldServiceAPI {
         return try WorldJSON.makeDecoder().decode(ConversationItemPage.self, from: body).items
     }
 
+    func facts(about subjectID: EntityID) async throws -> [Fact] {
+        let response = try await client.execute(
+            HTTPClientRequest(url: "\(base)/facts?subject_id=\(subjectID.rawValue)&limit=100"),
+            timeout: .seconds(15)
+        )
+        #expect(response.status == .ok)
+        let body = try await response.body.collect(upTo: 1_048_576)
+        return try WorldJSON.makeDecoder().decode(WorldFactPage.self, from: body).facts
+    }
+
+    /// Facts are reduced on the world's own loop after an event is accepted, so a caller who
+    /// just caused one waits for it to appear.
+    func waitForFact(about subjectID: EntityID, predicate: String) async throws -> Fact {
+        let deadline = ContinuousClock.now + .seconds(10)
+        while ContinuousClock.now < deadline {
+            if let fact = try await facts(about: subjectID).first(where: {
+                $0.predicate == predicate
+            }) {
+                return fact
+            }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        throw BlackBoxError.missingFact(subjectID: subjectID.rawValue, predicate: predicate)
+    }
+
     func openConversationStream(_ conversationID: ConversationID) async throws
         -> ServerSentEventReader
     {
@@ -782,5 +826,6 @@ private enum BlackBoxError: Error {
     case processDidNotExit
     case serviceNeverBecameHealthy
     case streamEnded
+    case missingFact(subjectID: String, predicate: String)
     case streamTimedOut
 }

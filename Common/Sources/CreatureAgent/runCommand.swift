@@ -390,7 +390,8 @@ private func runWorldMode(
             maximumReplyAge: world.maximumReplyAge,
             maximumContextTurns: world.maximumContextTurns,
             modelTimeout: .seconds(world.llmTimeout),
-            modelName: config.llmModel
+            modelName: config.llmModel,
+            timeZone: world.timeZone
         ),
         respond: { try await localLLM.respond(messages: $0) },
         stage: stage,

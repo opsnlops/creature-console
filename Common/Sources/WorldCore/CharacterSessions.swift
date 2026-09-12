@@ -277,6 +277,20 @@ public actor CharacterSessionService {
         }
     }
 
+    /// Marks sessions whose heartbeat stopped as expired and announces their logout, so the
+    /// world's facts about who is present do not outlive the mind. Meant to run periodically.
+    public func sweepExpired() async throws {
+        let now = await clock.now
+        for session in try await repository.latestSessions()
+        where session.state == .active && session.expiresAt <= now {
+            var expired = session
+            expired.state = .expired
+            expired.endedAt = session.expiresAt
+            try await repository.save(expired)
+            try await announce(makeEvent(Self.logoutEventType, session: expired, at: now))
+        }
+    }
+
     /// Every character's most recent session, with lapsed ones reported as expired.
     public func characterSessions() async throws -> [CharacterSession] {
         let now = await clock.now
