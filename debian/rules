@@ -26,6 +26,7 @@ override_dh_auto_build:
 	cd Common && swift build $(SWIFT_BUILD_FLAGS_AGENT)
 	cd Common && swift build $(SWIFT_BUILD_FLAGS_WORLD)
 	cd Common && swift build $(SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY)
+	cd Common && swift build $(SWIFT_BUILD_FLAGS_HOUSE)
 
 override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-cli/usr/bin
