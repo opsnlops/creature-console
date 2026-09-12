@@ -307,7 +307,7 @@ actor SwiftDataConversationRepository: ConversationPersistence {
 }
 
 private enum ConversationIdentity {
-    static let conversationID = try! ConversationID(validating: "conversation:april-beaky")
+    static let conversationID = try! ConversationID(validating: "conversation:april-house")
     static let aprilID = try! EntityID(validating: "person:april")
     static let beakyID = try! EntityID(validating: "character:beaky")
     static let sourceID = try! SourceID(validating: "communicator:beaky-app")

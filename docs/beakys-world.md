@@ -237,7 +237,7 @@ memory and personality to stay so — the cutoffs exist for a reason.
 ### 0.6 Exact next actions
 
 1. C3 (#164, branch `flock-c3-communicator`): addressing as a world rule (`LeadAddresseeRule`,
-   `lead_character`, World `0.6.2`), `conversation:april-beaky` kept as the house conversation,
+   `lead_character`, World `0.6.2`), `conversation:april-house` is the house conversation,
    the app's title/composer/empty state no longer assume one bird (Communicator `0.3.0`).
    Verify live: "Mango, what's in the box?" → Mango first; unaddressed → Beaky.
 2. Personas and memory: `docs/personas/` becomes what each mind is; scene transcripts get the

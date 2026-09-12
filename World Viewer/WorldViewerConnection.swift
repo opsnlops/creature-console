@@ -39,7 +39,7 @@ final class WorldViewerConnection: Sendable {
             ?? Self.defaultConversationID
     }
 
-    static let defaultConversationID = try! ConversationID(validating: "conversation:april-beaky")
+    static let defaultConversationID = try! ConversationID(validating: "conversation:april-house")
 
     func connection() throws -> CreatureServiceConnection {
         settings().connection(proxyAPIKey: try keyStore?.apiKey())

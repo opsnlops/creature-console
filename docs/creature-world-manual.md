@@ -150,8 +150,9 @@ named there — "Mango, …", "Hey Kenny …", "@caroll …" — who is logged i
 else goes to the lead (`lead_character`, default `character:beaky`). The sender's addressee
 (the app always says Beaky) is only a hint; the utterance is stored as sent and the percept
 carries the world's choice. A name mentioned later in the sentence ("I think Mango is right")
-does not redirect it. `conversation:april-beaky` is the house conversation: every character
-speaks in it.
+does not redirect it. `conversation:april-house` is the house conversation (from Communicator
+`0.3.0` and Viewer defaults): every character speaks in it. `conversation:april-beaky` holds the
+history from before the flock and stays readable.
 
 ### Scenes
 

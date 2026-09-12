@@ -40,7 +40,7 @@ struct WorldViewerSettingsView: View {
 
                 if !isConversationIDValid {
                     Label(
-                        "Conversation IDs look like conversation:april-beaky.",
+                        "Conversation IDs look like conversation:april-house.",
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.caption)
