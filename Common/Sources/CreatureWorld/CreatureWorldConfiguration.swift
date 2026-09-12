@@ -49,6 +49,9 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let scenePerformance: ScenePerformanceMode
     let regions: [EntityID: RegionConfiguration]
     let leadCharacter: EntityID
+    /// Facts April states outright ("Polly is April's sister") until a source can observe
+    /// them; announced at startup like the presence assumption.
+    let givenFacts: [GivenFact]
 
     init(
         host: String = defaultHost,
@@ -60,7 +63,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         scenes: SceneLimits = SceneLimits(),
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
-        leadCharacter: EntityID = defaultLeadCharacter
+        leadCharacter: EntityID = defaultLeadCharacter,
+        givenFacts: [GivenFact] = []
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -94,6 +98,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.scenePerformance = scenePerformance
         self.regions = regions
         self.leadCharacter = leadCharacter
+        self.givenFacts = givenFacts
     }
 
     static func load(
@@ -118,7 +123,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                         (try EntityID(validating: $0.key), $0.value)
                     }),
                 leadCharacter: try raw.leadCharacter.map(EntityID.init(validating:))
-                    ?? defaultLeadCharacter
+                    ?? defaultLeadCharacter,
+                givenFacts: raw.facts ?? []
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -162,7 +168,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             scenes: scenes,
             scenePerformance: scenePerformance,
             regions: regions,
-            leadCharacter: leadCharacter
+            leadCharacter: leadCharacter,
+            givenFacts: givenFacts
         )
     }
 
@@ -177,6 +184,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let scenePerformance: ScenePerformanceMode?
         let regions: [String: RegionConfiguration]?
         let leadCharacter: String?
+        let facts: [GivenFact]?
 
         private enum CodingKeys: String, CodingKey {
             case host
@@ -189,6 +197,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case scenePerformance = "scene_performance"
             case regions
             case leadCharacter = "lead_character"
+            case facts
         }
     }
 
@@ -252,5 +261,38 @@ struct PresenceConfiguration: Codable, Equatable, Sendable {
             )
         }
         self.init(assumed: assumed)
+    }
+}
+
+/// A fact stated in `world.json`: subject, predicate, value. Epistemic `reported`, confidence 1:
+/// April said so, nobody observed it. A source that later observes the same subject and
+/// predicate supersedes it like any other fact.
+struct GivenFact: Codable, Equatable, Sendable {
+    var subjectID: EntityID
+    var predicate: String
+    var value: WorldJSONValue
+
+    init(subjectID: EntityID, predicate: String, value: WorldJSONValue) {
+        self.subjectID = subjectID
+        self.predicate = predicate
+        self.value = value
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case subjectID = "subject_id"
+        case predicate
+        case value
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        subjectID = try EntityID(validating: container.decode(String.self, forKey: .subjectID))
+        predicate = try container.decode(String.self, forKey: .predicate)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        value = try container.decode(WorldJSONValue.self, forKey: .value)
+        guard !predicate.isEmpty else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .predicate, in: container, debugDescription: "a fact needs a predicate")
+        }
     }
 }

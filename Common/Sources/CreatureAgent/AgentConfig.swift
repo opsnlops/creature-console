@@ -22,6 +22,9 @@ struct AgentConfig: Decodable {
     let llmModel: String
     let llmSystemPrompt: String
     let llmTemperature: Double
+    /// For OpenAI reasoning models: `low`, `medium`, or `high`. When set, no temperature is
+    /// sent (reasoning models refuse one).
+    let llmReasoningEffort: String?
     let localLlmHost: String
     let localLlmPort: Int
     let localLlmMaxTokens: Int
@@ -116,6 +119,7 @@ struct AgentConfig: Decodable {
         case llmModel
         case llmSystemPrompt
         case llmTemperature
+        case llmReasoningEffort
         case localLlmHost
         case localLlmPort
         case localLlmMaxTokens
@@ -157,6 +161,13 @@ struct AgentConfig: Decodable {
         llmSystemPrompt = try container.decode(String.self, forKey: .llmSystemPrompt)
         llmTemperature =
             try container.decodeIfPresent(Double.self, forKey: .llmTemperature) ?? 1.0
+        llmReasoningEffort = try container.decodeIfPresent(
+            String.self, forKey: .llmReasoningEffort)
+        if let effort = llmReasoningEffort, !["low", "medium", "high"].contains(effort) {
+            throw DecodingError.dataCorruptedError(
+                forKey: .llmReasoningEffort, in: container,
+                debugDescription: "llmReasoningEffort must be low, medium, or high")
+        }
         localLlmHost =
             try container.decodeIfPresent(String.self, forKey: .localLlmHost) ?? "10.69.66.4"
         localLlmPort =

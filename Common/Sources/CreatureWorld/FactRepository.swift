@@ -93,6 +93,17 @@ struct FactRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// The subjects that currently have a fact with `predicate` — the people the world can
+    /// describe, for instance.
+    func subjects(withPredicate predicate: String, at now: Date) async throws -> [EntityID] {
+        var query = currentQuery(at: now)
+        query["predicate"] = predicate
+        let documents = try await facts.find(query).sort(["subject_id": 1]).drain()
+        return documents.compactMap { document in
+            (document["subject_id"] as? String).flatMap(EntityID.init(rawValue:))
+        }
+    }
+
     private func decode(_ document: Document) throws -> Fact {
         var fact = try BSONDecoder().decode(Fact.self, from: document)
         guard let value = document["value"] else {

@@ -223,6 +223,19 @@ run on the authoritative event loop, and tells the minds about them. The first r
 | `character.logged_in` with `pronouns` (the mind's persona, `0.7.2`) | `character:<x>` `identity.pronouns` = `he/him`; outlasts the login | observed, 1 |
 | `presence.assumed` (announced from `presence.assumed` in `world.json` at startup, idempotent) | `person:april` `presence.state` = `home`, `presence.physically_audible` = `true` | assumed, configured confidence |
 | `scene.performed` | `region:home` `scene.last` = trigger and lines, valid for one hour | observed, 1 |
+| `facts.given` (each entry of `facts` in `world.json`, announced at startup, idempotent; `0.7.3`) | as stated, e.g. `person:polly` `person.description` = `April's sister` | reported, 1 |
+
+`facts` in `world.json` is for things April simply states until a source can observe them —
+who a person is, mostly — and is deliberately thin: a `person.description` is phrased to the
+minds as "Polly is April's sister. That is all you know about Polly; do not make up more."
+Details (where she lives, her birthday) should come from the address book through the
+Information Bridge, which will supersede these.
+
+```json
+"facts": [
+  { "subject_id": "person:polly", "predicate": "person.description", "value": "April's sister" }
+]
+```
 
 A newer fact about the same subject and predicate **supersedes** the older one: the old
 document gets `valid_to` and `superseded_by`, so `GET /world/v1/facts` and the Viewer's Facts
@@ -314,20 +327,22 @@ Example unavailable response:
 
 ### Collections and indexes
 
-Schema migrations 1 through 4 establish the following collections and indexes:
+Schema migrations 1 through 8 establish the following collections and indexes (5:
+`character_stage_decisions` with a TTL; 6: `character_sessions`; 7: `scenes`; 8: the
+`predicate_subjects` index on `facts`):
 
 | Collection | Purpose | Important indexes |
 | --- | --- | --- |
 | `world_events` | Immutable accepted world events | Unique `event_id`; unique `world_sequence`; unique source ID plus source event ID when present; event type/time; subject IDs |
 | `world_event_processing` | Durable completion markers for accepted events | Unique event ID in `_id` |
 | `world_counters` | Atomic sequence allocation | `_id: "world_sequence"` counter document |
-| `facts` | Durable facts and current-state reads | Unique `fact_id`; active facts by subject, predicate, validity, and supersession |
+| `facts` | Durable facts and current-state reads | Unique `fact_id`; active facts by subject, predicate, validity, and supersession; `predicate_subjects` (predicate, supersession, validity, subject) for "who does the world describe?" |
 | `timers` | Durable simulator timers | Unique `timer_id`; recoverable timers by status and due time |
 | `source_checkpoints` | Per-source cursor or checkpoint state | Unique `source_id` |
 | `utterance_ingresses` | Durable, idempotent person-utterance processing records | Unique utterance ID |
 | `conversation_items` | Canonical conversation history shared by clients and characters | Unique item ID; conversation/time/item order |
 | `character_deliveries` | Durable delivery decision and outcome for each character turn, keyed by `response_id` | Unique `decision.attempt_id`; conversation/time order |
-| `schema_migrations` | Applied Creature World schema versions | Migration version in `_id`; current migration is 4 |
+| `schema_migrations` | Applied Creature World schema versions | Migration version in `_id`; current migration is 8 |
 
 The migrator is idempotent and runs whenever a connection is established. Writes use majority write
 concern.

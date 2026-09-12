@@ -193,6 +193,15 @@ struct CharacterMindTests {
         #expect(
             CharacterMind.validate("April: are you there?", spokenBy: "beaky")
                 == "April: are you there?")
+        // The model interviewed itself; only what follows its own label is its line.
+        #expect(
+            CharacterMind.validate(
+                "Mango, what do you think about Polly's database? Mango: Better on Linux. MongoDB's a good choice.",
+                spokenBy: "mango")
+                == "Better on Linux. MongoDB's a good choice.")
+        #expect(
+            CharacterMind.validate("I told Mango: no. And I meant it.", spokenBy: "mango")
+                == "No. And I meant it.")
     }
 
     // MARK: - The room

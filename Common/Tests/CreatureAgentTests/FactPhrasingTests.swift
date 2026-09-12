@@ -44,6 +44,26 @@ struct FactPhrasingTests {
             ])
     }
 
+    @Test("A person the world can only describe is described, and the blank is named")
+    func thinPeopleAreMarked() throws {
+        let polly = try EntityID(validating: "person:polly")
+        let facts = [
+            try fact(polly, WorldFacts.personDescription, .string("April's sister"), .reported, 1),
+            try fact(april, WorldFacts.personDescription, .string("a wizard"), .reported, 1),
+            try fact(april, WorldFacts.personState, .string("home"), .assumed, 0.9),
+        ]
+
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now)
+
+        #expect(
+            lines == [
+                "Polly is April's sister.",
+                "April is a wizard.",
+                "April is home (you assume; nobody has checked).",
+                "That is all you know about Polly; do not make up more.",
+            ])
+    }
+
     @Test("A character the world knows the pronouns of is named with them")
     func pronounsRideWithTheName() throws {
         let facts = [

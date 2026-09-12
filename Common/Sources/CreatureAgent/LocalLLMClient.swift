@@ -175,9 +175,8 @@ struct LocalLLMClient {
                     defer { session.finishTasksAndInvalidate() }
 
                     // Parse SSE stream from the delegate's async line sequence
-                    var sentenceBuffer = ""
+                    var assembler = SentenceAssembler(minimumCharacters: minSentenceChars)
                     var fullResponse = ""
-                    var insideThinkTag = false
                     var sentenceCount = 0
                     var cutOffByTokenLimit = false
 
@@ -212,90 +211,32 @@ struct LocalLLMClient {
                             continue
                         }
 
-                        // Handle <think> tags — skip content inside them
-                        for char in content {
-                            if insideThinkTag {
-                                // Look for closing </think>
-                                sentenceBuffer.append(char)
-                                if sentenceBuffer.hasSuffix("</think>") {
-                                    // Remove the entire think block from the buffer
-                                    if let range = sentenceBuffer.range(of: "<think>") {
-                                        sentenceBuffer = String(sentenceBuffer[..<range.lowerBound])
-                                    } else {
-                                        sentenceBuffer = ""
-                                    }
-                                    insideThinkTag = false
-                                }
-                                continue
-                            }
-
-                            sentenceBuffer.append(char)
-
-                            // Detect <think> tag start
-                            if sentenceBuffer.hasSuffix("<think>") {
-                                insideThinkTag = true
-                                continue
-                            }
-
-                            // Check for sentence boundary
-                            if let splitIdx = sentenceBoundaryIndex(sentenceBuffer) {
-                                let sentence = String(sentenceBuffer[...splitIdx])
-                                    .trimmingCharacters(in: .whitespaces)
-                                let remainder = String(
-                                    sentenceBuffer[sentenceBuffer.index(after: splitIdx)...])
-                                // Strip wrapping quotes that LLMs sometimes add
-                                let cleanSentence =
-                                    sentence
-                                    .trimmingCharacters(
-                                        in: CharacterSet(
-                                            charactersIn: "\"'\u{201C}\u{201D}")
-                                    )
-                                    .trimmingCharacters(in: .whitespaces)
-                                if !cleanSentence.isEmpty {
-                                    if cleanSentence.count >= minSentenceChars {
-                                        // Sentence meets minimum length — yield it
-                                        sentenceCount += 1
-                                        fullResponse += cleanSentence + " "
-                                        logger.info(
-                                            "LLM sentence \(sentenceCount): \"\(cleanSentence)\" (\(cleanSentence.count) chars)"
-                                        )
-                                        continuation.yield(cleanSentence)
-                                        sentenceBuffer = remainder
-                                    } else {
-                                        // Too short for TTS — keep in buffer, merge with next sentence
-                                        logger.debug(
-                                            "LLM sentence too short (\(cleanSentence.count) < \(minSentenceChars) chars), buffering: \"\(cleanSentence)\""
-                                        )
-                                        // Don't clear the buffer — the split point stays and
-                                        // more text will accumulate until we hit the minimum
-                                    }
-                                } else {
-                                    sentenceBuffer = remainder
-                                }
-                            }
+                        for sentence in assembler.feed(content) {
+                            sentenceCount += 1
+                            fullResponse += sentence + " "
+                            logger.info(
+                                "LLM sentence \(sentenceCount): \"\(sentence)\" (\(sentence.count) chars)"
+                            )
+                            continuation.yield(sentence)
                         }
                     }
 
                     // Yield any remaining text that didn't end with sentence punctuation
-                    // Filter out fragments that are just quotes or punctuation (LLM wrapping artifacts)
-                    let remaining =
-                        sentenceBuffer
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                        .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    if cutOffByTokenLimit, !remaining.isEmpty {
-                        // The model ran into max_tokens mid-sentence. A fragment spoken aloud
-                        // sounds like a stumble; end on the last complete sentence instead.
-                        logger.warning(
-                            "LLM response hit the \(maxTokens)-token limit; dropping the unfinished sentence: \"\(remaining)\""
-                        )
-                    } else if !remaining.isEmpty {
-                        sentenceCount += 1
-                        fullResponse += remaining
-                        logger.info(
-                            "LLM sentence \(sentenceCount) (final): \"\(remaining)\" (\(remaining.count) chars)"
-                        )
-                        continuation.yield(remaining)
+                    if let remaining = assembler.flush() {
+                        if cutOffByTokenLimit {
+                            // The model ran into max_tokens mid-sentence. A fragment spoken aloud
+                            // sounds like a stumble; end on the last complete sentence instead.
+                            logger.warning(
+                                "LLM response hit the \(maxTokens)-token limit; dropping the unfinished sentence: \"\(remaining)\""
+                            )
+                        } else {
+                            sentenceCount += 1
+                            fullResponse += remaining
+                            logger.info(
+                                "LLM sentence \(sentenceCount) (final): \"\(remaining)\" (\(remaining.count) chars)"
+                            )
+                            continuation.yield(remaining)
+                        }
                     }
 
                     // A rejected request (for example a chat template refusing the transcript)
@@ -330,50 +271,6 @@ struct LocalLLMClient {
         }
     }
 
-    /// Find a sentence boundary in the buffer.
-    /// Returns the index of the sentence-ending punctuation mark (. ! ?) if
-    /// the next character indicates a new sentence is starting (space, uppercase
-    /// letter, or opening quote). Returns nil if no boundary is found.
-    ///
-    /// Handles both standard ("Hello. World") and no-space ("Hello!World")
-    /// patterns common in LLM output.
-    private func sentenceBoundaryIndex(_ buffer: String) -> String.Index? {
-        guard buffer.count >= 2 else { return nil }
-
-        let lastIdx = buffer.index(before: buffer.endIndex)
-        let lastChar = buffer[lastIdx]
-        let penultIdx = buffer.index(before: lastIdx)
-        let penultChar = buffer[penultIdx]
-
-        let isPunct = { (c: Character) -> Bool in
-            c == "." || c == "!" || c == "?"
-        }
-
-        let isNewSentenceStart = { (c: Character) -> Bool in
-            c == " " || c.isUppercase || c == "\"" || c == "\u{201C}"
-        }
-
-        // "X " or "XA" where X is punctuation
-        if isPunct(penultChar) && isNewSentenceStart(lastChar) {
-            return penultIdx
-        }
-
-        // Check for closing quote: X"A or X" A
-        if buffer.count >= 3 {
-            let threeBackIdx = buffer.index(penultIdx, offsetBy: -1)
-            let threeBack = buffer[threeBackIdx]
-
-            if isPunct(threeBack) && (penultChar == "\"" || penultChar == "'")
-                && isNewSentenceStart(lastChar)
-            {
-                // Split after the closing quote
-                return penultIdx
-            }
-        }
-
-        return nil
-    }
-
     internal static func stripThinkTags(_ text: String) -> String {
         let pattern = "<think>[\\s\\S]*?</think>"
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
@@ -386,7 +283,7 @@ struct LocalLLMClient {
 
 /// URLSession delegate that collects SSE data and exposes it as an AsyncStream of lines.
 /// Works on both macOS and Linux (FoundationNetworking).
-private final class SSEDataDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+final class SSEDataDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private var lineContinuation: AsyncStream<String>.Continuation?
     private var buffer = ""
     private var statusCode: Int?

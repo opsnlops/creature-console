@@ -1,6 +1,18 @@
 import Foundation
 
 struct OpenAIResponseParser {
+    /// The text a Responses API SSE line carries, or `nil` for anything that is not an
+    /// `output_text.delta` event (lifecycle events, blank lines, `[DONE]`).
+    static func streamedDelta(from line: String) -> String? {
+        guard line.hasPrefix("data: ") else { return nil }
+        let json = String(line.dropFirst(6))
+        guard json != "[DONE]", let data = json.data(using: .utf8),
+            let event = try? JSONDecoder().decode(StreamEvent.self, from: data),
+            event.type == "response.output_text.delta"
+        else { return nil }
+        return event.delta
+    }
+
     static func outputText(from data: Data) throws -> String {
         let decoder = JSONDecoder()
         let response = try decoder.decode(ResponseEnvelope.self, from: data)
@@ -38,4 +50,9 @@ private struct ResponseOutputItem: Decodable {
 private struct ResponseContent: Decodable {
     let text: String?
     let type: String?
+}
+
+private struct StreamEvent: Decodable {
+    let type: String
+    let delta: String?
 }

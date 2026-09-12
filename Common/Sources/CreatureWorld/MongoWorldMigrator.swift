@@ -3,7 +3,7 @@ import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 7
+    static let currentVersion = 8
 
     let database: MongoDatabase
     let logger: Logger
@@ -35,6 +35,7 @@ struct MongoWorldMigrator: Sendable {
         try await recordMigration(version: 5, name: "character_stage_decision")
         try await recordMigration(version: 6, name: "character_session")
         try await recordMigration(version: 7, name: "scene")
+        try await recordMigration(version: 8, name: "fact_predicate_subjects")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -103,7 +104,19 @@ struct MongoWorldMigrator: Sendable {
                 "superseded_by": 1,
             ]
         )
-        try await database[MongoWorldCollection.facts].createIndexes([factID, activeFacts])
+        // "Who does the world describe?" — every current fact carrying a predicate, by subject.
+        let predicateSubjects = CreateIndexes.Index(
+            named: "predicate_subjects",
+            keys: [
+                "predicate": 1,
+                "superseded_by": 1,
+                "valid_to": 1,
+                "subject_id": 1,
+            ]
+        )
+        try await database[MongoWorldCollection.facts].createIndexes([
+            factID, activeFacts, predicateSubjects,
+        ])
     }
 
     private func createTimerIndexes() async throws {
