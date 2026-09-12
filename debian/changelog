@@ -6,9 +6,11 @@ creature-cli (2.56.0) unstable; urgency=medium
     while the model is still generating, then records the performed turn in
     the world so the Communicator shows the same words. `stage:
     communicator_only` restores the 2.55 behaviour (#107).
-  * creature-world 0.4.0: POST .../stage and POST .../performances; presence
+  * creature-world 0.4.1: POST .../stage and POST .../performances; presence
     can be assumed via `presence.assumed` in creature-world.json, recorded
-    as basis: assumed on every decision.
+    as basis: assumed on every decision. The utterance percept carries the
+    newest 100 conversation items instead of the whole history, which
+    refused every message once a conversation passed 100 turns (#156).
 
  -- April White <april@creature.engineering>  Thu, 11 Sep 2026 17:10:00 -0700
 
