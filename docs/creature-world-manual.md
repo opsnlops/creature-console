@@ -137,6 +137,17 @@ mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnect
 `directConnection=true` is appropriate for the single-node local setup. A production URI should
 describe the deployed replica set or managed MongoDB cluster instead.
 
+### Local Debian builds under the upgraded Docker Desktop
+
+After Docker Desktop's 2026-09-11 self-update (engine 29.7.2, kernel 7.0.12-linuxkit),
+`./build_debs.sh --arch amd64` hangs inside the container: `swift-build` parks in a mutex wait
+with defunct `git` children under Rosetta, sometimes on the first product, sometimes the second.
+The same kernel refuses to run MongoDB 8.3 (`SERVER-121912`; only kernels 7.0.14+ are fixed).
+Until Docker ships a newer kernel, take Linux packages from the `build-deb` GitHub Actions run
+for the commit (`gh run download <run-id>`), and run the local MongoDB replica set on `mongo:7`
+(`docker compose -f compose.creature-world.json -f <override with image: mongo:7 and its own
+volume> up -d`).
+
 ### MongoKitten fork
 
 `Common/Package.swift` pins MongoKitten to the `opsnlops/MongoKitten` fork (tag

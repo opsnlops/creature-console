@@ -43,9 +43,9 @@ current in the same commit as the code it describes.**
 
 | Product | Version | Where | Notes |
 | --- | ---: | --- | --- |
-| Creature World | `0.3.0` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | `0.4.2` (this branch) adds `/stage`, `/performances`, and assumed presence |
+| Creature World | `0.4.2` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | `0.4.x` adds `/stage`, `/performances`, assumed presence (on, for April), the 100-item window (#156), and the MongoKitten fork |
 | Communicator Gateway | `0.1.3` | production and fuzzball `:8002` | exporting to Honeycomb `production` |
-| Beaky's mind | `creature-agent 2.55.4`, `mode: world` | **fuzzball only** | Mistral Nemo via llama-server at `10.69.66.4:1234`; `2.56.0` (this branch) can speak in the room; production keeps `2.54.1` in `mqtt` mode (see 0.4) |
+| Beaky's mind | `creature-agent 2.56.0`, `mode: world`, `stage: physical` | **fuzzball only** | speaks through production Creature Server (`creatureId 4754fc0e…`); Mistral Nemo via llama-server at `10.69.66.4:1234`; `2.56.1` (this branch, #157) not yet installed; set `localLlmMaxTokens: 400`; production keeps `2.54.1` in `mqtt` mode (see 0.4) |
 | World Viewer | `0.1.0` | April's laptop, run from Xcode | read-only; points at fuzzball or production; delivery chips show route · reason · presence (basis) · outcome |
 
 **Verified live so far:**
@@ -183,9 +183,11 @@ back to the Communicator.
 
 ### 0.6 Exact next actions
 
-1. Merge `vw-016-physical-stage` (PR #155). Fuzzball already runs World `0.4.1` + agent
-   `2.56.0` with the assumption and Beaky is heard. Decide whether production's agent moves to
-   world mode (it would lose MQTT house-event reactions until VW-013).
+1. Merge `vw-016-physical-stage` (PR #155). Fuzzball runs World `0.4.2` + agent `2.56.0` with
+   the assumption and Beaky is heard; install agent `2.56.1` (#157, from the `build-deb` CI
+   artifact — local `build_debs.sh` hangs under the upgraded Docker Desktop, see the World
+   manual) and set `localLlmMaxTokens: 400`. Decide whether production's agent moves to world
+   mode (it would lose MQTT house-event reactions until VW-013).
 2. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
    about something real; the Facts panel is waiting. Then personalities, and one mind per
    character with a character lease so minds never collide.
