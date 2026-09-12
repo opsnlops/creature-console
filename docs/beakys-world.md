@@ -71,7 +71,9 @@ fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn 
   exactly what a bird was told.
 - **Agent `2.59.0`:** `FactPhrasing` turns predicates into sentences; `CharacterMind` adds a
   "What you know right now, from the world itself (trust this over guesses)" block to both the
-  conversation and the scene transcript; `prompt_version` `world-conversation-v2`.
+  conversation and the scene transcript, always beginning with the local time in words
+  (`timeZone` in `agent.yaml` — set `America/Los_Angeles` on fuzzball, whose clock is UTC;
+  Beaky answered "high noon" at 11:45 PM tonight); `prompt_version` `world-conversation-v2`.
 - **Addressing refined:** `Addressee.alone` replaces `named` (`@name` → alone, no scene; a
   plain name → that bird first, scene may open; span attribute
   `conversation.addressee.alone`).

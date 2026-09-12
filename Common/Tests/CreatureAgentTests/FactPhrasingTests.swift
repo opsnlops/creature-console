@@ -44,8 +44,20 @@ struct FactPhrasingTests {
             ])
     }
 
-    @Test("The knowledge block is absent when the world knows nothing")
-    func emptyKnowledgeIsSilent() throws {
+    @Test("The local time is spelled out in the house's zone, never the host's")
+    func timeIsSpelledOutLocally() {
+        // 2026-09-12 06:58:00 UTC is 11:58 PM on Friday, September 11 on Whidbey Island.
+        let late = Date(timeIntervalSince1970: 1_789_196_280)
+        #expect(
+            FactPhrasing.timeSentence(late, in: TimeZone(identifier: "America/Los_Angeles")!)
+                == "It is 11:58 PM on Friday, September 11.")
+        #expect(
+            FactPhrasing.timeSentence(late, in: TimeZone(identifier: "UTC")!)
+                == "It is 6:58 AM on Saturday, September 12.")
+    }
+
+    @Test("The knowledge block always carries the time, and facts when there are any")
+    func knowledgeBlockAlwaysHasTheTime() throws {
         let mind = CharacterMind(
             configuration: CharacterMind.Configuration(
                 persona: "You are Beaky.", characterID: beaky, personID: april,
@@ -53,10 +65,13 @@ struct FactPhrasingTests {
                 modelName: "test"),
             respond: { _ in "" }, logger: .init(label: "fact-phrasing-tests"))
 
-        #expect(mind.knowledgeBlock([], now: now).isEmpty)
+        let timeOnly = mind.knowledgeBlock([], now: now)
+        #expect(timeOnly.contains("What you know right now"))
+        #expect(timeOnly.contains("- It is "))
+        #expect(!timeOnly.contains("room"))
         let block = mind.knowledgeBlock(
             [try fact(mango, "presence.region", .string("region:home"), .observed, 1)], now: now)
-        #expect(block.contains("What you know right now"))
+        #expect(block.contains("- It is "))
         #expect(block.contains("- Mango is here in the room with you."))
     }
 

@@ -53,6 +53,26 @@ enum FactPhrasing {
         }
     }
 
+    /// "It is 11:58 PM on Thursday, September 11." — the local wall clock in words, so the
+    /// model never converts a zone or guesses the day. Fixed to English and a Gregorian
+    /// calendar: this is Beaky's sentence, not the host's locale.
+    static func timeSentence(_ now: Date, in timeZone: TimeZone) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        let clock = now.formatted(
+            Date.FormatStyle(
+                date: .omitted, time: .shortened, locale: calendar.locale!,
+                calendar: calendar, timeZone: timeZone))
+        let day = now.formatted(
+            Date.FormatStyle(locale: calendar.locale!, calendar: calendar, timeZone: timeZone)
+                .weekday(.wide).month(.wide).day())
+        // Foundation sets "11:58 PM" with a narrow no-break space; the prompt gets plain ones.
+        return "It is \(clock) on \(day)."
+            .replacingOccurrences(of: "\u{202F}", with: " ")
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+    }
+
     static func name(of entityID: EntityID) -> String {
         let raw = entityID.rawValue
         guard let colon = raw.firstIndex(of: ":") else { return raw }

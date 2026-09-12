@@ -83,6 +83,7 @@ struct CharacterMind: Sendable {
         let maximumContextTurns: Int
         let modelTimeout: Duration
         let modelName: String
+        var timeZone: TimeZone = .current
 
         /// The character's plain name, as a model might label her lines: `character:beaky` → `beaky`.
         var characterName: String {
@@ -495,11 +496,13 @@ struct CharacterMind: Sendable {
         FactPhrasing.name(of: entityID)
     }
 
-    /// "What you know": the world's facts in plain words, or nothing at all when the world has
-    /// nothing to say — never an empty heading the model might fill in.
+    /// "What you know": the local time in words, then the world's facts in plain words. The
+    /// time is always there — a model cannot work out time zones, so it is told — and the
+    /// facts follow when the world has any.
     func knowledgeBlock(_ facts: [Fact], now: Date) -> String {
-        let lines = FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
-        guard !lines.isEmpty else { return "" }
+        let lines =
+            [FactPhrasing.timeSentence(now, in: configuration.timeZone)]
+            + FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
         return "\n\nWhat you know right now, from the world itself (trust this over guesses):\n"
             + lines.map { "- " + $0 }.joined(separator: "\n")
     }

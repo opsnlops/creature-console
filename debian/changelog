@@ -21,7 +21,9 @@ creature-cli (2.59.0+world0.7.0) unstable; urgency=medium
     and lets the room chime in.
   * creature-agent 2.59.0: the mind is told what the world knows. Facts are
     phrased as plain sentences in a "What you know right now" block before
-    the conversation (prompt world-conversation-v2).
+    the conversation (prompt world-conversation-v2), which always begins
+    with the local time in words (new `timeZone` key; a model cannot
+    convert zones and Beaky said "high noon" at 11:45 PM).
 
  -- April White <april@creature.engineering>  Thu, 11 Sep 2026 23:15:00 -0700
 

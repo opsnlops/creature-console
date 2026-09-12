@@ -107,6 +107,7 @@ World mode keys:
 | `llmTimeoutSeconds` | `60` | model call deadline |
 | `regionEntityId` | `region:home` | the region this mind logs into; a character is in one region at a time |
 | `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
+| `timeZone` | the host's zone | an IANA identifier such as `America/Los_Angeles`; the mind is told the local time in words every turn ("It is 11:45 PM on Friday, September 11."). Set it — a server's clock is usually UTC and a model cannot convert zones (`2.59.0`) |
 
 A minimal world-mode file:
 
@@ -123,6 +124,7 @@ worldUrl: http://10.69.66.1:8001/world/v1
 characterEntityId: character:beaky
 personEntityId: person:april
 stateDirectory: /var/lib/creature-agent
+timeZone: America/Los_Angeles
 llmSystemPrompt: |
   You are Beaky, an animatronic parrot who lives in April's house and is her familiar. ...
 areas: []
@@ -145,8 +147,9 @@ creature-agent run --config-path agent.yaml --log-level info --host <creature-se
   conversation items the world attached to the percept — both authors, in order — so Beaky sees
   what she herself said last. Consecutive messages from one author are merged into one turn
   because Mistral's chat template rejects non-alternating roles.
-- **It is told what the world knows** (`2.59.0`). The `world_facts` on an utterance percept or
-  a scene floor offer are phrased as plain sentences — "Mango is here in the room with you",
+- **It is told what the world knows** (`2.59.0`). The block begins with the local time in words
+  (`timeZone`) — Beaky answered "high noon" at 11:45 PM before this — and the `world_facts` on
+  an utterance percept or a scene floor offer follow, phrased as plain sentences — "Mango is here in the room with you",
   "April is home (you assume; nobody has checked)", "5 minutes ago, in this room: Mango said
   …" — in a "What you know right now, from the world itself" block ahead of the conversation,
   and the prompt says to trust it over guesses. `FactPhrasing` maps predicates to sentences,
