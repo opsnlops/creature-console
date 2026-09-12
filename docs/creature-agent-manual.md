@@ -44,7 +44,7 @@ Shared keys:
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `mode` | `mqtt` | `mqtt` or `world` |
-| `creatureId` | required | Creature Server creature ID Beaky speaks through (both modes) |
+| `creatureId` | required | Creature Server creature **UUID** Beaky speaks through (both modes; Beaky is `4754fc0e-1706-11ef-931d-bbb95a696e2e`). The sample file's `<uuid>` placeholder makes Creature Server refuse every session with `creature_id must be a UUID` |
 | `llmBackend` | `openai` | `openai` or `local`; world mode requires `local` |
 | `llmModel` | `gpt-5.2` | model name sent to the backend |
 | `llmSystemPrompt` | required | the character's persona |

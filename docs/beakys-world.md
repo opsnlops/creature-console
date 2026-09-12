@@ -165,11 +165,15 @@ back to the Communicator.
   proprioception (VW-012), Home Assistant (VW-013), calendar timers (VW-018/VW-027), then memory
   (Phase 9). That is the work that turns "an LLM with a persona" into Beaky.
 
-- **The physical stage is built (this branch) but not yet heard.** It needs the fuzzball
-  deployment above and a live check: her voice through the creature ~2 s after the first
-  sentence, the same words in Communicator, the chip in the Viewer, one Honeycomb trace
-  phone → gateway → World → `agent.turn` → Mistral → Creature Server → World. Real presence
-  (VW-006/VW-013) later replaces the assumption.
+- **Beaky spoke in the room on 2026-09-11 at 17:32 PDT** ("Hi April! How was your day?",
+  animation `be4fe551…`), staged by the world from an assumed presence, with the same words in
+  the Communicator, `physical_speech · home_and_audible · assumed · performed` in the Viewer,
+  and one Honeycomb trace `d304878f…` phone → gateway → World stage → `agent.turn`
+  (Mistral streaming alongside `creature.server.perform`) → World perform. Two gotchas found
+  live: fuzzball's `creatureId` was still the sample placeholder (`<uuid>`) — Creature Server
+  answers `creature_id must be a UUID` and the Viewer showed `failed:
+  physical_speech_start_failed`; and #156. Real presence (VW-006/VW-013) later replaces the
+  assumption.
 - Character personalities: one persona string today; a phase of its own (per-character
   definitions, memories, rubric).
 - World Viewer follow-ups: VW-011 *Why?* (provenance walk, #102), a Honeycomb trace link per
@@ -179,10 +183,9 @@ back to the Communicator.
 
 ### 0.6 Exact next actions
 
-1. Deploy World `0.4.1` + agent `2.56.0` to fuzzball with the assumed-presence block (0.4),
-   hear Beaky answer in the room, confirm the Viewer chip and the single trace. Then decide
-   whether production's agent moves to world mode (it would lose MQTT house-event reactions
-   until VW-013).
+1. Merge `vw-016-physical-stage` (PR #155). Fuzzball already runs World `0.4.1` + agent
+   `2.56.0` with the assumption and Beaky is heard. Decide whether production's agent moves to
+   world mode (it would lose MQTT house-event reactions until VW-013).
 2. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
    about something real; the Facts panel is waiting. Then personalities, and one mind per
    character with a character lease so minds never collide.
