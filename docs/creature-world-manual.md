@@ -139,8 +139,9 @@ describe the deployed replica set or managed MongoDB cluster instead.
 
 ### MongoKitten fork
 
-`Common/Package.swift` pins MongoKitten to the `opsnlops/MongoKitten` fork (branch
-`fix/end-cursor-spans`, a fix on top of `7.16.3`) until the change lands upstream. Upstream
+`Common/Package.swift` pins MongoKitten to the `opsnlops/MongoKitten` fork (tag
+`7.16.3-opsnlops.1`, branch `fix/end-cursor-spans` on top of `7.16.3`) until the change lands
+upstream. Upstream
 starts a `Find<…>` / `Aggregate<…>` / `ListIndexes<…>` / `ListCollections` span for every cursor
 operation and never ends it, so in Honeycomb every `MongoKitten.Find<…>` and `.getMore` span in a
 World trace hung from a parent that never arrived. The fork makes the cursor own that span and end

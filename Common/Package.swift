@@ -54,10 +54,7 @@ let package = Package(
         // opsnlops fork of MongoKitten 7.16.3 until the cursor-span fix lands upstream:
         // Find/Aggregate/ListIndexes/ListCollections spans were started and never ended, so
         // every MongoKitten.Find<…> span in a trace hung from a parent Honeycomb never saw.
-        .package(
-            url: "https://github.com/opsnlops/MongoKitten.git",
-            revision: "56025001042605f20791e16065e90199c081f478"
-        ),
+        .package(url: "https://github.com/opsnlops/MongoKitten.git", exact: "7.16.3-opsnlops.1"),
     ],
 
     targets: [
