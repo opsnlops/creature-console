@@ -378,6 +378,7 @@ private func runWorldMode(
             systemPrompt: config.llmSystemPrompt,
             temperature: config.llmTemperature,
             reasoningEffort: config.llmReasoningEffort,
+            serviceTier: config.llmServiceTier,
             minSentenceChars: config.minSentenceChars,
             logger: logger,
             traceResponses: traceResponses
@@ -390,6 +391,7 @@ private func runWorldMode(
         metadata: [
             "llm.backend": "\(config.llmBackend.rawValue)", "llm.model": "\(config.llmModel)",
             "llm.reasoning_effort": "\(config.llmReasoningEffort ?? "none")",
+            "llm.service_tier": "\(config.llmServiceTier ?? "default")",
         ])
     var clientConfiguration = HTTPClient.Configuration()
     clientConfiguration.timeout = .init(connect: .seconds(10), read: .seconds(120))
@@ -445,7 +447,8 @@ private func runWorldMode(
             maximumContextTurns: world.maximumContextTurns,
             modelTimeout: .seconds(world.llmTimeout),
             modelName: config.llmModel,
-            timeZone: world.timeZone
+            timeZone: world.timeZone,
+            modelLabel: "\(config.llmBackend.rawValue)/\(config.llmModel)"
         ),
         respond: respond,
         stage: stage,

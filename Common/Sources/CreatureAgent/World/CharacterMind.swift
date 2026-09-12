@@ -84,6 +84,9 @@ struct CharacterMind: Sendable {
         let modelTimeout: Duration
         let modelName: String
         var timeZone: TimeZone = .current
+        /// `backend/model` ("openai/gpt-6-astra"): the mind is told what it runs on, so April
+        /// can ask her which bird is thinking on what.
+        var modelLabel: String? = nil
 
         /// The character's plain name, as a model might label her lines: `character:beaky` → `beaky`.
         var characterName: String {
@@ -93,7 +96,7 @@ struct CharacterMind: Sendable {
         }
     }
 
-    private let configuration: Configuration
+    let configuration: Configuration
     private let respond: Respond
     private let stage: Stage?
     private let logger: Logger
@@ -511,9 +514,13 @@ struct CharacterMind: Sendable {
     /// time is always there — a model cannot work out time zones, so it is told — and the
     /// facts follow when the world has any.
     func knowledgeBlock(_ facts: [Fact], now: Date) -> String {
-        let lines =
-            [FactPhrasing.timeSentence(now, in: configuration.timeZone)]
-            + FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
+        var lines = [FactPhrasing.timeSentence(now, in: configuration.timeZone)]
+        if let model = configuration.modelLabel {
+            lines.append(
+                "Your mind runs on the \(model) model. Say so if April asks; otherwise it is not worth mentioning."
+            )
+        }
+        lines += FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
         return "\n\nWhat you know right now, from the world itself (trust this over guesses):\n"
             + lines.map { "- " + $0 }.joined(separator: "\n")
     }

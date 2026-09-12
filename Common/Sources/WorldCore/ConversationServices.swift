@@ -132,6 +132,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
     private let scenePlanner: any ScenePlanning
     private let addresseeResolver: any AddresseeResolving
     private let knowledge: any WorldKnowledgeProviding
+    private let houseCommands: any HouseCommandRecognizing
     private let makeConsiderationID: ConsiderationIDGenerator
     private let makeConversationItemID: ConversationItemIDGenerator
 
@@ -142,6 +143,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
         scenePlanner: any ScenePlanning = NoScenePlanner(),
         addresseeResolver: any AddresseeResolving = HintedAddresseeResolver(),
         knowledge: any WorldKnowledgeProviding = NoWorldKnowledge(),
+        houseCommands: any HouseCommandRecognizing = NoHouseCommands(),
         makeConsiderationID: @escaping ConsiderationIDGenerator = { .generated() },
         makeConversationItemID: @escaping ConversationItemIDGenerator = { .generated() }
     ) {
@@ -151,6 +153,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
         self.scenePlanner = scenePlanner
         self.addresseeResolver = addresseeResolver
         self.knowledge = knowledge
+        self.houseCommands = houseCommands
         self.makeConsiderationID = makeConsiderationID
         self.makeConversationItemID = makeConversationItemID
     }
@@ -191,10 +194,18 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
             span.attributes["scene.id"] = sceneID?.rawValue
             // What the world knows about the people in this moment travels with the percept,
             // so the mind reasons from facts, never from what it can fetch or invent.
-            let worldFacts = try await knowledge.currentFacts(
+            var worldFacts = try await knowledge.currentFacts(
                 about: [characterID, utterance.speakerID],
                 mentionedIn: utterance.text,
                 limit: WorldKnowledgeLimits.maximumFacts)
+            // "Set the lights to normal evening": the house acts on the words before the mind
+            // answers, and the mind is told so.
+            if let requested = try await houseCommands.request(in: utterance) {
+                if case .string(let scene) = requested.value {
+                    span.attributes["house.scene_requested"] = scene
+                }
+                worldFacts.insert(requested, at: 0)
+            }
             span.attributes["world.facts"] = worldFacts.count
             let proposed = try StoredUtteranceIngress(
                 percept: PersonUtterancePercept(

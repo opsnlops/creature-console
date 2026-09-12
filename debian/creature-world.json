@@ -4,7 +4,12 @@
   "port": 8001,
   "regions": {
     "region:home": {
-      "stage_id": "0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4"
+      "stage_id": "0300c6eb-bbc8-4f31-9ffb-f46501d9c5d4",
+      "places": [
+        "house:aprils-nest", "place:outside", "place:front-door", "place:back-door",
+        "place:entryway", "place:kitchen", "place:workshop", "place:driveway", "place:carport",
+        "place:orchard"
+      ]
     }
   },
   "facts": [

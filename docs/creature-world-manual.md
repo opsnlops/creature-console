@@ -224,6 +224,12 @@ run on the authoritative event loop, and tells the minds about them. The first r
 | `presence.assumed` (announced from `presence.assumed` in `world.json` at startup, idempotent) | `person:april` `presence.state` = `home`, `presence.physically_audible` = `true` | assumed, configured confidence |
 | `scene.performed` | `region:home` `scene.last` = trigger and lines, valid for one hour | observed, 1 |
 | `facts.given` (each entry of `facts` in `world.json`, announced at startup, idempotent; `0.7.3`) | as stated, e.g. `person:polly` `person.description` = `April's sister` | reported, 1 |
+| `door.locked` / `door.unlocked`, `door.opened` / `door.closed` (from `creature-house`, `0.8.0`) | `place:<door>` `door.lock` / `door.state` | observed, 1 |
+| `motion.detected` / `motion.cleared` | `place:<room>` `motion.active` (true for ten minutes) | observed, 1 |
+| `camera.person_seen` / `vehicle_seen` / `animal_seen` | `place:<camera>` `seen.person` / `seen.vehicle` / `seen.animal`, ten minutes | observed, 1 |
+| `person.arrived` / `person.left` | `person:<x>` `presence.state` = `home` / `away` — **supersedes the assumption; the router reads it first** | observed, 1 |
+| `environment.measurement_changed` | `place:<x>` `environment.<predicate>` = number | observed, 1 |
+| `house.scenes_offered`, `house.scene_requested`, `house.scene_activated` | `house:<x>` `house.scenes`, `house.scene_requested` (two minutes), `house.scene` | observed, 1 |
 
 `facts` in `world.json` is for things April simply states until a source can observe them —
 who a person is, mostly — and is deliberately thin: a `person.description` is phrased to the
@@ -239,8 +245,9 @@ Information Bridge, which will supersede these.
 
 A newer fact about the same subject and predicate **supersedes** the older one: the old
 document gets `valid_to` and `superseded_by`, so `GET /world/v1/facts` and the Viewer's Facts
-panel always show the current world and the history stays queryable. The world also **sweeps
-expired character sessions** every 15 s and announces the logout itself, so a mind that died
+panel always show the current world and the history stays queryable. `regions.<region>.places` lists the places
+(and the house) whose facts the characters in that region are told about. The world also
+**sweeps expired character sessions** every 15 s and announces the logout itself, so a mind that died
 without saying goodbye leaves the room in the facts too.
 
 Every percept a mind receives carries `world_facts`: the current facts (newest first, at most
@@ -630,7 +637,8 @@ The unit runs with a dynamic user, restarts on process failure, and applies syst
 MongoDB outage does not cause a process failure, so systemd leaves the degraded service running
 while its internal retry loop reconnects.
 
-**Upgrading restarts a running service** (since `0.6.1`, #144): the package's `postinst` calls
+**Upgrading restarts an enabled service** (`0.8.0`; #144 — `0.6.1`'s check for an *active*
+unit never fired, because `--no-start` stops the unit in `preinst` first): the package's `postinst` calls
 `deb-systemd-invoke restart creature-world` when a previous version was installed and the unit
 is active, so the new build answers as soon as `apt install` returns. A fresh install still does
 not start the service — review `/etc/creature/world.json` first, then `sudo systemctl enable

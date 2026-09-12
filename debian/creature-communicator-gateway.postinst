@@ -3,11 +3,13 @@ set -e
 
 #DEBHELPER#
 
-# A fresh install leaves the service for the operator to review and enable; an upgrade of a
-# running service restarts it so the new version answers without a hand on the box (#144).
+# A fresh install leaves the service for the operator to review and enable. On an upgrade the
+# unit is already stopped — dh_installsystemd --no-start adds a preinst that stops it — so
+# asking whether it is active would always say no (#144, seen again on 2026-09-12). Start it
+# again if the operator had it enabled; that is what "it was running" means after a stop.
 if [ "$1" = "configure" ] && [ -n "$2" ] && [ -d /run/systemd/system ]; then
-    if systemctl is-active --quiet creature-communicator-gateway.service; then
-        deb-systemd-invoke restart creature-communicator-gateway.service >/dev/null || true
+    if systemctl is-enabled --quiet creature-communicator-gateway.service 2>/dev/null; then
+        deb-systemd-invoke start creature-communicator-gateway.service >/dev/null || true
     fi
 fi
 

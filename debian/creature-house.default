@@ -1,0 +1,10 @@
+# Creature House environment. This file is the only place the Home Assistant token lives.
+# Create a long-lived access token in Home Assistant (your profile, Security) and keep this
+# file readable by root only: chmod 600 /etc/default/creature-house
+HA_TOKEN=
+
+# OpenTelemetry (uncomment to enable OTLP export).
+#OTEL_SERVICE_NAME=creature-house
+#OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
+#OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=YOUR_API_KEY_HERE
+#OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf

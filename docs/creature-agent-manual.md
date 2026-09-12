@@ -109,6 +109,7 @@ World mode keys:
 | `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
 | `llmBackend` | `local` | `local` (Mistral on the LAN) or `openai` (`2.61.0`): a mind may run on OpenAI's Responses API, streamed sentence by sentence like the local model, so one bird can be compared against Mistral live (`llm.model` is on every span). The key comes from `OPENAI_API_KEY` in `/etc/default/creature-agent-<instance>` (never in git) or `llmApiKey` |
 | `llmReasoningEffort` | none | `low`, `medium`, or `high` for OpenAI reasoning models; when set, no `temperature` is sent |
+| `llmServiceTier` | none | OpenAI `service_tier`: `fast` buys lower latency for a per-token premium (about 2× on the models that support it); a bird in a room may be worth it (`2.62.0`) |
 | `personaPath` | none | a persona file (`docs/personas/<bird>.yaml`, installed under `/etc/creature/agent/personas/`); with it the mind *is* that persona and `llmSystemPrompt` is ignored in world mode (`2.60.0`) |
 | `timeZone` | the host's zone | an IANA identifier such as `America/Los_Angeles`; the mind is told the local time in words every turn ("It is 11:45 PM on Friday, September 11."). Set it — a server's clock is usually UTC and a model cannot convert zones (`2.59.0`) |
 
@@ -150,6 +151,7 @@ effort"): switch a single mind's backend and leave the others on Mistral.
 llmBackend: openai
 llmModel: gpt-6-astra
 llmReasoningEffort: low
+llmServiceTier: fast        # optional; premium per token, lower latency
 ```
 
 ```
@@ -191,6 +193,10 @@ else — persona, facts, the clock, streaming to the room — is identical.
 - **Stage directions are never spoken** (`2.60.0`). `*giggles*`, `(chuckles)`, `[flaps wings]`
   are removed from every reply before it is stored or spoken; a reply that was nothing but a
   direction is a pass. The persona's `never` rules make narration rare; this makes it impossible.
+- **It knows what it runs on** (`2.62.0`). "Your mind runs on the openai/gpt-6-astra model.
+  Say so if April asks; otherwise it is not worth mentioning." is the second line of "What
+  you know" — April decided a familiar should be able to answer "what model are you using?"
+  while the persona still keeps her from volunteering it.
 - **It is told what the world knows** (`2.59.0`). The block begins with the local time in words
   (`timeZone`) — Beaky answered "high noon" at 11:45 PM before this — and the `world_facts` on
   an utterance percept or a scene floor offer follow, phrased as plain sentences — "Mango is here in the room with you",

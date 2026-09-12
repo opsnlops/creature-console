@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+# A fresh install leaves the service for the operator to put HA_TOKEN in
+# /etc/default/creature-house and enable it. On an upgrade the unit is already stopped
+# (dh_installsystemd --no-start adds a preinst that stops it), so start it again if the
+# operator had it enabled (#144).
+if [ "$1" = "configure" ] && [ -n "$2" ] && [ -d /run/systemd/system ]; then
+    if systemctl is-enabled --quiet creature-house.service 2>/dev/null; then
+        deb-systemd-invoke start creature-house.service >/dev/null || true
+    fi
+fi
+
+exit 0

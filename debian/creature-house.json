@@ -1,0 +1,23 @@
+{
+  "home_assistant": { "url": "http://10.3.2.5:8123" },
+  "world_url": "http://127.0.0.1:8001/world/v1",
+  "house_id": "house:aprils-nest",
+  "scenes": { "offer": true },
+  "mappings": [
+    { "entity_id": "lock.front_door", "subject_id": "place:front-door", "kind": "lock" },
+    { "entity_id": "lock.back_door", "subject_id": "place:back-door", "kind": "lock" },
+    { "entity_id": "binary_sensor.entryway_motion", "subject_id": "place:entryway", "kind": "motion" },
+    { "entity_id": "binary_sensor.kitchen_motion", "subject_id": "place:kitchen", "kind": "motion" },
+    { "entity_id": "binary_sensor.workshop_motion", "subject_id": "place:workshop", "kind": "motion" },
+    { "entity_id": "person.april", "subject_id": "person:april", "kind": "person" },
+    { "entity_id": "sensor.outside_temperature", "subject_id": "place:outside", "kind": "measurement", "predicate": "temperature_f", "minimum_change": 1.0 },
+    { "entity_id": "binary_sensor.front_door_person_detected", "subject_id": "place:front-door", "kind": "detection", "detects": "person" },
+    { "entity_id": "binary_sensor.driveway_person_detected", "subject_id": "place:driveway", "kind": "detection", "detects": "person" },
+    { "entity_id": "binary_sensor.driveway_vehicle_detected", "subject_id": "place:driveway", "kind": "detection", "detects": "vehicle" },
+    { "entity_id": "binary_sensor.carport_person_detected_2", "subject_id": "place:carport", "kind": "detection", "detects": "person" },
+    { "entity_id": "binary_sensor.carport_vehicle_detected_2", "subject_id": "place:carport", "kind": "detection", "detects": "vehicle" },
+    { "entity_id": "binary_sensor.workshop_person_detected", "subject_id": "place:workshop", "kind": "detection", "detects": "person" },
+    { "entity_id": "binary_sensor.kitchen_camera_person_detected", "subject_id": "place:kitchen", "kind": "detection", "detects": "person" },
+    { "entity_id": "binary_sensor.orchard_animal_detected", "subject_id": "place:orchard", "kind": "detection", "detects": "animal" }
+  ]
+}

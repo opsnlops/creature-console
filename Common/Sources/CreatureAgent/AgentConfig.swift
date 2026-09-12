@@ -25,6 +25,9 @@ struct AgentConfig: Decodable {
     /// For OpenAI reasoning models: `low`, `medium`, or `high`. When set, no temperature is
     /// sent (reasoning models refuse one).
     let llmReasoningEffort: String?
+    /// OpenAI's `service_tier`: `fast` buys lower latency for a per-token premium. Unset means
+    /// the default tier.
+    let llmServiceTier: String?
     let localLlmHost: String
     let localLlmPort: Int
     let localLlmMaxTokens: Int
@@ -120,6 +123,7 @@ struct AgentConfig: Decodable {
         case llmSystemPrompt
         case llmTemperature
         case llmReasoningEffort
+        case llmServiceTier
         case localLlmHost
         case localLlmPort
         case localLlmMaxTokens
@@ -167,6 +171,14 @@ struct AgentConfig: Decodable {
             throw DecodingError.dataCorruptedError(
                 forKey: .llmReasoningEffort, in: container,
                 debugDescription: "llmReasoningEffort must be low, medium, or high")
+        }
+        llmServiceTier = try container.decodeIfPresent(String.self, forKey: .llmServiceTier)
+        if let tier = llmServiceTier,
+            !["auto", "default", "fast", "priority", "flex"].contains(tier)
+        {
+            throw DecodingError.dataCorruptedError(
+                forKey: .llmServiceTier, in: container,
+                debugDescription: "llmServiceTier must be auto, default, fast, priority, or flex")
         }
         localLlmHost =
             try container.decodeIfPresent(String.self, forKey: .localLlmHost) ?? "10.69.66.4"

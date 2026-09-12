@@ -31,7 +31,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SWIFT_VERSION="${SWIFT_VERSION:-$(sed -n 's/^ARG SWIFT_VERSION=\(.*\)$/\1/p' "${ROOT_DIR}/Dockerfile.debian")}"
 IMAGE_PREFIX="creature-console-deb-builder"
 VOLUME_PREFIX="creature-console-deb-work"
-PRODUCTS=(creature-cli creature-mqtt creature-agent creature-world creature-communicator-gateway)
+PRODUCTS=(creature-cli creature-mqtt creature-agent creature-world creature-communicator-gateway creature-house)
 
 ARCHES=(amd64 arm64)
 OUT_DIR="${ROOT_DIR}/artifacts"
@@ -138,6 +138,7 @@ build_packages() {
             SWIFT_BUILD_FLAGS_MQTT="-c release --product creature-mqtt --static-swift-stdlib" \
             SWIFT_BUILD_FLAGS_WORLD="-c release --product creature-world --static-swift-stdlib" \
             SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY="-c release --product creature-communicator-gateway --static-swift-stdlib" \
+            SWIFT_BUILD_FLAGS_HOUSE="-c release --product creature-house --static-swift-stdlib" \
                 dpkg-buildpackage -us -uc -b
             # Debian names debug-symbol packages *-dbgsym_*.deb; Ubuntu uses .ddeb. Take both.
             find /work -maxdepth 1 \( -name "*_${ARCH}.deb" -o -name "*_${ARCH}.ddeb" \) \

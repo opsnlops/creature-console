@@ -35,6 +35,55 @@ struct UnknownPresenceProvider: PersonPresenceProviding, Sendable {
 /// Beaky answer in the room. The presence carries `basis: assumed` so every routing decision
 /// records that it rested on configuration, not evidence. People without an assumption are
 /// `unknown`, exactly as `UnknownPresenceProvider` reports them.
+/// Evidence first: when the house has observed a person (`presence.state` from a
+/// `person.arrived` / `person.left` event) the router reads that; only without evidence does
+/// it fall back to the configured assumption. This is the moment the router stops assuming.
+struct FactBackedPresenceProvider: PersonPresenceProviding, Sendable {
+    static let validity: TimeInterval = 60
+
+    private let facts: FactRepository
+    private let fallback: any PersonPresenceProviding
+    private let assumptions: [EntityID: PresenceConfiguration.AssumedPresence]
+    private let clock: any WorldClock
+
+    init(
+        facts: FactRepository, fallback: any PersonPresenceProviding,
+        assumptions: PresenceConfiguration, clock: any WorldClock
+    ) {
+        self.facts = facts
+        self.fallback = fallback
+        self.assumptions = assumptions.assumed
+        self.clock = clock
+    }
+
+    func presence(for personID: EntityID) async throws -> PersonPresence {
+        let now = await clock.now
+        let current = try await facts.currentFacts(subjectID: personID, at: now)
+        guard
+            let observed = current.first(where: {
+                $0.predicate == WorldFacts.personState && $0.epistemic.type == .observed
+            }),
+            case .string(let raw) = observed.value,
+            let state = PersonPresenceState(rawValue: raw)
+        else {
+            return try await fallback.presence(for: personID)
+        }
+        // Audibility is not something a phone can observe; take the house's word for it when
+        // it has one, else assume a person at home can hear the room.
+        let audible = assumptions[personID]?.physicallyAudible ?? (state == .home)
+        return try PersonPresence(
+            personID: personID,
+            state: state,
+            confidence: observed.epistemic.confidence,
+            observedAt: observed.validFrom,
+            validUntil: now.addingTimeInterval(Self.validity),
+            physicallyAudible: state == .home && audible,
+            provenance: observed.derivedFrom,
+            basis: .observed
+        )
+    }
+}
+
 struct AssumedPresenceProvider: PersonPresenceProviding, Sendable {
     /// An assumption holds for as long as it is configured; each reading is fresh for a short
     /// window so a decision made a moment later still sees it as current.

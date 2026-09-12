@@ -24,6 +24,11 @@ struct FactRepository: Sendable {
     func save(_ fact: Fact) async throws {
         var document = try BSONEncoder().encode(fact)
         document["_id"] = fact.factID.rawValue
+        // BSONEncoder drops a nil; a fact whose value is `null` ("Beaky has left") must still
+        // say so, or the document has no value at all and cannot be read back.
+        if fact.value == .null {
+            document["value"] = Null()
+        }
         _ = try await facts.findOneAndUpsert(
             where: ["_id": fact.factID.rawValue],
             replacement: document,
@@ -105,11 +110,14 @@ struct FactRepository: Sendable {
     }
 
     private func decode(_ document: Document) throws -> Fact {
-        var fact = try BSONDecoder().decode(Fact.self, from: document)
-        guard let value = document["value"] else {
-            throw MongoWorldJSONError.missingObject
+        // Facts written before 0.8.0 with a `null` value have no `value` key at all, and the
+        // BSON decoder cannot find a missing key; give it the null it meant.
+        var readable = document
+        if readable["value"] == nil {
+            readable["value"] = Null()
         }
-        fact.value = try MongoWorldJSON.value(from: value)
+        var fact = try BSONDecoder().decode(Fact.self, from: readable)
+        fact.value = try MongoWorldJSON.value(from: readable["value"] ?? Null())
         return fact
     }
 }

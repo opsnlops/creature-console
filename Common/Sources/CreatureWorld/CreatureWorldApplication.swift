@@ -25,7 +25,8 @@ func makeCreatureWorldApplication(
         conversationService: dependencies.conversationService,
         characterSessionService: dependencies.characterSessionService,
         sceneService: dependencies.sceneService,
-        limits: apiConfiguration
+        limits: apiConfiguration,
+        logger: dependencies.logger
     ).addRoutes(to: worldRoutes)
 
     let lifecycleReporter = CreatureWorldLifecycleReporter(logger: dependencies.logger)
