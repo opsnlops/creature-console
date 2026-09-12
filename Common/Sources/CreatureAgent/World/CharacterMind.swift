@@ -642,11 +642,13 @@ struct CharacterMind: Sendable {
             in: trimmed, range: range, withTemplate: "")
     }
 
+    /// The model was asked for exactly `[silence]`; a small model writes `Silence`, `*silence*`
+    /// or `(silence)` just as readily, and none of those may be spoken aloud (#162).
     static func declinesToSpeak(_ raw: String) -> Bool {
-        let trimmed = LocalLLMClient.stripThinkTags(raw)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "\"'.`"))
-        return trimmed.caseInsensitiveCompare(silenceToken) == .orderedSame
+        let decoration = CharacterSet(charactersIn: "\"'.`*()[]_-!")
+            .union(.whitespacesAndNewlines)
+        let word = LocalLLMClient.stripThinkTags(raw).trimmingCharacters(in: decoration)
+        return word.caseInsensitiveCompare("silence") == .orderedSame
     }
 
     static func truncatedAtSentence(_ text: String, maximumUnicodeScalars: Int) -> String {

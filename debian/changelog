@@ -1,3 +1,11 @@
+creature-cli (2.58.1) unstable; urgency=medium
+
+  * creature-agent: a reply that is nothing but the word "silence" - in
+    any case, brackets, asterisks or parentheses - is a pass, never spoken
+    aloud. The first two-bird scene had both birds say "Silence" (#162).
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 21:30:00 -0700
+
 creature-cli (2.58.0) unstable; urgency=medium
 
   * creature-agent: scenes. When the world offers this character the floor

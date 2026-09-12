@@ -217,6 +217,16 @@ unit) points `--host/--port` at the Creature Server whose creature `creatureId` 
 her from the phone and she answers through the creature. Remove the `presence` block to send her
 back to the Communicator.
 
+### 0.4b The first scene — 2026-09-11 21:21 PDT
+
+"What do y'all think of the package that just got delivered?" from the phone, Beaky and Mango
+logged into `region:home`, creature-server 3.46.0 streaming: a twelve-turn scene (closed on
+`maximum_turns`), the floor alternating Beaky → Mango, performed and stitched
+(`7014b5d2…`), all of it visible turn by turn in the Viewer's Scenes panel. Two things learned:
+the small model writes "Silence" instead of `[silence]` and both birds said the word aloud
+(#162, fixed in `2.58.1`); and twelve turns of birdseed-versus-Linux is charming once and needs
+memory and personality to stay so — the cutoffs exist for a reason.
+
 ### 0.5 What is not finished
 
 - **There are no facts in the world.** `World.reducers` is empty; Mongo holds no facts, no
