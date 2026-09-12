@@ -647,8 +647,14 @@ struct CharacterMind: Sendable {
     static func declinesToSpeak(_ raw: String) -> Bool {
         let decoration = CharacterSet(charactersIn: "\"'.`*()[]_-!")
             .union(.whitespacesAndNewlines)
-        let word = LocalLLMClient.stripThinkTags(raw).trimmingCharacters(in: decoration)
-        return word.caseInsensitiveCompare("silence") == .orderedSame
+        var text = LocalLLMClient.stripThinkTags(raw).trimmingCharacters(in: decoration)
+        // "Beaky: [Silence]" is still silence: drop a script-style speaker label first.
+        if let colon = text.firstIndex(of: ":"),
+            text[..<colon].allSatisfy({ $0.isLetter || $0.isWhitespace })
+        {
+            text = text[text.index(after: colon)...].trimmingCharacters(in: decoration)
+        }
+        return text.caseInsensitiveCompare("silence") == .orderedSame
     }
 
     static func truncatedAtSentence(_ text: String, maximumUnicodeScalars: Int) -> String {

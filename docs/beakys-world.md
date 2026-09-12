@@ -97,7 +97,8 @@ current in the same commit as the code it describes.**
   performance), refreshed on `scene.*` events.
 - **Not yet:** scenes triggered by world events (the box) — only person utterances open scenes
   until VW-013 brings house events; job completion tracking (the render is recorded `queued`);
-  the Communicator still shows one bird's name (C3).
+  the house conversation and addressing rule (C3). The Communicator does show each author's
+  own name and colour per bubble since `0.2.0` (this branch).
 
 ### 0.3a What PR #159 adds — the flock, C1: many minds on one host (#158)
 

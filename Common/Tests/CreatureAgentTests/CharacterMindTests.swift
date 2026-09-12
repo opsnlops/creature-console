@@ -169,11 +169,13 @@ struct CharacterMindTests {
     func silenceInAnyDressIsSilence() {
         for reply in [
             "[silence]", "Silence", "*silence*", "(silence)", " \"SILENCE.\" ", "[Silence]!",
+            "Beaky: [Silence]", "Beaky: silence",
         ] {
             #expect(CharacterMind.declinesToSpeak(reply), "\(reply) should be silence")
             #expect(CharacterMind.validate(reply, spokenBy: "beaky") == nil)
         }
         #expect(!CharacterMind.declinesToSpeak("Silence is golden, April."))
+        #expect(!CharacterMind.declinesToSpeak("Beaky: Silence is golden."))
         #expect(CharacterMind.validate("Silence is golden, April.", spokenBy: "beaky") != nil)
     }
 
