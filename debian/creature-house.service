@@ -1,0 +1,35 @@
+[Unit]
+Description=Creature House: Home Assistant into Beaky's world, and the lights back out
+Documentation=https://github.com/opsnlops/creature-console
+After=network-online.target creature-world.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=creature-house
+DynamicUser=yes
+# HA_TOKEN lives here and nowhere else.
+EnvironmentFile=-/etc/default/creature-house
+ExecStart=/bin/creature-house --config /etc/creature/house.json
+# The outbox: events the world could not take yet.
+StateDirectory=creature-house
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

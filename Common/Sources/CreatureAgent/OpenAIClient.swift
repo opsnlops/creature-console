@@ -22,6 +22,8 @@ struct OpenAIClient: Sendable {
     /// `low` / `medium` / `high` for reasoning models; when set, `temperature` is not sent —
     /// reasoning models refuse it.
     private let reasoningEffort: String?
+    /// `fast` for lower latency at a premium; nil for the default tier.
+    private let serviceTier: String?
     private let minSentenceChars: Int
 
     init(
@@ -30,6 +32,7 @@ struct OpenAIClient: Sendable {
         systemPrompt: String,
         temperature: Double,
         reasoningEffort: String? = nil,
+        serviceTier: String? = nil,
         minSentenceChars: Int = 0,
         endpoint: URL = OpenAIClient.defaultEndpoint,
         logger: Logger,
@@ -41,6 +44,7 @@ struct OpenAIClient: Sendable {
         self.systemPrompt = systemPrompt
         self.temperature = temperature
         self.reasoningEffort = reasoningEffort
+        self.serviceTier = serviceTier
         self.minSentenceChars = minSentenceChars
         self.logger = logger
         self.traceResponses = traceResponses
@@ -142,7 +146,7 @@ struct OpenAIClient: Sendable {
         request.httpBody = try? JSONEncoder().encode(
             ResponseRequest(
                 model: model, transcript: transcript, temperature: temperature,
-                reasoningEffort: reasoningEffort, stream: stream))
+                reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream))
         return request
     }
 }
@@ -190,18 +194,25 @@ struct ResponseRequest: Encodable {
     let temperature: Double?
     let reasoning: Reasoning?
     let text = Text()
+    let serviceTier: String?
     let stream: Bool
     let store = false
 
+    private enum CodingKeys: String, CodingKey {
+        case model, input, temperature, reasoning, text, stream, store
+        case serviceTier = "service_tier"
+    }
+
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
-        reasoningEffort: String?, stream: Bool
+        reasoningEffort: String?, serviceTier: String? = nil, stream: Bool
     ) {
         self.model = model
         self.input = transcript.map(Item.init)
         // Reasoning models refuse a temperature; send one or the other.
         self.reasoning = reasoningEffort.map(Reasoning.init(effort:))
         self.temperature = reasoningEffort == nil ? temperature : nil
+        self.serviceTier = serviceTier
         self.stream = stream
     }
 }

@@ -1,3 +1,49 @@
+creature-cli (2.62.0+world0.8.0+house0.1.1) unstable; urgency=medium
+
+  * creature-house 0.1.1: a measurement's minimum_change is measured from
+    the last value the world was told, not from Home Assistant's previous
+    reading - a thermometer creeping 0.2 degrees at a time never crossed a
+    1-degree threshold, so the outside temperature stayed at the snapshot.
+  * The packaged world.json carries April's real Creature Server URL,
+    assumed presence, and streaming scenes, so a conffile prompt on upgrade
+    cannot leave the world unable to speak.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 15:10:00 -0700
+
+creature-cli (2.62.0+world0.8.0) unstable; urgency=medium
+
+  * creature-house 0.1.0 (new): the Home Assistant adapter. Follows HA's
+    WebSocket stream and turns mapped entities into world events - locks
+    (door.locked/unlocked), motion, people (person.arrived/left), numeric
+    measurements, and camera smart detections (camera.person_seen /
+    vehicle_seen / animal_seen) - with a startup snapshot, an on-disk outbox
+    while the world is away, and idempotent delivery keyed by HA's context
+    id. It also offers HA's scenes to the world and acts on
+    house.scene_requested with scene.turn_on, answering house.scene_activated.
+    Config /etc/creature/house.json; the token is HA_TOKEN in
+    /etc/default/creature-house.
+  * creature-world 0.8.0: HouseReducer turns those events into facts
+    (door.lock, door.state, motion.active, seen.*, presence.state observed,
+    environment.*, house.scenes, house.scene_requested, house.scene). An
+    observed presence now outranks the configured assumption in the delivery
+    router (FactBackedPresenceProvider): the router stops assuming.
+    Regions list their places (regions.<region>.places) so minds are told
+    about the doors, rooms, and outside around them. "Set the lights to
+    normal evening" is a world rule at ingress (SceneRequestRule) matched
+    against the scenes the house offers; the mind is told the house is
+    doing it. World and gateway restart after an upgrade for real this
+    time: --no-start stops the unit in preinst, so the postinst now starts
+    an enabled unit instead of checking whether it is active (#144).
+  * creature-communicator-gateway 0.1.5: restarts after an upgrade for
+    real (#144), see creature-world above.
+  * creature-agent 2.62.0: the birds have words for the house - "The front
+    door was unlocked just now", "A person was seen at the driveway 3
+    minutes ago", "It is 68 degrees outside", "You can set the lights to:
+    ...", "April just asked for the lights to be set to Normal Evening, and
+    the house is doing it right now".
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 14:10:00 -0700
+
 creature-cli (2.61.1+world0.7.3) unstable; urgency=medium
 
   * creature-world 0.7.3: `facts` in world.json states facts outright

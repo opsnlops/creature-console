@@ -114,9 +114,10 @@ The packages intentionally do not start services during installation. Before ena
 `/etc/creature/world.json` and `/etc/creature/communicator-gateway.json`. Package reinstall and
 removal preserve administrator configuration.
 
-**Upgrading restarts a running service** (since World `0.6.1` / gateway `0.1.4`, #144): the
-package's `postinst` restarts the unit when a previous version was installed and the unit is
-active; a fresh install still leaves it for the operator to review and enable. Confirm the
+**Upgrading restarts an enabled service** (gateway `0.1.5`; #144 — the `0.1.4` check for an
+*active* unit never fired, because `--no-start` stops the unit in `preinst` before `postinst`
+runs): the package's `postinst` starts the unit again when a previous version was installed
+and the unit is enabled; a fresh install still leaves it for the operator to review and enable. Confirm the
 `build_version` on the health endpoint after an upgrade. The gateway tolerates World being away
 and reconnects, so the order of upgrades does not matter.
 

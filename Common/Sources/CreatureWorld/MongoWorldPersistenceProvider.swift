@@ -58,7 +58,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             factStore: persistence.facts,
             reducers: [
                 CharacterPresenceReducer(), AssumedPersonPresenceReducer(), SceneMemoryReducer(),
-                GivenFactReducer(),
+                GivenFactReducer(), HouseReducer(),
             ],
             clock: clock
         )
@@ -69,7 +69,10 @@ struct MongoWorldPersistenceConnection: Sendable {
             logger: logger
         )
         let deliveryRouter = try CharacterDeliveryRouter(
-            presenceProvider: AssumedPresenceProvider(configuration: presence, clock: clock),
+            presenceProvider: FactBackedPresenceProvider(
+                facts: persistence.facts,
+                fallback: AssumedPresenceProvider(configuration: presence, clock: clock),
+                assumptions: presence, clock: clock),
             repository: persistence.characterDeliveries,
             physicalSpeechSink: NotConnectedPhysicalSpeechSink(logger: logger),
             communicatorSink: CommunicatorDeliverySink(),
@@ -115,7 +118,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         }
         let conversations = persistence.conversations
         let knowledge = PresentWorldKnowledge(
-            facts: persistence.facts, sessions: sessionService, clock: clock)
+            facts: persistence.facts, sessions: sessionService, regions: regions, clock: clock)
         let sceneService = SceneService(
             repository: persistence.scenes,
             clock: clock,
@@ -148,7 +151,9 @@ struct MongoWorldPersistenceConnection: Sendable {
             scenePlanner: PresentCharactersScenePlanner(sessions: sessionService),
             addresseeResolver: PresentCharactersAddresseeResolver(
                 sessions: sessionService, rule: LeadAddresseeRule(lead: leadCharacter)),
-            knowledge: knowledge
+            knowledge: knowledge,
+            houseCommands: HouseSceneRequests(
+                facts: persistence.facts, world: world, clock: clock, logger: logger)
         )
         // What the world assumes about people is a fact with provenance, announced at startup
         // (idempotent: the same assumption is the same event on every restart).
@@ -714,6 +719,7 @@ extension MongoWorldPersistenceProvider: SceneApplicationService {}
 private struct PresentWorldKnowledge: WorldKnowledgeProviding {
     let facts: FactRepository
     let sessions: CharacterSessionService
+    let regions: [EntityID: RegionConfiguration]
     let clock: any WorldClock
 
     func currentFacts(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
@@ -726,6 +732,8 @@ private struct PresentWorldKnowledge: WorldKnowledgeProviding {
             expanded.append(session.regionID)
             expanded.append(
                 contentsOf: try await sessions.present(in: session.regionID).map(\.characterID))
+            // The doors, rooms, and outside that belong to the region — the house around them.
+            expanded.append(contentsOf: regions[session.regionID]?.places ?? [])
         }
         // Anyone the world can describe who is named in the words: "Who is Polly?".
         if let text, !text.isEmpty {

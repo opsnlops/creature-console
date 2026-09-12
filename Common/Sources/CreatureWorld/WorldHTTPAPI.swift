@@ -1,6 +1,7 @@
 import Foundation
 import HTTPTypes
 import Hummingbird
+import Logging
 import ServiceLifecycle
 import WorldCore
 
@@ -12,6 +13,7 @@ struct WorldHTTPAPI: Sendable {
     let sceneService: any SceneApplicationService
     let limits: WorldAPIConfiguration
     let concurrencyLimiter: WorldAPIConcurrencyLimiter
+    let logger: Logger
 
     init(
         configuration: CreatureWorldConfiguration,
@@ -20,8 +22,10 @@ struct WorldHTTPAPI: Sendable {
         characterSessionService: any CharacterSessionApplicationService =
             UnavailableCharacterSessionApplicationService(),
         sceneService: any SceneApplicationService = UnavailableSceneApplicationService(),
-        limits: WorldAPIConfiguration = .default
+        limits: WorldAPIConfiguration = .default,
+        logger: Logger = Logger(label: "creature-world.api")
     ) {
+        self.logger = logger
         self.configuration = configuration
         self.service = service
         self.conversationService = conversationService
@@ -642,6 +646,9 @@ struct WorldHTTPAPI: Sendable {
         default:
             status = .internalServerError
             code = "internal_error"
+            // The client gets a plain 500; the operator gets the reason.
+            logger.error(
+                "A request failed inside Creature World", metadata: ["error": "\(error)"])
         }
         let message =
             status == .internalServerError

@@ -586,6 +586,35 @@ struct MongoWorldPersistenceTests {
         }
     }
 
+    @Test("A fact whose value is null (a character has left) survives the round trip")
+    func nullValuedFactsRoundTrip() async throws {
+        try await withPersistence { persistence in
+            let subjectID = try EntityID(validating: "character:\(UUID().uuidString.lowercased())")
+            let left = try Fact(
+                subjectID: subjectID, predicate: WorldFacts.characterRegion, value: .null,
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: Date(timeIntervalSince1970: 1_789_600_000), derivedFrom: [],
+                producer: FactProducer(kind: "reducer", id: "character-presence", version: "2"))
+
+            try await persistence.facts.save(left)
+
+            let stored = try #require(
+                try await persistence.facts.currentFacts(subjectID: subjectID).only)
+            #expect(stored.value == .null)
+            // ...and one written by an older world, with no value key at all, reads as null.
+            let reply = try await persistence.database[MongoWorldCollection.facts].updateOne(
+                where: ["_id": left.factID.rawValue], to: ["$unset": ["value": ""] as Document])
+            #expect(reply.updatedCount == 1)
+            let raw = try #require(
+                try await persistence.database[MongoWorldCollection.facts]
+                    .findOne(["_id": left.factID.rawValue]))
+            #expect(raw["value"] == nil)
+            let legacy = try #require(
+                try await persistence.facts.currentFacts(subjectID: subjectID).only)
+            #expect(legacy.value == .null)
+        }
+    }
+
     @Test("The subjects that carry a predicate are listed, current ones only")
     func subjectsWithPredicate() async throws {
         try await withPersistence { persistence in

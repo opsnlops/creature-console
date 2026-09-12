@@ -31,9 +31,32 @@ enum ScenePerformanceMode: String, Codable, Equatable, Sendable {
 /// are placed on, so they can look at each other.
 struct RegionConfiguration: Codable, Equatable, Sendable {
     var stageID: String
+    /// The places whose facts the characters in this region are told about: the doors, the
+    /// rooms with motion sensors, the outside — and the house itself (`house:<name>`).
+    var places: [EntityID]
+
+    init(stageID: String, places: [EntityID] = []) {
+        self.stageID = stageID
+        self.places = places
+    }
 
     private enum CodingKeys: String, CodingKey {
         case stageID = "stage_id"
+        case places
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        stageID = try container.decode(String.self, forKey: .stageID)
+        places =
+            try container.decodeIfPresent([String].self, forKey: .places)?
+            .map(EntityID.init(validating:)) ?? []
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(stageID, forKey: .stageID)
+        try container.encode(places.map(\.rawValue), forKey: .places)
     }
 }
 

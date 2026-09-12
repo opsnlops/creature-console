@@ -44,6 +44,51 @@ struct FactPhrasingTests {
             ])
     }
 
+    @Test("The house speaks plainly: doors, motion, the temperature, and the lights")
+    func houseFactsAreSentences() throws {
+        let frontDoor = try EntityID(validating: "place:front-door")
+        let entryway = try EntityID(validating: "place:entryway")
+        let outside = try EntityID(validating: "place:outside")
+        let house = try EntityID(validating: "house:aprils-nest")
+        let facts = [
+            try fact(
+                frontDoor, WorldFacts.doorLock, .string("unlocked"), .observed, 1,
+                validFrom: now.addingTimeInterval(-20)),
+            try fact(
+                entryway, WorldFacts.motionActive, .bool(true), .observed, 1,
+                validFrom: now.addingTimeInterval(-90)),
+            try fact(outside, "environment.temperature_f", .number(68.3), .observed, 1),
+            try fact(frontDoor, "seen.person", .bool(true), .observed, 1),
+            try fact(
+                try EntityID(validating: "place:driveway"), "seen.vehicle", .bool(true),
+                .observed, 1, validFrom: now.addingTimeInterval(-200)),
+            try fact(
+                house, WorldFacts.houseScenes,
+                .array([.string("Normal Evening"), .string("Movie Time")]), .observed, 1),
+            try fact(
+                house, WorldFacts.houseSceneRequested, .string("Normal Evening"), .observed, 1),
+            try fact(
+                house, WorldFacts.houseScene, .string("Movie Time"), .observed, 1,
+                validFrom: now.addingTimeInterval(-3_600 * 2)),
+        ]
+
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now)
+
+        #expect(
+            lines == [
+                "The front door was unlocked just now.",
+                "Someone moved in the entryway 1 minute ago.",
+                "It is 68.3 degrees outside.",
+                "A person was seen at the front door just now.",
+                "A vehicle was seen at the driveway 3 minutes ago.",
+                "You can set the lights to: Normal Evening, Movie Time. If April asks for one of these, the house does it the moment she asks; you only need to say so.",
+                "April just asked for the lights to be set to Normal Evening, and the house is doing it right now.",
+                "The lights are set to Movie Time (since 2 hours ago).",
+            ])
+        #expect(FactPhrasing.placeName(of: frontDoor) == "The front door")
+        #expect(FactPhrasing.placeName(of: outside) == "Outside")
+    }
+
     @Test("A person the world can only describe is described, and the blank is named")
     func thinPeopleAreMarked() throws {
         let polly = try EntityID(validating: "person:polly")
@@ -107,6 +152,15 @@ struct FactPhrasingTests {
         #expect(timeOnly.contains("What you know right now"))
         #expect(timeOnly.contains("- It is "))
         #expect(!timeOnly.contains("room"))
+        #expect(!timeOnly.contains("Your mind runs on"))
+        var knowing = mind.configuration
+        knowing.modelLabel = "openai/gpt-6-astra"
+        let told = CharacterMind(
+            configuration: knowing, respond: { _ in "" },
+            logger: .init(label: "fact-phrasing-tests"))
+        #expect(
+            told.knowledgeBlock([], now: now).contains(
+                "- Your mind runs on the openai/gpt-6-astra model."))
         let block = mind.knowledgeBlock(
             [try fact(mango, "presence.region", .string("region:home"), .observed, 1)], now: now)
         #expect(block.contains("- It is "))

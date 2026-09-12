@@ -15,6 +15,19 @@ struct ContractFixtureTests {
         try assertFixtureRoundTrip("world-fact-v1", as: Fact.self)
     }
 
+    @Test("A fact with no value key decodes as a null value")
+    func missingValueIsNull() throws {
+        let json = """
+            {"schema_version": 1, "fact_id": "fact:1f5d2a3c-0000-4000-8000-000000000001",
+             "subject_id": "character:beaky", "predicate": "presence.region",
+             "epistemic": {"type": "observed", "confidence": 1},
+             "valid_from": "2026-09-12T20:30:37.807Z", "derived_from": [],
+             "producer": {"kind": "reducer", "id": "character-presence", "version": "2"}}
+            """
+        let fact = try WorldJSON.makeDecoder().decode(Fact.self, from: Data(json.utf8))
+        #expect(fact.value == .null)
+    }
+
     @Test("Timer fixture round-trips semantically")
     func timerFixtureRoundTrips() throws {
         try assertFixtureRoundTrip("world-timer-v1", as: WorldTimer.self)

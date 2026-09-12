@@ -64,6 +64,49 @@ enum FactPhrasing {
             }
         case "presence.physically_audible":
             return nil  // folded into the router's choice; not something to say.
+        case WorldFacts.doorLock:
+            guard case .string(let state) = fact.value else { return nil }
+            let place = placeName(of: fact.subjectID)
+            return state == "unlocked"
+                ? "\(place) was unlocked \(age(of: fact.validFrom, now: now).lowercased())."
+                : "\(place) is locked."
+        case WorldFacts.doorState:
+            guard case .string(let state) = fact.value else { return nil }
+            let place = placeName(of: fact.subjectID)
+            return state == "open"
+                ? "\(place) is open (opened \(age(of: fact.validFrom, now: now).lowercased()))."
+                : "\(place) is closed."
+        case WorldFacts.motionActive:
+            guard case .bool(true) = fact.value else { return nil }
+            return
+                "Someone moved in \(placeName(of: fact.subjectID).lowercased()) \(age(of: fact.validFrom, now: now).lowercased())."
+        case let predicate where predicate.hasPrefix(WorldFacts.seenPrefix):
+            guard case .bool(true) = fact.value else { return nil }
+            let what = String(predicate.dropFirst(WorldFacts.seenPrefix.count))
+            let article = what == "animal" ? "An" : "A"
+            let place = placeName(of: fact.subjectID)
+            let at = place == place.capitalized ? place.lowercased() : "at " + place.lowercased()
+            return
+                "\(article) \(what) was seen \(at) \(age(of: fact.validFrom, now: now).lowercased())."
+        case let predicate where predicate.hasPrefix(WorldFacts.environmentPrefix):
+            return measurement(
+                String(predicate.dropFirst(WorldFacts.environmentPrefix.count)), fact: fact)
+        case WorldFacts.houseScenes:
+            guard case .array(let names) = fact.value, !names.isEmpty else { return nil }
+            let list = names.compactMap { value -> String? in
+                if case .string(let name) = value { return name }
+                return nil
+            }
+            return
+                "You can set the lights to: \(list.joined(separator: ", ")). If April asks for one of these, the house does it the moment she asks; you only need to say so."
+        case WorldFacts.houseSceneRequested:
+            guard case .string(let scene) = fact.value else { return nil }
+            return
+                "April just asked for the lights to be set to \(scene), and the house is doing it right now."
+        case WorldFacts.houseScene:
+            guard case .string(let scene) = fact.value else { return nil }
+            return
+                "The lights are set to \(scene) (since \(age(of: fact.validFrom, now: now).lowercased()))."
         case WorldFacts.lastScene:
             guard case .object(let scene) = fact.value,
                 case .array(let lines)? = scene["lines"], !lines.isEmpty
@@ -116,6 +159,37 @@ enum FactPhrasing {
         return String(raw[raw.index(after: colon)...]).capitalized
     }
 
+    /// `place:front-door` → "The front door"; `place:outside` → "Outside".
+    static func placeName(of entityID: EntityID) -> String {
+        let raw = entityID.rawValue
+        let local = raw.firstIndex(of: ":").map { String(raw[raw.index(after: $0)...]) } ?? raw
+        let words = local.split(whereSeparator: { $0 == "-" || $0 == "_" }).map(String.init)
+        let name = words.joined(separator: " ")
+        let article: Set<String> = ["outside", "outdoors", "upstairs", "downstairs"]
+        return article.contains(name) ? name.capitalized : "The " + name
+    }
+
+    /// "It is 68 degrees outside." / "The humidity in the workshop is 41 percent."
+    private static func measurement(_ predicate: String, fact: Fact) -> String? {
+        guard case .number(let value) = fact.value else { return nil }
+        let place = placeName(of: fact.subjectID)
+        let rounded = value.rounded()
+        let shown = rounded == value ? String(Int(rounded)) : String(format: "%.1f", value)
+        switch predicate {
+        case "temperature_f":
+            return
+                "It is \(shown) degrees \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased())."
+        case "temperature_c":
+            return
+                "It is \(shown) degrees Celsius \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased())."
+        case "humidity_percent":
+            return
+                "The humidity \(place == place.capitalized ? place.lowercased() : "at " + place.lowercased()) is \(shown) percent."
+        default:
+            return "\(place): \(predicate.replacingOccurrences(of: "_", with: " ")) is \(shown)."
+        }
+    }
+
     /// "Mango (he/him)" when the world knows the pronouns, "Mango" when it does not.
     static func name(of entityID: EntityID, pronouns: String?) -> String {
         guard let pronouns, !pronouns.isEmpty else { return name(of: entityID) }
@@ -135,8 +209,12 @@ enum FactPhrasing {
         let seconds = max(0, now.timeIntervalSince(date))
         switch seconds {
         case ..<60: return "Just now"
-        case ..<3_600: return "\(Int(seconds / 60)) minutes ago"
-        default: return "\(Int(seconds / 3_600)) hours ago"
+        case ..<3_600: return plural(Int(seconds / 60), "minute") + " ago"
+        default: return plural(Int(seconds / 3_600), "hour") + " ago"
         }
+    }
+
+    private static func plural(_ count: Int, _ unit: String) -> String {
+        "\(count) \(unit)\(count == 1 ? "" : "s")"
     }
 }

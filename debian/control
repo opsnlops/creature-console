@@ -38,3 +38,11 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Narrow synchronization gateway for Beaky Communicator
  Runs the independently deployed HTTP gateway for Beaky Communicator client
  synchronization, foreground leases, and future notification delivery.
+
+Package: creature-house
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Home Assistant adapter for Beaky's Virtual World
+ Follows Home Assistant and tells Creature World what the house sees (doors,
+ motion, people, temperatures, camera detections) and sets lighting scenes when
+ a character is asked to. The token lives in /etc/default/creature-house.

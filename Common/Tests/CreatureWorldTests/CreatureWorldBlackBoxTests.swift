@@ -33,6 +33,9 @@ struct CreatureWorldBlackBoxTests {
         let api = WorldServiceAPI(client: client, port: port)
         defer { Task { try? await client.shutdown() } }
         let sourceID = try SourceID(validating: "blackbox:\(UUID().uuidString.lowercased())")
+        // This run's own April: the database is shared with a laptop's live world, whose house
+        // may have observed the real person:april, and evidence would rightly beat assumption.
+        let april = try EntityID(validating: "person:april-\(UUID().uuidString.lowercased())")
 
         // The world is told to assume April is home and audible, as a deployment would be until
         // real presence exists, so a staged turn goes to the physical stage.
@@ -40,7 +43,7 @@ struct CreatureWorldBlackBoxTests {
             "creature-world-blackbox-\(UUID().uuidString).json")
         try Data(
             """
-            {"presence": {"assumed": {"person:april": {"state": "home", "physically_audible": true}}}}
+            {"presence": {"assumed": {"\(april.rawValue)": {"state": "home", "physically_audible": true}}}}
             """.utf8
         ).write(to: configURL)
         defer { try? FileManager.default.removeItem(at: configURL) }
@@ -108,7 +111,8 @@ struct CreatureWorldBlackBoxTests {
         // source, so the event assertions above stay scoped to this run's synthetic events.
         let utterance = try makeUtterance(
             in: conversationID,
-            sourceID: SourceID(validating: "communicator:blackbox")
+            sourceID: SourceID(validating: "communicator:blackbox"),
+            speaker: april
         )
         let ingress = try await api.post(utterance)
         #expect(ingress.status == .accepted)
@@ -178,6 +182,7 @@ struct CreatureWorldBlackBoxTests {
 
         let sceneUtterance = try makeUtterance(
             in: conversationID, sourceID: SourceID(validating: "communicator:blackbox"),
+            speaker: april,
             text: "What do you two think is in the box?")
         let sceneIngress = try await api.post(sceneUtterance)
         #expect(sceneIngress.status == .accepted)
@@ -188,7 +193,7 @@ struct CreatureWorldBlackBoxTests {
             Set(known.map { "\($0.subjectID.rawValue) \($0.predicate)" }).isSuperset(of: [
                 "character:beaky \(WorldFacts.characterRegion)",
                 "character:mango \(WorldFacts.characterRegion)",
-                "person:april \(WorldFacts.personState)",
+                "\(april.rawValue) \(WorldFacts.personState)",
             ]))
         #expect(
             known.first { $0.subjectID == sceneUtterance.speakerID }?.epistemic.type == .assumed)
@@ -287,11 +292,12 @@ struct CreatureWorldBlackBoxTests {
     private func makeUtterance(
         in conversationID: ConversationID,
         sourceID: SourceID,
+        speaker: EntityID,
         text: String = "Beaky, are you still there after a restart?"
     ) throws -> PersonUtterance {
         try PersonUtterance(
             conversationID: conversationID,
-            speakerID: EntityID(validating: "person:april"),
+            speakerID: speaker,
             addresseeIDs: [EntityID(validating: "character:beaky")],
             text: text,
             modality: .typed,

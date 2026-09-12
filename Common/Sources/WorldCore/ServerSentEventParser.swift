@@ -1,20 +1,26 @@
 import Foundation
 
 /// One `event:`/`id:`/`data:` frame from a `text/event-stream` body.
-struct ServerSentEvent: Equatable, Sendable {
-    var event: String
-    var id: String?
-    var data: String
+public struct ServerSentEvent: Equatable, Sendable {
+    public var event: String
+    public var id: String?
+    public var data: String
+
+    public init(event: String, id: String? = nil, data: String) {
+        self.event = event
+        self.id = id
+        self.data = data
+    }
 }
 
 /// Incremental parser for `\n\n`-delimited SSE frames. Comment lines (keep-alives) are dropped.
-struct ServerSentEventParser: Sendable {
+public struct ServerSentEventParser: Sendable {
     private var pending = ""
 
-    init() {}
+    public init() {}
 
     /// Feeds raw bytes and returns every complete frame they finished.
-    mutating func feed(_ chunk: String) -> [ServerSentEvent] {
+    public mutating func feed(_ chunk: String) -> [ServerSentEvent] {
         pending += chunk
         var frames: [ServerSentEvent] = []
         while let range = pending.range(of: "\n\n") {

@@ -26,6 +26,9 @@ let package = Package(
         .executable(
             name: "creature-communicator-gateway",
             targets: ["creature-communicator-gateway"]),
+        .executable(
+            name: "creature-house",
+            targets: ["creature-house"]),
 
     ],
     dependencies: [
@@ -34,6 +37,9 @@ let package = Package(
         .package(
             url: "https://github.com/hummingbird-project/hummingbird.git",
             exact: "2.26.0"),
+        .package(
+            url: "https://github.com/hummingbird-project/hummingbird-websocket.git",
+            from: "2.0.0"),
         .package(url: "https://github.com/swift-server-community/mqtt-nio", from: "2.12.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.74.0"),
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.27.0"),
@@ -227,6 +233,31 @@ let package = Package(
                 .product(name: "Tracing", package: "swift-distributed-tracing"),
             ],
             path: "Sources/CreatureWorld/"),
+        .executableTarget(
+            name: "creature-house",
+            dependencies: [
+                "Observability",
+                "WorldCore",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "HummingbirdWSClient", package: "hummingbird-websocket"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "Metrics", package: "swift-metrics"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+                .product(name: "Tracing", package: "swift-distributed-tracing"),
+            ],
+            path: "Sources/CreatureHouse/"),
+        .testTarget(
+            name: "CreatureHouseTests",
+            dependencies: [
+                "creature-house",
+                "WorldCore",
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "HummingbirdTesting", package: "hummingbird"),
+                .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+            ]
+        ),
         .testTarget(
             name: "CommonTests",
             dependencies: [

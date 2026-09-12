@@ -43,7 +43,7 @@ current in the same commit as the code it describes.**
 | --- | ---: | --- | --- |
 | Creature World | `0.7.2` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | facts (presence, pronouns, assumption, `scene.last`), `@`/name addressing, scenes, `region:home` → Mainstage, restart-on-upgrade. `0.7.3` (this branch): given facts, mentions, migration 8 |
 | Communicator Gateway | `0.1.4` fuzzball / `0.1.3` prod | `:8002` | |
-| Minds | `creature-agent 2.60.1` × 3 | fuzzball: `creature-agent@beaky`, `@mango`, `@kenny`, each with `personaPath` + `timeZone` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
+| Minds | `creature-agent 2.61.1` × 3 | fuzzball: `creature-agent@beaky` on **`openai/gpt-6-astra` (low effort)** since 13:40, `@mango` and `@kenny` on `local/mistral-nemo`; each with `personaPath` + `timeZone` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
 | World Viewer | `0.1.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts, Timers, Mundane view |
 | Beaky Communicator | `0.3.0` | April's Mac/phone | "The Flock", the house conversation, names and colours per author |
 
@@ -52,7 +52,59 @@ two-bird scene (21:21, twelve turns, streamed through `dialog-stream`, floor alt
 the Viewer); the first three-bird scene (22:09, Kenny joined — "April, you think pizza could
 fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn end to end.
 
-### 0.3 The quality sweep and the model spike — 2026-09-12 afternoon (World `0.7.3`, agent `2.61.0`)
+### 0.3 F2 — the house (`creature-house 0.1.0`, World `0.8.0`, agent `2.62.0`, gateway `0.1.5`)
+
+Branch `house-f2`, stacked on `sweep-and-model-spike` (#172). April gave a Home Assistant
+token (`HA_TOKEN` in this laptop's environment; HA at `http://10.3.2.5:8123`, "April's Nest",
+2026.9.2, 6,119 entities) and the adapter has been run against the real house from the laptop.
+
+- **`creature-house`** (`Sources/CreatureHouse`, fifth Linux product, `hummingbird-websocket`
+  2.7.0 client): `HouseConfiguration` (`/etc/creature/house.json`, token only from
+  `HA_TOKEN`), `HouseTranslator` (pure: lock / door / motion / person / measurement /
+  detection → `door.*`, `motion.*`, `person.arrived/left`, `environment.measurement_changed`,
+  `camera.person_seen/vehicle_seen/animal_seen`; idempotent by HA context id; startup
+  snapshot keyed by `last_changed`), `HomeAssistantStream` (WebSocket auth → subscribe →
+  events; REST states, scenes, `scene.turn_on`), `WorldDelivery` (POST `/events`, on-disk
+  outbox, ordered drain), `HouseService` (both arms: HA → world; world stream
+  `house.scene_requested` → `scene.turn_on` → `house.scene_activated`). Debian package with
+  `DynamicUser`, `StateDirectory`, `/etc/default/creature-house` 0600.
+- **April's entities (from her HA):** doors report through the locks (`lock.front_door`,
+  `lock.back_door`; the lock's door binary sensors are dead), `binary_sensor.<room>_motion`,
+  `person.april`, `sensor.outside_temperature` (°F), and UniFi Protect camera detections
+  `binary_sensor.<camera>_{person,vehicle,animal}_detected` (cameras: front_door, driveway,
+  east_driveway, back_driveway, carport `_2`, orchard, workshop, kitchen_camera) — "the best
+  source of data is what the cameras see". 26 HA scenes, incl. Normal Evening, Movie Time,
+  Bedtime.
+- **World `0.8.0`:** `HouseReducer`; `regions.<region>.places` (facts about the doors, rooms,
+  outside, and the house reach the minds in that region); `FactBackedPresenceProvider` —
+  **an observed `presence.state` outranks the assumption; the router stops assuming**;
+  `SceneRequestRule` + `HouseSceneRequests` at ingress ("set the lights to normal evening" is
+  a deterministic world rule against the offered scenes; the mind is told the house is doing
+  it); `WorldFacts` / `HouseEvents` vocabulary in WorldCore; the SSE parser moved to
+  WorldCore. Internal API errors are now logged (they were silent).
+- **Two real bugs found by running it:** (1) a fact with a `null` value (every logout) lost
+  its `value` key in BSON and could not be decoded — `/facts` and the Viewer snapshot 500ed
+  whenever a bird was logged out; fixed in `Fact`'s decoder (missing = null) and the
+  repository writes `Null()` explicitly. (2) #144 for real: `dh_installsystemd --no-start`
+  adds a *preinst* that stops the unit, so the postinst's "is it active?" never fired; World,
+  gateway, and house postinsts now start an *enabled* unit after upgrade.
+- **Agent `2.62.0`:** phrasing for the house ("The front door was unlocked just now", "A
+  vehicle was seen at the driveway 3 minutes ago", "It is 68 degrees outside", "You can set
+  the lights to: …", "April just asked for the lights to be set to Normal Evening, and the
+  house is doing it right now"), singular ages; `llmServiceTier: fast` → OpenAI
+  `service_tier`.
+- **Verified live (laptop, 13:30):** snapshot of 15 entities → facts (both doors locked,
+  motion clear, April `home` **observed** — the assumed one superseded — 69.2° outside), 26
+  scenes offered, live stream following. **Not yet fired at the real lights**: a scene ask
+  will change April's actual lighting; test it when she picks a scene.
+- **Tests:** 870 in Common (translator, config, HA stub WebSocket + REST, outbox, reducer,
+  rule + ingress hook, Mongo presence + request, null facts). Four Linux products build.
+- **Deploy:** install `creature-house_0.1.0` on fuzzball, put the token in
+  `/etc/default/creature-house`, review `/etc/creature/house.json` (the packaged one is
+  April's mapping), `systemctl enable --now creature-house`; World `0.8.0` first (the
+  packaged `world.json` now lists `region:home`'s places); agents `2.62.0`.
+
+### 0.3a The quality sweep and the model spike — 2026-09-12 afternoon (World `0.7.3`, agent `2.61.0`, PR #172)
 
 Merged today before this: #167 (F1), #169 (P1), #171 (no hailing April; Polly rule). Live on
 fuzzball: World `0.7.2`, agent `2.60.1`, personas `beaky/4` `mango/3` `kenny/4`, all three
@@ -76,7 +128,7 @@ minds announcing pronouns.
   because a small model never passes. Options in the manual's Scenes section are not yet
   written; April wants the model comparison first.
 
-### 0.3a What branch `personas-p1` added — who each bird is (P1, #168, merged)
+### 0.3b What branch `personas-p1` added — who each bird is (P1, #168, merged)
 
 Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
 
@@ -113,7 +165,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   repo's `docs/personas/beaky.yaml`. fuzzball's `creature-agent@beaky` is stopped. Mango and
   Kenny stay on fuzzball at `2.58.2`. "Beaky what time is it" → "It's almost midnight." (23:52).
 
-### 0.3b What branch `facts-f1` added — the world's first facts (F1, #167, merged)
+### 0.3c What branch `facts-f1` added — the world's first facts (F1, #167, merged)
 
 - **Reducers (World `0.7.0`, `PresenceReducers.swift`):** `CharacterPresenceReducer`
   (`character.logged_in`/`logged_out` → `character:<x>` `presence.region`, `null` on logout),
@@ -148,7 +200,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   `world_facts` should list Mango and Kenny in `region:home` and April `home (assumed)`; ask
   "who is here with you?" and Beaky should name them from the facts, not guess.
 
-### 0.3c What PR #161 added — the flock, C2: scenes (merged)
+### 0.3d What PR #161 added — the flock, C2: scenes (merged)
 
 - **WorldCore:** `Scene`, `SceneTrigger`, `SceneTurn`, `SceneFloor`, `SceneTurnOffer` (event
   `scene.turn_offered`), `SceneTurnSubmission`, `SceneLimits`, and `SceneService` — opens
@@ -182,7 +234,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   the house conversation and addressing rule (C3). The Communicator does show each author's
   own name and colour per bubble since `0.2.0` (this branch).
 
-### 0.3d What PR #159 added — the flock, C1: many minds on one host (merged)
+### 0.3e What PR #159 added — the flock, C1: many minds on one host (merged)
 
 - **Character login in the World (`0.5.0`).** `POST /world/v1/characters/{id}/login` with a
   region and the mind's instance (host, pid, creature, version); 30 s sessions kept alive by
@@ -203,7 +255,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   heartbeat), refreshed from `character.*` events.
 - **Personas** as versioned files under `docs/personas/` (Beaky, Mango draft).
 
-### 0.3e What PR #155 added — Beaky's voice in the room (VW-016), merged
+### 0.3f What PR #155 added — Beaky's voice in the room (VW-016), merged
 
 - **The world decides, the mind performs.** `POST …/stage` gives the mind a durable, idempotent
   `CharacterDeliveryDecision` per `response_id` *before* it generates (MongoDB TTL-expires
@@ -231,7 +283,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   stage→perform→stream with an assumed-presence config, mind streaming/silence/failure/
   already-delivered, service records a performance through the stub World.
 
-### 0.3f What PR #153 added — World Viewer (VW-010), merged
+### 0.3g What PR #153 added — World Viewer (VW-010), merged
 
 - **Target `World Viewer`** (macOS, `io.opsnlops.World-Viewer`), cloned from the Communicator's
   pbxproj entries under the `WVA…`/`WVT…` ID prefixes, with its own `World Viewer Tests` target
@@ -254,7 +306,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   a `WorldScrying` seam; `WorldStoreTests` drive it against a scripted world (bound, gap-free
   resume, resnapshot, delivery join).
 
-### 0.3g Beaky's mind (VW-014/VW-015) — merged, running on fuzzball
+### 0.3h Beaky's mind (VW-014/VW-015) — merged, running on fuzzball
 
 - `creature-agent` `mode: world` (default `mqtt` unchanged): `WorldPerceptSubscriber` follows
   `/world/v1/stream` (snapshot start, `Last-Event-ID` resume, fresh HTTP client per connection

@@ -39,6 +39,10 @@ struct OpenAIClientTests {
         let reasoning = try body(reasoningEffort: "low")
         #expect((reasoning["reasoning"] as? [String: String])?["effort"] == "low")
         #expect(reasoning["temperature"] == nil)
+        #expect(plain["service_tier"] == nil)
+        #expect(
+            try body(reasoningEffort: "low", serviceTier: "fast")["service_tier"] as? String
+                == "fast")
     }
 
     @Test("Only output_text deltas carry words; lifecycle events and [DONE] are ignored")
@@ -95,11 +99,12 @@ struct OpenAIClientTests {
         #expect(sentences == ["It is almost midnight, April.", "Off to bed with you."])
     }
 
-    private func body(reasoningEffort: String?) throws -> [String: Any] {
+    private func body(reasoningEffort: String?, serviceTier: String? = nil) throws -> [String: Any]
+    {
         let client = OpenAIClient(
             apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "unused", temperature: 0.9,
-            reasoningEffort: reasoningEffort, logger: Logger(label: "openai-tests"),
-            traceResponses: false)
+            reasoningEffort: reasoningEffort, serviceTier: serviceTier,
+            logger: Logger(label: "openai-tests"), traceResponses: false)
         let request = client.makeRequest(for: transcript, stream: true)
         let data = try #require(request.httpBody)
         return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])

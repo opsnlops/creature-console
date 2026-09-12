@@ -66,7 +66,10 @@ public struct Fact: Hashable, Sendable, Codable {
         self.factID = try container.decode(FactID.self, forKey: .factID)
         self.subjectID = try container.decode(EntityID.self, forKey: .subjectID)
         self.predicate = try container.decode(String.self, forKey: .predicate)
-        self.value = try container.decode(WorldJSONValue.self, forKey: .value)
+        // A `null` value ("Beaky has left") is dropped by some encoders (BSON); a fact with
+        // no value key means null, wherever it was stored — in the facts collection or inside
+        // a percept.
+        self.value = try container.decodeIfPresent(WorldJSONValue.self, forKey: .value) ?? .null
         self.epistemic = try container.decode(EpistemicState.self, forKey: .epistemic)
         self.validFrom = validFrom
         self.validTo = validTo
