@@ -1,3 +1,12 @@
+creature-cli (2.58.2+world0.6.2) unstable; urgency=medium
+
+  * creature-world 0.6.2: addressing is a world rule. A character named at
+    the start of a message ("Mango, ...", "Hey Kenny", "@caroll") who is
+    logged in gets it; anything else goes to lead_character (default
+    character:beaky). The sender's addressee is a hint (#164).
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 22:45:00 -0700
+
 creature-cli (2.58.2) unstable; urgency=medium
 
   * creature-agent: "Beaky: [Silence]" is silence too - a script-style

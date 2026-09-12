@@ -47,6 +47,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         sceneLimits: SceneLimits = SceneLimits(),
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
+        leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
@@ -137,7 +138,9 @@ struct MongoWorldPersistenceConnection: Sendable {
             repository: persistence.conversations,
             sink: WorldPersonUtterancePerceptSink(
                 world: world, sessions: sessionService, scenes: sceneService),
-            scenePlanner: PresentCharactersScenePlanner(sessions: sessionService)
+            scenePlanner: PresentCharactersScenePlanner(sessions: sessionService),
+            addresseeResolver: PresentCharactersAddresseeResolver(
+                sessions: sessionService, rule: LeadAddresseeRule(lead: leadCharacter))
         )
         // Floor deadlines fire as world timers; the scene service hears them from the stream.
         let floorWatcher = Task {
@@ -409,6 +412,7 @@ actor MongoWorldPersistenceProvider {
         sceneLimits: SceneLimits = SceneLimits(),
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
+        leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -426,6 +430,7 @@ actor MongoWorldPersistenceProvider {
                         sceneLimits: sceneLimits,
                         scenePerformance: scenePerformance,
                         regions: regions,
+                        leadCharacter: leadCharacter,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )
@@ -670,13 +675,36 @@ private struct SessionCreatureResolver: CharacterCreatureResolving {
     }
 }
 
-/// More than one character logged into the addressee's region means a scene: the world will
-/// hand out the floor, and the addressee must not answer on its own.
+/// April's words go to the character she names if that character is logged in; otherwise to
+/// the lead. Names are the part after `character:`.
+private struct PresentCharactersAddresseeResolver: AddresseeResolving {
+    let sessions: CharacterSessionService
+    let rule: LeadAddresseeRule
+
+    func addressee(for utterance: PersonUtterance, hinted: EntityID) async throws -> Addressee {
+        let now = Date()
+        let present = try await sessions.characterSessions().filter { $0.isLive(at: now) }
+        var names: [String: EntityID] = [:]
+        for session in present {
+            let raw = session.characterID.rawValue
+            if let colon = raw.firstIndex(of: ":") {
+                names[String(raw[raw.index(after: colon)...]).lowercased()] = session.characterID
+            }
+        }
+        return rule.addressee(in: utterance.text, present: names)
+    }
+}
+
+/// A remark to the room, with more than one character logged into the region, means a scene:
+/// the world will hand out the floor. A bird April names by name answers alone — her word
+/// with Beaky stays between them.
 private struct PresentCharactersScenePlanner: ScenePlanning {
     let sessions: CharacterSessionService
 
-    func planScene(for utterance: PersonUtterance, addressee: EntityID) async throws -> SceneID? {
-        guard let session = try await sessions.liveSession(for: addressee) else { return nil }
+    func planScene(for utterance: PersonUtterance, addressee: Addressee) async throws -> SceneID? {
+        guard !addressee.named,
+            let session = try await sessions.liveSession(for: addressee.characterID)
+        else { return nil }
         let present = try await sessions.present(in: session.regionID)
         return present.count > 1 ? .generated() : nil
     }

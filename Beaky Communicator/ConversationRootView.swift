@@ -20,7 +20,7 @@ struct ConversationRootView: View {
     var body: some View {
         NavigationStack {
             ConversationView(store: store)
-                .navigationTitle("Beaky")
+                .navigationTitle("The Flock")
                 #if os(iOS)
                     .navigationBarTitleDisplayMode(.inline)
                 #endif
@@ -110,7 +110,7 @@ private struct ConversationView: View {
         }
         .overlay {
             if store.isLoading {
-                ProcessingOverlayView(message: "Finding Beaky…", progress: nil)
+                ProcessingOverlayView(message: "Finding the flock…", progress: nil)
             }
         }
     }
@@ -120,12 +120,14 @@ private struct ConversationView: View {
             Image(systemName: "bird.fill")
                 .font(.system(size: 38, weight: .semibold))
                 .foregroundStyle(.purple)
-            Text("Your conversation with Beaky")
+            Text("The house conversation")
                 .font(.title2.bold())
-            Text("One shared thread, whether you type here or speak aloud later.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            Text(
+                "Beaky and whoever else is home. Name a bird to talk to just them — \"Beaky, …\" — or talk to the room and they all may answer, Beaky first."
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
@@ -257,7 +259,7 @@ private struct ConversationComposer: View {
             }
 
             HStack(alignment: .bottom, spacing: 10) {
-                TextField("Say something to Beaky…", text: $store.draft, axis: .vertical)
+                TextField("Say something…", text: $store.draft, axis: .vertical)
                     .focused($isFocused)
                     .lineLimit(1...5)
                     .textFieldStyle(.plain)
@@ -282,7 +284,7 @@ private struct ConversationComposer: View {
                     store.isSending
                         || store.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 )
-                .accessibilityLabel("Send to Beaky")
+                .accessibilityLabel("Send to the flock")
             }
         }
         .padding()

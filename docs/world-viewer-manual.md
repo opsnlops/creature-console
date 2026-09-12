@@ -17,7 +17,7 @@ Open `Creature Console.xcodeproj`, choose the **World Viewer** scheme, and run (
 | Setting | Meaning | Default |
 | --- | --- | --- |
 | Address / Port / Use TLS | The Creature World to watch (fuzzball is `10.69.66.1:8001`; production is `server.prod.chirpchirp.dev:443` with TLS) | `127.0.0.1:8001` |
-| Conversation ID | Which conversation the Conversation panel follows | `conversation:april-beaky` |
+| Conversation ID | Which conversation the Conversation panel follows | `conversation:april-house` |
 | Use Proxy / Proxy Host / API Key | Reach the world from outside the LAN through the ingress proxy; the key is the app-family Keychain item shared with Creature Console and Beaky Communicator | off |
 
 The Viewer keeps its own settings (`worldViewer*` keys), so it can watch fuzzball while Beaky
