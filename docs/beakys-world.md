@@ -31,6 +31,9 @@ current in the same commit as the code it describes.**
   *and* is viewable in World Viewer. Plan the Viewer surface into every slice.
 - #154 (replies drifting into `Beaky: "…"` script format) is fixed in `2.55.4`: the mind stores
   only her words.
+- #156 (World refused every utterance once `conversation:april-beaky` passed 100 items — the
+  percept carried the whole history into a 100-item contract) is fixed on this branch: the
+  ingress now carries the newest 100.
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
   key), #144 (World/gateway packages do not restart the running service on upgrade — deliberate
   `--no-start`; restart by hand after `apt install`), #146 (mqtt conffile), #151 (Communicator

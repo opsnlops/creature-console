@@ -22,13 +22,18 @@ struct MongoConversationRepository: UtteranceIngressRepository, Sendable {
         return stored
     }
 
-    func conversationItems(in conversationID: ConversationID) async throws -> [ConversationItem] {
-        try await items.find(
+    func newestConversationItems(in conversationID: ConversationID, limit: Int) async throws
+        -> [ConversationItem]
+    {
+        precondition(limit > 0)
+        let newestFirst = try await items.find(
             ["conversation_id": conversationID.rawValue],
             as: ConversationItem.self
         )
-        .sort(["created_at": 1, "_id": 1])
+        .sort(["created_at": -1, "_id": -1])
+        .limit(limit)
         .drain()
+        return newestFirst.reversed()
     }
 
     func conversationItems(

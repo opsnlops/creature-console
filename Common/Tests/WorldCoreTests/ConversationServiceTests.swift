@@ -157,6 +157,36 @@ struct ConversationServiceTests {
         #expect(await sink.submissionCount == 1)
     }
 
+    @Test("A long conversation still carries a bounded window into the percept (#156)")
+    func longConversationIsWindowed() async throws {
+        let repository = TestUtteranceRepository()
+        let service = PersonUtteranceIngressService(
+            repository: repository, sink: TestPerceptSink())
+        let context = UtteranceIngressContext(boundary: .trustedLAN)
+        for index in 0..<(ConversationContractLimits.maximumContextItems + 5) {
+            var input = try makeAdapterInput(sourceID: SourceID(validating: "wizard:mode"))
+            input.utteranceID = try UtteranceID(validating: "utterance:long-\(index)")
+            input.text = "Message \(index)"
+            input.occurredAt = input.occurredAt.addingTimeInterval(Double(index))
+            _ = try await PersonUtteranceAdapter.wizardMode.submit(
+                input, context: context, to: service)
+        }
+        var lastInput = try makeAdapterInput(sourceID: SourceID(validating: "wizard:mode"))
+        lastInput.utteranceID = try UtteranceID(validating: "utterance:long-last")
+        lastInput.text = "Still listening?"
+        lastInput.occurredAt = lastInput.occurredAt.addingTimeInterval(1_000)
+
+        let last = try await PersonUtteranceAdapter.wizardMode.submit(
+            lastInput, context: context, to: service)
+
+        #expect(last.disposition == .accepted)
+        #expect(
+            last.percept.priorConversationItems.count
+                == ConversationContractLimits.maximumContextItems)
+        #expect(last.percept.priorConversationItems.last?.text == "Message 104")
+        #expect(last.percept.priorConversationItems.first?.text == "Message 5")
+    }
+
     @Test("An utterance ID cannot be reused to make Beaky hear different words")
     func conflictingUtteranceIdentityIsRejected() async throws {
         let repository = TestUtteranceRepository()
@@ -694,8 +724,10 @@ private actor TestUtteranceRepository: UtteranceIngressRepository {
         records[utteranceID]
     }
 
-    func conversationItems(in conversationID: ConversationID) -> [ConversationItem] {
-        items.filter { $0.conversationID == conversationID }
+    func newestConversationItems(in conversationID: ConversationID, limit: Int)
+        -> [ConversationItem]
+    {
+        Array(items.filter { $0.conversationID == conversationID }.suffix(limit))
     }
 
     func prepare(_ ingress: StoredUtteranceIngress) -> StoredUtteranceIngress {

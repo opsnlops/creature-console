@@ -376,8 +376,9 @@ POST. Retries reuse the same utterance ID, so an interrupted request cannot make
 twice. A successful response replaces the provisional local item with Creature World's canonical
 item, and history synchronization pages forward from the durable API. Creature World records
 April's turn in the ordered world-event pipeline as a `conversation.person_utterance` event whose
-payload is the `PersonUtterancePercept` (the utterance plus the prior conversation items,
-addressed to the character); it does not fabricate a Beaky response. `creature-agent` in world
+payload is the `PersonUtterancePercept` (the utterance plus the newest 100 prior conversation
+items — a window, not the whole history — addressed to the character); it does not fabricate a
+Beaky response. `creature-agent` in world
 mode consumes that event from `/world/v1/stream`, thinks with the local model, and posts Beaky's
 turn to `…/responses` — see the [Creature Agent manual](creature-agent-manual.md).
 

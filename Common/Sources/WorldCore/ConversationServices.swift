@@ -61,7 +61,9 @@ public struct StoredUtteranceIngress: Hashable, Sendable, Codable {
 public protocol UtteranceIngressRepository: Sendable {
     /// Returns the durable record for an already-seen utterance.
     func ingress(for utteranceID: UtteranceID) async throws -> StoredUtteranceIngress?
-    func conversationItems(in conversationID: ConversationID) async throws -> [ConversationItem]
+    /// The newest `limit` items of the conversation, oldest first.
+    func newestConversationItems(in conversationID: ConversationID, limit: Int) async throws
+        -> [ConversationItem]
     /// Atomically returns the existing record or persists and returns `ingress`.
     func prepare(_ ingress: StoredUtteranceIngress) async throws -> StoredUtteranceIngress
     func markPerceptSubmitted(utteranceID: UtteranceID) async throws
@@ -147,8 +149,11 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                 return try await submitIfNeeded(stored, span: span)
             }
 
-            let priorItems = try await repository.conversationItems(
-                in: utterance.conversationID
+            // The percept carries a window on the conversation, not its whole history: the
+            // newest items up to the contract's limit (#156).
+            let priorItems = try await repository.newestConversationItems(
+                in: utterance.conversationID,
+                limit: ConversationContractLimits.maximumContextItems
             )
             let characterID = utterance.addresseeIDs[0]
             let proposed = try StoredUtteranceIngress(
