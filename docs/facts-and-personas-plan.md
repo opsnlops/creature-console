@@ -1,6 +1,9 @@
 # Facts and Personas — What the Birds Know and Who They Are
 
-**Status:** proposal, 2026-09-11 late night, after the flock's first scenes.
+**Status:** F1 built and live on fuzzball (World `0.7.0`, PR #167); P1 built and running on
+April's laptop (agent `2.60.0`, #168); F2/F3 next. Decided 2026-09-12: the Information Bridge
+runs on-device on April's M1 Mac mini (Apple Foundation Models); Beaky's voice stays on Nemo
+for now.
 **Why:** April: "I want actual facts for them to say, and I want to be able to define the bird's
 characters better." Tonight's scenes were charming and empty — birdseed, Linux, chocolate — because
 the minds know nothing but a paragraph of persona and the last twenty turns. This plan gives them

@@ -46,7 +46,7 @@ Every character is its own process (`docs/flock-plan.md`, principle 1). The temp
 one mind per instance name:
 
 ```bash
-sudo vim /etc/creature/agent/mango.yaml            # mode: world, characterEntityId: character:mango, creatureId, persona
+sudo vim /etc/creature/agent/mango.yaml            # mode: world, characterEntityId: character:mango, creatureId, personaPath: /etc/creature/agent/personas/mango.yaml
 sudo vim /etc/default/creature-agent-mango         # optional: overrides of /etc/default/creature-agent
 sudo systemctl enable --now creature-agent@beaky creature-agent@mango
 ```
@@ -107,6 +107,7 @@ World mode keys:
 | `llmTimeoutSeconds` | `60` | model call deadline |
 | `regionEntityId` | `region:home` | the region this mind logs into; a character is in one region at a time |
 | `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
+| `personaPath` | none | a persona file (`docs/personas/<bird>.yaml`, installed under `/etc/creature/agent/personas/`); with it the mind *is* that persona and `llmSystemPrompt` is ignored in world mode (`2.60.0`) |
 | `timeZone` | the host's zone | an IANA identifier such as `America/Los_Angeles`; the mind is told the local time in words every turn ("It is 11:45 PM on Friday, September 11."). Set it — a server's clock is usually UTC and a model cannot convert zones (`2.59.0`) |
 
 A minimal world-mode file:
@@ -125,6 +126,7 @@ characterEntityId: character:beaky
 personEntityId: person:april
 stateDirectory: /var/lib/creature-agent
 timeZone: America/Los_Angeles
+personaPath: /etc/creature/agent/personas/beaky.yaml
 llmSystemPrompt: |
   You are Beaky, an animatronic parrot who lives in April's house and is her familiar. ...
 areas: []
@@ -147,6 +149,20 @@ creature-agent run --config-path agent.yaml --log-level info --host <creature-se
   conversation items the world attached to the percept — both authors, in order — so Beaky sees
   what she herself said last. Consecutive messages from one author are merged into one turn
   because Mistral's chat template rejects non-alternating roles.
+- **It is who its persona says** (`2.60.0`). With `personaPath`, the system prompt is the
+  persona rendered in sections — who you are, how you talk, what you care about and steer away
+  from, *the ones here and how you feel about them* (only the characters the world's presence
+  facts or the scene's participants say are present, plus the speaker), running jokes, and
+  `never` rules last — followed by the contract and "What you know". A persona's `pronouns`
+  go to the world at login and come back to every other mind as an `identity.pronouns` fact,
+  so the ones here are named with theirs: "Mango (he/him) is here in the room with you",
+  "- Kenny (he/him): Protective…". A bird's pronouns live in that bird's file only. Rendering is deterministic,
+  so a persona edit reviews as a diff of what the model reads; `agent.persona_version`
+  (`name/version`) is on every `agent.consider` and `agent.scene.consider` span. Restart the
+  mind after editing a persona. See [`docs/personas/README.md`](personas/README.md).
+- **Stage directions are never spoken** (`2.60.0`). `*giggles*`, `(chuckles)`, `[flaps wings]`
+  are removed from every reply before it is stored or spoken; a reply that was nothing but a
+  direction is a pass. The persona's `never` rules make narration rare; this makes it impossible.
 - **It is told what the world knows** (`2.59.0`). The block begins with the local time in words
   (`timeZone`) — Beaky answered "high noon" at 11:45 PM before this — and the `world_facts` on
   an utterance percept or a scene floor offer follow, phrased as plain sentences — "Mango is here in the room with you",

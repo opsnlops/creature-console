@@ -44,6 +44,24 @@ struct FactPhrasingTests {
             ])
     }
 
+    @Test("A character the world knows the pronouns of is named with them")
+    func pronounsRideWithTheName() throws {
+        let facts = [
+            try fact(mango, WorldFacts.characterRegion, .string("region:home"), .observed, 1),
+            try fact(mango, WorldFacts.characterPronouns, .string("he/him"), .observed, 1),
+            try fact(april, WorldFacts.personState, .string("home"), .assumed, 0.9),
+        ]
+
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now)
+
+        #expect(
+            lines == [
+                "Mango (he/him) is here in the room with you.",
+                "April is home (you assume; nobody has checked).",
+            ])
+        #expect(FactPhrasing.pronouns(in: facts) == [mango: "he/him"])
+    }
+
     @Test("The local time is spelled out in the house's zone, never the host's")
     func timeIsSpelledOutLocally() {
         // 2026-09-12 06:58:00 UTC is 11:58 PM on Friday, September 11 on Whidbey Island.
@@ -60,7 +78,7 @@ struct FactPhrasingTests {
     func knowledgeBlockAlwaysHasTheTime() throws {
         let mind = CharacterMind(
             configuration: CharacterMind.Configuration(
-                persona: "You are Beaky.", characterID: beaky, personID: april,
+                persona: .text("You are Beaky."), characterID: beaky, personID: april,
                 maximumReplyAge: 3_600, maximumContextTurns: 20, modelTimeout: .seconds(5),
                 modelName: "test"),
             respond: { _ in "" }, logger: .init(label: "fact-phrasing-tests"))

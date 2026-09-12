@@ -43,7 +43,7 @@ current in the same commit as the code it describes.**
 | --- | ---: | --- | --- |
 | Creature World | `0.7.0` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | facts (presence, assumption), `@`/name addressing, scenes, `region:home` → Mainstage, restart-on-upgrade. `0.7.1` (this branch) fixes `scene.last` never being current |
 | Communicator Gateway | `0.1.4` fuzzball / `0.1.3` prod | `:8002` | |
-| Minds | `creature-agent 2.58.2` × 3 | fuzzball: `creature-agent@beaky`, `@mango`, `@kenny` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
+| Minds | Beaky: `2.60.0` (branch) on April's laptop; Mango, Kenny: `2.58.2` on fuzzball | `creature-agent@mango`, `@kenny` on fuzzball; `@beaky` stopped there | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
 | World Viewer | `0.1.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts, Timers, Mundane view |
 | Beaky Communicator | `0.3.0` | April's Mac/phone | "The Flock", the house conversation, names and colours per author |
 
@@ -52,7 +52,44 @@ two-bird scene (21:21, twelve turns, streamed through `dialog-stream`, floor alt
 the Viewer); the first three-bird scene (22:09, Kenny joined — "April, you think pizza could
 fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn end to end.
 
-### 0.3 What branch `facts-f1` adds — the world's first facts (F1)
+### 0.3 What branch `personas-p1` adds — who each bird is (P1, #168)
+
+Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
+
+- **`Persona`** (`CreatureAgent/World/Persona.swift`): `docs/personas/<bird>.yaml` — name,
+  version, pronouns, about, voice, cares_about, avoids, relationships (by entity ID),
+  running_jokes, never — decoded with Yams, refused without a name or an `about`.
+  `rendered(present:)` is deterministic and sectioned; **relationships are rendered only for
+  the ones present** (the speaker, characters with a current `presence.region` fact, or the
+  scene's participants). `CharacterPersona` is `.structured(Persona)` or `.text(llmSystemPrompt)`.
+- **Config:** `personaPath` in `agent.yaml`; loaded once at startup (`WorldModeError.personaUnreadable`
+  on a bad file); `agent.persona_version` = `name/version` on `agent.consider` and
+  `agent.scene.consider` spans; logged at startup. Restart the mind after an edit.
+- **Stage directions stripped mechanically** (`CharacterMind.withoutStageDirections`):
+  `*giggles*`, `(chuckles)`, `[flaps wings]` are removed from every reply; a reply that was
+  only a direction is a pass. Tonight: Kenny `*giggles* "I love you all too`, Beaky "With a
+  chirpy tone, I say, …" — the persona `never` rules address the narration, the stripper the
+  markers.
+- **Pronouns travel (World `0.7.2`):** `CharacterMindInstance.pronouns` at login →
+  `identity.pronouns` fact (outlasts the login) → "Mango (he/him) is here" and
+  "- Kenny (he/him): …" in every other mind's prompt. April: "include the pronouns of the
+  other birds… so that Beaky addresses them correctly" — each bird's pronouns live only in
+  its own file; the world carries them.
+- **`WorldFacts`** (WorldCore) now holds the predicate names shared by World and agent
+  (`presence.region`, `presence.state`, `presence.physically_audible`, `identity.pronouns`,
+  `scene.last`).
+- **Personas written:** Beaky (from the deployed prompt + the doc draft), Mango (draft), Kenny
+  (first sketch) — April's to correct. Installed by the package to
+  `/etc/creature/agent/personas/` as conffiles; the sample `agent.yaml` shows `personaPath`.
+- **Tests:** decode/refuse, golden render, present-only company in both transcripts,
+  stage-direction stripping (834 in Common).
+- **Live:** Beaky's mind runs on April's laptop (`cottontail.local`) from this branch since
+  23:51, config `~/creature-beaky/beaky.yaml` (world on fuzzball, Mistral on `10.69.66.4`,
+  production Creature Server), log `~/creature-beaky/beaky.log`; `personaPath` points at the
+  repo's `docs/personas/beaky.yaml`. fuzzball's `creature-agent@beaky` is stopped. Mango and
+  Kenny stay on fuzzball at `2.58.2`. "Beaky what time is it" → "It's almost midnight." (23:52).
+
+### 0.3a What branch `facts-f1` adds — the world's first facts (F1)
 
 - **Reducers (World `0.7.0`, `PresenceReducers.swift`):** `CharacterPresenceReducer`
   (`character.logged_in`/`logged_out` → `character:<x>` `presence.region`, `null` on logout),
@@ -87,7 +124,7 @@ fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn 
   `world_facts` should list Mango and Kenny in `region:home` and April `home (assumed)`; ask
   "who is here with you?" and Beaky should name them from the facts, not guess.
 
-### 0.3e What PR #161 added — the flock, C2: scenes (merged)
+### 0.3b What PR #161 added — the flock, C2: scenes (merged)
 
 - **WorldCore:** `Scene`, `SceneTrigger`, `SceneTurn`, `SceneFloor`, `SceneTurnOffer` (event
   `scene.turn_offered`), `SceneTurnSubmission`, `SceneLimits`, and `SceneService` — opens
@@ -121,7 +158,7 @@ fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn 
   the house conversation and addressing rule (C3). The Communicator does show each author's
   own name and colour per bubble since `0.2.0` (this branch).
 
-### 0.3a What PR #159 added — the flock, C1: many minds on one host (merged)
+### 0.3c What PR #159 added — the flock, C1: many minds on one host (merged)
 
 - **Character login in the World (`0.5.0`).** `POST /world/v1/characters/{id}/login` with a
   region and the mind's instance (host, pid, creature, version); 30 s sessions kept alive by
@@ -142,7 +179,7 @@ fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn 
   heartbeat), refreshed from `character.*` events.
 - **Personas** as versioned files under `docs/personas/` (Beaky, Mango draft).
 
-### 0.3b What PR #155 added — Beaky's voice in the room (VW-016), merged
+### 0.3d What PR #155 added — Beaky's voice in the room (VW-016), merged
 
 - **The world decides, the mind performs.** `POST …/stage` gives the mind a durable, idempotent
   `CharacterDeliveryDecision` per `response_id` *before* it generates (MongoDB TTL-expires
@@ -170,7 +207,7 @@ fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn 
   stage→perform→stream with an assumed-presence config, mind streaming/silence/failure/
   already-delivered, service records a performance through the stub World.
 
-### 0.3c What PR #153 added — World Viewer (VW-010), merged
+### 0.3e What PR #153 added — World Viewer (VW-010), merged
 
 - **Target `World Viewer`** (macOS, `io.opsnlops.World-Viewer`), cloned from the Communicator's
   pbxproj entries under the `WVA…`/`WVT…` ID prefixes, with its own `World Viewer Tests` target
@@ -193,7 +230,7 @@ fly?"); a second Beaky told `logged_in_elsewhere`; one Honeycomb trace per turn 
   a `WorldScrying` seam; `WorldStoreTests` drive it against a scripted world (bound, gap-free
   resume, resnapshot, delivery join).
 
-### 0.3d Beaky's mind (VW-014/VW-015) — merged, running on fuzzball
+### 0.3f Beaky's mind (VW-014/VW-015) — merged, running on fuzzball
 
 - `creature-agent` `mode: world` (default `mqtt` unchanged): `WorldPerceptSubscriber` follows
   `/world/v1/stream` (snapshot start, `Last-Event-ID` resume, fresh HTTP client per connection
@@ -281,13 +318,15 @@ memory and personality to stay so — the cutoffs exist for a reason.
 
 1. Land `facts-f1` (World `0.7.1`, agent `2.59.0`): install the CI packages on fuzzball,
    restart the three minds, verify `scene.last` in the Viewer and in the birds' words.
-2. **Then P1** (`docs/facts-and-personas-plan.md`): structured `docs/personas/<bird>.yaml`
-   with voice, relationships, running jokes, and *never* rules — tonight's transcript showed
-   Kenny writing `*giggles* "` stage directions and Mango speaking of himself in the third
-   person; both are persona work. Then F2 `creature-house` (needs April's HA URL, token in
-   `/etc/default/creature-house`, entity IDs for the front door, an outdoor temperature, her
-   phone), F3 scenes from world events (the box).
-3. **The Information Bridge before STT** (April: "the information bridge is when things get
+2. Land `personas-p1` (agent `2.60.0`, #168) after #167: April corrects the three persona
+   files, installs `2.60.0` on fuzzball with `personaPath` in each `/etc/creature/agent/<bird>.yaml`,
+   and moves Beaky's mind back from the laptop (`systemctl start creature-agent@beaky`; stop
+   the laptop process first).
+3. Then F2 `creature-house` (needs April's HA URL, token in `/etc/default/creature-house`,
+   entity IDs for the front door, an outdoor temperature, her phone), F3 scenes from world
+   events (the box). Then the **Information Bridge** as a macOS app on April's dedicated M1
+   Mac mini, on-device Foundation Models, raw texts never leaving the Mac.
+4. **The Information Bridge before STT** (April: "the information bridge is when things get
    interesting because Beaky can start learning from things like my text messages"; typing is
    fine for now). Then memory (Phase 9).
 4. Decide whether production's agent moves to world mode (it would lose MQTT house-event

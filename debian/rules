@@ -59,6 +59,10 @@ override_dh_auto_install:
 	# unit, agent/<instance>.yaml for creature-agent@<instance>.
 	install -d $(CURDIR)/debian/creature-agent/etc/creature/agent
 	install -m644 $(CURDIR)/debian/creature-agent.yaml $(CURDIR)/debian/creature-agent/etc/creature/agent.yaml
+	# Personas are April's content, versioned in docs/personas and installed as conffiles so an
+	# edited bird is never overwritten by an upgrade.
+	install -d $(CURDIR)/debian/creature-agent/etc/creature/agent/personas
+	install -m644 $(CURDIR)/docs/personas/*.yaml $(CURDIR)/debian/creature-agent/etc/creature/agent/personas/
 	install -d $(CURDIR)/debian/creature-agent/usr/bin
 	AGENT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_AGENT) --show-bin-path)/creature-agent; \
 		install -m755 $$AGENT_BIN_PATH $(CURDIR)/debian/creature-agent/usr/bin/creature-agent

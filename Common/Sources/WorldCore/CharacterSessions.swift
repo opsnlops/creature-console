@@ -8,12 +8,19 @@ public struct CharacterMindInstance: Hashable, Sendable, Codable {
     public var processID: Int
     public var creatureID: String?
     public var version: String?
+    /// The character's pronouns, from its persona: the mind tells the world at login so the
+    /// others can be told ("Mango (he/him) is here").
+    public var pronouns: String?
 
-    public init(host: String, processID: Int, creatureID: String? = nil, version: String? = nil) {
+    public init(
+        host: String, processID: Int, creatureID: String? = nil, version: String? = nil,
+        pronouns: String? = nil
+    ) {
         self.host = host
         self.processID = processID
         self.creatureID = creatureID
         self.version = version
+        self.pronouns = pronouns
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -21,6 +28,7 @@ public struct CharacterMindInstance: Hashable, Sendable, Codable {
         case processID = "process_id"
         case creatureID = "creature_id"
         case version
+        case pronouns
     }
 }
 
@@ -340,12 +348,18 @@ public actor CharacterSessionService {
             subjectIDs: [session.characterID, session.regionID],
             placeID: session.regionID,
             epistemic: EpistemicState(type: .observed, confidence: 1),
-            payload: [
-                "session_id": .string(session.sessionID.rawValue),
-                "character_id": .string(session.characterID.rawValue),
-                "region_id": .string(session.regionID.rawValue),
-                "host": .string(session.instance.host),
-            ]
+            payload: {
+                var payload: [String: WorldJSONValue] = [
+                    "session_id": .string(session.sessionID.rawValue),
+                    "character_id": .string(session.characterID.rawValue),
+                    "region_id": .string(session.regionID.rawValue),
+                    "host": .string(session.instance.host),
+                ]
+                if let pronouns = session.instance.pronouns {
+                    payload["pronouns"] = .string(pronouns)
+                }
+                return payload
+            }()
         )
     }
 }

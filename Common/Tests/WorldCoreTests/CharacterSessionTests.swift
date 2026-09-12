@@ -112,6 +112,26 @@ struct CharacterSessionTests {
         }
     }
 
+    @Test("A mind's pronouns travel with the login and into the login event")
+    func pronounsTravelWithLogin() async throws {
+        let (service, announced, _) = makeService()
+        let mango = try EntityID(validating: "character:mango")
+        let mind = CharacterMindInstance(
+            host: "fuzzball", processID: 3, creatureID: "u2", pronouns: "he/him")
+
+        _ = try await service.login(mango, CharacterLoginRequest(regionID: home, instance: mind))
+        _ = try await service.login(
+            beaky, CharacterLoginRequest(regionID: home, instance: fuzzball))
+
+        let events = await announced.events
+        #expect(events[0].payload["pronouns"] == .string("he/him"))
+        #expect(events[1].payload["pronouns"] == nil)
+        let json = try #require(
+            JSONSerialization.jsonObject(with: WorldJSON.makeEncoder().encode(mind))
+                as? [String: Any])
+        #expect(json["pronouns"] as? String == "he/him")
+    }
+
     @Test("Sessions round-trip through the snake_case wire contract")
     func wireContract() throws {
         let session = try CharacterSession(
@@ -165,6 +185,7 @@ private actor InMemorySessionRepository: CharacterSessionRepository {
 }
 
 private actor AnnouncedEvents {
-    private(set) var types: [WorldEventType] = []
-    func record(_ event: WorldEventEnvelope) { types.append(event.type) }
+    private(set) var events: [WorldEventEnvelope] = []
+    var types: [WorldEventType] { events.map(\.type) }
+    func record(_ event: WorldEventEnvelope) { events.append(event) }
 }

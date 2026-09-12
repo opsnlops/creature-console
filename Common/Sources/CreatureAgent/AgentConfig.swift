@@ -56,6 +56,9 @@ struct AgentConfig: Decodable {
         let maximumContextTurns: Int
         let llmTimeout: TimeInterval
         let stage: StagePolicy
+        /// The structured persona file (`docs/personas/<bird>.yaml`); without one the mind
+        /// is the plain `llmSystemPrompt`.
+        let personaPath: String?
         /// The clock the character lives by. A model cannot do time-zone arithmetic, so it is
         /// told the local wall-clock time in words; the host's zone (often UTC on a server) is
         /// rarely the house's.
@@ -128,6 +131,7 @@ struct AgentConfig: Decodable {
         case stage
         case regionEntityId
         case timeZone
+        case personaPath
         case characterEntityId
         case personEntityId
         case stateDirectory
@@ -213,6 +217,7 @@ struct AgentConfig: Decodable {
                 ?? WorldModeConfig.defaultLLMTimeout,
             stage: try container.decodeIfPresent(
                 WorldModeConfig.StagePolicy.self, forKey: .stage) ?? .physical,
+            personaPath: try container.decodeIfPresent(String.self, forKey: .personaPath),
             timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone).map {
                 guard let zone = TimeZone(identifier: $0) else {
                     throw DecodingError.dataCorruptedError(

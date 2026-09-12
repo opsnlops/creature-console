@@ -3,11 +3,6 @@ import WorldCore
 
 /// The world's first facts: who is where, derived from what the world itself observed.
 enum PresenceFacts {
-    /// Which region a character's mind is logged into; `null` once it has left.
-    static let characterRegion = "presence.region"
-    /// Whether a person is home, away, or unknown.
-    static let personState = "presence.state"
-    static let personAudible = "presence.physically_audible"
     static let producerKind = "reducer"
 }
 
@@ -24,17 +19,33 @@ struct CharacterPresenceReducer: WorldReducer {
             case .string(let rawRegion)? = event.payload["region_id"]
         else { return WorldReduction() }
         let present = event.type == CharacterSessionService.loginEventType
-        let fact = try Fact(
-            subjectID: character,
-            predicate: PresenceFacts.characterRegion,
-            value: present ? .string(rawRegion) : .null,
-            epistemic: EpistemicState(type: .observed, confidence: 1),
-            validFrom: event.occurredAt,
-            derivedFrom: [.event(event.eventID)],
-            producer: FactProducer(
-                kind: PresenceFacts.producerKind, id: "character-presence", version: "1")
-        )
-        return WorldReduction(changedFacts: [fact])
+        let producer = FactProducer(
+            kind: PresenceFacts.producerKind, id: "character-presence", version: "2")
+        var facts = [
+            try Fact(
+                subjectID: character,
+                predicate: WorldFacts.characterRegion,
+                value: present ? .string(rawRegion) : .null,
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: event.occurredAt,
+                derivedFrom: [.event(event.eventID)],
+                producer: producer
+            )
+        ]
+        // Who a character is outlasts a login; the fact stays until a later login changes it.
+        if present, case .string(let pronouns)? = event.payload["pronouns"], !pronouns.isEmpty {
+            facts.append(
+                try Fact(
+                    subjectID: character,
+                    predicate: WorldFacts.characterPronouns,
+                    value: .string(pronouns),
+                    epistemic: EpistemicState(type: .observed, confidence: 1),
+                    validFrom: event.occurredAt,
+                    derivedFrom: [.event(event.eventID)],
+                    producer: producer
+                ))
+        }
+        return WorldReduction(changedFacts: facts)
     }
 }
 
@@ -91,11 +102,11 @@ struct AssumedPersonPresenceReducer: WorldReducer {
             kind: PresenceFacts.producerKind, id: "assumed-presence", version: "1")
         return WorldReduction(changedFacts: [
             try Fact(
-                subjectID: person, predicate: PresenceFacts.personState, value: .string(state),
+                subjectID: person, predicate: WorldFacts.personState, value: .string(state),
                 epistemic: event.epistemic, validFrom: event.occurredAt,
                 derivedFrom: [.event(event.eventID)], producer: producer),
             try Fact(
-                subjectID: person, predicate: PresenceFacts.personAudible, value: .bool(audible),
+                subjectID: person, predicate: WorldFacts.personAudible, value: .bool(audible),
                 epistemic: event.epistemic, validFrom: event.occurredAt,
                 derivedFrom: [.event(event.eventID)], producer: producer),
         ])
@@ -105,7 +116,7 @@ struct AssumedPersonPresenceReducer: WorldReducer {
 /// `scene.performed` → `scene.last` for the region: what was just said, by whom, so the birds
 /// can refer to it for a while.
 struct SceneMemoryReducer: WorldReducer {
-    static let predicate = "scene.last"
+    static let predicate = WorldFacts.lastScene
     static let lifetime: TimeInterval = 3_600
 
     let eventTypes: Set<WorldEventType> = [SceneService.performedEventType]
