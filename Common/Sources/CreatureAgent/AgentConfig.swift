@@ -52,6 +52,15 @@ struct AgentConfig: Decodable {
         let maximumReplyAge: TimeInterval
         let maximumContextTurns: Int
         let llmTimeout: TimeInterval
+        let stage: StagePolicy
+
+        /// Whether the mind may perform in the room. `physical` asks the world for the stage
+        /// before each turn and streams to Creature Server when the answer is the room;
+        /// `communicator_only` never asks and lets the world route every turn (2.55 behaviour).
+        enum StagePolicy: String, Decodable, Equatable {
+            case physical
+            case communicatorOnly = "communicator_only"
+        }
     }
 
     struct AreaConfig: Decodable {
@@ -109,6 +118,7 @@ struct AgentConfig: Decodable {
         case minSentenceChars
         case areas
         case worldUrl
+        case stage
         case characterEntityId
         case personEntityId
         case stateDirectory
@@ -186,7 +196,9 @@ struct AgentConfig: Decodable {
                 Int.self, forKey: .maximumContextTurns)
                 ?? WorldModeConfig.defaultMaximumContextTurns,
             llmTimeout: try container.decodeIfPresent(Double.self, forKey: .llmTimeoutSeconds)
-                ?? WorldModeConfig.defaultLLMTimeout
+                ?? WorldModeConfig.defaultLLMTimeout,
+            stage: try container.decodeIfPresent(
+                WorldModeConfig.StagePolicy.self, forKey: .stage) ?? .physical
         )
     }
 

@@ -22,12 +22,18 @@ current in the same commit as the code it describes.**
   (gateway shutdown, #141), #145 (`--no-start` on upgrade), #147 (user guide), #148 (context
   window opens with April's turn, `2.55.2`), #150 (utterances carry April's trace, #149), #152
   (Beaky's reply is delivered inside the `agent.turn` span, `2.55.3`).
-- Active branch: `vw-010-world-viewer` — **World Viewer** (VW-010 #101). Plan:
-  [`docs/world-viewer-plan.md`](world-viewer-plan.md); manual:
-  [`docs/world-viewer-manual.md`](world-viewer-manual.md). Creature World `0.3.0` (adds
-  `GET …/conversations/{id}/deliveries`).
+- PR #153 (World Viewer, VW-010 #101, World `0.3.0`) merged 2026-09-11 afternoon; the Viewer
+  is verified live against fuzzball. Manual: [`docs/world-viewer-manual.md`](world-viewer-manual.md).
+- Active branch: `vw-016-physical-stage` — **Beaky's voice in the room** (VW-016 #107 +
+  assumed presence). Plan: [`docs/vw-016-physical-stage-plan.md`](vw-016-physical-stage-plan.md).
+  Creature World `0.4.2`, `creature-agent` `2.56.1`.
+- **April's definition of done (2026-09-11):** a feature is complete only when it works live
+  *and* is viewable in World Viewer. Plan the Viewer surface into every slice.
 - #154 (replies drifting into `Beaky: "…"` script format) is fixed in `2.55.4`: the mind stores
   only her words.
+- #156 (World refused every utterance once `conversation:april-beaky` passed 100 items — the
+  percept carried the whole history into a 100-item contract) is fixed on this branch: the
+  ingress now carries the newest 100.
 - Open follow-ups: #132 (gateway collapses World 4xx→503), #133 (`conversationItem` camelCase
   key), #144 (World/gateway packages do not restart the running service on upgrade — deliberate
   `--no-start`; restart by hand after `apt install`), #146 (mqtt conffile), #151 (Communicator
@@ -37,10 +43,10 @@ current in the same commit as the code it describes.**
 
 | Product | Version | Where | Notes |
 | --- | ---: | --- | --- |
-| Creature World | `0.2.2` | production and fuzzball (`10.69.66.1:8001`) | `0.3.0` (this branch) adds the deliveries route the Viewer's Conversation panel reads |
+| Creature World | `0.4.2` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | `0.4.x` adds `/stage`, `/performances`, assumed presence (on, for April), the 100-item window (#156), and the MongoKitten fork |
 | Communicator Gateway | `0.1.3` | production and fuzzball `:8002` | exporting to Honeycomb `production` |
-| Beaky's mind | `creature-agent 2.55.4`, `mode: world` | **fuzzball only** | Mistral Nemo via llama-server at `10.69.66.4:1234`; production keeps `2.54.1` in `mqtt` mode (see 0.4) |
-| World Viewer | `0.1.0` (this branch) | April's laptop, run from Xcode | read-only; points at fuzzball or production |
+| Beaky's mind | `creature-agent 2.56.0`, `mode: world`, `stage: physical` | **fuzzball only** | speaks through production Creature Server (`creatureId 4754fc0e…`); Mistral Nemo via llama-server at `10.69.66.4:1234`; `2.56.1` (this branch, #157) not yet installed; set `localLlmMaxTokens: 400`; production keeps `2.54.1` in `mqtt` mode (see 0.4) |
+| World Viewer | `0.1.0` | April's laptop, run from Xcode | read-only; points at fuzzball or production; delivery chips show route · reason · presence (basis) · outcome |
 
 **Verified live so far:**
 1. Beaky's first turn (cast by hand) landed on April's phone from fuzzball, then production.
@@ -50,7 +56,35 @@ current in the same commit as the code it describes.**
 3. One Honeycomb trace per utterance, end to end: phone → gateway → World → `agent.turn`
    (consider → `llm.mistral.generate` → `creature.world.respond`) → World router.
 
-### 0.3 What this branch adds — World Viewer (VW-010)
+### 0.3 What this branch adds — Beaky's voice in the room (VW-016)
+
+- **The world decides, the mind performs.** `POST …/stage` gives the mind a durable, idempotent
+  `CharacterDeliveryDecision` per `response_id` *before* it generates (MongoDB TTL-expires
+  unused ones after five minutes; migration v5). If the route is `physical_speech`, the mind
+  streams sentences to Creature Server's ad-hoc session (`CreatureServerSpeechStage`, the MQTT
+  agent's path; session opened lazily on the first speakable sentence, so `[silence]` never
+  makes a sound) while Mistral generates, then records the turn with `POST …/performances`
+  (intent + attempt + outcome in one step, item published to Communicator subscribers). If the
+  route is the Communicator, today's `/responses` path runs unchanged. `/responses` honours a
+  prior stage decision instead of re-reading presence.
+- **Assumed presence.** `presence.assumed` in `creature-world.json` (`AssumedPresenceProvider`)
+  puts April home and audible; `PersonPresence.basis` (`assumed` / `inferred` / …) is recorded
+  on every decision and shown in the Viewer's delivery chip. Presence is read before the clock
+  so a reading taken "now" is never in the decision's future.
+- **Mind:** `CharacterMind.Stage` (stager + room + streaming respond) is optional; without it
+  the mind behaves as `2.55` (`stage: communicator_only`). The room's transcript contract tells
+  Beaky April can hear her. Per-sentence validation lives in the `SpokenSentences` actor (first
+  sentence decides silence and loses any speaker label, every sentence is speech-clean, the turn
+  stops at the world's length limit); a model timeout keeps what was already spoken. Failures
+  are recorded (`failed / physical_speech_start_failed`), never lost.
+- **Viewer:** the chip reads e.g. `physical_speech · home_and_audible · home 90% (assumed) ·
+  audible · performed`; hover shows the animation ID; failures show their error code.
+- **Tests:** router stage/performance/refusal/honouring (WorldCore), assumed provider + config
+  parsing, `/stage` + `/performances` HTTP, Mongo stage repository + TTL index, black-box
+  stage→perform→stream with an assumed-presence config, mind streaming/silence/failure/
+  already-delivered, service records a performance through the stub World.
+
+### 0.3b What PR #153 added — World Viewer (VW-010), merged
 
 - **Target `World Viewer`** (macOS, `io.opsnlops.World-Viewer`), cloned from the Communicator's
   pbxproj entries under the `WVA…`/`WVT…` ID prefixes, with its own `World Viewer Tests` target
@@ -112,9 +146,13 @@ http://127.0.0.1:8001/world/v1`, persona in `llmSystemPrompt` (the unit already 
 `StateDirectory=creature-agent`. Enable OTel in `/etc/default/creature-agent` to see her
 thinking in Honeycomb. Presence is still `unknown`, so every reply goes to Communicator.
 
-To use World Viewer's Conversation panel against fuzzball, deploy Creature World `0.3.0` there
-(`./build_debs.sh --arch amd64`, `sudo apt install ./creature-world_0.3.0_amd64.deb`, then
-`sudo systemctl restart creature-world` — #144). The other panels work against `0.2.2`.
+To put Beaky's voice in the room on fuzzball: deploy World `0.4.1` and agent `2.56.1`
+(`./build_debs.sh --arch amd64`, `apt install`, restart both by hand — #144); add
+`"presence": {"assumed": {"person:april": {"state": "home", "physically_audible": true}}}` to
+`/etc/creature/world.json` and restart World; make sure `/etc/default/creature-agent` (or the
+unit) points `--host/--port` at the Creature Server whose creature `creatureId` names. Type to
+her from the phone and she answers through the creature. Remove the `presence` block to send her
+back to the Communicator.
 
 ### 0.5 What is not finished
 
@@ -127,10 +165,15 @@ To use World Viewer's Conversation panel against fuzzball, deploy Creature World
   proprioception (VW-012), Home Assistant (VW-013), calendar timers (VW-018/VW-027), then memory
   (Phase 9). That is the work that turns "an LLM with a persona" into Beaky.
 
-- **The physical stage.** April: most responses are spoken aloud; Communicator is the away/input
-  path. VW-016 (#107) must keep sentence streaming to Creature Server's ad-hoc session (ask the
-  world for the stage *before* generating), and an `assumed` presence should put Beaky in the
-  room until VW-006/VW-013 bring evidence. See the plan's correction section.
+- **Beaky spoke in the room on 2026-09-11 at 17:32 PDT** ("Hi April! How was your day?",
+  animation `be4fe551…`), staged by the world from an assumed presence, with the same words in
+  the Communicator, `physical_speech · home_and_audible · assumed · performed` in the Viewer,
+  and one Honeycomb trace `d304878f…` phone → gateway → World stage → `agent.turn`
+  (Mistral streaming alongside `creature.server.perform`) → World perform. Two gotchas found
+  live: fuzzball's `creatureId` was still the sample placeholder (`<uuid>`) — Creature Server
+  answers `creature_id must be a UUID` and the Viewer showed `failed:
+  physical_speech_start_failed`; and #156. Real presence (VW-006/VW-013) later replaces the
+  assumption.
 - Character personalities: one persona string today; a phase of its own (per-character
   definitions, memories, rubric).
 - World Viewer follow-ups: VW-011 *Why?* (provenance walk, #102), a Honeycomb trace link per
@@ -140,15 +183,15 @@ To use World Viewer's Conversation panel against fuzzball, deploy Creature World
 
 ### 0.6 Exact next actions
 
-1. Merge `vw-010-world-viewer` (PR referencing #101), deploy World `0.3.0` to fuzzball, run the
-   Viewer from Xcode against fuzzball, type to Beaky from the phone, and watch the utterance,
-   her turn, and the router's decision arrive. Then production.
-2. VW-016 + assumed presence: Beaky speaks in the room, streaming sentences, with the turn still
-   recorded in the shared history — now watchable in the Viewer's delivery chips.
-3. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
+1. Merge `vw-016-physical-stage` (PR #155). Fuzzball runs World `0.4.2` + agent `2.56.0` with
+   the assumption and Beaky is heard; install agent `2.56.1` (#157, from the `build-deb` CI
+   artifact — local `build_debs.sh` hangs under the upgraded Docker Desktop, see the World
+   manual) and set `localLlmMaxTokens: 400`. Decide whether production's agent moves to world
+   mode (it would lose MQTT house-event reactions until VW-013).
+2. Start putting facts in the world (0.5) and feeding them into her percept, so what she says is
    about something real; the Facts panel is waiting. Then personalities, and one mind per
    character with a character lease so minds never collide.
-4. VW-011 *Why?* in the Viewer once facts have provenance worth walking.
+3. VW-011 *Why?* in the Viewer once facts have provenance worth walking.
 
 Do not let any deterministic component author Beaky's words; do not copy conversation state into
 the gateway; do not split typed input and future STT into separate cognition pipelines.

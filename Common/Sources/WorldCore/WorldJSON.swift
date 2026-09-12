@@ -20,6 +20,8 @@ public enum WorldContractError: Error, Equatable, Sendable {
     case invalidPresenceEvidence
     case inconsistentDeliveryDecision
     case unauthorizedUtteranceIngress
+    case invalidPerformanceReport
+    case unstagedPerformance
 }
 
 extension WorldContractError: LocalizedError {
@@ -63,6 +65,10 @@ extension WorldContractError: LocalizedError {
             "The selected delivery route and privacy mode are inconsistent"
         case .unauthorizedUtteranceIngress:
             "The utterance ingress boundary rejected the caller"
+        case .invalidPerformanceReport:
+            "A performance report must be performed or failed"
+        case .unstagedPerformance:
+            "A performance must be recorded against the stage decision the world made for it"
         }
     }
 }

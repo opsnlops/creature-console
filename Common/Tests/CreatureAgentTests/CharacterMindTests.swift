@@ -78,7 +78,7 @@ struct CharacterMindTests {
         }
         let consideration = try makeConsideration(text: "Are you there?")
 
-        let decision = await mind.consider(consideration, now: now)
+        let decision = try await mind.consider(consideration, now: now)
 
         guard case .reply(let intent) = decision else {
             Issue.record("Expected a reply, got \(decision)")
@@ -117,7 +117,7 @@ struct CharacterMindTests {
     {
         let mind = makeMind { _ in raw }
 
-        let decision = await mind.consider(try makeConsideration(text: "Hi"), now: now)
+        let decision = try await mind.consider(try makeConsideration(text: "Hi"), now: now)
 
         #expect(decision == .silence(reason: reason))
     }
@@ -132,10 +132,10 @@ struct CharacterMindTests {
 
         let stale = try makeConsideration(
             text: "Hello?", occurredAt: now.addingTimeInterval(-7_200))
-        #expect(await mind.consider(stale, now: now) == .silence(reason: .stale))
+        #expect(try await mind.consider(stale, now: now) == .silence(reason: .stale))
 
         let stranger = try makeConsideration(text: "Hello?", speaker: "person:jesse")
-        #expect(await mind.consider(stranger, now: now) == .silence(reason: .notAddressed))
+        #expect(try await mind.consider(stranger, now: now) == .silence(reason: .notAddressed))
 
         #expect(await calls.value == 0)
     }
@@ -147,7 +147,7 @@ struct CharacterMindTests {
             return "too late"
         }
 
-        let decision = await mind.consider(try makeConsideration(text: "Quick!"), now: now)
+        let decision = try await mind.consider(try makeConsideration(text: "Quick!"), now: now)
 
         #expect(decision == .silence(reason: .modelUnavailable))
     }
@@ -181,11 +181,145 @@ struct CharacterMindTests {
                 == "April: are you there?")
     }
 
+    // MARK: - The room
+
+    @Test("In the room, Beaky speaks sentence by sentence while the model is still thinking")
+    func speaksInTheRoomWhileGenerating() async throws {
+        let room = FakeRoom(animationID: "animation:7")
+        let stager = FakeStager(route: .physicalSpeech)
+        let mind = makeMind(
+            stage: CharacterMind.Stage(
+                stager: stager, room: room,
+                respondStreaming: { _ in
+                    AsyncStream { continuation in
+                        continuation.yield("Beaky: \"Bawk, hello April!")
+                        continuation.yield("The servos look great 🎉.")
+                        continuation.finish()
+                    }
+                })
+        ) { _ in "unused" }
+
+        let decision = try await mind.consider(try makeConsideration(text: "Look!"), now: now)
+
+        guard case .performed(let performance) = decision else {
+            Issue.record("expected a performed turn, got \(decision)")
+            return
+        }
+        #expect(await room.spoken == ["Bawk, hello April!", "The servos look great ."])
+        #expect(await room.sessionsOpened == 1)
+        #expect(performance.intent.text == "Bawk, hello April! The servos look great .")
+        #expect(performance.attemptID == stager.attemptID)
+        #expect(performance.outcome.state == .performed)
+        #expect(performance.outcome.providerReference == "animation:7")
+        #expect(await stager.requests.count == 1)
+        #expect(await stager.requests.first?.responseID == performance.intent.responseID)
+    }
+
+    @Test("Silence in the room never opens a session")
+    func silenceNeverOpensTheRoom() async throws {
+        let room = FakeRoom(animationID: "animation:8")
+        let mind = makeMind(
+            stage: CharacterMind.Stage(
+                stager: FakeStager(route: .physicalSpeech), room: room,
+                respondStreaming: { _ in
+                    AsyncStream { continuation in
+                        continuation.yield("[silence]")
+                        continuation.finish()
+                    }
+                })
+        ) { _ in "unused" }
+
+        let decision = try await mind.consider(try makeConsideration(text: "meh"), now: now)
+
+        #expect(decision == .silence(reason: .choseSilence))
+        #expect(await room.sessionsOpened == 0)
+        #expect(await room.spoken.isEmpty)
+    }
+
+    @Test("When the room cannot speak, the turn is still recorded as a failed performance")
+    func roomFailureIsRecorded() async throws {
+        let room = FakeRoom(animationID: nil, failure: .sessionStartFailed("server down"))
+        let mind = makeMind(
+            stage: CharacterMind.Stage(
+                stager: FakeStager(route: .physicalSpeech), room: room,
+                respondStreaming: { _ in
+                    AsyncStream { continuation in
+                        continuation.yield("I would have said this.")
+                        continuation.finish()
+                    }
+                })
+        ) { _ in "unused" }
+
+        let decision = try await mind.consider(try makeConsideration(text: "Hi"), now: now)
+
+        guard case .performed(let performance) = decision else {
+            Issue.record("expected a performed turn, got \(decision)")
+            return
+        }
+        #expect(performance.outcome.state == .failed)
+        #expect(performance.outcome.errorCode == "physical_speech_start_failed")
+        #expect(performance.intent.text == "I would have said this.")
+    }
+
+    @Test("When the world says Communicator, the whole reply goes to the world for routing")
+    func communicatorStageRepliesThroughTheWorld() async throws {
+        let room = FakeRoom(animationID: "animation:9")
+        let mind = makeMind(
+            stage: CharacterMind.Stage(
+                stager: FakeStager(route: .communicator), room: room,
+                respondStreaming: { _ in AsyncStream { $0.finish() } })
+        ) { transcript in
+            #expect(transcript.first?.content.contains("Beaky Communicator app") == true)
+            return "Text me back when you are home."
+        }
+
+        let decision = try await mind.consider(try makeConsideration(text: "Hi"), now: now)
+
+        guard case .reply(let intent) = decision else {
+            Issue.record("expected a reply, got \(decision)")
+            return
+        }
+        #expect(intent.text == "Text me back when you are home.")
+        #expect(await room.sessionsOpened == 0)
+    }
+
+    @Test("A turn the world already carried is not performed again")
+    func alreadyDeliveredTurnIsNotRepeated() async throws {
+        let room = FakeRoom(animationID: "animation:10")
+        let stager = FakeStager(route: .physicalSpeech, alreadyDelivered: true)
+        let mind = makeMind(
+            stage: CharacterMind.Stage(
+                stager: stager, room: room,
+                respondStreaming: { _ in AsyncStream { $0.finish() } })
+        ) { _ in "unused" }
+
+        let decision = try await mind.consider(try makeConsideration(text: "Hi"), now: now)
+
+        guard case .alreadyDelivered = decision else {
+            Issue.record("expected already delivered, got \(decision)")
+            return
+        }
+        #expect(await room.sessionsOpened == 0)
+    }
+
+    @Test("The room's contract tells Beaky April can hear her")
+    func roomContractSaysAprilIsPresent() throws {
+        let mind = makeMind { _ in "unused" }
+        let percept = try makePercept(text: "Hi")
+
+        let room = mind.makeTranscript(for: percept, route: .physicalSpeech)
+        let app = mind.makeTranscript(for: percept, route: .communicator)
+
+        #expect(room.first?.content.contains("in the room with you") == true)
+        #expect(app.first?.content.contains("Beaky Communicator app") == true)
+    }
+
     // MARK: - Helpers
 
     private func makeMind(
         maximumContextTurns: Int = 20,
         modelTimeout: Duration = .seconds(5),
+        stage: CharacterMind.Stage? = nil,
         respond: @escaping CharacterMind.Respond
     ) -> CharacterMind {
         CharacterMind(
@@ -199,6 +333,7 @@ struct CharacterMindTests {
                 modelName: "test-model"
             ),
             respond: respond,
+            stage: stage,
             logger: Logger(label: "character-mind-tests")
         )
     }
@@ -260,4 +395,62 @@ struct CharacterMindTests {
 private actor CallCounter {
     private(set) var value = 0
     func increment() { value += 1 }
+}
+
+/// A room that remembers what it was asked to say.
+private actor FakeRoom: PhysicalSpeechStaging {
+    private(set) var spoken: [String] = []
+    private(set) var sessionsOpened = 0
+    private let animationID: String?
+    private let failure: PhysicalSpeechStageError?
+
+    init(animationID: String?, failure: PhysicalSpeechStageError? = nil) {
+        self.animationID = animationID
+        self.failure = failure
+    }
+
+    func perform(_ sentences: AsyncStream<String>) async throws -> String? {
+        for await sentence in sentences {
+            if let failure { throw failure }
+            if spoken.isEmpty { sessionsOpened += 1 }
+            spoken.append(sentence)
+        }
+        return spoken.isEmpty ? nil : animationID
+    }
+}
+
+/// A world that always puts Beaky on one stage.
+private actor FakeStager: WorldStaging {
+    let attemptID = try! DeliveryAttemptID(validating: "delivery-attempt:test")
+    private let route: CharacterDeliveryRoute
+    private let alreadyDelivered: Bool
+    private(set) var requests: [CharacterStageRequest] = []
+
+    init(route: CharacterDeliveryRoute, alreadyDelivered: Bool = false) {
+        self.route = route
+        self.alreadyDelivered = alreadyDelivered
+    }
+
+    func stage(
+        _ request: CharacterStageRequest,
+        in conversationID: ConversationID
+    ) throws -> CharacterStageResult {
+        requests.append(request)
+        let now = Date(timeIntervalSince1970: 1_789_200_000)
+        let home = route == .physicalSpeech
+        let decision = try CharacterDeliveryDecision(
+            attemptID: attemptID,
+            responseID: request.responseID,
+            route: route,
+            privacyMode: home ? .notApplicable : .private,
+            reason: home ? .homeAndAudible : .presenceUncertain,
+            decidedAt: now,
+            presence: PersonPresence(
+                personID: request.recipientID, state: home ? .home : .unknown,
+                confidence: home ? 1 : 0, observedAt: now, validUntil: now,
+                physicallyAudible: home, basis: .assumed)
+        )
+        return CharacterStageResult(
+            disposition: alreadyDelivered ? .alreadyDelivered : .decided, decision: decision)
+    }
 }

@@ -10,7 +10,9 @@ public struct WorldHealth: Codable, Equatable, Sendable {
     public var mongodb: String
     public var schemaVersion: Int
 
-    public init(status: String, service: String, buildVersion: String, mongodb: String, schemaVersion: Int) {
+    public init(
+        status: String, service: String, buildVersion: String, mongodb: String, schemaVersion: Int
+    ) {
         self.status = status
         self.service = service
         self.buildVersion = buildVersion

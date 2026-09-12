@@ -51,7 +51,10 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-distributed-tracing.git", from: "1.4.0"),
         .package(url: "https://github.com/apple/swift-service-context.git", from: "1.3.0"),
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.35.0"),
-        .package(url: "https://github.com/orlandos-nl/MongoKitten.git", from: "7.16.0"),
+        // opsnlops fork of MongoKitten 7.16.3 until the cursor-span fix lands upstream:
+        // Find/Aggregate/ListIndexes/ListCollections spans were started and never ended, so
+        // every MongoKitten.Find<…> span in a trace hung from a parent Honeycomb never saw.
+        .package(url: "https://github.com/opsnlops/MongoKitten.git", exact: "7.16.3-opsnlops.1"),
     ],
 
     targets: [

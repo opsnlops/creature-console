@@ -77,6 +77,53 @@ struct WorldMindServiceTests {
         #expect(posted.responseID == CharacterMind.responseID(for: percept.considerationID))
     }
 
+    @Test("In the room, Beaky's performed turn is recorded in the world and the cursor moves")
+    func performsInTheRoomAndRecords() async throws {
+        let stub = StubWorld()
+        await stub.putBeaky(on: .physicalSpeech)
+        let percept = try makePercept(text: "Beaky, can you hear me?")
+        await stub.script(connection: 0) { _ in
+            [
+                .snapshot(latestSequence: 20),
+                .delta(sequence: 21, envelope: try self.envelope(for: percept)),
+            ]
+        }
+        await stub.script(connection: 1) { _ in [] }
+        let room = RecordingRoom()
+        try await Harness.run(
+            stub: stub,
+            logger: logger,
+            room: room,
+            respondStreaming: { transcript in
+                AsyncStream { continuation in
+                    #expect(transcript.first?.content.contains("in the room with you") == true)
+                    continuation.yield("Loud and clear, April.")
+                    continuation.yield("Bawk!")
+                    continuation.finish()
+                }
+            },
+            respond: { _ in
+                Issue.record("the full-text path must not run for a turn in the room")
+                return "unused"
+            }
+        ) { harness in
+            try await harness.runUntil {
+                let recorded = await stub.performances.count == 1
+                let advanced = await harness.cursorAt() == 21
+                return recorded && advanced
+            }
+        }
+
+        let performance = try #require(await stub.performances.first)
+        #expect(await stub.stageRequests.map(\.responseID) == [performance.intent.responseID])
+        #expect(await room.spoken == ["Loud and clear, April.", "Bawk!"])
+        #expect(performance.intent.text == "Loud and clear, April. Bawk!")
+        #expect(performance.outcome.state == .performed)
+        #expect(performance.outcome.providerReference == "animation:room")
+        #expect(await stub.responses.isEmpty)
+        #expect(await stub.acceptedTexts == ["Loud and clear, April. Bawk!"])
+    }
+
     @Test("A restart after the world accepted a turn never makes Beaky say it twice")
     func replayAfterCrashIsRecognised() async throws {
         let stub = StubWorld()
@@ -253,6 +300,8 @@ private struct Harness {
         stub: StubWorld,
         logger: Logger,
         failFirstCursorWrite: Bool = false,
+        room: (any PhysicalSpeechStaging)? = nil,
+        respondStreaming: CharacterMind.RespondStreaming? = nil,
         respond: @escaping CharacterMind.Respond,
         body: @escaping @Sendable (Harness) async throws -> Void
     ) async throws {
@@ -267,6 +316,14 @@ private struct Harness {
                 failFirstCursorWrite ? CrashingCursor(wrapping: durable) : durable
             let client = HTTPClient(eventLoopGroupProvider: .singleton)
             let beaky = try EntityID(validating: "character:beaky")
+            let responder = WorldResponder(client: client, worldURL: worldURL, logger: logger)
+            let stage = room.map { room in
+                CharacterMind.Stage(
+                    stager: responder,
+                    room: room,
+                    respondStreaming: respondStreaming ?? { _ in AsyncStream { $0.finish() } }
+                )
+            }
             let service = WorldMindService(
                 subscriber: WorldPerceptSubscriber(
                     worldURL: worldURL,
@@ -286,9 +343,10 @@ private struct Harness {
                         modelName: "test-model"
                     ),
                     respond: respond,
+                    stage: stage,
                     logger: logger
                 ),
-                responder: WorldResponder(client: client, worldURL: worldURL, logger: logger),
+                responder: responder,
                 client: client,
                 logger: logger
             )
@@ -352,6 +410,17 @@ private actor ContextRecordingResponder: WorldTurnResponding {
     private(set) var sawTurnContext = false
     private(set) var submitted: CharacterUtteranceIntent?
 
+    func stage(
+        _ request: CharacterStageRequest,
+        in conversationID: ConversationID
+    ) async throws -> CharacterStageResult {
+        throw WorldResponderError.unavailable(status: 503)
+    }
+
+    func record(_ performance: CharacterPerformance) async throws -> WorldResponseOutcome {
+        throw WorldResponderError.unavailable(status: 503)
+    }
+
     func submit(_ intent: CharacterUtteranceIntent) async throws -> WorldResponseOutcome {
         sawTurnContext = ServiceContext.current != nil
         submitted = intent
@@ -405,10 +474,54 @@ actor StubWorld {
 
     private(set) var connections: [Int64?] = []
     private(set) var responses: [CharacterUtteranceIntent] = []
+    private(set) var performances: [CharacterPerformance] = []
+    private(set) var stageRequests: [CharacterStageRequest] = []
     private(set) var acceptedTexts: [String] = []
     private var scripts: [Int: Script] = [:]
     private var pendingFailure: HTTPResponse.Status?
     private var acceptedByResponseID: [ResponseID: ConversationItem] = [:]
+    private var stageRoute: CharacterDeliveryRoute = .communicator
+    private var stagedAttempts: [ResponseID: DeliveryAttemptID] = [:]
+
+    /// Where this world puts Beaky when a mind asks for the stage.
+    func putBeaky(on route: CharacterDeliveryRoute) {
+        stageRoute = route
+    }
+
+    private func stage(_ request: CharacterStageRequest) throws -> (HTTPResponse.Status, Data) {
+        stageRequests.append(request)
+        let attemptID = stagedAttempts[request.responseID] ?? .generated()
+        stagedAttempts[request.responseID] = attemptID
+        let now = Date(timeIntervalSince1970: 1_789_200_000)
+        let home = stageRoute == .physicalSpeech
+        let decision = try CharacterDeliveryDecision(
+            attemptID: attemptID,
+            responseID: request.responseID,
+            route: stageRoute,
+            privacyMode: home ? .notApplicable : .private,
+            reason: home ? .homeAndAudible : .presenceUncertain,
+            decidedAt: now,
+            presence: PersonPresence(
+                personID: request.recipientID, state: home ? .home : .unknown,
+                confidence: home ? 1 : 0, observedAt: now, validUntil: now,
+                physicallyAudible: home, basis: .assumed)
+        )
+        let delivered = acceptedByResponseID[request.responseID] != nil
+        let result = CharacterStageResult(
+            disposition: delivered ? .alreadyDelivered : .decided, decision: decision)
+        return (.ok, try WorldJSON.makeEncoder().encode(result))
+    }
+
+    private func perform(_ performance: CharacterPerformance) throws -> (
+        HTTPResponse.Status, Data
+    ) {
+        performances.append(performance)
+        guard stagedAttempts[performance.intent.responseID] == performance.attemptID else {
+            let error = #"{"error":"invalid_request","message":"unstaged"}"#
+            return (.badRequest, Data(error.utf8))
+        }
+        return try accept(performance.intent)
+    }
 
     func script(connection index: Int, _ script: @escaping Script) {
         scripts[index] = script
@@ -427,6 +540,10 @@ actor StubWorld {
 
     private func record(_ intent: CharacterUtteranceIntent) throws -> (HTTPResponse.Status, Data) {
         responses.append(intent)
+        return try accept(intent)
+    }
+
+    private func accept(_ intent: CharacterUtteranceIntent) throws -> (HTTPResponse.Status, Data) {
         if let status = pendingFailure {
             pendingFailure = nil
             return (status, Data())
@@ -488,6 +605,28 @@ actor StubWorld {
                 }
             )
         }
+        router.post("world/v1/conversations/:conversationID/stage") { request, _ in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let stageRequest = try WorldJSON.makeDecoder().decode(
+                CharacterStageRequest.self, from: body)
+            let (status, data) = try await self.stage(stageRequest)
+            return Response(
+                status: status,
+                headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: ByteBuffer(bytes: data))
+            )
+        }
+        router.post("world/v1/conversations/:conversationID/performances") { request, _ in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let performance = try WorldJSON.makeDecoder().decode(
+                CharacterPerformance.self, from: body)
+            let (status, data) = try await self.perform(performance)
+            return Response(
+                status: status,
+                headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: ByteBuffer(bytes: data))
+            )
+        }
         router.post("world/v1/conversations/:conversationID/responses") { request, _ in
             let body = try await request.body.collect(upTo: 1_048_576)
             let intent = try WorldJSON.makeDecoder().decode(
@@ -503,5 +642,16 @@ actor StubWorld {
             router: router,
             configuration: .init(address: .hostname("127.0.0.1", port: 0))
         )
+    }
+}
+
+private actor RecordingRoom: PhysicalSpeechStaging {
+    private(set) var spoken: [String] = []
+
+    func perform(_ sentences: AsyncStream<String>) async throws -> String? {
+        for await sentence in sentences {
+            spoken.append(sentence)
+        }
+        return spoken.isEmpty ? nil : "animation:room"
     }
 }

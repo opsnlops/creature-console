@@ -66,10 +66,27 @@ struct WorldMindService: Service {
     }
 
     private func decideAndDeliver(_ consideration: WorldConsideration) async throws {
-        let decision = await mind.consider(consideration, now: await clock.now)
-        guard case .reply(let intent) = decision else { return }
+        let decision = try await mind.consider(consideration, now: await clock.now)
+        let intent: CharacterUtteranceIntent
+        let outcome: WorldResponseOutcome
+        switch decision {
+        case .reply(let replyIntent):
+            intent = replyIntent
+            outcome = try await responder.submit(replyIntent)
+        case .performed(let performance):
+            intent = performance.intent
+            outcome = try await responder.record(performance)
+        case .alreadyDelivered(let responseID):
+            logger.info(
+                "The world had already carried this turn",
+                metadata: ["conversation.response.id": "\(responseID.rawValue)"]
+            )
+            return
+        case .silence:
+            return
+        }
 
-        switch try await responder.submit(intent) {
+        switch outcome {
         case .accepted(let outcome):
             logger.info(
                 "Beaky spoke",

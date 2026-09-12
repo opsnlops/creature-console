@@ -1,3 +1,30 @@
+creature-cli (2.56.1) unstable; urgency=medium
+
+  * creature-agent: a reply the model could not finish within
+    localLlmMaxTokens ends on its last complete sentence instead of
+    speaking the cut-off fragment (#157).
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 18:40:00 -0700
+
+creature-cli (2.56.0) unstable; urgency=medium
+
+  * creature-agent (world mode): Beaky can speak in the room. Before each
+    turn the mind asks Creature World for the stage; when April is home and
+    audible it streams sentences to Creature Server's ad-hoc speech session
+    while the model is still generating, then records the performed turn in
+    the world so the Communicator shows the same words. `stage:
+    communicator_only` restores the 2.55 behaviour (#107).
+  * creature-world 0.4.2: POST .../stage and POST .../performances; presence
+    can be assumed via `presence.assumed` in creature-world.json, recorded
+    as basis: assumed on every decision. The utterance percept carries the
+    newest 100 conversation items instead of the whole history, which
+    refused every message once a conversation passed 100 turns (#156).
+    Built against the opsnlops fork of MongoKitten 7.16.3, which ends the
+    Find/Aggregate/ListIndexes/ListCollections spans it starts, so World
+    traces no longer show MongoDB spans under a missing parent.
+
+ -- April White <april@creature.engineering>  Thu, 11 Sep 2026 17:10:00 -0700
+
 creature-cli (2.55.4) unstable; urgency=medium
 
   * creature-agent: a reply the model wrote as a script line (Beaky: "...")

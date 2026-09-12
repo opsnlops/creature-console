@@ -3,7 +3,7 @@ import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 4
+    static let currentVersion = 5
 
     let database: MongoDatabase
     let logger: Logger
@@ -21,11 +21,14 @@ struct MongoWorldMigrator: Sendable {
         try await createConversationIndexes()
         logger.debug("Ensuring character delivery indexes")
         try await createCharacterDeliveryIndexes()
+        logger.debug("Ensuring character stage decision indexes")
+        try await createCharacterStageDecisionIndexes()
 
         try await recordMigration(version: 1, name: "initial_world_repositories")
         try await recordMigration(version: 2, name: "world_event_processing")
         try await recordMigration(version: 3, name: "conversation_ingress")
         try await recordMigration(version: 4, name: "character_delivery")
+        try await recordMigration(version: 5, name: "character_stage_decision")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -161,5 +164,16 @@ struct MongoWorldMigrator: Sendable {
         try await database[MongoWorldCollection.characterDeliveries].createIndexes([
             attemptID, conversationResponses,
         ])
+    }
+
+    /// Stage decisions are promises about *where*, made before the words exist; MongoDB expires
+    /// them once `expires_at` passes so a mind that never followed through leaves nothing behind.
+    private func createCharacterStageDecisionIndexes() async throws {
+        var expiry = CreateIndexes.Index(
+            named: "stage_decision_expiry",
+            keys: ["expires_at": 1]
+        )
+        expiry.expireAfterSeconds = 0
+        try await database[MongoWorldCollection.characterStageDecisions].createIndexes([expiry])
     }
 }

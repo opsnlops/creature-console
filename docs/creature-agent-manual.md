@@ -10,13 +10,15 @@
 The design and roadmap live in [Beaky's World](beakys-world.md) (§8 and the dated handoff in
 §0). The implementation plan for world mode is [`beaky-mind-plan.md`](beaky-mind-plan.md).
 
-## Do not deploy world mode to production yet
+## World mode and production
 
-Production's agent reacts to house events out loud. World mode currently delivers only through
-Beaky Communicator — it cannot put a word in Beaky's mouth — so on production it would be a
-downgrade from the bird's point of view. Keep production on the MQTT-mode configuration until
-VW-016 gives world mode the physical stage with sentence streaming and presence can choose it.
-The two modes are not interchangeable today, even though every release packages both.
+Production's agent (`mode: mqtt`) reacts to house events out loud. From `2.56.0`, world mode can
+speak too: when Creature World puts Beaky in the room (April assumed or known to be home and
+audible), the mind streams sentences to Creature Server exactly as MQTT mode does. What world
+mode still lacks is the *house-event* side — reactions to MQTT topics — so replacing production's
+agent means losing those until the world carries house events (VW-013). Run world mode on
+production only once that trade is acceptable; the two modes are not interchangeable yet, even
+though every release packages both.
 
 ## Installation
 
@@ -42,13 +44,13 @@ Shared keys:
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `mode` | `mqtt` | `mqtt` or `world` |
-| `creatureId` | required | Creature Server creature ID (used by MQTT mode's speech) |
+| `creatureId` | required | Creature Server creature **UUID** Beaky speaks through (both modes; Beaky is `4754fc0e-1706-11ef-931d-bbb95a696e2e`). The sample file's `<uuid>` placeholder makes Creature Server refuse every session with `creature_id must be a UUID` |
 | `llmBackend` | `openai` | `openai` or `local`; world mode requires `local` |
 | `llmModel` | `gpt-5.2` | model name sent to the backend |
 | `llmSystemPrompt` | required | the character's persona |
 | `llmTemperature` | `1.0` | |
 | `localLlmHost` / `localLlmPort` | `10.69.66.4` / `1234` | llama-server (OpenAI-compatible) |
-| `localLlmMaxTokens` | `100` | |
+| `localLlmMaxTokens` | `100` | enough for a short reply; set `400` or so in world mode so a story fits. If the model is cut off by this cap, the unfinished last sentence is dropped rather than spoken (#157) |
 
 MQTT mode keys (`mqttHost`, `mqttPort`, `mqttReconnectBackoff`, `fallbackSpeech`,
 `maxConcurrentTasks`, `minSentenceChars`, `areas`) are documented in the sample file. `areas` is
@@ -65,18 +67,19 @@ World mode keys:
 | `maximumReplyAge` | `3600` | seconds; older messages become recorded `stale` silences |
 | `maximumContextTurns` | `20` | newest prior turns sent to the model |
 | `llmTimeoutSeconds` | `60` | model call deadline |
+| `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
 
 A minimal world-mode file:
 
 ```yaml
 mode: world
-creatureId: 00000000-0000-0000-0000-000000000000
+creatureId: 4754fc0e-1706-11ef-931d-bbb95a696e2e
 llmBackend: local
 localLlmHost: 10.69.66.4
 localLlmPort: 1234
 llmModel: mistral-nemo
 llmTemperature: 0.9
-localLlmMaxTokens: 160
+localLlmMaxTokens: 400
 worldUrl: http://10.69.66.1:8001/world/v1
 characterEntityId: character:beaky
 personEntityId: person:april
@@ -116,9 +119,21 @@ creature-agent run --config-path agent.yaml --log-level info --host <creature-se
   reason and a `creature_agent.considerations.outcome` metric — never as an error.
 - **It survives the world restarting.** Each stream connection uses a fresh HTTP client with a
   bounded connect, then reconnects from the cursor after a short delay.
-- **It does not choose the stage.** The intent carries no channel. Creature World's router reads
-  presence and decides Communicator versus the room; today presence is `unknown`, so every reply
-  goes to Communicator.
+- **It does not choose the stage — the world does, before the words exist.** With `stage:
+  physical` (the default) the mind asks `POST …/stage` for each turn. If the answer is the room
+  (`physical_speech`), it streams sentences to Creature Server's ad-hoc speech session
+  (`--host/--port`, `creatureId`) as the model produces them — the session opens on the first
+  speakable sentence, so `[silence]` never makes a sound — and then records the finished turn
+  and its outcome with `POST …/performances`, so the Communicator shows the same words. If the
+  answer is the Communicator, the full reply goes to `POST …/responses` as before. Creature World
+  reports presence as `unknown` unless it is configured to assume otherwise (see the World
+  manual's `presence.assumed`). `stage: communicator_only` never asks and restores `2.55`
+  behaviour.
+- **A room that will not speak is not a lost turn.** If Creature Server refuses the session, the
+  turn is recorded as `failed` with `physical_speech_start_failed` (or `…_finish_failed`) and
+  still lands in the shared history and the Communicator. A crash after speaking but before
+  recording replays the consideration; the world answers `already_delivered` only if the record
+  exists, so in that narrow window she may say it twice — visible in World Viewer as two attempts.
 
 ## Observability
 

@@ -84,8 +84,11 @@ struct DeliveryChip: View {
             Text(delivery.decision.reason.rawValue)
             Text(presence)
             if let outcome = delivery.outcome {
-                Text(outcome.state.rawValue)
-                    .foregroundStyle(outcome.state == .failed ? .red : .primary)
+                Text(
+                    outcome.state == .failed
+                        ? "failed: \(outcome.errorCode ?? "unknown")" : outcome.state.rawValue
+                )
+                .foregroundStyle(outcome.state == .failed ? .red : .primary)
             } else {
                 Text("no outcome")
                     .foregroundStyle(.secondary)
@@ -95,16 +98,28 @@ struct DeliveryChip: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .glassEffect(.regular.tint(tint.opacity(0.18)), in: .capsule)
-        .help(
-            "attempt \(delivery.decision.attemptID.rawValue) · decided \(delivery.decision.decidedAt.formatted(.dateTime.hour().minute().second()))"
-        )
+        .help(hint)
+    }
+
+    private var hint: String {
+        var parts = [
+            "attempt \(delivery.decision.attemptID.rawValue)",
+            "decided \(delivery.decision.decidedAt.formatted(.dateTime.hour().minute().second()))",
+        ]
+        if let reference = delivery.outcome?.providerReference {
+            parts.append("performance \(reference)")
+        }
+        if let code = delivery.outcome?.errorCode {
+            parts.append("error \(code)")
+        }
+        return parts.joined(separator: " · ")
     }
 
     private var presence: String {
         let seen = delivery.decision.presence
         let audible = seen.physicallyAudible ? "audible" : "not audible"
         return
-            "\(seen.state.rawValue) \(seen.confidence.formatted(.percent.precision(.fractionLength(0)))) · \(audible)"
+            "\(seen.state.rawValue) \(seen.confidence.formatted(.percent.precision(.fractionLength(0)))) (\(seen.basis.rawValue)) · \(audible)"
     }
 
     private var routeSymbol: String {

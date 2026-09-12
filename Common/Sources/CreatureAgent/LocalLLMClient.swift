@@ -179,6 +179,7 @@ struct LocalLLMClient {
                     var fullResponse = ""
                     var insideThinkTag = false
                     var sentenceCount = 0
+                    var cutOffByTokenLimit = false
 
                     for await line in sseDelegate.lines {
                         // SSE format: lines starting with "data: "
@@ -198,8 +199,14 @@ struct LocalLLMClient {
                             let json = try? JSONSerialization.jsonObject(with: jsonData)
                                 as? [String: Any],
                             let choices = json["choices"] as? [[String: Any]],
-                            let firstChoice = choices.first,
-                            let delta = firstChoice["delta"] as? [String: Any],
+                            let firstChoice = choices.first
+                        else {
+                            continue
+                        }
+                        if firstChoice["finish_reason"] as? String == "length" {
+                            cutOffByTokenLimit = true
+                        }
+                        guard let delta = firstChoice["delta"] as? [String: Any],
                             let content = delta["content"] as? String
                         else {
                             continue
@@ -276,7 +283,13 @@ struct LocalLLMClient {
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                         .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
                         .trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !remaining.isEmpty {
+                    if cutOffByTokenLimit, !remaining.isEmpty {
+                        // The model ran into max_tokens mid-sentence. A fragment spoken aloud
+                        // sounds like a stumble; end on the last complete sentence instead.
+                        logger.warning(
+                            "LLM response hit the \(maxTokens)-token limit; dropping the unfinished sentence: \"\(remaining)\""
+                        )
+                    } else if !remaining.isEmpty {
                         sentenceCount += 1
                         fullResponse += remaining
                         logger.info(
