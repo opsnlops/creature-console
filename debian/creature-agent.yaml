@@ -51,6 +51,9 @@ areas:
 # worldUrl: http://127.0.0.1:8001/world/v1
 # characterEntityId: character:beaky
 # personEntityId: person:april
+# regionEntityId: region:home
+# personaPath: /etc/creature/agent/personas/beaky.yaml   # who this mind is (docs/personas)
+# timeZone: America/Los_Angeles   # the mind is told the local time in words; servers run UTC
 # stateDirectory: /var/lib/creature-agent
 # maximumReplyAge: 3600       # seconds; older messages become recorded silences
 # maximumContextTurns: 20     # newest prior turns sent to the model

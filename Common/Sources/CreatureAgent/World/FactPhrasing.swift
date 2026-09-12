@@ -18,13 +18,13 @@ enum FactPhrasing {
         let subject = name(of: fact.subjectID)
         let certainty = qualifier(for: fact.epistemic)
         switch fact.predicate {
-        case "presence.region":
+        case WorldFacts.characterRegion:
             if fact.subjectID == character { return nil }  // Beaky knows where Beaky is.
             guard case .string = fact.value else {
                 return "\(subject) has left."
             }
             return "\(subject) is here in the room with you\(certainty)."
-        case "presence.state":
+        case WorldFacts.personState:
             guard case .string(let state) = fact.value else { return nil }
             switch state {
             case "home": return "\(subject) is home\(certainty)."
@@ -33,7 +33,7 @@ enum FactPhrasing {
             }
         case "presence.physically_audible":
             return nil  // folded into the router's choice; not something to say.
-        case "scene.last":
+        case WorldFacts.lastScene:
             guard case .object(let scene) = fact.value,
                 case .array(let lines)? = scene["lines"], !lines.isEmpty
             else { return nil }
@@ -71,6 +71,12 @@ enum FactPhrasing {
         return "It is \(clock) on \(day)."
             .replacingOccurrences(of: "\u{202F}", with: " ")
             .replacingOccurrences(of: "\u{00A0}", with: " ")
+    }
+
+    /// The characters the facts place somewhere — logged in, not logged out (`null`).
+    static func presentCharacters(in facts: [Fact]) -> [EntityID] {
+        facts.filter { $0.predicate == WorldFacts.characterRegion && $0.value != .null }
+            .map(\.subjectID)
     }
 
     static func name(of entityID: EntityID) -> String {

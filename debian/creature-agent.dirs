@@ -1,2 +1,3 @@
 etc/creature/agent
+etc/creature/agent/personas
 usr/lib/systemd/system

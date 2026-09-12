@@ -354,7 +354,7 @@ struct WorldMindServiceTests {
             ),
             mind: CharacterMind(
                 configuration: CharacterMind.Configuration(
-                    persona: "You are Beaky.",
+                    persona: .text("You are Beaky."),
                     characterID: beaky,
                     personID: april,
                     maximumReplyAge: 3_600,
@@ -481,7 +481,7 @@ private struct Harness {
                 ),
                 mind: CharacterMind(
                     configuration: CharacterMind.Configuration(
-                        persona: "You are Beaky.",
+                        persona: .text("You are Beaky."),
                         characterID: beaky,
                         personID: try EntityID(validating: "person:april"),
                         maximumReplyAge: 3_600,

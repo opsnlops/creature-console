@@ -76,7 +76,7 @@ struct CharacterMind: Sendable {
     static let silenceToken = "[silence]"
 
     struct Configuration: Sendable {
-        let persona: String
+        let persona: CharacterPersona
         let characterID: EntityID
         let personID: EntityID
         let maximumReplyAge: TimeInterval
@@ -133,6 +133,7 @@ struct CharacterMind: Sendable {
             span.attributes["conversation.utterance.id"] = percept.utterance.utteranceID.rawValue
             span.attributes["world.sequence"] = consideration.worldSequence
             span.attributes["agent.prompt_version"] = Self.promptVersion
+            span.attributes["agent.persona_version"] = configuration.persona.versionTag
             span.attributes["llm.model"] = configuration.modelName
             considerationCounter.increment()
 
@@ -401,6 +402,7 @@ struct CharacterMind: Sendable {
             span.attributes["agent.character_id"] = configuration.characterID.rawValue
             span.attributes["scene.id"] = offer.offer.sceneID.rawValue
             span.attributes["world.sequence"] = offer.worldSequence
+            span.attributes["agent.persona_version"] = configuration.persona.versionTag
             span.attributes["llm.model"] = configuration.modelName
             considerationCounter.increment()
             let decision = await decideTurn(offer.offer, now: now)
@@ -468,10 +470,15 @@ struct CharacterMind: Sendable {
     {
         let others = offer.participants.filter { $0 != configuration.characterID }
             .map(Self.name(of:))
+        var present = offer.participants
+        if let speaker = offer.trigger.speakerID {
+            present.append(speaker)
+        }
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
-                content: configuration.persona + "\n\n" + Self.sceneContract(others: others)
+                content: configuration.persona.rendered(present: present) + "\n\n"
+                    + Self.sceneContract(others: others)
                     + knowledgeBlock(offer.worldFacts, now: now)
             )
         ]
@@ -551,10 +558,15 @@ struct CharacterMind: Sendable {
         route: CharacterDeliveryRoute = .communicator,
         now: Date = Date()
     ) -> [LocalLLMClient.Message] {
+        // Who is here: the speaker, and every character the world says is in a region.
+        let present =
+            [percept.utterance.speakerID]
+            + FactPhrasing.presentCharacters(in: percept.worldFacts)
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
-                content: configuration.persona + "\n\n" + Self.contract(for: route)
+                content: configuration.persona.rendered(present: present) + "\n\n"
+                    + Self.contract(for: route)
                     + knowledgeBlock(percept.worldFacts, now: now)
             )
         ]
@@ -632,7 +644,7 @@ struct CharacterMind: Sendable {
         // Her words are written to be spoken: the ad-hoc pipeline drops emoji and symbols, and
         // Communicator shows the same text, so they are removed here once for every stage.
         let sanitized = TextSanitizer.sanitize(
-            withoutSpeakerLabel(stripped, characterName: characterName)
+            withoutStageDirections(withoutSpeakerLabel(stripped, characterName: characterName))
         ).text
             .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -660,6 +672,21 @@ struct CharacterMind: Sendable {
 
     /// The model was asked for exactly `[silence]`; a small model writes `Silence`, `*silence*`
     /// or `(silence)` just as readily, and none of those may be spoken aloud (#162).
+    /// A small model narrates: `*giggles*`, `(chuckles)`, `[flaps wings]`. Nothing between
+    /// asterisks or brackets is speech, so it is removed before the words are spoken — the
+    /// persona's `never` rules make it rare; this makes it impossible. A stray opening quote
+    /// left behind ("*giggles* "I love you") is trimmed with the rest.
+    static func withoutStageDirections(_ text: String) -> String {
+        let pattern = #"\*[^*\n]{1,80}\*|\([^()\n]{1,80}\)|\[[^\[\]\n]{1,80}\]"#
+        guard let expression = try? NSRegularExpression(pattern: pattern) else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        return expression.stringByReplacingMatches(in: text, range: range, withTemplate: " ")
+            .replacingOccurrences(
+                of: #"\s{2,}"#, with: " ", options: .regularExpression
+            )
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     static func declinesToSpeak(_ raw: String) -> Bool {
         let decoration = CharacterSet(charactersIn: "\"'.`*()[]_-!")
             .union(.whitespacesAndNewlines)

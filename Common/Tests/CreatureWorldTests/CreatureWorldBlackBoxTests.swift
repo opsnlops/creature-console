@@ -171,10 +171,10 @@ struct CreatureWorldBlackBoxTests {
         // the next thing April says carries those facts (and her own assumed presence) to the
         // mind that hears it.
         let mangoPresence = try await api.waitForFact(
-            about: mango, predicate: PresenceFacts.characterRegion)
+            about: mango, predicate: WorldFacts.characterRegion)
         #expect(mangoPresence.value == .string("region:home"))
         #expect(mangoPresence.epistemic.type == .observed)
-        _ = try await api.waitForFact(about: beaky, predicate: PresenceFacts.characterRegion)
+        _ = try await api.waitForFact(about: beaky, predicate: WorldFacts.characterRegion)
 
         let sceneUtterance = try makeUtterance(
             in: conversationID, sourceID: SourceID(validating: "communicator:blackbox"),
@@ -186,9 +186,9 @@ struct CreatureWorldBlackBoxTests {
         #expect(known.count <= WorldKnowledgeLimits.maximumFacts)
         #expect(
             Set(known.map { "\($0.subjectID.rawValue) \($0.predicate)" }).isSuperset(of: [
-                "character:beaky \(PresenceFacts.characterRegion)",
-                "character:mango \(PresenceFacts.characterRegion)",
-                "person:april \(PresenceFacts.personState)",
+                "character:beaky \(WorldFacts.characterRegion)",
+                "character:mango \(WorldFacts.characterRegion)",
+                "person:april \(WorldFacts.personState)",
             ]))
         #expect(
             known.first { $0.subjectID == sceneUtterance.speakerID }?.epistemic.type == .assumed)

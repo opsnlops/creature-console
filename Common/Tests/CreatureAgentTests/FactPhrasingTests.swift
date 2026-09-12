@@ -60,7 +60,7 @@ struct FactPhrasingTests {
     func knowledgeBlockAlwaysHasTheTime() throws {
         let mind = CharacterMind(
             configuration: CharacterMind.Configuration(
-                persona: "You are Beaky.", characterID: beaky, personID: april,
+                persona: .text("You are Beaky."), characterID: beaky, personID: april,
                 maximumReplyAge: 3_600, maximumContextTurns: 20, modelTimeout: .seconds(5),
                 modelName: "test"),
             respond: { _ in "" }, logger: .init(label: "fact-phrasing-tests"))

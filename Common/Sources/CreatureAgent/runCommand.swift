@@ -278,9 +278,12 @@ private func reportError(_ message: String) {
 enum WorldModeError: Error, LocalizedError {
     case requiresLocalModel
     case invalidEntityID(String)
+    case personaUnreadable(String, any Error)
 
     var errorDescription: String? {
         switch self {
+        case .personaUnreadable(let path, let error):
+            "personaPath \(path) could not be loaded: \(error)"
         case .requiresLocalModel:
             "mode: world requires llmBackend: local; the character mind runs on the local model"
         case .invalidEntityID(let value):
@@ -309,6 +312,23 @@ private func runWorldMode(
     guard let regionID = EntityID(rawValue: world.regionEntityID) else {
         throw WorldModeError.invalidEntityID(world.regionEntityID)
     }
+    // Who this mind is: April's persona file when there is one, else the prompt as before.
+    let persona: CharacterPersona
+    if let personaPath = world.personaPath {
+        do {
+            persona = .structured(try Persona.load(from: URL(fileURLWithPath: personaPath)))
+        } catch {
+            throw WorldModeError.personaUnreadable(personaPath, error)
+        }
+    } else {
+        persona = .text(config.llmSystemPrompt)
+    }
+    logger.info(
+        "Persona loaded",
+        metadata: [
+            "agent.persona_version": "\(persona.versionTag)",
+            "agent.persona_path": "\(world.personaPath ?? "(llmSystemPrompt)")",
+        ])
 
     logger.info(
         "Beaky's mind is waking up in Creature World",
@@ -384,7 +404,7 @@ private func runWorldMode(
         }
     let mind = CharacterMind(
         configuration: CharacterMind.Configuration(
-            persona: config.llmSystemPrompt,
+            persona: persona,
             characterID: characterID,
             personID: personID,
             maximumReplyAge: world.maximumReplyAge,

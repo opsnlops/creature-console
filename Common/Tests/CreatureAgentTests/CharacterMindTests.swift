@@ -338,7 +338,7 @@ struct CharacterMindTests {
     ) -> CharacterMind {
         CharacterMind(
             configuration: CharacterMind.Configuration(
-                persona: "You are Beaky.",
+                persona: .text("You are Beaky."),
                 characterID: try! EntityID(validating: "character:beaky"),
                 personID: try! EntityID(validating: "person:april"),
                 maximumReplyAge: 3_600,

@@ -22,7 +22,7 @@ struct PresenceReducerTests {
 
         let fact = try #require(arrived.first)
         #expect(fact.subjectID == mango)
-        #expect(fact.predicate == PresenceFacts.characterRegion)
+        #expect(fact.predicate == WorldFacts.characterRegion)
         #expect(fact.value == .string("region:home"))
         #expect(fact.epistemic.type == .observed)
         #expect(fact.derivedFrom == [.event(login.eventID)])
@@ -44,7 +44,7 @@ struct PresenceReducerTests {
         // The same assumption on a restart is the same source event, so the store dedupes it.
         #expect(events[0].source.sourceEventID == again[0].source.sourceEventID)
         let facts = try AssumedPersonPresenceReducer().reduce(events[0]).changedFacts
-        #expect(facts.map(\.predicate) == [PresenceFacts.personState, PresenceFacts.personAudible])
+        #expect(facts.map(\.predicate) == [WorldFacts.personState, WorldFacts.personAudible])
         #expect(facts[0].value == .string("home"))
         #expect(facts[0].epistemic == (try EpistemicState(type: .assumed, confidence: 0.9)))
         #expect(facts[1].value == .bool(true))
