@@ -130,6 +130,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
     private let sink: any PersonUtterancePerceptSink
     private let authorizer: any UtteranceIngressAuthorizing
     private let scenePlanner: any ScenePlanning
+    private let addresseeResolver: any AddresseeResolving
     private let makeConsiderationID: ConsiderationIDGenerator
     private let makeConversationItemID: ConversationItemIDGenerator
 
@@ -138,6 +139,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
         sink: any PersonUtterancePerceptSink,
         authorizer: any UtteranceIngressAuthorizing = BoundaryUtteranceIngressAuthorizer(),
         scenePlanner: any ScenePlanning = NoScenePlanner(),
+        addresseeResolver: any AddresseeResolving = HintedAddresseeResolver(),
         makeConsiderationID: @escaping ConsiderationIDGenerator = { .generated() },
         makeConversationItemID: @escaping ConversationItemIDGenerator = { .generated() }
     ) {
@@ -145,6 +147,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
         self.sink = sink
         self.authorizer = authorizer
         self.scenePlanner = scenePlanner
+        self.addresseeResolver = addresseeResolver
         self.makeConsiderationID = makeConsiderationID
         self.makeConversationItemID = makeConversationItemID
     }
@@ -174,7 +177,11 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                 in: utterance.conversationID,
                 limit: ConversationContractLimits.maximumContextItems
             )
-            let characterID = utterance.addresseeIDs[0]
+            // Who this is for is the world's call (the leadership rule); the sender's addressee
+            // is a hint.
+            let characterID = try await addresseeResolver.addressee(
+                for: utterance, hinted: utterance.addresseeIDs[0])
+            span.attributes["agent.character_id"] = characterID.rawValue
             let sceneID = try await scenePlanner.planScene(for: utterance, addressee: characterID)
             span.attributes["scene.id"] = sceneID?.rawValue
             let proposed = try StoredUtteranceIngress(

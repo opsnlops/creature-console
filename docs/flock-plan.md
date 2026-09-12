@@ -1,6 +1,6 @@
 # The Flock — Several Minds in One World
 
-**Status:** C1 in PR #159; C2 built on `flock-c2-scenes` (2026-09-11 night); C3 next.
+**Status:** C1 (#159) and C2 (#161) merged and live on fuzzball 2026-09-11; C3 on `flock-c3-communicator`.
 **Design:** [`beakys-world.md`](beakys-world.md) §8.3 (multi-character scenes), §8.5, §11.2,
 Phase 9; the "one mind per character" and "agent collisions" notes in
 [`beaky-mind-plan.md`](beaky-mind-plan.md#after-this).
@@ -117,10 +117,11 @@ scene: { scene_id, opened_by (event / utterance), participants: [character_id],
 
 ### C3 — A Communicator for the flock (Communicator `0.3`, gateway `0.2`)
 
-- One **house conversation** per person (`conversation:april-house`) that every character may
-  speak in — Beaky, and whoever feels like joining — replacing `conversation:april-beaky` as
-  the default; the old conversation stays readable. Items already carry `author_id`; the UI
-  shows the author's name and colour per character, and the delivery chip per turn.
+- One **house conversation** per person that every character may speak in — Beaky, and
+  whoever feels like joining. *Decision while building:* it is `conversation:april-beaky`
+  itself — it already held everyone's turns by the time C3 started, and a rename would only
+  lose history. Items already carry `author_id`; the app shows the author's name and colour per
+  character (`0.2.0`).
 - **Addressing.** April's message names a character or not: "Mango, …" / "@Mango" → Mango;
   otherwise Beaky, by the leadership rule. The addressee resolution is a world rule
   (`PersonUtteranceIngress`), not a gateway or app rule, so STT later gets it for free. A message

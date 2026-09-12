@@ -36,6 +36,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     static let defaultMongoURI =
         "mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000"
     static let defaultPort = 8001
+    /// The character an unaddressed message goes to: Beaky leads.
+    static let defaultLeadCharacter = try! EntityID(validating: "character:beaky")
 
     let allowedOrigins: [String]
     let host: String
@@ -46,6 +48,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let scenes: SceneLimits
     let scenePerformance: ScenePerformanceMode
     let regions: [EntityID: RegionConfiguration]
+    let leadCharacter: EntityID
 
     init(
         host: String = defaultHost,
@@ -56,7 +59,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         creatureServer: CreatureServerConfiguration? = nil,
         scenes: SceneLimits = SceneLimits(),
         scenePerformance: ScenePerformanceMode = .streaming,
-        regions: [EntityID: RegionConfiguration] = [:]
+        regions: [EntityID: RegionConfiguration] = [:],
+        leadCharacter: EntityID = defaultLeadCharacter
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -89,6 +93,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.scenes = scenes
         self.scenePerformance = scenePerformance
         self.regions = regions
+        self.leadCharacter = leadCharacter
     }
 
     static func load(
@@ -111,7 +116,9 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                 regions: try Dictionary(
                     uniqueKeysWithValues: (raw.regions ?? [:]).map {
                         (try EntityID(validating: $0.key), $0.value)
-                    })
+                    }),
+                leadCharacter: try raw.leadCharacter.map(EntityID.init(validating:))
+                    ?? defaultLeadCharacter
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -154,7 +161,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             creatureServer: creatureServer,
             scenes: scenes,
             scenePerformance: scenePerformance,
-            regions: regions
+            regions: regions,
+            leadCharacter: leadCharacter
         )
     }
 
@@ -168,6 +176,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let scenes: SceneLimits?
         let scenePerformance: ScenePerformanceMode?
         let regions: [String: RegionConfiguration]?
+        let leadCharacter: String?
 
         private enum CodingKeys: String, CodingKey {
             case host
@@ -179,6 +188,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case scenes
             case scenePerformance = "scene_performance"
             case regions
+            case leadCharacter = "lead_character"
         }
     }
 

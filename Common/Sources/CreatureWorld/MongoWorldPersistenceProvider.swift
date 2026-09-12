@@ -47,6 +47,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         sceneLimits: SceneLimits = SceneLimits(),
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
+        leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
@@ -137,7 +138,9 @@ struct MongoWorldPersistenceConnection: Sendable {
             repository: persistence.conversations,
             sink: WorldPersonUtterancePerceptSink(
                 world: world, sessions: sessionService, scenes: sceneService),
-            scenePlanner: PresentCharactersScenePlanner(sessions: sessionService)
+            scenePlanner: PresentCharactersScenePlanner(sessions: sessionService),
+            addresseeResolver: PresentCharactersAddresseeResolver(
+                sessions: sessionService, rule: LeadAddresseeRule(lead: leadCharacter))
         )
         // Floor deadlines fire as world timers; the scene service hears them from the stream.
         let floorWatcher = Task {
@@ -409,6 +412,7 @@ actor MongoWorldPersistenceProvider {
         sceneLimits: SceneLimits = SceneLimits(),
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
+        leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -426,6 +430,7 @@ actor MongoWorldPersistenceProvider {
                         sceneLimits: sceneLimits,
                         scenePerformance: scenePerformance,
                         regions: regions,
+                        leadCharacter: leadCharacter,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )
@@ -667,6 +672,26 @@ private struct SessionCreatureResolver: CharacterCreatureResolving {
 
     func creatureID(for characterID: EntityID) async throws -> String? {
         try await sessions.liveSession(for: characterID)?.instance.creatureID
+    }
+}
+
+/// April's words go to the character she names if that character is logged in; otherwise to
+/// the lead. Names are the part after `character:`.
+private struct PresentCharactersAddresseeResolver: AddresseeResolving {
+    let sessions: CharacterSessionService
+    let rule: LeadAddresseeRule
+
+    func addressee(for utterance: PersonUtterance, hinted: EntityID) async throws -> EntityID {
+        let now = Date()
+        let present = try await sessions.characterSessions().filter { $0.isLive(at: now) }
+        var names: [String: EntityID] = [:]
+        for session in present {
+            let raw = session.characterID.rawValue
+            if let colon = raw.firstIndex(of: ":") {
+                names[String(raw[raw.index(after: colon)...]).lowercased()] = session.characterID
+            }
+        }
+        return rule.addressee(in: utterance.text, present: names)
     }
 }
 

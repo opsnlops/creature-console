@@ -46,7 +46,7 @@ A ready response is HTTP 200:
 {
   "status": "ok",
   "schema_version": 1,
-  "build_version": "0.6.1",
+  "build_version": "0.6.2",
   "service": "creature-world",
   "mongodb": "ok"
 }
@@ -81,6 +81,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Browser stream origins | `allowed_origins` | `CREATURE_WORLD_ALLOWED_ORIGINS` | — | None |
 | Assumed presence | `presence.assumed` | — | — | None (presence is `unknown`) |
 | Creature Server for scenes | `creature_server.url` (+ `proxy_host`, `api_key`) | — | — | None (scenes are recorded as `creature_server_not_configured`) |
+| Lead character | `lead_character` | — | — | `character:beaky` (who an unaddressed message goes to) |
 | Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.maximum_spoken_seconds`, `scenes.words_per_second` | — | — | `8`, `12`, `90`, `2.5` |
@@ -140,6 +141,17 @@ mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnect
 
 `directConnection=true` is appropriate for the single-node local setup. A production URI should
 describe the deployed replica set or managed MongoDB cluster instead.
+
+### Addressing
+
+Who April is talking to is a world rule (`0.6.2`), so typed words and spoken ones later are
+addressed the same way. At ingress the world looks at the start of the message: a character
+named there — "Mango, …", "Hey Kenny …", "@caroll …" — who is logged in gets it; everything
+else goes to the lead (`lead_character`, default `character:beaky`). The sender's addressee
+(the app always says Beaky) is only a hint; the utterance is stored as sent and the percept
+carries the world's choice. A name mentioned later in the sentence ("I think Mango is right")
+does not redirect it. `conversation:april-beaky` is the house conversation: every character
+speaks in it.
 
 ### Scenes
 
@@ -257,7 +269,7 @@ Example unavailable response:
 {
   "status": "unavailable",
   "schema_version": 1,
-  "build_version": "0.6.1",
+  "build_version": "0.6.2",
   "service": "creature-world",
   "mongodb": "unavailable"
 }
@@ -543,7 +555,7 @@ package; the Creature World artifact is `creature-world_<version>_<architecture>
 only that package with:
 
 ```bash
-sudo apt install ./creature-world_0.6.1_amd64.deb
+sudo apt install ./creature-world_0.6.2_amd64.deb
 ```
 
 The package installs:
