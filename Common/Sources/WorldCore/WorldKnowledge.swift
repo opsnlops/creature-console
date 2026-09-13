@@ -13,6 +13,9 @@ public protocol WorldKnowledgeProviding: Sendable {
     /// that the door unlocking and then a person at the carport was April going out.
     func recentHappenings(about subjects: [EntityID], since: Date, limit: Int)
         async throws -> [Happening]
+
+    /// What the given predicates mean, for the glossary a mind is handed beside the facts.
+    func meanings(of predicates: Set<String>) async throws -> [String: String]
 }
 
 extension WorldKnowledgeProviding {
@@ -24,6 +27,11 @@ extension WorldKnowledgeProviding {
         async throws -> [Happening]
     {
         []
+    }
+
+    /// Without a store, the world's own catalogue.
+    public func meanings(of predicates: Set<String>) async throws -> [String: String] {
+        WorldFacts.meanings.filter { predicates.contains($0.key) }
     }
 }
 

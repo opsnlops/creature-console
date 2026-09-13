@@ -38,6 +38,8 @@ struct MongoWorldPersistenceConnection: Sendable {
     let submitSceneTurn: @Sendable (SceneTurnSubmission, SceneID) async throws -> SceneTurnResult
     let scene: @Sendable (SceneID) async throws -> Scene?
     let recentScenes: @Sendable (Int) async throws -> [Scene]
+    let factKinds: @Sendable () async throws -> FactKindPage
+    let setFactKind: @Sendable (String, FactKindUpdate) async throws -> FactKind
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -119,8 +121,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         }
         let conversations = persistence.conversations
         let knowledge = PresentWorldKnowledge(
-            facts: persistence.facts, events: persistence.events, sessions: sessionService,
-            regions: regions, clock: clock)
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: sessionService, regions: regions, clock: clock)
         let sceneService = SceneService(
             repository: persistence.scenes,
             clock: clock,
@@ -318,7 +320,11 @@ struct MongoWorldPersistenceConnection: Sendable {
         subscribe = { try await world.subscribe() }
         finishSubscriptions = { await world.finishSubscriptions() }
         isHealthy = { await persistence.isHealthy() }
-        recoverTimers = { try await timerScheduler.recover() }
+        recoverTimers = {
+            try await timerScheduler.recover()
+            // The world's own catalogue of what its predicates mean, for any the store lacks.
+            try await persistence.factKinds.seed(WorldFacts.meanings, at: await clock.now)
+        }
         scheduleTimer = { try await timerScheduler.schedule($0) }
         cancelTimer = { try await timerScheduler.cancel(timerID: $0) }
         ingestUtterance = {
@@ -384,6 +390,11 @@ struct MongoWorldPersistenceConnection: Sendable {
                 nextResponseID: page.last?.intent.responseID,
                 hasMore: hasMore
             )
+        }
+        factKinds = { FactKindPage(kinds: try await persistence.factKinds.all()) }
+        setFactKind = { predicate, update in
+            try await persistence.factKinds.set(
+                predicate, meaning: update.meaning, by: update.updatedBy, at: await clock.now)
         }
         shutdown = {
             assumptionAnnouncer.cancel()
@@ -465,6 +476,12 @@ struct MongoWorldPersistenceConnection: Sendable {
         recentScenes: @escaping @Sendable (Int) async throws -> [Scene] = {
             _ in throw WorldAPIError.databaseUnavailable
         },
+        factKinds: @escaping @Sendable () async throws -> FactKindPage = {
+            throw WorldAPIError.databaseUnavailable
+        },
+        setFactKind: @escaping @Sendable (String, FactKindUpdate) async throws -> FactKind = {
+            _, _ in throw WorldAPIError.databaseUnavailable
+        },
         shutdown: @escaping @Sendable () async -> Void
     ) {
         self.acceptEvent = acceptEvent
@@ -491,6 +508,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.submitSceneTurn = submitSceneTurn
         self.scene = scene
         self.recentScenes = recentScenes
+        self.factKinds = factKinds
+        self.setFactKind = setFactKind
         self.shutdown = shutdown
     }
 }
@@ -740,6 +759,16 @@ actor MongoWorldPersistenceProvider {
         return try await connection.recentScenes(limit)
     }
 
+    func factKinds() async throws -> FactKindPage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.factKinds()
+    }
+
+    func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws -> FactKind {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.setFactKind(predicate, update)
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -777,6 +806,7 @@ extension MongoWorldPersistenceProvider: SceneApplicationService {}
 struct PresentWorldKnowledge: WorldKnowledgeProviding {
     let facts: FactRepository
     let events: WorldEventRepository
+    let kinds: FactKindRepository
     let sessions: CharacterSessionService
     let regions: [EntityID: RegionConfiguration]
     let clock: any WorldClock
@@ -813,6 +843,14 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                     occurredAt: event.occurredAt, type: event.type, subjectID: subject,
                     summary: Self.summary(of: event, subject: subject))
             }
+    }
+
+    /// The store's meanings, with the world's own catalogue behind them for a predicate the
+    /// store has not been told about yet.
+    func meanings(of predicates: Set<String>) async throws -> [String: String] {
+        let stored = try await kinds.meanings(of: predicates)
+        return WorldFacts.meanings.filter { predicates.contains($0.key) }
+            .merging(stored) { _, wizard in wizard }
     }
 
     /// The subjects plus the region each logged-in one is in, everyone present there, and the

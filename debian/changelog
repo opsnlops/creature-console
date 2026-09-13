@@ -1,3 +1,20 @@
+creature-cli (2.66.0+world0.16.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * Facts as facts. April: "I'm not liking all of those hard-coded
+    things on the facts" - and a frontier model does not need them. The
+    agent no longer phrases predicates into sentences; every fact takes
+    one shape (who or where, predicate, value, since when, how known) and
+    the world hands the mind a glossary of what the predicates mean.
+  * creature-world 0.16.0: `fact_kinds` (migration v9), seeded from the
+    world's own catalogue and never overwriting a Wizard's rewording;
+    `fact_meanings` on every percept and floor offer; GET /v1/fact-kinds
+    and PUT /v1/fact-kinds/{predicate}.
+  * creature-agent 2.66.0: the generic renderer; FactPhrasing's switch
+    and its weather judgements are gone (the meanings carry the
+    thresholds). The time, the model line, and the quiet cameras remain.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 22:30:00 -0700
+
 creature-cli (2.65.0+world0.15.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * The story behind the facts. Facts are the present; a mind now also

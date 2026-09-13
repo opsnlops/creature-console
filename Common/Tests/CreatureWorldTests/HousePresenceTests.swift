@@ -126,7 +126,8 @@ struct RecentHappeningsTests {
             CharacterLoginRequest(
                 regionID: region, instance: CharacterMindInstance(host: "test", processID: 1)))
         let knowledge = PresentWorldKnowledge(
-            facts: persistence.facts, events: persistence.events, sessions: sessions,
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: sessions,
             regions: [
                 region: RegionConfiguration(stageID: "s", places: [frontDoor, carport, outside])
             ],
@@ -186,5 +187,38 @@ struct RecentHappeningsTests {
         let latest = try await knowledge.recentHappenings(
             about: [beaky], since: start.addingTimeInterval(-900), limit: 1)
         #expect(latest.map(\.type) == [HouseEvents.personSeen])
+    }
+
+    @Test("Meanings come from the store, seeded from the catalogue, and a Wizard's word wins")
+    func meaningsAreStoredAndEditable() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "fact-kinds-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: start)
+        let sessions = CharacterSessionService(
+            repository: persistence.characterSessions, clock: clock, announce: { _ in })
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: sessions, regions: [:], clock: clock)
+        let predicate = "test.\(UUID().uuidString.lowercased())"
+
+        try await persistence.factKinds.seed([predicate: "from the catalogue"], at: start)
+        #expect(try await knowledge.meanings(of: [predicate]) == [predicate: "from the catalogue"])
+        // The catalogue answers for a predicate the store has never seen.
+        #expect(
+            try await knowledge.meanings(of: [WorldFacts.doorLock])[WorldFacts.doorLock]
+                == WorldFacts.meanings[WorldFacts.doorLock])
+
+        let reworded = try await persistence.factKinds.set(
+            predicate, meaning: "as April puts it", by: "wizard:april", at: start + 60)
+        #expect(reworded.updatedBy == "wizard:april")
+        try await persistence.factKinds.seed([predicate: "from the catalogue"], at: start + 120)
+        #expect(try await knowledge.meanings(of: [predicate]) == [predicate: "as April puts it"])
+        #expect(
+            try await persistence.factKinds.all().contains {
+                $0.predicate == predicate && $0.meaning == "as April puts it"
+            })
     }
 }

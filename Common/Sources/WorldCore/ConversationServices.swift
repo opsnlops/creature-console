@@ -213,6 +213,7 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                     -WorldKnowledgeLimits.happeningsWindow),
                 limit: WorldKnowledgeLimits.maximumHappenings)
             span.attributes["world.happenings"] = happenings.count
+            let meanings = try await knowledge.meanings(of: Set(worldFacts.map(\.predicate)))
             let proposed = try StoredUtteranceIngress(
                 percept: PersonUtterancePercept(
                     considerationID: makeConsiderationID(),
@@ -221,7 +222,8 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                     priorConversationItems: priorItems,
                     sceneID: sceneID,
                     worldFacts: worldFacts,
-                    recentHappenings: happenings
+                    recentHappenings: happenings,
+                    factMeanings: meanings
                 ),
                 conversationItem: ConversationItem(
                     itemID: makeConversationItemID(),

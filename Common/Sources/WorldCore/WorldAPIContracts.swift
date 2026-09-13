@@ -47,6 +47,50 @@ public struct WorldEventPage: Codable, Equatable, Sendable {
     }
 }
 
+/// What a predicate means, as the world tells its minds. Seeded from `WorldFacts.meanings`;
+/// a Wizard may reword it in the Viewer, and the world remembers who did.
+public struct FactKind: Codable, Equatable, Sendable {
+    public var predicate: String
+    public var meaning: String
+    public var updatedAt: Date
+    public var updatedBy: String
+
+    public init(predicate: String, meaning: String, updatedAt: Date, updatedBy: String) {
+        self.predicate = predicate
+        self.meaning = meaning
+        self.updatedAt = updatedAt
+        self.updatedBy = updatedBy
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case predicate
+        case meaning
+        case updatedAt = "updated_at"
+        case updatedBy = "updated_by"
+    }
+}
+
+public struct FactKindUpdate: Codable, Equatable, Sendable {
+    public var meaning: String
+    public var updatedBy: String
+
+    public init(meaning: String, updatedBy: String) {
+        self.meaning = meaning
+        self.updatedBy = updatedBy
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case meaning
+        case updatedBy = "updated_by"
+    }
+}
+
+public struct FactKindPage: Codable, Equatable, Sendable {
+    public var kinds: [FactKind]
+
+    public init(kinds: [FactKind]) { self.kinds = kinds }
+}
+
 public struct WorldFactPage: Codable, Equatable, Sendable {
     public var facts: [Fact]
     public var nextFactID: FactID?

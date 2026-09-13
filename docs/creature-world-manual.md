@@ -197,6 +197,14 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**What facts mean** (`0.16.0`). The world keeps a glossary, `fact_kinds` (migration v9): one
+document per predicate with its `meaning`, seeded at every start from `WorldFacts.meanings` for
+any predicate the store lacks and never overwriting one already there. Every percept and floor
+offer carries `fact_meanings` for the predicates in its `world_facts`; the mind renders facts
+generically and reads the glossary, so a new kind of fact needs a sentence of meaning, not a
+phrasing. `GET /v1/fact-kinds` lists them; `PUT /v1/fact-kinds/{predicate}` with
+`{"meaning": "…", "updated_by": "wizard:april"}` rewords one (the Viewer's Meanings mode).
+
 **The story behind the facts** (`0.15.0`). Every percept and floor offer carries
 `recent_happenings` beside `world_facts`: the storyworthy events (`door.*`, `camera.*`,
 `motion.*`, `person.*`, `house.*`, `facts.given`; never heartbeats, timers, or measurements) of

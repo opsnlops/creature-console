@@ -20,6 +20,14 @@ protocol WorldScrying: Sendable {
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames
     func conversationUpdates(in conversationID: ConversationID) throws
         -> WorldConversationUpdateStream
+    func factKinds() async throws -> FactKindPage
+}
+
+/// The Viewer's one kind of write, kept apart from the reads on purpose: a Wizard casting a
+/// meaning into the world's glossary.
+protocol WorldCasting: Sendable {
+    func setFactKind(_ predicate: String, meaning: String, by wizard: String) async throws
+        -> FactKind
 }
 
 /// The real thing: the typed viewer client for reads and the world stream, and the conversation
@@ -71,5 +79,15 @@ struct LiveWorldScryer: WorldScrying {
         -> WorldConversationUpdateStream
     {
         try conversation.updates(in: conversationID)
+    }
+
+    func factKinds() async throws -> FactKindPage { try await viewer.factKinds() }
+}
+
+extension LiveWorldScryer: WorldCasting {
+    func setFactKind(_ predicate: String, meaning: String, by wizard: String) async throws
+        -> FactKind
+    {
+        try await viewer.setFactKind(predicate, FactKindUpdate(meaning: meaning, updatedBy: wizard))
     }
 }

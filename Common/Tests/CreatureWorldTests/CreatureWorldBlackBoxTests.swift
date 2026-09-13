@@ -296,10 +296,45 @@ struct CreatureWorldBlackBoxTests {
         }
         #expect(scenesForDriveway.count == 1)
 
+        // The house-opened scene's offer carried the story and the glossary.
+        let houseOffer = try #require(
+            try await api.events(
+                after: sightingSequence - 1, from: SourceID(validating: "world:scenes")
+            ).first {
+                $0.type == SceneTurnOffer.eventType
+                    && $0.payload["scene_id"] == .string(houseScene.sceneID.rawValue)
+            })
+        guard case .array(let story)? = houseOffer.payload["recent_happenings"],
+            case .object(let meanings)? = houseOffer.payload["fact_meanings"]
+        else { throw BlackBoxError.unexpectedReply(url: "offer", status: 0, body: "no story") }
+        // The sighting itself is the newest line of the story the lead was told.
+        #expect(
+            story.contains {
+                if case .object(let happening) = $0 {
+                    return happening["type"] == .string(HouseEvents.personSeen.rawValue)
+                }
+                return false
+            })
+        #expect(!meanings.isEmpty)
+
+        // The glossary is the world's, seeded from its catalogue; a Wizard may reword a line.
+        let kinds = try await api.factKinds()
+        #expect(kinds[WorldFacts.doorLock] == WorldFacts.meanings[WorldFacts.doorLock])
+        let reworded = try await api.setFactKind(
+            "seen.vehicle", meaning: "a car or truck the camera noticed; usually a delivery")
+        #expect(reworded.updatedBy == "wizard:black-box")
+        #expect(
+            try await api.factKinds()["seen.vehicle"]
+                == "a car or truck the camera noticed; usually a delivery")
+
         // Kill the process. Everything accepted before the kill must still be there afterwards.
         try await service.stop()
         try await service.start()
         try await api.waitUntilHealthy()
+        // The Wizard's rewording survives the world's re-seeding on start.
+        #expect(
+            try await api.factKinds()["seen.vehicle"]
+                == "a car or truck the camera noticed; usually a delivery")
 
         let conversation = try await api.conversationItems(in: conversationID)
         #expect(conversation.filter { $0.authorKind == .person }.count == 2)
@@ -694,6 +729,28 @@ private struct WorldServiceAPI {
             try await Task.sleep(for: .milliseconds(50))
         }
         throw BlackBoxError.missingScene(eventID.rawValue)
+    }
+
+    func factKinds() async throws -> [String: String] {
+        let response = try await client.execute(
+            HTTPClientRequest(url: "\(base)/fact-kinds"), timeout: .seconds(15))
+        #expect(response.status == .ok)
+        let body = try await response.body.collect(upTo: 1_048_576)
+        let page = try WorldJSON.makeDecoder().decode(FactKindPage.self, from: body)
+        return Dictionary(uniqueKeysWithValues: page.kinds.map { ($0.predicate, $0.meaning) })
+    }
+
+    func setFactKind(_ predicate: String, meaning: String) async throws -> FactKind {
+        var request = HTTPClientRequest(url: "\(base)/fact-kinds/\(predicate)")
+        request.method = .PUT
+        request.headers.add(name: "content-type", value: "application/json")
+        request.body = .bytes(
+            try WorldJSON.makeEncoder().encode(
+                FactKindUpdate(meaning: meaning, updatedBy: "wizard:black-box")))
+        let response = try await client.execute(request, timeout: .seconds(15))
+        #expect(response.status == .ok)
+        let body = try await response.body.collect(upTo: 1_048_576)
+        return try WorldJSON.makeDecoder().decode(FactKind.self, from: body)
     }
 
     func facts(about subjectID: EntityID) async throws -> [Fact] {

@@ -319,6 +319,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
     public var worldFacts: [Fact]
     /// What just happened around them: the story behind the facts, oldest first. Bounded.
     public var recentHappenings: [Happening]
+    /// What the facts' predicates mean, for the ones present.
+    public var factMeanings: [String: String]
 
     public init(
         considerationID: ConsiderationID = .generated(),
@@ -327,7 +329,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         priorConversationItems: [ConversationItem],
         sceneID: SceneID? = nil,
         worldFacts: [Fact] = [],
-        recentHappenings: [Happening] = []
+        recentHappenings: [Happening] = [],
+        factMeanings: [String: String] = [:]
     ) throws {
         guard priorConversationItems.count <= ConversationContractLimits.maximumContextItems else {
             throw WorldContractError.conversationContextTooLarge(
@@ -342,6 +345,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         self.sceneID = sceneID
         self.worldFacts = worldFacts
         self.recentHappenings = recentHappenings
+        self.factMeanings = factMeanings
     }
 
     public init(from decoder: any Decoder) throws {
@@ -361,7 +365,9 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
             sceneID: container.decodeIfPresent(SceneID.self, forKey: .sceneID),
             worldFacts: container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? [],
             recentHappenings: container.decodeIfPresent(
-                [Happening].self, forKey: .recentHappenings) ?? []
+                [Happening].self, forKey: .recentHappenings) ?? [],
+            factMeanings: container.decodeIfPresent(
+                [String: String].self, forKey: .factMeanings) ?? [:]
         )
     }
 
@@ -374,6 +380,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         case sceneID = "scene_id"
         case worldFacts = "world_facts"
         case recentHappenings = "recent_happenings"
+        case factMeanings = "fact_meanings"
     }
 }
 

@@ -212,15 +212,18 @@ else — persona, facts, the clock, streaming to the room — is identical.
   Say so if April asks; otherwise it is not worth mentioning." is the second line of "What
   you know" — April decided a familiar should be able to answer "what model are you using?"
   while the persona still keeps her from volunteering it.
-- **It is told what the world knows** (`2.59.0`). The block begins with the local time in words
-  (`timeZone`) — Beaky answered "high noon" at 11:45 PM before this — and the `world_facts` on
-  an utterance percept or a scene floor offer follow, phrased as plain sentences — "Mango is here in the room with you",
-  "April is home (you assume; nobody has checked)", "5 minutes ago, in this room: Mango said
-  …" — in a "What you know right now, from the world itself" block ahead of the conversation,
-  and the prompt says to trust it over guesses. `FactPhrasing` maps predicates to sentences,
-  so the model never sees `presence.region`; a predicate it has no words for is left out
-  rather than dumped. With no facts the block is absent. The Viewer's Mundane view of the
-  percept shows exactly which facts a bird was told.
+- **It is told what the world knows** (`2.59.0`; reshaped in `2.66.0`). The block begins
+  with the local time in words (`timeZone`) — Beaky answered "high noon" at 11:45 PM before
+  this — and then every `world_fact` on the percept or floor offer in one shape: who or where,
+  the predicate, its value, since when, and how it is known — `The front door · door.lock =
+  unlocked · since 8:03 PM (5 minutes ago) · observed`, `April · presence.state = home · since
+  6:12 PM · assumed (nobody has checked) (90% sure)`. Below that, "What those kinds of fact
+  mean": the world's glossary for the predicates present (`fact_meanings`, from the world's
+  `fact_kinds`), and "What just happened around you": the `recent_happenings`, oldest first,
+  with the clock and the age. There are no phrasing templates: a frontier model reads facts as
+  facts and says them in the bird's own words, and a new kind of fact needs a meaning in the
+  world, never code here. Three lines are still the agent's: the time, the model line, and the
+  quiet cameras. The Viewer's Mundane view of the percept shows exactly what a bird was told.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
   emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the

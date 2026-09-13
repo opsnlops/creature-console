@@ -47,7 +47,7 @@ current in the same commit as the code it describes.**
 | Creature World | `0.7.2` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | facts (presence, pronouns, assumption, `scene.last`), `@`/name addressing, scenes, `region:home` → Mainstage, restart-on-upgrade. `0.7.3` (this branch): given facts, mentions, migration 8 |
 | Communicator Gateway | `0.1.4` fuzzball / `0.1.3` prod | `:8002` | |
 | Minds | `creature-agent 2.61.1` × 3 | fuzzball: `creature-agent@beaky` on **`openai/gpt-6-astra` (low effort)** since 13:40, `@mango` and `@kenny` on `local/mistral-nemo`; each with `personaPath` + `timeZone` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
-| World Viewer | `0.1.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts, Timers, Mundane view |
+| World Viewer | `0.2.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts + Meanings (Wizard Mode's first cast), Timers, Mundane view |
 | Flock Communicator | `0.5.0` | April's Mac/phone | "The Flock", the house conversation, names and colours per author; text size follows the system and steps bigger (Settings; View menu ⌘+/⌘− on the Mac) |
 
 (Flock Communicator was Flock Communicator until `0.5.0`; the phone shows it as "The Flock". Only the
@@ -121,9 +121,12 @@ Never point the model at house actions (world rules) or raw texts (on-device Bri
 
 **Step 2a shipped (World `0.15.0`, agent `2.65.0`):** `recent_happenings` on percepts and offers
 (the last 15 min of house/cast events for the region's places, in the world's words); the agent
-renders "What just happened around you" and is told to conclude for itself. Remaining in step 2:
-generic fact rendering replacing `FactPhrasing`'s switch, and `fact_kinds` meanings in Mongo with a
-Viewer editor.
+renders "What just happened around you" and is told to conclude for itself. **Step 2b shipped (World
+`0.16.0`, agent `2.66.0`, Viewer `0.2.0`):** facts as facts — one generic line per fact, no
+phrasing templates anywhere; `fact_kinds` glossary in Mongo (migration v9, seeded from
+`WorldFacts.meanings`, Wizard-editable via `PUT /v1/fact-kinds/{predicate}` and the Viewer's
+Meanings mode); `fact_meanings` on every percept and offer. Step 2 complete. Next: step 3
+(model-gated house remarks) — needs April's answers to the plan's open questions.
 
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);

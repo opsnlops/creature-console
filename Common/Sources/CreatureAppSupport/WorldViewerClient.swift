@@ -91,6 +91,24 @@ public struct WorldViewerClient: Sendable {
             queryItems: [URLQueryItem(name: "limit", value: String(limit))])
     }
 
+    /// What the world's predicates mean — the glossary its minds read.
+    public func factKinds() async throws -> FactKindPage {
+        try await get(FactKindPage.self, pathComponents: ["fact-kinds"])
+    }
+
+    /// Rewords one meaning. The Viewer's one write: a Wizard teaching the world a word.
+    public func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws
+        -> FactKind
+    {
+        var request = try request(pathComponents: ["fact-kinds", predicate])
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try WorldJSON.makeEncoder().encode(update)
+        let (data, response) = try await loader.data(for: request)
+        try Self.validate(response)
+        return try WorldJSON.makeDecoder().decode(FactKind.self, from: data)
+    }
+
     /// Every character's most recent session: who is logged in, where, from which host.
     public func characters() async throws -> CharacterSessionPage {
         try await get(CharacterSessionPage.self, pathComponents: ["characters"])

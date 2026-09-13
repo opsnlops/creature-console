@@ -412,6 +412,31 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // What the world's predicates mean: the glossary its minds read. A Wizard may reword.
+        router.get("v1/fact-kinds") { _, _ in
+            await respond {
+                try await execute { try jsonResponse(await service.factKinds()) }
+            }
+        }
+
+        router.put("v1/fact-kinds/:predicate") { request, context in
+            await respond {
+                try requireJSON(request)
+                guard let raw = context.parameters.get("predicate"),
+                    let predicate = raw.removingPercentEncoding, !predicate.isEmpty,
+                    predicate.count <= 120
+                else { throw WorldAPIError.invalidQuery(name: "predicate") }
+                let update = try await decode(
+                    FactKindUpdate.self, from: request, maximumBytes: limits.maximumBodyBytes)
+                guard !update.meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    update.meaning.count <= 500
+                else { throw WorldAPIError.invalidQuery(name: "meaning") }
+                return try await execute {
+                    try jsonResponse(await service.setFactKind(predicate, update))
+                }
+            }
+        }
+
         router.get("v1/timers") { request, _ in
             await respond {
                 let status = try request.uri.queryParameters["status"].map {

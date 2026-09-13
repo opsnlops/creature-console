@@ -41,6 +41,8 @@ final class WorldStore {
     private(set) var latestSequence: Int64?
     private(set) var facts: [Fact] = []
     private(set) var factsTruncated = false
+    /// The world's glossary: what each predicate means to its minds.
+    private(set) var factKinds: [FactKind] = []
     private(set) var timers: [WorldTimer] = []
     private(set) var characters: [CharacterSession] = []
     private(set) var scenes: [WorldCore.Scene] = []
@@ -146,13 +148,41 @@ final class WorldStore {
             let limit = WorldViewerClient.maximumPageSize
             async let factPage = scryer.facts(limit: limit)
             async let timerPage = scryer.timers(limit: limit)
-            let (loadedFacts, loadedTimers) = try await (factPage, timerPage)
+            async let kindPage = scryer.factKinds()
+            let (loadedFacts, loadedTimers, loadedKinds) = try await (factPage, timerPage, kindPage)
             guard !Task.isCancelled else { return }
             facts = loadedFacts.facts
             factsTruncated = loadedFacts.hasMore
             timers = loadedTimers.timers
+            factKinds = loadedKinds.kinds
         } catch {
             lastError = ErrorAlert(title: "Facts And Timers Are Out Of Reach", error: error)
+        }
+    }
+
+    /// Predicates the world currently believes something under but has no meaning for yet:
+    /// new words for the Wizard to define.
+    var undefinedPredicates: [String] {
+        let known = Set(factKinds.map(\.predicate))
+        return Array(Set(facts.map(\.predicate)).subtracting(known)).sorted()
+    }
+
+    /// Wizard Mode's one cast: reword what a kind of fact means. The world remembers who did.
+    func reword(_ predicate: String, meaning: String) async {
+        do {
+            guard let caster = try makeScryer() as? any WorldCasting else {
+                throw WorldConversationClientError.unexpectedResponse
+            }
+            let kind = try await caster.setFactKind(predicate, meaning: meaning, by: "wizard:april")
+            guard !Task.isCancelled else { return }
+            if let index = factKinds.firstIndex(where: { $0.predicate == predicate }) {
+                factKinds[index] = kind
+            } else {
+                factKinds.append(kind)
+                factKinds.sort { $0.predicate < $1.predicate }
+            }
+        } catch {
+            lastError = ErrorAlert(title: "The World Did Not Take The Meaning", error: error)
         }
     }
 

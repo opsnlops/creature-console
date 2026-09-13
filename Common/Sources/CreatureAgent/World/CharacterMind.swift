@@ -641,7 +641,8 @@ struct CharacterMind: Sendable {
                     present: present, pronouns: FactPhrasing.pronouns(in: offer.worldFacts))
                     + "\n\n" + contract
                     + knowledgeBlock(
-                        offer.worldFacts, happenings: offer.recentHappenings, now: now)
+                        offer.worldFacts, happenings: offer.recentHappenings,
+                        meanings: offer.factMeanings, now: now)
             )
         ]
         var script = ""
@@ -668,17 +669,28 @@ struct CharacterMind: Sendable {
     /// "What you know": the local time in words, then the world's facts in plain words. The
     /// time is always there — a model cannot work out time zones, so it is told — and the
     /// facts follow when the world has any.
-    func knowledgeBlock(_ facts: [Fact], happenings: [Happening] = [], now: Date) -> String {
+    func knowledgeBlock(
+        _ facts: [Fact], happenings: [Happening] = [], meanings: [String: String] = [:],
+        now: Date
+    ) -> String {
         var lines = [FactPhrasing.timeSentence(now, in: configuration.timeZone)]
         if let model = configuration.modelLabel {
             lines.append(
                 "Your mind runs on the \(model) model. Say so if April asks; otherwise it is not worth mentioning."
             )
         }
-        lines += FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
+        lines += FactPhrasing.lines(
+            for: facts, character: configuration.characterID, now: now,
+            in: configuration.timeZone)
         var block =
-            "\n\nWhat you know right now, from the world itself (trust this over guesses):\n"
+            "\n\nWhat you know right now, from the world itself (trust this over guesses; each line is who or where, what is known, since when, and how it is known):\n"
             + lines.map { "- " + $0 }.joined(separator: "\n")
+        if !meanings.isEmpty {
+            block +=
+                "\n\nWhat those kinds of fact mean:\n"
+                + meanings.keys.sorted().map { "- \($0): \(meanings[$0]!)" }
+                .joined(separator: "\n")
+        }
         // The story behind the facts: what the house saw, in order, so the mind can work out
         // what is going on rather than be told.
         let story = FactPhrasing.happeningLines(
@@ -784,7 +796,8 @@ struct CharacterMind: Sendable {
                     present: present, pronouns: FactPhrasing.pronouns(in: percept.worldFacts))
                     + "\n\n" + Self.contract(for: route)
                     + knowledgeBlock(
-                        percept.worldFacts, happenings: percept.recentHappenings, now: now)
+                        percept.worldFacts, happenings: percept.recentHappenings,
+                        meanings: percept.factMeanings, now: now)
             )
         ]
         let prior = percept.priorConversationItems

@@ -3,7 +3,7 @@ import Logging
 import MongoKitten
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 8
+    static let currentVersion = 9
 
     let database: MongoDatabase
     let logger: Logger
@@ -36,6 +36,7 @@ struct MongoWorldMigrator: Sendable {
         try await recordMigration(version: 6, name: "character_session")
         try await recordMigration(version: 7, name: "scene")
         try await recordMigration(version: 8, name: "fact_predicate_subjects")
+        try await recordMigration(version: 9, name: "fact_kinds")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]

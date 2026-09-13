@@ -286,6 +286,8 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
     public var worldFacts: [Fact]
     /// What just happened around the scene: the story behind the facts, oldest first.
     public var recentHappenings: [Happening]
+    /// What the facts' predicates mean, for the ones present.
+    public var factMeanings: [String: String]
 
     public init(
         sceneID: SceneID,
@@ -296,7 +298,8 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         participants: [EntityID],
         turns: [SceneTurn],
         worldFacts: [Fact] = [],
-        recentHappenings: [Happening] = []
+        recentHappenings: [Happening] = [],
+        factMeanings: [String: String] = [:]
     ) {
         self.sceneID = sceneID
         self.characterID = characterID
@@ -307,6 +310,7 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         self.turns = turns
         self.worldFacts = worldFacts
         self.recentHappenings = recentHappenings
+        self.factMeanings = factMeanings
     }
 
     public init(from decoder: any Decoder) throws {
@@ -321,7 +325,9 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
             turns: try container.decode([SceneTurn].self, forKey: .turns),
             worldFacts: try container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? [],
             recentHappenings: try container.decodeIfPresent(
-                [Happening].self, forKey: .recentHappenings) ?? []
+                [Happening].self, forKey: .recentHappenings) ?? [],
+            factMeanings: try container.decodeIfPresent(
+                [String: String].self, forKey: .factMeanings) ?? [:]
         )
     }
 
@@ -335,6 +341,7 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         case turns
         case worldFacts = "world_facts"
         case recentHappenings = "recent_happenings"
+        case factMeanings = "fact_meanings"
     }
 }
 

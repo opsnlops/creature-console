@@ -86,6 +86,13 @@ Facts holds who is logged into which region, April's assumed presence, and the r
 scene; a superseded fact leaves the list the moment its replacement arrives. When the world
 knows nothing, Facts is empty and says so — the Viewer never invents a fact to fill the space.
 
+**Meanings** (`0.2.0`) is the panel's other mode, and Wizard Mode's first cast: the world's
+glossary of what each kind of fact means to the minds (`fact_kinds`, seeded by the world from
+its own catalogue). Edit a line in place and it is cast on return or when focus leaves; the world
+records who reworded it and never overwrites a Wizard's words with its catalogue again. New words
+— predicates the world currently believes something under but has no meaning for — sit at the top
+waiting to be taught; until they are, the minds see them with no meaning attached.
+
 ### Mundane view
 
 Select anything in any panel and the inspector shows it as the JSON the World actually carries
