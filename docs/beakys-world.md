@@ -134,6 +134,25 @@ house scenes up to three turns with the others joining (World `0.16.2`); nightly
 human-grained ("Jesse was here on Monday", never a timestamp). Next: step 3 (model-gated house
 remarks), then step 4 (nightly memory), then cutover.
 
+**Cutover — Sunday 2026-09-13 after church (April: "we can retire the old creature-agent";
+"fuzzball is the dev system. I'll port everything to the prod server").** Before: World `0.17.0`
+with `scenes.quiet_hours` (23:00–07:00, no exceptions; events still recorded). On the prod server:
+(1) MongoDB: creature-server's own cluster on that box (April: "we're just another collection in
+that same cluster") — the World's database must be named `creature_world` (a sibling database, its
+own collections, created by the migrator on first start), and the URI's `replicaSet=` must be the
+prod cluster's real replica-set name (`rs.status().set`), not the dev compose's `creature-world`; (2) install `creature-world`, `creature-house`,
+`creature-communicator-gateway`, `creature-agent`; (3) copy config from fuzzball —
+`/etc/creature/world.json` (`creature_server` → creature-server on that box, `house_conversation`,
+`regions.places`, `open_on`, `voices`, `facts`), `house.json` + `/etc/default/creature-house`
+(HA token), `agent/{beaky,mango,kenny}.yaml` with **production `creatureId`s** +
+`/etc/default/creature-agent-*` (OpenAI keys), the persona files at `personaPath`,
+`/etc/default/creature-world` (`MONGODB_URI`), gateway config; (4) `systemctl enable --now` all of
+it; (5) repoint World Viewer and Flock Communicator (and the ingress proxy) at prod; (6) say
+something, confirm the real Beaky speaks; (7) `systemctl disable --now creature-agent` (MQTT),
+keep unit + config a week; (8) driveway walk; (9) stop the dev stack on fuzzball or keep it on the
+dev creature server — never two worlds on one creature server. `mode: mqtt` stays in the code as a
+fallback, marked legacy in the agent manual.
+
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);
 re-measure `creature.server.perform` after the Flash switch; the squirrel rule (prefer

@@ -15,6 +15,13 @@ separates known / believed / remembered), [`facts-and-personas-plan.md`](facts-a
 
 ## The moment
 
+The one it all started from — April: "The whole reason I went down this path is because I wanted
+Beaky to be able to say 'April, the robot parts are here!' because she can see that robot parts are
+out for delivery from my email." A shipping mail on the Bridge's Mac becomes `house:aprils-nest ·
+delivery.expected = "robot parts (UPS), today"`; the driveway camera sees a truck at 2:10; Sol puts
+the two together; Beaky says it before April looks up from the workbench. Nobody scripts it. That
+sentence is the acceptance test for this plan and the Bridge plan after it.
+
 Tuesday, 3:40 PM. A truck turns into the driveway. The house saw it; the world knows April cast
 "Jesse is expected this afternoon, to finish the deck" at lunch, that Jesse was here last Thursday
 and looked at the deck, that April is home and in the kitchen, and that the front door is locked.
@@ -27,6 +34,11 @@ she considered it and chose quiet. Friday morning: "The deer was back in the orc
 by the way." Nobody scripted the callback either.
 
 ## Principles
+
+**"The virtual world can guess, but the real world knows."** — April, 2026-09-12. Facts come from
+the actual world: the house observes, the Bridge reports, April tells her. Beaky reasons over all of
+it and speaks; her guesses stay guesses in her mouth, and reach the world only through the nightly
+job, labelled as hers, for April to confirm.
 
 1. **Judgement, not prose.** The model decides what deserves a word and what is going on. It does
    not decide how a `door.lock` fact is phrased — the world does, generically — and it does not
@@ -211,6 +223,30 @@ and casts for each character, and receives:
 
 Salience decides what a mind is given: the top `memory.episodes_in_prompt` (10) by salience and
 recency, always including anyone named in the words.
+
+### Corrections
+
+April: "If Beaky's wrong I should be able to say 'No Beaky, that was just the postman' or 'no
+Beaky that was just me coming home from the gym'." In the moment her next line adjusts on its own —
+the correction is in the conversation every prompt carries. Durably, the mind answers *and*
+proposes a fact: a structured tail on the reply (`[learned: place:front-door sighting.identified
+"the postman"]`), stripped before speaking and cast as `facts.given` with April as the source and
+provenance to both the sighting and her words. The model may learn; it still may not act on the
+house. The Viewer shows corrections in their own colour on the timeline and the entity page, and
+the nightly job turns repeated corrections into standing facts — "the postman comes mid-afternoon
+on weekdays", "April goes to the gym Tuesday and Thursday mornings" — as `inferred` casts she keeps
+or discards. Next Tuesday at 10:40 a person in the driveway is "welcome back from the gym".
+
+### Facts on the fly
+
+The same tail lets her learn anything April tells her: "Jesse's coming Tuesday to finish the
+deck" → `person:jesse · visitor.expected`, "the postman's name is Dave" → `person:dave ·
+person.description`. Source April, epistemic `reported`, provenance her words, default expiries by
+predicate. The line: **she mints facts from what April says, never from what she concludes** — a
+guess stays a guess in her mouth; her inferences reach the world only through the nightly job as
+`inferred`, for April to keep or discard. Guardrails: subjects she can name from what is in front
+of her (no invented entities), a cap per turn, "Beaky learned: …" on the Viewer's timeline with an
+undo (supersede), and an undefined predicate lands in the New-words list until it is taught.
 
 ### Models
 
