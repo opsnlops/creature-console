@@ -95,6 +95,11 @@ struct SceneOpeningTests {
             await policy.shouldOpen(for: try event(HouseEvents.personSeen, driveway), at: morning)
                 == driveway)
 
+        // Quiet hours are the house's, not April's: they live only in the opening policy, so a
+        // scene April starts by speaking is never gated by them. (The conversation path has no
+        // quiet-hours check at all; this pins the design.)
+        #expect(SceneLimits(quietHours: quiet).quietHours?.contains(lateNight) == true)
+
         let json = """
             {"quiet_hours": {"from": "23:00", "to": "07:00"}}
             """

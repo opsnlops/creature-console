@@ -202,7 +202,11 @@ no scene. The rest is the ordinary scene machinery, including the facts on each 
 "time_zone": "America/Los_Angeles"}` — is when the house does not wake them, with no exceptions:
 "Beaky isn't a security system, she's my familiar. I have other alerts that go off at 3am." Events
 in the window are recorded and are the morning's story; cooldowns are untouched, so the first thing
-after seven may speak. Without the key the house may speak at any hour.
+after seven may speak. Without the key the house may speak at any hour. Quiet hours silence the
+house's *initiative*, never a bird's *reply*: April's words at 3 AM — `@beaky`, "Beaky, …", or
+the room — are routed exactly as at 3 PM and answered aloud if she is home. April: "If I
+at-mention a bird they should be allowed to respond out loud during quiet hours because I
+specifically asked them to."
 
 **Every rule may speak** (`0.16.1`). Each `open_on` rule has its own cooldown, so a walk to the
 carport — the front door, then its camera, then the driveway's, then the carport's — opens four
