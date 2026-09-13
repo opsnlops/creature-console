@@ -142,7 +142,9 @@ retired), Viewer.
 
 `creature-house` mappings gain the rest of the cameras (kitchen, orchard, the animal detectors),
 the room motion sensors, and the weather turns. All become world events and facts. None become
-`open_on` rules.
+`open_on` rules. **Animals are never an occasion** — not a scene, not a consideration: April lives
+in the country ("OMG not animals … there are so many animals"). `camera.animal_seen` stays a fact
+and a happening she can mention if asked or in the morning; only people and vehicles wake her.
 
 ### The world offers, the mind judges
 
@@ -151,13 +153,19 @@ that *offer* the lead a remark rather than opening a scene:
 
 ```json
 "consider_on": [
-  { "event": "camera.*",  "cooldown_seconds": 120 },
+  { "event": "camera.person_seen",  "cooldown_seconds": 120 },
+  { "event": "camera.vehicle_seen", "cooldown_seconds": 120 },
   { "event": "door.*",    "cooldown_seconds": 60 },
   { "event": "motion.detected", "places": ["place:back-porch"], "cooldown_seconds": 300 },
   { "event": "person.arrived" }, { "event": "person.left" }
 ],
-"quiet_hours": { "from": "23:00", "to": "07:00", "except": ["camera.person_seen", "door.unlocked"] }
+"quiet_hours": { "from": "23:00", "to": "07:00" }
 ```
+
+Quiet hours have no exceptions: "Beaky isn't a security system, she's my familiar. I have other
+alerts that go off at 3am." Nothing the house sees at night wakes her; it all goes into the record,
+and in the morning it is part of the story and — after step 4 — her memory ("someone was in the
+driveway around three, by the way").
 
 The world sends the lead a `HouseRemarkConsideration` (the facts, the happenings, the event) with
 a short deadline. The mind answers *speak* (with the line, streamed) or *quiet* (with a one-line
@@ -236,9 +244,13 @@ mode legacy. Measure the same driveway walk against the MQTT timing (MQTT: ~2 s;
 
 ## Open questions for April
 
-1. Quiet hours: 23:00–07:00 with doors and people excepted — right for the house?
+1. ~~Quiet hours: 23:00–07:00 with doors and people excepted — right for the house?~~ Answered
+   2026-09-12: 23:00–07:00, **no exceptions** — she is a familiar, not a security system; other
+   alerts cover the night. She learns of it in the morning.
 2. Should the other birds ever join a house remark, or is a house remark Beaky alone unless April
    answers? (Today: they may add one reaction.)
 3. Memory model: start with Sol for consolidation and compare a week of reflections against GPT-6,
    or go straight to GPT-6?
-4. Which cameras stay out of her sight entirely, if any?
+4. ~~Which cameras stay out of her sight entirely, if any?~~ Answered 2026-09-12: none out of
+   her *sight*, but animals never wake her; people and vehicles do. And the four scenes a walk
+   opens are wanted ("sooner rather than later"), so there is no house-wide gap by default.

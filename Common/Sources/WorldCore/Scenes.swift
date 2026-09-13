@@ -459,8 +459,9 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public var floorSeconds: TimeInterval
     public var maximumTurns: Int
     /// Turns in a scene the house opened. A visitor at the carport should get Beaky's
-    /// remark and perhaps one reaction, not a twelve-turn debate: "I don't need Jesse
-    /// coming over to turn into a debate about Arch vs Debian."
+    /// remark and a reaction or two, not a twelve-turn debate: "I don't need Jesse coming
+    /// over to turn into a debate about Arch vs Debian." April: "She can have others join
+    /// her, but no more than three turns."
     public var houseMaximumTurns: Int
     public var maximumSpokenSeconds: TimeInterval
     /// How fast the room speaks, for estimating how long a line will play: characters a
@@ -493,7 +494,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public init(
         floorSeconds: TimeInterval = 8,
         maximumTurns: Int = 12,
-        houseMaximumTurns: Int = 2,
+        houseMaximumTurns: Int = 3,
         maximumSpokenSeconds: TimeInterval = 90,
         charactersPerSecond: Double = 20,
         sentenceSeconds: TimeInterval = 0.35,

@@ -85,7 +85,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
-| House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds` | — | — | `2`, `0` |
+| House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds` | — | — | `3`, `0` |
 | Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
 
 Example:
@@ -222,9 +222,10 @@ the region, everyone present, and the region's `places` — oldest first, thirty
 with the world's own sentence where it has one. The mind reads the story in order and draws its
 own conclusions; the Viewer's timeline shows "saw N" beside "knows N".
 
-**Scenes the house opens are short** (`0.14.0`): `scenes.house_maximum_turns` (default 2) caps a
-scene whose trigger is a world event — Beaky's remark and perhaps one reaction, not a twelve-turn
-debate about a visitor. If the lead's mind is silent or fails, the room still hears the event: the
+**Scenes the house opens are short** (`0.14.0`): `scenes.house_maximum_turns` (default 3 since
+`0.16.2`; April: "she can have others join her, but no more than three turns") caps a scene whose
+trigger is a world event — Beaky's remark and a reaction or two, not a twelve-turn debate about a
+visitor. If the lead's mind is silent or fails, the room still hears the event: the
 world takes the trigger sentence as her line and marks the turn `fallback: true` (the MQTT agent's
 `fallbackSpeech`, moved to where the floor is).
 

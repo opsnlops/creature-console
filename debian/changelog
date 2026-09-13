@@ -1,3 +1,11 @@
+creature-cli (2.66.0+world0.16.2+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.16.2: scenes the house opens allow three turns
+    (`house_maximum_turns` 3). April: "She can have others join her, but
+    no more than three turns."
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 23:10:00 -0700
+
 creature-cli (2.66.0+world0.16.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.16.1: the first 0.16.0 walk was everything hoped
