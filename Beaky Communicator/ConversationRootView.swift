@@ -119,15 +119,15 @@ private struct ConversationView: View {
     private var welcomeHeader: some View {
         VStack(spacing: 8) {
             Image(systemName: "bird.fill")
-                .font(.largeTitle.weight(.semibold))
+                .communicatorFont(.largeTitle, weight: .semibold)
                 .imageScale(.large)
                 .foregroundStyle(.purple)
             Text("The house conversation")
-                .font(.title2.bold())
+                .communicatorFont(.title2, weight: .bold)
             Text(
                 "Beaky and whoever else is home. Name a bird to talk to just them — \"Beaky, …\" — or talk to the room and they all may answer, Beaky first."
             )
-            .font(.callout)
+            .communicatorFont(.callout)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
         }
@@ -141,7 +141,7 @@ private struct ConversationConnectionStatus: View {
 
     var body: some View {
         Label(message, systemImage: symbolName)
-            .font(.caption.weight(.semibold))
+            .communicatorFont(.caption, weight: .semibold)
             .foregroundStyle(.orange)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -195,9 +195,11 @@ enum ResidentStyle {
 private struct ConversationBubble: View {
     let item: ConversationItem
     let replyAction: () -> Void
-    /// The bird's badge and the far-side margin grow with the words.
+    /// The bird's badge and the far-side margin grow with the words: Dynamic Type on iOS,
+    /// the Communicator's scale on the Mac.
     @ScaledMetric(relativeTo: .body) private var badgeSize = 28.0
     @ScaledMetric(relativeTo: .body) private var farMargin = 48.0
+    @Environment(\.communicatorTextScale) private var scale
 
     private var isApril: Bool { item.authorKind == .person }
     private var name: String { ResidentStyle.name(of: item.authorID) }
@@ -205,20 +207,20 @@ private struct ConversationBubble: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            if isApril { Spacer(minLength: farMargin) }
+            if isApril { Spacer(minLength: farMargin * scale) }
             if !isApril {
                 Image(systemName: "bird.fill")
-                    .font(.body)
+                    .communicatorFont(.body)
                     .foregroundStyle(tint)
-                    .frame(width: badgeSize, height: badgeSize)
+                    .frame(width: badgeSize * scale, height: badgeSize * scale)
             }
 
             VStack(alignment: isApril ? .trailing : .leading, spacing: 5) {
                 Text(name)
-                    .font(.caption.bold())
+                    .communicatorFont(.caption, weight: .bold)
                     .foregroundStyle(isApril ? AnyShapeStyle(.secondary) : AnyShapeStyle(tint))
                 Text(item.text)
-                    .font(.body)
+                    .communicatorFont(.body)
                     .textSelection(.enabled)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
@@ -227,7 +229,7 @@ private struct ConversationBubble: View {
                         tint: isApril ? .purple : nil
                     )
                 Text(item.createdAt, style: .time)
-                    .font(.caption2)
+                    .communicatorFont(.caption2)
                     .foregroundStyle(.tertiary)
             }
             .contextMenu {
@@ -236,7 +238,7 @@ private struct ConversationBubble: View {
                 }
             }
 
-            if !isApril { Spacer(minLength: farMargin) }
+            if !isApril { Spacer(minLength: farMargin * scale) }
         }
     }
 }
@@ -251,9 +253,9 @@ private struct ConversationComposer: View {
                 HStack(spacing: 8) {
                     Image(systemName: "arrowshape.turn.up.left.fill")
                     Text("Replying to \(ResidentStyle.name(of: reply.authorID))")
-                        .font(.caption.bold())
+                        .communicatorFont(.caption, weight: .bold)
                     Text(reply.text)
-                        .font(.caption)
+                        .communicatorFont(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Spacer()
@@ -267,6 +269,7 @@ private struct ConversationComposer: View {
 
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("Say something…", text: $store.draft, axis: .vertical)
+                    .communicatorFont(.body)
                     .focused($isFocused)
                     .lineLimit(1...5)
                     .textFieldStyle(.plain)
@@ -282,7 +285,7 @@ private struct ConversationComposer: View {
                         ProgressView()
                     } else {
                         Image(systemName: "arrow.up")
-                            .font(.headline)
+                            .communicatorFont(.headline)
                     }
                 }
                 .buttonStyle(.glassProminent)

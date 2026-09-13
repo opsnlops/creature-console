@@ -10,7 +10,6 @@ struct CommunicatorSettingsView: View {
     @AppStorage("worldServerUseProxy") private var useProxy = false
     @AppStorage("worldServerProxyHost") private var proxyHost = "proxy.prod.chirpchirp.dev"
     @AppStorage(CommunicatorTextSize.storageKey) private var textSizeSteps = 0
-    @Environment(\.dynamicTypeSize) private var systemTextSize
 
     @State private var proxyAPIKey = ""
     @State private var hasLoadedAPIKey = false
@@ -93,9 +92,8 @@ struct CommunicatorSettingsView: View {
                         "Text Size", value: CommunicatorTextSize.label(for: textSizeSteps))
                 }
                 Text("Beaky, the front door was just unlocked.")
-                    .font(.body)
-                    .dynamicTypeSize(
-                        CommunicatorTextSize.size(from: systemTextSize, steps: textSizeSteps))
+                    .communicatorFont(.body)
+                    .communicatorTextSize()
                 Text(
                     "Starts from the system text size (Accessibility settings) and steps from there."
                 )

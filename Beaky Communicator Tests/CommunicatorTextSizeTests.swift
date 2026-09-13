@@ -16,6 +16,23 @@ struct CommunicatorTextSizeTests {
         #expect(CommunicatorTextSize.size(from: .xSmall, steps: -2) == .xSmall)
     }
 
+    #if os(macOS)
+        @Test("On the Mac the words really get bigger: text styles there ignore Dynamic Type")
+        @MainActor func macScalesRenderedText() {
+            func width(scale: Double) -> Int {
+                let renderer = ImageRenderer(
+                    content: Text("Beaky, the front door was just unlocked.")
+                        .communicatorFont(.body)
+                        .environment(\.communicatorTextScale, scale))
+                return renderer.cgImage?.width ?? -1
+            }
+            let system = width(scale: CommunicatorTextSize.scale(steps: 0))
+            let bigger = width(scale: CommunicatorTextSize.scale(steps: 4))
+            #expect(system > 0)
+            #expect(Double(bigger) > Double(system) * 1.4)
+        }
+    #endif
+
     @Test("The stepper stays within its range and says what it did")
     func clampingAndLabels() {
         #expect(CommunicatorTextSize.clamped(9) == 4)
