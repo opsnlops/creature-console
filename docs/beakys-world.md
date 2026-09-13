@@ -97,7 +97,7 @@ frames: actual ≈ 0.35 s/sentence + 20 chars/s; estimate at 2.5 words/s ran 25%
 `sentence_seconds`), lead default 2 s; answered floors cancel their deadline timer (no more
 phantom `floor_expired`). Kenny moved to Luna at 18:46 (1.3 s a line). `0.12.0` live: hand-offs 20 ms on the
 server clock (no silence) — but the queue crept to 15 s by turn 12 because Kenny's voice runs
-~11 chars/s, not 20. `0.13.0`: `scenes.voices` per-character pace (Kenny 11 / 0.4 in the packaged
+~11 chars/s, not 20. `0.13.0`: `scenes.voices` per-character pace (Kenny 13 / 0.4 in the packaged
 world.json). Real fix remains the server reporting audio length + start (creature-server#199).
 
 **Next:** "both places" (publish spoken words when final, record the performance after —

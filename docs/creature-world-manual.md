@@ -224,13 +224,15 @@ gives a character its own pace (`0.13.0`):
 
 ```json
 "voices": {
-  "character:kenny": { "characters_per_second": 11, "sentence_seconds": 0.4 }
+  "character:kenny": { "characters_per_second": 13, "sentence_seconds": 0.4 }
 }
 ```
 
 To measure a voice, take Creature Server's `StreamingAdHocSession.sentence` spans in
 Honeycomb: `animation.frames` × 20 ms is the audio length, `sentence.length` the characters;
-fit seconds = `sentence_seconds` + characters ÷ `characters_per_second`. Creature
+fit seconds = `sentence_seconds` + characters ÷ `characters_per_second`. Err on the fast side:
+April would rather the birds run a touch ahead than leave air between lines, and the 2 s lead
+keeps about a second queued either way. Creature
 Server reporting real play times (creature-server#192) will replace the estimate.
 
 **A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model
