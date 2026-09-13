@@ -419,6 +419,26 @@ struct SceneServiceTests {
         #expect(current.closeReason == nil)
     }
 
+    @Test("A room that cannot be readied says why, on the timeline, the moment the scene opens")
+    func stageProblemIsAnnounced() async throws {
+        let world = makeWorld()
+        await world.performer.setStageProblem(
+            "Creature 4754fc0e is not registered with a universe. Is the controller online?")
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let problem = try #require(
+            await world.announced.events.first { $0.type == SceneService.stageProblemEventType })
+        #expect(problem.payload["scene_id"] == .string(scene.sceneID.rawValue))
+        #expect(
+            problem.payload["message"]
+                == .string(
+                    "Creature 4754fc0e is not registered with a universe. Is the controller online?"
+                ))
+        // The scene itself goes on: the floor was still offered.
+        #expect(scene.floor?.characterID == beaky)
+    }
+
     @Test("Spoken time is estimated from sentences and characters, as the room really speaks")
     func spokenTimeEstimate() {
         // Fitted to Creature Server's frame counts for a real scene: "Kenny loves popcorn
@@ -539,10 +559,17 @@ private actor FakePerformer: ScenePerforming {
     private(set) var spoken: [SceneTurn] = []
     private(set) var performed: [Scene] = []
     private let fails: Bool
+    /// What the room says when it cannot be readied; nil when it can.
+    var stageProblem: String?
 
     init(fails: Bool) { self.fails = fails }
 
-    func sceneOpened(_ scene: Scene) { opened.append(scene.sceneID) }
+    func setStageProblem(_ problem: String?) { stageProblem = problem }
+
+    func sceneOpened(_ scene: Scene) -> String? {
+        opened.append(scene.sceneID)
+        return stageProblem
+    }
 
     private(set) var pieces: [(ResponseID, String)] = []
     func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String) {

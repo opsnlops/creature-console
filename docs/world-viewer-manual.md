@@ -93,6 +93,16 @@ records who reworded it and never overwrites a Wizard's words with its catalogue
 — predicates the world currently believes something under but has no meaning for — sit at the top
 waiting to be taught; until they are, the minds see them with no meaning attached.
 
+### When something fails
+
+A turn the room could not speak shows its delivery chip in red with the reason beneath it, in
+the refusing service's own words — "Creature 4754fc0e… is not registered with a universe. Is
+the controller online?" rather than `physical_speech_start_failed` alone (`0.3.0`; the reason
+is recorded by World `0.19.0` and agent `2.67.0`, so older records show only the code). A scene
+whose room could not be readied — Creature Server refused the dialog stream — is a red
+`scene.stage_problem` on the Timeline the moment it opens, with the reason; a failed performance
+shows it under the scene. Every trace icon is a link into Honeycomb for that trace, end to end.
+
 ### Mundane view
 
 Select anything in any panel and the inspector shows it as the JSON the World actually carries

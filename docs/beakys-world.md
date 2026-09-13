@@ -47,7 +47,7 @@ current in the same commit as the code it describes.**
 | Creature World | `0.7.2` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | facts (presence, pronouns, assumption, `scene.last`), `@`/name addressing, scenes, `region:home` → Mainstage, restart-on-upgrade. `0.7.3` (this branch): given facts, mentions, migration 8 |
 | Communicator Gateway | `0.1.4` fuzzball / `0.1.3` prod | `:8002` | |
 | Minds | `creature-agent 2.61.1` × 3 | fuzzball: `creature-agent@beaky` on **`openai/gpt-6-astra` (low effort)** since 13:40, `@mango` and `@kenny` on `local/mistral-nemo`; each with `personaPath` + `timeZone` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
-| World Viewer | `0.2.1` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts + Meanings (Wizard Mode's first cast), Timers, Mundane view |
+| World Viewer | `0.3.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts + Meanings (Wizard Mode's first cast), Timers, Mundane view |
 | Flock Communicator | `0.5.0` | April's Mac/phone | "The Flock", the house conversation, names and colours per author; text size follows the system and steps bigger (Settings; View menu ⌘+/⌘− on the Mac) |
 
 (Flock Communicator was Flock Communicator until `0.5.0`; the phone shows it as "The Flock". Only the
@@ -134,7 +134,13 @@ house scenes up to three turns with the others joining (World `0.16.2`); nightly
 human-grained ("Jesse was here on Monday", never a timestamp). Next: step 3 (model-gated house
 remarks), then step 4 (nightly memory), then cutover.
 
-**Cutover — Sunday 2026-09-13 after church (April: "we can retire the old creature-agent";
+**Cutover done (2026-09-13 16:50):** the stack runs on the prod server (world through
+`https://server.prod.chirpchirp.dev/world/v1`, creature_server `http://localhost:8000`, Mongo =
+creature-server's cluster), MQTT agent retired, fuzzball stopped. First words went unspoken —
+Beaky's controller was down after a power blip (`409 … not registered with a universe`) — which
+became World `0.19.0` / agent `2.67.0` / Viewer `0.3.0`: failures carry the reason to the Viewer.
+
+**Cutover plan — Sunday 2026-09-13 after church (April: "we can retire the old creature-agent";
 "fuzzball is the dev system. I'll port everything to the prod server").** Before: World `0.17.0`
 with `scenes.quiet_hours` (23:00–07:00, no exceptions; events still recorded) — built Saturday night;
 World `0.18.0` with retention (TTLs on the raw material; memories kept) — Sunday. On the prod server:

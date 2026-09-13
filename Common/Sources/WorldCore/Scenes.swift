@@ -144,17 +144,21 @@ public struct ScenePerformance: Hashable, Sendable, Codable {
     public var state: CharacterDeliveryOutcomeState
     public var providerReference: String?
     public var errorCode: String?
+    /// What went wrong, in Creature Server's words, so the Viewer can say it.
+    public var errorMessage: String?
     public var occurredAt: Date
 
     public init(
         state: CharacterDeliveryOutcomeState,
         providerReference: String? = nil,
         errorCode: String? = nil,
+        errorMessage: String? = nil,
         occurredAt: Date
     ) {
         self.state = state
         self.providerReference = providerReference
         self.errorCode = errorCode
+        self.errorMessage = errorMessage
         self.occurredAt = occurredAt
     }
 
@@ -162,6 +166,7 @@ public struct ScenePerformance: Hashable, Sendable, Codable {
         case state
         case providerReference = "provider_reference"
         case errorCode = "error_code"
+        case errorMessage = "error_message"
         case occurredAt = "occurred_at"
     }
 }

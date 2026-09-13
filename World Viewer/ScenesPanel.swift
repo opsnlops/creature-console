@@ -109,6 +109,12 @@ struct SceneRow: View {
                 )
                 .font(.caption2)
                 .foregroundStyle(performance.state == .failed ? .red : .secondary)
+                if performance.state == .failed, let message = performance.errorMessage {
+                    Label(message, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                }
             }
         }
         .padding(.vertical, 4)

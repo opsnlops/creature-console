@@ -317,11 +317,13 @@ struct CharacterMind: Sendable {
                     state: .performed, providerReference: reference)
             case .failure(let error as PhysicalSpeechStageError):
                 logger.error("Beaky could not speak in the room", metadata: ["error": "\(error)"])
-                outcome = try CharacterPerformanceReport(state: .failed, errorCode: error.code)
+                outcome = try CharacterPerformanceReport(
+                    state: .failed, errorCode: error.code, errorMessage: error.message)
             case .failure(let error):
                 logger.error("Beaky could not speak in the room", metadata: ["error": "\(error)"])
                 outcome = try CharacterPerformanceReport(
-                    state: .failed, errorCode: "physical_speech_unavailable")
+                    state: .failed, errorCode: "physical_speech_unavailable",
+                    errorMessage: String(describing: error))
             }
             let intent = try makeIntent(
                 text: sentences.joined(separator: " "), for: consideration,

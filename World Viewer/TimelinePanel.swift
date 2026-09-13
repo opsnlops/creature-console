@@ -58,12 +58,21 @@ struct TimelineRow: View {
                 HStack(spacing: 8) {
                     Text(event.type.rawValue)
                         .font(.headline)
+                        .foregroundStyle(isProblem ? .red : .primary)
                     EpistemicChip(state: event.epistemic)
                 }
                 Text(subjects)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                if let problem {
+                    // The room could not be readied, or a performance failed: say why, here,
+                    // not in a log on the server.
+                    Label(problem, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                }
                 HStack(spacing: 8) {
                     Text("\(event.source.kind) · \(event.source.id.rawValue)")
                     Text(event.occurredAt, format: .dateTime.hour().minute().second())
@@ -71,10 +80,7 @@ struct TimelineRow: View {
                         Text("lag \(lag, format: .number.precision(.fractionLength(0))) ms")
                             .foregroundStyle(lag > 2_000 ? .orange : .secondary)
                     }
-                    if event.trace != nil {
-                        Image(systemName: "point.3.connected.trianglepath.dotted")
-                            .help("Carries a W3C trace context")
-                    }
+                    TraceLink(trace: event.trace)
                     if let knownFacts {
                         Label("knows \(knownFacts)", systemImage: "lightbulb")
                             .help("Facts the world told the mind with this percept")
@@ -91,6 +97,33 @@ struct TimelineRow: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// A stage problem or a failed performance carries its reason in the payload.
+    private var isProblem: Bool {
+        event.type == SceneService.stageProblemEventType
+            || event.type.rawValue.hasSuffix("performance_failed")
+            || (event.type == SceneService.performedEventType && failedPerformance)
+    }
+
+    private var failedPerformance: Bool {
+        guard case .object(let performance)? = event.payload["performance"] else { return false }
+        return performance["state"] == .string("failed")
+    }
+
+    private var problem: String? {
+        if case .string(let message)? = event.payload["message"],
+            event.type == SceneService.stageProblemEventType
+        {
+            return message
+        }
+        if case .object(let performance)? = event.payload["performance"],
+            performance["state"] == .string("failed")
+        {
+            if case .string(let message)? = performance["error_message"] { return message }
+            if case .string(let code)? = performance["error_code"] { return code }
+        }
+        return nil
     }
 
     private var subjects: String {

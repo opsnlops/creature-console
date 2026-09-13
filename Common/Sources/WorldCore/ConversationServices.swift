@@ -382,15 +382,18 @@ public struct DeliverySinkResult: Hashable, Sendable {
     public var state: CharacterDeliveryOutcomeState
     public var providerReference: String?
     public var errorCode: String?
+    public var errorMessage: String?
 
     public init(
         state: CharacterDeliveryOutcomeState,
         providerReference: String? = nil,
-        errorCode: String? = nil
+        errorCode: String? = nil,
+        errorMessage: String? = nil
     ) {
         self.state = state
         self.providerReference = providerReference
         self.errorCode = errorCode
+        self.errorMessage = errorMessage
     }
 }
 
@@ -655,7 +658,8 @@ public actor CharacterDeliveryRouter {
                 state: performance.outcome.state,
                 occurredAt: await clock.now,
                 providerReference: performance.outcome.providerReference,
-                errorCode: performance.outcome.errorCode
+                errorCode: performance.outcome.errorCode,
+                errorMessage: performance.outcome.errorMessage
             )
             try await repository.record(outcome)
             span.attributes["conversation.delivery.outcome"] = outcome.state.rawValue
@@ -731,7 +735,8 @@ public actor CharacterDeliveryRouter {
                 state: result.state,
                 occurredAt: await clock.now,
                 providerReference: result.providerReference,
-                errorCode: result.errorCode
+                errorCode: result.errorCode,
+                errorMessage: result.errorMessage
             )
             try await repository.record(outcome)
             span.attributes["conversation.delivery.outcome"] = outcome.state.rawValue

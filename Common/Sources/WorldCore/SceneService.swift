@@ -14,8 +14,10 @@ public protocol SceneRepository: Sendable {
 /// character speaks, and when the scene closes; a performer may play turns as they arrive
 /// (Creature Server's `dialog-stream`) or render the whole scene at the end (`dialog`).
 public protocol ScenePerforming: Sendable {
-    /// The scene has opened with these participants. Failure here must not stop the scene.
-    func sceneOpened(_ scene: Scene) async
+    /// The scene has opened with these participants. Failure here must not stop the scene;
+    /// a performer that could not ready the room says why, and the world records it so the
+    /// Viewer shows a scene that will play late (or not at all) the moment it opens.
+    func sceneOpened(_ scene: Scene) async -> String?
     /// One sentence of a line a character is still composing: speak it now, in that
     /// character's voice. Failure here must not stop the scene.
     func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String)
@@ -47,6 +49,9 @@ public actor SceneService {
     public static let closedEventType = WorldEventType(rawValue: "scene.closed")!
     public static let performedEventType = WorldEventType(rawValue: "scene.performed")!
     public static let floorExpiredEventType = WorldEventType(rawValue: "scene.floor_expired")!
+    /// The room could not be readied for a scene (Creature Server refused the stream); the
+    /// turns will be rendered whole at the end, or fail there with the same reason.
+    public static let stageProblemEventType = WorldEventType(rawValue: "scene.stage_problem")!
     /// The room has (nearly) finished the last line: time to offer the next floor.
     public static let floorReadyEventType = WorldEventType(rawValue: "scene.floor_ready")!
     public static let sourceID = try! SourceID(validating: "world:scenes")
@@ -126,7 +131,12 @@ public actor SceneService {
                         "trigger": .string(trigger.text),
                         "participants": .array(ordered.map { .string($0.rawValue) }),
                     ]))
-            await performer.sceneOpened(scene)
+            if let problem = await performer.sceneOpened(scene) {
+                try await announce(
+                    makeEvent(
+                        Self.stageProblemEventType, scene: scene, at: now,
+                        payload: ["message": .string(problem)]))
+            }
             try await offerFloor(&scene, to: ordered[0], at: now)
             return scene
         }

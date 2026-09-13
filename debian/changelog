@@ -1,3 +1,22 @@
+creature-cli (2.67.0+world0.19.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * Failures say why. The first words to the production world went
+    unspoken - "physical_speech_start_failed" - and the reason (Creature
+    Server: "Creature 4754fc0e is not registered with a universe. Is the
+    controller online?" - a power blip took her controller down) lived
+    only in a trace. Now the reason travels with the failure.
+  * creature-agent 2.67.0: performance reports carry `error_message`,
+    Creature Server's own words.
+  * creature-world 0.19.0: delivery outcomes and scene performances carry
+    `error_message`; a room that cannot be readied for a scene (the
+    dialog stream refused) is a `scene.stage_problem` event with the
+    reason, the moment the scene opens.
+  * World Viewer 0.3.0: failed deliveries and performances show the reason
+    in red; stage problems are red on the timeline; every trace icon is a
+    link into Honeycomb.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 17:20:00 -0700
+
 creature-cli (2.66.1+world0.18.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.18.0: retention. April: "The database is growing

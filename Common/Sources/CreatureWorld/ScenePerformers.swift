@@ -71,7 +71,7 @@ struct NotConnectedScenePerformer: ScenePerforming, Sendable {
     static let errorCode = "creature_server_not_configured"
     let clock: any WorldClock
 
-    func sceneOpened(_ scene: Scene) async {}
+    func sceneOpened(_ scene: Scene) async -> String? { nil }
     func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {}
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
@@ -107,7 +107,7 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
         self.logger = logger
     }
 
-    func sceneOpened(_ scene: Scene) async {}
+    func sceneOpened(_ scene: Scene) async -> String? { nil }
     func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {}
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
@@ -146,7 +146,9 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
                             "body": "\(String(decoding: data.prefix(500), as: UTF8.self))",
                         ])
                     return ScenePerformance(
-                        state: .failed, errorCode: Self.requestFailedCode, occurredAt: now)
+                        state: .failed, errorCode: Self.requestFailedCode,
+                        errorMessage: Self.serverMessage(status: response.status.code, body: data),
+                        occurredAt: now)
                 }
                 let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
                 let jobID = json?["job_id"] as? String
@@ -159,9 +161,21 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
                     "Creature Server could not be reached for the scene",
                     metadata: ["error": "\(error)"])
                 return ScenePerformance(
-                    state: .failed, errorCode: Self.unreachableCode, occurredAt: now)
+                    state: .failed, errorCode: Self.unreachableCode,
+                    errorMessage: String(describing: error), occurredAt: now)
             }
         }
+    }
+
+    /// Creature Server's `message` when it sent one, else the status and the start of the body.
+    static func serverMessage(status: UInt, body: Data) -> String {
+        if let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+            let message = json["message"] as? String ?? json["error"] as? String
+        {
+            return message
+        }
+        let text = String(decoding: body.prefix(200), as: UTF8.self)
+        return text.isEmpty ? "HTTP \(status)" : "HTTP \(status): \(text)"
     }
 }
 
@@ -219,7 +233,7 @@ actor StreamingScenePerformer: ScenePerforming {
         self.logger = logger
     }
 
-    func sceneOpened(_ scene: Scene) async {
+    func sceneOpened(_ scene: Scene) async -> String? {
         await withSpan("creature.server.dialog_stream.start", ofKind: .client) { span in
             span.attributes["scene.id"] = scene.sceneID.rawValue
             guard let region = regions[scene.regionID] else {
@@ -228,6 +242,7 @@ actor StreamingScenePerformer: ScenePerforming {
                     metadata: ["world.region_id": "\(scene.regionID.rawValue)"])
                 span.attributes["error.type"] = Self.noStageCode
                 return
+                    "No stage is mapped for \(scene.regionID.rawValue); the scene will be rendered whole at the end."
             }
             var creatureIDs: [String] = []
             for participant in scene.participants {
@@ -236,6 +251,7 @@ actor StreamingScenePerformer: ScenePerforming {
                         "A participant has no creature; the scene will be rendered whole at the end",
                         metadata: ["agent.character_id": "\(participant.rawValue)"])
                     return
+                        "\(participant.rawValue) has no creature to speak through; the scene will be rendered whole at the end."
                 }
                 creatureIDs.append(creatureID)
             }
@@ -260,15 +276,18 @@ actor StreamingScenePerformer: ScenePerforming {
                             "http.status": "\(response.status.code)",
                             "body": "\(String(decoding: data.prefix(300), as: UTF8.self))",
                         ])
-                    return
+                    return CreatureServerScenePerformer.serverMessage(
+                        status: response.status.code, body: data)
                 }
                 sessions[scene.sceneID] = sessionID
                 span.attributes["streaming.session_id"] = sessionID
+                return nil
             } catch {
                 span.recordError(error)
                 logger.warning(
                     "Creature Server could not be reached to open a dialog stream",
                     metadata: ["error": "\(error)"])
+                return "Creature Server could not be reached: \(error)"
             }
         }
     }
@@ -349,6 +368,8 @@ actor StreamingScenePerformer: ScenePerforming {
                         ])
                     return ScenePerformance(
                         state: .failed, errorCode: CreatureServerScenePerformer.requestFailedCode,
+                        errorMessage: CreatureServerScenePerformer.serverMessage(
+                            status: response.status.code, body: data),
                         occurredAt: now)
                 }
                 let animationID = json?["animation_id"] as? String

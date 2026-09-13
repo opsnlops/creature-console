@@ -199,6 +199,10 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**Failures say why** (`0.19.0`). Delivery outcomes and scene performances carry `error_message`
+beside `error_code` — Creature Server's own words. A room that cannot be readied for a scene is a
+`scene.stage_problem` event with the reason, announced when the scene opens.
+
 **Retention** (`0.18.0`, migration v10). The world keeps its raw material for a while and its
 memories for years. MongoDB TTL indexes expire: events at `expires_at` (stamped at append —
 `event_days` for the story, `cheap_event_days` for measurements and the pacing timers), event
