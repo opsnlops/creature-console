@@ -128,8 +128,11 @@ phrasing templates anywhere; `fact_kinds` glossary in Mongo (migration v9, seede
 Meanings mode); `fact_meanings` on every percept and offer. Live 21:35: Beaky reasoned the walk out herself ("I suspect one mysterious person
 is making a grand tour of the cameras" — April: "she wasn't wrong") four short scenes opened, one per
 rule, and April wants each ("sooner rather than later") → World `0.16.1` adds
-`scenes.house_gap_seconds` but leaves it off. Step 2 complete. Next: step 3
-(model-gated house remarks) — needs April's answers to the plan's open questions.
+`scenes.house_gap_seconds` but leaves it off. Step 2 complete. April's answers (2026-09-12 night): quiet hours 23–07 with no exceptions
+("she's my familiar, not a security system"); animals never wake her, people and vehicles do;
+house scenes up to three turns with the others joining (World `0.16.2`); nightly memory on Sol,
+human-grained ("Jesse was here on Monday", never a timestamp). Next: step 3 (model-gated house
+remarks), then step 4 (nightly memory), then cutover.
 
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);
