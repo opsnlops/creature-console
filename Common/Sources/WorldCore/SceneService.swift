@@ -47,6 +47,8 @@ public actor SceneService {
     public static let closedEventType = WorldEventType(rawValue: "scene.closed")!
     public static let performedEventType = WorldEventType(rawValue: "scene.performed")!
     public static let floorExpiredEventType = WorldEventType(rawValue: "scene.floor_expired")!
+    /// The room has (nearly) finished the last line: time to offer the next floor.
+    public static let floorReadyEventType = WorldEventType(rawValue: "scene.floor_ready")!
     public static let sourceID = try! SourceID(validating: "world:scenes")
 
     private let repository: any SceneRepository
@@ -167,6 +169,7 @@ public actor SceneService {
                 floor.pieces.append(piece)
                 floor.deadline = now.addingTimeInterval(limits.floorSeconds)
                 scene.floor = floor
+                Self.queueSpeech(of: piece, in: &scene, at: now, limits: limits)
                 try await repository.save(scene)
                 await performer.sceneTurnPiece(
                     scene, character: floor.characterID, responseID: floor.responseID, text: piece)
@@ -240,6 +243,9 @@ public actor SceneService {
         if text != nil {
             turn.conversationItemID = try await recordTurn(scene, turn)
         }
+        if let text, !streamed {
+            Self.queueSpeech(of: text, in: &scene, at: now, limits: limits)
+        }
         scene.turns.append(turn)
         scene.floor = nil
         try await repository.save(scene)
@@ -262,7 +268,48 @@ public actor SceneService {
             return
         }
         let next = nextParticipant(after: floor.characterID, in: scene)
-        try await offerFloor(&scene, to: next, at: now)
+        // The floor is offered when the room has nearly finished the last line, not the
+        // moment it was composed: the birds react to what was heard, and April can get a
+        // word in. A room already caught up gets the next bird now.
+        let readyAt = (scene.spokenUntil ?? now).addingTimeInterval(-limits.turnLeadSeconds)
+        guard readyAt > now else {
+            try await offerFloor(&scene, to: next, at: now)
+            return
+        }
+        scene.pendingFloor = next
+        try await repository.save(scene)
+        try await scheduleDeadline(
+            WorldTimer(
+                timerID: try TimerID(
+                    validating: "timer:scene-floor-ready:\(floor.responseID.rawValue)"),
+                purpose: Self.floorReadyEventType,
+                dueAt: readyAt,
+                status: .pending,
+                subjectIDs: [next, scene.regionID],
+                causedBy: [.event(scene.trigger.eventID)],
+                payload: [
+                    "scene_id": .string(scene.sceneID.rawValue),
+                    "character_id": .string(next.rawValue),
+                ]
+            ))
+    }
+
+    /// The room is about to finish the last line: offer the floor that was waiting.
+    public func floorReady(sceneID: SceneID) async throws {
+        guard var scene = try await repository.scene(id: sceneID), scene.state == .open,
+            scene.floor == nil, let next = scene.pendingFloor
+        else { return }
+        scene.pendingFloor = nil
+        try await offerFloor(&scene, to: next, at: WorldJSON.wireDate(await clock.now))
+    }
+
+    /// The world's estimate of when the room will have said everything queued so far: each
+    /// line or piece plays after the one before it, at the configured pace.
+    static func queueSpeech(
+        of text: String, in scene: inout Scene, at now: Date, limits: SceneLimits
+    ) {
+        let start = max(scene.spokenUntil ?? now, now)
+        scene.spokenUntil = start.addingTimeInterval(limits.spokenSeconds(of: text))
     }
 
     private func offerFloor(_ scene: inout Scene, to characterID: EntityID, at now: Date)

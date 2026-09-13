@@ -82,6 +82,15 @@ on the floor, once per cooldown. April: "That's what we need to replace the MQTT
 creature-agent." Also: `creature-house 0.1.4` stops promptly (follow loops cancelled on
 graceful shutdown; the upgrade stall).
 
+**Pacing (World `0.11.0`, same branch):** April: "The only thing that matters is time to
+first sentence" and "it takes way longer for the long conversations to play out than it does
+for the LLM to generate." Server trace: TTS 0.25 s per sentence, `StreamingAdHocSession.sentence`
+p50 10.9 s / max 23 s — the playback queue was the latency. The world now estimates
+`spoken_until` per scene and offers the next floor `turn_lead_seconds` before it
+(`scene.floor_ready` timer, `pending_floor`); Viewer shows who is next. Measured before:
+Luna first-sentence p50 0.93 s ≈ Nemo 0.91 s (better tail), Sol 1.39 s; Mango moved to
+`gpt-5.6-luna` ("way smarter than Nemo"). Server is switching TTS to `eleven_flash_v2_5`.
+
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);
 re-measure `creature.server.perform` after the Flash switch; the squirrel rule (prefer

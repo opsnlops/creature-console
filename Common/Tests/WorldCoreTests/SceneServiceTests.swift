@@ -168,6 +168,53 @@ struct SceneServiceTests {
         #expect(types.contains(SceneService.turnEventType))
     }
 
+    @Test("The next floor waits until the room has nearly finished the last line")
+    func floorIsPacedToPlayback() async throws {
+        // 2.5 words a second: a twenty-word line is eight seconds of speech; the floor is
+        // offered one second before it ends.
+        let world = makeWorld(limits: SceneLimits(wordsPerSecond: 2.5, turnLeadSeconds: 1))
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let responseID = try #require(scene.floor?.responseID)
+        let twentyWords = Array(repeating: "word", count: 20).joined(separator: " ") + "."
+
+        let taken = try await world.service.submit(
+            SceneTurnSubmission(characterID: beaky, responseID: responseID, text: twentyWords),
+            to: scene.sceneID)
+
+        // Nobody has the floor yet; Mango is next, once the room catches up.
+        #expect(taken.scene.floor == nil)
+        #expect(taken.scene.pendingFloor == mango)
+        let spokenUntil = try #require(taken.scene.spokenUntil)
+        #expect(abs(spokenUntil.timeIntervalSince(Self.now) - 8) < 0.01)
+        let ready = try #require(
+            await world.timers.scheduled.last { $0.purpose == SceneService.floorReadyEventType })
+        #expect(abs(ready.dueAt.timeIntervalSince(Self.now) - 7) < 0.01)
+        #expect(ready.payload["character_id"] == .string(mango.rawValue))
+        // Only one turn offered so far.
+        #expect(await world.announced.offers.count == 1)
+
+        // The room is about to finish: the floor goes to Mango, with a fresh deadline.
+        try await world.clock.advance(by: 7)
+        try await world.service.floorReady(sceneID: scene.sceneID)
+        let current = try #require(try await world.service.scene(id: scene.sceneID))
+        #expect(current.floor?.characterID == mango)
+        #expect(current.pendingFloor == nil)
+        #expect(await world.announced.offers.count == 2)
+        // A second ready for the same scene changes nothing.
+        try await world.service.floorReady(sceneID: scene.sceneID)
+        #expect(await world.announced.offers.count == 2)
+
+        // Mango's short line queues behind whatever is still playing (one second left).
+        let mangoFloor = try #require(current.floor?.responseID)
+        let quick = try await world.service.submit(
+            SceneTurnSubmission(characterID: mango, responseID: mangoFloor, text: "Heat sinks."),
+            to: scene.sceneID)
+        let queued = try #require(quick.scene.spokenUntil)
+        #expect(abs(queued.timeIntervalSince(spokenUntil) - 0.8) < 0.01)
+    }
+
     @Test("A streamed line that goes quiet is the line so far when the floor expires")
     func streamedLineExpires() async throws {
         let world = makeWorld()
@@ -312,9 +359,11 @@ struct SceneServiceTests {
         let clock: ManualWorldClock
     }
 
-    private func makeWorld(limits: SceneLimits = SceneLimits(), performerFails: Bool = false)
-        -> TestWorld
-    {
+    /// The default test world offers the next floor at once (a lead longer than any line);
+    /// `floorIsPacedToPlayback` covers the real pacing.
+    private func makeWorld(
+        limits: SceneLimits = SceneLimits(turnLeadSeconds: 3_600), performerFails: Bool = false
+    ) -> TestWorld {
         let announced = AnnouncedEvents()
         let timers = ScheduledTimers()
         let recorded = RecordedTurns()

@@ -16,7 +16,7 @@
     { "entity_id": "sensor.rain_today", "subject_id": "place:outside", "kind": "measurement", "predicate": "rain_today_in", "minimum_change": 0.05 },
     { "entity_id": "sensor.family_room_pressure", "subject_id": "place:outside", "kind": "measurement", "predicate": "pressure_hpa", "minimum_change": 2 },
     { "entity_id": "sensor.outside_pm_2_5um", "subject_id": "place:outside", "kind": "measurement", "predicate": "pm25_ugm3", "minimum_change": 5 },
-    { "entity_id": "sensor.aprils_nest_energy_monitor_electric_consumption_w", "subject_id": "house:aprils-nest", "kind": "measurement", "predicate": "power_w", "minimum_change": 300 },
+    { "entity_id": "sensor.aprils_nest_energy_monitor_electric_consumption_w", "subject_id": "house:aprils-nest", "kind": "measurement", "predicate": "power_w", "minimum_change": 1000 },
     { "entity_id": "binary_sensor.front_door_person_detected", "subject_id": "place:front-door", "kind": "detection", "detects": "person" },
     { "entity_id": "binary_sensor.driveway_person_detected", "subject_id": "place:driveway", "kind": "detection", "detects": "person" },
     { "entity_id": "binary_sensor.driveway_vehicle_detected", "subject_id": "place:driveway", "kind": "detection", "detects": "vehicle" },

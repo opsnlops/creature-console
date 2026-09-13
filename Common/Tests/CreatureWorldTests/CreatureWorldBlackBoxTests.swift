@@ -216,26 +216,29 @@ struct CreatureWorldBlackBoxTests {
                 characterID: beaky, responseID: try #require(scene.floor?.responseID),
                 sessionID: beakySession.session.sessionID, text: "Servos, I hope!"))
         #expect(beakyTurn.status == .accepted)
-        #expect(beakyTurn.body.scene.floor?.characterID == mango)
+        // The floor is paced to the room: Mango is next, once Beaky's line has nearly played
+        // (three words at 2.5 a second, minus the lead — a fraction of a second).
+        #expect(
+            beakyTurn.body.scene.pendingFloor == mango
+                || beakyTurn.body.scene.floor?.characterID == mango)
+        let mangoFloor = try await api.waitForFloor(in: sceneID, of: mango)
 
         // A mind without Mango's session cannot speak as Mango.
         let impostor = try await api.submitTurnStatus(
             to: sceneID,
             SceneTurnSubmission(
-                characterID: mango,
-                responseID: try #require(beakyTurn.body.scene.floor?.responseID),
+                characterID: mango, responseID: mangoFloor.responseID,
                 sessionID: nil, text: "It is me, Mango."))
         #expect(impostor == .conflict)
 
         let mangoTurn = try await api.submitTurn(
             to: sceneID,
             SceneTurnSubmission(
-                characterID: mango,
-                responseID: try #require(beakyTurn.body.scene.floor?.responseID),
+                characterID: mango, responseID: mangoFloor.responseID,
                 sessionID: mangoSession.session.sessionID, text: "It is always heat sinks."))
         scene = mangoTurn.body.scene
         for _ in 0..<2 {
-            let floor = try #require(scene.floor)
+            let floor = try await api.waitForFloor(in: sceneID)
             let session = floor.characterID == beaky ? beakySession : mangoSession
             scene = try await api.submitTurn(
                 to: sceneID,
@@ -654,6 +657,22 @@ private struct WorldServiceAPI {
         #expect(response.status == .ok)
         let body = try await response.body.collect(upTo: 1_048_576)
         return try WorldJSON.makeDecoder().decode(ConversationItemPage.self, from: body).items
+    }
+
+    /// The floor moves when the room has nearly finished the last line; wait for it.
+    func waitForFloor(in sceneID: SceneID, of characterID: EntityID? = nil) async throws
+        -> SceneFloor
+    {
+        let deadline = ContinuousClock.now + .seconds(10)
+        while ContinuousClock.now < deadline {
+            if let floor = try await scene(sceneID)?.floor,
+                characterID == nil || floor.characterID == characterID
+            {
+                return floor
+            }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        throw BlackBoxError.missingScene("floor in \(sceneID.rawValue)")
     }
 
     func scenes() async throws -> [Scene] {

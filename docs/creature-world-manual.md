@@ -196,6 +196,18 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**The floor is paced to the room** (`0.11.0`). Composing is fast and speaking is slow: a
+twelve-turn scene generates in seconds and plays for a minute, and with the next floor offered
+the moment a line's text landed, the birds ran far ahead of what anyone had heard (the
+server's trace showed sentences waiting up to twenty seconds in the playback queue behind
+lines already composed). The world now keeps `spoken_until` — its estimate of when the room
+will finish everything queued, at `words_per_second` — and offers the next floor
+`turn_lead_seconds` (default 1, about a first-sentence latency) before that, through a
+`scene.floor_ready` world timer; the scene shows `pending_floor` in the meantime. Each bird
+therefore reacts to what was actually just heard, the scene runs at conversation speed, and
+April can get a word in. Creature Server reporting real play times (creature-server#192)
+will replace the estimate.
+
 **A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model
 submits `{ "text": "Not quite, Kenny.", "piece": 0 }`, `{ …, "piece": 1 }`, … and finally
 `{ "text": null }` (or a last sentence with no `piece`) for "that was the whole line". Each

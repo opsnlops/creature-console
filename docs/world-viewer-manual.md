@@ -74,7 +74,8 @@ floor and until when (orange while open), each character's line or pass in order
 closed, and how it was performed (the Creature Server job, or a red failure code). Refreshed on
 every `scene.*` event, so you can watch the floor move between Beaky and Mango as they compose.
 
-A line still being composed shows in orange under the turns — the sentences the room has
+While the room is still saying the last line, the scene's header shows in orange who is next
+and when the world expects the room to finish. A line still being composed shows in orange under the turns — the sentences the room has
 heard so far, ending in "…" — until the mind says it is done and it becomes a turn.
 
 ### Facts and Timers

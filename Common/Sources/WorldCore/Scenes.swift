@@ -183,6 +183,12 @@ public struct Scene: Hashable, Sendable, Codable {
     public var closedAt: Date?
     public var performance: ScenePerformance?
     public var trace: W3CTraceContext?
+    /// When the room is expected to finish saying what has been queued so far — the world's
+    /// estimate from word count until Creature Server reports it — so the next floor is
+    /// offered when the last line has been heard, not the moment it was composed.
+    public var spokenUntil: Date?
+    /// The next character in line while the room catches up.
+    public var pendingFloor: EntityID?
 
     public init(
         sceneID: SceneID = .generated(),
@@ -197,7 +203,9 @@ public struct Scene: Hashable, Sendable, Codable {
         openedAt: Date,
         closedAt: Date? = nil,
         performance: ScenePerformance? = nil,
-        trace: W3CTraceContext? = nil
+        trace: W3CTraceContext? = nil,
+        spokenUntil: Date? = nil,
+        pendingFloor: EntityID? = nil
     ) throws {
         guard participants.count >= 1, Set(participants).count == participants.count else {
             throw WorldContractError.invalidScene
@@ -216,6 +224,8 @@ public struct Scene: Hashable, Sendable, Codable {
         self.closedAt = closedAt
         self.performance = performance
         self.trace = trace
+        self.spokenUntil = spokenUntil
+        self.pendingFloor = pendingFloor
     }
 
     public var spokenTurns: [SceneTurn] { turns.filter { !$0.isPass } }
@@ -237,7 +247,9 @@ public struct Scene: Hashable, Sendable, Codable {
             openedAt: container.decode(Date.self, forKey: .openedAt),
             closedAt: container.decodeIfPresent(Date.self, forKey: .closedAt),
             performance: container.decodeIfPresent(ScenePerformance.self, forKey: .performance),
-            trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace)
+            trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace),
+            spokenUntil: container.decodeIfPresent(Date.self, forKey: .spokenUntil),
+            pendingFloor: container.decodeIfPresent(EntityID.self, forKey: .pendingFloor)
         )
     }
 
@@ -256,6 +268,8 @@ public struct Scene: Hashable, Sendable, Codable {
         case closedAt = "closed_at"
         case performance
         case trace
+        case spokenUntil = "spoken_until"
+        case pendingFloor = "pending_floor"
     }
 }
 
@@ -418,19 +432,25 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public var wordsPerSecond: Double
     /// The world events that open a scene on their own, and where, and how often.
     public var openOn: [SceneOpeningRule]
+    /// How long before the room finishes the last line the next floor is offered, so the
+    /// next bird's first sentence lands as the previous one ends (about a first-sentence
+    /// latency). Zero offers it exactly at the end.
+    public var turnLeadSeconds: TimeInterval
 
     public init(
         floorSeconds: TimeInterval = 8,
         maximumTurns: Int = 12,
         maximumSpokenSeconds: TimeInterval = 90,
         wordsPerSecond: Double = 2.5,
-        openOn: [SceneOpeningRule] = []
+        openOn: [SceneOpeningRule] = [],
+        turnLeadSeconds: TimeInterval = 1
     ) {
         self.floorSeconds = floorSeconds
         self.maximumTurns = maximumTurns
         self.maximumSpokenSeconds = maximumSpokenSeconds
         self.wordsPerSecond = wordsPerSecond
         self.openOn = openOn
+        self.turnLeadSeconds = turnLeadSeconds
     }
 
     public init(from decoder: any Decoder) throws {
@@ -446,7 +466,10 @@ public struct SceneLimits: Hashable, Sendable, Codable {
                 ?? defaults.maximumSpokenSeconds,
             wordsPerSecond: try container.decodeIfPresent(Double.self, forKey: .wordsPerSecond)
                 ?? defaults.wordsPerSecond,
-            openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? []
+            openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
+            turnLeadSeconds: try container.decodeIfPresent(
+                TimeInterval.self, forKey: .turnLeadSeconds)
+                ?? defaults.turnLeadSeconds
         )
     }
 
@@ -461,5 +484,6 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case maximumSpokenSeconds = "maximum_spoken_seconds"
         case wordsPerSecond = "words_per_second"
         case openOn = "open_on"
+        case turnLeadSeconds = "turn_lead_seconds"
     }
 }

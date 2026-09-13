@@ -1,3 +1,20 @@
+creature-cli (2.63.0+world0.11.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.11.0: the floor is paced to the room. April: "It
+    takes way longer for the long conversations to play out than it does
+    for the LLM to generate." The server's trace agreed: TTS renders in a
+    quarter second, but each sentence waited up to twenty seconds in the
+    playback queue behind lines the birds had already composed. Now the
+    world estimates when the room will finish what is queued (words at
+    `words_per_second`) and offers the next floor `turn_lead_seconds`
+    (default 1) before that, via a scene.floor_ready world timer - so
+    each bird reacts to what was actually just heard, twelve turns run at
+    conversation speed, and April can get a word in. Scenes carry
+    spoken_until and pending_floor; the Viewer shows who is next and when.
+    The power monitor is news at a kilowatt, not a compressor cycle.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 18:05:00 -0700
+
 creature-cli (2.63.0+world0.10.0+house0.1.4) unstable; urgency=medium
 
   * creature-world 0.10.0: the house opens scenes (F3). `scenes.open_on`

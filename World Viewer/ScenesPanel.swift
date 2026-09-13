@@ -62,6 +62,14 @@ struct SceneRow: View {
                     )
                     .foregroundStyle(.orange)
                 }
+                if scene.floor == nil, let next = scene.pendingFloor, let until = scene.spokenUntil
+                {
+                    // The room is still saying the last line; the next bird waits for it.
+                    Text(
+                        "next: \(CharacterName.of(next)) once the room finishes at \(until, format: .dateTime.hour().minute().second())"
+                    )
+                    .foregroundStyle(.orange)
+                }
                 if let reason = scene.closeReason {
                     Text("closed: \(reason.rawValue)")
                 }

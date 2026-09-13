@@ -232,13 +232,21 @@ struct MongoWorldPersistenceConnection: Sendable {
         let floorWatcher = Task {
             do {
                 for try await delta in try await world.subscribe() {
-                    guard delta.event.type == SceneService.floorExpiredEventType,
-                        case .string(let rawScene)? = delta.event.payload["scene_id"],
-                        case .string(let rawResponse)? = delta.event.payload["response_id"],
-                        let sceneID = SceneID(rawValue: rawScene),
-                        let responseID = ResponseID(rawValue: rawResponse)
+                    guard case .string(let rawScene)? = delta.event.payload["scene_id"],
+                        let sceneID = SceneID(rawValue: rawScene)
                     else { continue }
-                    try await sceneService.floorExpired(sceneID: sceneID, responseID: responseID)
+                    switch delta.event.type {
+                    case SceneService.floorExpiredEventType:
+                        guard case .string(let rawResponse)? = delta.event.payload["response_id"],
+                            let responseID = ResponseID(rawValue: rawResponse)
+                        else { continue }
+                        try await sceneService.floorExpired(
+                            sceneID: sceneID, responseID: responseID)
+                    case SceneService.floorReadyEventType:
+                        try await sceneService.floorReady(sceneID: sceneID)
+                    default:
+                        continue
+                    }
                 }
             } catch {
                 logger.warning(
