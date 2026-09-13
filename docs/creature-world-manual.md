@@ -85,7 +85,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `90` |
-| Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds` | — | — | `20`, `0.35`, `2` |
+| Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
 
 Example:
 
@@ -215,7 +215,22 @@ ran a quarter slow, so every hand-off carried a second of dead air. The lead cov
 bird's first-sentence latency and the render; a line that arrives early simply queues behind
 the one playing (the server plays a scene's sentences in order), so a generous lead costs only
 that April's interjection may land after the next line is composed. An answered floor's
-deadline is withdrawn, so `scene.floor_expired` means a real pass, never a phantom. Creature
+deadline is withdrawn, so `scene.floor_expired` means a real pass, never a phantom.
+
+Voices differ. Kenny's drawls at about eleven characters a second where Beaky's and Mango's
+run twenty, and at the default pace the world thought his lines were half their length — by
+the twelfth turn the birds were fifteen seconds ahead of the room again. `scenes.voices`
+gives a character its own pace (`0.13.0`):
+
+```json
+"voices": {
+  "character:kenny": { "characters_per_second": 11, "sentence_seconds": 0.4 }
+}
+```
+
+To measure a voice, take Creature Server's `StreamingAdHocSession.sentence` spans in
+Honeycomb: `animation.frames` × 20 ms is the audio length, `sentence.length` the characters;
+fit seconds = `sentence_seconds` + characters ÷ `characters_per_second`. Creature
 Server reporting real play times (creature-server#192) will replace the estimate.
 
 **A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model

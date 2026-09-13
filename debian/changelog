@@ -1,3 +1,15 @@
+creature-cli (2.63.0+world0.13.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.13.0: voices have their own pace. On 0.12.0 the room
+    ran back-to-back with no silence (hand-offs of 20 ms on the server's
+    clock), but by the twelfth turn the birds were fifteen seconds ahead of
+    it again: Kenny's voice speaks at about eleven characters a second, not
+    twenty, so the world halved his lines. `scenes.voices` gives a character
+    its own `characters_per_second` and `sentence_seconds`; the packaged
+    world.json sets Kenny's.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 19:30:00 -0700
+
 creature-cli (2.63.0+world0.12.0+house0.1.4) unstable; urgency=medium
 
   * creature-world 0.12.0: the paced floor, tuned to the room. April: "this

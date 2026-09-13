@@ -423,6 +423,23 @@ public struct ScenePage: Hashable, Sendable, Codable {
     }
 }
 
+/// How fast one voice speaks. Measure it from Creature Server's `StreamingAdHocSession.sentence`
+/// spans: `animation.frames` × 20 ms against `sentence.length`.
+public struct SpeakingPace: Hashable, Sendable, Codable {
+    public var charactersPerSecond: Double
+    public var sentenceSeconds: TimeInterval
+
+    public init(charactersPerSecond: Double, sentenceSeconds: TimeInterval) {
+        self.charactersPerSecond = charactersPerSecond
+        self.sentenceSeconds = sentenceSeconds
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case charactersPerSecond = "characters_per_second"
+        case sentenceSeconds = "sentence_seconds"
+    }
+}
+
 /// Where the world keeps its cutoffs for a scene, so April can tune the feel.
 public struct SceneLimits: Hashable, Sendable, Codable {
     public var floorSeconds: TimeInterval
@@ -435,6 +452,11 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     /// of a second of what ElevenLabs actually produced.
     public var charactersPerSecond: Double
     public var sentenceSeconds: TimeInterval
+    /// Voices that speak at their own pace, by character ID. Kenny's voice drawls at about
+    /// eleven characters a second where Beaky's and Mango's run twenty; without this the
+    /// world thinks his lines are half as long as they are and the birds run ahead of the
+    /// room.
+    public var voices: [String: SpeakingPace]
     /// The world events that open a scene on their own, and where, and how often.
     public var openOn: [SceneOpeningRule]
     /// How long before the room finishes the last line the next floor is offered, so the
@@ -450,6 +472,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         maximumSpokenSeconds: TimeInterval = 90,
         charactersPerSecond: Double = 20,
         sentenceSeconds: TimeInterval = 0.35,
+        voices: [String: SpeakingPace] = [:],
         openOn: [SceneOpeningRule] = [],
         turnLeadSeconds: TimeInterval = 2
     ) {
@@ -458,6 +481,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         self.maximumSpokenSeconds = maximumSpokenSeconds
         self.charactersPerSecond = charactersPerSecond
         self.sentenceSeconds = sentenceSeconds
+        self.voices = voices
         self.openOn = openOn
         self.turnLeadSeconds = turnLeadSeconds
     }
@@ -477,6 +501,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
                 Double.self, forKey: .charactersPerSecond) ?? defaults.charactersPerSecond,
             sentenceSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .sentenceSeconds) ?? defaults.sentenceSeconds,
+            voices: try container.decodeIfPresent([String: SpeakingPace].self, forKey: .voices)
+                ?? [:],
             openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
             turnLeadSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .turnLeadSeconds)
@@ -484,14 +510,21 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         )
     }
 
-    /// How long the room will take to say `text`: a fixed cost per sentence plus the
-    /// characters at speaking pace. Nothing to say takes no time.
-    public func spokenSeconds(of text: String) -> TimeInterval {
+    /// How long the room will take to say `text` in `speaker`'s voice: a fixed cost per
+    /// sentence plus the characters at that voice's pace. Nothing to say takes no time.
+    public func spokenSeconds(of text: String, by speaker: EntityID? = nil) -> TimeInterval {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return 0 }
+        let pace = pace(of: speaker)
         let sentences = max(1, trimmed.filter { ".!?".contains($0) }.count)
-        return Double(sentences) * sentenceSeconds
-            + Double(trimmed.count) / max(charactersPerSecond, 0.1)
+        return Double(sentences) * pace.sentenceSeconds
+            + Double(trimmed.count) / max(pace.charactersPerSecond, 0.1)
+    }
+
+    public func pace(of speaker: EntityID?) -> SpeakingPace {
+        if let speaker, let voice = voices[speaker.rawValue] { return voice }
+        return SpeakingPace(
+            charactersPerSecond: charactersPerSecond, sentenceSeconds: sentenceSeconds)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -500,6 +533,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case maximumSpokenSeconds = "maximum_spoken_seconds"
         case charactersPerSecond = "characters_per_second"
         case sentenceSeconds = "sentence_seconds"
+        case voices
         case openOn = "open_on"
         case turnLeadSeconds = "turn_lead_seconds"
     }

@@ -23,6 +23,9 @@
     "floor_seconds": 8,
     "maximum_turns": 12,
     "maximum_spoken_seconds": 90,
+    "voices": {
+      "character:kenny": { "characters_per_second": 11, "sentence_seconds": 0.4 }
+    },
     "open_on": [
       { "event": "camera.person_seen", "places": ["place:driveway", "place:front-door", "place:carport"], "cooldown_seconds": 300 },
       { "event": "camera.vehicle_seen", "places": ["place:driveway", "place:carport"], "cooldown_seconds": 300 },

@@ -382,6 +382,23 @@ struct SceneServiceTests {
             limits.spokenSeconds(of: "I love you too, April. Always, my wizard.")
                 > limits.spokenSeconds(of: "I love you too, April, always, my wizard."))
         #expect(limits.spokenSeconds(of: "  ") == 0)
+        // A voice with its own pace: Kenny's drawl at eleven a second.
+        let drawl = SceneLimits(
+            voices: ["character:kenny": SpeakingPace(charactersPerSecond: 11, sentenceSeconds: 0.4)]
+        )
+        let kenny = try! EntityID(validating: "character:kenny")
+        #expect(abs(drawl.spokenSeconds(of: "Kenny loves popcorn too!", by: kenny) - 2.58) < 0.01)
+        #expect(abs(drawl.spokenSeconds(of: "Kenny loves popcorn too!") - 1.55) < 0.01)
+    }
+
+    @Test("Scene limits decode voices with their own pace")
+    func voicesDecode() throws {
+        let json = """
+            {"turn_lead_seconds": 2, "voices": {"character:kenny": {"characters_per_second": 11, "sentence_seconds": 0.4}}}
+            """
+        let limits = try JSONDecoder().decode(SceneLimits.self, from: Data(json.utf8))
+        #expect(limits.voices["character:kenny"]?.charactersPerSecond == 11)
+        #expect(limits.charactersPerSecond == 20)
     }
 
     /// The default test world offers the next floor at once (a lead longer than any line);

@@ -172,7 +172,8 @@ public actor SceneService {
                 floor.pieces.append(piece)
                 floor.deadline = now.addingTimeInterval(limits.floorSeconds)
                 scene.floor = floor
-                Self.queueSpeech(of: piece, in: &scene, at: now, limits: limits)
+                Self.queueSpeech(
+                    of: piece, by: floor.characterID, in: &scene, at: now, limits: limits)
                 try await repository.save(scene)
                 await performer.sceneTurnPiece(
                     scene, character: floor.characterID, responseID: floor.responseID, text: piece)
@@ -247,7 +248,8 @@ public actor SceneService {
             turn.conversationItemID = try await recordTurn(scene, turn)
         }
         if let text, !streamed {
-            Self.queueSpeech(of: text, in: &scene, at: now, limits: limits)
+            Self.queueSpeech(
+                of: text, by: floor.characterID, in: &scene, at: now, limits: limits)
         }
         scene.turns.append(turn)
         scene.floor = nil
@@ -308,12 +310,14 @@ public actor SceneService {
     }
 
     /// The world's estimate of when the room will have said everything queued so far: each
-    /// line or piece plays after the one before it, at the configured pace.
+    /// line or piece plays after the one before it, at the speaker's pace.
     static func queueSpeech(
-        of text: String, in scene: inout Scene, at now: Date, limits: SceneLimits
+        of text: String, by speaker: EntityID, in scene: inout Scene, at now: Date,
+        limits: SceneLimits
     ) {
         let start = max(scene.spokenUntil ?? now, now)
-        scene.spokenUntil = start.addingTimeInterval(limits.spokenSeconds(of: text))
+        scene.spokenUntil = start.addingTimeInterval(
+            limits.spokenSeconds(of: text, by: speaker))
     }
 
     private func offerFloor(_ scene: inout Scene, to characterID: EntityID, at now: Date)
@@ -394,7 +398,9 @@ public actor SceneService {
         if scene.turns.count >= limits.maximumTurns {
             return .maximumTurns
         }
-        let spoken = scene.spokenTurns.reduce(0.0) { $0 + limits.spokenSeconds(of: $1.text ?? "") }
+        let spoken = scene.spokenTurns.reduce(0.0) {
+            $0 + limits.spokenSeconds(of: $1.text ?? "", by: $1.characterID)
+        }
         if spoken >= limits.maximumSpokenSeconds {
             return .maximumSpokenSeconds
         }
