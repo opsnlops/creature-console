@@ -10,9 +10,9 @@ import Observability
 struct CreatureCommunicatorGatewayCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "creature-communicator-gateway",
-        abstract: "Beaky Communicator Gateway for April's Creature Workshop",
+        abstract: "Flock Communicator Gateway for April's Creature Workshop",
         discussion: """
-            Runs the narrow synchronization and delivery gateway for Beaky Communicator.
+            Runs the narrow synchronization and delivery gateway for Flock Communicator.
 
             Configuration precedence is command options, SERVER_HOSTNAME and SERVER_PORT,
             CREATURE_WORLD_URL, the JSON configuration file, then built-in defaults.

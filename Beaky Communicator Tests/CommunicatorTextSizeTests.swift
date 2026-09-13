@@ -1,7 +1,7 @@
 import SwiftUI
 import Testing
 
-@testable import Beaky_Communicator
+@testable import Flock_Communicator
 
 @Suite("Communicator text size")
 struct CommunicatorTextSizeTests {

@@ -781,7 +781,7 @@ struct CharacterMind: Sendable {
             case .physicalSpeech:
                 "April is in the room with you and hears you speak aloud with your own voice."
             case .communicator:
-                "You are talking with April through the Beaky Communicator app on her phone or Mac."
+                "You are talking with April through the Flock Communicator app on her phone or Mac."
             }
         return """
             \(setting) \

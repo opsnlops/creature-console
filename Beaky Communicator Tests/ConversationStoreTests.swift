@@ -3,7 +3,7 @@ import Foundation
 import Testing
 import WorldCore
 
-@testable import Beaky_Communicator
+@testable import Flock_Communicator
 
 @MainActor
 @Suite("Beaky Communicator conversation store")

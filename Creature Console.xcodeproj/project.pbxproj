@@ -575,7 +575,7 @@
 		B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlPanel.swift; sourceTree = "<group>"; };
 		B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternListEditor.swift; sourceTree = "<group>"; };
 		BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixturesTable.swift; sourceTree = "<group>"; };
-		BCA000000000000000000002 /* Beaky Communicator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Beaky Communicator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA000000000000000000002 /* Flock Communicator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Flock Communicator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BCA00000000000000000000B /* Beaky Communicator Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Beaky Communicator Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BCA00000000000000000001F /* Beaky_Communicator.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Beaky_Communicator.entitlements; sourceTree = "<group>"; };
 		BCA000000000000000000022 /* Beaky-Communicator-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Beaky-Communicator-Info.plist"; sourceTree = "<group>"; };
@@ -1020,7 +1020,7 @@
 				117C86FE2CA0CC81007B5682 /* Creature TV.app */,
 				117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */,
 				117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */,
-				BCA000000000000000000002 /* Beaky Communicator.app */,
+				BCA000000000000000000002 /* Flock Communicator.app */,
 				BCA00000000000000000000B /* Beaky Communicator Tests.xctest */,
 				WVA000000000000000000002 /* World Viewer.app */,
 				WVT00000000000000000000B /* World Viewer Tests.xctest */,
@@ -1683,7 +1683,7 @@
 				BCA000000000000000000016 /* CreatureAppSupport */,
 			);
 			productName = "Beaky Communicator";
-			productReference = BCA000000000000000000002 /* Beaky Communicator.app */;
+			productReference = BCA000000000000000000002 /* Flock Communicator.app */;
 			productType = "com.apple.product-type.application";
 		};
 		BCA00000000000000000000A /* Beaky Communicator Tests */ = {
@@ -2832,9 +2832,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Beaky-Communicator-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Beaky Communicator";
-				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = Beaky;
-				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = Beaky;
+				INFOPLIST_KEY_CFBundleDisplayName = "Flock Communicator";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = "The Flock";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = "The Flock";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Beaky Communicator connects to Creature World on your local network.";
@@ -2848,9 +2848,9 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.4.1;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "Flock Communicator";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
@@ -2877,9 +2877,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Beaky-Communicator-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Beaky Communicator";
-				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = Beaky;
-				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = Beaky;
+				INFOPLIST_KEY_CFBundleDisplayName = "Flock Communicator";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = "The Flock";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = "The Flock";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Beaky Communicator connects to Creature World on your local network.";
@@ -2893,9 +2893,9 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.4.1;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "Flock Communicator";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
@@ -2928,7 +2928,7 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Beaky Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Beaky Communicator";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flock Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Flock Communicator";
 			};
 			name = Debug;
 		};
@@ -2951,7 +2951,7 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Beaky Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Beaky Communicator";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flock Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Flock Communicator";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

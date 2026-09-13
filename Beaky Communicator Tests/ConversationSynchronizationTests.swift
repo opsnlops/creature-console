@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import WorldCore
 
-@testable import Beaky_Communicator
+@testable import Flock_Communicator
 
 @Suite("Beaky Communicator synchronization")
 struct ConversationSynchronizationTests {

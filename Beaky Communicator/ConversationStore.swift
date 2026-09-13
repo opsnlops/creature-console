@@ -84,7 +84,7 @@ final class ConversationStore {
             draft = ""
             replyingTo = nil
         } catch {
-            errorAlert = ErrorAlert(title: "Beaky Couldn’t Hear That", error: error)
+            errorAlert = ErrorAlert(title: "The Flock Couldn’t Hear That", error: error)
         }
     }
 }

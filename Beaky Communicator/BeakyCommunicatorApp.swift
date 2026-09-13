@@ -33,7 +33,7 @@ struct BeakyCommunicatorApp: App {
                 clientProvider: CommunicatorConnectionProvider.shared
             )
         } catch {
-            fatalError("Failed to create Beaky Communicator SwiftData store: \(error)")
+            fatalError("Failed to create Flock Communicator SwiftData store: \(error)")
         }
     }
 

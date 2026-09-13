@@ -292,7 +292,7 @@ struct CharacterMindTests {
                 stager: FakeStager(route: .communicator), room: room,
                 respondStreaming: { _ in AsyncStream { $0.finish() } })
         ) { transcript in
-            #expect(transcript.first?.content.contains("Beaky Communicator app") == true)
+            #expect(transcript.first?.content.contains("Flock Communicator app") == true)
             return "Text me back when you are home."
         }
 
@@ -334,7 +334,7 @@ struct CharacterMindTests {
         let app = mind.makeTranscript(for: percept, route: .communicator)
 
         #expect(room.first?.content.contains("in the room with you") == true)
-        #expect(app.first?.content.contains("Beaky Communicator app") == true)
+        #expect(app.first?.content.contains("Flock Communicator app") == true)
     }
 
     // MARK: - Helpers
