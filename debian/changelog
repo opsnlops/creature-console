@@ -1,3 +1,11 @@
+creature-cli (2.66.1+world0.16.2+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-agent 2.66.1: the birds no longer remark on April's typos.
+    Every contract says she types quickly and does not proofread: read
+    what she meant, never comment on spelling or punctuation.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 23:40:00 -0700
+
 creature-cli (2.66.0+world0.16.2+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.16.2: scenes the house opens allow three turns

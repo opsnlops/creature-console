@@ -204,6 +204,7 @@ struct PersonaTests {
         #expect(system.contains("April is not home"))
         #expect(system.contains("not a security system"))
         #expect(system.contains("A guess must sound like a guess"))
+        #expect(system.contains("never remark on her spelling"))
         #expect(!system.contains("A scene is unfolding"))
         #expect(lead[1].content.hasPrefix("(A person was just seen at the carport.)\n"))
 

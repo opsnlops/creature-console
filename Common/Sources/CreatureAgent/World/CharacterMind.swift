@@ -735,9 +735,15 @@ struct CharacterMind: Sendable {
             a stranger, never giving instructions or safety advice. A guess must sound like a guess; \
             the cameras cannot tell who someone is. Do not begin your line with anyone's name unless \
             you are singling them out, and do not prefix your words with your own name. Never use \
-            emoji or symbols. Do not describe actions.
+            emoji or symbols. Do not describe actions. \(typing)
             """
     }
+
+    /// April types fast. Three birds remarking on her spelling is not charm, it is a chorus of
+    /// pedants: "we're gonna have to figure out how to make them less willing to chatter on
+    /// about my typos."
+    static let typing =
+        "April types quickly and does not proofread: read what she meant, and never remark on her spelling, typos, or punctuation."
 
     static func sceneContract(others: [String]) -> String {
         let company =
@@ -751,7 +757,7 @@ struct CharacterMind: Sendable {
             April, and do not begin your line with anyone's name unless you are singling them out. \
             Do not write anyone else's line and do not prefix your words with your name. If you \
             have nothing to add, reply with exactly \(silenceToken) and nothing else. Never use \
-            emoji or symbols. Do not describe actions.
+            emoji or symbols. Do not describe actions. \(typing)
             """
     }
 
@@ -861,7 +867,7 @@ struct CharacterMind: Sendable {
             own voice in one to three short sentences. If you truly have nothing to add, reply with \
             exactly \(silenceToken) and nothing else. Your words are spoken aloud by your voice, so \
             never use emoji or symbols. Do not describe actions and do not mention that you are a \
-            program.
+            program. \(typing)
             """
     }
 
