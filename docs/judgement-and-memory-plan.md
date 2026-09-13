@@ -210,8 +210,11 @@ back time, then remember") hands the memory model the day's events, conversation
 and casts for each character, and receives:
 
 - **Episodic facts**, `memory.episode`, subject the character, value `{ "when", "who", "what",
-  "salience" }`, valid for `memory.episode_days` (default 30), provenance the events they came
-  from. `when` is human-grained, as the model writes it — "Tuesday afternoon", never a timestamp:
+  "salience" }`, provenance the events they came from. **Kept for years, no TTL** (April: "let's
+  keep the fact summaries … for a very long time") — retention applies to the raw material
+  (events, percept snapshots, superseded facts), never to memories. What fades is only how long an
+  episode is *handed to her in every prompt* (`memory.episode_days`, default 30); after that it is
+  still in the world for "when did Jesse last come by?" and for next year's memory job. `when` is human-grained, as the model writes it — "Tuesday afternoon", never a timestamp:
   "Jesse came Tuesday afternoon and put the boards on the deck; April was pleased." The lossiness
   is the point (April: she'll know "Jesse was here on Monday", not "at 4:39:29 PM"); the exact
   events remain in the world behind the provenance links, for the Viewer and for "when exactly?".
@@ -250,8 +253,10 @@ undo (supersede), and an undefined predicate lands in the New-words list until i
 
 ### Models
 
-`llmMemoryModel` in the agent config (default: the speaking model). Decided: Sol; GPT-6 is a
-comparison to run later, not the starting point.
+`llmMemoryModel` in the agent config (default: the speaking model). Decided 2026-09-12:
+**`gpt-6-astra`** for the nightly memory — the one job where the most expensive model earns its
+price, because latency is irrelevant and quality compounds day over day. The live line stays on
+Sol (Beaky) and Luna (the others).
 The job runs in the agent (the mind owns its memories, and the API key is there); the world stores
 the facts. `agent.memory_model` and `agent.memory_tokens` on the span.
 
@@ -289,7 +294,7 @@ mode legacy. Measure the same driveway walk against the MQTT timing (MQTT: ~2 s;
    alerts cover the night. She learns of it in the morning.
 2. ~~Should the other birds ever join a house remark?~~ Answered 2026-09-12: "She can have others
    join her, but no more than three turns." `house_maximum_turns` is 3 (World `0.16.2`).
-3. ~~Memory model?~~ Answered 2026-09-12: Sol. And the lossiness is the design: "She'll know
+3. ~~Memory model?~~ Answered 2026-09-12: `gpt-6-astra`. And the lossiness is the design: "She'll know
    'Jesse was here on Monday' and not 'Jesse was here at 4:39:29 PM on Monday'." Memories are
    human-grained; the exact events stay in the world behind provenance links for the Viewer.
 4. ~~Which cameras stay out of her sight entirely, if any?~~ Answered 2026-09-12: none out of
