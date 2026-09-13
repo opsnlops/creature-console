@@ -17,7 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "BCA000000000000000000001"
                BuildableName = "Flock Communicator.app"
-               BlueprintName = "Beaky Communicator"
+               BlueprintName = "Flock Communicator"
                ReferencedContainer = "container:Creature Console.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -35,8 +35,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "BCA00000000000000000000A"
-               BuildableName = "Beaky Communicator Tests.xctest"
-               BlueprintName = "Beaky Communicator Tests"
+               BuildableName = "Flock Communicator Tests.xctest"
+               BlueprintName = "Flock Communicator Tests"
                ReferencedContainer = "container:Creature Console.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -58,7 +58,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "BCA000000000000000000001"
             BuildableName = "Flock Communicator.app"
-            BlueprintName = "Beaky Communicator"
+            BlueprintName = "Flock Communicator"
             ReferencedContainer = "container:Creature Console.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -75,7 +75,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "BCA000000000000000000001"
             BuildableName = "Flock Communicator.app"
-            BlueprintName = "Beaky Communicator"
+            BlueprintName = "Flock Communicator"
             ReferencedContainer = "container:Creature Console.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

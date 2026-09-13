@@ -1,5 +1,5 @@
 import ArgumentParser
-import BeakyCommunicatorCore
+import FlockCommunicatorCore
 import CreatureCommunicatorGateway
 import Foundation
 import Hummingbird

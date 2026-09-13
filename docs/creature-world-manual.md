@@ -605,7 +605,7 @@ Communicator history. The response body is `{ "disposition", "outcome", "convers
 before the Creature Server sink exists, the outcome is recorded as `failed` with
 `error_code: physical_speech_not_connected` rather than lost.
 
-Beaky Communicator writes a typed utterance to its local SwiftData outbox before attempting the
+Flock Communicator writes a typed utterance to its local SwiftData outbox before attempting the
 POST. Retries reuse the same utterance ID, so an interrupted request cannot make Beaky hear April
 twice. A successful response replaces the provisional local item with Creature World's canonical
 item, and history synchronization pages forward from the durable API. Creature World records

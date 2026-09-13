@@ -1,4 +1,4 @@
-import BeakyCommunicatorCore
+import FlockCommunicatorCore
 import Testing
 
 @Suite("Communicator foreground attention policy")

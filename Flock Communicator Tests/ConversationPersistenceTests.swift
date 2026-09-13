@@ -6,7 +6,7 @@ import WorldCore
 @testable import Flock_Communicator
 
 @MainActor
-@Suite("Beaky Communicator conversation persistence", .serialized)
+@Suite("Flock Communicator conversation persistence", .serialized)
 struct ConversationPersistenceTests {
     @Test("Proxy routing does not create a different World cache partition")
     func proxyRoutingPreservesLogicalServerURI() throws {

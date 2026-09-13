@@ -1,6 +1,6 @@
 # Creature Communicator Gateway Manual
 
-Creature Communicator Gateway is the narrow network boundary used by Flock Communicator (the app formerly called Beaky Communicator; its bundle ID is unchanged). It is an
+Creature Communicator Gateway is the narrow network boundary used by Flock Communicator (the app formerly called Flock Communicator; its bundle ID is unchanged). It is an
 independently built, versioned, packaged, and deployed service in the Creature monorepo. It does
 not reason for Beaky and does not own conversation history.
 

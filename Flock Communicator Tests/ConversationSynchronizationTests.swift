@@ -4,7 +4,7 @@ import WorldCore
 
 @testable import Flock_Communicator
 
-@Suite("Beaky Communicator synchronization")
+@Suite("Flock Communicator synchronization")
 struct ConversationSynchronizationTests {
     @Test("A deterministic remote response becomes canonical conversation state")
     func synchronizesWithTestOnlyCharacterResponse() async throws {

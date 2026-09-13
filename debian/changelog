@@ -1,3 +1,11 @@
+creature-cli (2.63.0+world0.13.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-communicator-gateway 0.1.6: the app it serves is now Flock
+    Communicator ("The Flock" on the phone); help text and the shared
+    FlockCommunicatorCore module follow the rename. No wire change.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 20:20:00 -0700
+
 creature-cli (2.63.0+world0.13.0+house0.1.4) unstable; urgency=medium
 
   * creature-world 0.13.0: voices have their own pace. On 0.12.0 the room

@@ -1,4 +1,4 @@
-import BeakyCommunicatorCore
+import FlockCommunicatorCore
 import Foundation
 import Testing
 import WorldCore

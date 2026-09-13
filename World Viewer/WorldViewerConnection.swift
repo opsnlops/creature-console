@@ -3,7 +3,7 @@ import CreatureAppSupport
 import Foundation
 import WorldCore
 
-/// Where World Viewer scries. Mirrors Beaky Communicator's settings shape under its own keys so
+/// Where World Viewer scries. Mirrors Flock Communicator's settings shape under its own keys so
 /// the Viewer can watch a development world while the Communicator talks to production.
 @MainActor
 final class WorldViewerConnection: Sendable {

@@ -131,7 +131,7 @@ scene: { scene_id, opened_by (event / utterance), participants: [character_id],
   in" — **@-addressing means one bird and one bird only**, while **"Beaky, …" means she
   answers first and the others may respond**. An unaddressed remark is for the room and opens
   a scene (C2), Beaky first.
-- Beaky Communicator's title, icon, and settings stop assuming one bird; the app subscribes to
+- Flock Communicator's title, icon, and settings stop assuming one bird; the app subscribes to
   the house conversation and shows who is speaking. Push and quiet hours (later VW-028 work)
   apply per person, not per character.
 - **Exit:** "Mango, do you like the new servos?" from the phone is answered by Mango, aloud and

@@ -4,7 +4,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct BeakyCommunicatorApp: App {
+struct FlockCommunicatorApp: App {
     private let modelContainer: ModelContainer
     private let conversationService: any CommunicatorConversationService
 
@@ -22,7 +22,7 @@ struct BeakyCommunicatorApp: App {
                     create: true
                 )
                 configuration = ModelConfiguration(
-                    url: applicationSupport.appendingPathComponent("BeakyCommunicatorStore")
+                    url: applicationSupport.appendingPathComponent("FlockCommunicatorStore")
                 )
             }
 

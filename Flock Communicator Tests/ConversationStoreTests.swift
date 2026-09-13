@@ -6,7 +6,7 @@ import WorldCore
 @testable import Flock_Communicator
 
 @MainActor
-@Suite("Beaky Communicator conversation store")
+@Suite("Flock Communicator conversation store")
 struct ConversationStoreTests {
     @Test("Loading exposes the service's ordered WorldCore conversation")
     func loadsConversation() async throws {

@@ -6,7 +6,7 @@ A multi-platform SwiftUI application for controlling animatronic creatures at [A
 
 ## Overview
 
-This repository is the Swift Creature monorepo. It started as Creature Console — the control software for managing animatronic devices ("creatures") through a graphical interface (macOS, iOS, tvOS) and a command-line tool that talk to Creature Server over WebSocket and REST — and now also holds the independently built and deployed products of [Beaky's World](docs/beakys-world.md): the Creature World simulator, the Flock Communicator app (née Beaky Communicator) and its gateway, the character mind in `creature-agent`, and World Viewer. Monorepo does not mean monolith: every product has its own version, package, and lifecycle.
+This repository is the Swift Creature monorepo. It started as Creature Console — the control software for managing animatronic devices ("creatures") through a graphical interface (macOS, iOS, tvOS) and a command-line tool that talk to Creature Server over WebSocket and REST — and now also holds the independently built and deployed products of [Beaky's World](docs/beakys-world.md): the Creature World simulator, the Flock Communicator app (née Flock Communicator) and its gateway, the character mind in `creature-agent`, and World Viewer. Monorepo does not mean monolith: every product has its own version, package, and lifecycle.
 
 **What it does:**
 - Control multiple animatronic creatures simultaneously
@@ -35,14 +35,14 @@ creature-console/
 │   ├── Sources/CreatureAgent/              # creature-agent: MQTT reactions and Beaky's world-resident mind
 │   ├── Sources/WorldCore/                  # Beaky's World domain contracts (events, facts, conversation)
 │   ├── Sources/CreatureWorld/              # creature-world simulator (Hummingbird + MongoDB)
-│   ├── Sources/BeakyCommunicatorCore/      # Communicator state shared by the apps and the gateway
+│   ├── Sources/FlockCommunicatorCore/      # Communicator state shared by the apps and the gateway
 │   ├── Sources/CreatureCommunicatorGateway/# creature-communicator-gateway (/communicator/v1)
 │   ├── Sources/Observability/              # Shared OpenTelemetry bootstrap
 │   ├── Fixtures/, Schemas/                 # Wire-contract fixtures and JSON schemas
 │   └── Tests/                              # Swift Testing suites, including Linux black-box service tests
 ├── Sources/Creature Console/               # Creature Console GUI application (macOS, iOS)
 ├── Creature TV/                            # tvOS application
-├── Beaky Communicator/                     # Flock Communicator app (macOS, iOS); folder keeps its old name
+├── Flock Communicator/                     # Flock Communicator app (macOS, iOS)
 ├── World Viewer/                           # World Viewer: a read-only window on Creature World (macOS)
 ├── debian/                                 # Debian packaging for every Linux product
 ├── docs/                                   # Manuals, design, and implementation plans

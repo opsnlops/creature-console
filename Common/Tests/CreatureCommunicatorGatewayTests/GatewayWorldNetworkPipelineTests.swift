@@ -1,4 +1,4 @@
-import BeakyCommunicatorCore
+import FlockCommunicatorCore
 import Foundation
 import HTTPTypes
 import Hummingbird
