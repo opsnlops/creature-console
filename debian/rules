@@ -132,12 +132,17 @@ override_dh_installsystemd:
 	dh_installsystemd --no-start -pcreature-communicator-gateway
 	dh_installsystemd --no-start -pcreature-house
 
-# The Debian source package retains the established creature-cli version, while
-# Creature World is independently versioned by its own executable metadata.
+# Every binary package is versioned by its own executable (`--version`), so a package's
+# filename is its own version - creature-agent_2.66.1, not the source package's compound
+# string. The Debian source package keeps the compound changelog version as the record of
+# what was built together.
 override_dh_gencontrol:
-	dh_gencontrol -pcreature-cli
-	dh_gencontrol -pcreature-mqtt
-	dh_gencontrol -pcreature-agent
+	CLI_VERSION=$$($(CURDIR)/debian/creature-cli/usr/bin/creature-cli --version); \
+		dh_gencontrol -pcreature-cli -- -v$$CLI_VERSION
+	MQTT_VERSION=$$($(CURDIR)/debian/creature-mqtt/usr/bin/creature-mqtt --version); \
+		dh_gencontrol -pcreature-mqtt -- -v$$MQTT_VERSION
+	AGENT_VERSION=$$($(CURDIR)/debian/creature-agent/usr/bin/creature-agent --version); \
+		dh_gencontrol -pcreature-agent -- -v$$AGENT_VERSION
 	WORLD_VERSION=$$($(CURDIR)/debian/creature-world/bin/creature-world --version); \
 		dh_gencontrol -pcreature-world -- -v$$WORLD_VERSION
 	GATEWAY_VERSION=$$($(CURDIR)/debian/creature-communicator-gateway/bin/creature-communicator-gateway --version); \
