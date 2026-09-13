@@ -109,6 +109,8 @@ sudo systemctl enable --now creature-house
 journalctl -u creature-house -f
 ```
 
+A stop (`systemctl stop`, an upgrade) cancels the Home Assistant socket and the world
+stream and returns within a second (`0.1.4`; `TimeoutStopSec=15` remains as the backstop).
 The log's `Snapshot of the house` line lists how many entities were read; each change logs
 `The house says` with the entity, its state, and the world event type. Upgrades restart an
 enabled unit. Observability is the shared OpenTelemetry bootstrap (`creature-house` service

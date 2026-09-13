@@ -1,5 +1,8 @@
-creature-cli (2.63.0+world0.9.0+house0.1.3) unstable; urgency=medium
+creature-cli (2.63.0+world0.9.0+house0.1.4) unstable; urgency=medium
 
+  * creature-house 0.1.4: a stop cuts the Home Assistant socket and the
+    world stream instead of merely noting it, so an upgrade no longer waits
+    for systemd to kill the service (the gateway's old disease).
   * Scene turns stream sentence by sentence (#175). creature-world 0.9.0:
     `POST /scenes/{id}/turns` takes a line in pieces (`piece: 0, 1, ...`
     then a final submission with no piece); each piece is spoken through
