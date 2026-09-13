@@ -416,17 +416,21 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public var maximumSpokenSeconds: TimeInterval
     /// Rough reading pace used to estimate spoken time from text.
     public var wordsPerSecond: Double
+    /// The world events that open a scene on their own, and where, and how often.
+    public var openOn: [SceneOpeningRule]
 
     public init(
         floorSeconds: TimeInterval = 8,
         maximumTurns: Int = 12,
         maximumSpokenSeconds: TimeInterval = 90,
-        wordsPerSecond: Double = 2.5
+        wordsPerSecond: Double = 2.5,
+        openOn: [SceneOpeningRule] = []
     ) {
         self.floorSeconds = floorSeconds
         self.maximumTurns = maximumTurns
         self.maximumSpokenSeconds = maximumSpokenSeconds
         self.wordsPerSecond = wordsPerSecond
+        self.openOn = openOn
     }
 
     public init(from decoder: any Decoder) throws {
@@ -441,7 +445,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
                 TimeInterval.self, forKey: .maximumSpokenSeconds)
                 ?? defaults.maximumSpokenSeconds,
             wordsPerSecond: try container.decodeIfPresent(Double.self, forKey: .wordsPerSecond)
-                ?? defaults.wordsPerSecond
+                ?? defaults.wordsPerSecond,
+            openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? []
         )
     }
 
@@ -455,5 +460,6 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case maximumTurns = "maximum_turns"
         case maximumSpokenSeconds = "maximum_spoken_seconds"
         case wordsPerSecond = "words_per_second"
+        case openOn = "open_on"
     }
 }

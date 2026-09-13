@@ -36,14 +36,28 @@ struct CreatureWorldBlackBoxTests {
         // This run's own April: the database is shared with a laptop's live world, whose house
         // may have observed the real person:april, and evidence would rightly beat assumption.
         let april = try EntityID(validating: "person:april-\(UUID().uuidString.lowercased())")
+        // And its own birds: a previous run's sessions are still live in the shared database
+        // for thirty seconds, and a mind that does not hold the live session is refused.
+        let beaky = try EntityID(validating: "character:beaky-\(UUID().uuidString.lowercased())")
+        let mango = try EntityID(validating: "character:mango-\(UUID().uuidString.lowercased())")
+        let region = try EntityID(validating: "region:home-\(UUID().uuidString.lowercased())")
 
         // The world is told to assume April is home and audible, as a deployment would be until
         // real presence exists, so a staged turn goes to the physical stage.
         let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(
             "creature-world-blackbox-\(UUID().uuidString).json")
+        let conversationID = try ConversationID(
+            validating: "conversation:blackbox-\(UUID().uuidString.lowercased())"
+        )
+        // This run's own driveway too: the house opens a scene when a person is seen there.
+        let driveway = try EntityID(validating: "place:driveway-\(UUID().uuidString.lowercased())")
         try Data(
             """
-            {"presence": {"assumed": {"\(april.rawValue)": {"state": "home", "physically_audible": true}}}}
+            {"presence": {"assumed": {"\(april.rawValue)": {"state": "home", "physically_audible": true}}},
+             "house_conversation": "\(conversationID.rawValue)",
+             "lead_character": "\(beaky.rawValue)",
+             "regions": {"\(region.rawValue)": {"stage_id": "stage:test", "places": ["\(driveway.rawValue)"]}},
+             "scenes": {"open_on": [{"event": "camera.person_seen", "places": ["\(driveway.rawValue)"], "cooldown_seconds": 300}]}}
             """.utf8
         ).write(to: configURL)
         defer { try? FileManager.default.removeItem(at: configURL) }
@@ -102,9 +116,6 @@ struct CreatureWorldBlackBoxTests {
 
         // April speaks and Beaky answers through the same service; both turns become one
         // ordered conversation and the answer reaches a listener already on the stream.
-        let conversationID = try ConversationID(
-            validating: "conversation:blackbox-\(UUID().uuidString.lowercased())"
-        )
         let conversationStream = try await api.openConversationStream(conversationID)
         #expect(try await conversationStream.next().event == "ready")
         // The utterance becomes a conversation.person_utterance world event under its own
@@ -112,7 +123,7 @@ struct CreatureWorldBlackBoxTests {
         let utterance = try makeUtterance(
             in: conversationID,
             sourceID: SourceID(validating: "communicator:blackbox"),
-            speaker: april
+            speaker: april, addressee: beaky
         )
         let ingress = try await api.post(utterance)
         #expect(ingress.status == .accepted)
@@ -164,10 +175,8 @@ struct CreatureWorldBlackBoxTests {
         // offers the floor to Beaky, then Mango, records what they say as conversation items,
         // closes when both pass, and — with no Creature Server configured here — records that
         // the performance could not happen rather than losing the scene.
-        let beaky = try EntityID(validating: "character:beaky")
-        let mango = try EntityID(validating: "character:mango")
-        let beakySession = try await api.login(beaky, host: "blackbox-beaky")
-        let mangoSession = try await api.login(mango, host: "blackbox-mango")
+        let beakySession = try await api.login(beaky, in: region, host: "blackbox-beaky")
+        let mangoSession = try await api.login(mango, in: region, host: "blackbox-mango")
         #expect(beakySession.disposition == .loggedIn)
         #expect(mangoSession.disposition == .loggedIn)
 
@@ -176,13 +185,13 @@ struct CreatureWorldBlackBoxTests {
         // mind that hears it.
         let mangoPresence = try await api.waitForFact(
             about: mango, predicate: WorldFacts.characterRegion)
-        #expect(mangoPresence.value == .string("region:home"))
+        #expect(mangoPresence.value == .string(region.rawValue))
         #expect(mangoPresence.epistemic.type == .observed)
         _ = try await api.waitForFact(about: beaky, predicate: WorldFacts.characterRegion)
 
         let sceneUtterance = try makeUtterance(
             in: conversationID, sourceID: SourceID(validating: "communicator:blackbox"),
-            speaker: april,
+            speaker: april, addressee: beaky,
             text: "What do you two think is in the box?")
         let sceneIngress = try await api.post(sceneUtterance)
         #expect(sceneIngress.status == .accepted)
@@ -191,8 +200,8 @@ struct CreatureWorldBlackBoxTests {
         #expect(known.count <= WorldKnowledgeLimits.maximumFacts)
         #expect(
             Set(known.map { "\($0.subjectID.rawValue) \($0.predicate)" }).isSuperset(of: [
-                "character:beaky \(WorldFacts.characterRegion)",
-                "character:mango \(WorldFacts.characterRegion)",
+                "\(beaky.rawValue) \(WorldFacts.characterRegion)",
+                "\(mango.rawValue) \(WorldFacts.characterRegion)",
                 "\(april.rawValue) \(WorldFacts.personState)",
             ]))
         #expect(
@@ -254,6 +263,36 @@ struct CreatureWorldBlackBoxTests {
             ])
         #expect(sceneEvents.map(\.type.rawValue).suffix(2) == ["scene.closed", "scene.performed"])
 
+        // The house says a person is at the driveway: the world opens a scene on its own,
+        // the lead gets the floor first, and the birds read it as a stage note.
+        let sighting = try WorldEventEnvelope(
+            type: HouseEvents.personSeen,
+            occurredAt: Date(),
+            source: EventSource(
+                id: SourceID(validating: "home-assistant:test-camera"), kind: "home-assistant",
+                sourceEventID: "context:\(UUID().uuidString)"),
+            subjectIDs: [driveway], placeID: driveway,
+            epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: [:])
+        let sightingSequence = try #require(try await api.post(sighting).body.event.worldSequence)
+        let houseScene = try await api.waitForScene(
+            triggeredBy: sighting.eventID, after: sightingSequence)
+        #expect(houseScene.trigger.kind == .worldEvent)
+        #expect(houseScene.trigger.text.contains("A person was just seen at the driveway"))
+        #expect(houseScene.participants.first == beaky)
+        #expect(houseScene.floor?.characterID == beaky)
+        #expect(houseScene.conversationID == conversationID)
+        // Twice in a row is once: the cooldown holds.
+        var again = sighting
+        again.eventID = .generated()
+        again.source.sourceEventID = "context:\(UUID().uuidString)"
+        _ = try await api.post(again)
+        try await Task.sleep(for: .milliseconds(300))
+        let scenesForDriveway = try await api.scenes().filter {
+            [sighting.eventID, again.eventID].contains($0.trigger.eventID)
+        }
+        #expect(scenesForDriveway.count == 1)
+
         // Kill the process. Everything accepted before the kill must still be there afterwards.
         try await service.stop()
         try await service.start()
@@ -293,12 +332,13 @@ struct CreatureWorldBlackBoxTests {
         in conversationID: ConversationID,
         sourceID: SourceID,
         speaker: EntityID,
+        addressee: EntityID,
         text: String = "Beaky, are you still there after a restart?"
     ) throws -> PersonUtterance {
         try PersonUtterance(
             conversationID: conversationID,
             speakerID: speaker,
-            addresseeIDs: [EntityID(validating: "character:beaky")],
+            addresseeIDs: [addressee],
             text: text,
             modality: .typed,
             source: .communicatorComposition,
@@ -567,10 +607,12 @@ private struct WorldServiceAPI {
         )
     }
 
-    func login(_ characterID: EntityID, host: String) async throws -> CharacterLoginResult {
+    func login(_ characterID: EntityID, in region: EntityID, host: String) async throws
+        -> CharacterLoginResult
+    {
         try await postJSON(
             CharacterLoginRequest(
-                regionID: try EntityID(validating: "region:home"),
+                regionID: region,
                 instance: CharacterMindInstance(host: host, processID: 1, creatureID: "u")),
             to: "\(base)/characters/\(characterID.rawValue)/login"
         ).body
@@ -612,6 +654,27 @@ private struct WorldServiceAPI {
         #expect(response.status == .ok)
         let body = try await response.body.collect(upTo: 1_048_576)
         return try WorldJSON.makeDecoder().decode(ConversationItemPage.self, from: body).items
+    }
+
+    func scenes() async throws -> [Scene] {
+        let response = try await client.execute(
+            HTTPClientRequest(url: "\(base)/scenes?limit=50"), timeout: .seconds(15))
+        #expect(response.status == .ok)
+        let body = try await response.body.collect(upTo: 1_048_576)
+        return try WorldJSON.makeDecoder().decode(ScenePage.self, from: body).scenes
+    }
+
+    /// The world opens scenes on its own loop after an event is accepted; wait for the one
+    /// this event caused.
+    func waitForScene(triggeredBy eventID: EventID, after sequence: Int64) async throws -> Scene {
+        let deadline = ContinuousClock.now + .seconds(10)
+        while ContinuousClock.now < deadline {
+            if let scene = try await scenes().first(where: { $0.trigger.eventID == eventID }) {
+                return scene
+            }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        throw BlackBoxError.missingScene(eventID.rawValue)
     }
 
     func facts(about subjectID: EntityID) async throws -> [Fact] {
@@ -833,5 +896,6 @@ private enum BlackBoxError: Error {
     case serviceNeverBecameHealthy
     case streamEnded
     case missingFact(subjectID: String, predicate: String)
+    case missingScene(String)
     case streamTimedOut
 }

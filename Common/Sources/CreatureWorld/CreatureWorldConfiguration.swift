@@ -38,6 +38,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     static let defaultPort = 8001
     /// The character an unaddressed message goes to: Beaky leads.
     static let defaultLeadCharacter = try! EntityID(validating: "character:beaky")
+    static let defaultHouseConversation = try! ConversationID(
+        validating: "conversation:april-house")
 
     let allowedOrigins: [String]
     let host: String
@@ -49,6 +51,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let scenePerformance: ScenePerformanceMode
     let regions: [EntityID: RegionConfiguration]
     let leadCharacter: EntityID
+    /// The conversation scenes the world opens on its own are recorded in.
+    let houseConversation: ConversationID
     /// Facts April states outright ("Polly is April's sister") until a source can observe
     /// them; announced at startup like the presence assumption.
     let givenFacts: [GivenFact]
@@ -64,6 +68,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = defaultLeadCharacter,
+        houseConversation: ConversationID = defaultHouseConversation,
         givenFacts: [GivenFact] = []
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -98,6 +103,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.scenePerformance = scenePerformance
         self.regions = regions
         self.leadCharacter = leadCharacter
+        self.houseConversation = houseConversation
         self.givenFacts = givenFacts
     }
 
@@ -124,6 +130,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                     }),
                 leadCharacter: try raw.leadCharacter.map(EntityID.init(validating:))
                     ?? defaultLeadCharacter,
+                houseConversation: try raw.houseConversation.map(ConversationID.init(validating:))
+                    ?? defaultHouseConversation,
                 givenFacts: raw.facts ?? []
             )
         } else {
@@ -169,6 +177,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             scenePerformance: scenePerformance,
             regions: regions,
             leadCharacter: leadCharacter,
+            houseConversation: houseConversation,
             givenFacts: givenFacts
         )
     }
@@ -184,6 +193,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let scenePerformance: ScenePerformanceMode?
         let regions: [String: RegionConfiguration]?
         let leadCharacter: String?
+        let houseConversation: String?
         let facts: [GivenFact]?
 
         private enum CodingKeys: String, CodingKey {
@@ -197,6 +207,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case scenePerformance = "scene_performance"
             case regions
             case leadCharacter = "lead_character"
+            case houseConversation = "house_conversation"
             case facts
         }
     }

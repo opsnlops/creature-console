@@ -12,6 +12,12 @@ The design and roadmap live in [Beaky's World](beakys-world.md) (§8 and the dat
 
 ## World mode and production
 
+**World mode now covers what MQTT mode did** (World `0.10.0`): the house's camera detections
+and door events open scenes on their own (`scenes.open_on` in `world.json`), so Beaky chimes
+in when someone is at the driveway without anyone asking — with cooldowns per place, like the
+MQTT agent's areas. The remaining difference is that MQTT mode spoke a fixed
+`agentPrompt`-driven alert; world mode has the birds react in character, with the facts.
+
 Production's agent (`mode: mqtt`) reacts to house events out loud. From `2.56.0`, world mode can
 speak too: when Creature World puts Beaky in the room (April assumed or known to be home and
 audible), the mind streams sentences to Creature Server exactly as MQTT mode does. What world

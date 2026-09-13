@@ -72,10 +72,21 @@ server also found TTS is the floor and is switching to `eleven_flash_v2_5` (no c
 change). Beaky on `openai/gpt-5.6-sol` + fast: 1.9 s whole-line p50 vs Nemo 0.85 s; with
 streamed turns the first sentence is what matters.
 
+**F3 — the house opens scenes (World `0.10.0`, same branch):** `scenes.open_on` rules
+(`SceneOpeningRule`, `SceneOpeningPolicy` with per-event-and-place cooldowns, WorldCore),
+the opener task on the world stream in `MongoWorldPersistenceProvider` (region from the
+place's `places`, lead first, `house_conversation`), trigger text as a stage note; packaged
+`world.json` opens on `camera.person_seen`/`vehicle_seen` at driveway/front door/carport
+(300 s) and `door.unlocked` (60 s). Black-box: a posted sighting opens a scene with the lead
+on the floor, once per cooldown. April: "That's what we need to replace the MQTT mode on
+creature-agent." Also: `creature-house 0.1.4` stops promptly (follow loops cancelled on
+graceful shutdown; the upgrade stall).
+
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);
 re-measure `creature.server.perform` after the Flash switch; the squirrel rule (prefer
-`animal_detected` where a camera has both).
+`animal_detected` where a camera has both); then decide when production's agent moves to
+world mode.
 
 ### 0.3a F2 — the house (`creature-house 0.1.0`, World `0.8.0`, agent `2.62.0`, gateway `0.1.5`)
 

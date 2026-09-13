@@ -19,6 +19,16 @@
       ]
     }
   },
+  "scenes": {
+    "floor_seconds": 8,
+    "maximum_turns": 12,
+    "maximum_spoken_seconds": 90,
+    "open_on": [
+      { "event": "camera.person_seen", "places": ["place:driveway", "place:front-door", "place:carport"], "cooldown_seconds": 300 },
+      { "event": "camera.vehicle_seen", "places": ["place:driveway", "place:carport"], "cooldown_seconds": 300 },
+      { "event": "door.unlocked", "cooldown_seconds": 60 }
+    ]
+  },
   "facts": [
     { "subject_id": "person:polly", "predicate": "person.description", "value": "April's sister" }
   ]

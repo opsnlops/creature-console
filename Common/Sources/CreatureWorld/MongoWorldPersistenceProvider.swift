@@ -48,6 +48,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
+        houseConversation: ConversationID = CreatureWorldConfiguration.defaultHouseConversation,
         givenFacts: [GivenFact] = [],
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
@@ -181,6 +182,50 @@ struct MongoWorldPersistenceConnection: Sendable {
                         "Could not sweep expired character sessions",
                         metadata: ["error": "\(error)"])
                 }
+            }
+        }
+        // The house starts scenes: a person at the driveway, a door unlocking. The rules are
+        // `scenes.open_on`; the lead gets the floor first, then whoever else is in the region.
+        let openingPolicy = SceneOpeningPolicy(rules: sceneLimits.openOn)
+        let sceneOpener = Task {
+            guard !sceneLimits.openOn.isEmpty else { return }
+            do {
+                for try await delta in try await world.subscribe() {
+                    let event = delta.event
+                    guard
+                        let place = await openingPolicy.shouldOpen(for: event, at: await clock.now)
+                    else { continue }
+                    // The region the place belongs to; a person's region is wherever the lead is.
+                    var regionID = regions.first { $0.value.places.contains(place) }?.key
+                    if regionID == nil {
+                        regionID = try await sessionService.liveSession(for: leadCharacter)?
+                            .regionID
+                    }
+                    guard let regionID else { continue }
+                    let present = try await sessionService.present(in: regionID).map(\.characterID)
+                    guard !present.isEmpty else { continue }
+                    let participants =
+                        present.contains(leadCharacter)
+                        ? [leadCharacter] + present.filter { $0 != leadCharacter } : present
+                    let scene = try await sceneService.open(
+                        regionID: regionID,
+                        conversationID: houseConversation,
+                        trigger: SceneTrigger(
+                            kind: .worldEvent, eventID: event.eventID,
+                            text: SceneOpeningPolicy.triggerText(for: event, place: place)),
+                        participants: participants,
+                        trace: event.trace)
+                    logger.info(
+                        "The house opened a scene",
+                        metadata: [
+                            "scene.id": "\(scene.sceneID.rawValue)",
+                            "world.event_type": "\(event.type.rawValue)",
+                            "place": "\(place.rawValue)",
+                        ])
+                }
+            } catch {
+                logger.warning(
+                    "Stopped opening scenes for the house", metadata: ["error": "\(error)"])
             }
         }
         // Floor deadlines fire as world timers; the scene service hears them from the stream.
@@ -334,6 +379,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             assumptionAnnouncer.cancel()
             sessionSweeper.cancel()
             floorWatcher.cancel()
+            sceneOpener.cancel()
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
             try? await sceneClient?.shutdown()
@@ -458,6 +504,7 @@ actor MongoWorldPersistenceProvider {
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
+        houseConversation: ConversationID = CreatureWorldConfiguration.defaultHouseConversation,
         givenFacts: [GivenFact] = [],
         logger: Logger,
         connector: Connector? = nil
@@ -477,6 +524,7 @@ actor MongoWorldPersistenceProvider {
                         scenePerformance: scenePerformance,
                         regions: regions,
                         leadCharacter: leadCharacter,
+                        houseConversation: houseConversation,
                         givenFacts: givenFacts,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger

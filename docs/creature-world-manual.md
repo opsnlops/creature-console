@@ -176,6 +176,26 @@ a row, at `maximum_turns`, or when the composed speech would exceed `maximum_spo
 (estimated at `words_per_second`); a new scene in the region interrupts an open one. Every spoken
 turn is also a conversation item, so the Communicator shows the exchange as it is composed.
 
+**The house opens scenes** (`0.10.0`, F3): `scenes.open_on` lists the world events that
+start a scene on their own, where, and how often —
+
+```json
+"scenes": { "open_on": [
+  { "event": "camera.person_seen",  "places": ["place:driveway", "place:front-door", "place:carport"], "cooldown_seconds": 300 },
+  { "event": "camera.vehicle_seen", "places": ["place:driveway", "place:carport"], "cooldown_seconds": 300 },
+  { "event": "door.unlocked", "cooldown_seconds": 60 }
+] }
+```
+
+— the MQTT agent's areas and cooldowns, as world rules. When a matching event is accepted
+(and its place has not opened one within the cooldown), the world opens a scene in the
+region whose `places` include it (a person's event uses the lead's region), in
+`house_conversation` (default `conversation:april-house`), with the lead first and everyone
+else logged into the region after; the trigger is a stage note the birds read — "A person
+was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody logged in means
+no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
+(so the birds also know it is 66 degrees and the cameras are otherwise quiet).
+
 **A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model
 submits `{ "text": "Not quite, Kenny.", "piece": 0 }`, `{ …, "piece": 1 }`, … and finally
 `{ "text": null }` (or a last sentence with no `piece`) for "that was the whole line". Each

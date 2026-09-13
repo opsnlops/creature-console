@@ -1,3 +1,17 @@
+creature-cli (2.63.0+world0.10.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.10.0: the house opens scenes (F3). `scenes.open_on`
+    in world.json names the events that start one - a person or vehicle
+    seen at the driveway, front door, or carport; the front door
+    unlocking - with a cooldown per event and place, the way the MQTT
+    agent's areas worked. The lead gets the floor first, then whoever else
+    is in the region; the birds read it as a stage note ("A person was
+    just seen at the driveway."). `house_conversation` names where those
+    scenes are recorded (default conversation:april-house). This is what
+    lets creature-agent's world mode replace its MQTT mode.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 00:30:00 -0700
+
 creature-cli (2.63.0+world0.9.0+house0.1.4) unstable; urgency=medium
 
   * creature-house 0.1.4: a stop cuts the Home Assistant socket and the
