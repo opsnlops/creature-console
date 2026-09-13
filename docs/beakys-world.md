@@ -45,7 +45,7 @@ current in the same commit as the code it describes.**
 | Communicator Gateway | `0.1.4` fuzzball / `0.1.3` prod | `:8002` | |
 | Minds | `creature-agent 2.61.1` × 3 | fuzzball: `creature-agent@beaky` on **`openai/gpt-6-astra` (low effort)** since 13:40, `@mango` and `@kenny` on `local/mistral-nemo`; each with `personaPath` + `timeZone` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
 | World Viewer | `0.1.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts, Timers, Mundane view |
-| Beaky Communicator | `0.3.0` | April's Mac/phone | "The Flock", the house conversation, names and colours per author |
+| Beaky Communicator | `0.4.0` | April's Mac/phone | "The Flock", the house conversation, names and colours per author; text size follows the system and steps bigger (Settings; View menu ⌘+/⌘− on the Mac) |
 
 **Verified live tonight:** Beaky's first words in the room from her own mind (17:32); the first
 two-bird scene (21:21, twelve turns, streamed through `dialog-stream`, floor alternating, all in

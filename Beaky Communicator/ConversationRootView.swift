@@ -58,6 +58,7 @@ struct ConversationRootView: View {
                         }
                     }
                 }
+                .communicatorTextSize()
             }
         #endif
     }
@@ -118,7 +119,8 @@ private struct ConversationView: View {
     private var welcomeHeader: some View {
         VStack(spacing: 8) {
             Image(systemName: "bird.fill")
-                .font(.system(size: 38, weight: .semibold))
+                .font(.largeTitle.weight(.semibold))
+                .imageScale(.large)
                 .foregroundStyle(.purple)
             Text("The house conversation")
                 .font(.title2.bold())
@@ -193,6 +195,9 @@ enum ResidentStyle {
 private struct ConversationBubble: View {
     let item: ConversationItem
     let replyAction: () -> Void
+    /// The bird's badge and the far-side margin grow with the words.
+    @ScaledMetric(relativeTo: .body) private var badgeSize = 28.0
+    @ScaledMetric(relativeTo: .body) private var farMargin = 48.0
 
     private var isApril: Bool { item.authorKind == .person }
     private var name: String { ResidentStyle.name(of: item.authorID) }
@@ -200,11 +205,12 @@ private struct ConversationBubble: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            if isApril { Spacer(minLength: 48) }
+            if isApril { Spacer(minLength: farMargin) }
             if !isApril {
                 Image(systemName: "bird.fill")
+                    .font(.body)
                     .foregroundStyle(tint)
-                    .frame(width: 28, height: 28)
+                    .frame(width: badgeSize, height: badgeSize)
             }
 
             VStack(alignment: isApril ? .trailing : .leading, spacing: 5) {
@@ -212,6 +218,7 @@ private struct ConversationBubble: View {
                     .font(.caption.bold())
                     .foregroundStyle(isApril ? AnyShapeStyle(.secondary) : AnyShapeStyle(tint))
                 Text(item.text)
+                    .font(.body)
                     .textSelection(.enabled)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
@@ -229,7 +236,7 @@ private struct ConversationBubble: View {
                 }
             }
 
-            if !isApril { Spacer(minLength: 48) }
+            if !isApril { Spacer(minLength: farMargin) }
         }
     }
 }

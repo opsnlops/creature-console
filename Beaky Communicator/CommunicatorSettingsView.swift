@@ -9,6 +9,8 @@ struct CommunicatorSettingsView: View {
     @AppStorage("worldServerUseTLS") private var serverUseTLS = false
     @AppStorage("worldServerUseProxy") private var useProxy = false
     @AppStorage("worldServerProxyHost") private var proxyHost = "proxy.prod.chirpchirp.dev"
+    @AppStorage(CommunicatorTextSize.storageKey) private var textSizeSteps = 0
+    @Environment(\.dynamicTypeSize) private var systemTextSize
 
     @State private var proxyAPIKey = ""
     @State private var hasLoadedAPIKey = false
@@ -80,6 +82,22 @@ struct CommunicatorSettingsView: View {
 
                 Text(
                     "Direct LAN connections are open. The API key is sent only through the configured external proxy."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Section("Text") {
+                Stepper(value: $textSizeSteps, in: CommunicatorTextSize.range) {
+                    LabeledContent(
+                        "Text Size", value: CommunicatorTextSize.label(for: textSizeSteps))
+                }
+                Text("Beaky, the front door was just unlocked.")
+                    .font(.body)
+                    .dynamicTypeSize(
+                        CommunicatorTextSize.size(from: systemTextSize, steps: textSizeSteps))
+                Text(
+                    "Starts from the system text size (Accessibility settings) and steps from there."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)

@@ -41,9 +41,11 @@ struct BeakyCommunicatorApp: App {
         #if os(macOS)
             WindowGroup {
                 ConversationRootView(service: conversationService)
+                    .communicatorTextSize()
             }
             .defaultSize(width: 760, height: 720)
             .modelContainer(modelContainer)
+            .commands { TextSizeCommands() }
 
             Settings {
                 CommunicatorSettingsView()
@@ -53,6 +55,7 @@ struct BeakyCommunicatorApp: App {
         #else
             WindowGroup {
                 ConversationRootView(service: conversationService)
+                    .communicatorTextSize()
             }
             .modelContainer(modelContainer)
         #endif
