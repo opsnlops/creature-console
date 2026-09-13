@@ -84,7 +84,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Lead character | `lead_character` | — | — | `character:beaky` (who an unaddressed message goes to) |
 | Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
-| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `90` |
+| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
 | Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
 
 Example:
@@ -196,6 +196,26 @@ else logged into the region after; the trigger is a stage note the birds read �
 was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody logged in means
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
+
+**Scenes the house opens are short** (`0.14.0`): `scenes.house_maximum_turns` (default 2) caps a
+scene whose trigger is a world event — Beaky's remark and perhaps one reaction, not a twelve-turn
+debate about a visitor. If the lead's mind is silent or fails, the room still hears the event: the
+world takes the trigger sentence as her line and marks the turn `fallback: true` (the MQTT agent's
+`fallbackSpeech`, moved to where the floor is).
+
+**Casting a fact.** Anyone may tell the world something by posting a `facts.given` event:
+
+```
+curl -X POST http://fuzzball:8001/world/v1/events -H 'Content-Type: application/json' -d '{
+  "type": "facts.given", "occurred_at": "2026-09-13T20:00:00Z",
+  "source": {"id": "wizard:april", "kind": "person"},
+  "subject_ids": ["person:jesse"], "epistemic": {"type": "reported", "confidence": 1},
+  "payload": {"subject_id": "person:jesse", "predicate": "visitor.expected",
+              "value": "this afternoon, to look at the deck", "valid_for_seconds": 21600}}'
+```
+
+`valid_for_seconds` or an ISO `valid_to` gives the fact an expiry; without one it stands until
+superseded. `world.json`'s `facts` list is the same thing, cast at startup and never expiring.
 
 **The floor is paced to the room** (`0.11.0`). Composing is fast and speaking is slow: a
 twelve-turn scene generates in seconds and plays for a minute, and with the next floor offered

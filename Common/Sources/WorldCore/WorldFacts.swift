@@ -15,6 +15,10 @@ public enum WorldFacts {
     /// Who a person is, in a phrase April would use: "April's sister". Stated in `world.json`
     /// until a source (the address book, through the Bridge) can say more.
     public static let personDescription = "person.description"
+    /// `person:jesse` `visitor.expected` "this afternoon, to look at the deck" — cast by April
+    /// (or the Bridge, from a text), usually with an expiry; a person at the door is then
+    /// almost certainly them.
+    public static let visitorExpected = "visitor.expected"
 
     // The house, through the Home Assistant adapter (creature-house).
     /// A door's lock: `locked` / `unlocked`.

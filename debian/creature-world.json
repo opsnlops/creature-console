@@ -22,6 +22,7 @@
   "scenes": {
     "floor_seconds": 8,
     "maximum_turns": 12,
+    "house_maximum_turns": 2,
     "maximum_spoken_seconds": 90,
     "voices": {
       "character:kenny": { "characters_per_second": 13, "sentence_seconds": 0.4 }

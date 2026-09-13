@@ -188,6 +188,8 @@ public enum WorldJSON {
         return formatter.string(from: date)
     }
 
+    public static func date(from value: String) -> Date? { parseDate(value) }
+
     private static func parseDate(_ value: String) -> Date? {
         let fractional = ISO8601DateFormatter()
         fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

@@ -8,6 +8,7 @@ struct SceneServiceTests {
     private let home = try! EntityID(validating: "region:home")
     private let beaky = try! EntityID(validating: "character:beaky")
     private let mango = try! EntityID(validating: "character:mango")
+    private let kenny = try! EntityID(validating: "character:kenny")
     private let april = try! EntityID(validating: "person:april")
     private let conversation = try! ConversationID(validating: "conversation:april-house")
 
@@ -365,6 +366,57 @@ struct SceneServiceTests {
         let recorded: RecordedTurns
         let performer: FakePerformer
         let clock: ManualWorldClock
+    }
+
+    @Test("A scene the house opened is short, and the room hears the event if the lead is silent")
+    func houseScenesAreShortAndNeverSilent() async throws {
+        let world = makeWorld(limits: SceneLimits(houseMaximumTurns: 2, turnLeadSeconds: 3_600))
+        let trigger = SceneTrigger(
+            kind: .worldEvent, eventID: .generated(),
+            text: "A person was just seen at the carport.")
+        var scene = try await world.service.open(
+            regionID: home, conversationID: conversation, trigger: trigger,
+            participants: [beaky, mango, kenny])
+
+        // Beaky's mind fails: the room still hears the plain event, as her line.
+        let beakyFloor = try #require(scene.floor)
+        scene = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: beakyFloor.responseID, text: nil),
+            to: scene.sceneID
+        ).scene
+        #expect(scene.turns.first?.text == "A person was just seen at the carport.")
+        let turn = try #require(
+            await world.announced.events.last { $0.type == SceneService.turnEventType })
+        #expect(turn.payload["fallback"] == .bool(true))
+        #expect(turn.payload["pass"] == .bool(false))
+
+        // Mango's reaction is the second and last turn; Kenny never gets the floor.
+        let mangoFloor = try #require(scene.floor)
+        #expect(mangoFloor.characterID == mango)
+        scene = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: mango, responseID: mangoFloor.responseID, text: "Probably Jesse."),
+            to: scene.sceneID
+        ).scene
+        #expect(scene.closeReason == .maximumTurns)
+        #expect(scene.turns.count == 2)
+
+        // A pass later in a house scene is still a pass, and April's scenes keep the long cap.
+        let chatty = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        var floor = try #require(chatty.floor)
+        var current = chatty
+        for _ in 0..<3 {
+            current = try await world.service.submit(
+                SceneTurnSubmission(
+                    characterID: floor.characterID, responseID: floor.responseID, text: "More."),
+                to: current.sceneID
+            ).scene
+            floor = try #require(current.floor)
+        }
+        #expect(current.closeReason == nil)
     }
 
     @Test("Spoken time is estimated from sentences and characters, as the room really speaks")

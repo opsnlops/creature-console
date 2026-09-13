@@ -444,6 +444,10 @@ public struct SpeakingPace: Hashable, Sendable, Codable {
 public struct SceneLimits: Hashable, Sendable, Codable {
     public var floorSeconds: TimeInterval
     public var maximumTurns: Int
+    /// Turns in a scene the house opened. A visitor at the carport should get Beaky's
+    /// remark and perhaps one reaction, not a twelve-turn debate: "I don't need Jesse
+    /// coming over to turn into a debate about Arch vs Debian."
+    public var houseMaximumTurns: Int
     public var maximumSpokenSeconds: TimeInterval
     /// How fast the room speaks, for estimating how long a line will play: characters a
     /// second once a sentence is under way, plus a fixed cost per sentence (the breath
@@ -469,6 +473,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public init(
         floorSeconds: TimeInterval = 8,
         maximumTurns: Int = 12,
+        houseMaximumTurns: Int = 2,
         maximumSpokenSeconds: TimeInterval = 90,
         charactersPerSecond: Double = 20,
         sentenceSeconds: TimeInterval = 0.35,
@@ -478,6 +483,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     ) {
         self.floorSeconds = floorSeconds
         self.maximumTurns = maximumTurns
+        self.houseMaximumTurns = houseMaximumTurns
         self.maximumSpokenSeconds = maximumSpokenSeconds
         self.charactersPerSecond = charactersPerSecond
         self.sentenceSeconds = sentenceSeconds
@@ -494,6 +500,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
                 ?? defaults.floorSeconds,
             maximumTurns: try container.decodeIfPresent(Int.self, forKey: .maximumTurns)
                 ?? defaults.maximumTurns,
+            houseMaximumTurns: try container.decodeIfPresent(Int.self, forKey: .houseMaximumTurns)
+                ?? defaults.houseMaximumTurns,
             maximumSpokenSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .maximumSpokenSeconds)
                 ?? defaults.maximumSpokenSeconds,
@@ -530,6 +538,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     private enum CodingKeys: String, CodingKey {
         case floorSeconds = "floor_seconds"
         case maximumTurns = "maximum_turns"
+        case houseMaximumTurns = "house_maximum_turns"
         case maximumSpokenSeconds = "maximum_spoken_seconds"
         case charactersPerSecond = "characters_per_second"
         case sentenceSeconds = "sentence_seconds"

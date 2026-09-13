@@ -107,6 +107,17 @@ server clock (no silence) — but the queue crept to 15 s by turn 12 because Ken
 ~11 chars/s, not 20. `0.13.0`: `scenes.voices` per-character pace (Kenny 13 / 0.4 in the packaged
 world.json). Real fix remains the server reporting audio length + start (creature-server#199).
 
+**F3 live (2026-09-12 20:08):** carport camera → scene → Beaky speaking in 2.0 s, on April's
+own config, MQTT agent stopped. Then 12 turns of "check the lock" → World `0.14.0`
+(`house_maximum_turns` 2, fallback line when the lead is silent, cast facts with expiry,
+`visitor.expected`) and agent `2.64.0` (house-remark contract: register only — the frontier model
+does the inference). **Direction agreed with April:** leverage Sol/GPT-6 for *judgement*, not prose:
+(1) facts as facts + recent happenings + `fact_kinds` meanings in Mongo (no phrasing templates,
+in code or data); (2) model-gated house remarks (widen the house feed, model chooses silence, world
+keeps guardrails, Viewer shows "considered, stayed quiet"); (3) nightly memory job on the expensive
+model (episodic facts + persona reflection; `llmMemoryModel`); (4) cutover to prod after (2).
+Never point the model at house actions (world rules) or raw texts (on-device Bridge).
+
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);
 re-measure `creature.server.perform` after the Flash switch; the squirrel rule (prefer

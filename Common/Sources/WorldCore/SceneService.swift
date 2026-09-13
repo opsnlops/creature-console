@@ -234,9 +234,14 @@ public actor SceneService {
     // MARK: - The floor
 
     private func take(
-        _ scene: inout Scene, floor: SceneFloor, text: String?, streamed: Bool = false,
+        _ scene: inout Scene, floor: SceneFloor, text submitted: String?, streamed: Bool = false,
         at now: Date
     ) async throws {
+        // A scene the house opened must be heard: if the lead has nothing (a failed or
+        // silent mind), the room gets the plain event instead. The MQTT agent's
+        // fallbackSpeech, moved to where the floor is.
+        let fallback = submitted == nil && scene.trigger.kind == .worldEvent && scene.turns.isEmpty
+        let text = fallback ? scene.trigger.text : submitted
         var turn = SceneTurn(
             characterID: floor.characterID,
             responseID: floor.responseID,
@@ -267,6 +272,7 @@ public actor SceneService {
                     "character_id": .string(floor.characterID.rawValue),
                     "response_id": .string(floor.responseID.rawValue),
                     "pass": .bool(text == nil),
+                    "fallback": .bool(fallback),
                     "text": text.map { .string($0) } ?? .null,
                 ]))
 
@@ -395,7 +401,8 @@ public actor SceneService {
         if scene.turns.count >= count, scene.turns.suffix(count).allSatisfy(\.isPass) {
             return .everyonePassed
         }
-        if scene.turns.count >= limits.maximumTurns {
+        let cap = scene.trigger.kind == .worldEvent ? limits.houseMaximumTurns : limits.maximumTurns
+        if scene.turns.count >= cap {
             return .maximumTurns
         }
         let spoken = scene.spokenTurns.reduce(0.0) {

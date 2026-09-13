@@ -1,3 +1,24 @@
+creature-cli (2.64.0+world0.14.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * First house-opened scene, live: the carport camera saw April and
+    Beaky spoke two seconds later, no MQTT involved. Then three birds
+    spent twelve turns telling April to check the lock. Fixes:
+  * creature-world 0.14.0: scenes the house opens are short
+    (`scenes.house_maximum_turns`, default 2), and if the lead's mind is
+    silent the room hears the plain event as her line (`fallback: true`
+    on the turn) - the MQTT agent's fallbackSpeech, moved to the floor.
+    A cast fact (`facts.given`) may expire: `valid_to` or
+    `valid_for_seconds` in the payload, so "Jesse is expected this
+    afternoon" is not true tomorrow. New predicate `visitor.expected`.
+  * creature-agent 2.64.0: a scene the house opened gets the familiar's
+    contract, not the scene contract: always speaks, delighted by a
+    visitor, guesses sound like guesses, no safety advice; the contract
+    says who she is and leaves the inference to the model. Locks are
+    phrased as state ("is unlocked right now"), not history; expected
+    visitors and April's whereabouts are said.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 20:40:00 -0700
+
 creature-cli (2.63.0+world0.13.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-communicator-gateway 0.1.6: the app it serves is now Flock

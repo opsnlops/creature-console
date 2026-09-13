@@ -185,6 +185,13 @@ struct GivenFactReducer: WorldReducer {
             case .string(let predicate)? = event.payload["predicate"],
             let value = event.payload["value"]
         else { return WorldReduction() }
+        // A cast fact may expire: "Jesse is expected this afternoon" is not true tomorrow.
+        var validTo: Date?
+        if case .string(let raw)? = event.payload["valid_to"] {
+            validTo = WorldJSON.date(from: raw)
+        } else if case .number(let seconds)? = event.payload["valid_for_seconds"] {
+            validTo = event.occurredAt.addingTimeInterval(seconds)
+        }
         return WorldReduction(changedFacts: [
             try Fact(
                 subjectID: subject,
@@ -192,6 +199,7 @@ struct GivenFactReducer: WorldReducer {
                 value: value,
                 epistemic: event.epistemic,
                 validFrom: event.occurredAt,
+                validTo: validTo,
                 derivedFrom: [.event(event.eventID)],
                 producer: FactProducer(
                     kind: PresenceFacts.producerKind, id: "given-facts", version: "1")

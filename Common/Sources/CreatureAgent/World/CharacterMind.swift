@@ -624,12 +624,22 @@ struct CharacterMind: Sendable {
         if let speaker = offer.trigger.speakerID {
             present.append(speaker)
         }
+        let contract: String
+        switch offer.trigger.kind {
+        case .personUtterance:
+            contract = Self.sceneContract(others: others)
+        case .worldEvent:
+            contract = Self.houseRemarkContract(
+                others: others,
+                aprilHome: FactPhrasing.isHome(Self.april, in: offer.worldFacts),
+                isLead: offer.turns.isEmpty)
+        }
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
                 content: configuration.persona.rendered(
                     present: present, pronouns: FactPhrasing.pronouns(in: offer.worldFacts))
-                    + "\n\n" + Self.sceneContract(others: others)
+                    + "\n\n" + contract
                     + knowledgeBlock(offer.worldFacts, now: now)
             )
         ]
@@ -667,6 +677,42 @@ struct CharacterMind: Sendable {
         lines += FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
         return "\n\nWhat you know right now, from the world itself (trust this over guesses):\n"
             + lines.map { "- " + $0 }.joined(separator: "\n")
+    }
+
+    static let april = try! EntityID(validating: "person:april")
+
+    /// The house noticed something and nobody spoke: this is the MQTT agent's job, done with
+    /// facts. The lead always speaks (a silent alert is a missed one); the others may add one
+    /// reaction or stay quiet. The contract says who she is, not what to conclude: a frontier
+    /// model reads the facts and works out that the person at the carport is probably April,
+    /// or that the visitor is the one who was expected, on its own.
+    static func houseRemarkContract(others: [String], aprilHome: Bool?, isLead: Bool) -> String {
+        let company =
+            others.isEmpty
+            ? "You are the only bird in the room."
+            : "Also in the room: \(others.joined(separator: ", ")). They speak for themselves; never speak for them."
+        let april =
+            switch aprilHome {
+            case true?:
+                "April is home, though maybe not in this room, so speak so she can hear you."
+            case false?:
+                "April is not home; you are talking to the room, and she may see your words on her phone."
+            case nil: "You do not know whether April is home."
+            }
+        let turn =
+            isLead
+            ? "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken)."
+            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Do not repeat what was just said."
+        return """
+            The house just noticed something; it is written below in parentheses, followed by \
+            anything already said about it. \(company) \(april) \(turn) Think with what you know \
+            below: who is home, who is expected, what just happened at the doors and cameras. Be \
+            the familiar who noticed, not a security system: delighted by a visitor, curious about \
+            a stranger, never giving instructions or safety advice. A guess must sound like a guess; \
+            the cameras cannot tell who someone is. Do not begin your line with anyone's name unless \
+            you are singling them out, and do not prefix your words with your own name. Never use \
+            emoji or symbols. Do not describe actions.
+            """
     }
 
     static func sceneContract(others: [String]) -> String {

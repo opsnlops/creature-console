@@ -4,6 +4,20 @@ import WorldCore
 /// Turns the world's facts into the plain sentences a character can think with. The model
 /// never sees `presence.region`; it sees "Mango is here in the room with you".
 enum FactPhrasing {
+    /// Whether the world says `person` is home: true, false, or nil when it has no idea.
+    static func isHome(_ person: EntityID, in facts: [Fact]) -> Bool? {
+        guard
+            let fact = facts.first(where: {
+                $0.subjectID == person && $0.predicate == WorldFacts.personState
+            }), case .string(let state) = fact.value
+        else { return nil }
+        switch state {
+        case "home": return true
+        case "away": return false
+        default: return nil
+        }
+    }
+
     /// The "What you know" lines for a character, newest fact first, skipping facts that have
     /// no phrasing yet rather than dumping them.
     static func lines(
@@ -73,6 +87,9 @@ enum FactPhrasing {
         case WorldFacts.personDescription:
             guard case .string(let description) = fact.value else { return nil }
             return "\(subject) is \(description)."
+        case WorldFacts.visitorExpected:
+            guard case .string(let when) = fact.value else { return nil }
+            return "\(subject) is expected \(when)."
         case WorldFacts.personState:
             guard case .string(let state) = fact.value else { return nil }
             switch state {
@@ -85,8 +102,10 @@ enum FactPhrasing {
         case WorldFacts.doorLock:
             guard case .string(let state) = fact.value else { return nil }
             let place = placeName(of: fact.subjectID)
+            // State, not history: "was unlocked five minutes ago" read as a past event and
+            // the birds decided the present was unknown.
             return state == "unlocked"
-                ? "\(place) was unlocked \(age(of: fact.validFrom, now: now).lowercased())."
+                ? "\(place) is unlocked right now (unlocked \(age(of: fact.validFrom, now: now).lowercased()))."
                 : "\(place) is locked."
         case WorldFacts.doorState:
             guard case .string(let state) = fact.value else { return nil }

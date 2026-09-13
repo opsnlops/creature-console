@@ -44,6 +44,25 @@ struct FactPhrasingTests {
             ])
     }
 
+    @Test("An expected visitor is a sentence, and the world says whether April is home")
+    func expectedVisitorAndHome() throws {
+        let jesse = try EntityID(validating: "person:jesse")
+        let april = try EntityID(validating: "person:april")
+        let facts = [
+            try fact(
+                jesse, WorldFacts.personDescription, .string("April's contractor"), .reported, 1),
+            try fact(
+                jesse, WorldFacts.visitorExpected, .string("this afternoon, to look at the deck"),
+                .reported, 1),
+            try fact(april, WorldFacts.personState, .string("away"), .observed, 1),
+        ]
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now)
+        #expect(lines.contains("Jesse is April's contractor."))
+        #expect(lines.contains("Jesse is expected this afternoon, to look at the deck."))
+        #expect(FactPhrasing.isHome(april, in: facts) == false)
+        #expect(FactPhrasing.isHome(jesse, in: facts) == nil)
+    }
+
     @Test("The house speaks plainly: doors, motion, the temperature, and the lights")
     func houseFactsAreSentences() throws {
         let frontDoor = try EntityID(validating: "place:front-door")
@@ -76,7 +95,7 @@ struct FactPhrasingTests {
 
         #expect(
             lines == [
-                "The front door was unlocked just now.",
+                "The front door is unlocked right now (unlocked just now).",
                 "Someone moved in the entryway 1 minute ago.",
                 "It is about 68 degrees outside.",
                 "A person was seen at the front door just now.",
