@@ -157,10 +157,13 @@ struct MundaneView: View {
         Group {
             if let scried {
                 ScrollView([.vertical, .horizontal]) {
+                    // Natural width, never `.infinity`: inside a horizontal scroll view an
+                    // infinite frame is a ten-billion-point ideal width, and AppKit aborts
+                    // when a split-divider drag asks the window to animate to it.
                     Text(scried.mundaneJSON)
                         .font(.system(.caption, design: .monospaced))
                         .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: true, vertical: false)
                         .padding()
                 }
                 .navigationTitle(scried.title)

@@ -148,6 +148,8 @@ private struct MeaningRow: View {
             TextField("What does this mean to a bird?", text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...4)
+                // Take the row's width and wrap; never claim an ideal width of its own.
+                .fixedSize(horizontal: false, vertical: true)
                 .focused($editing)
                 .onSubmit(commit)
                 .onChange(of: editing) { _, focused in

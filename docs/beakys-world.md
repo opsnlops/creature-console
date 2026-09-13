@@ -47,7 +47,7 @@ current in the same commit as the code it describes.**
 | Creature World | `0.7.2` fuzzball / `0.2.2` prod | fuzzball (`10.69.66.1:8001`), production | facts (presence, pronouns, assumption, `scene.last`), `@`/name addressing, scenes, `region:home` → Mainstage, restart-on-upgrade. `0.7.3` (this branch): given facts, mentions, migration 8 |
 | Communicator Gateway | `0.1.4` fuzzball / `0.1.3` prod | `:8002` | |
 | Minds | `creature-agent 2.61.1` × 3 | fuzzball: `creature-agent@beaky` on **`openai/gpt-6-astra` (low effort)** since 13:40, `@mango` and `@kenny` on `local/mistral-nemo`; each with `personaPath` + `timeZone` | each logged into `region:home`, speaking through production Creature Server (3.46.0, `dialog-stream`); production keeps `2.54.1` MQTT |
-| World Viewer | `0.2.0` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts + Meanings (Wizard Mode's first cast), Timers, Mundane view |
+| World Viewer | `0.2.1` | April's laptop | Timeline, Conversation, Characters, Scenes, Facts + Meanings (Wizard Mode's first cast), Timers, Mundane view |
 | Flock Communicator | `0.5.0` | April's Mac/phone | "The Flock", the house conversation, names and colours per author; text size follows the system and steps bigger (Settings; View menu ⌘+/⌘− on the Mac) |
 
 (Flock Communicator was Flock Communicator until `0.5.0`; the phone shows it as "The Flock". Only the
