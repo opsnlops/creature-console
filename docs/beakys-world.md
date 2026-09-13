@@ -116,7 +116,8 @@ does the inference). **Direction agreed with April:** leverage Sol/GPT-6 for *ju
 in code or data); (2) model-gated house remarks (widen the house feed, model chooses silence, world
 keeps guardrails, Viewer shows "considered, stayed quiet"); (3) nightly memory job on the expensive
 model (episodic facts + persona reflection; `llmMemoryModel`); (4) cutover to prod after (2).
-Never point the model at house actions (world rules) or raw texts (on-device Bridge).
+Never point the model at house actions (world rules) or raw texts (on-device Bridge). Plan:
+[`judgement-and-memory-plan.md`](judgement-and-memory-plan.md) (steps 2–5, open questions for April).
 
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);
