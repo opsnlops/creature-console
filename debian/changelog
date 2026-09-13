@@ -1,3 +1,15 @@
+creature-cli (2.66.0+world0.16.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.16.1: the first 0.16.0 walk was everything hoped
+    for - Beaky worked the story out herself: "I suspect one mysterious
+    person is making a grand tour of the cameras." Four short scenes
+    opened, one per rule, and April wants each of them ("I want to know
+    that someone's out there sooner rather than later"), so they stay.
+    `scenes.house_gap_seconds` (default 0) exists for a quieter house.
+    `presence.physically_audible` has a meaning.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 22:55:00 -0700
+
 creature-cli (2.66.0+world0.16.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * Facts as facts. April: "I'm not liking all of those hard-coded

@@ -190,7 +190,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         }
         // The house starts scenes: a person at the driveway, a door unlocking. The rules are
         // `scenes.open_on`; the lead gets the floor first, then whoever else is in the region.
-        let openingPolicy = SceneOpeningPolicy(rules: sceneLimits.openOn)
+        let openingPolicy = SceneOpeningPolicy(
+            rules: sceneLimits.openOn, gapSeconds: sceneLimits.houseGapSeconds)
         let sceneOpener = Task {
             guard !sceneLimits.openOn.isEmpty else { return }
             do {

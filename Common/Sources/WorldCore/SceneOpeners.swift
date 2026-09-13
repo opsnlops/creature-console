@@ -46,10 +46,18 @@ public struct SceneOpeningRule: Hashable, Sendable, Codable {
 /// for the cooldown memory.
 public actor SceneOpeningPolicy {
     private let rules: [SceneOpeningRule]
+    private let gapSeconds: TimeInterval
     private var lastOpened: [String: Date] = [:]
+    private var lastOpenedAny: Date?
 
-    public init(rules: [SceneOpeningRule]) {
+    /// `gapSeconds`: the least time between any two scenes the house opens, whatever the rule;
+    /// zero lets every rule speak. A walk to the carport opens four scenes — the front door,
+    /// then its camera, then the driveway's, then the carport's — and April wants each of them:
+    /// "I want to know that someone's out there sooner rather than later." The knob exists for
+    /// a quieter house; the events a gap swallows become the story the next scene is told.
+    public init(rules: [SceneOpeningRule], gapSeconds: TimeInterval = 0) {
         self.rules = rules
+        self.gapSeconds = gapSeconds
     }
 
     /// The place the scene is about, when this event should open one now.
@@ -64,7 +72,11 @@ public actor SceneOpeningPolicy {
         if let last = lastOpened[key], now.timeIntervalSince(last) < rule.cooldownSeconds {
             return nil
         }
+        if gapSeconds > 0, let last = lastOpenedAny, now.timeIntervalSince(last) < gapSeconds {
+            return nil
+        }
         lastOpened[key] = now
+        lastOpenedAny = now
         return place
     }
 

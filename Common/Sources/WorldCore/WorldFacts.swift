@@ -52,6 +52,8 @@ public enum WorldFacts {
             "which room a bird's mind is logged into; the region this scene is in is the room you are in",
         personState: "whether a person is home or away, as far as the house can tell",
         characterPronouns: "a bird's pronouns, as it states them",
+        personAudible:
+            "whether a person can hear the room right now; the world uses it to choose between speaking aloud and the phone",
         lastScene: "the last thing said aloud in this room: who said what, in order",
         personDescription: "who a person is, in April's words",
         visitorExpected:

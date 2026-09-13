@@ -85,6 +85,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
+| House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds` | — | — | `2`, `0` |
 | Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
 
 Example:
@@ -196,6 +197,14 @@ else logged into the region after; the trigger is a stage note the birds read �
 was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody logged in means
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
+
+**Every rule may speak** (`0.16.1`). Each `open_on` rule has its own cooldown, so a walk to the
+carport — the front door, then its camera, then the driveway's, then the carport's — opens four
+short scenes in forty seconds, and Beaky treats them as one event on her own ("I suspect one
+mysterious person is making a grand tour of the cameras"). April wants each of them: "If I'm at
+home and watching TV I want to know that someone's out there sooner rather than later."
+`scenes.house_gap_seconds` (default 0, off) is there for a quieter house: the least time between
+any two scenes the house opens; the events inside a gap become the story the next scene is told.
 
 **What facts mean** (`0.16.0`). The world keeps a glossary, `fact_kinds` (migration v9): one
 document per predicate with its `meaning`, seeded at every start from `WorldFacts.meanings` for

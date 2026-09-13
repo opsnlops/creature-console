@@ -477,6 +477,12 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public var voices: [String: SpeakingPace]
     /// The world events that open a scene on their own, and where, and how often.
     public var openOn: [SceneOpeningRule]
+    /// The least time between any two scenes the house opens, across all rules; zero (the
+    /// default) lets every rule speak. April: "If I'm at home and watching TV I want to know
+    /// that someone's out there sooner rather than later" — the updates as a visitor moves from
+    /// the door to the driveway to the carport are the point, and Beaky already treats them as
+    /// one event on her own.
+    public var houseGapSeconds: TimeInterval
     /// How long before the room finishes the last line the next floor is offered, so the
     /// next bird's first sentence lands as the previous one ends: a first-sentence latency
     /// plus the render. A line that arrives early simply queues behind the one playing —
@@ -493,6 +499,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         sentenceSeconds: TimeInterval = 0.35,
         voices: [String: SpeakingPace] = [:],
         openOn: [SceneOpeningRule] = [],
+        houseGapSeconds: TimeInterval = 0,
         turnLeadSeconds: TimeInterval = 2
     ) {
         self.floorSeconds = floorSeconds
@@ -503,6 +510,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         self.sentenceSeconds = sentenceSeconds
         self.voices = voices
         self.openOn = openOn
+        self.houseGapSeconds = houseGapSeconds
         self.turnLeadSeconds = turnLeadSeconds
     }
 
@@ -526,6 +534,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
             voices: try container.decodeIfPresent([String: SpeakingPace].self, forKey: .voices)
                 ?? [:],
             openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
+            houseGapSeconds: try container.decodeIfPresent(
+                TimeInterval.self, forKey: .houseGapSeconds) ?? defaults.houseGapSeconds,
             turnLeadSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .turnLeadSeconds)
                 ?? defaults.turnLeadSeconds
@@ -558,6 +568,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case sentenceSeconds = "sentence_seconds"
         case voices
         case openOn = "open_on"
+        case houseGapSeconds = "house_gap_seconds"
         case turnLeadSeconds = "turn_lead_seconds"
     }
 }

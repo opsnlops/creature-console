@@ -125,7 +125,10 @@ renders "What just happened around you" and is told to conclude for itself. **St
 `0.16.0`, agent `2.66.0`, Viewer `0.2.0`):** facts as facts — one generic line per fact, no
 phrasing templates anywhere; `fact_kinds` glossary in Mongo (migration v9, seeded from
 `WorldFacts.meanings`, Wizard-editable via `PUT /v1/fact-kinds/{predicate}` and the Viewer's
-Meanings mode); `fact_meanings` on every percept and offer. Step 2 complete. Next: step 3
+Meanings mode); `fact_meanings` on every percept and offer. Live 21:35: Beaky reasoned the walk out herself ("I suspect one mysterious person
+is making a grand tour of the cameras" — April: "she wasn't wrong") four short scenes opened, one per
+rule, and April wants each ("sooner rather than later") → World `0.16.1` adds
+`scenes.house_gap_seconds` but leaves it off. Step 2 complete. Next: step 3
 (model-gated house remarks) — needs April's answers to the plan's open questions.
 
 **Next:** "both places" (publish spoken words when final, record the performance after —

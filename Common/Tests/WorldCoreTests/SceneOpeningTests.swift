@@ -11,11 +11,13 @@ struct SceneOpeningTests {
 
     @Test("A matching event opens a scene once per cooldown, per place")
     func cooldownPerPlace() async throws {
-        let policy = SceneOpeningPolicy(rules: [
-            SceneOpeningRule(
-                event: HouseEvents.personSeen, places: [driveway, frontDoor], cooldownSeconds: 300),
-            SceneOpeningRule(event: HouseEvents.doorUnlocked, cooldownSeconds: 60),
-        ])
+        let policy = SceneOpeningPolicy(
+            rules: [
+                SceneOpeningRule(
+                    event: HouseEvents.personSeen, places: [driveway, frontDoor],
+                    cooldownSeconds: 300),
+                SceneOpeningRule(event: HouseEvents.doorUnlocked, cooldownSeconds: 60),
+            ], gapSeconds: 0)
 
         #expect(
             await policy.shouldOpen(for: try event(HouseEvents.personSeen, driveway), at: now)
@@ -44,6 +46,31 @@ struct SceneOpeningTests {
         #expect(
             await policy.shouldOpen(for: try event(HouseEvents.personSeen, driveway), at: now + 301)
                 == driveway)
+    }
+
+    @Test("A gap, when set, holds between any two scenes the house opens")
+    func gapBetweenHouseScenes() async throws {
+        let policy = SceneOpeningPolicy(
+            rules: [
+                SceneOpeningRule(event: HouseEvents.personSeen, cooldownSeconds: 300),
+                SceneOpeningRule(event: HouseEvents.doorUnlocked, cooldownSeconds: 60),
+            ], gapSeconds: 90)
+        // The front door, then its camera, then the driveway's, in forty seconds.
+        #expect(
+            await policy.shouldOpen(for: try event(HouseEvents.doorUnlocked, frontDoor), at: now)
+                == frontDoor)
+        #expect(
+            await policy.shouldOpen(for: try event(HouseEvents.personSeen, frontDoor), at: now + 13)
+                == nil)
+        #expect(
+            await policy.shouldOpen(for: try event(HouseEvents.personSeen, driveway), at: now + 27)
+                == nil)
+        // A minute and a half on, the house may speak again.
+        #expect(
+            await policy.shouldOpen(for: try event(HouseEvents.personSeen, driveway), at: now + 91)
+                == driveway)
+        // Off unless April asks for a quieter house.
+        #expect(SceneLimits().houseGapSeconds == 0)
     }
 
     @Test("The stage note the birds read is a plain sentence")
