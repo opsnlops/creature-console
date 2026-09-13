@@ -1,3 +1,17 @@
+creature-cli (2.66.1+world0.18.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.18.0: retention. April: "The database is growing
+    quick. We should put some reasonable TTLs on the collections that
+    grow fast." TTL indexes (migration v10) expire the raw material -
+    events by kind (90 days; measurements and pacing timers 7), event
+    bookkeeping, finished timers, percept snapshots (30 days; the words
+    stay in the conversation), superseded facts, deliveries, closed
+    scenes - under a `retention` block in world.json, applied in place
+    when changed and backfilled for rows from before. The conversation,
+    the glossary, and the memories the nightly job will write are kept.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 13:30:00 -0700
+
 creature-cli (2.66.1+world0.17.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.17.0: the birds sleep. `scenes.quiet_hours` (the

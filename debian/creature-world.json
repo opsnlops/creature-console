@@ -34,6 +34,10 @@
       { "event": "door.unlocked", "cooldown_seconds": 60 }
     ]
   },
+  "retention": {
+    "event_days": 90, "cheap_event_days": 7, "processing_days": 7, "timer_days": 7,
+    "ingress_days": 30, "retired_fact_days": 90, "delivery_days": 90, "scene_days": 180
+  },
   "facts": [
     { "subject_id": "person:polly", "predicate": "person.description", "value": "April's sister" }
   ]

@@ -537,6 +537,7 @@ actor MongoWorldPersistenceProvider {
         leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
         houseConversation: ConversationID = CreatureWorldConfiguration.defaultHouseConversation,
         givenFacts: [GivenFact] = [],
+        retention: RetentionPolicy = RetentionPolicy(),
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -545,7 +546,8 @@ actor MongoWorldPersistenceProvider {
         let conversationUpdates = self.conversationUpdates
         self.connector =
             connector ?? { uri, logger in
-                let persistence = try await MongoWorldPersistence.connect(to: uri, logger: logger)
+                let persistence = try await MongoWorldPersistence.connect(
+                    to: uri, logger: logger, retention: retention)
                 do {
                     return try MongoWorldPersistenceConnection(
                         persistence: persistence,

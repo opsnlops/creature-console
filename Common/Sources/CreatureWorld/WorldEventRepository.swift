@@ -12,11 +12,13 @@ struct WorldEventRepository: Sendable {
     private let events: MongoCollection
     private let eventProcessing: MongoCollection
     private let counters: MongoCollection
+    private let retention: RetentionPolicy
 
-    init(database: MongoDatabase) {
+    init(database: MongoDatabase, retention: RetentionPolicy = RetentionPolicy()) {
         self.events = database[MongoWorldCollection.events]
         self.eventProcessing = database[MongoWorldCollection.eventProcessing]
         self.counters = database[MongoWorldCollection.counters]
+        self.retention = retention
     }
 
     func append(_ proposedEvent: WorldEventEnvelope, receivedAt: Date) async throws
@@ -35,6 +37,9 @@ struct WorldEventRepository: Sendable {
 
         var document = try BSONEncoder().encode(acceptedEvent)
         document["_id"] = acceptedEvent.eventID.rawValue
+        // When this stops mattering, by kind: the TTL index on expires_at does the rest.
+        document["expires_at"] = retention.expiry(
+            for: acceptedEvent.type, occurredAt: acceptedEvent.occurredAt)
         do {
             try await events.insert(document, writeConcern: .majority())
             return .inserted(acceptedEvent)

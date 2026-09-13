@@ -86,6 +86,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
 | House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
+| Retention | `retention.event_days`, `cheap_event_days`, `processing_days`, `timer_days`, `ingress_days`, `retired_fact_days`, `delivery_days`, `scene_days` | — | — | `90`, `7`, `7`, `7`, `30`, `90`, `90`, `180` |
 | Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
 
 Example:
@@ -197,6 +198,18 @@ else logged into the region after; the trigger is a stage note the birds read �
 was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody logged in means
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
+
+**Retention** (`0.18.0`, migration v10). The world keeps its raw material for a while and its
+memories for years. MongoDB TTL indexes expire: events at `expires_at` (stamped at append —
+`event_days` for the story, `cheap_event_days` for measurements and the pacing timers), event
+bookkeeping after `processing_days`, timers `timer_days` after they fire or are cancelled,
+utterance ingresses (the utterance with the fat percept it produced; the words stay in the
+conversation) after `ingress_days`, facts `retired_fact_days` after their `valid_to` (set when
+superseded or expired — a current fact never expires), deliveries and stage decisions after
+`delivery_days`, closed scenes after `scene_days`. `conversation_items`, `fact_kinds`, and the
+memory facts the nightly job will write have no TTL. A window changed in `world.json` is applied
+on the next start with `collMod`; rows from before `0.18.0` are backfilled by kind. On a chatty
+day the dev world grew about 7 MB.
 
 **The birds sleep** (`0.17.0`). `scenes.quiet_hours` — `{"from": "23:00", "to": "07:00",
 "time_zone": "America/Los_Angeles"}` — is when the house does not wake them, with no exceptions:

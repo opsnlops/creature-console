@@ -53,7 +53,9 @@ struct MongoWorldPersistence: Sendable {
     let scenes: MongoSceneRepository
     let factKinds: FactKindRepository
 
-    static func connect(to uri: String, logger: Logger) async throws -> MongoWorldPersistence {
+    static func connect(
+        to uri: String, logger: Logger, retention: RetentionPolicy = RetentionPolicy()
+    ) async throws -> MongoWorldPersistence {
         let settings = try ConnectionSettings(uri)
         let connectionDetails = MongoWorldConnectionDetails(settings: settings)
         logger.info("Connecting to MongoDB", metadata: connectionDetails.logMetadata)
@@ -97,7 +99,8 @@ struct MongoWorldPersistence: Sendable {
                     "mongodb.migration_version": "\(MongoWorldMigrator.currentVersion)",
                 ]
             )
-            try await MongoWorldMigrator(database: database, logger: logger).migrate()
+            try await MongoWorldMigrator(database: database, logger: logger, retention: retention)
+                .migrate()
             logger.info(
                 "Creature World MongoDB persistence is ready",
                 metadata: [
@@ -108,7 +111,7 @@ struct MongoWorldPersistence: Sendable {
             return MongoWorldPersistence(
                 cluster: cluster,
                 database: database,
-                events: WorldEventRepository(database: database),
+                events: WorldEventRepository(database: database, retention: retention),
                 facts: FactRepository(database: database),
                 timers: WorldTimerRepository(database: database),
                 sourceCheckpoints: SourceCheckpointRepository(database: database),

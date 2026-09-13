@@ -8,6 +8,7 @@ enum CreatureWorldConfigurationError: Error, Equatable, LocalizedError, Sendable
     case invalidMongoURI
     case unexpectedMongoDatabase(expected: String, actual: String?)
     case invalidPort(Int)
+    case invalidRetention(String)
 
     var errorDescription: String? {
         switch self {
@@ -21,6 +22,8 @@ enum CreatureWorldConfigurationError: Error, Equatable, LocalizedError, Sendable
             "Creature World MongoDB URI must select the \(expected) database; selected \(actual ?? "none")"
         case .invalidPort(let port):
             "Creature World port must be between 1 and 65535; received \(port)"
+        case .invalidRetention(let key):
+            "Creature World retention.\(key) must be at least one day"
         }
     }
 }
@@ -56,6 +59,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     /// Facts April states outright ("Polly is April's sister") until a source can observe
     /// them; announced at startup like the presence assumption.
     let givenFacts: [GivenFact]
+    /// How long the raw material is kept; memories and the conversation are not raw material.
+    let retention: RetentionPolicy
 
     init(
         host: String = defaultHost,
@@ -69,7 +74,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = defaultLeadCharacter,
         houseConversation: ConversationID = defaultHouseConversation,
-        givenFacts: [GivenFact] = []
+        givenFacts: [GivenFact] = [],
+        retention: RetentionPolicy = RetentionPolicy()
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -105,6 +111,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.leadCharacter = leadCharacter
         self.houseConversation = houseConversation
         self.givenFacts = givenFacts
+        self.retention = retention
     }
 
     static func load(
@@ -132,7 +139,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                     ?? defaultLeadCharacter,
                 houseConversation: try raw.houseConversation.map(ConversationID.init(validating:))
                     ?? defaultHouseConversation,
-                givenFacts: raw.facts ?? []
+                givenFacts: raw.facts ?? [],
+                retention: raw.retention ?? RetentionPolicy()
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -178,7 +186,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             regions: regions,
             leadCharacter: leadCharacter,
             houseConversation: houseConversation,
-            givenFacts: givenFacts
+            givenFacts: givenFacts,
+            retention: retention
         )
     }
 
@@ -195,6 +204,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let leadCharacter: String?
         let houseConversation: String?
         let facts: [GivenFact]?
+        let retention: RetentionPolicy?
 
         private enum CodingKeys: String, CodingKey {
             case host
@@ -209,6 +219,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case leadCharacter = "lead_character"
             case houseConversation = "house_conversation"
             case facts
+            case retention
         }
     }
 
