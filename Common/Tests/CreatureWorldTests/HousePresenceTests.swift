@@ -99,3 +99,92 @@ struct HousePresenceTests {
         #expect(try await requests.request(in: mention) == nil)
     }
 }
+
+@Suite(
+    "The story behind the facts",
+    .enabled(if: mongoTestURI != nil, "Set MONGODB_TEST_URI to run MongoDB integration tests"))
+struct RecentHappeningsTests {
+    @Test("A mind is told what just happened around its region's places, in order, in words")
+    func happeningsAroundTheRegion() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "happenings-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let region = try EntityID(validating: "region:\(suffix)")
+        let beaky = try EntityID(validating: "character:beaky-\(suffix)")
+        let frontDoor = try EntityID(validating: "place:front-door-\(suffix)")
+        let carport = try EntityID(validating: "place:carport-\(suffix)")
+        let outside = try EntityID(validating: "place:outside-\(suffix)")
+        let jesse = try EntityID(validating: "person:jesse-\(suffix)")
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: start)
+        let sessions = CharacterSessionService(
+            repository: persistence.characterSessions, clock: clock, announce: { _ in })
+        _ = try await sessions.login(
+            beaky,
+            CharacterLoginRequest(
+                regionID: region, instance: CharacterMindInstance(host: "test", processID: 1)))
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, sessions: sessions,
+            regions: [
+                region: RegionConfiguration(stageID: "s", places: [frontDoor, carport, outside])
+            ],
+            clock: clock)
+
+        func house(
+            _ type: WorldEventType, _ subject: EntityID, at offset: TimeInterval,
+            payload: [String: WorldJSONValue] = [:]
+        ) throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: type, occurredAt: start.addingTimeInterval(offset),
+                source: EventSource(
+                    id: try SourceID(validating: "home-assistant:\(suffix)"),
+                    kind: HouseEvents.sourceKind, sourceEventID: UUID().uuidString),
+                subjectIDs: [subject], placeID: subject,
+                epistemic: EpistemicState(type: .observed, confidence: 1), payload: payload)
+        }
+        // Out of order on purpose: the story comes back by when it happened.
+        let events = [
+            try house(HouseEvents.personSeen, carport, at: -20),
+            try house(HouseEvents.doorUnlocked, frontDoor, at: -300),
+            try house(HouseEvents.measurementChanged, outside, at: -100),  // state, not story
+            try house(HouseEvents.doorUnlocked, frontDoor, at: -3_600),  // too old
+            try WorldEventEnvelope(
+                type: GivenFactAnnouncement.eventType, occurredAt: start.addingTimeInterval(-200),
+                source: EventSource(
+                    id: try SourceID(validating: "wizard:april"), kind: "person",
+                    sourceEventID: UUID().uuidString),
+                subjectIDs: [jesse], epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: [
+                    "subject_id": .string(jesse.rawValue),
+                    "predicate": .string(WorldFacts.visitorExpected),
+                    "value": .string("this afternoon"),
+                ]),
+        ]
+        for event in events {
+            _ = try await persistence.events.append(event, receivedAt: start)
+        }
+
+        let story = try await knowledge.recentHappenings(
+            about: [beaky, jesse], since: start.addingTimeInterval(-900), limit: 10)
+
+        #expect(
+            story.map(\.type) == [
+                HouseEvents.doorUnlocked, GivenFactAnnouncement.eventType, HouseEvents.personSeen,
+            ])
+        #expect(story[0].subjectID == frontDoor)
+        #expect(story[0].summary?.hasPrefix("The front door") == true)
+        #expect(story[0].summary?.hasSuffix("was just unlocked.") == true)
+        #expect(
+            story[1].summary
+                == "wizard:april told the world: \(jesse.rawValue) visitor.expected = \"this afternoon\""
+        )
+        #expect(story[2].summary?.hasPrefix("A person was just seen at the carport") == true)
+        #expect(story[2].occurredAt == start.addingTimeInterval(-20))
+        // A limit keeps the newest of the story.
+        let latest = try await knowledge.recentHappenings(
+            about: [beaky], since: start.addingTimeInterval(-900), limit: 1)
+        #expect(latest.map(\.type) == [HouseEvents.personSeen])
+    }
+}

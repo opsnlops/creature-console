@@ -119,6 +119,12 @@ model (episodic facts + persona reflection; `llmMemoryModel`); (4) cutover to pr
 Never point the model at house actions (world rules) or raw texts (on-device Bridge). Plan:
 [`judgement-and-memory-plan.md`](judgement-and-memory-plan.md) (steps 2–5, open questions for April).
 
+**Step 2a shipped (World `0.15.0`, agent `2.65.0`):** `recent_happenings` on percepts and offers
+(the last 15 min of house/cast events for the region's places, in the world's words); the agent
+renders "What just happened around you" and is told to conclude for itself. Remaining in step 2:
+generic fact rendering replacing `FactPhrasing`'s switch, and `fact_kinds` meanings in Mongo with a
+Viewer editor.
+
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);
 re-measure `creature.server.perform` after the Flash switch; the squirrel rule (prefer

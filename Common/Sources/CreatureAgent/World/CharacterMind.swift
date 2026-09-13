@@ -640,7 +640,8 @@ struct CharacterMind: Sendable {
                 content: configuration.persona.rendered(
                     present: present, pronouns: FactPhrasing.pronouns(in: offer.worldFacts))
                     + "\n\n" + contract
-                    + knowledgeBlock(offer.worldFacts, now: now)
+                    + knowledgeBlock(
+                        offer.worldFacts, happenings: offer.recentHappenings, now: now)
             )
         ]
         var script = ""
@@ -667,7 +668,7 @@ struct CharacterMind: Sendable {
     /// "What you know": the local time in words, then the world's facts in plain words. The
     /// time is always there — a model cannot work out time zones, so it is told — and the
     /// facts follow when the world has any.
-    func knowledgeBlock(_ facts: [Fact], now: Date) -> String {
+    func knowledgeBlock(_ facts: [Fact], happenings: [Happening] = [], now: Date) -> String {
         var lines = [FactPhrasing.timeSentence(now, in: configuration.timeZone)]
         if let model = configuration.modelLabel {
             lines.append(
@@ -675,8 +676,19 @@ struct CharacterMind: Sendable {
             )
         }
         lines += FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
-        return "\n\nWhat you know right now, from the world itself (trust this over guesses):\n"
+        var block =
+            "\n\nWhat you know right now, from the world itself (trust this over guesses):\n"
             + lines.map { "- " + $0 }.joined(separator: "\n")
+        // The story behind the facts: what the house saw, in order, so the mind can work out
+        // what is going on rather than be told.
+        let story = FactPhrasing.happeningLines(
+            happenings, now: now, in: configuration.timeZone)
+        if !story.isEmpty {
+            block +=
+                "\n\nWhat just happened around you, oldest first (work out what it means yourself; say what you conclude as your own thought, not as fact):\n"
+                + story.map { "- " + $0 }.joined(separator: "\n")
+        }
+        return block
     }
 
     static let april = try! EntityID(validating: "person:april")
@@ -771,7 +783,8 @@ struct CharacterMind: Sendable {
                 content: configuration.persona.rendered(
                     present: present, pronouns: FactPhrasing.pronouns(in: percept.worldFacts))
                     + "\n\n" + Self.contract(for: route)
-                    + knowledgeBlock(percept.worldFacts, now: now)
+                    + knowledgeBlock(
+                        percept.worldFacts, happenings: percept.recentHappenings, now: now)
             )
         ]
         let prior = percept.priorConversationItems

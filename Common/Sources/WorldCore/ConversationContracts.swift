@@ -317,6 +317,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
     /// What the world knows that bears on this moment: facts about the character, the speaker,
     /// the region, and whoever is present. Bounded; newest first.
     public var worldFacts: [Fact]
+    /// What just happened around them: the story behind the facts, oldest first. Bounded.
+    public var recentHappenings: [Happening]
 
     public init(
         considerationID: ConsiderationID = .generated(),
@@ -324,7 +326,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         utterance: PersonUtterance,
         priorConversationItems: [ConversationItem],
         sceneID: SceneID? = nil,
-        worldFacts: [Fact] = []
+        worldFacts: [Fact] = [],
+        recentHappenings: [Happening] = []
     ) throws {
         guard priorConversationItems.count <= ConversationContractLimits.maximumContextItems else {
             throw WorldContractError.conversationContextTooLarge(
@@ -338,6 +341,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         self.priorConversationItems = priorConversationItems
         self.sceneID = sceneID
         self.worldFacts = worldFacts
+        self.recentHappenings = recentHappenings
     }
 
     public init(from decoder: any Decoder) throws {
@@ -355,7 +359,9 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
             utterance: container.decode(PersonUtterance.self, forKey: .utterance),
             priorConversationItems: priorConversationItems,
             sceneID: container.decodeIfPresent(SceneID.self, forKey: .sceneID),
-            worldFacts: container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? []
+            worldFacts: container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? [],
+            recentHappenings: container.decodeIfPresent(
+                [Happening].self, forKey: .recentHappenings) ?? []
         )
     }
 
@@ -367,6 +373,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         case priorConversationItems = "prior_conversation_items"
         case sceneID = "scene_id"
         case worldFacts = "world_facts"
+        case recentHappenings = "recent_happenings"
     }
 }
 

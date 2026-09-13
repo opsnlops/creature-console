@@ -207,6 +207,12 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                 worldFacts.insert(requested, at: 0)
             }
             span.attributes["world.facts"] = worldFacts.count
+            let happenings = try await knowledge.recentHappenings(
+                about: [characterID, utterance.speakerID],
+                since: utterance.occurredAt.addingTimeInterval(
+                    -WorldKnowledgeLimits.happeningsWindow),
+                limit: WorldKnowledgeLimits.maximumHappenings)
+            span.attributes["world.happenings"] = happenings.count
             let proposed = try StoredUtteranceIngress(
                 percept: PersonUtterancePercept(
                     considerationID: makeConsiderationID(),
@@ -214,7 +220,8 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                     utterance: utterance,
                     priorConversationItems: priorItems,
                     sceneID: sceneID,
-                    worldFacts: worldFacts
+                    worldFacts: worldFacts,
+                    recentHappenings: happenings
                 ),
                 conversationItem: ConversationItem(
                     itemID: makeConversationItemID(),

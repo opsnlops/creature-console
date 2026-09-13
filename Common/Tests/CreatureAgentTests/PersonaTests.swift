@@ -188,10 +188,18 @@ struct PersonaTests {
             trigger: SceneTrigger(
                 kind: .worldEvent, eventID: .generated(),
                 text: "A person was just seen at the carport."),
-            participants: [beaky, kenny], turns: [], worldFacts: [away])
+            participants: [beaky, kenny], turns: [], worldFacts: [away],
+            recentHappenings: [
+                Happening(
+                    occurredAt: now.addingTimeInterval(-30), type: HouseEvents.doorUnlocked,
+                    subjectID: try EntityID(validating: "place:front-door"),
+                    summary: "The front door was just unlocked.")
+            ])
         let lead = mind.makeSceneTranscript(for: offer, now: now)
         let system = lead[0].content
         #expect(system.contains("The house just noticed something"))
+        #expect(system.contains("What just happened around you"))
+        #expect(system.contains("(just now): The front door was just unlocked."))
         #expect(system.contains("never reply with [silence]"))
         #expect(system.contains("April is not home"))
         #expect(system.contains("not a security system"))

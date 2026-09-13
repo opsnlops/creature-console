@@ -79,6 +79,12 @@ struct TimelineRow: View {
                         Label("knows \(knownFacts)", systemImage: "lightbulb")
                             .help("Facts the world told the mind with this percept")
                     }
+                    if let happenings, happenings > 0 {
+                        Label("saw \(happenings)", systemImage: "book.pages")
+                            .help(
+                                "Recent happenings the world told the mind — the story behind the facts"
+                            )
+                    }
                 }
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.tertiary)
@@ -101,6 +107,11 @@ struct TimelineRow: View {
     private var knownFacts: Int? {
         guard case .array(let facts)? = event.payload["world_facts"] else { return nil }
         return facts.count
+    }
+
+    private var happenings: Int? {
+        guard case .array(let story)? = event.payload["recent_happenings"] else { return nil }
+        return story.count
     }
 }
 

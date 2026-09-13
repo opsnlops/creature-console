@@ -119,7 +119,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         }
         let conversations = persistence.conversations
         let knowledge = PresentWorldKnowledge(
-            facts: persistence.facts, sessions: sessionService, regions: regions, clock: clock)
+            facts: persistence.facts, events: persistence.events, sessions: sessionService,
+            regions: regions, clock: clock)
         let sceneService = SceneService(
             repository: persistence.scenes,
             clock: clock,
@@ -773,8 +774,9 @@ extension MongoWorldPersistenceProvider: SceneApplicationService {}
 /// What the world knows that bears on a moment: facts about the subjects asked for, plus the
 /// region the character is in and everyone logged into it — so "who is here with you" and
 /// "what was just said in this room" ride along without the caller knowing about regions.
-private struct PresentWorldKnowledge: WorldKnowledgeProviding {
+struct PresentWorldKnowledge: WorldKnowledgeProviding {
     let facts: FactRepository
+    let events: WorldEventRepository
     let sessions: CharacterSessionService
     let regions: [EntityID: RegionConfiguration]
     let clock: any WorldClock
@@ -783,24 +785,77 @@ private struct PresentWorldKnowledge: WorldKnowledgeProviding {
         async throws -> [Fact]
     {
         let now = await clock.now
-        var expanded = subjects
-        for subject in subjects {
-            guard let session = try await sessions.liveSession(for: subject) else { continue }
-            expanded.append(session.regionID)
-            expanded.append(
-                contentsOf: try await sessions.present(in: session.regionID).map(\.characterID))
-            // The doors, rooms, and outside that belong to the region — the house around them.
-            expanded.append(contentsOf: regions[session.regionID]?.places ?? [])
-        }
+        var expanded = try await surroundings(of: subjects)
         // Anyone the world can describe who is named in the words: "Who is Polly?".
         if let text, !text.isEmpty {
             let known = try await facts.subjects(
                 withPredicate: WorldFacts.personDescription, at: now)
             expanded.append(contentsOf: WorldMentions.mentioned(in: text, among: known))
         }
+        return try await facts.currentFacts(about: unique(expanded), limit: limit, at: now)
+    }
+
+    /// The story around `subjects`: storyworthy events for them and their surroundings, oldest
+    /// first, each with the world's own sentence for it where the scene openers have one.
+    func recentHappenings(about subjects: [EntityID], since: Date, limit: Int) async throws
+        -> [Happening]
+    {
+        let around = unique(try await surroundings(of: subjects))
+        // Fetch generously: heartbeats and measurements share the index and are dropped here.
+        let recent = try await events.events(about: around, since: since, limit: limit * 8)
+        return recent.filter { Happening.isStoryworthy($0.type) }
+            .suffix(limit)
+            .map { event in
+                let subject =
+                    event.subjectIDs.first { !$0.rawValue.hasPrefix("character:") }
+                    ?? event.subjectIDs.first ?? event.placeID ?? around[0]
+                return Happening(
+                    occurredAt: event.occurredAt, type: event.type, subjectID: subject,
+                    summary: Self.summary(of: event, subject: subject))
+            }
+    }
+
+    /// The subjects plus the region each logged-in one is in, everyone present there, and the
+    /// region's places — the house around them.
+    private func surroundings(of subjects: [EntityID]) async throws -> [EntityID] {
+        var expanded = subjects
+        for subject in subjects {
+            guard let session = try await sessions.liveSession(for: subject) else { continue }
+            expanded.append(session.regionID)
+            expanded.append(
+                contentsOf: try await sessions.present(in: session.regionID).map(\.characterID))
+            expanded.append(contentsOf: regions[session.regionID]?.places ?? [])
+        }
+        return expanded
+    }
+
+    private func unique(_ ids: [EntityID]) -> [EntityID] {
         var seen: Set<EntityID> = []
-        let unique = expanded.filter { seen.insert($0).inserted }
-        return try await facts.currentFacts(about: unique, limit: limit, at: now)
+        return ids.filter { seen.insert($0).inserted }
+    }
+
+    /// The world's sentence for a happening, when it has one: the house events use the scene
+    /// openers' words; a cast fact says who told the world what. Anything else is left to the
+    /// mind's generic rendering of type and subject.
+    static func summary(of event: WorldEventEnvelope, subject: EntityID) -> String? {
+        if event.type == GivenFactAnnouncement.eventType {
+            guard case .string(let predicate)? = event.payload["predicate"] else { return nil }
+            let value: String
+            switch event.payload["value"] {
+            case .string(let text)?: value = "\"\(text)\""
+            case .number(let number)?:
+                value = number == number.rounded() ? String(Int(number)) : String(number)
+            case .bool(let flag)?: value = flag ? "yes" : "no"
+            case .some: value = "(something)"
+            case nil: return nil
+            }
+            return
+                "\(event.source.id.rawValue) told the world: \(subject.rawValue) \(predicate) = \(value)"
+        }
+        if event.source.kind == HouseEvents.sourceKind {
+            return SceneOpeningPolicy.triggerText(for: event, place: subject)
+        }
+        return nil
     }
 }
 

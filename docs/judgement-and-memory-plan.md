@@ -1,6 +1,6 @@
 # Judgement and Memory — Using the Frontier Model for Work, Not Prose
 
-**Status:** Plan, 2026-09-12 evening. Nothing built yet beyond the ground it stands on: facts (F1),
+**Status:** Plan written 2026-09-12 evening; step 2a (recent happenings) built the same night as World `0.15.0` / agent `2.65.0`. The ground it stands on: facts (F1),
 personas (P1), the house (F2), house-opened scenes (F3, live tonight: carport camera → Beaky
 speaking in 2.0 s), paced floors, and the register-only house-remark contract (agent `2.64.0`).
 **Why:** April: "We have access to a very high quality frontier model now for Beaky. We need to

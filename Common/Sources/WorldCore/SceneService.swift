@@ -352,7 +352,11 @@ public actor SceneService {
             turns: scene.turns,
             worldFacts: try await knowledge.currentFacts(
                 about: subjects, mentionedIn: scene.trigger.text,
-                limit: WorldKnowledgeLimits.maximumFacts)
+                limit: WorldKnowledgeLimits.maximumFacts),
+            recentHappenings: try await knowledge.recentHappenings(
+                about: subjects,
+                since: now.addingTimeInterval(-WorldKnowledgeLimits.happeningsWindow),
+                limit: WorldKnowledgeLimits.maximumHappenings)
         )
         try await announce(
             WorldEventEnvelope(

@@ -44,6 +44,26 @@ struct FactPhrasingTests {
             ])
     }
 
+    @Test("What just happened is told in order, with the clock and the age, in the world's words")
+    func happeningsAreAStory() throws {
+        let frontDoor = try EntityID(validating: "place:front-door")
+        let carport = try EntityID(validating: "place:carport")
+        let story = [
+            Happening(
+                occurredAt: now.addingTimeInterval(-300), type: HouseEvents.doorUnlocked,
+                subjectID: frontDoor, summary: "The front door was just unlocked."),
+            Happening(
+                occurredAt: now.addingTimeInterval(-20), type: HouseEvents.personSeen,
+                subjectID: carport),
+        ]
+        let lines = FactPhrasing.happeningLines(
+            story, now: now, in: TimeZone(identifier: "America/Los_Angeles")!)
+        #expect(lines.count == 2)
+        #expect(lines[0].hasSuffix(" (5 minutes ago): The front door was just unlocked."))
+        #expect(lines[1].hasSuffix(" (just now): camera.person_seen at the carport"))
+        #expect(lines[0].contains(" PM ") || lines[0].contains(" AM "))
+    }
+
     @Test("An expected visitor is a sentence, and the world says whether April is home")
     func expectedVisitorAndHome() throws {
         let jesse = try EntityID(validating: "person:jesse")

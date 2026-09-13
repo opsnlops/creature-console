@@ -197,6 +197,14 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**The story behind the facts** (`0.15.0`). Every percept and floor offer carries
+`recent_happenings` beside `world_facts`: the storyworthy events (`door.*`, `camera.*`,
+`motion.*`, `person.*`, `house.*`, `facts.given`; never heartbeats, timers, or measurements) of
+the last fifteen minutes for the same subjects the facts cover — the character, the speaker,
+the region, everyone present, and the region's `places` — oldest first, thirty at most, each
+with the world's own sentence where it has one. The mind reads the story in order and draws its
+own conclusions; the Viewer's timeline shows "saw N" beside "knows N".
+
 **Scenes the house opens are short** (`0.14.0`): `scenes.house_maximum_turns` (default 2) caps a
 scene whose trigger is a world event — Beaky's remark and perhaps one reaction, not a twelve-turn
 debate about a visitor. If the lead's mind is silent or fails, the room still hears the event: the

@@ -1,3 +1,21 @@
+creature-cli (2.65.0+world0.15.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * The story behind the facts. Facts are the present; a mind now also
+    gets the recent happenings around it - the last fifteen minutes of
+    door, camera, motion, person, house, and cast-fact events for its
+    region's places, oldest first, in the world's own words - so it can
+    work out that the door unlocking and then a person at the carport was
+    April going out, rather than be told.
+  * creature-world 0.15.0: `recent_happenings` on every percept and floor
+    offer (`WorldKnowledgeProviding.recentHappenings`; 15 min, 30 at most;
+    heartbeats, timers, and measurements are not a story).
+  * creature-agent 2.65.0: "What just happened around you" in the
+    knowledge block, with the clock and the age; the mind is told to draw
+    its own conclusions and say them as its own thoughts.
+  * World Viewer: the timeline shows "saw N" beside "knows N".
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 21:30:00 -0700
+
 creature-cli (2.64.0+world0.14.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * First house-opened scene, live: the carport camera saw April and

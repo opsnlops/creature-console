@@ -69,6 +69,24 @@ struct WorldEventRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// The events about any of `subjects` since `since`, oldest first — the story a mind is
+    /// told. Callers filter by kind; this is the index-shaped query.
+    func events(about subjects: [EntityID], since: Date, limit: Int) async throws
+        -> [WorldEventEnvelope]
+    {
+        precondition(limit > 0)
+        guard !subjects.isEmpty else { return [] }
+        let anyOf: Document = ["$in": subjects.map(\.rawValue)]
+        let after: Document = ["$gte": since]
+        let documents =
+            try await events
+            .find(["subject_ids": anyOf, "occurred_at": after])
+            .sort(["occurred_at": 1])
+            .limit(limit)
+            .drain()
+        return try documents.map(decode)
+    }
+
     func latestSequence() async throws -> Int64 {
         let document = try await events.find([:])
             .sort(["world_sequence": -1])

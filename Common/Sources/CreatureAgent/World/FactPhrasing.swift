@@ -184,6 +184,29 @@ enum FactPhrasing {
             .replacingOccurrences(of: "\u{00A0}", with: " ")
     }
 
+    /// "8:03:05 PM (5 minutes ago): The front door was just unlocked." — one line per
+    /// happening, oldest first, so the mind reads the story in order. A happening the world
+    /// has no sentence for is named by its kind and subject: "camera.person_seen at the carport".
+    static func happeningLines(_ happenings: [Happening], now: Date, in timeZone: TimeZone)
+        -> [String]
+    {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        let style = Date.FormatStyle(
+            date: .omitted, time: .standard, locale: calendar.locale!, calendar: calendar,
+            timeZone: timeZone)
+        return happenings.map { happening in
+            let clock = happening.occurredAt.formatted(style)
+                .replacingOccurrences(of: "\u{202F}", with: " ")
+                .replacingOccurrences(of: "\u{00A0}", with: " ")
+            let what =
+                happening.summary
+                ?? "\(happening.type.rawValue) at \(placeName(of: happening.subjectID).lowercased())"
+            return "\(clock) (\(age(of: happening.occurredAt, now: now).lowercased())): \(what)"
+        }
+    }
+
     /// The characters the facts place somewhere — logged in, not logged out (`null`).
     static func presentCharacters(in facts: [Fact]) -> [EntityID] {
         facts.filter { $0.predicate == WorldFacts.characterRegion && $0.value != .null }
