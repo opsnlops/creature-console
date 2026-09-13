@@ -91,6 +91,12 @@ p50 10.9 s / max 23 s — the playback queue was the latency. The world now esti
 Luna first-sentence p50 0.93 s ≈ Nemo 0.91 s (better tail), Sol 1.39 s; Mango moved to
 `gpt-5.6-luna` ("way smarter than Nemo"). Server is switching TTS to `eleven_flash_v2_5`.
 
+**Tuning (World `0.12.0`):** first live scene had ~1 s of dead air per hand-off (server
+frames: actual ≈ 0.35 s/sentence + 20 chars/s; estimate at 2.5 words/s ran 25% slow; lead 1 s
+< first-sentence latency). Estimator now chars+sentences (`characters_per_second`,
+`sentence_seconds`), lead default 2 s; answered floors cancel their deadline timer (no more
+phantom `floor_expired`). Kenny on Nemo composes in 3–4 s — the slowest link; Luna candidate.
+
 **Next:** "both places" (publish spoken words when final, record the performance after —
 April asked; today the Communicator sees a spoken reply only after she finishes speaking);
 re-measure `creature.server.perform` after the Flash switch; the squirrel rule (prefer

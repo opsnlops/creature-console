@@ -170,21 +170,27 @@ struct SceneServiceTests {
 
     @Test("The next floor waits until the room has nearly finished the last line")
     func floorIsPacedToPlayback() async throws {
-        // 2.5 words a second: a twenty-word line is eight seconds of speech; the floor is
-        // offered one second before it ends.
-        let world = makeWorld(limits: SceneLimits(wordsPerSecond: 2.5, turnLeadSeconds: 1))
+        // Ten characters a second and no per-sentence cost: an eighty-character line is
+        // eight seconds of speech; the floor is offered one second before it ends.
+        let world = makeWorld(
+            limits: SceneLimits(
+                charactersPerSecond: 10, sentenceSeconds: 0, turnLeadSeconds: 1))
         let scene = try await world.service.open(
             regionID: home, conversationID: conversation,
             trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
         let responseID = try #require(scene.floor?.responseID)
-        let twentyWords = Array(repeating: "word", count: 20).joined(separator: " ") + "."
+        let twentyWords = String(repeating: "word ", count: 16).dropLast() + "."
+        #expect(twentyWords.count == 80)
 
         let taken = try await world.service.submit(
-            SceneTurnSubmission(characterID: beaky, responseID: responseID, text: twentyWords),
+            SceneTurnSubmission(
+                characterID: beaky, responseID: responseID, text: String(twentyWords)),
             to: scene.sceneID)
 
-        // Nobody has the floor yet; Mango is next, once the room catches up.
+        // Nobody has the floor yet; Mango is next, once the room catches up. Beaky's floor
+        // deadline is withdrawn: an answered floor never expires.
         #expect(taken.scene.floor == nil)
+        #expect(await world.timers.canceled.contains(SceneService.floorTimerID(for: responseID)))
         #expect(taken.scene.pendingFloor == mango)
         let spokenUntil = try #require(taken.scene.spokenUntil)
         #expect(abs(spokenUntil.timeIntervalSince(Self.now) - 8) < 0.01)
@@ -206,13 +212,14 @@ struct SceneServiceTests {
         try await world.service.floorReady(sceneID: scene.sceneID)
         #expect(await world.announced.offers.count == 2)
 
-        // Mango's short line queues behind whatever is still playing (one second left).
+        // Mango's short line (eleven characters, 1.1 s) queues behind whatever is still
+        // playing (one second left).
         let mangoFloor = try #require(current.floor?.responseID)
         let quick = try await world.service.submit(
             SceneTurnSubmission(characterID: mango, responseID: mangoFloor, text: "Heat sinks."),
             to: scene.sceneID)
         let queued = try #require(quick.scene.spokenUntil)
-        #expect(abs(queued.timeIntervalSince(spokenUntil) - 0.8) < 0.01)
+        #expect(abs(queued.timeIntervalSince(spokenUntil) - 1.1) < 0.01)
     }
 
     @Test("A streamed line that goes quiet is the line so far when the floor expires")
@@ -277,7 +284,8 @@ struct SceneServiceTests {
         #expect(final.closeReason == .maximumTurns)
         #expect(final.state == .performed)
 
-        let talky = makeWorld(limits: SceneLimits(maximumSpokenSeconds: 4, wordsPerSecond: 1))
+        let talky = makeWorld(
+            limits: SceneLimits(maximumSpokenSeconds: 4, charactersPerSecond: 5))
         var long = try await talky.service.open(
             regionID: home, conversationID: conversation,
             trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
@@ -359,6 +367,23 @@ struct SceneServiceTests {
         let clock: ManualWorldClock
     }
 
+    @Test("Spoken time is estimated from sentences and characters, as the room really speaks")
+    func spokenTimeEstimate() {
+        // Fitted to Creature Server's frame counts for a real scene: "Kenny loves popcorn
+        // too!" rendered to 1.58 s; a 94-character line to 5.02 s.
+        let limits = SceneLimits()
+        #expect(abs(limits.spokenSeconds(of: "Kenny loves popcorn too!") - 1.55) < 0.01)
+        let long =
+            "Linux would make the popcorn button reliable, auditable, and free of proprietary kernel p."
+        #expect(long.count == 90)
+        #expect(abs(limits.spokenSeconds(of: long) - 4.85) < 0.01)
+        // Two sentences pay the per-sentence cost twice; nothing to say costs nothing.
+        #expect(
+            limits.spokenSeconds(of: "I love you too, April. Always, my wizard.")
+                > limits.spokenSeconds(of: "I love you too, April, always, my wizard."))
+        #expect(limits.spokenSeconds(of: "  ") == 0)
+    }
+
     /// The default test world offers the next floor at once (a lead longer than any line);
     /// `floorIsPacedToPlayback` covers the real pacing.
     private func makeWorld(
@@ -376,6 +401,7 @@ struct SceneServiceTests {
             performer: performer,
             announce: { await announced.record($0) },
             scheduleDeadline: { await timers.schedule($0) },
+            cancelDeadline: { await timers.cancel($0) },
             recordTurn: { _, turn in
                 await recorded.record(turn)
                 return .generated()
@@ -428,7 +454,9 @@ private actor AnnouncedEvents {
 
 private actor ScheduledTimers {
     private(set) var scheduled: [WorldTimer] = []
+    private(set) var canceled: [TimerID] = []
     func schedule(_ timer: WorldTimer) { scheduled.append(timer) }
+    func cancel(_ timerID: TimerID) { canceled.append(timerID) }
 }
 
 private actor RecordedTurns {

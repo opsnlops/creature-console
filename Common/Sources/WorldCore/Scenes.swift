@@ -428,27 +428,36 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public var floorSeconds: TimeInterval
     public var maximumTurns: Int
     public var maximumSpokenSeconds: TimeInterval
-    /// Rough reading pace used to estimate spoken time from text.
-    public var wordsPerSecond: Double
+    /// How fast the room speaks, for estimating how long a line will play: characters a
+    /// second once a sentence is under way, plus a fixed cost per sentence (the breath
+    /// before it and the tail after). Fitted to Creature Server's rendered frame counts:
+    /// twenty characters a second and a third of a second a sentence land within a tenth
+    /// of a second of what ElevenLabs actually produced.
+    public var charactersPerSecond: Double
+    public var sentenceSeconds: TimeInterval
     /// The world events that open a scene on their own, and where, and how often.
     public var openOn: [SceneOpeningRule]
     /// How long before the room finishes the last line the next floor is offered, so the
-    /// next bird's first sentence lands as the previous one ends (about a first-sentence
-    /// latency). Zero offers it exactly at the end.
+    /// next bird's first sentence lands as the previous one ends: a first-sentence latency
+    /// plus the render. A line that arrives early simply queues behind the one playing —
+    /// Creature Server plays a scene's sentences in order — so the cost of a generous lead
+    /// is only that April's interjection may land after the next line is already composed.
     public var turnLeadSeconds: TimeInterval
 
     public init(
         floorSeconds: TimeInterval = 8,
         maximumTurns: Int = 12,
         maximumSpokenSeconds: TimeInterval = 90,
-        wordsPerSecond: Double = 2.5,
+        charactersPerSecond: Double = 20,
+        sentenceSeconds: TimeInterval = 0.35,
         openOn: [SceneOpeningRule] = [],
-        turnLeadSeconds: TimeInterval = 1
+        turnLeadSeconds: TimeInterval = 2
     ) {
         self.floorSeconds = floorSeconds
         self.maximumTurns = maximumTurns
         self.maximumSpokenSeconds = maximumSpokenSeconds
-        self.wordsPerSecond = wordsPerSecond
+        self.charactersPerSecond = charactersPerSecond
+        self.sentenceSeconds = sentenceSeconds
         self.openOn = openOn
         self.turnLeadSeconds = turnLeadSeconds
     }
@@ -464,8 +473,10 @@ public struct SceneLimits: Hashable, Sendable, Codable {
             maximumSpokenSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .maximumSpokenSeconds)
                 ?? defaults.maximumSpokenSeconds,
-            wordsPerSecond: try container.decodeIfPresent(Double.self, forKey: .wordsPerSecond)
-                ?? defaults.wordsPerSecond,
+            charactersPerSecond: try container.decodeIfPresent(
+                Double.self, forKey: .charactersPerSecond) ?? defaults.charactersPerSecond,
+            sentenceSeconds: try container.decodeIfPresent(
+                TimeInterval.self, forKey: .sentenceSeconds) ?? defaults.sentenceSeconds,
             openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
             turnLeadSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .turnLeadSeconds)
@@ -473,16 +484,22 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         )
     }
 
+    /// How long the room will take to say `text`: a fixed cost per sentence plus the
+    /// characters at speaking pace. Nothing to say takes no time.
     public func spokenSeconds(of text: String) -> TimeInterval {
-        let words = text.split(whereSeparator: \.isWhitespace).count
-        return Double(words) / max(wordsPerSecond, 0.1)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return 0 }
+        let sentences = max(1, trimmed.filter { ".!?".contains($0) }.count)
+        return Double(sentences) * sentenceSeconds
+            + Double(trimmed.count) / max(charactersPerSecond, 0.1)
     }
 
     private enum CodingKeys: String, CodingKey {
         case floorSeconds = "floor_seconds"
         case maximumTurns = "maximum_turns"
         case maximumSpokenSeconds = "maximum_spoken_seconds"
-        case wordsPerSecond = "words_per_second"
+        case charactersPerSecond = "characters_per_second"
+        case sentenceSeconds = "sentence_seconds"
         case openOn = "open_on"
         case turnLeadSeconds = "turn_lead_seconds"
     }

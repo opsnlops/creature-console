@@ -1,3 +1,18 @@
+creature-cli (2.63.0+world0.12.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.12.0: the paced floor, tuned to the room. April: "this
+    is too slow." Creature Server's scheduler frames (1 ms) showed each
+    hand-off carrying about a second of silence: the words-per-second
+    estimate ran a quarter slow and a one-second lead did not cover the
+    next bird's first sentence. Spoken time is now `sentence_seconds` (0.35)
+    per sentence plus characters at `characters_per_second` (20), fitted to
+    the rendered frame counts (within a tenth of a second); the lead
+    defaults to 2 s (`turn_lead_seconds`). `words_per_second` is gone.
+    Answered floors withdraw their deadline, so scene.floor_expired is a
+    real pass and never a phantom in the timeline.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 19:05:00 -0700
+
 creature-cli (2.63.0+world0.11.0+house0.1.4) unstable; urgency=medium
 
   * creature-world 0.11.0: the floor is paced to the room. April: "It

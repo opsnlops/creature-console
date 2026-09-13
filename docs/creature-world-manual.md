@@ -84,7 +84,8 @@ systemd service reads `/etc/creature/world.json` by default.
 | Lead character | `lead_character` | — | — | `character:beaky` (who an unaddressed message goes to) |
 | Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
-| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.maximum_spoken_seconds`, `scenes.words_per_second` | — | — | `8`, `12`, `90`, `2.5` |
+| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `90` |
+| Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds` | — | — | `20`, `0.35`, `2` |
 
 Example:
 
@@ -173,7 +174,7 @@ character at a time — the addressee first, then the others in a round — with
 `POST /world/v1/scenes/{scene_id}/turns`; a floor nobody answers by `floor_seconds` is a pass
 (the deadline is a world timer, `scene.floor_expired`). The scene closes when everyone passes in
 a row, at `maximum_turns`, or when the composed speech would exceed `maximum_spoken_seconds`
-(estimated at `words_per_second`); a new scene in the region interrupts an open one. Every spoken
+(estimated as below); a new scene in the region interrupts an open one. Every spoken
 turn is also a conversation item, so the Communicator shows the exchange as it is composed.
 
 **The house opens scenes** (`0.10.0`, F3): `scenes.open_on` lists the world events that
@@ -201,12 +202,21 @@ twelve-turn scene generates in seconds and plays for a minute, and with the next
 the moment a line's text landed, the birds ran far ahead of what anyone had heard (the
 server's trace showed sentences waiting up to twenty seconds in the playback queue behind
 lines already composed). The world now keeps `spoken_until` — its estimate of when the room
-will finish everything queued, at `words_per_second` — and offers the next floor
-`turn_lead_seconds` (default 1, about a first-sentence latency) before that, through a
-`scene.floor_ready` world timer; the scene shows `pending_floor` in the meantime. Each bird
-therefore reacts to what was actually just heard, the scene runs at conversation speed, and
-April can get a word in. Creature Server reporting real play times (creature-server#192)
-will replace the estimate.
+will finish everything queued — and offers the next floor `turn_lead_seconds` (default 2)
+before that, through a `scene.floor_ready` world timer; the scene shows `pending_floor` in
+the meantime. Each bird therefore reacts to what was actually just heard, the scene runs at
+conversation speed, and April can get a word in.
+
+The estimate is `sentence_seconds` per sentence plus the characters at
+`characters_per_second` (`0.12.0`). Those defaults — a third of a second and twenty a
+second — were fitted to Creature Server's rendered frame counts for a real scene and land
+within a tenth of a second of ElevenLabs' actual audio; the earlier words-per-second guess
+ran a quarter slow, so every hand-off carried a second of dead air. The lead covers the next
+bird's first-sentence latency and the render; a line that arrives early simply queues behind
+the one playing (the server plays a scene's sentences in order), so a generous lead costs only
+that April's interjection may land after the next line is composed. An answered floor's
+deadline is withdrawn, so `scene.floor_expired` means a real pass, never a phantom. Creature
+Server reporting real play times (creature-server#192) will replace the estimate.
 
 **A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model
 submits `{ "text": "Not quite, Kenny.", "piece": 0 }`, `{ …, "piece": 1 }`, … and finally

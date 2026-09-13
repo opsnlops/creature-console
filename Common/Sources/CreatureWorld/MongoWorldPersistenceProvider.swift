@@ -128,6 +128,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             knowledge: knowledge,
             announce: { _ = try await world.accept($0) },
             scheduleDeadline: { try await timerScheduler.schedule($0) },
+            cancelDeadline: { try await timerScheduler.cancel(timerID: $0) },
             recordTurn: { scene, turn in
                 // A spoken turn is a conversation item like any other, so the Communicator and
                 // history show the exchange as it is composed.

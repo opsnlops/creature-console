@@ -56,6 +56,7 @@ public actor SceneService {
     private let limits: SceneLimits
     private let announce: @Sendable (WorldEventEnvelope) async throws -> Void
     private let scheduleDeadline: @Sendable (WorldTimer) async throws -> Void
+    private let cancelDeadline: @Sendable (TimerID) async throws -> Void
     private let recordTurn: @Sendable (Scene, SceneTurn) async throws -> ConversationItemID
     private let performer: any ScenePerforming
     private let knowledge: any WorldKnowledgeProviding
@@ -69,6 +70,7 @@ public actor SceneService {
         knowledge: any WorldKnowledgeProviding = NoWorldKnowledge(),
         announce: @escaping @Sendable (WorldEventEnvelope) async throws -> Void,
         scheduleDeadline: @escaping @Sendable (WorldTimer) async throws -> Void,
+        cancelDeadline: @escaping @Sendable (TimerID) async throws -> Void,
         recordTurn: @escaping @Sendable (Scene, SceneTurn) async throws -> ConversationItemID,
         makeResponseID: @escaping @Sendable () -> ResponseID = { .generated() }
     ) {
@@ -79,6 +81,7 @@ public actor SceneService {
         self.knowledge = knowledge
         self.announce = announce
         self.scheduleDeadline = scheduleDeadline
+        self.cancelDeadline = cancelDeadline
         self.recordTurn = recordTurn
         self.makeResponseID = makeResponseID
     }
@@ -249,6 +252,8 @@ public actor SceneService {
         scene.turns.append(turn)
         scene.floor = nil
         try await repository.save(scene)
+        // The floor was answered; its deadline must not fire as a phantom expiry.
+        try await cancelDeadline(Self.floorTimerID(for: floor.responseID))
         if text != nil {
             await performer.sceneTurn(scene, turn, streamed: streamed)
         }
@@ -280,8 +285,7 @@ public actor SceneService {
         try await repository.save(scene)
         try await scheduleDeadline(
             WorldTimer(
-                timerID: try TimerID(
-                    validating: "timer:scene-floor-ready:\(floor.responseID.rawValue)"),
+                timerID: Self.floorReadyTimerID(after: floor.responseID),
                 purpose: Self.floorReadyEventType,
                 dueAt: readyAt,
                 status: .pending,
@@ -361,7 +365,7 @@ public actor SceneService {
     /// `floorExpired` because the floor's deadline has moved.
     static func floorTimer(for scene: Scene, floor: SceneFloor) throws -> WorldTimer {
         try WorldTimer(
-            timerID: try TimerID(validating: "timer:scene-floor:\(floor.responseID.rawValue)"),
+            timerID: Self.floorTimerID(for: floor.responseID),
             purpose: Self.floorExpiredEventType,
             dueAt: floor.deadline,
             status: .pending,
@@ -399,9 +403,25 @@ public actor SceneService {
 
     // MARK: - Closing and performing
 
+    public static func floorTimerID(for responseID: ResponseID) -> TimerID {
+        try! TimerID(validating: "timer:scene-floor:\(responseID.rawValue)")
+    }
+
+    /// The timer that offers the floor waiting behind the turn `responseID` answered.
+    public static func floorReadyTimerID(after responseID: ResponseID) -> TimerID {
+        try! TimerID(validating: "timer:scene-floor-ready:\(responseID.rawValue)")
+    }
+
     private func close(_ closing: Scene, reason: SceneCloseReason, at now: Date) async throws {
         var scene = closing
+        if let floor = scene.floor {
+            try await cancelDeadline(Self.floorTimerID(for: floor.responseID))
+        }
+        if scene.pendingFloor != nil, let last = scene.turns.last {
+            try await cancelDeadline(Self.floorReadyTimerID(after: last.responseID))
+        }
         scene.floor = nil
+        scene.pendingFloor = nil
         scene.closeReason = reason
         scene.closedAt = now
         scene.state = scene.spokenTurns.isEmpty ? .abandoned : .rendering
