@@ -98,6 +98,9 @@ struct CharacterMind: Sendable {
 
     let configuration: Configuration
     private let respond: Respond
+    /// Sentences as the model composes them, for scene turns streamed to the world piece by
+    /// piece; without it a scene turn is composed whole.
+    private let respondStreaming: RespondStreaming?
     private let stage: Stage?
     private let logger: Logger
     private let considerationCounter = Counter(label: "creature_agent.considerations")
@@ -112,11 +115,13 @@ struct CharacterMind: Sendable {
     init(
         configuration: Configuration,
         respond: @escaping Respond,
+        respondStreaming: RespondStreaming? = nil,
         stage: Stage? = nil,
         logger: Logger
     ) {
         self.configuration = configuration
         self.respond = respond
+        self.respondStreaming = respondStreaming
         self.stage = stage
         self.logger = logger
     }
@@ -399,16 +404,31 @@ struct CharacterMind: Sendable {
 
     /// The world has offered this character the floor: something to add, or a pass. Composed as
     /// text only — the world performs the whole scene once it closes.
-    func consider(_ offer: WorldSceneConsideration, now: Date) async -> SceneDecision {
+    /// One sentence of a streamed scene turn, with its index; throws when the world could not
+    /// take it.
+    typealias SpeakPiece = @Sendable (Int, String) async throws -> Void
+
+    /// The world has offered this character the floor. With `speak`, the line is streamed:
+    /// each sentence goes out as it is composed and the returned turn carries no text ("that
+    /// was the whole line"); without it, the line is composed whole.
+    func consider(
+        _ offer: WorldSceneConsideration, now: Date, speak: SpeakPiece? = nil
+    ) async throws -> SceneDecision {
         let context = ServiceContext.current ?? Self.traceContext(for: offer.envelope)
-        return await withSpan("agent.scene.consider", context: context) { span in
+        return try await withSpan("agent.scene.consider", context: context) { span in
             span.attributes["agent.character_id"] = configuration.characterID.rawValue
             span.attributes["scene.id"] = offer.offer.sceneID.rawValue
             span.attributes["world.sequence"] = offer.worldSequence
             span.attributes["agent.persona_version"] = configuration.persona.versionTag
             span.attributes["llm.model"] = configuration.modelName
             considerationCounter.increment()
-            let decision = await decideTurn(offer.offer, now: now)
+            let decision: SceneDecision
+            if let speak, let respondStreaming {
+                span.attributes["scene.turn.streamed"] = true
+                decision = try await streamTurn(offer.offer, now: now, respondStreaming, speak)
+            } else {
+                decision = await decideTurn(offer.offer, now: now)
+            }
             switch decision {
             case .turn:
                 span.attributes["agent.reaction"] = "turn"
@@ -423,6 +443,130 @@ struct CharacterMind: Sendable {
             }
             return decision
         }
+    }
+
+    /// Stream the line: the first sentence decides silence and loses any speaker label or
+    /// hail; every sentence is speech-clean; each goes to the world as it lands, and the turn
+    /// ends when the model stops or the world's length limit is reached.
+    private func streamTurn(
+        _ offer: SceneTurnOffer, now: Date, _ respondStreaming: @escaping RespondStreaming,
+        _ speak: @escaping SpeakPiece
+    ) async throws -> SceneDecision {
+        func pass(_ reason: CharacterDecision.SilenceReason) -> SceneDecision {
+            .pass(
+                try! SceneTurnSubmission(
+                    characterID: configuration.characterID, responseID: offer.responseID,
+                    sessionID: nil, text: nil),
+                reason: reason)
+        }
+        guard now <= offer.deadline else { return pass(.stale) }
+        let transcript = makeSceneTranscript(for: offer, now: now)
+        let speaker = offer.trigger.speakerID.map(Self.name(of:))
+        let line = StreamedLine(
+            characterName: configuration.characterName, speaker: speaker, startedAt: now)
+        do {
+            try await withSpan("llm.generate") { span in
+                span.attributes["llm.model"] = configuration.modelName
+                span.attributes["llm.transcript.turns"] = transcript.count
+                span.attributes["llm.streaming"] = true
+                try await withTimeout(configuration.modelTimeout) {
+                    for await raw in respondStreaming(transcript) {
+                        switch await line.offer(raw) {
+                        case .speak(let index, let piece):
+                            try await speak(index, piece)
+                            await line.spoke(piece)
+                        case .skip:
+                            continue
+                        case .done:
+                            return
+                        }
+                    }
+                }
+                if let first = await line.firstSentenceMilliseconds {
+                    span.attributes["llm.first_sentence_ms"] = first
+                }
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as WorldResponderError {
+            // The world could not take a piece: the caller retries from its cursor, and the
+            // pieces already taken are recognised by index.
+            throw error
+        } catch {
+            logger.error("The model did not answer the scene", metadata: ["error": "\(error)"])
+            if await line.spoken.isEmpty { return pass(.modelUnavailable) }
+        }
+        guard !(await line.spoken.isEmpty) else {
+            return pass(await line.declined ? .choseSilence : .emptyResponse)
+        }
+        return .turn(
+            try SceneTurnSubmission(
+                characterID: configuration.characterID,
+                responseID: offer.responseID,
+                sessionID: nil,
+                text: nil,
+                trace: currentTraceContext()
+            ))
+    }
+
+    /// The sentences of a streamed scene line so far, decided one at a time.
+    private actor StreamedLine {
+        enum Verdict {
+            case speak(Int, String)
+            case skip
+            case done
+        }
+        private(set) var spoken: [String] = []
+        private(set) var declined = false
+        private var firstSentenceAt: Date?
+        private let characterName: String
+        private let speaker: String?
+        private let startedAt: Date
+
+        init(characterName: String, speaker: String?, startedAt: Date) {
+            self.characterName = characterName
+            self.speaker = speaker
+            self.startedAt = startedAt
+        }
+
+        var firstSentenceMilliseconds: Int? {
+            firstSentenceAt.map { Int($0.timeIntervalSince(startedAt) * 1_000) }
+        }
+
+        func offer(_ raw: String) -> Verdict {
+            guard
+                let piece = CharacterMind.scenePiece(
+                    raw, first: spoken.isEmpty, characterName: characterName, speaker: speaker)
+            else {
+                if spoken.isEmpty, CharacterMind.declinesToSpeak(raw) {
+                    declined = true
+                    return .done
+                }
+                return .skip
+            }
+            guard CharacterMind.fits(spoken + [piece]) else { return .done }
+            if firstSentenceAt == nil { firstSentenceAt = Date() }
+            return .speak(spoken.count, piece)
+        }
+
+        func spoke(_ piece: String) { spoken.append(piece) }
+    }
+
+    /// One sentence of a scene line, cleaned for speech; `nil` when there is nothing to say
+    /// in it (a stage direction alone, a label, silence).
+    static func scenePiece(
+        _ raw: String, first: Bool, characterName: String, speaker: String?
+    ) -> String? {
+        let stripped = LocalLLMClient.stripThinkTags(raw)
+        if first, declinesToSpeak(stripped) { return nil }
+        var text = first ? withoutSpeakerLabel(stripped, characterName: characterName) : stripped
+        text = TextSanitizer.sanitize(withoutStageDirections(text)).text
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if first, let speaker {
+            text = withoutOpeningVocative(text, name: speaker)
+        }
+        return text.isEmpty ? nil : text
     }
 
     private func decideTurn(_ offer: SceneTurnOffer, now: Date) async -> SceneDecision {

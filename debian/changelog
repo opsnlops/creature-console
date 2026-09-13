@@ -1,3 +1,54 @@
+creature-cli (2.63.0+world0.11.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.11.0: the floor is paced to the room. April: "It
+    takes way longer for the long conversations to play out than it does
+    for the LLM to generate." The server's trace agreed: TTS renders in a
+    quarter second, but each sentence waited up to twenty seconds in the
+    playback queue behind lines the birds had already composed. Now the
+    world estimates when the room will finish what is queued (words at
+    `words_per_second`) and offers the next floor `turn_lead_seconds`
+    (default 1) before that, via a scene.floor_ready world timer - so
+    each bird reacts to what was actually just heard, twelve turns run at
+    conversation speed, and April can get a word in. Scenes carry
+    spoken_until and pending_floor; the Viewer shows who is next and when.
+    The power monitor is news at a kilowatt, not a compressor cycle.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 18:05:00 -0700
+
+creature-cli (2.63.0+world0.10.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.10.0: the house opens scenes (F3). `scenes.open_on`
+    in world.json names the events that start one - a person or vehicle
+    seen at the driveway, front door, or carport; the front door
+    unlocking - with a cooldown per event and place, the way the MQTT
+    agent's areas worked. The lead gets the floor first, then whoever else
+    is in the region; the birds read it as a stage note ("A person was
+    just seen at the driveway."). `house_conversation` names where those
+    scenes are recorded (default conversation:april-house). This is what
+    lets creature-agent's world mode replace its MQTT mode.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 00:30:00 -0700
+
+creature-cli (2.63.0+world0.9.0+house0.1.4) unstable; urgency=medium
+
+  * creature-house 0.1.4: a stop cuts the Home Assistant socket and the
+    world stream instead of merely noting it, so an upgrade no longer waits
+    for systemd to kill the service (the gateway's old disease).
+  * Scene turns stream sentence by sentence (#175). creature-world 0.9.0:
+    `POST /scenes/{id}/turns` takes a line in pieces (`piece: 0, 1, ...`
+    then a final submission with no piece); each piece is spoken through
+    dialog-stream the moment it lands (scene.turn_piece), the floor's
+    deadline moves out with it, a stale floor timer is ignored, and the
+    pieces become the turn - recorded once - when the mind says it is
+    done; a line that goes quiet is the line so far. creature-agent
+    2.63.0: with a streaming model a scene turn is composed and sent
+    sentence by sentence (first sentence decides silence and loses labels
+    and hails; llm.first_sentence_ms on llm.generate). A frontier model's
+    line starts playing after its first sentence, not its last.
+  * World Viewer shows a line filling in on the Scenes panel.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 17:20:00 -0700
+
 creature-cli (2.62.5+world0.8.2+house0.1.3) unstable; urgency=medium
 
   * creature-house 0.1.3: April's weather and power sensors in the packaged

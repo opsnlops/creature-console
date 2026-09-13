@@ -24,6 +24,7 @@ struct CreatureWorldDependencies: Sendable {
             scenePerformance: configuration.scenePerformance,
             regions: configuration.regions,
             leadCharacter: configuration.leadCharacter,
+            houseConversation: configuration.houseConversation,
             givenFacts: configuration.givenFacts,
             logger: logger
         )

@@ -16,10 +16,23 @@ public protocol SceneRepository: Sendable {
 public protocol ScenePerforming: Sendable {
     /// The scene has opened with these participants. Failure here must not stop the scene.
     func sceneOpened(_ scene: Scene) async
-    /// A character spoke. Failure here must not stop the scene.
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) async
+    /// One sentence of a line a character is still composing: speak it now, in that
+    /// character's voice. Failure here must not stop the scene.
+    func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String)
+        async
+    /// A character spoke. `streamed` is true when the line already went out piece by piece,
+    /// so a performer that speaks as it goes must not say it again. Failure here must not stop
+    /// the scene.
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async
     /// The scene has closed with at least one spoken turn; play or finish playing it.
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance
+}
+
+extension ScenePerforming {
+    /// A performer that renders whole lines has nothing to do with a piece.
+    public func sceneTurnPiece(
+        _ scene: Scene, character: EntityID, responseID: ResponseID, text: String
+    ) async {}
 }
 
 /// The world's stage manager: opens a scene when more than one character could answer, gives the
@@ -29,9 +42,13 @@ public protocol ScenePerforming: Sendable {
 public actor SceneService {
     public static let openedEventType = WorldEventType(rawValue: "scene.opened")!
     public static let turnEventType = WorldEventType(rawValue: "scene.turn")!
+    /// One sentence of a line still being composed.
+    public static let turnPieceEventType = WorldEventType(rawValue: "scene.turn_piece")!
     public static let closedEventType = WorldEventType(rawValue: "scene.closed")!
     public static let performedEventType = WorldEventType(rawValue: "scene.performed")!
     public static let floorExpiredEventType = WorldEventType(rawValue: "scene.floor_expired")!
+    /// The room has (nearly) finished the last line: time to offer the next floor.
+    public static let floorReadyEventType = WorldEventType(rawValue: "scene.floor_ready")!
     public static let sourceID = try! SourceID(validating: "world:scenes")
 
     private let repository: any SceneRepository
@@ -130,7 +147,7 @@ public actor SceneService {
                 span.attributes["scene.turn.disposition"] = disposition.rawValue
                 return SceneTurnResult(disposition: disposition, scene: scene)
             }
-            guard scene.state == .open, let floor = scene.floor,
+            guard scene.state == .open, var floor = scene.floor,
                 floor.characterID == submission.characterID,
                 floor.responseID == submission.responseID
             else {
@@ -138,20 +155,68 @@ public actor SceneService {
                 return SceneTurnResult(disposition: .notYourTurn, scene: scene)
             }
             let now = WorldJSON.wireDate(await clock.now)
-            try await take(&scene, floor: floor, text: submission.text, at: now)
+            if let index = submission.piece, let piece = submission.text {
+                // One sentence of a line still being composed: spoken now, kept on the floor,
+                // and the floor's deadline moves out so the rest may follow.
+                span.attributes["scene.turn.piece"] = index
+                guard index == floor.pieces.count else {
+                    span.attributes["scene.turn.disposition"] =
+                        index < floor.pieces.count ? "duplicate" : "not_your_turn"
+                    return SceneTurnResult(
+                        disposition: index < floor.pieces.count ? .duplicate : .notYourTurn,
+                        scene: scene)
+                }
+                floor.pieces.append(piece)
+                floor.deadline = now.addingTimeInterval(limits.floorSeconds)
+                scene.floor = floor
+                Self.queueSpeech(of: piece, in: &scene, at: now, limits: limits)
+                try await repository.save(scene)
+                await performer.sceneTurnPiece(
+                    scene, character: floor.characterID, responseID: floor.responseID, text: piece)
+                try await announce(
+                    makeEvent(
+                        Self.turnPieceEventType, scene: scene, at: now,
+                        subject: floor.characterID,
+                        payload: [
+                            "character_id": .string(floor.characterID.rawValue),
+                            "response_id": .string(floor.responseID.rawValue),
+                            "piece": .number(Double(index)),
+                            "text": .string(piece),
+                        ]))
+                try await scheduleDeadline(Self.floorTimer(for: scene, floor: floor))
+                span.attributes["scene.turn.disposition"] = "accepted"
+                return SceneTurnResult(disposition: .accepted, scene: scene)
+            }
+            // The line is done: what was streamed, plus this last sentence if any. A pass
+            // after pieces is not a pass — the pieces were the line.
+            let text = Self.joinedLine(pieces: floor.pieces, last: submission.text)
+            try await take(
+                &scene, floor: floor, text: text, streamed: !floor.pieces.isEmpty, at: now)
             span.attributes["scene.turn.disposition"] = "accepted"
-            span.attributes["scene.turn.pass"] = submission.text == nil
+            span.attributes["scene.turn.pass"] = text == nil
             let latest = try await repository.scene(id: sceneID) ?? scene
             return SceneTurnResult(disposition: .accepted, scene: latest)
         }
     }
 
-    /// The floor's deadline passed without an answer: that is a pass.
+    public static func joinedLine(pieces: [String], last: String?) -> String? {
+        let all = pieces + (last.map { [$0] } ?? [])
+        let joined = all.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }.joined(separator: " ")
+        return joined.isEmpty ? nil : joined
+    }
+
+    /// The floor's deadline passed without an answer: that is a pass — unless the deadline
+    /// moved out because sentences were arriving, in which case this timer is the old one.
     public func floorExpired(sceneID: SceneID, responseID: ResponseID) async throws {
         guard var scene = try await repository.scene(id: sceneID), scene.state == .open,
             let floor = scene.floor, floor.responseID == responseID
         else { return }
-        try await take(&scene, floor: floor, text: nil, at: WorldJSON.wireDate(await clock.now))
+        let now = WorldJSON.wireDate(await clock.now)
+        guard floor.deadline <= now else { return }
+        // A line that was being streamed and then went quiet is the line so far.
+        let text = Self.joinedLine(pieces: floor.pieces, last: nil)
+        try await take(&scene, floor: floor, text: text, streamed: !floor.pieces.isEmpty, at: now)
     }
 
     public func scene(id: SceneID) async throws -> Scene? {
@@ -165,7 +230,8 @@ public actor SceneService {
     // MARK: - The floor
 
     private func take(
-        _ scene: inout Scene, floor: SceneFloor, text: String?, at now: Date
+        _ scene: inout Scene, floor: SceneFloor, text: String?, streamed: Bool = false,
+        at now: Date
     ) async throws {
         var turn = SceneTurn(
             characterID: floor.characterID,
@@ -177,11 +243,14 @@ public actor SceneService {
         if text != nil {
             turn.conversationItemID = try await recordTurn(scene, turn)
         }
+        if let text, !streamed {
+            Self.queueSpeech(of: text, in: &scene, at: now, limits: limits)
+        }
         scene.turns.append(turn)
         scene.floor = nil
         try await repository.save(scene)
         if text != nil {
-            await performer.sceneTurn(scene, turn)
+            await performer.sceneTurn(scene, turn, streamed: streamed)
         }
         try await announce(
             makeEvent(
@@ -199,7 +268,48 @@ public actor SceneService {
             return
         }
         let next = nextParticipant(after: floor.characterID, in: scene)
-        try await offerFloor(&scene, to: next, at: now)
+        // The floor is offered when the room has nearly finished the last line, not the
+        // moment it was composed: the birds react to what was heard, and April can get a
+        // word in. A room already caught up gets the next bird now.
+        let readyAt = (scene.spokenUntil ?? now).addingTimeInterval(-limits.turnLeadSeconds)
+        guard readyAt > now else {
+            try await offerFloor(&scene, to: next, at: now)
+            return
+        }
+        scene.pendingFloor = next
+        try await repository.save(scene)
+        try await scheduleDeadline(
+            WorldTimer(
+                timerID: try TimerID(
+                    validating: "timer:scene-floor-ready:\(floor.responseID.rawValue)"),
+                purpose: Self.floorReadyEventType,
+                dueAt: readyAt,
+                status: .pending,
+                subjectIDs: [next, scene.regionID],
+                causedBy: [.event(scene.trigger.eventID)],
+                payload: [
+                    "scene_id": .string(scene.sceneID.rawValue),
+                    "character_id": .string(next.rawValue),
+                ]
+            ))
+    }
+
+    /// The room is about to finish the last line: offer the floor that was waiting.
+    public func floorReady(sceneID: SceneID) async throws {
+        guard var scene = try await repository.scene(id: sceneID), scene.state == .open,
+            scene.floor == nil, let next = scene.pendingFloor
+        else { return }
+        scene.pendingFloor = nil
+        try await offerFloor(&scene, to: next, at: WorldJSON.wireDate(await clock.now))
+    }
+
+    /// The world's estimate of when the room will have said everything queued so far: each
+    /// line or piece plays after the one before it, at the configured pace.
+    static func queueSpeech(
+        of text: String, in scene: inout Scene, at now: Date, limits: SceneLimits
+    ) {
+        let start = max(scene.spokenUntil ?? now, now)
+        scene.spokenUntil = start.addingTimeInterval(limits.spokenSeconds(of: text))
     }
 
     private func offerFloor(_ scene: inout Scene, to characterID: EntityID, at now: Date)
@@ -243,19 +353,25 @@ public actor SceneService {
                 causedBy: [.event(scene.trigger.eventID)],
                 trace: scene.trace
             ))
-        try await scheduleDeadline(
-            WorldTimer(
-                timerID: try TimerID(validating: "timer:scene-floor:\(responseID.rawValue)"),
-                purpose: Self.floorExpiredEventType,
-                dueAt: floor.deadline,
-                status: .pending,
-                subjectIDs: [characterID, scene.regionID],
-                causedBy: [.event(scene.trigger.eventID)],
-                payload: [
-                    "scene_id": .string(scene.sceneID.rawValue),
-                    "response_id": .string(responseID.rawValue),
-                ]
-            ))
+        try await scheduleDeadline(Self.floorTimer(for: scene, floor: floor))
+    }
+
+    /// The floor's deadline as a world timer. Scheduling it again with a later `dueAt` (a
+    /// streamed line still arriving) replaces the earlier one; an early firing is ignored by
+    /// `floorExpired` because the floor's deadline has moved.
+    static func floorTimer(for scene: Scene, floor: SceneFloor) throws -> WorldTimer {
+        try WorldTimer(
+            timerID: try TimerID(validating: "timer:scene-floor:\(floor.responseID.rawValue)"),
+            purpose: Self.floorExpiredEventType,
+            dueAt: floor.deadline,
+            status: .pending,
+            subjectIDs: [floor.characterID, scene.regionID],
+            causedBy: [.event(scene.trigger.eventID)],
+            payload: [
+                "scene_id": .string(scene.sceneID.rawValue),
+                "response_id": .string(floor.responseID.rawValue),
+            ]
+        )
     }
 
     private func nextParticipant(after characterID: EntityID, in scene: Scene) -> EntityID {

@@ -256,6 +256,7 @@ let package = Package(
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
                 .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "ServiceLifecycleTestKit", package: "swift-service-lifecycle"),
             ]
         ),
         .testTarget(

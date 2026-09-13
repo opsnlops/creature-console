@@ -62,6 +62,14 @@ struct SceneRow: View {
                     )
                     .foregroundStyle(.orange)
                 }
+                if scene.floor == nil, let next = scene.pendingFloor, let until = scene.spokenUntil
+                {
+                    // The room is still saying the last line; the next bird waits for it.
+                    Text(
+                        "next: \(CharacterName.of(next)) once the room finishes at \(until, format: .dateTime.hour().minute().second())"
+                    )
+                    .foregroundStyle(.orange)
+                }
                 if let reason = scene.closeReason {
                     Text("closed: \(reason.rawValue)")
                 }
@@ -80,6 +88,16 @@ struct SceneRow: View {
                             .font(.caption.italic())
                             .foregroundStyle(.tertiary)
                     }
+                }
+            }
+            if let floor = scene.floor, !floor.pieces.isEmpty {
+                // A line still being composed: the sentences the room has heard so far.
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(CharacterName.of(floor.characterID))
+                        .font(.caption.weight(.semibold))
+                    Text(floor.pieces.joined(separator: " ") + " …")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
             if let performance = scene.performance {

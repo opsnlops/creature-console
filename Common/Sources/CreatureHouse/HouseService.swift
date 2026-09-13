@@ -37,17 +37,23 @@ struct HouseService: Service {
     }
 
     func run() async throws {
-        try await withGracefulShutdownHandler {
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask { try await followHomeAssistant() }
-                group.addTask { try await followWorld() }
-                group.addTask { try await flushOutbox() }
-                try await group.next()
-                group.cancelAll()
+        // A stop must cut the Home Assistant socket and the world stream, not merely note it:
+        // otherwise the service never returns and every upgrade waits for systemd's kill.
+        do {
+            try await cancelWhenGracefulShutdown {
+                try await withThrowingTaskGroup(of: Void.self) { group in
+                    group.addTask { try await followHomeAssistant() }
+                    group.addTask { try await followWorld() }
+                    group.addTask { try await flushOutbox() }
+                    try await group.next()
+                    group.cancelAll()
+                }
             }
-        } onGracefulShutdown: {
+        } catch is CancellationError {
             logger.info("The house is going quiet")
         }
+        // Whatever the world could not take yet is on disk already; one last try.
+        await delivery.flush()
         try? await client.shutdown()
     }
 

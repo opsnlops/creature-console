@@ -1,8 +1,8 @@
 # Facts and Personas — What the Birds Know and Who They Are
 
 **Status:** F1 and P1 merged and live; F2 (`creature-house`) built on branch `house-f2`
-and run against the real house from the laptop, with the scenes arm ("set the lights to…")
-included; F3 next. Decided 2026-09-12: the Information Bridge
+merged and live, with the scenes arm ("set the lights to…"); F3 (scenes from world events)
+built on `scene-streaming` (World `0.10.0`) — the MQTT-mode replacement. Decided 2026-09-12: the Information Bridge
 runs on-device on April's M1 Mac mini (Apple Foundation Models); Beaky's voice stays on Nemo
 for now.
 **Why:** April: "I want actual facts for them to say, and I want to be able to define the bird's

@@ -12,6 +12,12 @@ The design and roadmap live in [Beaky's World](beakys-world.md) (§8 and the dat
 
 ## World mode and production
 
+**World mode now covers what MQTT mode did** (World `0.10.0`): the house's camera detections
+and door events open scenes on their own (`scenes.open_on` in `world.json`), so Beaky chimes
+in when someone is at the driveway without anyone asking — with cooldowns per place, like the
+MQTT agent's areas. The remaining difference is that MQTT mode spoke a fixed
+`agentPrompt`-driven alert; world mode has the birds react in character, with the facts.
+
 Production's agent (`mode: mqtt`) reacts to house events out loud. From `2.56.0`, world mode can
 speak too: when Creature World puts Beaky in the room (April assumed or known to be home and
 audible), the mind streams sentences to Creature Server exactly as MQTT mode does. What world
@@ -188,6 +194,13 @@ else — persona, facts, the clock, streaming to the room — is identical.
   so a persona edit reviews as a diff of what the model reads; `agent.persona_version`
   (`name/version`) is on every `agent.consider` and `agent.scene.consider` span. Restart the
   mind after editing a persona. See [`docs/personas/README.md`](personas/README.md).
+- **Scene turns stream** (`2.63.0`, #175). With a streaming model (local or OpenAI), a scene
+  turn is composed and sent sentence by sentence: the first sentence decides silence and
+  loses any speaker label or hail, every sentence is speech-clean and stage-direction-free,
+  each goes to the world (`piece: n`) as it lands and is spoken there, and the turn ends
+  with "that was the whole line". `llm.first_sentence_ms` on `llm.generate` measures what
+  April actually hears. If the world cannot take a piece, the turn is retried from the
+  cursor and the pieces already taken are recognised by index.
 - **Nobody hails April every line** (`2.60.1`). In a scene, a turn that opens with the name of
   the person who started it as a vocative ("April, pizza or Linux?") loses the vocative; a
   name later in the line, or another bird's name, is kept, and solo replies are untouched.

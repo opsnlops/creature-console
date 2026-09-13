@@ -176,6 +176,49 @@ a row, at `maximum_turns`, or when the composed speech would exceed `maximum_spo
 (estimated at `words_per_second`); a new scene in the region interrupts an open one. Every spoken
 turn is also a conversation item, so the Communicator shows the exchange as it is composed.
 
+**The house opens scenes** (`0.10.0`, F3): `scenes.open_on` lists the world events that
+start a scene on their own, where, and how often —
+
+```json
+"scenes": { "open_on": [
+  { "event": "camera.person_seen",  "places": ["place:driveway", "place:front-door", "place:carport"], "cooldown_seconds": 300 },
+  { "event": "camera.vehicle_seen", "places": ["place:driveway", "place:carport"], "cooldown_seconds": 300 },
+  { "event": "door.unlocked", "cooldown_seconds": 60 }
+] }
+```
+
+— the MQTT agent's areas and cooldowns, as world rules. When a matching event is accepted
+(and its place has not opened one within the cooldown), the world opens a scene in the
+region whose `places` include it (a person's event uses the lead's region), in
+`house_conversation` (default `conversation:april-house`), with the lead first and everyone
+else logged into the region after; the trigger is a stage note the birds read — "A person
+was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody logged in means
+no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
+(so the birds also know it is 66 degrees and the cameras are otherwise quiet).
+
+**The floor is paced to the room** (`0.11.0`). Composing is fast and speaking is slow: a
+twelve-turn scene generates in seconds and plays for a minute, and with the next floor offered
+the moment a line's text landed, the birds ran far ahead of what anyone had heard (the
+server's trace showed sentences waiting up to twenty seconds in the playback queue behind
+lines already composed). The world now keeps `spoken_until` — its estimate of when the room
+will finish everything queued, at `words_per_second` — and offers the next floor
+`turn_lead_seconds` (default 1, about a first-sentence latency) before that, through a
+`scene.floor_ready` world timer; the scene shows `pending_floor` in the meantime. Each bird
+therefore reacts to what was actually just heard, the scene runs at conversation speed, and
+April can get a word in. Creature Server reporting real play times (creature-server#192)
+will replace the estimate.
+
+**A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model
+submits `{ "text": "Not quite, Kenny.", "piece": 0 }`, `{ …, "piece": 1 }`, … and finally
+`{ "text": null }` (or a last sentence with no `piece`) for "that was the whole line". Each
+piece is spoken the moment it lands (`scene.turn_piece`; the streaming performer sends it as
+a `dialog-stream` turn — creature-server#192 asks for a `continues` flag so consecutive pieces
+keep the pose and prosody), the floor's deadline moves out by `floor_seconds` with each, a
+stale floor timer is ignored, a retried piece is a `duplicate`, and the pieces are joined
+into one turn — recorded once — when the line is done. A line that goes quiet becomes the
+line so far when the floor expires. This is what lets a frontier model's longer line start
+playing after its first sentence instead of its last.
+
 Two ways to the room, chosen by `scene_performance`:
 
 - **`streaming`** (default; Creature Server 3.46.0+, creature-server#186): when the scene opens
