@@ -478,6 +478,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public var voices: [String: SpeakingPace]
     /// The world events that open a scene on their own, and where, and how often.
     public var openOn: [SceneOpeningRule]
+    /// When the house does not wake the birds at all; nil means never quiet.
+    public var quietHours: QuietHours?
     /// The least time between any two scenes the house opens, across all rules; zero (the
     /// default) lets every rule speak. April: "If I'm at home and watching TV I want to know
     /// that someone's out there sooner rather than later" — the updates as a visitor moves from
@@ -501,6 +503,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         voices: [String: SpeakingPace] = [:],
         openOn: [SceneOpeningRule] = [],
         houseGapSeconds: TimeInterval = 0,
+        quietHours: QuietHours? = nil,
         turnLeadSeconds: TimeInterval = 2
     ) {
         self.floorSeconds = floorSeconds
@@ -512,6 +515,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         self.voices = voices
         self.openOn = openOn
         self.houseGapSeconds = houseGapSeconds
+        self.quietHours = quietHours
         self.turnLeadSeconds = turnLeadSeconds
     }
 
@@ -537,6 +541,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
             openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
             houseGapSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .houseGapSeconds) ?? defaults.houseGapSeconds,
+            quietHours: try container.decodeIfPresent(QuietHours.self, forKey: .quietHours),
             turnLeadSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .turnLeadSeconds)
                 ?? defaults.turnLeadSeconds
@@ -570,6 +575,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case voices
         case openOn = "open_on"
         case houseGapSeconds = "house_gap_seconds"
+        case quietHours = "quiet_hours"
         case turnLeadSeconds = "turn_lead_seconds"
     }
 }

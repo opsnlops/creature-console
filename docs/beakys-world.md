@@ -136,7 +136,7 @@ remarks), then step 4 (nightly memory), then cutover.
 
 **Cutover — Sunday 2026-09-13 after church (April: "we can retire the old creature-agent";
 "fuzzball is the dev system. I'll port everything to the prod server").** Before: World `0.17.0`
-with `scenes.quiet_hours` (23:00–07:00, no exceptions; events still recorded). On the prod server:
+with `scenes.quiet_hours` (23:00–07:00, no exceptions; events still recorded) — built Saturday night. On the prod server:
 (1) MongoDB: creature-server's own cluster on that box (April: "we're just another collection in
 that same cluster") — the World's database must be named `creature_world` (a sibling database, its
 own collections, created by the migrator on first start), and the URI's `replicaSet=` must be the

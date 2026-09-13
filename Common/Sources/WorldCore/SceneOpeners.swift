@@ -42,11 +42,65 @@ public struct SceneOpeningRule: Hashable, Sendable, Codable {
     }
 }
 
+/// When the house does not wake the birds. "Beaky isn't a security system, she's my familiar. I
+/// have other alerts that go off at 3am." No exceptions: what the house sees at night is recorded
+/// and is the morning's story, but nobody speaks. Wall-clock times in `time_zone`; a window that
+/// crosses midnight (`23:00`–`07:00`) is the normal case.
+public struct QuietHours: Hashable, Sendable, Codable {
+    public var from: String
+    public var to: String
+    public var timeZone: String
+
+    public init(from: String, to: String, timeZone: String = "America/Los_Angeles") {
+        self.from = from
+        self.to = to
+        self.timeZone = timeZone
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case from, to
+        case timeZone = "time_zone"
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        from = try container.decode(String.self, forKey: .from)
+        to = try container.decode(String.self, forKey: .to)
+        timeZone =
+            try container.decodeIfPresent(String.self, forKey: .timeZone) ?? "America/Los_Angeles"
+        guard Self.minutes(from) != nil, Self.minutes(to) != nil, TimeZone(identifier: timeZone) != nil
+        else { throw WorldContractError.invalidScene }
+    }
+
+    /// Whether `date` falls inside the window.
+    public func contains(_ date: Date) -> Bool {
+        guard let start = Self.minutes(from), let end = Self.minutes(to),
+            let zone = TimeZone(identifier: timeZone)
+        else { return false }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        let now = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        if start == end { return false }
+        return start < end ? (now >= start && now < end) : (now >= start || now < end)
+    }
+
+    /// "23:00" → 1380; nil for anything else.
+    static func minutes(_ text: String) -> Int? {
+        let parts = text.split(separator: ":")
+        guard parts.count == 2, let hour = Int(parts[0]), let minute = Int(parts[1]),
+            (0...23).contains(hour), (0...59).contains(minute)
+        else { return nil }
+        return hour * 60 + minute
+    }
+}
+
 /// Decides, for an accepted event, whether the world should open a scene about it — pure but
 /// for the cooldown memory.
 public actor SceneOpeningPolicy {
     private let rules: [SceneOpeningRule]
     private let gapSeconds: TimeInterval
+    private let quietHours: QuietHours?
     private var lastOpened: [String: Date] = [:]
     private var lastOpenedAny: Date?
 
@@ -55,14 +109,19 @@ public actor SceneOpeningPolicy {
     /// then its camera, then the driveway's, then the carport's — and April wants each of them:
     /// "I want to know that someone's out there sooner rather than later." The knob exists for
     /// a quieter house; the events a gap swallows become the story the next scene is told.
-    public init(rules: [SceneOpeningRule], gapSeconds: TimeInterval = 0) {
+    public init(
+        rules: [SceneOpeningRule], gapSeconds: TimeInterval = 0, quietHours: QuietHours? = nil
+    ) {
         self.rules = rules
         self.gapSeconds = gapSeconds
+        self.quietHours = quietHours
     }
 
     /// The place the scene is about, when this event should open one now.
     public func shouldOpen(for event: WorldEventEnvelope, at now: Date) -> EntityID? {
         guard let place = event.subjectIDs.first else { return nil }
+        // The birds sleep. Cooldowns are not touched: the first thing after seven may speak.
+        if let quietHours, quietHours.contains(now) { return nil }
         guard
             let rule = rules.first(where: {
                 $0.event == event.type && ($0.places.isEmpty || $0.places.contains(place))

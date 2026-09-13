@@ -1,3 +1,13 @@
+creature-cli (2.66.1+world0.17.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.17.0: the birds sleep. `scenes.quiet_hours` (the
+    packaged world.json says 23:00-07:00 Pacific) is when the house does
+    not wake them, with no exceptions - "Beaky isn't a security system,
+    she's my familiar. I have other alerts that go off at 3am." What the
+    house sees at night is recorded and is the morning's story.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 23:55:00 -0700
+
 creature-cli (2.66.1+world0.16.2+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-agent 2.66.1: the birds no longer remark on April's typos.

@@ -2,7 +2,7 @@ import WorldCore
 
 struct CreatureWorldBuildInfo: Codable, Equatable, Sendable {
     static let current = CreatureWorldBuildInfo(
-        version: "0.16.2",
+        version: "0.17.0",
         schemaVersion: WorldSchema.currentVersion
     )
 
