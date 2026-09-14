@@ -31,7 +31,8 @@
     "open_on": [
       { "event": "camera.person_seen", "places": ["place:driveway", "place:front-door", "place:carport"], "cooldown_seconds": 300 },
       { "event": "camera.vehicle_seen", "places": ["place:driveway", "place:carport"], "cooldown_seconds": 300 },
-      { "event": "door.unlocked", "cooldown_seconds": 60 }
+      { "event": "door.unlocked", "cooldown_seconds": 60 },
+      { "event": "door.locked", "cooldown_seconds": 60 }
     ]
   },
   "retention": {
