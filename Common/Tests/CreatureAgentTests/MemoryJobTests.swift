@@ -95,7 +95,10 @@ struct MemoryJobTests {
                 respondJSON: { _ in Data(recollection.utf8) },
                 cast: { await casts.note($0) }, client: client,
                 logger: Logger(label: "memory-tests"))
-            try await job.remember(day: "2026-09-13", now: now)
+            try await job.remember(
+                day: "2026-09-13",
+                run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000001"),
+                now: now)
         }
 
         let events = await casts.events
@@ -128,8 +131,11 @@ struct MemoryJobTests {
         let done = try #require(events.first { $0.type.rawValue == "memory.consolidated" })
         #expect(done.payload["episodes"] == .number(3))
         #expect(done.payload["model"] == .string("gpt-6-astra"))
-        // Idempotent across a rerun: the source event ids are the day's.
-        #expect(jesse.source.sourceEventID == "memory:2026-09-13:episode:0:person:jesse")
+        // Keyed by the asking event: a retry of this night is idempotent, another asking is new.
+        #expect(
+            jesse.source.sourceEventID
+                == "memory:2026-09-13:5a8b0c8e-0000-4000-8000-000000000001:episode:0:person:jesse"
+        )
     }
 
     @Test("The birds are whoever spoke as a character that day, plus the one remembering")

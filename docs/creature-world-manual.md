@@ -228,8 +228,7 @@ keep as `facts.given` casts: `memory.episode.<day>.<n>` on each person, place, o
 salience) and `memory.reflection.<day>` on itself, then a `memory.consolidated` event. A fact is
 one value per subject and predicate, so the predicate carries the day and the episode's place in
 it: every day's memory of a subject stands beside the last, and a day's episodes beside each
-other; the glossary answers for the family. Remembering a day again fills the same places (a
-second run with fewer episodes leaves the old higher ones; Forget them in the Viewer). Memories have no `valid_to`, so retention never removes them; a mind is handed only the
+other; the glossary answers for the family. Every cast is keyed by the `memory.consolidate` event that asked, so a retry of the same night is idempotent while a day asked for again is remembered afresh, `.1` onward; Forget what the earlier run left, or let the two stand. Memories have no `valid_to`, so retention never removes them; a mind is handed only the
 `episodes_in_prompt` most salient and newest within `episode_days`, and its `reflections_in_prompt`
 newest reflections. To remember a day by hand — the first night, or a day whose memory you want redone —
 `POST /v1/days/{day}/remember` (`0.23.0`): the world records the same `memory.consolidate` event

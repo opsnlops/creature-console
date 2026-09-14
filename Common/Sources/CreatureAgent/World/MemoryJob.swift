@@ -39,11 +39,15 @@ struct MemoryJob: Sendable {
 
     static let maximumEpisodes = 12
 
-    /// Remember `day` (`2026-09-13`, in the house's zone).
-    func remember(day: String, now: Date) async throws {
+    /// Remember `day` (`2026-09-13`, in the house's zone). `run` is the id of the
+    /// `memory.consolidate` event asking: every cast is keyed by it, so a retry of the same
+    /// night is idempotent while a day asked for again - by hand, or after a Forget - is new.
+    func remember(day: String, run: EventID, now: Date) async throws {
         try await withSpan("agent.memory.remember") { span in
             span.attributes["agent.character_id"] = characterID.rawValue
             span.attributes["memory.day"] = day
+            span.attributes["memory.run"] = run.rawValue
+            let key = "memory:\(day):\(run.rawValue)"
             span.attributes["llm.model"] = modelName
             let digest = try await fetchDigest(day: day)
             span.attributes["memory.happenings"] = digest.happenings.count
@@ -78,19 +82,20 @@ struct MemoryJob: Sendable {
                     else { continue }
                     try await self.cast(
                         episodeEvent(
-                            episode, subject: subject, day: day, index: index, now: now))
+                            episode, subject: subject, day: day, index: index, key: key,
+                            now: now))
                     cast += 1
                 }
             }
             let reflection = recollection.reflection.trimmingCharacters(in: .whitespacesAndNewlines)
             if !reflection.isEmpty {
-                try await self.cast(reflectionEvent(reflection, day: day, now: now))
+                try await self.cast(reflectionEvent(reflection, day: day, key: key, now: now))
             }
             try await self.cast(
                 try WorldEventEnvelope(
                     type: WorldEventType(validating: "memory.consolidated"),
                     occurredAt: now,
-                    source: source(sourceEventID: "memory:\(day):done"),
+                    source: source(sourceEventID: "\(key):done"),
                     subjectIDs: [characterID],
                     epistemic: EpistemicState(type: .remembered, confidence: 1),
                     payload: [
@@ -184,12 +189,13 @@ struct MemoryJob: Sendable {
     // MARK: - Casting
 
     private func episodeEvent(
-        _ episode: Recollection.Episode, subject: EntityID, day: String, index: Int, now: Date
+        _ episode: Recollection.Episode, subject: EntityID, day: String, index: Int, key: String,
+        now: Date
     ) throws -> WorldEventEnvelope {
         try WorldEventEnvelope(
             type: WorldEventType(validating: "facts.given"),
             occurredAt: now,
-            source: source(sourceEventID: "memory:\(day):episode:\(index):\(subject.rawValue)"),
+            source: source(sourceEventID: "\(key):episode:\(index):\(subject.rawValue)"),
             subjectIDs: [subject],
             epistemic: EpistemicState(
                 type: .remembered, confidence: min(1, max(0, episode.salience))),
@@ -209,13 +215,13 @@ struct MemoryJob: Sendable {
             ])
     }
 
-    private func reflectionEvent(_ text: String, day: String, now: Date) throws
+    private func reflectionEvent(_ text: String, day: String, key: String, now: Date) throws
         -> WorldEventEnvelope
     {
         try WorldEventEnvelope(
             type: WorldEventType(validating: "facts.given"),
             occurredAt: now,
-            source: source(sourceEventID: "memory:\(day):reflection"),
+            source: source(sourceEventID: "\(key):reflection"),
             subjectIDs: [characterID],
             epistemic: EpistemicState(type: .remembered, confidence: 1),
             payload: [

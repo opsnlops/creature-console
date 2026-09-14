@@ -1,3 +1,12 @@
+creature-cli (2.71.2+world0.23.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-agent 2.71.2: remembering a day again remembers it afresh.
+    Every memory cast is keyed by the `memory.consolidate` event that
+    asked, so a retry of the same night stays idempotent while a day
+    asked for by hand is not silently deduplicated against the last run.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 23:40:00 -0700
+
 creature-cli (2.71.1+world0.23.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.23.1: the retention migration no longer fails on a

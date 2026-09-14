@@ -133,7 +133,7 @@ struct WorldMindService: Service {
         let logger = self.logger
         let started = await remembering.start {
             do {
-                try await memory.remember(day: day, now: await clock.now)
+                try await memory.remember(day: day, run: event.eventID, now: await clock.now)
             } catch {
                 logger.error(
                     "Could not remember the day",
