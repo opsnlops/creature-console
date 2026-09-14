@@ -134,6 +134,14 @@ house scenes up to three turns with the others joining (World `0.16.2`); nightly
 human-grained ("Jesse was here on Monday", never a timestamp). Next: step 3 (model-gated house
 remarks), then step 4 (nightly memory), then cutover.
 
+**Live on prod, verified (2026-09-13 17:00–17:45):** three solo replies performed; a full
+three-bird scene; the first walk on the production world — door → four cameras → four short
+scenes, "I wonder if April slipped home while we were debating her mystery robot parts" … "quite
+the little house tour"; The Flock on the phone through the ingress. Since then: `door.locked`,
+back/east driveway and orchard people+vehicles as occasions (never animals), Mango persona 5 (he
+knows his world is in MongoDB), packaged `world.json` is the production config (World `0.19.1`).
+Next: merge the stack (#176 → #177 → main), then step 3.
+
 **Cutover done (2026-09-13 16:50):** the stack runs on the prod server (world through
 `https://server.prod.chirpchirp.dev/world/v1`, creature_server `http://localhost:8000`, Mongo =
 creature-server's cluster), MQTT agent retired, fuzzball stopped. First words went unspoken —
