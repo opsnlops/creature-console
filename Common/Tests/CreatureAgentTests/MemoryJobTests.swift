@@ -140,11 +140,11 @@ struct MemoryJobTests {
 
     @Test("The birds are whoever spoke as a character that day, plus the one remembering")
     func subjects() throws {
-        let characters = MemoryJob.characters(in: try digest(), including: beaky)
-        #expect(characters["mango"]?.rawValue == "character:mango")
-        #expect(characters["beaky"] == beaky)
-        #expect(characters["april"] == nil)
-        #expect(characters["jesse"] == nil)
+        let names = MemoryJob.names(in: try digest(), houseID: house, including: beaky)
+        #expect(names.entity(named: "Mango")?.rawValue == "character:mango")
+        #expect(names.entity(named: "Beaky") == beaky)
+        #expect(names.entity(named: "April")?.rawValue == "person:april")
+        #expect(names.entity(named: "Jesse")?.rawValue == "person:jesse")
     }
 }
 

@@ -241,6 +241,11 @@ else — persona, facts, the clock, streaming to the room — is identical.
   in the house's zone. Names become entities — "Jesse" → `person:jesse`, "the front door" →
   `place:front-door`, "the house" → `houseId` (default `house:aprils-nest`). Only what April
   said, never the mind's own guess; the Viewer shows "Beaky learned: …" with a Forget button.
+- **A bird is a bird** (`2.71.3`). "Kenny" in a learned tag or a memory episode is
+  `character:kenny`, never `person:kenny`: one resolver (`EntityNames`) knows the birds — this
+  one, whoever the world says is present or spoke that day — and guesses person or place only
+  for names it does not know. The learned contract also asks for a kind the world already has
+  before inventing one, and not to keep what another bird just kept in the same scene.
 - **She remembers the day** (`2.71.0`, step 4b). With `llmMemoryModel` set (Beaky:
   `gpt-6-astra`; the chorus leaves it unset), the mind answers the world's nightly
   `memory.consolidate` by fetching the day's digest and asking the memory model for JSON —

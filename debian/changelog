@@ -1,3 +1,15 @@
+creature-cli (2.71.3+world0.23.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-agent 2.71.3: a learned thing about a bird is filed on the
+    bird. "Kenny" in a [learned: ...] tag is character:kenny, never
+    person:kenny - one name resolver (EntityNames) now serves the learned
+    tags and the nightly memory, fed with whoever the world says is in
+    the room. The contract asks for a kind the world already has before
+    a new one, and not to keep what another bird just kept (Kenny's foot
+    had seven predicates).
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 00:05:00 -0700
+
 creature-cli (2.71.2+world0.23.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-agent 2.71.2: remembering a day again remembers it afresh.

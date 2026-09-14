@@ -71,15 +71,10 @@ struct MemoryJob: Sendable {
             let episodes = Array(recollection.episodes.prefix(Self.maximumEpisodes))
             span.attributes["memory.episodes"] = episodes.count
             var cast = 0
-            let characters = Self.characters(in: digest, including: characterID)
+            let names = Self.names(in: digest, houseID: houseID, including: characterID)
             for (index, episode) in episodes.enumerated() {
                 for about in episode.about.prefix(4) {
-                    // A bird's name is a character, never a person; the day's record says who
-                    // the birds are.
-                    guard
-                        let subject = characters[Self.key(about)]
-                            ?? LearnedFact.entity(named: about, houseID: houseID)
-                    else { continue }
+                    guard let subject = names.entity(named: about) else { continue }
                     try await self.cast(
                         episodeEvent(
                             episode, subject: subject, day: day, index: index, key: key,
@@ -241,20 +236,15 @@ struct MemoryJob: Sendable {
             kind: "mind", sourceEventID: sourceEventID)
     }
 
-    /// The birds in the day's record - everyone who spoke as a `character:` - plus the one
-    /// remembering, keyed by name so "Mango" in an episode finds `character:mango`.
-    static func characters(in digest: DayDigest, including own: EntityID) -> [String: EntityID] {
+    /// The names in the day's record: the birds are everyone who spoke as a `character:`, plus
+    /// the one remembering, so "Mango" in an episode finds `character:mango`.
+    static func names(in digest: DayDigest, houseID: EntityID, including own: EntityID)
+        -> EntityNames
+    {
         let spoke = digest.conversation.map(\.who) + digest.scenes.flatMap { $0.lines.map(\.who) }
-        var characters = [key(FactPhrasing.name(of: own)): own]
-        for who in spoke where who.hasPrefix("character:") {
-            guard let id = EntityID(rawValue: who) else { continue }
-            characters[key(FactPhrasing.name(of: id))] = id
-        }
-        return characters
-    }
-
-    private static func key(_ name: String) -> String {
-        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        var names = EntityNames(houseID: houseID, characters: [own])
+        names.add(spoke.compactMap { EntityID(rawValue: $0) })
+        return names
     }
 
     // MARK: - The digest

@@ -150,7 +150,7 @@ struct CharacterMind: Sendable {
 
             let learning = Learning()
             let decision = try await decide(consideration, now: now, learning: learning)
-            let learned = await learning.facts(houseID: configuration.houseID)
+            let learned = await learning.facts(names: names(for: consideration.percept))
             if !learned.isEmpty, let learn {
                 span.attributes["agent.learned"] = learned.count
                 await learn(learned)
@@ -452,7 +452,7 @@ struct CharacterMind: Sendable {
             } else {
                 decision = await decideTurn(offer.offer, now: now, learning: learning)
             }
-            let learned = await learning.facts(houseID: configuration.houseID)
+            let learned = await learning.facts(names: names(for: offer.offer))
             if !learned.isEmpty, let learn {
                 span.attributes["agent.learned"] = learned.count
                 await learn(learned)
@@ -828,9 +828,23 @@ struct CharacterMind: Sendable {
     actor Learning {
         private var raw = ""
         func note(_ chunk: String) { raw += chunk + "\n" }
-        func facts(houseID: EntityID) -> [LearnedFact] {
-            LearnedFact.all(in: raw, houseID: houseID)
+        func facts(names: EntityNames) -> [LearnedFact] {
+            LearnedFact.all(in: raw, names: names)
         }
+    }
+
+    /// The birds a learned tag may name: this one, and whoever the world says is present.
+    private func names(for percept: PersonUtterancePercept) -> EntityNames {
+        EntityNames(
+            houseID: configuration.houseID,
+            characters: [configuration.characterID]
+                + FactPhrasing.presentCharacters(in: percept.worldFacts))
+    }
+
+    private func names(for offer: SceneTurnOffer) -> EntityNames {
+        EntityNames(
+            houseID: configuration.houseID,
+            characters: [configuration.characterID] + offer.participants)
     }
 
     /// The trace context the world attached to the utterance, as a span parent.
