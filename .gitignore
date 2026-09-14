@@ -15,3 +15,7 @@ Common/Package.resolved
 /communicator-gateway
 /artifacts/
 .claude/
+
+# Session scratch and editor swap files
+resume.txt
+*.swp
