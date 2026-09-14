@@ -156,7 +156,9 @@ struct OpenAIClient: Sendable {
 
     // MARK: - Request
 
-    func makeRequest(for transcript: [LocalLLMClient.Message], stream: Bool) -> URLRequest {
+    func makeRequest(
+        for transcript: [LocalLLMClient.Message], stream: Bool, json: Bool = false
+    ) -> URLRequest {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = 30
@@ -165,8 +167,32 @@ struct OpenAIClient: Sendable {
         request.httpBody = try? JSONEncoder().encode(
             ResponseRequest(
                 model: model, transcript: transcript, temperature: temperature,
-                reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream))
+                reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream,
+                json: json))
         return request
+    }
+
+    // MARK: - A JSON answer (the nightly memory job)
+
+    /// One whole answer as a JSON object, for work that is read by code rather than spoken:
+    /// the memory job asks for episodes and a reflection. Given the whole night, the request is
+    /// allowed several minutes.
+    func respondJSON(messages transcript: [LocalLLMClient.Message]) async throws -> Data {
+        logger.debug("Sending OpenAI JSON request (model: \(model))")
+        var request = makeRequest(for: transcript, stream: false, json: true)
+        request.timeoutInterval = 600
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw OpenAIClientError.invalidResponse
+        }
+        guard 200..<300 ~= httpResponse.statusCode else {
+            let message = String(data: data, encoding: .utf8) ?? ""
+            logger.error("OpenAI request failed with status \(httpResponse.statusCode)")
+            throw OpenAIClientError.httpError(code: httpResponse.statusCode, body: message)
+        }
+        let output = try OpenAIResponseParser.outputText(from: data)
+        return Data(output.utf8)
     }
 }
 
@@ -200,19 +226,20 @@ struct ResponseRequest: Encodable {
     struct Reasoning: Encodable {
         let effort: String
     }
-    /// Plain words, not JSON: the reply is spoken sentence by sentence as it streams.
+    /// Plain words for speech, or a JSON object for the memory job.
     struct Text: Encodable {
         struct Format: Encodable {
-            let type = "text"
+            let type: String
         }
-        let format = Format()
+        let format: Format
+        init(json: Bool) { format = Format(type: json ? "json_object" : "text") }
     }
 
     let model: String
     let input: [Item]
     let temperature: Double?
     let reasoning: Reasoning?
-    let text = Text()
+    let text: Text
     let serviceTier: String?
     let stream: Bool
     let store = false
@@ -224,10 +251,11 @@ struct ResponseRequest: Encodable {
 
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
-        reasoningEffort: String?, serviceTier: String? = nil, stream: Bool
+        reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false
     ) {
         self.model = model
         self.input = transcript.map(Item.init)
+        self.text = Text(json: json)
         // Reasoning models refuse a temperature; send one or the other.
         self.reasoning = reasoningEffort.map(Reasoning.init(effort:))
         self.temperature = reasoningEffort == nil ? temperature : nil

@@ -28,6 +28,16 @@ struct MongoSceneRepository: SceneRepository, Sendable {
         .drain()
     }
 
+    /// A day's scenes, oldest first.
+    func scenes(from start: Date, to end: Date, limit: Int) async throws -> [Scene] {
+        precondition(limit > 0)
+        let window: Document = ["$gte": start, "$lt": end]
+        return try await scenes.find(["opened_at": window], as: Scene.self)
+            .sort(["opened_at": 1])
+            .limit(limit)
+            .drain()
+    }
+
     func recentScenes(limit: Int) async throws -> [Scene] {
         precondition(limit > 0)
         return try await scenes.find(as: Scene.self)

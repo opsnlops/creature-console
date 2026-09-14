@@ -42,6 +42,7 @@
       { "event": "house.scene_activated", "cooldown_seconds": 120 }
     ]
   },
+  "memory": { "hour": 3, "minute": 30, "time_zone": "America/Los_Angeles", "episode_days": 30, "episodes_in_prompt": 10, "reflections_in_prompt": 2 },
   "retention": {
     "event_days": 90, "cheap_event_days": 7, "processing_days": 7, "timer_days": 7,
     "ingress_days": 30, "retired_fact_days": 90, "delivery_days": 90, "scene_days": 180

@@ -355,6 +355,9 @@ private func runWorldMode(
         backgroundActivityLogger: logger)
     let respond: CharacterMind.Respond
     let respondStreaming: CharacterMind.RespondStreaming
+    /// The nightly memory's model, when this mind has one (`llmMemoryModel`); the same key,
+    /// a JSON answer, and its own effort - latency is irrelevant at 3:30 AM.
+    var respondJSON: MemoryJob.RespondJSON?
     switch config.llmBackend {
     case .local:
         let localLLM = LocalLLMClient(
@@ -392,6 +395,18 @@ private func runWorldMode(
         )
         respond = { try await openAI.respond(messages: $0) }
         respondStreaming = { openAI.respondStreaming(messages: $0) }
+        if let memoryModel = config.llmMemoryModel {
+            let memoryClient = OpenAIClient(
+                apiKey: ProcessInfo.processInfo.environment["OPENAI_MEMORY_API_KEY"] ?? apiKey,
+                model: memoryModel,
+                systemPrompt: config.llmSystemPrompt,
+                temperature: config.llmTemperature,
+                reasoningEffort: config.llmReasoningEffort == nil ? nil : "medium",
+                logger: logger,
+                traceResponses: traceResponses
+            )
+            respondJSON = { try await memoryClient.respondJSON(messages: $0) }
+        }
     }
     logger.info(
         "Model chosen",
@@ -455,7 +470,8 @@ private func runWorldMode(
             modelTimeout: .seconds(world.llmTimeout),
             modelName: config.llmModel,
             timeZone: world.timeZone,
-            modelLabel: "\(config.llmBackend.rawValue)/\(config.llmModel)"
+            modelLabel: "\(config.llmBackend.rawValue)/\(config.llmModel)",
+            houseID: world.houseID
         ),
         respond: respond,
         respondStreaming: respondStreaming,
@@ -473,17 +489,27 @@ private func runWorldMode(
         responder: responder,
         session: session,
         client: client,
-        logger: logger
+        logger: logger,
+        memory: respondJSON.map { respondJSON in
+            MemoryJob(
+                worldURL: world.worldURL, characterID: characterID, persona: persona,
+                houseID: world.houseID, modelName: config.llmMemoryModel ?? config.llmModel,
+                respondJSON: respondJSON, cast: { try await responder.cast($0) }, client: client,
+                logger: logger)
+        }
     )
-    let healthCheck = LocalLLMHealthCheck(
-        host: config.localLlmHost,
-        port: config.localLlmPort,
-        intervalSeconds: 120,
-        logger: logger
-    )
+    // The local model's health is only worth watching when a local model is the mind; on a
+    // frontier backend the check would poke a machine that no longer runs one.
+    var services: [any Service] = observabilityServices + [mindService]
+    if config.llmBackend == .local {
+        services.append(
+            LocalLLMHealthCheck(
+                host: config.localLlmHost, port: config.localLlmPort, intervalSeconds: 120,
+                logger: logger))
+    }
 
     let serviceGroup = ServiceGroup(
-        services: observabilityServices + [mindService, healthCheck],
+        services: services,
         gracefulShutdownSignals: [.sigterm],
         cancellationSignals: [.sigint],
         logger: Logger(label: "creature-agent")

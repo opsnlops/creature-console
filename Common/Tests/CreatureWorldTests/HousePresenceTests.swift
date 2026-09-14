@@ -189,6 +189,60 @@ struct RecentHappeningsTests {
         #expect(latest.map(\.type) == [HouseEvents.personSeen])
     }
 
+    @Test("A day's digest gathers what the house saw, what was said, the scenes, and what was cast")
+    func dayDigest() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "digest-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let conversation = try ConversationID(validating: "conversation:digest-\(suffix)")
+        let driveway = try EntityID(validating: "place:driveway-\(suffix)")
+        let zone = TimeZone(identifier: "America/Los_Angeles")!
+        // 2026-09-13 12:00 PDT
+        let noon = Date(timeIntervalSince1970: 1_789_326_000)
+        let memory = MemoryConfiguration(timeZone: zone.identifier)
+
+        _ = try await persistence.events.append(
+            try WorldEventEnvelope(
+                type: HouseEvents.vehicleSeen, occurredAt: noon,
+                source: EventSource(
+                    id: try SourceID(validating: "home-assistant:\(suffix)"),
+                    kind: HouseEvents.sourceKind, sourceEventID: UUID().uuidString),
+                subjectIDs: [driveway], placeID: driveway,
+                epistemic: EpistemicState(type: .observed, confidence: 1), payload: [:]),
+            receivedAt: noon)
+        _ = try await persistence.events.append(
+            try WorldEventEnvelope(
+                type: HouseEvents.measurementChanged, occurredAt: noon,
+                source: EventSource(
+                    id: try SourceID(validating: "home-assistant:\(suffix)"),
+                    kind: HouseEvents.sourceKind, sourceEventID: UUID().uuidString),
+                subjectIDs: [driveway], epistemic: EpistemicState(type: .observed, confidence: 1),
+                payload: [:]),
+            receivedAt: noon)
+        try await persistence.conversations.saveConversationItem(
+            ConversationItem(
+                itemID: .generated(), conversationID: conversation,
+                authorID: try EntityID(validating: "person:april"), authorKind: .person,
+                text: "Jesse's here to finish the deck.", createdAt: noon.addingTimeInterval(60),
+                utteranceID: .generated()))
+        let builder = DayDigestBuilder(
+            persistence: persistence, houseConversation: conversation, memory: memory)
+
+        let digest = try #require(try await builder.digest(of: "2026-09-13"))
+        #expect(digest.day == "2026-09-13")
+        #expect(
+            digest.happenings.contains {
+                $0.type == HouseEvents.vehicleSeen && $0.subjectID == driveway
+            })
+        // Measurements are state, not story.
+        #expect(!digest.happenings.contains { $0.type == HouseEvents.measurementChanged })
+        #expect(digest.conversation.map(\.text) == ["Jesse's here to finish the deck."])
+        #expect(try await builder.digest(of: "2026-09-12")?.conversation.isEmpty == true)
+        #expect(try await builder.digest(of: "not-a-day") == nil)
+    }
+
     @Test("Meanings come from the store, seeded from the catalogue, and a Wizard's word wins")
     func meaningsAreStoredAndEditable() async throws {
         let uri = try #require(mongoTestURI)

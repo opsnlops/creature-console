@@ -317,6 +317,13 @@ struct CreatureWorldBlackBoxTests {
             })
         #expect(!meanings.isEmpty)
 
+        // The day's digest for the memory job: the conversation of this test is in it.
+        let today = MemoryConfiguration.dayString(
+            Date(), in: TimeZone(identifier: "America/Los_Angeles")!)
+        let digest = try await api.day(today)
+        #expect(digest.conversation.contains { $0.text == utterance.text })
+        #expect(digest.happenings.contains { $0.type == HouseEvents.personSeen })
+
         // The glossary is the world's, seeded from its catalogue; a Wizard may reword a line.
         let kinds = try await api.factKinds()
         #expect(kinds[WorldFacts.doorLock] == WorldFacts.meanings[WorldFacts.doorLock])
@@ -729,6 +736,14 @@ private struct WorldServiceAPI {
             try await Task.sleep(for: .milliseconds(50))
         }
         throw BlackBoxError.missingScene(eventID.rawValue)
+    }
+
+    func day(_ day: String) async throws -> DayDigest {
+        let response = try await client.execute(
+            HTTPClientRequest(url: "\(base)/days/\(day)"), timeout: .seconds(15))
+        #expect(response.status == .ok)
+        let body = try await response.body.collect(upTo: 8 * 1_048_576)
+        return try WorldJSON.makeDecoder().decode(DayDigest.self, from: body)
     }
 
     func factKinds() async throws -> [String: String] {

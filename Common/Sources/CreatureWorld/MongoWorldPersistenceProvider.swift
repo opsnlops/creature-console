@@ -40,6 +40,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let recentScenes: @Sendable (Int) async throws -> [Scene]
     let factKinds: @Sendable () async throws -> FactKindPage
     let setFactKind: @Sendable (String, FactKindUpdate) async throws -> FactKind
+    let dayDigest: @Sendable (String) async throws -> DayDigest?
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -52,6 +53,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
         houseConversation: ConversationID = CreatureWorldConfiguration.defaultHouseConversation,
         givenFacts: [GivenFact] = [],
+        memory: MemoryConfiguration = MemoryConfiguration(),
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
@@ -122,7 +124,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         let conversations = persistence.conversations
         let knowledge = PresentWorldKnowledge(
             facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
-            sessions: sessionService, regions: regions, clock: clock)
+            sessions: sessionService, regions: regions, clock: clock, memory: memory)
         let sceneService = SceneService(
             repository: persistence.scenes,
             clock: clock,
@@ -404,11 +406,34 @@ struct MongoWorldPersistenceConnection: Sendable {
             )
         }
         factKinds = { FactKindPage(kinds: try await persistence.factKinds.all()) }
+        dayDigest = { day in
+            try await DayDigestBuilder(
+                persistence: persistence, houseConversation: houseConversation, memory: memory
+            ).digest(of: day)
+        }
+        // The memory clock: one world timer for the next consolidation, rescheduled after each
+        // firing. The mind that owns a memory model hears the timer's event and does the work.
+        let memoryClock = Task {
+            do {
+                try await MemoryClock.schedule(after: await clock.now, memory: memory) {
+                    try await timerScheduler.schedule($0)
+                }
+                for try await delta in try await world.subscribe()
+                where delta.event.type == MemoryClock.eventType {
+                    try await MemoryClock.schedule(after: await clock.now, memory: memory) {
+                        try await timerScheduler.schedule($0)
+                    }
+                }
+            } catch {
+                logger.warning("Stopped keeping the memory clock", metadata: ["error": "\(error)"])
+            }
+        }
         setFactKind = { predicate, update in
             try await persistence.factKinds.set(
                 predicate, meaning: update.meaning, by: update.updatedBy, at: await clock.now)
         }
         shutdown = {
+            memoryClock.cancel()
             assumptionAnnouncer.cancel()
             sessionSweeper.cancel()
             floorWatcher.cancel()
@@ -494,6 +519,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         setFactKind: @escaping @Sendable (String, FactKindUpdate) async throws -> FactKind = {
             _, _ in throw WorldAPIError.databaseUnavailable
         },
+        dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
+            _ in throw WorldAPIError.databaseUnavailable
+        },
         shutdown: @escaping @Sendable () async -> Void
     ) {
         self.acceptEvent = acceptEvent
@@ -522,6 +550,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.recentScenes = recentScenes
         self.factKinds = factKinds
         self.setFactKind = setFactKind
+        self.dayDigest = dayDigest
         self.shutdown = shutdown
     }
 }
@@ -548,6 +577,7 @@ actor MongoWorldPersistenceProvider {
         houseConversation: ConversationID = CreatureWorldConfiguration.defaultHouseConversation,
         givenFacts: [GivenFact] = [],
         retention: RetentionPolicy = RetentionPolicy(),
+        memory: MemoryConfiguration = MemoryConfiguration(),
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -569,6 +599,7 @@ actor MongoWorldPersistenceProvider {
                         leadCharacter: leadCharacter,
                         houseConversation: houseConversation,
                         givenFacts: givenFacts,
+                        memory: memory,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )
@@ -783,6 +814,11 @@ actor MongoWorldPersistenceProvider {
         return try await connection.setFactKind(predicate, update)
     }
 
+    func dayDigest(_ day: String) async throws -> DayDigest? {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.dayDigest(day)
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -824,6 +860,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     let sessions: CharacterSessionService
     let regions: [EntityID: RegionConfiguration]
     let clock: any WorldClock
+    var memory = MemoryConfiguration()
 
     func currentFacts(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
         async throws -> [Fact]
@@ -836,7 +873,44 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                 withPredicate: WorldFacts.personDescription, at: now)
             expanded.append(contentsOf: WorldMentions.mentioned(in: text, among: known))
         }
-        return try await facts.currentFacts(about: unique(expanded), limit: limit, at: now)
+        let all = try await facts.currentFacts(about: unique(expanded), limit: limit, at: now)
+        return Self.withMemoriesTrimmed(all, memory: memory, now: now)
+    }
+
+    /// Memories are kept for years but handed out sparingly: an episode only while it is
+    /// recent, the newest and most salient first, and a bird's own reflections newest first.
+    static func withMemoriesTrimmed(_ facts: [Fact], memory: MemoryConfiguration, now: Date)
+        -> [Fact]
+    {
+        let horizon = now.addingTimeInterval(-TimeInterval(memory.episodeDays) * 86_400)
+        var episodes = facts.filter {
+            WorldFacts.memoryFamily(of: $0.predicate) == WorldFacts.memoryEpisode
+                && $0.validFrom >= horizon
+        }
+        episodes.sort {
+            salience($0) > salience($1)
+                || (salience($0) == salience($1) && $0.validFrom > $1.validFrom)
+        }
+        let keptEpisodes = Set(episodes.prefix(memory.episodesInPrompt).map(\.factID))
+        let reflections = facts.filter {
+            WorldFacts.memoryFamily(of: $0.predicate) == WorldFacts.memoryReflection
+        }
+        .sorted { $0.validFrom > $1.validFrom }
+        let keptReflections = Set(reflections.prefix(memory.reflectionsInPrompt).map(\.factID))
+        return facts.filter {
+            switch WorldFacts.memoryFamily(of: $0.predicate) {
+            case WorldFacts.memoryEpisode?: keptEpisodes.contains($0.factID)
+            case WorldFacts.memoryReflection?: keptReflections.contains($0.factID)
+            default: true
+            }
+        }
+    }
+
+    private static func salience(_ fact: Fact) -> Double {
+        guard case .object(let object) = fact.value,
+            case .number(let salience)? = object["salience"]
+        else { return 0 }
+        return salience
     }
 
     /// The story around `subjects`: storyworthy events for them and their surroundings, oldest
@@ -863,8 +937,18 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     /// store has not been told about yet.
     func meanings(of predicates: Set<String>) async throws -> [String: String] {
         let stored = try await kinds.meanings(of: predicates)
-        return WorldFacts.meanings.filter { predicates.contains($0.key) }
+        var meanings = WorldFacts.meanings.filter { predicates.contains($0.key) }
             .merging(stored) { _, wizard in wizard }
+        // A memory's predicate carries its day (`memory.episode.2026-09-13`); the meaning is
+        // the family's.
+        for predicate in predicates where meanings[predicate] == nil {
+            if let family = WorldFacts.memoryFamily(of: predicate),
+                let meaning = stored[family] ?? WorldFacts.meanings[family]
+            {
+                meanings[predicate] = meaning
+            }
+        }
+        return meanings
     }
 
     /// The subjects plus the region each logged-in one is in, everyone present there, and the

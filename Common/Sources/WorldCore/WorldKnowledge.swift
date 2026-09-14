@@ -31,7 +31,13 @@ extension WorldKnowledgeProviding {
 
     /// Without a store, the world's own catalogue.
     public func meanings(of predicates: Set<String>) async throws -> [String: String] {
-        WorldFacts.meanings.filter { predicates.contains($0.key) }
+        var meanings = WorldFacts.meanings.filter { predicates.contains($0.key) }
+        for predicate in predicates where meanings[predicate] == nil {
+            if let family = WorldFacts.memoryFamily(of: predicate) {
+                meanings[predicate] = WorldFacts.meanings[family]
+            }
+        }
+        return meanings
     }
 }
 

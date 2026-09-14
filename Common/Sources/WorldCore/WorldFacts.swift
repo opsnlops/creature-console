@@ -23,6 +23,25 @@ public enum WorldFacts {
     /// postman". Cast by a mind from her words, on the place.
     public static let sightingIdentified = "sighting.identified"
 
+    // Memory, written by the nightly job (step 4b of the judgement plan).
+    /// A human-grained memory on the people, places, or house it is about: `{day, when, what,
+    /// salience}` — "Jesse came Sunday afternoon and put the boards on the deck". Kept for
+    /// years; handed to a mind while recent and salient.
+    public static let memoryEpisode = "memory.episode"
+    /// A bird's own paragraph about a day, on the bird: what it came to know.
+    public static let memoryReflection = "memory.reflection"
+
+    /// A memory's predicate carries its day — `memory.episode.2026-09-13` — so every day's
+    /// memory of a subject stands beside the last instead of superseding it. The family is the
+    /// predicate without the day.
+    public static func memoryFamily(of predicate: String) -> String? {
+        for family in [memoryEpisode, memoryReflection]
+        where predicate == family || predicate.hasPrefix(family + ".") {
+            return family
+        }
+        return nil
+    }
+
     // The house, through the Home Assistant adapter (creature-house).
     /// A door's lock: `locked` / `unlocked`.
     public static let doorLock = "door.lock"
@@ -61,6 +80,9 @@ public enum WorldFacts {
         personDescription: "who a person is, in April's words",
         visitorExpected:
             "someone April is expecting, and when; a person turning up then is almost certainly them",
+        memoryEpisode:
+            "something that happened, as you remember it - when (in human terms, not a clock), who, what, and how much it mattered; your own memory, kept for years",
+        memoryReflection: "what you came to know on a day, in your own words; your own reflection",
         sightingIdentified:
             "who the person a camera saw there turned out to be, in April's words - a correction to hold onto",
         doorLock:

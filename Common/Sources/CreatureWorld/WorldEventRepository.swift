@@ -92,6 +92,19 @@ struct WorldEventRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// Everything that happened in a window, oldest first — a day, for the memory job.
+    func events(from start: Date, to end: Date, limit: Int) async throws -> [WorldEventEnvelope] {
+        precondition(limit > 0)
+        let window: Document = ["$gte": start, "$lt": end]
+        let documents =
+            try await events
+            .find(["occurred_at": window])
+            .sort(["occurred_at": 1])
+            .limit(limit)
+            .drain()
+        return try documents.map(decode)
+    }
+
     func latestSequence() async throws -> Int64 {
         let document = try await events.find([:])
             .sort(["world_sequence": -1])

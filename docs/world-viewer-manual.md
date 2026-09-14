@@ -99,6 +99,15 @@ A `facts.given` event cast by a mind shows on the Timeline as "Beaky learned: pe
 visitor.expected = "Tuesday afternoon, to finish the deck"" in mint, with a **Forget** button
 (`0.5.0`): it casts nothing in its place, valid for a second, so the world believes it no longer.
 
+### When a bird remembers the day
+
+The nightly memory (`0.6.0`; World `0.22.0`, agent `2.71.0`) shows as "Beaky remembered the day:
+5 episodes" in indigo on the Timeline once the job has run (3:30 by default). The episodes
+themselves are facts — `memory.episode.<day>` on each person, place, or bird they concern and
+`memory.reflection.<day>` on the bird — and read like any other fact on the Facts tab, under the
+`memory.episode` / `memory.reflection` families in Meanings. They carry no expiry; retention never
+removes them.
+
 ### When a bird passes
 
 A pass in a scene shows its reason in grey — "passes: Beaky already asked April", "passes: joke

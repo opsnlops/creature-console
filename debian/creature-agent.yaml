@@ -50,6 +50,10 @@ areas:
 # localLlmPort: 1234
 # llmModel: mistral-nemo
 # worldUrl: http://127.0.0.1:8001/world/v1
+# The nightly memory (the world says "remember the day" at 3:30): the model that writes her
+# episodes and reflection. Only the bird that should remember sets it - Beaky - on the same
+# key (or OPENAI_MEMORY_API_KEY in /etc/default/creature-agent-<instance> for its own project).
+# llmMemoryModel: gpt-6-astra
 # characterEntityId: character:beaky
 # personEntityId: person:april
 # regionEntityId: region:home

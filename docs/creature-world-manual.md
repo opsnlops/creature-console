@@ -86,6 +86,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
 | House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
+| Memory | `memory.hour`, `minute`, `time_zone`, `episode_days`, `episodes_in_prompt`, `reflections_in_prompt` | — | — | `3`, `30`, `America/Los_Angeles`, `30`, `10`, `2` |
 | Retention | `retention.event_days`, `cheap_event_days`, `processing_days`, `timer_days`, `ingress_days`, `retired_fact_days`, `delivery_days`, `scene_days` | — | — | `90`, `7`, `7`, `7`, `30`, `90`, `90`, `180` |
 | House questions | `scenes.consider_on` (same shape as `open_on`) | — | — | `[]` |
 | Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
@@ -216,6 +217,20 @@ arriving or leaving, and the lights changing.
 that runs Creature Server, so `creature_server.url` is `http://localhost:8000`, and everything
 else in it is April's real house. A dev world elsewhere (fuzzball) edits its own copy — the
 public URL for the creature server, and never while the production world is running against it.
+
+**The nightly memory** (`0.22.0`, step 4b). The world keeps the clock: a `memory.consolidate`
+world timer fires at `memory.hour:minute` in `memory.time_zone` (rescheduled after each firing;
+`timer:memory-consolidate:<day>`), carrying the local day that just ended. The mind with a memory
+model (`llmMemoryModel` in the agent) hears it, fetches `GET /v1/days/{day}` — happenings, the
+house conversation, the scenes' lines, and what was cast that day — and writes back what it will
+keep as `facts.given` casts: `memory.episode.<day>` on each person, place, or bird an episode is
+about (value `{day, when, what, salience}`, epistemic `remembered`, confidence = salience) and
+`memory.reflection.<day>` on itself, then a `memory.consolidated` event. The day in the predicate
+keeps every day's memory beside the last instead of superseding it; the glossary answers for the
+family. Memories have no `valid_to`, so retention never removes them; a mind is handed only the
+`episodes_in_prompt` most salient and newest within `episode_days`, and its `reflections_in_prompt`
+newest reflections. To remember a day by hand: post a `memory.consolidate` event with `{"day":
+"2026-09-13"}` in the payload.
 
 **Failures say why** (`0.19.0`). Delivery outcomes and scene performances carry `error_message`
 beside `error_code` — Creature Server's own words. A room that cannot be readied for a scene is a

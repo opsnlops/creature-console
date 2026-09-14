@@ -94,6 +94,19 @@ struct TimelineRow: View {
                         .help("Retract this fact: the World will believe it no longer")
                     }
                 }
+                if event.type.rawValue == "memory.consolidated",
+                    case .number(let episodes)? = event.payload["episodes"]
+                {
+                    // The night's work: what she will carry into tomorrow.
+                    Label(
+                        "remembered the day: \(Int(episodes)) episode\(episodes == 1 ? "" : "s")"
+                            + reflectionSnippet,
+                        systemImage: "moon.stars"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.indigo)
+                    .textSelection(.enabled)
+                }
                 if event.type == SceneService.remarkDeclinedEventType,
                     case .string(let reason)? = event.payload["reason"]
                 {
@@ -143,6 +156,13 @@ struct TimelineRow: View {
             case .some(let other): String(describing: other)
             }
         return "\(who.capitalized) learned: \(subject) \(predicate) = \(value)"
+    }
+
+    private var reflectionSnippet: String {
+        guard case .string(let text)? = event.payload["reflection"], !text.isEmpty else {
+            return ""
+        }
+        return " — \"\(text.prefix(160))\(text.count > 160 ? "…" : "")\""
     }
 
     /// A stage problem or a failed performance carries its reason in the payload.

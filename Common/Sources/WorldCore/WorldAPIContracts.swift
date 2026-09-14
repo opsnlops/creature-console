@@ -47,6 +47,66 @@ public struct WorldEventPage: Codable, Equatable, Sendable {
     }
 }
 
+/// One day of the world, for a mind's nightly memory job: what happened, what was said, what
+/// was cast. Human-readable pieces only; the job never sees raw payloads.
+public struct DayDigest: Codable, Equatable, Sendable {
+    public struct Line: Codable, Equatable, Sendable {
+        public var at: Date
+        public var who: String
+        public var text: String
+
+        public init(at: Date, who: String, text: String) {
+            self.at = at
+            self.who = who
+            self.text = text
+        }
+    }
+
+    public struct SceneLines: Codable, Equatable, Sendable {
+        public var openedAt: Date
+        public var trigger: String
+        public var lines: [Line]
+
+        public init(openedAt: Date, trigger: String, lines: [Line]) {
+            self.openedAt = openedAt
+            self.trigger = trigger
+            self.lines = lines
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case openedAt = "opened_at"
+            case trigger, lines
+        }
+    }
+
+    /// `2026-09-13`, in the house's zone.
+    public var day: String
+    public var timeZone: String
+    public var happenings: [Happening]
+    public var conversation: [Line]
+    public var scenes: [SceneLines]
+    /// What the world was told that day: "person:jesse visitor.expected = …" by whom.
+    public var learned: [Line]
+
+    public init(
+        day: String, timeZone: String, happenings: [Happening], conversation: [Line],
+        scenes: [SceneLines], learned: [Line]
+    ) {
+        self.day = day
+        self.timeZone = timeZone
+        self.happenings = happenings
+        self.conversation = conversation
+        self.scenes = scenes
+        self.learned = learned
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case day
+        case timeZone = "time_zone"
+        case happenings, conversation, scenes, learned
+    }
+}
+
 /// What a predicate means, as the world tells its minds. Seeded from `WorldFacts.meanings`;
 /// a Wizard may reword it in the Viewer, and the world remembers who did.
 public struct FactKind: Codable, Equatable, Sendable {

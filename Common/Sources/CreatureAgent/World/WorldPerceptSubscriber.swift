@@ -68,15 +68,20 @@ actor WorldPerceptSubscriber {
     struct Handlers: Sendable {
         let utterance: @Sendable (WorldConsideration) async throws -> Void
         let sceneOffer: @Sendable (WorldSceneConsideration) async throws -> Void
+        /// The world's nightly "remember the day" (`memory.consolidate`); the handler must not
+        /// block the stream - the day's work runs on its own.
+        let consolidate: @Sendable (WorldEventEnvelope) async throws -> Void
 
         init(
             utterance: @escaping @Sendable (WorldConsideration) async throws -> Void,
             sceneOffer: @escaping @Sendable (WorldSceneConsideration) async throws -> Void = {
                 _ in
-            }
+            },
+            consolidate: @escaping @Sendable (WorldEventEnvelope) async throws -> Void = { _ in }
         ) {
             self.utterance = utterance
             self.sceneOffer = sceneOffer
+            self.consolidate = consolidate
         }
     }
 
@@ -219,6 +224,8 @@ actor WorldPerceptSubscriber {
                         )
                     )
                 }
+            } else if envelope.type.rawValue == "memory.consolidate" {
+                try await handlers.consolidate(envelope)
             }
             try await cursor.advance(to: sequence)
         case "resnapshot_required":

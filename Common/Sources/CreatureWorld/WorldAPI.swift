@@ -96,11 +96,15 @@ protocol WorldApplicationService: Sendable {
     func finishSubscriptions() async
     func factKinds() async throws -> FactKindPage
     func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws -> FactKind
+    func dayDigest(_ day: String) async throws -> DayDigest?
 }
 
 extension WorldApplicationService {
     func factKinds() async throws -> FactKindPage { throw WorldAPIError.databaseUnavailable }
     func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws -> FactKind {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func dayDigest(_ day: String) async throws -> DayDigest? {
         throw WorldAPIError.databaseUnavailable
     }
 }

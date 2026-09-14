@@ -1,3 +1,24 @@
+creature-cli (2.71.0+world0.22.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * The nightly memory (step 4b). At 3:30 the world says "remember the
+    day"; the bird with a memory model reads the day back - what the
+    house saw, what was said, the scenes, what it was told - and writes
+    what it will keep: episodes on the people and places they concern,
+    human-grained ("Sunday afternoon", never a clock time), and one
+    reflection in its own voice. Kept for years; handed to a mind only
+    while recent and salient.
+  * creature-world 0.22.0: `memory` in world.json (hour, minute,
+    time_zone, episode_days, episodes_in_prompt, reflections_in_prompt);
+    the `memory.consolidate` timer; GET /v1/days/{day}; memory predicates
+    carry their day (`memory.episode.2026-09-13`) so days stand beside
+    each other; retention never touches them.
+  * creature-agent 2.71.0: `llmMemoryModel` runs the job (gpt-6-astra on
+    Beaky; unset on the chorus); OPENAI_MEMORY_API_KEY optional. The
+    local-LLM health check now runs only on the local backend.
+  * World Viewer 0.6.0: "remembered the day: N episodes" on the timeline.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 21:30:00 -0700
+
 creature-cli (2.70.0+world0.21.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * She learns what April tells her (step 4a). "Jesse's coming Tuesday

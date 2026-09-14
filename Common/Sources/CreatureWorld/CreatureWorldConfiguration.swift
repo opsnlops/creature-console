@@ -61,6 +61,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let givenFacts: [GivenFact]
     /// How long the raw material is kept; memories and the conversation are not raw material.
     let retention: RetentionPolicy
+    /// The nightly memory: when, and how memories come back to the minds.
+    let memory: MemoryConfiguration
 
     init(
         host: String = defaultHost,
@@ -75,7 +77,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         leadCharacter: EntityID = defaultLeadCharacter,
         houseConversation: ConversationID = defaultHouseConversation,
         givenFacts: [GivenFact] = [],
-        retention: RetentionPolicy = RetentionPolicy()
+        retention: RetentionPolicy = RetentionPolicy(),
+        memory: MemoryConfiguration = MemoryConfiguration()
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -112,6 +115,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.houseConversation = houseConversation
         self.givenFacts = givenFacts
         self.retention = retention
+        self.memory = memory
     }
 
     static func load(
@@ -140,7 +144,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                 houseConversation: try raw.houseConversation.map(ConversationID.init(validating:))
                     ?? defaultHouseConversation,
                 givenFacts: raw.facts ?? [],
-                retention: raw.retention ?? RetentionPolicy()
+                retention: raw.retention ?? RetentionPolicy(),
+                memory: raw.memory ?? MemoryConfiguration()
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -187,7 +192,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             leadCharacter: leadCharacter,
             houseConversation: houseConversation,
             givenFacts: givenFacts,
-            retention: retention
+            retention: retention,
+            memory: memory
         )
     }
 
@@ -205,6 +211,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let houseConversation: String?
         let facts: [GivenFact]?
         let retention: RetentionPolicy?
+        let memory: MemoryConfiguration?
 
         private enum CodingKeys: String, CodingKey {
             case host
@@ -220,6 +227,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case houseConversation = "house_conversation"
             case facts
             case retention
+            case memory
         }
     }
 

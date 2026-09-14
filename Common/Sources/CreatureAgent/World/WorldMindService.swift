@@ -17,6 +17,21 @@ struct WorldMindService: Service {
     private let logger: Logger
     private let clock: any WorldClock
     private let spectateDelay: Duration
+    /// The nightly memory, when this mind has a memory model; nil for the chorus.
+    private let memory: MemoryJob?
+    /// One night's work at a time.
+    private let remembering = Remembering()
+
+    private actor Remembering {
+        private var task: Task<Void, Never>?
+        /// Starts `work` unless a night is still being remembered; true when started.
+        func start(_ work: @escaping @Sendable () async -> Void) -> Bool {
+            if let task, !task.isCancelled { return false }
+            let started = Task { await work() }
+            task = started
+            return true
+        }
+    }
 
     /// Without a `session` the mind follows the world unconditionally (no login desk — the
     /// pre-0.5 world). With one it must hold its character before it follows anything.
@@ -28,7 +43,8 @@ struct WorldMindService: Service {
         client: HTTPClient,
         logger: Logger,
         clock: any WorldClock = SystemWorldClock(),
-        spectateDelay: Duration = .seconds(15)
+        spectateDelay: Duration = .seconds(15),
+        memory: MemoryJob? = nil
     ) {
         self.subscriber = subscriber
         self.mind = mind
@@ -38,6 +54,7 @@ struct WorldMindService: Service {
         self.logger = logger
         self.clock = clock
         self.spectateDelay = spectateDelay
+        self.memory = memory
     }
 
     func run() async throws {
@@ -103,8 +120,30 @@ struct WorldMindService: Service {
         try await subscriber.run(
             handlers: WorldPerceptSubscriber.Handlers(
                 utterance: { consideration in try await handle(consideration) },
-                sceneOffer: { offer in try await handle(offer) }
+                sceneOffer: { offer in try await handle(offer) },
+                consolidate: { event in await self.remember(event) }
             ))
+    }
+
+    /// "Remember the day": the job runs on its own so the stream keeps flowing; one at a time.
+    func remember(_ event: WorldEventEnvelope) async {
+        guard let memory else { return }
+        guard case .string(let day)? = event.payload["day"] else { return }
+        let clock = self.clock
+        let logger = self.logger
+        let started = await remembering.start {
+            do {
+                try await memory.remember(day: day, now: await clock.now)
+            } catch {
+                logger.error(
+                    "Could not remember the day",
+                    metadata: ["memory.day": "\(day)", "error": "\(error)"])
+            }
+        }
+        if !started {
+            logger.warning(
+                "Still remembering the last day; skipping", metadata: ["memory.day": "\(day)"])
+        }
     }
 
     /// The world offered this character the floor. Decide, then answer the world — a turn or a

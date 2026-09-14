@@ -36,6 +36,21 @@ struct MongoConversationRepository: UtteranceIngressRepository, Sendable {
         return newestFirst.reversed()
     }
 
+    /// A day's conversation, oldest first.
+    func conversationItems(
+        in conversationID: ConversationID, from start: Date, to end: Date, limit: Int
+    ) async throws -> [ConversationItem] {
+        precondition(limit > 0)
+        let window: Document = ["$gte": start, "$lt": end]
+        return try await items.find(
+            ["conversation_id": conversationID.rawValue, "created_at": window],
+            as: ConversationItem.self
+        )
+        .sort(["created_at": 1, "_id": 1])
+        .limit(limit)
+        .drain()
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,

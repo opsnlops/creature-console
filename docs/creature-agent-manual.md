@@ -241,6 +241,15 @@ else — persona, facts, the clock, streaming to the room — is identical.
   in the house's zone. Names become entities — "Jesse" → `person:jesse`, "the front door" →
   `place:front-door`, "the house" → `houseId` (default `house:aprils-nest`). Only what April
   said, never the mind's own guess; the Viewer shows "Beaky learned: …" with a Forget button.
+- **She remembers the day** (`2.71.0`, step 4b). With `llmMemoryModel` set (Beaky:
+  `gpt-6-astra`; the chorus leaves it unset), the mind answers the world's nightly
+  `memory.consolidate` by fetching the day's digest and asking the memory model for JSON —
+  episodes about the people, places, and birds involved, with a human-grained `when` ("Sunday
+  afternoon", never a clock time) and a salience 0–1, and one reflection in her own voice — and
+  casts them as `memory.episode.<day>` / `memory.reflection.<day>` facts, kept for years. The job
+  runs on its own so the stream keeps flowing; one night at a time. April: "She'll know 'Jesse was
+  here on Monday' and not 'Jesse was here at 4:39:29 PM on Monday'." `OPENAI_MEMORY_API_KEY`
+  in the instance's defaults file puts the night's spend on its own key.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
   emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the
