@@ -221,6 +221,27 @@ struct PersonaTests {
         #expect(second.contains("You do not know whether April is home"))
     }
 
+    @Test("The house's question lets her stay quiet, and the reason is read, never spoken")
+    func quietIsAnAnswer() throws {
+        #expect(
+            CharacterMind.quietReason(in: "[quiet: the same van as every afternoon]")
+                == "the same van as every afternoon")
+        #expect(
+            CharacterMind.quietReason(in: "  [Quiet: April is already in there] ")
+                == "April is already in there")
+        #expect(CharacterMind.quietReason(in: "[quiet:]") == "no reason given")
+        #expect(CharacterMind.quietReason(in: "Ooh, a visitor!") == nil)
+        #expect(CharacterMind.declinesToSpeak("[quiet: nothing new]"))
+        #expect(CharacterMind.validate("[quiet: nothing new]", spokenBy: "beaky") == nil)
+        let must = CharacterMind.houseRemarkContract(others: [], aprilHome: true, isLead: true)
+        let may = CharacterMind.houseRemarkContract(
+            others: [], aprilHome: true, isLead: true, mayDecline: true)
+        #expect(must.contains("never reply with [silence]"))
+        #expect(!must.contains("[quiet:"))
+        #expect(may.contains("reply with exactly [quiet: why]"))
+        #expect(may.contains("something in it for April or something odd"))
+    }
+
     @Test("Stage directions are never spoken: asterisks, parentheses, and brackets go")
     func stageDirectionsAreStripped() {
         #expect(

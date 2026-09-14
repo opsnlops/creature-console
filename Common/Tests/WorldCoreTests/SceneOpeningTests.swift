@@ -108,8 +108,47 @@ struct SceneOpeningTests {
         #expect(SceneLimits().quietHours == nil)
         #expect(throws: (any Error).self) {
             try JSONDecoder().decode(
-                SceneLimits.self, from: Data("{\"quiet_hours\": {\"from\": \"25:00\", \"to\": \"07:00\"}}".utf8))
+                SceneLimits.self,
+                from: Data("{\"quiet_hours\": {\"from\": \"25:00\", \"to\": \"07:00\"}}".utf8))
         }
+    }
+
+    @Test(
+        "The house may ask instead of tell: consider_on occasions, open_on winning when both match")
+    func considerOccasions() async throws {
+        let kitchen = try EntityID(validating: "place:kitchen")
+        let policy = SceneOpeningPolicy(
+            rules: [SceneOpeningRule(event: HouseEvents.personSeen, places: [driveway])],
+            considerRules: [
+                SceneOpeningRule(event: HouseEvents.motionDetected, cooldownSeconds: 600),
+                SceneOpeningRule(event: HouseEvents.personSeen, cooldownSeconds: 300),
+            ])
+        // Motion is a question for the lead.
+        #expect(
+            await policy.occasion(for: try event(HouseEvents.motionDetected, kitchen), at: now)
+                == SceneOpeningPolicy.Occasion(place: kitchen, kind: .houseConsideration))
+        // A person in the driveway is a must-speak, even though a consider rule also matches.
+        #expect(
+            await policy.occasion(for: try event(HouseEvents.personSeen, driveway), at: now)
+                == SceneOpeningPolicy.Occasion(place: driveway, kind: .worldEvent))
+        // A person in the kitchen is only a question.
+        #expect(
+            await policy.occasion(for: try event(HouseEvents.personSeen, kitchen), at: now)
+                == SceneOpeningPolicy.Occasion(place: kitchen, kind: .houseConsideration))
+        // Questions have their own cooldown.
+        #expect(
+            await policy.occasion(for: try event(HouseEvents.motionDetected, kitchen), at: now + 60)
+                == nil)
+        #expect(
+            await policy.occasion(
+                for: try event(HouseEvents.motionDetected, kitchen), at: now + 601)
+                != nil)
+        let json = """
+            {"consider_on": [{"event": "motion.detected", "cooldown_seconds": 600}]}
+            """
+        let limits = try JSONDecoder().decode(SceneLimits.self, from: Data(json.utf8))
+        #expect(limits.considerOn.count == 1)
+        #expect(limits.openOn.isEmpty)
     }
 
     @Test("The stage note the birds read is a plain sentence")

@@ -68,7 +68,8 @@ public struct QuietHours: Hashable, Sendable, Codable {
         to = try container.decode(String.self, forKey: .to)
         timeZone =
             try container.decodeIfPresent(String.self, forKey: .timeZone) ?? "America/Los_Angeles"
-        guard Self.minutes(from) != nil, Self.minutes(to) != nil, TimeZone(identifier: timeZone) != nil
+        guard Self.minutes(from) != nil, Self.minutes(to) != nil,
+            TimeZone(identifier: timeZone) != nil
         else { throw WorldContractError.invalidScene }
     }
 
@@ -98,7 +99,20 @@ public struct QuietHours: Hashable, Sendable, Codable {
 /// Decides, for an accepted event, whether the world should open a scene about it — pure but
 /// for the cooldown memory.
 public actor SceneOpeningPolicy {
+    /// What the house does about an event: opens a scene the lead must speak in, or one the
+    /// lead may decline.
+    public struct Occasion: Hashable, Sendable {
+        public var place: EntityID
+        public var kind: SceneTrigger.Kind
+
+        public init(place: EntityID, kind: SceneTrigger.Kind) {
+            self.place = place
+            self.kind = kind
+        }
+    }
+
     private let rules: [SceneOpeningRule]
+    private let considerRules: [SceneOpeningRule]
     private let gapSeconds: TimeInterval
     private let quietHours: QuietHours?
     private var lastOpened: [String: Date] = [:]
@@ -110,24 +124,41 @@ public actor SceneOpeningPolicy {
     /// "I want to know that someone's out there sooner rather than later." The knob exists for
     /// a quieter house; the events a gap swallows become the story the next scene is told.
     public init(
-        rules: [SceneOpeningRule], gapSeconds: TimeInterval = 0, quietHours: QuietHours? = nil
+        rules: [SceneOpeningRule], considerRules: [SceneOpeningRule] = [],
+        gapSeconds: TimeInterval = 0, quietHours: QuietHours? = nil
     ) {
         self.rules = rules
+        self.considerRules = considerRules
         self.gapSeconds = gapSeconds
         self.quietHours = quietHours
     }
 
     /// The place the scene is about, when this event should open one now.
     public func shouldOpen(for event: WorldEventEnvelope, at now: Date) -> EntityID? {
+        occasion(for: event, at: now).map(\.place)
+    }
+
+    /// What the house does about this event now: a must-speak scene (`open_on`), a may-decline
+    /// one (`consider_on`), or nothing. An `open_on` rule wins when both match.
+    public func occasion(for event: WorldEventEnvelope, at now: Date) -> Occasion? {
         guard let place = event.subjectIDs.first else { return nil }
         // The birds sleep. Cooldowns are not touched: the first thing after seven may speak.
         if let quietHours, quietHours.contains(now) { return nil }
-        guard
-            let rule = rules.first(where: {
+        func matching(_ candidates: [SceneOpeningRule]) -> SceneOpeningRule? {
+            candidates.first {
                 $0.event == event.type && ($0.places.isEmpty || $0.places.contains(place))
-            })
-        else { return nil }
-        let key = "\(event.type.rawValue)|\(place.rawValue)"
+            }
+        }
+        let kind: SceneTrigger.Kind
+        let rule: SceneOpeningRule
+        if let must = matching(rules) {
+            (rule, kind) = (must, .worldEvent)
+        } else if let may = matching(considerRules) {
+            (rule, kind) = (may, .houseConsideration)
+        } else {
+            return nil
+        }
+        let key = "\(kind.rawValue)|\(event.type.rawValue)|\(place.rawValue)"
         if let last = lastOpened[key], now.timeIntervalSince(last) < rule.cooldownSeconds {
             return nil
         }
@@ -136,7 +167,7 @@ public actor SceneOpeningPolicy {
         }
         lastOpened[key] = now
         lastOpenedAny = now
-        return place
+        return Occasion(place: place, kind: kind)
     }
 
     /// The stage note the birds read: "(A person was seen at the driveway.)"
@@ -144,7 +175,9 @@ public actor SceneOpeningPolicy {
         let name = placeName(place)
         switch event.type {
         case HouseEvents.personSeen: return "A person was just seen at \(name)."
-        case HouseEvents.vehicleSeen: return "A vehicle just arrived at \(name)."
+        // "Seen", never "arrived": the camera cannot tell coming from going, and a trigger
+        // that asserts a direction steers the mind before it has read the story.
+        case HouseEvents.vehicleSeen: return "A vehicle was just seen at \(name)."
         case HouseEvents.animalSeen: return "An animal was just seen at \(name)."
         case HouseEvents.doorUnlocked:
             return "\(name.prefix(1).uppercased() + name.dropFirst()) was just unlocked."

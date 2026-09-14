@@ -52,6 +52,9 @@ public actor SceneService {
     /// The room could not be readied for a scene (Creature Server refused the stream); the
     /// turns will be rendered whole at the end, or fail there with the same reason.
     public static let stageProblemEventType = WorldEventType(rawValue: "scene.stage_problem")!
+    /// The house asked the lead about something and the lead judged it not worth a word.
+    /// "Considered, stayed quiet" is a state the Viewer shows, never an error.
+    public static let remarkDeclinedEventType = WorldEventType(rawValue: "house.remark_declined")!
     /// The room has (nearly) finished the last line: time to offer the next floor.
     public static let floorReadyEventType = WorldEventType(rawValue: "scene.floor_ready")!
     public static let sourceID = try! SourceID(validating: "world:scenes")
@@ -89,6 +92,11 @@ public actor SceneService {
         self.cancelDeadline = cancelDeadline
         self.recordTurn = recordTurn
         self.makeResponseID = makeResponseID
+    }
+
+    /// Whether a scene is open in the region right now.
+    public func hasOpenScene(in regionID: EntityID) async throws -> Bool {
+        !(try await repository.openScenes(in: regionID).isEmpty)
     }
 
     /// Opens a scene and offers the floor to the first participant (the addressee, if any).
@@ -205,7 +213,8 @@ public actor SceneService {
             // after pieces is not a pass — the pieces were the line.
             let text = Self.joinedLine(pieces: floor.pieces, last: submission.text)
             try await take(
-                &scene, floor: floor, text: text, streamed: !floor.pieces.isEmpty, at: now)
+                &scene, floor: floor, text: text, streamed: !floor.pieces.isEmpty,
+                quietReason: submission.quietReason, at: now)
             span.attributes["scene.turn.disposition"] = "accepted"
             span.attributes["scene.turn.pass"] = text == nil
             let latest = try await repository.scene(id: sceneID) ?? scene
@@ -245,19 +254,23 @@ public actor SceneService {
 
     private func take(
         _ scene: inout Scene, floor: SceneFloor, text submitted: String?, streamed: Bool = false,
-        at now: Date
+        quietReason: String? = nil, at now: Date
     ) async throws {
         // A scene the house opened must be heard: if the lead has nothing (a failed or
         // silent mind), the room gets the plain event instead. The MQTT agent's
-        // fallbackSpeech, moved to where the floor is.
+        // fallbackSpeech, moved to where the floor is. A house *consideration* is the
+        // opposite: the lead's silence is the answer, and the reason is kept.
         let fallback = submitted == nil && scene.trigger.kind == .worldEvent && scene.turns.isEmpty
+        let declined =
+            submitted == nil && scene.trigger.kind == .houseConsideration && scene.turns.isEmpty
         let text = fallback ? scene.trigger.text : submitted
         var turn = SceneTurn(
             characterID: floor.characterID,
             responseID: floor.responseID,
             text: text,
             offeredAt: floor.offeredAt,
-            answeredAt: now
+            answeredAt: now,
+            quietReason: declined ? (quietReason ?? "no answer") : nil
         )
         if text != nil {
             turn.conversationItemID = try await recordTurn(scene, turn)
@@ -286,6 +299,19 @@ public actor SceneService {
                     "text": text.map { .string($0) } ?? .null,
                 ]))
 
+        if declined {
+            try await announce(
+                makeEvent(
+                    Self.remarkDeclinedEventType, scene: scene, at: now,
+                    subject: floor.characterID,
+                    payload: [
+                        "character_id": .string(floor.characterID.rawValue),
+                        "trigger": .string(scene.trigger.text),
+                        "reason": .string(turn.quietReason ?? "no answer"),
+                    ]))
+            try await close(scene, reason: .declined, at: now)
+            return
+        }
         if let reason = closeReason(for: scene) {
             try await close(scene, reason: reason, at: now)
             return
@@ -417,7 +443,7 @@ public actor SceneService {
         if scene.turns.count >= count, scene.turns.suffix(count).allSatisfy(\.isPass) {
             return .everyonePassed
         }
-        let cap = scene.trigger.kind == .worldEvent ? limits.houseMaximumTurns : limits.maximumTurns
+        let cap = scene.trigger.isHouseOccasion ? limits.houseMaximumTurns : limits.maximumTurns
         if scene.turns.count >= cap {
             return .maximumTurns
         }

@@ -87,6 +87,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
 | House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
 | Retention | `retention.event_days`, `cheap_event_days`, `processing_days`, `timer_days`, `ingress_days`, `retired_fact_days`, `delivery_days`, `scene_days` | — | — | `90`, `7`, `7`, `7`, `30`, `90`, `90`, `180` |
+| House questions | `scenes.consider_on` (same shape as `open_on`) | — | — | `[]` |
 | Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
 
 Example:
@@ -198,6 +199,18 @@ else logged into the region after; the trigger is a stage note the birds read �
 was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody logged in means
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
+
+**The house asks** (`0.20.0`, step 3 of the judgement plan). Beside `scenes.open_on` — the
+events the lead *must* speak to — `scenes.consider_on` lists the events the house *asks* about:
+the same rule shape (event, places, cooldown), but the scene opens with trigger kind
+`house_consideration`, the lead's contract says it may answer `[quiet: why]`, and if it does the
+scene closes as `declined` with no fallback line, nobody else offered, and a
+`house.remark_declined` event carrying the reason — the Viewer shows "considered it and stayed
+quiet: the same van as every afternoon". If the lead speaks, it is an ordinary short house scene
+and the others may react. An `open_on` rule wins when both match; a question never interrupts a
+scene already open in the region (a must-speak still does); quiet hours and the house gap apply
+to both. The packaged rules ask about people on the indoor cameras, motion anywhere, April
+arriving or leaving, and the lights changing.
 
 **The packaged `world.json` is the production config** (`0.19.1`): it is installed on the box
 that runs Creature Server, so `creature_server.url` is `http://localhost:8000`, and everything

@@ -5,8 +5,16 @@ import Tracing
 public struct SceneTrigger: Hashable, Sendable, Codable {
     public enum Kind: String, Hashable, Sendable, Codable {
         case personUtterance = "person_utterance"
+        /// The house noticed something the lead must say (an `open_on` rule).
         case worldEvent = "world_event"
+        /// The house noticed something the lead may say — or may judge not worth a word
+        /// (a `consider_on` rule). Step 3 of the judgement plan: the model decides what
+        /// deserves a word; the world keeps the guardrails and records the choice.
+        case houseConsideration = "house_consideration"
     }
+
+    /// The house started this, one way or the other.
+    public var isHouseOccasion: Bool { kind == .worldEvent || kind == .houseConsideration }
 
     public var kind: Kind
     public var eventID: EventID
@@ -52,6 +60,8 @@ public struct SceneTurn: Hashable, Sendable, Codable {
     public var offeredAt: Date
     public var answeredAt: Date
     public var conversationItemID: ConversationItemID?
+    /// Why a pass, when the mind said (a house consideration it judged not worth a word).
+    public var quietReason: String?
 
     public init(
         characterID: EntityID,
@@ -59,7 +69,8 @@ public struct SceneTurn: Hashable, Sendable, Codable {
         text: String?,
         offeredAt: Date,
         answeredAt: Date,
-        conversationItemID: ConversationItemID? = nil
+        conversationItemID: ConversationItemID? = nil,
+        quietReason: String? = nil
     ) {
         self.characterID = characterID
         self.responseID = responseID
@@ -67,6 +78,7 @@ public struct SceneTurn: Hashable, Sendable, Codable {
         self.offeredAt = offeredAt
         self.answeredAt = answeredAt
         self.conversationItemID = conversationItemID
+        self.quietReason = quietReason
     }
 
     public var isPass: Bool { text == nil }
@@ -78,6 +90,7 @@ public struct SceneTurn: Hashable, Sendable, Codable {
         case offeredAt = "offered_at"
         case answeredAt = "answered_at"
         case conversationItemID = "conversation_item_id"
+        case quietReason = "quiet_reason"
     }
 }
 
@@ -98,6 +111,8 @@ public enum SceneCloseReason: String, Hashable, Sendable, Codable {
     case maximumSpokenSeconds = "maximum_spoken_seconds"
     /// A person spoke again; the scene yields to the new exchange.
     case interrupted
+    /// The house asked and the lead judged it not worth a word.
+    case declined
 }
 
 /// Who holds the floor right now, and until when.
@@ -365,6 +380,9 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
     /// The index of this sentence in a streamed line (0, 1, 2, …), so a retry is recognised;
     /// `nil` means the turn is complete with this submission.
     public var piece: Int?
+    /// Why the floor is passed, when the house asked and the mind chose quiet — for the
+    /// Viewer, never spoken.
+    public var quietReason: String?
     public var trace: W3CTraceContext?
 
     public var isPartial: Bool { piece != nil }
@@ -375,6 +393,7 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
         sessionID: CharacterSessionID? = nil,
         text: String?,
         piece: Int? = nil,
+        quietReason: String? = nil,
         trace: W3CTraceContext? = nil
     ) throws {
         if let text {
@@ -391,6 +410,7 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
         self.sessionID = sessionID
         self.text = text
         self.piece = piece
+        self.quietReason = quietReason.map { String($0.prefix(200)) }
         self.trace = trace
     }
 
@@ -402,6 +422,7 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
             sessionID: container.decodeIfPresent(CharacterSessionID.self, forKey: .sessionID),
             text: container.decodeIfPresent(String.self, forKey: .text),
             piece: container.decodeIfPresent(Int.self, forKey: .piece),
+            quietReason: container.decodeIfPresent(String.self, forKey: .quietReason),
             trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace)
         )
     }
@@ -412,6 +433,7 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
         case sessionID = "session_id"
         case text
         case piece
+        case quietReason = "quiet_reason"
         case trace
     }
 }
@@ -483,6 +505,9 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     public var voices: [String: SpeakingPace]
     /// The world events that open a scene on their own, and where, and how often.
     public var openOn: [SceneOpeningRule]
+    /// The world events the house *asks* the lead about: a scene opens, but the lead may
+    /// judge it not worth a word and stay quiet, and the world records that.
+    public var considerOn: [SceneOpeningRule]
     /// When the house does not wake the birds at all; nil means never quiet.
     public var quietHours: QuietHours?
     /// The least time between any two scenes the house opens, across all rules; zero (the
@@ -507,6 +532,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         sentenceSeconds: TimeInterval = 0.35,
         voices: [String: SpeakingPace] = [:],
         openOn: [SceneOpeningRule] = [],
+        considerOn: [SceneOpeningRule] = [],
         houseGapSeconds: TimeInterval = 0,
         quietHours: QuietHours? = nil,
         turnLeadSeconds: TimeInterval = 2
@@ -519,6 +545,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         self.sentenceSeconds = sentenceSeconds
         self.voices = voices
         self.openOn = openOn
+        self.considerOn = considerOn
         self.houseGapSeconds = houseGapSeconds
         self.quietHours = quietHours
         self.turnLeadSeconds = turnLeadSeconds
@@ -544,6 +571,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
             voices: try container.decodeIfPresent([String: SpeakingPace].self, forKey: .voices)
                 ?? [:],
             openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
+            considerOn: try container.decodeIfPresent(
+                [SceneOpeningRule].self, forKey: .considerOn) ?? [],
             houseGapSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .houseGapSeconds) ?? defaults.houseGapSeconds,
             quietHours: try container.decodeIfPresent(QuietHours.self, forKey: .quietHours),
@@ -579,6 +608,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case sentenceSeconds = "sentence_seconds"
         case voices
         case openOn = "open_on"
+        case considerOn = "consider_on"
         case houseGapSeconds = "house_gap_seconds"
         case quietHours = "quiet_hours"
         case turnLeadSeconds = "turn_lead_seconds"

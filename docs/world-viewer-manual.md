@@ -93,6 +93,14 @@ records who reworded it and never overwrites a Wizard's words with its catalogue
 — predicates the world currently believes something under but has no meaning for — sit at the top
 waiting to be taught; until they are, the minds see them with no meaning attached.
 
+### When the house asks
+
+A scene's trigger carries a symbol: April spoke, the house told (`house.fill`), or the house
+asked (`questionmark.bubble`). When the lead judged a question not worth a word, the scene
+closes as `declined` and the row says who "considered it and stayed quiet" and why; the
+Timeline shows the same on its `house.remark_declined` event. A quiet decision is a decision,
+shown in grey, never in red.
+
 ### When something fails
 
 A turn the room could not speak shows its delivery chip in red with the reason beneath it, in

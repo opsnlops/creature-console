@@ -1,6 +1,6 @@
 # Judgement and Memory — Using the Frontier Model for Work, Not Prose
 
-**Status:** Plan written 2026-09-12 evening; step 2 built the same night — 2a (recent happenings) as World `0.15.0` / agent `2.65.0`, 2b (facts as facts, `fact_kinds`, Meanings in the Viewer) as World `0.16.0` / agent `2.66.0` / Viewer `0.2.0`. The ground it stands on: facts (F1),
+**Status:** Plan written 2026-09-12 evening; step 3 (the house asks: `consider_on`, `[quiet: why]`, `house.remark_declined`) built 2026-09-13 as World `0.20.0` / agent `2.68.0` / Viewer `0.4.0`; step 2 built the night before — 2a (recent happenings) as World `0.15.0` / agent `2.65.0`, 2b (facts as facts, `fact_kinds`, Meanings in the Viewer) as World `0.16.0` / agent `2.66.0` / Viewer `0.2.0`. The ground it stands on: facts (F1),
 personas (P1), the house (F2), house-opened scenes (F3, live tonight: carport camera → Beaky
 speaking in 2.0 s), paced floors, and the register-only house-remark contract (agent `2.64.0`).
 **Why:** April: "We have access to a very high quality frontier model now for Beaky. We need to

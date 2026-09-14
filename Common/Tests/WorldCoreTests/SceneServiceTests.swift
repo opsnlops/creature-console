@@ -439,6 +439,53 @@ struct SceneServiceTests {
         #expect(scene.floor?.characterID == beaky)
     }
 
+    @Test("The house asks; the lead may stay quiet, with a reason the world keeps")
+    func houseConsiderationDeclined() async throws {
+        let world = makeWorld(limits: SceneLimits(houseMaximumTurns: 3, turnLeadSeconds: 3_600))
+        let asked = SceneTrigger(
+            kind: .houseConsideration, eventID: .generated(),
+            text: "Something just moved in the kitchen.")
+        var scene = try await world.service.open(
+            regionID: home, conversationID: conversation, trigger: asked,
+            participants: [beaky, mango, kenny])
+        #expect(try await world.service.hasOpenScene(in: home))
+        let floor = try #require(scene.floor)
+        scene = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: floor.responseID, text: nil,
+                quietReason: "April is in the kitchen; nothing to say"),
+            to: scene.sceneID
+        ).scene
+
+        // No fallback line, nobody else offered, the scene is closed as declined, and the
+        // reason is on the record.
+        #expect(scene.state == .abandoned)
+        #expect(scene.closeReason == .declined)
+        #expect(scene.turns.count == 1)
+        #expect(scene.turns[0].isPass)
+        #expect(scene.turns[0].quietReason == "April is in the kitchen; nothing to say")
+        #expect(await world.announced.offers.count == 1)
+        let declined = try #require(
+            await world.announced.events.first { $0.type == SceneService.remarkDeclinedEventType })
+        #expect(declined.payload["reason"] == .string("April is in the kitchen; nothing to say"))
+        #expect(declined.payload["trigger"] == .string("Something just moved in the kitchen."))
+        #expect(!(try await world.service.hasOpenScene(in: home)))
+
+        // When the lead does speak, it is an ordinary short house scene: the others follow.
+        let spoken = try await world.service.open(
+            regionID: home, conversationID: conversation, trigger: asked,
+            participants: [beaky, mango])
+        let lead = try #require(spoken.floor)
+        let after = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: lead.responseID,
+                text: "Someone is in the kitchen and it is not me."),
+            to: spoken.sceneID
+        ).scene
+        #expect(after.floor?.characterID == mango)
+        #expect(after.closeReason == nil)
+    }
+
     @Test("Spoken time is estimated from sentences and characters, as the room really speaks")
     func spokenTimeEstimate() {
         // Fitted to Creature Server's frame counts for a real scene: "Kenny loves popcorn

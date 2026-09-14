@@ -191,16 +191,17 @@ struct MongoWorldPersistenceConnection: Sendable {
         // The house starts scenes: a person at the driveway, a door unlocking. The rules are
         // `scenes.open_on`; the lead gets the floor first, then whoever else is in the region.
         let openingPolicy = SceneOpeningPolicy(
-            rules: sceneLimits.openOn, gapSeconds: sceneLimits.houseGapSeconds,
-            quietHours: sceneLimits.quietHours)
+            rules: sceneLimits.openOn, considerRules: sceneLimits.considerOn,
+            gapSeconds: sceneLimits.houseGapSeconds, quietHours: sceneLimits.quietHours)
         let sceneOpener = Task {
-            guard !sceneLimits.openOn.isEmpty else { return }
+            guard !sceneLimits.openOn.isEmpty || !sceneLimits.considerOn.isEmpty else { return }
             do {
                 for try await delta in try await world.subscribe() {
                     let event = delta.event
                     guard
-                        let place = await openingPolicy.shouldOpen(for: event, at: await clock.now)
+                        let occasion = await openingPolicy.occasion(for: event, at: await clock.now)
                     else { continue }
+                    let place = occasion.place
                     // The region the place belongs to; a person's region is wherever the lead is.
                     var regionID = regions.first { $0.value.places.contains(place) }?.key
                     if regionID == nil {
@@ -210,6 +211,13 @@ struct MongoWorldPersistenceConnection: Sendable {
                     guard let regionID else { continue }
                     let present = try await sessionService.present(in: regionID).map(\.characterID)
                     guard !present.isEmpty else { continue }
+                    // A question from the house never interrupts a conversation already going;
+                    // a must-speak occasion still does.
+                    if occasion.kind == .houseConsideration,
+                        try await sceneService.hasOpenScene(in: regionID)
+                    {
+                        continue
+                    }
                     let participants =
                         present.contains(leadCharacter)
                         ? [leadCharacter] + present.filter { $0 != leadCharacter } : present
@@ -217,12 +225,14 @@ struct MongoWorldPersistenceConnection: Sendable {
                         regionID: regionID,
                         conversationID: houseConversation,
                         trigger: SceneTrigger(
-                            kind: .worldEvent, eventID: event.eventID,
+                            kind: occasion.kind, eventID: event.eventID,
                             text: SceneOpeningPolicy.triggerText(for: event, place: place)),
                         participants: participants,
                         trace: event.trace)
                     logger.info(
-                        "The house opened a scene",
+                        occasion.kind == .houseConsideration
+                            ? "The house asked the lead about something"
+                            : "The house opened a scene",
                         metadata: [
                             "scene.id": "\(scene.sceneID.rawValue)",
                             "world.event_type": "\(event.type.rawValue)",

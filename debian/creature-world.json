@@ -33,6 +33,13 @@
       { "event": "camera.vehicle_seen", "places": ["place:driveway", "place:back-driveway", "place:east-driveway", "place:orchard", "place:carport"], "cooldown_seconds": 300 },
       { "event": "door.unlocked", "cooldown_seconds": 60 },
       { "event": "door.locked", "cooldown_seconds": 60 }
+    ],
+    "consider_on": [
+      { "event": "camera.person_seen", "places": ["place:kitchen", "place:workshop"], "cooldown_seconds": 600 },
+      { "event": "motion.detected", "cooldown_seconds": 900 },
+      { "event": "person.arrived", "cooldown_seconds": 60 },
+      { "event": "person.left", "cooldown_seconds": 60 },
+      { "event": "house.scene_activated", "cooldown_seconds": 120 }
     ]
   },
   "retention": {

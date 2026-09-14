@@ -454,11 +454,12 @@ struct CharacterMind: Sendable {
         _ offer: SceneTurnOffer, now: Date, _ respondStreaming: @escaping RespondStreaming,
         _ speak: @escaping SpeakPiece
     ) async throws -> SceneDecision {
-        func pass(_ reason: CharacterDecision.SilenceReason) -> SceneDecision {
+        func pass(_ reason: CharacterDecision.SilenceReason, quiet: String? = nil) -> SceneDecision
+        {
             .pass(
                 try! SceneTurnSubmission(
                     characterID: configuration.characterID, responseID: offer.responseID,
-                    sessionID: nil, text: nil),
+                    sessionID: nil, text: nil, quietReason: quiet),
                 reason: reason)
         }
         guard now <= offer.deadline else { return pass(.stale) }
@@ -499,7 +500,9 @@ struct CharacterMind: Sendable {
             if await line.spoken.isEmpty { return pass(.modelUnavailable) }
         }
         guard !(await line.spoken.isEmpty) else {
-            return pass(await line.declined ? .choseSilence : .emptyResponse)
+            return pass(
+                await line.declined ? .choseSilence : .emptyResponse,
+                quiet: await line.quietReason)
         }
         return .turn(
             try SceneTurnSubmission(
@@ -520,6 +523,8 @@ struct CharacterMind: Sendable {
         }
         private(set) var spoken: [String] = []
         private(set) var declined = false
+        /// The why behind a `[quiet: …]`, for the record.
+        private(set) var quietReason: String?
         private var firstSentenceAt: Date?
         private let characterName: String
         private let speaker: String?
@@ -542,6 +547,7 @@ struct CharacterMind: Sendable {
             else {
                 if spoken.isEmpty, CharacterMind.declinesToSpeak(raw) {
                     declined = true
+                    quietReason = CharacterMind.quietReason(in: raw)
                     return .done
                 }
                 return .skip
@@ -572,11 +578,12 @@ struct CharacterMind: Sendable {
     }
 
     private func decideTurn(_ offer: SceneTurnOffer, now: Date) async -> SceneDecision {
-        func pass(_ reason: CharacterDecision.SilenceReason) -> SceneDecision {
+        func pass(_ reason: CharacterDecision.SilenceReason, quiet: String? = nil) -> SceneDecision
+        {
             .pass(
                 try! SceneTurnSubmission(
                     characterID: configuration.characterID, responseID: offer.responseID,
-                    sessionID: nil, text: nil),
+                    sessionID: nil, text: nil, quietReason: quiet),
                 reason: reason)
         }
         guard now <= offer.deadline else { return pass(.stale) }
@@ -596,7 +603,9 @@ struct CharacterMind: Sendable {
             return pass(.modelUnavailable)
         }
         guard var text = Self.validate(raw, spokenBy: configuration.characterName) else {
-            return pass(Self.declinesToSpeak(raw) ? .choseSilence : .emptyResponse)
+            return pass(
+                Self.declinesToSpeak(raw) ? .choseSilence : .emptyResponse,
+                quiet: Self.quietReason(in: raw))
         }
         if let speaker = offer.trigger.speakerID {
             text = Self.withoutOpeningVocative(text, name: Self.name(of: speaker))
@@ -630,11 +639,12 @@ struct CharacterMind: Sendable {
         switch offer.trigger.kind {
         case .personUtterance:
             contract = Self.sceneContract(others: others)
-        case .worldEvent:
+        case .worldEvent, .houseConsideration:
             contract = Self.houseRemarkContract(
                 others: others,
                 aprilHome: FactPhrasing.isHome(Self.april, in: offer.worldFacts),
-                isLead: offer.turns.isEmpty)
+                isLead: offer.turns.isEmpty,
+                mayDecline: offer.trigger.kind == .houseConsideration)
         }
         var transcript = [
             LocalLLMClient.Message(
@@ -652,7 +662,7 @@ struct CharacterMind: Sendable {
         case .personUtterance:
             let speaker = offer.trigger.speakerID.map(Self.name(of:)) ?? "April"
             script += "\(speaker): \(offer.trigger.text)\n"
-        case .worldEvent:
+        case .worldEvent, .houseConsideration:
             script += "(\(offer.trigger.text))\n"
         }
         for turn in offer.turns {
@@ -712,7 +722,13 @@ struct CharacterMind: Sendable {
     /// reaction or stay quiet. The contract says who she is, not what to conclude: a frontier
     /// model reads the facts and works out that the person at the carport is probably April,
     /// or that the visitor is the one who was expected, on its own.
-    static func houseRemarkContract(others: [String], aprilHome: Bool?, isLead: Bool) -> String {
+    /// `[quiet: the same delivery van as every afternoon]` — the mind's way of saying "not
+    /// worth a word", with the why for the Viewer. Never spoken.
+    static let quietPrefix = "[quiet:"
+
+    static func houseRemarkContract(
+        others: [String], aprilHome: Bool?, isLead: Bool, mayDecline: Bool = false
+    ) -> String {
         let company =
             others.isEmpty
             ? "You are the only bird in the room."
@@ -727,7 +743,9 @@ struct CharacterMind: Sendable {
             }
         let turn =
             isLead
-            ? "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken)."
+            ? (mayDecline
+                ? "The house is asking whether this deserves a word. If it does, say something about it out loud, as yourself, in one or two short sentences. If it does not - the same delivery van as every afternoon, a bird at the feeder, motion in a room April is already in, something you have already remarked on - reply with exactly [quiet: why] and nothing else, in a few words; the reason is for April's records, never spoken. Say something when there is something in it for April or something odd; stay quiet when there is not."
+                : "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken).")
             : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Do not repeat what was just said, and do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times."
         return """
             The house just noticed something; it is written below in parentheses, followed by \
@@ -875,6 +893,16 @@ struct CharacterMind: Sendable {
 
     // MARK: - Validation
 
+    /// The reason in a `[quiet: …]` reply, or nil when the reply is not one.
+    static func quietReason(in raw: String) -> String? {
+        let text = LocalLLMClient.stripThinkTags(raw).trimmingCharacters(
+            in: .whitespacesAndNewlines)
+        guard text.lowercased().hasPrefix(quietPrefix) else { return nil }
+        let inside = text.dropFirst(quietPrefix.count)
+        let reason = inside.prefix { $0 != "]" }.trimmingCharacters(in: .whitespacesAndNewlines)
+        return reason.isEmpty ? "no reason given" : String(reason.prefix(200))
+    }
+
     /// The reply the world may carry, or `nil` when the model produced nothing usable.
     static func validate(_ raw: String, spokenBy characterName: String) -> String? {
         let stripped = LocalLLMClient.stripThinkTags(raw)
@@ -960,6 +988,7 @@ struct CharacterMind: Sendable {
             text = text[text.index(after: colon)...].trimmingCharacters(in: decoration)
         }
         return text.caseInsensitiveCompare("silence") == .orderedSame
+            || quietReason(in: raw) != nil
     }
 
     static func truncatedAtSentence(_ text: String, maximumUnicodeScalars: Int) -> String {

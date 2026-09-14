@@ -39,9 +39,29 @@ struct ScenesPanel: View {
 struct SceneRow: View {
     let scene: WorldCore.Scene
 
+    private var triggerSymbol: String {
+        switch scene.trigger.kind {
+        case .personUtterance: "person.wave.2"
+        case .worldEvent: "house.fill"
+        case .houseConsideration: "questionmark.bubble"
+        }
+    }
+
+    private var triggerHint: String {
+        switch scene.trigger.kind {
+        case .personUtterance: "April spoke"
+        case .worldEvent: "The house opened this scene; the lead had to speak"
+        case .houseConsideration: "The house asked the lead whether this deserved a word"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
+                // Who started it: April's words, the house telling, or the house asking.
+                Image(systemName: triggerSymbol)
+                    .foregroundStyle(.secondary)
+                    .help(triggerHint)
                 Text(scene.trigger.text)
                     .font(.headline)
                     .lineLimit(2)
@@ -76,6 +96,18 @@ struct SceneRow: View {
             }
             .font(.caption2.monospacedDigit())
             .foregroundStyle(.secondary)
+            if scene.closeReason == .declined,
+                let quiet = scene.turns.first(where: { $0.quietReason != nil })
+            {
+                // Considered, stayed quiet: a decision, shown as one.
+                Label(
+                    "\(CharacterName.of(quiet.characterID)) considered it and stayed quiet: \(quiet.quietReason ?? "")",
+                    systemImage: "moon.zzz"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+            }
             ForEach(Array(scene.turns.enumerated()), id: \.offset) { _, turn in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(CharacterName.of(turn.characterID))

@@ -134,6 +134,12 @@ house scenes up to three turns with the others joining (World `0.16.2`); nightly
 human-grained ("Jesse was here on Monday", never a timestamp). Next: step 3 (model-gated house
 remarks), then step 4 (nightly memory), then cutover.
 
+**Step 3 built (2026-09-13 evening, World `0.20.0` / agent `2.68.0` / Viewer `0.4.0`):** the
+house asks — `scenes.consider_on` rules open a `house_consideration` scene; the lead may answer
+`[quiet: why]`, the scene closes `declined` with a `house.remark_declined` event and her reason,
+shown in the Viewer as "considered it and stayed quiet". Packaged rules: indoor cameras, motion,
+April arriving/leaving, lights changing. Next: step 4 (nightly memory on gpt-6-astra).
+
 **Live on prod, verified (2026-09-13 17:00–17:45):** three solo replies performed; a full
 three-bird scene; the first walk on the production world — door → four cameras → four short
 scenes, "I wonder if April slipped home while we were debating her mystery robot parts" … "quite

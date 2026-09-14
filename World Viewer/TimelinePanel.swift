@@ -73,6 +73,15 @@ struct TimelineRow: View {
                         .foregroundStyle(.red)
                         .textSelection(.enabled)
                 }
+                if event.type == SceneService.remarkDeclinedEventType,
+                    case .string(let reason)? = event.payload["reason"]
+                {
+                    // Considered, stayed quiet: her judgement, on the record.
+                    Label("stayed quiet: \(reason)", systemImage: "moon.zzz")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
                 HStack(spacing: 8) {
                     Text("\(event.source.kind) · \(event.source.id.rawValue)")
                     Text(event.occurredAt, format: .dateTime.hour().minute().second())

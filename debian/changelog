@@ -1,3 +1,20 @@
+creature-cli (2.68.0+world0.20.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * The house asks. Step 3 of the judgement plan: beside the events the
+    lead must speak to (`open_on`), `scenes.consider_on` lists the events
+    the house asks her about - people on the indoor cameras, motion,
+    April arriving or leaving, the lights changing. She decides.
+  * creature-world 0.20.0: trigger kind `house_consideration`; a declined
+    question closes the scene as `declined` with no fallback line and a
+    `house.remark_declined` event carrying her reason; a question never
+    interrupts an open scene; `open_on` wins when both match.
+  * creature-agent 2.68.0: the lead may answer `[quiet: why]`; the reason
+    rides the pass to the world and is never spoken.
+  * World Viewer 0.4.0: trigger symbols on scenes; "considered it and
+    stayed quiet: ..." on declined scenes and on the timeline.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 18:20:00 -0700
+
 creature-cli (2.67.0+world0.19.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.19.1: the packaged world.json is the production
