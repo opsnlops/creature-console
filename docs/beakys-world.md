@@ -149,7 +149,7 @@ agent config for 4b. **Step 4b (World `0.23.0` / agent `2.71.0` / Viewer `0.6.0`
 `memory` in world.json, the 3:30 `memory.consolidate` timer, `GET /v1/days/{day}`, the job in
 Beaky's agent on `llmMemoryModel: gpt-6-astra`, `memory.episode.<day>.<n>` / `memory.reflection.<day>`
 facts kept for years and handed out sparingly. Deploy: World + agents; add `llmMemoryModel:
-gpt-6-astra` to beaky.yaml. First live run 2026-09-13 22:51 by hand: 6 episodes, a good reflection, and two bugs fixed in agent `2.71.1` (episodes collapsed on one predicate; birds filed as `person:`). Beaky persona 6. First clock run: 3:30 AM Monday 2026-09-14, remembering the 13th — or sooner by hand: `POST
+gpt-6-astra` to beaky.yaml. First live runs 2026-09-13 night, by hand: three fixes fell out (agent `2.71.1` episodes collapsed on one predicate and birds filed as `person:`; agent `2.71.2` re-runs were deduplicated against the last run; Viewer `0.6.2` expired facts lingered as null). Third run: 9 episodes, 19 facts, and she answered "what printer for Kenny's foot?" with "A Prusa, we are a Prusa shop" — two memories joined. Beaky persona 6. World `0.23.1` fixes CI (retention migration on a fresh database). First clock run: 3:30 AM Monday 2026-09-14, remembering the 13th — or sooner by hand: `POST
 /world/v1/days/2026-09-13/remember` (World `0.23.0`). The
 local-LLM health check no longer runs on the OpenAI backend. Next: watch the first memory land;
 Bridge plan doc; "both places".
