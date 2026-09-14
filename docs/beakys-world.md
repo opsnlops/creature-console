@@ -151,8 +151,19 @@ Beaky's agent on `llmMemoryModel: gpt-6-astra`, `memory.episode.<day>.<n>` / `me
 facts kept for years and handed out sparingly. Deploy: World + agents; add `llmMemoryModel:
 gpt-6-astra` to beaky.yaml. First live runs 2026-09-13 night, by hand: three fixes fell out (agent `2.71.1` episodes collapsed on one predicate and birds filed as `person:`; agent `2.71.2` re-runs were deduplicated against the last run; Viewer `0.6.2` expired facts lingered as null). Third run: 9 episodes, 19 facts, and she answered "what printer for Kenny's foot?" with "A Prusa, we are a Prusa shop" — two memories joined. Beaky persona 6. World `0.23.1` fixes CI (retention migration on a fresh database). First clock run: 3:30 AM Monday 2026-09-14, remembering the 13th — or sooner by hand: `POST
 /world/v1/days/2026-09-13/remember` (World `0.23.0`). The
-local-LLM health check no longer runs on the OpenAI backend. Next: watch the first memory land;
-Bridge plan doc; "both places".
+local-LLM health check no longer runs on the OpenAI backend. Agent `2.71.3`: learned things about
+a bird go on `character:` (one `EntityNames` resolver for tags and memory); the contract asks for
+an existing kind first and not to re-keep what another bird just kept.
+
+**To do, in order:**
+1. Check the 3:30 clock run of 2026-09-14 (re-remembers the 13th) against the by-hand one.
+2. `docs/information-bridge-plan.md` — the plan before any code (see §Bridge notes below).
+3. **Storage in view:** `GET /v1/storage` (collection counts and bytes from `collStats`) and a
+   line in the Viewer's health panel, so retention windows get tuned from evidence. April is
+   weighing dedicated MongoDB hardware; the estimate is low-single-digit GB steady state, and
+   the real argument would be isolation from creature-server, not size — measure first.
+4. Outer cameras / vehicles → `consider_on` (April's call); "both places"; at-mention during
+   quiet hours.
 
 **Live on prod, verified (2026-09-13 17:00–17:45):** three solo replies performed; a full
 three-bird scene; the first walk on the production world — door → four cameras → four short
