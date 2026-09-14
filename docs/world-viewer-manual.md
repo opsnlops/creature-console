@@ -108,6 +108,12 @@ themselves are facts — `memory.episode.<day>.<n>` on each person, place, or bi
 `memory.episode` / `memory.reflection` families in Meanings. They carry no expiry; retention never
 removes them.
 
+### Forgetting a fact
+
+Right-click any fact on the Facts tab → **Forget** (`0.6.1`): the same retraction as the
+Timeline's Forget button, for any fact the world believes — a bird's memory it filed wrongly, a
+learned thing April did not mean it to keep.
+
 ### When a bird passes
 
 A pass in a scene shows its reason in grey — "passes: Beaky already asked April", "passes: joke

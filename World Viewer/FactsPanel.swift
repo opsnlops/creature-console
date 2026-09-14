@@ -56,6 +56,13 @@ struct FactsPanel: View {
                 }
             }
             .padding(.vertical, 2)
+            .contextMenu {
+                // Any fact can be taken back: the world casts nothing in its place.
+                Button("Forget", systemImage: "eraser") {
+                    Task { await store.forget(fact.subjectID, fact.predicate) }
+                }
+                .help("Retract this fact: the World will believe it no longer")
+            }
         }
         .onChange(of: selection) { _, factID in
             scried = store.facts.first { $0.factID == factID }.map(Scried.fact)
