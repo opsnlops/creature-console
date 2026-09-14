@@ -224,6 +224,13 @@ else — persona, facts, the clock, streaming to the room — is identical.
   facts and says them in the bird's own words, and a new kind of fact needs a meaning in the
   world, never code here. Three lines are still the agent's: the time, the model line, and the
   quiet cameras. The Viewer's Mundane view of the percept shows exactly what a bird was told.
+- **Nothing new, nothing said** (`2.69.0`). In a scene, a turn is taken only if it adds
+  something new for April — a fact she does not have, a question she needs to answer, a joke
+  that lands once; agreeing, restating, riffing on one's own subject again, or re-answering is
+  not new. Otherwise the mind replies `[pass: why]` (a house question: `[quiet: why]`); the
+  reason rides the pass to the world, shows in the Viewer, and is never spoken. The contract
+  says to expect to pass most turns. April: "Me telling Beaky I bought groceries doesn't need to
+  be a 12 turn conversation about Linux."
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
   emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the

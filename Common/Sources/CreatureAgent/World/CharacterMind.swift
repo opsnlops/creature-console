@@ -724,7 +724,7 @@ struct CharacterMind: Sendable {
     /// or that the visitor is the one who was expected, on its own.
     /// `[quiet: the same delivery van as every afternoon]` — the mind's way of saying "not
     /// worth a word", with the why for the Viewer. Never spoken.
-    static let quietPrefix = "[quiet:"
+    static let quietPrefixes = ["[quiet:", "[pass:"]
 
     static func houseRemarkContract(
         others: [String], aprilHome: Bool?, isLead: Bool, mayDecline: Bool = false
@@ -775,11 +775,22 @@ struct CharacterMind: Sendable {
             below as a script; continue it with only your own next line, in your own voice, in one \
             or two short sentences, spoken aloud. Speak to whoever you are answering, a bird or \
             April, and do not begin your line with anyone's name unless you are singling them out. \
-            Do not write anyone else's line and do not prefix your words with your name. If you \
-            have nothing to add, reply with exactly \(silenceToken) and nothing else. Never use \
-            emoji or symbols. Do not describe actions. \(typing)
+            Do not write anyone else's line and do not prefix your words with your name. \
+            \(newInformation) Never use emoji or symbols. Do not describe actions. \(typing)
             """
     }
+
+    /// April: "Me telling Beaky I bought groceries doesn't need to be a 12 turn conversation
+    /// about Linux." Silence is the expected answer, not the exception, and it is a recorded
+    /// choice: `[pass: why]` rides to the world and shows in the Viewer, never spoken.
+    static let newInformation = """
+        Take the turn only if your line adds something new for April: a fact she does not have, \
+        a question she actually needs to answer, a joke that lands once. Agreeing, restating what \
+        was said, riffing on your own favourite subject again, or answering a question someone \
+        already answered is not new. If you have nothing new, reply with exactly [pass: why] and \
+        nothing else, in a few words; the reason is for April's records, never spoken. Expect to \
+        pass most turns - a scene that ends after one good line is a good scene.
+        """
 
     /// The trace context the world attached to the utterance, as a span parent.
     static func traceContext(for percept: PersonUtterancePercept) -> ServiceContext {
@@ -897,8 +908,10 @@ struct CharacterMind: Sendable {
     static func quietReason(in raw: String) -> String? {
         let text = LocalLLMClient.stripThinkTags(raw).trimmingCharacters(
             in: .whitespacesAndNewlines)
-        guard text.lowercased().hasPrefix(quietPrefix) else { return nil }
-        let inside = text.dropFirst(quietPrefix.count)
+        guard let prefix = quietPrefixes.first(where: { text.lowercased().hasPrefix($0) }) else {
+            return nil
+        }
+        let inside = text.dropFirst(prefix.count)
         let reason = inside.prefix { $0 != "]" }.trimmingCharacters(in: .whitespacesAndNewlines)
         return reason.isEmpty ? "no reason given" : String(reason.prefix(200))
     }

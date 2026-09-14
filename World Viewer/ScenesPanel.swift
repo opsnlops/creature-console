@@ -116,7 +116,8 @@ struct SceneRow: View {
                         Text(text)
                             .font(.caption)
                     } else {
-                        Text("passes")
+                        // A pass is a decision; the mind's reason, when it gave one, is why.
+                        Text(turn.quietReason.map { "passes: \($0)" } ?? "passes")
                             .font(.caption.italic())
                             .foregroundStyle(.tertiary)
                     }

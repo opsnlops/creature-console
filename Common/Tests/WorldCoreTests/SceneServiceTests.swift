@@ -486,6 +486,31 @@ struct SceneServiceTests {
         #expect(after.closeReason == nil)
     }
 
+    @Test("A pass in an ordinary scene keeps its reason, for the Viewer")
+    func passReasonIsKept() async throws {
+        let world = makeWorld()
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let floor = try #require(scene.floor)
+        let after = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: floor.responseID, text: nil,
+                quietReason: "April was only telling me about the groceries"),
+            to: scene.sceneID
+        ).scene
+        #expect(after.turns[0].isPass)
+        #expect(after.turns[0].quietReason == "April was only telling me about the groceries")
+        let turnEvent = try #require(
+            await world.announced.events.last { $0.type == SceneService.turnEventType })
+        #expect(
+            turnEvent.payload["quiet_reason"]
+                == .string("April was only telling me about the groceries"))
+        // Not a declined house question: the scene goes on to Mango.
+        #expect(after.closeReason == nil)
+        #expect(after.floor?.characterID == mango)
+    }
+
     @Test("Spoken time is estimated from sentences and characters, as the room really speaks")
     func spokenTimeEstimate() {
         // Fitted to Creature Server's frame counts for a real scene: "Kenny loves popcorn

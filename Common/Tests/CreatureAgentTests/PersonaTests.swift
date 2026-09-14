@@ -231,6 +231,14 @@ struct PersonaTests {
                 == "April is already in there")
         #expect(CharacterMind.quietReason(in: "[quiet:]") == "no reason given")
         #expect(CharacterMind.quietReason(in: "Ooh, a visitor!") == nil)
+        #expect(
+            CharacterMind.quietReason(in: "[pass: April was talking to Beaky]")
+                == "April was talking to Beaky")
+        #expect(CharacterMind.declinesToSpeak("[pass: nothing new]"))
+        #expect(
+            CharacterMind.sceneContract(others: ["Mango"]).contains(
+                "reply with exactly [pass: why]"))
+        #expect(CharacterMind.sceneContract(others: []).contains("Expect to pass most turns"))
         #expect(CharacterMind.declinesToSpeak("[quiet: nothing new]"))
         #expect(CharacterMind.validate("[quiet: nothing new]", spokenBy: "beaky") == nil)
         let must = CharacterMind.houseRemarkContract(others: [], aprilHome: true, isLead: true)

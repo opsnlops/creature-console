@@ -138,7 +138,9 @@ remarks), then step 4 (nightly memory), then cutover.
 house asks — `scenes.consider_on` rules open a `house_consideration` scene; the lead may answer
 `[quiet: why]`, the scene closes `declined` with a `house.remark_declined` event and her reason,
 shown in the Viewer as "considered it and stayed quiet". Packaged rules: indoor cameras, motion,
-April arriving/leaving, lights changing. Next: step 4 (nightly memory on gpt-6-astra).
+April arriving/leaving, lights changing. Then (World `0.20.1` / agent `2.69.0` / Viewer `0.4.1`): nothing new, nothing said —
+scene turns need new information for April or the bird answers `[pass: why]`; passes keep their
+reason. Next: step 4 (nightly memory on gpt-6-astra).
 
 **Live on prod, verified (2026-09-13 17:00–17:45):** three solo replies performed; a full
 three-bird scene; the first walk on the production world — door → four cameras → four short

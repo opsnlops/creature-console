@@ -1,3 +1,16 @@
+creature-cli (2.69.0+world0.20.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * Nothing new, nothing said. April: "Me telling Beaky I bought
+    groceries doesn't need to be a 12 turn conversation about Linux."
+  * creature-agent 2.69.0: a scene turn is taken only when it adds
+    something new for April; otherwise the mind answers `[pass: why]`,
+    and the contract says to expect to pass most turns.
+  * creature-world 0.20.1: every pass keeps the mind's reason on the turn
+    and in the scene.turn event.
+  * World Viewer 0.4.1: passes show their reason.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 19:40:00 -0700
+
 creature-cli (2.68.0+world0.20.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * The house asks. Step 3 of the judgement plan: beside the events the

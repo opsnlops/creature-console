@@ -270,7 +270,9 @@ public actor SceneService {
             text: text,
             offeredAt: floor.offeredAt,
             answeredAt: now,
-            quietReason: declined ? (quietReason ?? "no answer") : nil
+            // Why a pass, whenever the mind said: a declined question, or a turn with nothing
+            // new to add.
+            quietReason: text == nil ? (quietReason ?? (declined ? "no answer" : nil)) : nil
         )
         if text != nil {
             turn.conversationItemID = try await recordTurn(scene, turn)
@@ -297,6 +299,7 @@ public actor SceneService {
                     "pass": .bool(text == nil),
                     "fallback": .bool(fallback),
                     "text": text.map { .string($0) } ?? .null,
+                    "quiet_reason": turn.quietReason.map { .string($0) } ?? .null,
                 ]))
 
         if declined {
