@@ -1,3 +1,12 @@
+creature-cli (2.71.1+world0.23.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.23.1: the retention migration no longer fails on a
+    fresh database. A collection nothing has written to yet does not
+    exist, and listing its indexes is an error; the migrator now checks
+    which collections exist first (CI has been red since 0.18.0's TTLs).
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 23:10:00 -0700
+
 creature-cli (2.71.1+world0.23.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-agent 2.71.1: what the first night taught us. A day's

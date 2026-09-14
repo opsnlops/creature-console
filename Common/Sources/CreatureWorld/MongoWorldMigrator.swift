@@ -56,6 +56,16 @@ struct MongoWorldMigrator: Sendable {
     /// field they already have, so only documents that have it are ever considered.
     private func ensureRetention() async throws {
         let day = 86_400
+        // A collection nobody has written to yet does not exist, and listing its indexes is an
+        // error (a fresh database, as in CI); createIndexes brings it into being.
+        let present = Set(try await database.listCollections().map(\.name))
+        func ensureTTL(_ collectionName: String, field: String, seconds: Int, name: String? = nil)
+            async throws
+        {
+            try await self.ensureTTL(
+                collectionName, exists: present.contains(collectionName), field: field,
+                seconds: seconds, name: name)
+        }
         try await ensureTTL(
             MongoWorldCollection.events, field: "expires_at", seconds: 0, name: "ttl_expires_at")
         try await ensureTTL(
@@ -82,11 +92,13 @@ struct MongoWorldMigrator: Sendable {
     }
 
     private func ensureTTL(
-        _ collectionName: String, field: String, seconds: Int, name: String? = nil
+        _ collectionName: String, exists: Bool, field: String, seconds: Int, name: String?
     ) async throws {
         let collection = database[collectionName]
         let indexName = name ?? "ttl_\(field.replacingOccurrences(of: ".", with: "_"))"
-        let existing = try await collection.listIndexes().drain().first { $0.name == indexName }
+        let existing =
+            exists
+            ? try await collection.listIndexes().drain().first { $0.name == indexName } : nil
         if let existing {
             if existing.expireAfterSeconds.map(Int.init) != seconds {
                 logger.info(
