@@ -67,11 +67,14 @@ struct MemoryJob: Sendable {
             let episodes = Array(recollection.episodes.prefix(Self.maximumEpisodes))
             span.attributes["memory.episodes"] = episodes.count
             var cast = 0
+            let characters = Self.characters(in: digest, including: characterID)
             for (index, episode) in episodes.enumerated() {
                 for about in episode.about.prefix(4) {
+                    // A bird's name is a character, never a person; the day's record says who
+                    // the birds are.
                     guard
-                        let subject = LearnedFact.entity(named: about, houseID: houseID)
-                            ?? Self.character(named: about)
+                        let subject = characters[Self.key(about)]
+                            ?? LearnedFact.entity(named: about, houseID: houseID)
                     else { continue }
                     try await self.cast(
                         episodeEvent(
@@ -192,9 +195,11 @@ struct MemoryJob: Sendable {
                 type: .remembered, confidence: min(1, max(0, episode.salience))),
             payload: [
                 "subject_id": .string(subject.rawValue),
-                // One predicate per day, so every day's memory of a subject stands beside the
-                // last instead of replacing it.
-                "predicate": .string("\(WorldFacts.memoryEpisode).\(day)"),
+                // A fact is one value per subject and predicate, so the predicate carries the
+                // day and the episode's place in it: every day's memory of a subject stands
+                // beside the last, and a day's episodes beside each other. Remembering a day
+                // again fills the same places.
+                "predicate": .string("\(WorldFacts.memoryEpisode).\(day).\(index + 1)"),
                 "value": .object([
                     "day": .string(day),
                     "when": .string(String(episode.when.prefix(80))),
@@ -230,12 +235,20 @@ struct MemoryJob: Sendable {
             kind: "mind", sourceEventID: sourceEventID)
     }
 
-    static func character(named name: String) -> EntityID? {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard ["beaky", "mango", "kenny", "caroll", "cobalt", "crow"].contains(trimmed) else {
-            return nil
+    /// The birds in the day's record - everyone who spoke as a `character:` - plus the one
+    /// remembering, keyed by name so "Mango" in an episode finds `character:mango`.
+    static func characters(in digest: DayDigest, including own: EntityID) -> [String: EntityID] {
+        let spoke = digest.conversation.map(\.who) + digest.scenes.flatMap { $0.lines.map(\.who) }
+        var characters = [key(FactPhrasing.name(of: own)): own]
+        for who in spoke where who.hasPrefix("character:") {
+            guard let id = EntityID(rawValue: who) else { continue }
+            characters[key(FactPhrasing.name(of: id))] = id
         }
-        return EntityID(rawValue: "character:\(trimmed)")
+        return characters
+    }
+
+    private static func key(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
     // MARK: - The digest

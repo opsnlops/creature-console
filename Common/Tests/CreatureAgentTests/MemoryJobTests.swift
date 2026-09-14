@@ -37,6 +37,9 @@ struct MemoryJobTests {
                 DayDigest.Line(
                     at: noon.addingTimeInterval(125), who: "character:beaky",
                     text: "Boards at last! I will keep an eye on his hammering."),
+                DayDigest.Line(
+                    at: noon.addingTimeInterval(130), who: "character:mango",
+                    text: "Debian would have finished the deck by now."),
             ],
             scenes: [], learned: [])
     }
@@ -63,9 +66,10 @@ struct MemoryJobTests {
         let casts = Casts()
         let recollection = """
             {"episodes": [
-              {"about": ["Jesse", "the deck"], "when": "Sunday around noon",
+              {"about": ["Jesse", "the deck", "April"], "when": "Sunday around noon",
                "what": "Jesse came and finished the deck; April was pleased", "salience": 0.8},
-              {"about": ["the front door"], "when": "Sunday noon", "what": "April unlocked the front door for Jesse", "salience": 0.1}
+              {"about": ["the front door"], "when": "Sunday noon", "what": "April unlocked the front door for Jesse", "salience": 0.1},
+              {"about": ["Mango", "April"], "when": "Sunday evening", "what": "April teased Mango about Debian", "salience": 0.4}
             ], "reflection": "April's deck project is nearly done and she is happy about it."}
             """
         // A tiny world that serves the digest.
@@ -95,12 +99,20 @@ struct MemoryJobTests {
         }
 
         let events = await casts.events
-        // Two subjects for the first episode, one for the second, the reflection, the summary.
-        #expect(events.count == 5)
+        // Three subjects for the first episode, one for the second, two for the third (Mango is
+        // a character, not a person, because he spoke that day), the reflection, the summary.
+        #expect(events.count == 8)
+        #expect(events.contains { $0.payload["subject_id"] == .string("character:mango") })
+        #expect(!events.contains { $0.payload["subject_id"] == .string("person:mango") })
         let jesse = try #require(
             events.first { $0.payload["subject_id"] == .string("person:jesse") })
         #expect(jesse.type.rawValue == "facts.given")
-        #expect(jesse.payload["predicate"] == .string("memory.episode.2026-09-13"))
+        #expect(jesse.payload["predicate"] == .string("memory.episode.2026-09-13.1"))
+        // Two episodes on one subject are two facts, not one superseding the other.
+        let april = events.filter { $0.payload["subject_id"] == .string("person:april") }
+        #expect(
+            april.map { $0.payload["predicate"] }
+                == [.string("memory.episode.2026-09-13.1"), .string("memory.episode.2026-09-13.3")])
         #expect(jesse.epistemic.type == .remembered)
         #expect(jesse.source.kind == "mind")
         guard case .object(let value)? = jesse.payload["value"] else {
@@ -114,16 +126,19 @@ struct MemoryJobTests {
             events.first { $0.payload["predicate"] == .string("memory.reflection.2026-09-13") })
         #expect(reflection.subjectIDs == [beaky])
         let done = try #require(events.first { $0.type.rawValue == "memory.consolidated" })
-        #expect(done.payload["episodes"] == .number(2))
+        #expect(done.payload["episodes"] == .number(3))
         #expect(done.payload["model"] == .string("gpt-6-astra"))
         // Idempotent across a rerun: the source event ids are the day's.
         #expect(jesse.source.sourceEventID == "memory:2026-09-13:episode:0:person:jesse")
     }
 
-    @Test("Birds are subjects too, and unknown names are not invented")
-    func subjects() {
-        #expect(MemoryJob.character(named: "Mango")?.rawValue == "character:mango")
-        #expect(MemoryJob.character(named: "Jesse") == nil)
+    @Test("The birds are whoever spoke as a character that day, plus the one remembering")
+    func subjects() throws {
+        let characters = MemoryJob.characters(in: try digest(), including: beaky)
+        #expect(characters["mango"]?.rawValue == "character:mango")
+        #expect(characters["beaky"] == beaky)
+        #expect(characters["april"] == nil)
+        #expect(characters["jesse"] == nil)
     }
 }
 

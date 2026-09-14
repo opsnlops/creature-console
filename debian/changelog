@@ -1,3 +1,14 @@
+creature-cli (2.71.1+world0.23.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-agent 2.71.1: what the first night taught us. A day's
+    episodes stand beside each other (`memory.episode.<day>.<n>`) instead
+    of superseding one another on a subject; a bird named in an episode
+    is `character:mango`, not `person:mango`, the birds being whoever
+    spoke as one that day. Beaky persona 6: it lands when April says she
+    loves her.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 22:45:00 -0700
+
 creature-cli (2.71.0+world0.23.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.23.0: remember a day by hand. POST

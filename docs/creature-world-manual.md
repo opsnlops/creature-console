@@ -223,11 +223,13 @@ world timer fires at `memory.hour:minute` in `memory.time_zone` (rescheduled aft
 `timer:memory-consolidate:<day>`), carrying the local day that just ended. The mind with a memory
 model (`llmMemoryModel` in the agent) hears it, fetches `GET /v1/days/{day}` — happenings, the
 house conversation, the scenes' lines, and what was cast that day — and writes back what it will
-keep as `facts.given` casts: `memory.episode.<day>` on each person, place, or bird an episode is
-about (value `{day, when, what, salience}`, epistemic `remembered`, confidence = salience) and
-`memory.reflection.<day>` on itself, then a `memory.consolidated` event. The day in the predicate
-keeps every day's memory beside the last instead of superseding it; the glossary answers for the
-family. Memories have no `valid_to`, so retention never removes them; a mind is handed only the
+keep as `facts.given` casts: `memory.episode.<day>.<n>` on each person, place, or bird the
+`n`th episode is about (value `{day, when, what, salience}`, epistemic `remembered`, confidence =
+salience) and `memory.reflection.<day>` on itself, then a `memory.consolidated` event. A fact is
+one value per subject and predicate, so the predicate carries the day and the episode's place in
+it: every day's memory of a subject stands beside the last, and a day's episodes beside each
+other; the glossary answers for the family. Remembering a day again fills the same places (a
+second run with fewer episodes leaves the old higher ones; Forget them in the Viewer). Memories have no `valid_to`, so retention never removes them; a mind is handed only the
 `episodes_in_prompt` most salient and newest within `episode_days`, and its `reflections_in_prompt`
 newest reflections. To remember a day by hand — the first night, or a day whose memory you want redone —
 `POST /v1/days/{day}/remember` (`0.23.0`): the world records the same `memory.consolidate` event

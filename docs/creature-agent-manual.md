@@ -246,7 +246,7 @@ else — persona, facts, the clock, streaming to the room — is identical.
   `memory.consolidate` by fetching the day's digest and asking the memory model for JSON —
   episodes about the people, places, and birds involved, with a human-grained `when` ("Sunday
   afternoon", never a clock time) and a salience 0–1, and one reflection in her own voice — and
-  casts them as `memory.episode.<day>` / `memory.reflection.<day>` facts, kept for years. The job
+  casts them as `memory.episode.<day>.<n>` / `memory.reflection.<day>` facts, kept for years. The job
   runs on its own so the stream keeps flowing; one night at a time. April: "She'll know 'Jesse was
   here on Monday' and not 'Jesse was here at 4:39:29 PM on Monday'." `OPENAI_MEMORY_API_KEY`
   in the instance's defaults file puts the night's spend on its own key.
