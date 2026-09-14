@@ -18,7 +18,7 @@ Open `Creature Console.xcodeproj`, choose the **World Viewer** scheme, and run (
 | --- | --- | --- |
 | Address / Port / Use TLS | The Creature World to watch (fuzzball is `10.69.66.1:8001`; production is `server.prod.chirpchirp.dev:443` with TLS) | `127.0.0.1:8001` |
 | Conversation ID | Which conversation the Conversation panel follows | `conversation:april-house` |
-| Use Proxy / Proxy Host / API Key | Reach the world from outside the LAN through the ingress proxy; the key is the app-family Keychain item shared with Creature Console and Beaky Communicator | off |
+| Use Proxy / Proxy Host / API Key | Reach the world from outside the LAN through the ingress proxy; the key is the app-family Keychain item shared with Creature Console and Flock Communicator | off |
 
 The Viewer keeps its own settings (`worldViewer*` keys), so it can watch fuzzball while Beaky
 Communicator on the same Mac talks to production. Changing any setting reconnects immediately.
@@ -74,6 +74,10 @@ floor and until when (orange while open), each character's line or pass in order
 closed, and how it was performed (the Creature Server job, or a red failure code). Refreshed on
 every `scene.*` event, so you can watch the floor move between Beaky and Mango as they compose.
 
+While the room is still saying the last line, the scene's header shows in orange who is next
+and when the world expects the room to finish. A line still being composed shows in orange under the turns — the sentences the room has
+heard so far, ending in "…" — until the mind says it is done and it becomes a turn.
+
 ### Facts and Timers
 
 What the World currently believes, and what it has scheduled. Both are seeded from the snapshot
@@ -81,6 +85,23 @@ and updated from stream deltas; the toolbar's refresh re-reads them. Since World
 Facts holds who is logged into which region, April's assumed presence, and the room's last
 scene; a superseded fact leaves the list the moment its replacement arrives. When the world
 knows nothing, Facts is empty and says so — the Viewer never invents a fact to fill the space.
+
+**Meanings** (`0.2.0`) is the panel's other mode, and Wizard Mode's first cast: the world's
+glossary of what each kind of fact means to the minds (`fact_kinds`, seeded by the world from
+its own catalogue). Edit a line in place and it is cast on return or when focus leaves; the world
+records who reworded it and never overwrites a Wizard's words with its catalogue again. New words
+— predicates the world currently believes something under but has no meaning for — sit at the top
+waiting to be taught; until they are, the minds see them with no meaning attached.
+
+### When something fails
+
+A turn the room could not speak shows its delivery chip in red with the reason beneath it, in
+the refusing service's own words — "Creature 4754fc0e… is not registered with a universe. Is
+the controller online?" rather than `physical_speech_start_failed` alone (`0.3.0`; the reason
+is recorded by World `0.19.0` and agent `2.67.0`, so older records show only the code). A scene
+whose room could not be readied — Creature Server refused the dialog stream — is a red
+`scene.stage_problem` on the Timeline the moment it opens, with the reason; a failed performance
+shows it under the scene. Every trace icon is a link into Honeycomb for that trace, end to end.
 
 ### Mundane view
 

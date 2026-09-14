@@ -104,6 +104,31 @@ struct PresenceReducerTests {
         #expect(try CreatureWorldConfiguration().givenFacts.isEmpty)
     }
 
+    @Test("A cast fact may carry an expiry: Jesse is expected this afternoon, not forever")
+    func castFactExpires() throws {
+        let jesse = try EntityID(validating: "person:jesse")
+        func cast(_ extra: [String: WorldJSONValue]) throws -> Fact {
+            let event = try WorldEventEnvelope(
+                type: GivenFactAnnouncement.eventType,
+                occurredAt: now,
+                source: EventSource(id: try SourceID(validating: "wizard:april"), kind: "person"),
+                subjectIDs: [jesse],
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: [
+                    "subject_id": .string(jesse.rawValue),
+                    "predicate": .string(WorldFacts.visitorExpected),
+                    "value": .string("this afternoon, to look at the deck"),
+                ].merging(extra) { $1 }
+            )
+            return try #require(try GivenFactReducer().reduce(event).changedFacts.first)
+        }
+        #expect(try cast([:]).validTo == nil)
+        #expect(try cast(["valid_for_seconds": .number(3_600)]).validTo == now + 3_600)
+        let until = WorldJSON.wireDate(now + 7_200)
+        #expect(
+            try cast(["valid_to": .string(WorldJSON.timestamp(until))]).validTo == until)
+    }
+
     @Test("A performed scene becomes the room's last scene for an hour")
     func performedSceneIsRemembered() throws {
         let event = try WorldEventEnvelope(

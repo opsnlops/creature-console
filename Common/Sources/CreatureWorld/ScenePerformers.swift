@@ -71,8 +71,8 @@ struct NotConnectedScenePerformer: ScenePerforming, Sendable {
     static let errorCode = "creature_server_not_configured"
     let clock: any WorldClock
 
-    func sceneOpened(_ scene: Scene) async {}
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) async {}
+    func sceneOpened(_ scene: Scene) async -> String? { nil }
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {}
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         ScenePerformance(state: .failed, errorCode: Self.errorCode, occurredAt: await clock.now)
@@ -107,8 +107,8 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
         self.logger = logger
     }
 
-    func sceneOpened(_ scene: Scene) async {}
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) async {}
+    func sceneOpened(_ scene: Scene) async -> String? { nil }
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {}
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         try await withSpan("creature.server.dialog", ofKind: .client) { span in
@@ -146,7 +146,9 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
                             "body": "\(String(decoding: data.prefix(500), as: UTF8.self))",
                         ])
                     return ScenePerformance(
-                        state: .failed, errorCode: Self.requestFailedCode, occurredAt: now)
+                        state: .failed, errorCode: Self.requestFailedCode,
+                        errorMessage: Self.serverMessage(status: response.status.code, body: data),
+                        occurredAt: now)
                 }
                 let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
                 let jobID = json?["job_id"] as? String
@@ -159,9 +161,21 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
                     "Creature Server could not be reached for the scene",
                     metadata: ["error": "\(error)"])
                 return ScenePerformance(
-                    state: .failed, errorCode: Self.unreachableCode, occurredAt: now)
+                    state: .failed, errorCode: Self.unreachableCode,
+                    errorMessage: String(describing: error), occurredAt: now)
             }
         }
+    }
+
+    /// Creature Server's `message` when it sent one, else the status and the start of the body.
+    static func serverMessage(status: UInt, body: Data) -> String {
+        if let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+            let message = json["message"] as? String ?? json["error"] as? String
+        {
+            return message
+        }
+        let text = String(decoding: body.prefix(200), as: UTF8.self)
+        return text.isEmpty ? "HTTP \(status)" : "HTTP \(status): \(text)"
     }
 }
 
@@ -219,7 +233,7 @@ actor StreamingScenePerformer: ScenePerforming {
         self.logger = logger
     }
 
-    func sceneOpened(_ scene: Scene) async {
+    func sceneOpened(_ scene: Scene) async -> String? {
         await withSpan("creature.server.dialog_stream.start", ofKind: .client) { span in
             span.attributes["scene.id"] = scene.sceneID.rawValue
             guard let region = regions[scene.regionID] else {
@@ -228,6 +242,7 @@ actor StreamingScenePerformer: ScenePerforming {
                     metadata: ["world.region_id": "\(scene.regionID.rawValue)"])
                 span.attributes["error.type"] = Self.noStageCode
                 return
+                    "No stage is mapped for \(scene.regionID.rawValue); the scene will be rendered whole at the end."
             }
             var creatureIDs: [String] = []
             for participant in scene.participants {
@@ -236,6 +251,7 @@ actor StreamingScenePerformer: ScenePerforming {
                         "A participant has no creature; the scene will be rendered whole at the end",
                         metadata: ["agent.character_id": "\(participant.rawValue)"])
                     return
+                        "\(participant.rawValue) has no creature to speak through; the scene will be rendered whole at the end."
                 }
                 creatureIDs.append(creatureID)
             }
@@ -260,26 +276,45 @@ actor StreamingScenePerformer: ScenePerforming {
                             "http.status": "\(response.status.code)",
                             "body": "\(String(decoding: data.prefix(300), as: UTF8.self))",
                         ])
-                    return
+                    return CreatureServerScenePerformer.serverMessage(
+                        status: response.status.code, body: data)
                 }
                 sessions[scene.sceneID] = sessionID
                 span.attributes["streaming.session_id"] = sessionID
+                return nil
             } catch {
                 span.recordError(error)
                 logger.warning(
                     "Creature Server could not be reached to open a dialog stream",
                     metadata: ["error": "\(error)"])
+                return "Creature Server could not be reached: \(error)"
             }
         }
     }
 
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn) async {
-        guard let sessionID = sessions[scene.sceneID], let text = turn.text else { return }
+    /// A sentence of a line still being composed goes to the room the moment it lands; the
+    /// server queues turns per creature in arrival order (creature-server#192 will let it
+    /// keep the pose and prosody across them).
+    func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String)
+        async
+    {
+        await speak(scene, character: character, text: text, piece: true)
+    }
+
+    /// A whole line — unless it was streamed, in which case the room has already heard it.
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {
+        guard !streamed, let text = turn.text else { return }
+        await speak(scene, character: turn.characterID, text: text, piece: false)
+    }
+
+    private func speak(_ scene: Scene, character: EntityID, text: String, piece: Bool) async {
+        guard let sessionID = sessions[scene.sceneID] else { return }
         await withSpan("creature.server.dialog_stream.turn", ofKind: .client) { span in
             span.attributes["scene.id"] = scene.sceneID.rawValue
             span.attributes["streaming.session_id"] = sessionID
-            span.attributes["agent.character_id"] = turn.characterID.rawValue
-            guard let creatureID = try? await creatures.creatureID(for: turn.characterID) else {
+            span.attributes["agent.character_id"] = character.rawValue
+            span.attributes["scene.turn.piece"] = piece
+            guard let creatureID = try? await creatures.creatureID(for: character) else {
                 return
             }
             do {
@@ -333,6 +368,8 @@ actor StreamingScenePerformer: ScenePerforming {
                         ])
                     return ScenePerformance(
                         state: .failed, errorCode: CreatureServerScenePerformer.requestFailedCode,
+                        errorMessage: CreatureServerScenePerformer.serverMessage(
+                            status: response.status.code, body: data),
                         occurredAt: now)
                 }
                 let animationID = json?["animation_id"] as? String

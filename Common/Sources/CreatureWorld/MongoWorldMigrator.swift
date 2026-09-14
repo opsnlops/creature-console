@@ -1,12 +1,14 @@
 import Foundation
 import Logging
 import MongoKitten
+import WorldCore
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 8
+    static let currentVersion = 10
 
     let database: MongoDatabase
     let logger: Logger
+    var retention = RetentionPolicy()
 
     func migrate() async throws {
         logger.debug("Ensuring world event indexes")
@@ -36,10 +38,105 @@ struct MongoWorldMigrator: Sendable {
         try await recordMigration(version: 6, name: "character_session")
         try await recordMigration(version: 7, name: "scene")
         try await recordMigration(version: 8, name: "fact_predicate_subjects")
+        try await recordMigration(version: 9, name: "fact_kinds")
+        logger.debug("Ensuring retention indexes")
+        try await ensureRetention()
+        try await recordMigration(version: 10, name: "retention")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
         )
+    }
+
+    // MARK: - Retention
+
+    /// One TTL index per collection on the date that means "this stopped mattering". A window
+    /// that changed in `world.json` is applied with collMod rather than by dropping the index.
+    /// Events carry their own `expires_at` (stamped by kind at append); the others expire off a
+    /// field they already have, so only documents that have it are ever considered.
+    private func ensureRetention() async throws {
+        let day = 86_400
+        try await ensureTTL(
+            MongoWorldCollection.events, field: "expires_at", seconds: 0, name: "ttl_expires_at")
+        try await ensureTTL(
+            MongoWorldCollection.eventProcessing, field: "processed_at",
+            seconds: retention.processingDays * day)
+        try await ensureTTL(
+            MongoWorldCollection.timers, field: "fired_at", seconds: retention.timerDays * day)
+        try await ensureTTL(
+            MongoWorldCollection.timers, field: "canceled_at", seconds: retention.timerDays * day)
+        try await ensureTTL(
+            MongoWorldCollection.utteranceIngresses, field: "percept.utterance.occurred_at",
+            seconds: retention.ingressDays * day)
+        try await ensureTTL(
+            MongoWorldCollection.facts, field: "valid_to", seconds: retention.retiredFactDays * day)
+        try await ensureTTL(
+            MongoWorldCollection.characterDeliveries, field: "intent.created_at",
+            seconds: retention.deliveryDays * day)
+        try await ensureTTL(
+            MongoWorldCollection.characterStageDecisions, field: "decision.decided_at",
+            seconds: retention.deliveryDays * day)
+        try await ensureTTL(
+            MongoWorldCollection.scenes, field: "closed_at", seconds: retention.sceneDays * day)
+        try await backfillEventExpiry()
+    }
+
+    private func ensureTTL(
+        _ collectionName: String, field: String, seconds: Int, name: String? = nil
+    ) async throws {
+        let collection = database[collectionName]
+        let indexName = name ?? "ttl_\(field.replacingOccurrences(of: ".", with: "_"))"
+        let existing = try await collection.listIndexes().drain().first { $0.name == indexName }
+        if let existing {
+            if existing.expireAfterSeconds.map(Int.init) != seconds {
+                logger.info(
+                    "Changing a retention window",
+                    metadata: [
+                        "collection": "\(collectionName)", "index": "\(indexName)",
+                        "seconds": "\(seconds)",
+                    ])
+                try await collection.modifyIndex(
+                    CollMod.Index(name: indexName, expireAfterSeconds: seconds))
+            }
+            return
+        }
+        var index = CreateIndexes.Index(named: indexName, keys: [field: 1])
+        index.expireAfterSeconds = seconds
+        try await collection.createIndexes([index])
+    }
+
+    /// Events written before retention existed get their expiry now, by kind, in batches.
+    private func backfillEventExpiry() async throws {
+        let events = database[MongoWorldCollection.events]
+        let missing: Document = ["$exists": false]
+        while true {
+            let batch = try await events.find(["expires_at": missing]).limit(500).drain()
+            if batch.isEmpty { return }
+            for document in batch {
+                guard let id = document["_id"], let raw = document["type"] as? String,
+                    let occurredAt = document["occurred_at"] as? Date,
+                    let type = WorldEventType(rawValue: raw)
+                else {
+                    // Unreadable rows are given the short window rather than kept forever.
+                    _ = try await events.updateOne(
+                        where: ["_id": document["_id"] ?? Null()],
+                        to: [
+                            "$set": ["expires_at": Date().addingTimeInterval(7 * 86_400)]
+                                as Document
+                        ])
+                    continue
+                }
+                _ = try await events.updateOne(
+                    where: ["_id": id],
+                    to: [
+                        "$set": [
+                            "expires_at": retention.expiry(for: type, occurredAt: occurredAt)
+                        ] as Document
+                    ])
+            }
+            logger.info(
+                "Backfilled event retention", metadata: ["count": "\(batch.count)"])
+        }
     }
 
     private func recordMigration(version: Int, name: String) async throws {

@@ -4,7 +4,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct BeakyCommunicatorApp: App {
+struct FlockCommunicatorApp: App {
     private let modelContainer: ModelContainer
     private let conversationService: any CommunicatorConversationService
 
@@ -22,7 +22,7 @@ struct BeakyCommunicatorApp: App {
                     create: true
                 )
                 configuration = ModelConfiguration(
-                    url: applicationSupport.appendingPathComponent("BeakyCommunicatorStore")
+                    url: applicationSupport.appendingPathComponent("FlockCommunicatorStore")
                 )
             }
 
@@ -33,7 +33,7 @@ struct BeakyCommunicatorApp: App {
                 clientProvider: CommunicatorConnectionProvider.shared
             )
         } catch {
-            fatalError("Failed to create Beaky Communicator SwiftData store: \(error)")
+            fatalError("Failed to create Flock Communicator SwiftData store: \(error)")
         }
     }
 
@@ -41,9 +41,11 @@ struct BeakyCommunicatorApp: App {
         #if os(macOS)
             WindowGroup {
                 ConversationRootView(service: conversationService)
+                    .communicatorTextSize()
             }
             .defaultSize(width: 760, height: 720)
             .modelContainer(modelContainer)
+            .commands { TextSizeCommands() }
 
             Settings {
                 CommunicatorSettingsView()
@@ -53,6 +55,7 @@ struct BeakyCommunicatorApp: App {
         #else
             WindowGroup {
                 ConversationRootView(service: conversationService)
+                    .communicatorTextSize()
             }
             .modelContainer(modelContainer)
         #endif

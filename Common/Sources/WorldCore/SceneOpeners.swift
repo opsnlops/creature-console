@@ -1,0 +1,177 @@
+import Foundation
+
+/// When the world itself starts a scene: a person at the driveway, a door unlocking. The
+/// rules live in `world.json` under `scenes.open_on`, the way the MQTT agent's areas and
+/// cooldowns did, but as world rules — the house supplies the occasion, the birds the words.
+public struct SceneOpeningRule: Hashable, Sendable, Codable {
+    /// The world event type that opens a scene (`camera.person_seen`, `door.unlocked`).
+    public var event: WorldEventType
+    /// Only these places (the event's first subject); empty means any.
+    public var places: [EntityID]
+    /// The least time between two scenes for the same event and place.
+    public var cooldownSeconds: TimeInterval
+
+    public init(event: WorldEventType, places: [EntityID] = [], cooldownSeconds: TimeInterval = 300)
+    {
+        self.event = event
+        self.places = places
+        self.cooldownSeconds = cooldownSeconds
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case event, places
+        case cooldownSeconds = "cooldown_seconds"
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        event = try WorldEventType(validating: container.decode(String.self, forKey: .event))
+        places =
+            try container.decodeIfPresent([String].self, forKey: .places)?
+            .map(EntityID.init(validating:)) ?? []
+        cooldownSeconds =
+            try container.decodeIfPresent(TimeInterval.self, forKey: .cooldownSeconds) ?? 300
+        guard cooldownSeconds >= 0 else { throw WorldContractError.invalidScene }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(event.rawValue, forKey: .event)
+        try container.encode(places.map(\.rawValue), forKey: .places)
+        try container.encode(cooldownSeconds, forKey: .cooldownSeconds)
+    }
+}
+
+/// When the house does not wake the birds. "Beaky isn't a security system, she's my familiar. I
+/// have other alerts that go off at 3am." No exceptions: what the house sees at night is recorded
+/// and is the morning's story, but nobody speaks. Wall-clock times in `time_zone`; a window that
+/// crosses midnight (`23:00`–`07:00`) is the normal case.
+public struct QuietHours: Hashable, Sendable, Codable {
+    public var from: String
+    public var to: String
+    public var timeZone: String
+
+    public init(from: String, to: String, timeZone: String = "America/Los_Angeles") {
+        self.from = from
+        self.to = to
+        self.timeZone = timeZone
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case from, to
+        case timeZone = "time_zone"
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        from = try container.decode(String.self, forKey: .from)
+        to = try container.decode(String.self, forKey: .to)
+        timeZone =
+            try container.decodeIfPresent(String.self, forKey: .timeZone) ?? "America/Los_Angeles"
+        guard Self.minutes(from) != nil, Self.minutes(to) != nil, TimeZone(identifier: timeZone) != nil
+        else { throw WorldContractError.invalidScene }
+    }
+
+    /// Whether `date` falls inside the window.
+    public func contains(_ date: Date) -> Bool {
+        guard let start = Self.minutes(from), let end = Self.minutes(to),
+            let zone = TimeZone(identifier: timeZone)
+        else { return false }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        let now = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        if start == end { return false }
+        return start < end ? (now >= start && now < end) : (now >= start || now < end)
+    }
+
+    /// "23:00" → 1380; nil for anything else.
+    static func minutes(_ text: String) -> Int? {
+        let parts = text.split(separator: ":")
+        guard parts.count == 2, let hour = Int(parts[0]), let minute = Int(parts[1]),
+            (0...23).contains(hour), (0...59).contains(minute)
+        else { return nil }
+        return hour * 60 + minute
+    }
+}
+
+/// Decides, for an accepted event, whether the world should open a scene about it — pure but
+/// for the cooldown memory.
+public actor SceneOpeningPolicy {
+    private let rules: [SceneOpeningRule]
+    private let gapSeconds: TimeInterval
+    private let quietHours: QuietHours?
+    private var lastOpened: [String: Date] = [:]
+    private var lastOpenedAny: Date?
+
+    /// `gapSeconds`: the least time between any two scenes the house opens, whatever the rule;
+    /// zero lets every rule speak. A walk to the carport opens four scenes — the front door,
+    /// then its camera, then the driveway's, then the carport's — and April wants each of them:
+    /// "I want to know that someone's out there sooner rather than later." The knob exists for
+    /// a quieter house; the events a gap swallows become the story the next scene is told.
+    public init(
+        rules: [SceneOpeningRule], gapSeconds: TimeInterval = 0, quietHours: QuietHours? = nil
+    ) {
+        self.rules = rules
+        self.gapSeconds = gapSeconds
+        self.quietHours = quietHours
+    }
+
+    /// The place the scene is about, when this event should open one now.
+    public func shouldOpen(for event: WorldEventEnvelope, at now: Date) -> EntityID? {
+        guard let place = event.subjectIDs.first else { return nil }
+        // The birds sleep. Cooldowns are not touched: the first thing after seven may speak.
+        if let quietHours, quietHours.contains(now) { return nil }
+        guard
+            let rule = rules.first(where: {
+                $0.event == event.type && ($0.places.isEmpty || $0.places.contains(place))
+            })
+        else { return nil }
+        let key = "\(event.type.rawValue)|\(place.rawValue)"
+        if let last = lastOpened[key], now.timeIntervalSince(last) < rule.cooldownSeconds {
+            return nil
+        }
+        if gapSeconds > 0, let last = lastOpenedAny, now.timeIntervalSince(last) < gapSeconds {
+            return nil
+        }
+        lastOpened[key] = now
+        lastOpenedAny = now
+        return place
+    }
+
+    /// The stage note the birds read: "(A person was seen at the driveway.)"
+    public static func triggerText(for event: WorldEventEnvelope, place: EntityID) -> String {
+        let name = placeName(place)
+        switch event.type {
+        case HouseEvents.personSeen: return "A person was just seen at \(name)."
+        case HouseEvents.vehicleSeen: return "A vehicle just arrived at \(name)."
+        case HouseEvents.animalSeen: return "An animal was just seen at \(name)."
+        case HouseEvents.doorUnlocked:
+            return "\(name.prefix(1).uppercased() + name.dropFirst()) was just unlocked."
+        case HouseEvents.doorLocked:
+            return "\(name.prefix(1).uppercased() + name.dropFirst()) was just locked."
+        case HouseEvents.doorOpened:
+            return "\(name.prefix(1).uppercased() + name.dropFirst()) just opened."
+        case HouseEvents.motionDetected: return "Something just moved in \(name)."
+        case HouseEvents.personArrived:
+            return
+                "\(placeName(place).prefix(1).uppercased() + placeName(place).dropFirst()) just came home."
+        case HouseEvents.personLeft:
+            return
+                "\(placeName(place).prefix(1).uppercased() + placeName(place).dropFirst()) just left."
+        default:
+            return "Something happened at \(name): \(event.type.rawValue)."
+        }
+    }
+
+    /// `place:front-door` → "the front door"; `person:april` → "April".
+    static func placeName(_ id: EntityID) -> String {
+        let raw = id.rawValue
+        guard let colon = raw.firstIndex(of: ":") else { return raw }
+        let local = String(raw[raw.index(after: colon)...])
+        let words = local.split(whereSeparator: { $0 == "-" || $0 == "_" }).map(String.init)
+        if raw.hasPrefix("person:") { return words.map(\.capitalized).joined(separator: " ") }
+        let name = words.joined(separator: " ")
+        return ["outside", "outdoors"].contains(name) ? name : "the " + name
+    }
+}

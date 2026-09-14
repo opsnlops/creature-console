@@ -8,6 +8,7 @@ enum CreatureWorldConfigurationError: Error, Equatable, LocalizedError, Sendable
     case invalidMongoURI
     case unexpectedMongoDatabase(expected: String, actual: String?)
     case invalidPort(Int)
+    case invalidRetention(String)
 
     var errorDescription: String? {
         switch self {
@@ -21,6 +22,8 @@ enum CreatureWorldConfigurationError: Error, Equatable, LocalizedError, Sendable
             "Creature World MongoDB URI must select the \(expected) database; selected \(actual ?? "none")"
         case .invalidPort(let port):
             "Creature World port must be between 1 and 65535; received \(port)"
+        case .invalidRetention(let key):
+            "Creature World retention.\(key) must be at least one day"
         }
     }
 }
@@ -38,6 +41,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     static let defaultPort = 8001
     /// The character an unaddressed message goes to: Beaky leads.
     static let defaultLeadCharacter = try! EntityID(validating: "character:beaky")
+    static let defaultHouseConversation = try! ConversationID(
+        validating: "conversation:april-house")
 
     let allowedOrigins: [String]
     let host: String
@@ -49,9 +54,13 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let scenePerformance: ScenePerformanceMode
     let regions: [EntityID: RegionConfiguration]
     let leadCharacter: EntityID
+    /// The conversation scenes the world opens on its own are recorded in.
+    let houseConversation: ConversationID
     /// Facts April states outright ("Polly is April's sister") until a source can observe
     /// them; announced at startup like the presence assumption.
     let givenFacts: [GivenFact]
+    /// How long the raw material is kept; memories and the conversation are not raw material.
+    let retention: RetentionPolicy
 
     init(
         host: String = defaultHost,
@@ -64,7 +73,9 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = defaultLeadCharacter,
-        givenFacts: [GivenFact] = []
+        houseConversation: ConversationID = defaultHouseConversation,
+        givenFacts: [GivenFact] = [],
+        retention: RetentionPolicy = RetentionPolicy()
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -98,7 +109,9 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.scenePerformance = scenePerformance
         self.regions = regions
         self.leadCharacter = leadCharacter
+        self.houseConversation = houseConversation
         self.givenFacts = givenFacts
+        self.retention = retention
     }
 
     static func load(
@@ -124,7 +137,10 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                     }),
                 leadCharacter: try raw.leadCharacter.map(EntityID.init(validating:))
                     ?? defaultLeadCharacter,
-                givenFacts: raw.facts ?? []
+                houseConversation: try raw.houseConversation.map(ConversationID.init(validating:))
+                    ?? defaultHouseConversation,
+                givenFacts: raw.facts ?? [],
+                retention: raw.retention ?? RetentionPolicy()
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -169,7 +185,9 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             scenePerformance: scenePerformance,
             regions: regions,
             leadCharacter: leadCharacter,
-            givenFacts: givenFacts
+            houseConversation: houseConversation,
+            givenFacts: givenFacts,
+            retention: retention
         )
     }
 
@@ -184,7 +202,9 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let scenePerformance: ScenePerformanceMode?
         let regions: [String: RegionConfiguration]?
         let leadCharacter: String?
+        let houseConversation: String?
         let facts: [GivenFact]?
+        let retention: RetentionPolicy?
 
         private enum CodingKeys: String, CodingKey {
             case host
@@ -197,7 +217,9 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case scenePerformance = "scene_performance"
             case regions
             case leadCharacter = "lead_character"
+            case houseConversation = "house_conversation"
             case facts
+            case retention
         }
     }
 

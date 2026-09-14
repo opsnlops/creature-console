@@ -168,6 +168,59 @@ struct PersonaTests {
         #expect(!sceneSystem.contains("- Kenny:"))
     }
 
+    @Test("A scene the house opened gets the familiar's contract, not the security guard's")
+    func houseRemarkContract() throws {
+        let persona = try Persona.load(from: write(mangoYAML))
+        let mind = CharacterMind(
+            configuration: CharacterMind.Configuration(
+                persona: .structured(persona), characterID: beaky, personID: april,
+                maximumReplyAge: 3_600, maximumContextTurns: 20, modelTimeout: .seconds(5),
+                modelName: "test"),
+            respond: { _ in "" }, logger: Logger(label: "persona-tests"))
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let away = try Fact(
+            subjectID: april, predicate: WorldFacts.personState, value: .string("away"),
+            epistemic: EpistemicState(type: .observed, confidence: 1), validFrom: now,
+            derivedFrom: [], producer: FactProducer(kind: "test", id: "test", version: "1"))
+        var offer = try SceneTurnOffer(
+            sceneID: .generated(), characterID: beaky, responseID: .generated(),
+            deadline: now.addingTimeInterval(8),
+            trigger: SceneTrigger(
+                kind: .worldEvent, eventID: .generated(),
+                text: "A person was just seen at the carport."),
+            participants: [beaky, kenny], turns: [], worldFacts: [away],
+            recentHappenings: [
+                Happening(
+                    occurredAt: now.addingTimeInterval(-30), type: HouseEvents.doorUnlocked,
+                    subjectID: try EntityID(validating: "place:front-door"),
+                    summary: "The front door was just unlocked.")
+            ])
+        let lead = mind.makeSceneTranscript(for: offer, now: now)
+        let system = lead[0].content
+        #expect(system.contains("The house just noticed something"))
+        #expect(system.contains("What just happened around you"))
+        #expect(system.contains("(just now): The front door was just unlocked."))
+        #expect(system.contains("never reply with [silence]"))
+        #expect(system.contains("April is not home"))
+        #expect(system.contains("not a security system"))
+        #expect(system.contains("A guess must sound like a guess"))
+        #expect(system.contains("never remark on her spelling"))
+        #expect(!system.contains("A scene is unfolding"))
+        #expect(lead[1].content.hasPrefix("(A person was just seen at the carport.)\n"))
+
+        // Kenny, second, may add one reaction or stay quiet.
+        offer.characterID = kenny
+        offer.turns = [
+            SceneTurn(
+                characterID: beaky, responseID: .generated(), text: "Ooh, a visitor!",
+                offeredAt: now, answeredAt: now)
+        ]
+        offer.worldFacts = []
+        let second = mind.makeSceneTranscript(for: offer, now: now)[0].content
+        #expect(second.contains("Add one short reaction"))
+        #expect(second.contains("You do not know whether April is home"))
+    }
+
     @Test("Stage directions are never spoken: asterisks, parentheses, and brackets go")
     func stageDirectionsAreStripped() {
         #expect(

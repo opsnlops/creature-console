@@ -12,6 +12,12 @@ The design and roadmap live in [Beaky's World](beakys-world.md) (§8 and the dat
 
 ## World mode and production
 
+**World mode now covers what MQTT mode did** (World `0.10.0`): the house's camera detections
+and door events open scenes on their own (`scenes.open_on` in `world.json`), so Beaky chimes
+in when someone is at the driveway without anyone asking — with cooldowns per place, like the
+MQTT agent's areas. The remaining difference is that MQTT mode spoke a fixed
+`agentPrompt`-driven alert; world mode has the birds react in character, with the facts.
+
 Production's agent (`mode: mqtt`) reacts to house events out loud. From `2.56.0`, world mode can
 speak too: when Creature World puts Beaky in the room (April assumed or known to be home and
 audible), the mind streams sentences to Creature Server exactly as MQTT mode does. What world
@@ -188,6 +194,13 @@ else — persona, facts, the clock, streaming to the room — is identical.
   so a persona edit reviews as a diff of what the model reads; `agent.persona_version`
   (`name/version`) is on every `agent.consider` and `agent.scene.consider` span. Restart the
   mind after editing a persona. See [`docs/personas/README.md`](personas/README.md).
+- **Scene turns stream** (`2.63.0`, #175). With a streaming model (local or OpenAI), a scene
+  turn is composed and sent sentence by sentence: the first sentence decides silence and
+  loses any speaker label or hail, every sentence is speech-clean and stage-direction-free,
+  each goes to the world (`piece: n`) as it lands and is spoken there, and the turn ends
+  with "that was the whole line". `llm.first_sentence_ms` on `llm.generate` measures what
+  April actually hears. If the world cannot take a piece, the turn is retried from the
+  cursor and the pieces already taken are recognised by index.
 - **Nobody hails April every line** (`2.60.1`). In a scene, a turn that opens with the name of
   the person who started it as a vocative ("April, pizza or Linux?") loses the vocative; a
   name later in the line, or another bird's name, is kept, and solo replies are untouched.
@@ -199,15 +212,18 @@ else — persona, facts, the clock, streaming to the room — is identical.
   Say so if April asks; otherwise it is not worth mentioning." is the second line of "What
   you know" — April decided a familiar should be able to answer "what model are you using?"
   while the persona still keeps her from volunteering it.
-- **It is told what the world knows** (`2.59.0`). The block begins with the local time in words
-  (`timeZone`) — Beaky answered "high noon" at 11:45 PM before this — and the `world_facts` on
-  an utterance percept or a scene floor offer follow, phrased as plain sentences — "Mango is here in the room with you",
-  "April is home (you assume; nobody has checked)", "5 minutes ago, in this room: Mango said
-  …" — in a "What you know right now, from the world itself" block ahead of the conversation,
-  and the prompt says to trust it over guesses. `FactPhrasing` maps predicates to sentences,
-  so the model never sees `presence.region`; a predicate it has no words for is left out
-  rather than dumped. With no facts the block is absent. The Viewer's Mundane view of the
-  percept shows exactly which facts a bird was told.
+- **It is told what the world knows** (`2.59.0`; reshaped in `2.66.0`). The block begins
+  with the local time in words (`timeZone`) — Beaky answered "high noon" at 11:45 PM before
+  this — and then every `world_fact` on the percept or floor offer in one shape: who or where,
+  the predicate, its value, since when, and how it is known — `The front door · door.lock =
+  unlocked · since 8:03 PM (5 minutes ago) · observed`, `April · presence.state = home · since
+  6:12 PM · assumed (nobody has checked) (90% sure)`. Below that, "What those kinds of fact
+  mean": the world's glossary for the predicates present (`fact_meanings`, from the world's
+  `fact_kinds`), and "What just happened around you": the `recent_happenings`, oldest first,
+  with the clock and the age. There are no phrasing templates: a frontier model reads facts as
+  facts and says them in the bird's own words, and a new kind of fact needs a meaning in the
+  world, never code here. Three lines are still the agent's: the time, the model line, and the
+  quiet cameras. The Viewer's Mundane view of the percept shows exactly what a bird was told.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
   emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the

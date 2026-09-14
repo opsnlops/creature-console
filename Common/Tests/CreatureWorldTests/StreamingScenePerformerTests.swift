@@ -32,12 +32,12 @@ struct StreamingScenePerformerTests {
                 characterID: beaky, responseID: .generated(), text: "Servos, I hope!",
                 offeredAt: scene.openedAt, answeredAt: scene.openedAt)
             scene.turns.append(first)
-            await performer.sceneTurn(scene, first)
+            await performer.sceneTurn(scene, first, streamed: false)
             let second = SceneTurn(
                 characterID: mango, responseID: .generated(), text: "Heat sinks.",
                 offeredAt: scene.openedAt, answeredAt: scene.openedAt)
             scene.turns.append(second)
-            await performer.sceneTurn(scene, second)
+            await performer.sceneTurn(scene, second, streamed: false)
             let performance = try await performer.sceneClosed(scene)
 
             #expect(performance.state == .performed)
@@ -67,7 +67,7 @@ struct StreamingScenePerformerTests {
                 characterID: beaky, responseID: .generated(), text: "Anyone?",
                 offeredAt: scene.openedAt, answeredAt: scene.openedAt)
             scene.turns.append(turn)
-            await performer.sceneTurn(scene, turn)
+            await performer.sceneTurn(scene, turn, streamed: false)
             let performance = try await performer.sceneClosed(scene)
 
             #expect(performance.state == .queued)
@@ -90,7 +90,7 @@ struct StreamingScenePerformerTests {
                 characterID: beaky, responseID: .generated(), text: "Hello.",
                 offeredAt: scene.openedAt, answeredAt: scene.openedAt)
             scene.turns.append(turn)
-            await performer.sceneTurn(scene, turn)
+            await performer.sceneTurn(scene, turn, streamed: false)
 
             _ = try await performer.sceneClosed(scene)
 

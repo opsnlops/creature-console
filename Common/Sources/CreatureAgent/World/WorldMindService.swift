@@ -117,23 +117,50 @@ struct WorldMindService: Service {
             span.attributes["scene.id"] = offer.offer.sceneID.rawValue
             span.attributes["world.sequence"] = offer.worldSequence
             var submission: SceneTurnSubmission
-            switch await mind.consider(offer, now: await clock.now) {
+            let sessionID = await session?.sessionID
+            let sceneID = offer.offer.sceneID
+            let characterID = offer.offer.characterID
+            let responseID = offer.offer.responseID
+            let responder = self.responder
+            // Each sentence goes to the world as it is composed; the world speaks it and keeps
+            // the floor open for the next.
+            let streamed = Streamed()
+            let decision = try await mind.consider(offer, now: await clock.now) { index, text in
+                let piece = try SceneTurnSubmission(
+                    characterID: characterID, responseID: responseID, sessionID: sessionID,
+                    text: text, piece: index)
+                let result = try await responder.submit(piece, to: sceneID)
+                await streamed.note(result.disposition)
+            }
+            switch decision {
             case .turn(let turn):
                 submission = turn
             case .pass(let pass, let reason):
                 submission = pass
                 span.attributes["agent.suppression_reason"] = reason.rawValue
             }
-            submission.sessionID = await session?.sessionID
+            submission.sessionID = sessionID
+            let pieces = await streamed.count
+            span.attributes["scene.turn.pieces"] = pieces
             let result = try await responder.submit(submission, to: offer.offer.sceneID)
             logger.info(
-                submission.text == nil ? "Passed the floor" : "Took a turn in the scene",
+                submission.text == nil && pieces == 0
+                    ? "Passed the floor" : "Took a turn in the scene",
                 metadata: [
                     "scene.id": "\(offer.offer.sceneID.rawValue)",
                     "scene.turn.disposition": "\(result.disposition.rawValue)",
+                    "scene.turn.pieces": "\(pieces)",
                     "scene.state": "\(result.scene.state.rawValue)",
                 ]
             )
+        }
+    }
+
+    /// How many pieces of a streamed line the world took.
+    private actor Streamed {
+        private(set) var count = 0
+        func note(_ disposition: SceneTurnDisposition) {
+            if disposition == .accepted { count += 1 }
         }
     }
 

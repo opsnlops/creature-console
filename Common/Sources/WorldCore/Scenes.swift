@@ -106,12 +106,19 @@ public struct SceneFloor: Hashable, Sendable, Codable {
     public var responseID: ResponseID
     public var offeredAt: Date
     public var deadline: Date
+    /// The sentences of the line so far, when the mind is streaming its turn: each one is
+    /// spoken as it lands, and the whole becomes the turn when the mind says it is done.
+    public var pieces: [String]
 
-    public init(characterID: EntityID, responseID: ResponseID, offeredAt: Date, deadline: Date) {
+    public init(
+        characterID: EntityID, responseID: ResponseID, offeredAt: Date, deadline: Date,
+        pieces: [String] = []
+    ) {
         self.characterID = characterID
         self.responseID = responseID
         self.offeredAt = offeredAt
         self.deadline = deadline
+        self.pieces = pieces
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -119,6 +126,16 @@ public struct SceneFloor: Hashable, Sendable, Codable {
         case responseID = "response_id"
         case offeredAt = "offered_at"
         case deadline
+        case pieces
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        characterID = try container.decode(EntityID.self, forKey: .characterID)
+        responseID = try container.decode(ResponseID.self, forKey: .responseID)
+        offeredAt = try container.decode(Date.self, forKey: .offeredAt)
+        deadline = try container.decode(Date.self, forKey: .deadline)
+        pieces = try container.decodeIfPresent([String].self, forKey: .pieces) ?? []
     }
 }
 
@@ -127,17 +144,21 @@ public struct ScenePerformance: Hashable, Sendable, Codable {
     public var state: CharacterDeliveryOutcomeState
     public var providerReference: String?
     public var errorCode: String?
+    /// What went wrong, in Creature Server's words, so the Viewer can say it.
+    public var errorMessage: String?
     public var occurredAt: Date
 
     public init(
         state: CharacterDeliveryOutcomeState,
         providerReference: String? = nil,
         errorCode: String? = nil,
+        errorMessage: String? = nil,
         occurredAt: Date
     ) {
         self.state = state
         self.providerReference = providerReference
         self.errorCode = errorCode
+        self.errorMessage = errorMessage
         self.occurredAt = occurredAt
     }
 
@@ -145,6 +166,7 @@ public struct ScenePerformance: Hashable, Sendable, Codable {
         case state
         case providerReference = "provider_reference"
         case errorCode = "error_code"
+        case errorMessage = "error_message"
         case occurredAt = "occurred_at"
     }
 }
@@ -166,6 +188,12 @@ public struct Scene: Hashable, Sendable, Codable {
     public var closedAt: Date?
     public var performance: ScenePerformance?
     public var trace: W3CTraceContext?
+    /// When the room is expected to finish saying what has been queued so far — the world's
+    /// estimate from word count until Creature Server reports it — so the next floor is
+    /// offered when the last line has been heard, not the moment it was composed.
+    public var spokenUntil: Date?
+    /// The next character in line while the room catches up.
+    public var pendingFloor: EntityID?
 
     public init(
         sceneID: SceneID = .generated(),
@@ -180,7 +208,9 @@ public struct Scene: Hashable, Sendable, Codable {
         openedAt: Date,
         closedAt: Date? = nil,
         performance: ScenePerformance? = nil,
-        trace: W3CTraceContext? = nil
+        trace: W3CTraceContext? = nil,
+        spokenUntil: Date? = nil,
+        pendingFloor: EntityID? = nil
     ) throws {
         guard participants.count >= 1, Set(participants).count == participants.count else {
             throw WorldContractError.invalidScene
@@ -199,6 +229,8 @@ public struct Scene: Hashable, Sendable, Codable {
         self.closedAt = closedAt
         self.performance = performance
         self.trace = trace
+        self.spokenUntil = spokenUntil
+        self.pendingFloor = pendingFloor
     }
 
     public var spokenTurns: [SceneTurn] { turns.filter { !$0.isPass } }
@@ -220,7 +252,9 @@ public struct Scene: Hashable, Sendable, Codable {
             openedAt: container.decode(Date.self, forKey: .openedAt),
             closedAt: container.decodeIfPresent(Date.self, forKey: .closedAt),
             performance: container.decodeIfPresent(ScenePerformance.self, forKey: .performance),
-            trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace)
+            trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace),
+            spokenUntil: container.decodeIfPresent(Date.self, forKey: .spokenUntil),
+            pendingFloor: container.decodeIfPresent(EntityID.self, forKey: .pendingFloor)
         )
     }
 
@@ -239,6 +273,8 @@ public struct Scene: Hashable, Sendable, Codable {
         case closedAt = "closed_at"
         case performance
         case trace
+        case spokenUntil = "spoken_until"
+        case pendingFloor = "pending_floor"
     }
 }
 
@@ -253,6 +289,10 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
     public var turns: [SceneTurn]
     /// What the world knows that bears on the scene, for this character.
     public var worldFacts: [Fact]
+    /// What just happened around the scene: the story behind the facts, oldest first.
+    public var recentHappenings: [Happening]
+    /// What the facts' predicates mean, for the ones present.
+    public var factMeanings: [String: String]
 
     public init(
         sceneID: SceneID,
@@ -262,7 +302,9 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         trigger: SceneTrigger,
         participants: [EntityID],
         turns: [SceneTurn],
-        worldFacts: [Fact] = []
+        worldFacts: [Fact] = [],
+        recentHappenings: [Happening] = [],
+        factMeanings: [String: String] = [:]
     ) {
         self.sceneID = sceneID
         self.characterID = characterID
@@ -272,6 +314,8 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         self.participants = participants
         self.turns = turns
         self.worldFacts = worldFacts
+        self.recentHappenings = recentHappenings
+        self.factMeanings = factMeanings
     }
 
     public init(from decoder: any Decoder) throws {
@@ -284,7 +328,11 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
             trigger: try container.decode(SceneTrigger.self, forKey: .trigger),
             participants: try container.decode([EntityID].self, forKey: .participants),
             turns: try container.decode([SceneTurn].self, forKey: .turns),
-            worldFacts: try container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? []
+            worldFacts: try container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? [],
+            recentHappenings: try container.decodeIfPresent(
+                [Happening].self, forKey: .recentHappenings) ?? [],
+            factMeanings: try container.decodeIfPresent(
+                [String: String].self, forKey: .factMeanings) ?? [:]
         )
     }
 
@@ -297,6 +345,8 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         case participants
         case turns
         case worldFacts = "world_facts"
+        case recentHappenings = "recent_happenings"
+        case factMeanings = "fact_meanings"
     }
 }
 
@@ -309,24 +359,38 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
     public var characterID: EntityID
     public var responseID: ResponseID
     public var sessionID: CharacterSessionID?
-    /// `nil` passes the floor.
+    /// The line, or one sentence of it when `piece` is set. `nil` with no piece passes the
+    /// floor; `nil` after pieces were sent means "that was the whole line".
     public var text: String?
+    /// The index of this sentence in a streamed line (0, 1, 2, …), so a retry is recognised;
+    /// `nil` means the turn is complete with this submission.
+    public var piece: Int?
     public var trace: W3CTraceContext?
+
+    public var isPartial: Bool { piece != nil }
 
     public init(
         characterID: EntityID,
         responseID: ResponseID,
         sessionID: CharacterSessionID? = nil,
         text: String?,
+        piece: Int? = nil,
         trace: W3CTraceContext? = nil
     ) throws {
         if let text {
             try validateConversationText(text)
         }
+        if let piece {
+            guard piece >= 0 else { throw WorldContractError.invalidScene }
+            guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw WorldContractError.invalidScene
+            }
+        }
         self.characterID = characterID
         self.responseID = responseID
         self.sessionID = sessionID
         self.text = text
+        self.piece = piece
         self.trace = trace
     }
 
@@ -337,6 +401,7 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
             responseID: container.decode(ResponseID.self, forKey: .responseID),
             sessionID: container.decodeIfPresent(CharacterSessionID.self, forKey: .sessionID),
             text: container.decodeIfPresent(String.self, forKey: .text),
+            piece: container.decodeIfPresent(Int.self, forKey: .piece),
             trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace)
         )
     }
@@ -346,6 +411,7 @@ public struct SceneTurnSubmission: Hashable, Sendable, Codable {
         case responseID = "response_id"
         case sessionID = "session_id"
         case text
+        case piece
         case trace
     }
 }
@@ -376,24 +442,86 @@ public struct ScenePage: Hashable, Sendable, Codable {
     }
 }
 
+/// How fast one voice speaks. Measure it from Creature Server's `StreamingAdHocSession.sentence`
+/// spans: `animation.frames` × 20 ms against `sentence.length`.
+public struct SpeakingPace: Hashable, Sendable, Codable {
+    public var charactersPerSecond: Double
+    public var sentenceSeconds: TimeInterval
+
+    public init(charactersPerSecond: Double, sentenceSeconds: TimeInterval) {
+        self.charactersPerSecond = charactersPerSecond
+        self.sentenceSeconds = sentenceSeconds
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case charactersPerSecond = "characters_per_second"
+        case sentenceSeconds = "sentence_seconds"
+    }
+}
+
 /// Where the world keeps its cutoffs for a scene, so April can tune the feel.
 public struct SceneLimits: Hashable, Sendable, Codable {
     public var floorSeconds: TimeInterval
     public var maximumTurns: Int
+    /// Turns in a scene the house opened. A visitor at the carport should get Beaky's
+    /// remark and a reaction or two, not a twelve-turn debate: "I don't need Jesse coming
+    /// over to turn into a debate about Arch vs Debian." April: "She can have others join
+    /// her, but no more than three turns."
+    public var houseMaximumTurns: Int
     public var maximumSpokenSeconds: TimeInterval
-    /// Rough reading pace used to estimate spoken time from text.
-    public var wordsPerSecond: Double
+    /// How fast the room speaks, for estimating how long a line will play: characters a
+    /// second once a sentence is under way, plus a fixed cost per sentence (the breath
+    /// before it and the tail after). Fitted to Creature Server's rendered frame counts:
+    /// twenty characters a second and a third of a second a sentence land within a tenth
+    /// of a second of what ElevenLabs actually produced.
+    public var charactersPerSecond: Double
+    public var sentenceSeconds: TimeInterval
+    /// Voices that speak at their own pace, by character ID. Kenny's voice drawls at about
+    /// eleven characters a second where Beaky's and Mango's run twenty; without this the
+    /// world thinks his lines are half as long as they are and the birds run ahead of the
+    /// room.
+    public var voices: [String: SpeakingPace]
+    /// The world events that open a scene on their own, and where, and how often.
+    public var openOn: [SceneOpeningRule]
+    /// When the house does not wake the birds at all; nil means never quiet.
+    public var quietHours: QuietHours?
+    /// The least time between any two scenes the house opens, across all rules; zero (the
+    /// default) lets every rule speak. April: "If I'm at home and watching TV I want to know
+    /// that someone's out there sooner rather than later" — the updates as a visitor moves from
+    /// the door to the driveway to the carport are the point, and Beaky already treats them as
+    /// one event on her own.
+    public var houseGapSeconds: TimeInterval
+    /// How long before the room finishes the last line the next floor is offered, so the
+    /// next bird's first sentence lands as the previous one ends: a first-sentence latency
+    /// plus the render. A line that arrives early simply queues behind the one playing —
+    /// Creature Server plays a scene's sentences in order — so the cost of a generous lead
+    /// is only that April's interjection may land after the next line is already composed.
+    public var turnLeadSeconds: TimeInterval
 
     public init(
         floorSeconds: TimeInterval = 8,
         maximumTurns: Int = 12,
+        houseMaximumTurns: Int = 3,
         maximumSpokenSeconds: TimeInterval = 90,
-        wordsPerSecond: Double = 2.5
+        charactersPerSecond: Double = 20,
+        sentenceSeconds: TimeInterval = 0.35,
+        voices: [String: SpeakingPace] = [:],
+        openOn: [SceneOpeningRule] = [],
+        houseGapSeconds: TimeInterval = 0,
+        quietHours: QuietHours? = nil,
+        turnLeadSeconds: TimeInterval = 2
     ) {
         self.floorSeconds = floorSeconds
         self.maximumTurns = maximumTurns
+        self.houseMaximumTurns = houseMaximumTurns
         self.maximumSpokenSeconds = maximumSpokenSeconds
-        self.wordsPerSecond = wordsPerSecond
+        self.charactersPerSecond = charactersPerSecond
+        self.sentenceSeconds = sentenceSeconds
+        self.voices = voices
+        self.openOn = openOn
+        self.houseGapSeconds = houseGapSeconds
+        self.quietHours = quietHours
+        self.turnLeadSeconds = turnLeadSeconds
     }
 
     public init(from decoder: any Decoder) throws {
@@ -404,23 +532,55 @@ public struct SceneLimits: Hashable, Sendable, Codable {
                 ?? defaults.floorSeconds,
             maximumTurns: try container.decodeIfPresent(Int.self, forKey: .maximumTurns)
                 ?? defaults.maximumTurns,
+            houseMaximumTurns: try container.decodeIfPresent(Int.self, forKey: .houseMaximumTurns)
+                ?? defaults.houseMaximumTurns,
             maximumSpokenSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .maximumSpokenSeconds)
                 ?? defaults.maximumSpokenSeconds,
-            wordsPerSecond: try container.decodeIfPresent(Double.self, forKey: .wordsPerSecond)
-                ?? defaults.wordsPerSecond
+            charactersPerSecond: try container.decodeIfPresent(
+                Double.self, forKey: .charactersPerSecond) ?? defaults.charactersPerSecond,
+            sentenceSeconds: try container.decodeIfPresent(
+                TimeInterval.self, forKey: .sentenceSeconds) ?? defaults.sentenceSeconds,
+            voices: try container.decodeIfPresent([String: SpeakingPace].self, forKey: .voices)
+                ?? [:],
+            openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
+            houseGapSeconds: try container.decodeIfPresent(
+                TimeInterval.self, forKey: .houseGapSeconds) ?? defaults.houseGapSeconds,
+            quietHours: try container.decodeIfPresent(QuietHours.self, forKey: .quietHours),
+            turnLeadSeconds: try container.decodeIfPresent(
+                TimeInterval.self, forKey: .turnLeadSeconds)
+                ?? defaults.turnLeadSeconds
         )
     }
 
-    public func spokenSeconds(of text: String) -> TimeInterval {
-        let words = text.split(whereSeparator: \.isWhitespace).count
-        return Double(words) / max(wordsPerSecond, 0.1)
+    /// How long the room will take to say `text` in `speaker`'s voice: a fixed cost per
+    /// sentence plus the characters at that voice's pace. Nothing to say takes no time.
+    public func spokenSeconds(of text: String, by speaker: EntityID? = nil) -> TimeInterval {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return 0 }
+        let pace = pace(of: speaker)
+        let sentences = max(1, trimmed.filter { ".!?".contains($0) }.count)
+        return Double(sentences) * pace.sentenceSeconds
+            + Double(trimmed.count) / max(pace.charactersPerSecond, 0.1)
+    }
+
+    public func pace(of speaker: EntityID?) -> SpeakingPace {
+        if let speaker, let voice = voices[speaker.rawValue] { return voice }
+        return SpeakingPace(
+            charactersPerSecond: charactersPerSecond, sentenceSeconds: sentenceSeconds)
     }
 
     private enum CodingKeys: String, CodingKey {
         case floorSeconds = "floor_seconds"
         case maximumTurns = "maximum_turns"
+        case houseMaximumTurns = "house_maximum_turns"
         case maximumSpokenSeconds = "maximum_spoken_seconds"
-        case wordsPerSecond = "words_per_second"
+        case charactersPerSecond = "characters_per_second"
+        case sentenceSeconds = "sentence_seconds"
+        case voices
+        case openOn = "open_on"
+        case houseGapSeconds = "house_gap_seconds"
+        case quietHours = "quiet_hours"
+        case turnLeadSeconds = "turn_lead_seconds"
     }
 }

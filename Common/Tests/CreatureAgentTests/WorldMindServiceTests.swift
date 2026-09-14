@@ -233,6 +233,44 @@ struct WorldMindServiceTests {
         _ = scene
     }
 
+    @Test("With a streaming model, a scene line reaches the world sentence by sentence")
+    func streamsATurnInAScene() async throws {
+        let stub = StubWorld()
+        let responseID = ResponseID.generated()
+        let (_, offerEnvelope) = try await stub.openScene(
+            trigger: "What do you two think is in the box?", responseID: responseID)
+        await stub.script(connection: 0) { _ in
+            [.snapshot(latestSequence: 50), .delta(sequence: 51, envelope: offerEnvelope)]
+        }
+        await stub.script(connection: 1) { _ in [] }
+        try await Harness.run(
+            stub: stub,
+            logger: logger,
+            respondStreaming: { _ in
+                AsyncStream { continuation in
+                    continuation.yield("Servos, I hope!")
+                    continuation.yield("Or heat sinks again.")
+                    continuation.finish()
+                }
+            },
+            logsIn: true,
+            respond: { _ in "unused" }
+        ) { harness in
+            try await harness.runUntil {
+                let done = await stub.sceneTurns.count == 3
+                let advanced = await harness.cursorAt() == 51
+                return done && advanced
+            }
+        }
+
+        let submissions = await stub.sceneTurns
+        #expect(submissions.map(\.piece) == [0, 1, nil])
+        #expect(submissions.map(\.text) == ["Servos, I hope!", "Or heat sinks again.", nil])
+        #expect(submissions.allSatisfy { $0.responseID == responseID && $0.sessionID != nil })
+        let scene = try #require(await stub.scenes.values.first)
+        #expect(scene.turns.first?.text == "Servos, I hope! Or heat sinks again.")
+    }
+
     @Test("An utterance the world put into a scene is not answered on its own")
     func sceneUtteranceIsLeftToTheScene() async throws {
         let stub = StubWorld()
@@ -490,6 +528,7 @@ private struct Harness {
                         modelName: "test-model"
                     ),
                     respond: respond,
+                    respondStreaming: respondStreaming,
                     stage: stage,
                     logger: logger
                 ),
@@ -630,7 +669,7 @@ actor StubWorld {
     private(set) var performances: [CharacterPerformance] = []
     private(set) var stageRequests: [CharacterStageRequest] = []
     private(set) var sceneTurns: [SceneTurnSubmission] = []
-    private var scenes: [SceneID: Scene] = [:]
+    private(set) var scenes: [SceneID: Scene] = [:]
     private(set) var logins: [CharacterLoginRequest] = []
 
     /// A scene the world has opened with the floor offered to Beaky; returns the offer event.
@@ -671,17 +710,29 @@ actor StubWorld {
         guard var scene = scenes[sceneID] else {
             return (.badRequest, Data(#"{"error":"invalid_request","message":"no scene"}"#.utf8))
         }
-        guard scene.floor?.responseID == submission.responseID else {
+        guard var floor = scene.floor, floor.responseID == submission.responseID else {
             return (
                 .conflict,
                 try WorldJSON.makeEncoder().encode(
                     SceneTurnResult(disposition: .notYourTurn, scene: scene))
             )
         }
+        if submission.piece != nil, let text = submission.text {
+            // A sentence of a streamed line: kept on the floor, as the world does.
+            floor.pieces.append(text)
+            scene.floor = floor
+            scenes[sceneID] = scene
+            return (
+                .accepted,
+                try WorldJSON.makeEncoder().encode(
+                    SceneTurnResult(disposition: .accepted, scene: scene))
+            )
+        }
+        let line = SceneService.joinedLine(pieces: floor.pieces, last: submission.text)
         scene.turns.append(
             SceneTurn(
                 characterID: submission.characterID, responseID: submission.responseID,
-                text: submission.text, offeredAt: scene.openedAt, answeredAt: scene.openedAt))
+                text: line, offeredAt: scene.openedAt, answeredAt: scene.openedAt))
         scene.floor = nil
         scenes[sceneID] = scene
         return (

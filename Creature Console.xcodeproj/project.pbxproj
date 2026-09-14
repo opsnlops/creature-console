@@ -343,7 +343,7 @@
 			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = BCA000000000000000000001;
-			remoteInfo = "Beaky Communicator";
+			remoteInfo = "Flock Communicator";
 		};
 		WVT000000000000000000013 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -575,10 +575,10 @@
 		B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlPanel.swift; sourceTree = "<group>"; };
 		B6533C0AB174B2BEB545DD0C /* PatternListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternListEditor.swift; sourceTree = "<group>"; };
 		BA8BD6F5855147CE8BC649A4 /* FixturesTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixturesTable.swift; sourceTree = "<group>"; };
-		BCA000000000000000000002 /* Beaky Communicator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Beaky Communicator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BCA00000000000000000000B /* Beaky Communicator Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Beaky Communicator Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BCA00000000000000000001F /* Beaky_Communicator.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Beaky_Communicator.entitlements; sourceTree = "<group>"; };
-		BCA000000000000000000022 /* Beaky-Communicator-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Beaky-Communicator-Info.plist"; sourceTree = "<group>"; };
+		BCA000000000000000000002 /* Flock Communicator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Flock Communicator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA00000000000000000000B /* Flock Communicator Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Flock Communicator Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA00000000000000000001F /* Flock_Communicator.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Flock_Communicator.entitlements; sourceTree = "<group>"; };
+		BCA000000000000000000022 /* Flock-Communicator-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Flock-Communicator-Info.plist"; sourceTree = "<group>"; };
 		C211450B80E5BBFE2141677F /* AudioFileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioFileDocument.swift; path = "Sources/Creature Console/View/Dialog/AudioFileDocument.swift"; sourceTree = SOURCE_ROOT; };
 		D2D0CDE3F0E4458F8619F701 /* AppSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSchema.swift; sourceTree = "<group>"; };
 		D2D8B66B44BD73A9A075A435 /* DmxFixtureImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DmxFixtureImporter.swift; sourceTree = "<group>"; };
@@ -695,14 +695,14 @@
 			path = Stage;
 			sourceTree = "<group>";
 		};
-		BCA000000000000000000003 /* Beaky Communicator */ = {
+		BCA000000000000000000003 /* Flock Communicator */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Beaky Communicator";
+			path = "Flock Communicator";
 			sourceTree = "<group>";
 		};
-		BCA00000000000000000000C /* Beaky Communicator Tests */ = {
+		BCA00000000000000000000C /* Flock Communicator Tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Beaky Communicator Tests";
+			path = "Flock Communicator Tests";
 			sourceTree = "<group>";
 		};
 		WVA000000000000000000003 /* World Viewer */ = {
@@ -974,10 +974,10 @@
 				117C86FF2CA0CC81007B5682 /* Creature TV */,
 				117C87122CA0CC82007B5682 /* Creature TVTests */,
 				117C871C2CA0CC82007B5682 /* Creature TVUITests */,
-				BCA000000000000000000003 /* Beaky Communicator */,
-				BCA00000000000000000000C /* Beaky Communicator Tests */,
-				BCA00000000000000000001F /* Beaky_Communicator.entitlements */,
-				BCA000000000000000000022 /* Beaky-Communicator-Info.plist */,
+				BCA000000000000000000003 /* Flock Communicator */,
+				BCA00000000000000000000C /* Flock Communicator Tests */,
+				BCA00000000000000000001F /* Flock_Communicator.entitlements */,
+				BCA000000000000000000022 /* Flock-Communicator-Info.plist */,
 				WVA000000000000000000003 /* World Viewer */,
 				WVT00000000000000000000C /* World Viewer Tests */,
 				WVA00000000000000000001F /* World_Viewer.entitlements */,
@@ -1020,8 +1020,8 @@
 				117C86FE2CA0CC81007B5682 /* Creature TV.app */,
 				117C870F2CA0CC82007B5682 /* Creature TVTests.xctest */,
 				117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */,
-				BCA000000000000000000002 /* Beaky Communicator.app */,
-				BCA00000000000000000000B /* Beaky Communicator Tests.xctest */,
+				BCA000000000000000000002 /* Flock Communicator.app */,
+				BCA00000000000000000000B /* Flock Communicator Tests.xctest */,
 				WVA000000000000000000002 /* World Viewer.app */,
 				WVT00000000000000000000B /* World Viewer Tests.xctest */,
 			);
@@ -1664,9 +1664,9 @@
 			productReference = 117C87192CA0CC82007B5682 /* Creature TVUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		BCA000000000000000000001 /* Beaky Communicator */ = {
+		BCA000000000000000000001 /* Flock Communicator */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BCA000000000000000000009 /* Build configuration list for PBXNativeTarget "Beaky Communicator" */;
+			buildConfigurationList = BCA000000000000000000009 /* Build configuration list for PBXNativeTarget "Flock Communicator" */;
 			buildPhases = (
 				BCA000000000000000000004 /* Sources */,
 				BCA000000000000000000005 /* Frameworks */,
@@ -1675,20 +1675,20 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				BCA000000000000000000003 /* Beaky Communicator */,
+				BCA000000000000000000003 /* Flock Communicator */,
 			);
-			name = "Beaky Communicator";
+			name = "Flock Communicator";
 			packageProductDependencies = (
 				BCA000000000000000000015 /* WorldCore */,
 				BCA000000000000000000016 /* CreatureAppSupport */,
 			);
-			productName = "Beaky Communicator";
-			productReference = BCA000000000000000000002 /* Beaky Communicator.app */;
+			productName = "Flock Communicator";
+			productReference = BCA000000000000000000002 /* Flock Communicator.app */;
 			productType = "com.apple.product-type.application";
 		};
-		BCA00000000000000000000A /* Beaky Communicator Tests */ = {
+		BCA00000000000000000000A /* Flock Communicator Tests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BCA000000000000000000012 /* Build configuration list for PBXNativeTarget "Beaky Communicator Tests" */;
+			buildConfigurationList = BCA000000000000000000012 /* Build configuration list for PBXNativeTarget "Flock Communicator Tests" */;
 			buildPhases = (
 				BCA00000000000000000000D /* Sources */,
 				BCA00000000000000000000E /* Frameworks */,
@@ -1700,14 +1700,14 @@
 				BCA000000000000000000014 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				BCA00000000000000000000C /* Beaky Communicator Tests */,
+				BCA00000000000000000000C /* Flock Communicator Tests */,
 			);
-			name = "Beaky Communicator Tests";
+			name = "Flock Communicator Tests";
 			packageProductDependencies = (
 				BCA00000000000000000001B /* WorldCore */,
 			);
-			productName = "Beaky Communicator Tests";
-			productReference = BCA00000000000000000000B /* Beaky Communicator Tests.xctest */;
+			productName = "Flock Communicator Tests";
+			productReference = BCA00000000000000000000B /* Flock Communicator Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		WVA000000000000000000001 /* World Viewer */ = {
@@ -1822,8 +1822,8 @@
 				117C86FD2CA0CC81007B5682 /* Creature TV */,
 				117C870E2CA0CC82007B5682 /* Creature TVTests */,
 				117C87182CA0CC82007B5682 /* Creature TVUITests */,
-				BCA000000000000000000001 /* Beaky Communicator */,
-				BCA00000000000000000000A /* Beaky Communicator Tests */,
+				BCA000000000000000000001 /* Flock Communicator */,
+				BCA00000000000000000000A /* Flock Communicator Tests */,
 				WVA000000000000000000001 /* World Viewer */,
 				WVT00000000000000000000A /* World Viewer Tests */,
 			);
@@ -2367,7 +2367,7 @@
 		};
 		BCA000000000000000000014 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = BCA000000000000000000001 /* Beaky Communicator */;
+			target = BCA000000000000000000001 /* Flock Communicator */;
 			targetProxy = BCA000000000000000000013 /* PBXContainerItemProxy */;
 		};
 		WVT000000000000000000014 /* PBXTargetDependency */ = {
@@ -2817,11 +2817,11 @@
 			};
 			name = Release;
 		};
-		BCA000000000000000000007 /* Debug configuration for PBXNativeTarget "Beaky Communicator" */ = {
+		BCA000000000000000000007 /* Debug configuration for PBXNativeTarget "Flock Communicator" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Beaky_Communicator.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Flock_Communicator.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -2831,13 +2831,13 @@
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Beaky-Communicator-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Beaky Communicator";
-				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = Beaky;
-				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = Beaky;
+				INFOPLIST_FILE = "Flock-Communicator-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Flock Communicator";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = "The Flock";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = "The Flock";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Beaky Communicator connects to Creature World on your local network.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Flock Communicator connects to Creature World on your local network.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -2848,8 +2848,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator";
+				MARKETING_VERSION = 0.5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Flock-Communicator";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
@@ -2862,11 +2862,11 @@
 			};
 			name = Debug;
 		};
-		BCA000000000000000000008 /* Release configuration for PBXNativeTarget "Beaky Communicator" */ = {
+		BCA000000000000000000008 /* Release configuration for PBXNativeTarget "Flock Communicator" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Beaky_Communicator.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Flock_Communicator.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -2876,13 +2876,13 @@
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Beaky-Communicator-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Beaky Communicator";
-				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = Beaky;
-				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = Beaky;
+				INFOPLIST_FILE = "Flock-Communicator-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Flock Communicator";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphoneos*]" = "The Flock";
+				"INFOPLIST_KEY_CFBundleDisplayName[sdk=iphonesimulator*]" = "The Flock";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Beaky Communicator connects to Creature World on your local network.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Flock Communicator connects to Creature World on your local network.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -2893,8 +2893,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator";
+				MARKETING_VERSION = 0.5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Flock-Communicator";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
@@ -2908,7 +2908,7 @@
 			};
 			name = Release;
 		};
-		BCA000000000000000000010 /* Debug configuration for PBXNativeTarget "Beaky Communicator Tests" */ = {
+		BCA000000000000000000010 /* Debug configuration for PBXNativeTarget "Flock Communicator Tests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2918,7 +2918,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator-Tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Flock-Communicator-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
@@ -2928,11 +2928,11 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Beaky Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Beaky Communicator";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flock Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Flock Communicator";
 			};
 			name = Debug;
 		};
-		BCA000000000000000000011 /* Release configuration for PBXNativeTarget "Beaky Communicator Tests" */ = {
+		BCA000000000000000000011 /* Release configuration for PBXNativeTarget "Flock Communicator Tests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -2942,7 +2942,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Beaky-Communicator-Tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Flock-Communicator-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
@@ -2951,7 +2951,7 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Beaky Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Beaky Communicator";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flock Communicator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Flock Communicator";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -2977,7 +2977,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3009,7 +3009,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3116,19 +3116,19 @@
 			);
 			defaultConfigurationName = Debug;
 		};
-		BCA000000000000000000009 /* Build configuration list for PBXNativeTarget "Beaky Communicator" */ = {
+		BCA000000000000000000009 /* Build configuration list for PBXNativeTarget "Flock Communicator" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BCA000000000000000000007 /* Debug configuration for PBXNativeTarget "Beaky Communicator" */,
-				BCA000000000000000000008 /* Release configuration for PBXNativeTarget "Beaky Communicator" */,
+				BCA000000000000000000007 /* Debug configuration for PBXNativeTarget "Flock Communicator" */,
+				BCA000000000000000000008 /* Release configuration for PBXNativeTarget "Flock Communicator" */,
 			);
 			defaultConfigurationName = Debug;
 		};
-		BCA000000000000000000012 /* Build configuration list for PBXNativeTarget "Beaky Communicator Tests" */ = {
+		BCA000000000000000000012 /* Build configuration list for PBXNativeTarget "Flock Communicator Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BCA000000000000000000010 /* Debug configuration for PBXNativeTarget "Beaky Communicator Tests" */,
-				BCA000000000000000000011 /* Release configuration for PBXNativeTarget "Beaky Communicator Tests" */,
+				BCA000000000000000000010 /* Debug configuration for PBXNativeTarget "Flock Communicator Tests" */,
+				BCA000000000000000000011 /* Release configuration for PBXNativeTarget "Flock Communicator Tests" */,
 			);
 			defaultConfigurationName = Debug;
 		};

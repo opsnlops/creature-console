@@ -800,6 +800,87 @@ struct MongoWorldPersistenceTests {
         }
     }
 
+    @Test("Retention: TTL indexes exist, follow world.json, and events carry an expiry by kind")
+    func retentionIndexesAndExpiry() async throws {
+        let uri = try #require(mongoTestURI)
+        let logger = Logger(label: "creature-world-mongodb-tests")
+        let policy = RetentionPolicy(eventDays: 90, cheapEventDays: 7, ingressDays: 30)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: logger, retention: policy)
+        defer { Task { await persistence.cluster.disconnect() } }
+
+        func ttl(_ collection: String, _ name: String) async throws -> Int? {
+            try await persistence.database[collection].listIndexes().drain()
+                .first { $0.name == name }?.expireAfterSeconds.map(Int.init)
+        }
+        #expect(try await ttl(MongoWorldCollection.events, "ttl_expires_at") == 0)
+        #expect(
+            try await ttl(
+                MongoWorldCollection.utteranceIngresses, "ttl_percept_utterance_occurred_at")
+                == 30 * 86_400)
+        #expect(try await ttl(MongoWorldCollection.facts, "ttl_valid_to") == 90 * 86_400)
+        #expect(try await ttl(MongoWorldCollection.scenes, "ttl_closed_at") == 180 * 86_400)
+
+        // A story event keeps for ninety days; a measurement for seven.
+        let when = Date(timeIntervalSince1970: 1_789_600_000)
+        let story = try WorldEventEnvelope(
+            type: HouseEvents.doorUnlocked, occurredAt: when,
+            source: EventSource(
+                id: try SourceID(validating: "test:\(UUID().uuidString.lowercased())"),
+                kind: "test",
+                sourceEventID: UUID().uuidString),
+            subjectIDs: [], epistemic: EpistemicState(type: .observed, confidence: 1), payload: [:])
+        let cheap = try WorldEventEnvelope(
+            type: HouseEvents.measurementChanged, occurredAt: when,
+            source: EventSource(
+                id: try SourceID(validating: "test:\(UUID().uuidString.lowercased())"),
+                kind: "test",
+                sourceEventID: UUID().uuidString),
+            subjectIDs: [], epistemic: EpistemicState(type: .observed, confidence: 1), payload: [:])
+        _ = try await persistence.events.append(story, receivedAt: when)
+        _ = try await persistence.events.append(cheap, receivedAt: when)
+        let events = persistence.database[MongoWorldCollection.events]
+        let storyDocument = try #require(try await events.findOne(["_id": story.eventID.rawValue]))
+        let cheapDocument = try #require(try await events.findOne(["_id": cheap.eventID.rawValue]))
+        #expect(storyDocument["expires_at"] as? Date == when.addingTimeInterval(90 * 86_400))
+        #expect(cheapDocument["expires_at"] as? Date == when.addingTimeInterval(7 * 86_400))
+
+        // A window changed in world.json is applied in place; an old row without an expiry
+        // is backfilled by kind.
+        _ = try await events.updateOne(
+            where: ["_id": story.eventID.rawValue], to: ["$unset": ["expires_at": ""] as Document])
+        let tighter = RetentionPolicy(eventDays: 30, cheapEventDays: 7, ingressDays: 10)
+        try await MongoWorldMigrator(
+            database: persistence.database, logger: logger, retention: tighter
+        ).migrate()
+        #expect(
+            try await ttl(
+                MongoWorldCollection.utteranceIngresses, "ttl_percept_utterance_occurred_at")
+                == 10 * 86_400)
+        let backfilled = try #require(try await events.findOne(["_id": story.eventID.rawValue]))
+        // Another test's migrate on the shared database may backfill first, with its own
+        // window; what matters is that the row has an expiry again, after `when`.
+        let expiry = try #require(backfilled["expires_at"] as? Date)
+        #expect(expiry > when)
+        // Put the shared database's window back for the next run.
+        try await MongoWorldMigrator(database: persistence.database, logger: logger).migrate()
+    }
+
+    @Test("Retention policy: defaults, validation, and which events are cheap")
+    func retentionPolicyDecodes() throws {
+        let policy = try JSONDecoder().decode(
+            RetentionPolicy.self, from: Data("{\"event_days\": 45}".utf8))
+        #expect(policy.eventDays == 45)
+        #expect(policy.cheapEventDays == 7)
+        #expect(policy.sceneDays == 180)
+        #expect(policy.days(for: HouseEvents.measurementChanged) == 7)
+        #expect(policy.days(for: SceneService.floorReadyEventType) == 7)
+        #expect(policy.days(for: HouseEvents.personSeen) == 45)
+        #expect(throws: CreatureWorldConfigurationError.invalidRetention("timer_days")) {
+            try JSONDecoder().decode(RetentionPolicy.self, from: Data("{\"timer_days\": 0}".utf8))
+        }
+    }
+
     private func withPersistence<T: Sendable>(
         _ operation: @Sendable (MongoWorldPersistence) async throws -> T
     ) async throws -> T {

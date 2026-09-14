@@ -98,6 +98,9 @@ struct CharacterMind: Sendable {
 
     let configuration: Configuration
     private let respond: Respond
+    /// Sentences as the model composes them, for scene turns streamed to the world piece by
+    /// piece; without it a scene turn is composed whole.
+    private let respondStreaming: RespondStreaming?
     private let stage: Stage?
     private let logger: Logger
     private let considerationCounter = Counter(label: "creature_agent.considerations")
@@ -112,11 +115,13 @@ struct CharacterMind: Sendable {
     init(
         configuration: Configuration,
         respond: @escaping Respond,
+        respondStreaming: RespondStreaming? = nil,
         stage: Stage? = nil,
         logger: Logger
     ) {
         self.configuration = configuration
         self.respond = respond
+        self.respondStreaming = respondStreaming
         self.stage = stage
         self.logger = logger
     }
@@ -312,11 +317,13 @@ struct CharacterMind: Sendable {
                     state: .performed, providerReference: reference)
             case .failure(let error as PhysicalSpeechStageError):
                 logger.error("Beaky could not speak in the room", metadata: ["error": "\(error)"])
-                outcome = try CharacterPerformanceReport(state: .failed, errorCode: error.code)
+                outcome = try CharacterPerformanceReport(
+                    state: .failed, errorCode: error.code, errorMessage: error.message)
             case .failure(let error):
                 logger.error("Beaky could not speak in the room", metadata: ["error": "\(error)"])
                 outcome = try CharacterPerformanceReport(
-                    state: .failed, errorCode: "physical_speech_unavailable")
+                    state: .failed, errorCode: "physical_speech_unavailable",
+                    errorMessage: String(describing: error))
             }
             let intent = try makeIntent(
                 text: sentences.joined(separator: " "), for: consideration,
@@ -399,16 +406,31 @@ struct CharacterMind: Sendable {
 
     /// The world has offered this character the floor: something to add, or a pass. Composed as
     /// text only — the world performs the whole scene once it closes.
-    func consider(_ offer: WorldSceneConsideration, now: Date) async -> SceneDecision {
+    /// One sentence of a streamed scene turn, with its index; throws when the world could not
+    /// take it.
+    typealias SpeakPiece = @Sendable (Int, String) async throws -> Void
+
+    /// The world has offered this character the floor. With `speak`, the line is streamed:
+    /// each sentence goes out as it is composed and the returned turn carries no text ("that
+    /// was the whole line"); without it, the line is composed whole.
+    func consider(
+        _ offer: WorldSceneConsideration, now: Date, speak: SpeakPiece? = nil
+    ) async throws -> SceneDecision {
         let context = ServiceContext.current ?? Self.traceContext(for: offer.envelope)
-        return await withSpan("agent.scene.consider", context: context) { span in
+        return try await withSpan("agent.scene.consider", context: context) { span in
             span.attributes["agent.character_id"] = configuration.characterID.rawValue
             span.attributes["scene.id"] = offer.offer.sceneID.rawValue
             span.attributes["world.sequence"] = offer.worldSequence
             span.attributes["agent.persona_version"] = configuration.persona.versionTag
             span.attributes["llm.model"] = configuration.modelName
             considerationCounter.increment()
-            let decision = await decideTurn(offer.offer, now: now)
+            let decision: SceneDecision
+            if let speak, let respondStreaming {
+                span.attributes["scene.turn.streamed"] = true
+                decision = try await streamTurn(offer.offer, now: now, respondStreaming, speak)
+            } else {
+                decision = await decideTurn(offer.offer, now: now)
+            }
             switch decision {
             case .turn:
                 span.attributes["agent.reaction"] = "turn"
@@ -423,6 +445,130 @@ struct CharacterMind: Sendable {
             }
             return decision
         }
+    }
+
+    /// Stream the line: the first sentence decides silence and loses any speaker label or
+    /// hail; every sentence is speech-clean; each goes to the world as it lands, and the turn
+    /// ends when the model stops or the world's length limit is reached.
+    private func streamTurn(
+        _ offer: SceneTurnOffer, now: Date, _ respondStreaming: @escaping RespondStreaming,
+        _ speak: @escaping SpeakPiece
+    ) async throws -> SceneDecision {
+        func pass(_ reason: CharacterDecision.SilenceReason) -> SceneDecision {
+            .pass(
+                try! SceneTurnSubmission(
+                    characterID: configuration.characterID, responseID: offer.responseID,
+                    sessionID: nil, text: nil),
+                reason: reason)
+        }
+        guard now <= offer.deadline else { return pass(.stale) }
+        let transcript = makeSceneTranscript(for: offer, now: now)
+        let speaker = offer.trigger.speakerID.map(Self.name(of:))
+        let line = StreamedLine(
+            characterName: configuration.characterName, speaker: speaker, startedAt: now)
+        do {
+            try await withSpan("llm.generate") { span in
+                span.attributes["llm.model"] = configuration.modelName
+                span.attributes["llm.transcript.turns"] = transcript.count
+                span.attributes["llm.streaming"] = true
+                try await withTimeout(configuration.modelTimeout) {
+                    for await raw in respondStreaming(transcript) {
+                        switch await line.offer(raw) {
+                        case .speak(let index, let piece):
+                            try await speak(index, piece)
+                            await line.spoke(piece)
+                        case .skip:
+                            continue
+                        case .done:
+                            return
+                        }
+                    }
+                }
+                if let first = await line.firstSentenceMilliseconds {
+                    span.attributes["llm.first_sentence_ms"] = first
+                }
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as WorldResponderError {
+            // The world could not take a piece: the caller retries from its cursor, and the
+            // pieces already taken are recognised by index.
+            throw error
+        } catch {
+            logger.error("The model did not answer the scene", metadata: ["error": "\(error)"])
+            if await line.spoken.isEmpty { return pass(.modelUnavailable) }
+        }
+        guard !(await line.spoken.isEmpty) else {
+            return pass(await line.declined ? .choseSilence : .emptyResponse)
+        }
+        return .turn(
+            try SceneTurnSubmission(
+                characterID: configuration.characterID,
+                responseID: offer.responseID,
+                sessionID: nil,
+                text: nil,
+                trace: currentTraceContext()
+            ))
+    }
+
+    /// The sentences of a streamed scene line so far, decided one at a time.
+    private actor StreamedLine {
+        enum Verdict {
+            case speak(Int, String)
+            case skip
+            case done
+        }
+        private(set) var spoken: [String] = []
+        private(set) var declined = false
+        private var firstSentenceAt: Date?
+        private let characterName: String
+        private let speaker: String?
+        private let startedAt: Date
+
+        init(characterName: String, speaker: String?, startedAt: Date) {
+            self.characterName = characterName
+            self.speaker = speaker
+            self.startedAt = startedAt
+        }
+
+        var firstSentenceMilliseconds: Int? {
+            firstSentenceAt.map { Int($0.timeIntervalSince(startedAt) * 1_000) }
+        }
+
+        func offer(_ raw: String) -> Verdict {
+            guard
+                let piece = CharacterMind.scenePiece(
+                    raw, first: spoken.isEmpty, characterName: characterName, speaker: speaker)
+            else {
+                if spoken.isEmpty, CharacterMind.declinesToSpeak(raw) {
+                    declined = true
+                    return .done
+                }
+                return .skip
+            }
+            guard CharacterMind.fits(spoken + [piece]) else { return .done }
+            if firstSentenceAt == nil { firstSentenceAt = Date() }
+            return .speak(spoken.count, piece)
+        }
+
+        func spoke(_ piece: String) { spoken.append(piece) }
+    }
+
+    /// One sentence of a scene line, cleaned for speech; `nil` when there is nothing to say
+    /// in it (a stage direction alone, a label, silence).
+    static func scenePiece(
+        _ raw: String, first: Bool, characterName: String, speaker: String?
+    ) -> String? {
+        let stripped = LocalLLMClient.stripThinkTags(raw)
+        if first, declinesToSpeak(stripped) { return nil }
+        var text = first ? withoutSpeakerLabel(stripped, characterName: characterName) : stripped
+        text = TextSanitizer.sanitize(withoutStageDirections(text)).text
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if first, let speaker {
+            text = withoutOpeningVocative(text, name: speaker)
+        }
+        return text.isEmpty ? nil : text
     }
 
     private func decideTurn(_ offer: SceneTurnOffer, now: Date) async -> SceneDecision {
@@ -480,13 +626,25 @@ struct CharacterMind: Sendable {
         if let speaker = offer.trigger.speakerID {
             present.append(speaker)
         }
+        let contract: String
+        switch offer.trigger.kind {
+        case .personUtterance:
+            contract = Self.sceneContract(others: others)
+        case .worldEvent:
+            contract = Self.houseRemarkContract(
+                others: others,
+                aprilHome: FactPhrasing.isHome(Self.april, in: offer.worldFacts),
+                isLead: offer.turns.isEmpty)
+        }
         var transcript = [
             LocalLLMClient.Message(
                 role: .system,
                 content: configuration.persona.rendered(
                     present: present, pronouns: FactPhrasing.pronouns(in: offer.worldFacts))
-                    + "\n\n" + Self.sceneContract(others: others)
-                    + knowledgeBlock(offer.worldFacts, now: now)
+                    + "\n\n" + contract
+                    + knowledgeBlock(
+                        offer.worldFacts, happenings: offer.recentHappenings,
+                        meanings: offer.factMeanings, now: now)
             )
         ]
         var script = ""
@@ -513,17 +671,81 @@ struct CharacterMind: Sendable {
     /// "What you know": the local time in words, then the world's facts in plain words. The
     /// time is always there — a model cannot work out time zones, so it is told — and the
     /// facts follow when the world has any.
-    func knowledgeBlock(_ facts: [Fact], now: Date) -> String {
+    func knowledgeBlock(
+        _ facts: [Fact], happenings: [Happening] = [], meanings: [String: String] = [:],
+        now: Date
+    ) -> String {
         var lines = [FactPhrasing.timeSentence(now, in: configuration.timeZone)]
         if let model = configuration.modelLabel {
             lines.append(
                 "Your mind runs on the \(model) model. Say so if April asks; otherwise it is not worth mentioning."
             )
         }
-        lines += FactPhrasing.lines(for: facts, character: configuration.characterID, now: now)
-        return "\n\nWhat you know right now, from the world itself (trust this over guesses):\n"
+        lines += FactPhrasing.lines(
+            for: facts, character: configuration.characterID, now: now,
+            in: configuration.timeZone)
+        var block =
+            "\n\nWhat you know right now, from the world itself (trust this over guesses; each line is who or where, what is known, since when, and how it is known):\n"
             + lines.map { "- " + $0 }.joined(separator: "\n")
+        if !meanings.isEmpty {
+            block +=
+                "\n\nWhat those kinds of fact mean:\n"
+                + meanings.keys.sorted().map { "- \($0): \(meanings[$0]!)" }
+                .joined(separator: "\n")
+        }
+        // The story behind the facts: what the house saw, in order, so the mind can work out
+        // what is going on rather than be told.
+        let story = FactPhrasing.happeningLines(
+            happenings, now: now, in: configuration.timeZone)
+        if !story.isEmpty {
+            block +=
+                "\n\nWhat just happened around you, oldest first (work out what it means yourself; say what you conclude as your own thought, not as fact):\n"
+                + story.map { "- " + $0 }.joined(separator: "\n")
+        }
+        return block
     }
+
+    static let april = try! EntityID(validating: "person:april")
+
+    /// The house noticed something and nobody spoke: this is the MQTT agent's job, done with
+    /// facts. The lead always speaks (a silent alert is a missed one); the others may add one
+    /// reaction or stay quiet. The contract says who she is, not what to conclude: a frontier
+    /// model reads the facts and works out that the person at the carport is probably April,
+    /// or that the visitor is the one who was expected, on its own.
+    static func houseRemarkContract(others: [String], aprilHome: Bool?, isLead: Bool) -> String {
+        let company =
+            others.isEmpty
+            ? "You are the only bird in the room."
+            : "Also in the room: \(others.joined(separator: ", ")). They speak for themselves; never speak for them."
+        let april =
+            switch aprilHome {
+            case true?:
+                "April is home, though maybe not in this room, so speak so she can hear you."
+            case false?:
+                "April is not home; you are talking to the room, and she may see your words on her phone."
+            case nil: "You do not know whether April is home."
+            }
+        let turn =
+            isLead
+            ? "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken)."
+            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Do not repeat what was just said, and do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times."
+        return """
+            The house just noticed something; it is written below in parentheses, followed by \
+            anything already said about it. \(company) \(april) \(turn) Think with what you know \
+            below: who is home, who is expected, what just happened at the doors and cameras. Be \
+            the familiar who noticed, not a security system: delighted by a visitor, curious about \
+            a stranger, never giving instructions or safety advice. A guess must sound like a guess; \
+            the cameras cannot tell who someone is. Do not begin your line with anyone's name unless \
+            you are singling them out, and do not prefix your words with your own name. Never use \
+            emoji or symbols. Do not describe actions. \(typing)
+            """
+    }
+
+    /// April types fast. Three birds remarking on her spelling is not charm, it is a chorus of
+    /// pedants: "we're gonna have to figure out how to make them less willing to chatter on
+    /// about my typos."
+    static let typing =
+        "April types quickly and does not proofread: read what she meant, and never remark on her spelling, typos, or punctuation."
 
     static func sceneContract(others: [String]) -> String {
         let company =
@@ -537,7 +759,7 @@ struct CharacterMind: Sendable {
             April, and do not begin your line with anyone's name unless you are singling them out. \
             Do not write anyone else's line and do not prefix your words with your name. If you \
             have nothing to add, reply with exactly \(silenceToken) and nothing else. Never use \
-            emoji or symbols. Do not describe actions.
+            emoji or symbols. Do not describe actions. \(typing)
             """
     }
 
@@ -581,7 +803,9 @@ struct CharacterMind: Sendable {
                 content: configuration.persona.rendered(
                     present: present, pronouns: FactPhrasing.pronouns(in: percept.worldFacts))
                     + "\n\n" + Self.contract(for: route)
-                    + knowledgeBlock(percept.worldFacts, now: now)
+                    + knowledgeBlock(
+                        percept.worldFacts, happenings: percept.recentHappenings,
+                        meanings: percept.factMeanings, now: now)
             )
         ]
         let prior = percept.priorConversationItems
@@ -637,7 +861,7 @@ struct CharacterMind: Sendable {
             case .physicalSpeech:
                 "April is in the room with you and hears you speak aloud with your own voice."
             case .communicator:
-                "You are talking with April through the Beaky Communicator app on her phone or Mac."
+                "You are talking with April through the Flock Communicator app on her phone or Mac."
             }
         return """
             \(setting) \
@@ -645,7 +869,7 @@ struct CharacterMind: Sendable {
             own voice in one to three short sentences. If you truly have nothing to add, reply with \
             exactly \(silenceToken) and nothing else. Your words are spoken aloud by your voice, so \
             never use emoji or symbols. Do not describe actions and do not mention that you are a \
-            program.
+            program. \(typing)
             """
     }
 

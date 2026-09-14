@@ -94,6 +94,15 @@ protocol WorldApplicationService: Sendable {
     func snapshot(limit: Int) async throws -> WorldSnapshot
     func subscribe() async throws -> WorldDeltaStream
     func finishSubscriptions() async
+    func factKinds() async throws -> FactKindPage
+    func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws -> FactKind
+}
+
+extension WorldApplicationService {
+    func factKinds() async throws -> FactKindPage { throw WorldAPIError.databaseUnavailable }
+    func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws -> FactKind {
+        throw WorldAPIError.databaseUnavailable
+    }
 }
 
 protocol ConversationApplicationService: Sendable {

@@ -1,3 +1,226 @@
+creature-cli (2.67.0+world0.19.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.19.1: the packaged world.json is the production
+    config. The World runs on the same box as Creature Server now, so
+    `creature_server.url` is http://localhost:8000; a dev world elsewhere
+    sets its own. The rest (house conversation, places, rules, quiet
+    hours, voices, retention, facts) was already April's.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 17:45:00 -0700
+
+creature-cli (2.67.0+world0.19.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * Failures say why. The first words to the production world went
+    unspoken - "physical_speech_start_failed" - and the reason (Creature
+    Server: "Creature 4754fc0e is not registered with a universe. Is the
+    controller online?" - a power blip took her controller down) lived
+    only in a trace. Now the reason travels with the failure.
+  * creature-agent 2.67.0: performance reports carry `error_message`,
+    Creature Server's own words.
+  * creature-world 0.19.0: delivery outcomes and scene performances carry
+    `error_message`; a room that cannot be readied for a scene (the
+    dialog stream refused) is a `scene.stage_problem` event with the
+    reason, the moment the scene opens.
+  * World Viewer 0.3.0: failed deliveries and performances show the reason
+    in red; stage problems are red on the timeline; every trace icon is a
+    link into Honeycomb.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 17:20:00 -0700
+
+creature-cli (2.66.1+world0.18.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.18.0: retention. April: "The database is growing
+    quick. We should put some reasonable TTLs on the collections that
+    grow fast." TTL indexes (migration v10) expire the raw material -
+    events by kind (90 days; measurements and pacing timers 7), event
+    bookkeeping, finished timers, percept snapshots (30 days; the words
+    stay in the conversation), superseded facts, deliveries, closed
+    scenes - under a `retention` block in world.json, applied in place
+    when changed and backfilled for rows from before. The conversation,
+    the glossary, and the memories the nightly job will write are kept.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 13:30:00 -0700
+
+creature-cli (2.66.1+world0.17.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.17.0: the birds sleep. `scenes.quiet_hours` (the
+    packaged world.json says 23:00-07:00 Pacific) is when the house does
+    not wake them, with no exceptions - "Beaky isn't a security system,
+    she's my familiar. I have other alerts that go off at 3am." What the
+    house sees at night is recorded and is the morning's story.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 23:55:00 -0700
+
+creature-cli (2.66.1+world0.16.2+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-agent 2.66.1: the birds no longer remark on April's typos.
+    Every contract says she types quickly and does not proofread: read
+    what she meant, never comment on spelling or punctuation.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 23:40:00 -0700
+
+creature-cli (2.66.0+world0.16.2+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.16.2: scenes the house opens allow three turns
+    (`house_maximum_turns` 3). April: "She can have others join her, but
+    no more than three turns."
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 23:10:00 -0700
+
+creature-cli (2.66.0+world0.16.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.16.1: the first 0.16.0 walk was everything hoped
+    for - Beaky worked the story out herself: "I suspect one mysterious
+    person is making a grand tour of the cameras." Four short scenes
+    opened, one per rule, and April wants each of them ("I want to know
+    that someone's out there sooner rather than later"), so they stay.
+    `scenes.house_gap_seconds` (default 0) exists for a quieter house.
+    `presence.physically_audible` has a meaning.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 22:55:00 -0700
+
+creature-cli (2.66.0+world0.16.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * Facts as facts. April: "I'm not liking all of those hard-coded
+    things on the facts" - and a frontier model does not need them. The
+    agent no longer phrases predicates into sentences; every fact takes
+    one shape (who or where, predicate, value, since when, how known) and
+    the world hands the mind a glossary of what the predicates mean.
+  * creature-world 0.16.0: `fact_kinds` (migration v9), seeded from the
+    world's own catalogue and never overwriting a Wizard's rewording;
+    `fact_meanings` on every percept and floor offer; GET /v1/fact-kinds
+    and PUT /v1/fact-kinds/{predicate}.
+  * creature-agent 2.66.0: the generic renderer; FactPhrasing's switch
+    and its weather judgements are gone (the meanings carry the
+    thresholds). The time, the model line, and the quiet cameras remain.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 22:30:00 -0700
+
+creature-cli (2.65.0+world0.15.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * The story behind the facts. Facts are the present; a mind now also
+    gets the recent happenings around it - the last fifteen minutes of
+    door, camera, motion, person, house, and cast-fact events for its
+    region's places, oldest first, in the world's own words - so it can
+    work out that the door unlocking and then a person at the carport was
+    April going out, rather than be told.
+  * creature-world 0.15.0: `recent_happenings` on every percept and floor
+    offer (`WorldKnowledgeProviding.recentHappenings`; 15 min, 30 at most;
+    heartbeats, timers, and measurements are not a story).
+  * creature-agent 2.65.0: "What just happened around you" in the
+    knowledge block, with the clock and the age; the mind is told to draw
+    its own conclusions and say them as its own thoughts.
+  * World Viewer: the timeline shows "saw N" beside "knows N".
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 21:30:00 -0700
+
+creature-cli (2.64.0+world0.14.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * First house-opened scene, live: the carport camera saw April and
+    Beaky spoke two seconds later, no MQTT involved. Then three birds
+    spent twelve turns telling April to check the lock. Fixes:
+  * creature-world 0.14.0: scenes the house opens are short
+    (`scenes.house_maximum_turns`, default 2), and if the lead's mind is
+    silent the room hears the plain event as her line (`fallback: true`
+    on the turn) - the MQTT agent's fallbackSpeech, moved to the floor.
+    A cast fact (`facts.given`) may expire: `valid_to` or
+    `valid_for_seconds` in the payload, so "Jesse is expected this
+    afternoon" is not true tomorrow. New predicate `visitor.expected`.
+  * creature-agent 2.64.0: a scene the house opened gets the familiar's
+    contract, not the scene contract: always speaks, delighted by a
+    visitor, guesses sound like guesses, no safety advice; the contract
+    says who she is and leaves the inference to the model. Locks are
+    phrased as state ("is unlocked right now"), not history; expected
+    visitors and April's whereabouts are said.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 20:40:00 -0700
+
+creature-cli (2.63.0+world0.13.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-communicator-gateway 0.1.6: the app it serves is now Flock
+    Communicator ("The Flock" on the phone); help text and the shared
+    FlockCommunicatorCore module follow the rename. No wire change.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 20:20:00 -0700
+
+creature-cli (2.63.0+world0.13.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.13.0: voices have their own pace. On 0.12.0 the room
+    ran back-to-back with no silence (hand-offs of 20 ms on the server's
+    clock), but by the twelfth turn the birds were fifteen seconds ahead of
+    it again: Kenny's voice speaks at about eleven characters a second, not
+    twenty, so the world halved his lines. `scenes.voices` gives a character
+    its own `characters_per_second` and `sentence_seconds`; the packaged
+    world.json sets Kenny's.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 19:30:00 -0700
+
+creature-cli (2.63.0+world0.12.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.12.0: the paced floor, tuned to the room. April: "this
+    is too slow." Creature Server's scheduler frames (1 ms) showed each
+    hand-off carrying about a second of silence: the words-per-second
+    estimate ran a quarter slow and a one-second lead did not cover the
+    next bird's first sentence. Spoken time is now `sentence_seconds` (0.35)
+    per sentence plus characters at `characters_per_second` (20), fitted to
+    the rendered frame counts (within a tenth of a second); the lead
+    defaults to 2 s (`turn_lead_seconds`). `words_per_second` is gone.
+    Answered floors withdraw their deadline, so scene.floor_expired is a
+    real pass and never a phantom in the timeline.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 19:05:00 -0700
+
+creature-cli (2.63.0+world0.11.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.11.0: the floor is paced to the room. April: "It
+    takes way longer for the long conversations to play out than it does
+    for the LLM to generate." The server's trace agreed: TTS renders in a
+    quarter second, but each sentence waited up to twenty seconds in the
+    playback queue behind lines the birds had already composed. Now the
+    world estimates when the room will finish what is queued (words at
+    `words_per_second`) and offers the next floor `turn_lead_seconds`
+    (default 1) before that, via a scene.floor_ready world timer - so
+    each bird reacts to what was actually just heard, twelve turns run at
+    conversation speed, and April can get a word in. Scenes carry
+    spoken_until and pending_floor; the Viewer shows who is next and when.
+    The power monitor is news at a kilowatt, not a compressor cycle.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 18:05:00 -0700
+
+creature-cli (2.63.0+world0.10.0+house0.1.4) unstable; urgency=medium
+
+  * creature-world 0.10.0: the house opens scenes (F3). `scenes.open_on`
+    in world.json names the events that start one - a person or vehicle
+    seen at the driveway, front door, or carport; the front door
+    unlocking - with a cooldown per event and place, the way the MQTT
+    agent's areas worked. The lead gets the floor first, then whoever else
+    is in the region; the birds read it as a stage note ("A person was
+    just seen at the driveway."). `house_conversation` names where those
+    scenes are recorded (default conversation:april-house). This is what
+    lets creature-agent's world mode replace its MQTT mode.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 00:30:00 -0700
+
+creature-cli (2.63.0+world0.9.0+house0.1.4) unstable; urgency=medium
+
+  * creature-house 0.1.4: a stop cuts the Home Assistant socket and the
+    world stream instead of merely noting it, so an upgrade no longer waits
+    for systemd to kill the service (the gateway's old disease).
+  * Scene turns stream sentence by sentence (#175). creature-world 0.9.0:
+    `POST /scenes/{id}/turns` takes a line in pieces (`piece: 0, 1, ...`
+    then a final submission with no piece); each piece is spoken through
+    dialog-stream the moment it lands (scene.turn_piece), the floor's
+    deadline moves out with it, a stale floor timer is ignored, and the
+    pieces become the turn - recorded once - when the mind says it is
+    done; a line that goes quiet is the line so far. creature-agent
+    2.63.0: with a streaming model a scene turn is composed and sent
+    sentence by sentence (first sentence decides silence and loses labels
+    and hails; llm.first_sentence_ms on llm.generate). A frontier model's
+    line starts playing after its first sentence, not its last.
+  * World Viewer shows a line filling in on the Scenes panel.
+
+ -- April White <april@creature.engineering>  Sat, 12 Sep 2026 17:20:00 -0700
+
 creature-cli (2.62.5+world0.8.2+house0.1.3) unstable; urgency=medium
 
   * creature-house 0.1.3: April's weather and power sensors in the packaged

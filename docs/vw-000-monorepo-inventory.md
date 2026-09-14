@@ -172,12 +172,12 @@ Recommended additions:
 | `WorldViewerClient` | `Common/Sources/WorldViewerClient` | Depends on `WorldCore`; contains transport/client logic, not SwiftUI views |
 | `InformationBridgeCore` | `Common/Sources/InformationBridgeCore` | Depends on `WorldCore`; protocols, ledger/outbox, privacy policy, and fakes only |
 | `CreatureAppSupport` | `Common/Sources/CreatureAppSupport` | Apple-only, product-neutral UI, connection, and shared Keychain infrastructure for Console, Communicator, and Scribe |
-| `BeakyCommunicatorCore` | `Common/Sources/BeakyCommunicatorCore` | Platform-neutral lease, synchronization, and delivery building blocks shared by the Beaky apps and gateway |
+| `FlockCommunicatorCore` | `Common/Sources/FlockCommunicatorCore` | Platform-neutral lease, synchronization, and delivery building blocks shared by the Beaky apps and gateway |
 | `HomeAssistantWorldAdapter` | `Common/Sources/HomeAssistantWorldAdapter` | Depends on `WorldCore`, `Observability`, and selected WebSocket client |
 | `WorldMCP` | `Common/Sources/WorldMCP` | Depends on world query services; isolates MCP SDK and transport types |
 | `CreatureCommunicatorGateway` / `creature-communicator-gateway` | `Common/Sources/CreatureCommunicatorGateway` | Independent Linux service providing the narrow remote Communicator boundary |
 
-Create World Viewer, Creature Scribe/`creature-scribed`, and Beaky Communicator as separate Xcode
+Create World Viewer, Creature Scribe/`creature-scribed`, and Flock Communicator as separate Xcode
 application/daemon targets with their own entitlements and deployment metadata. Their reusable,
 testable logic should live in the package targets above. Do not add world views to Creature Console
 or Apple frameworks to `WorldCore`.

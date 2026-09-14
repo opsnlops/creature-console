@@ -1,6 +1,6 @@
 # Creature Communicator Gateway Manual
 
-Creature Communicator Gateway is the narrow network boundary used by Beaky Communicator. It is an
+Creature Communicator Gateway is the narrow network boundary used by Flock Communicator (the app formerly called Flock Communicator; its bundle ID is unchanged). It is an
 independently built, versioned, packaged, and deployed service in the Creature monorepo. It does
 not reason for Beaky and does not own conversation history.
 
@@ -14,13 +14,13 @@ The stable local ports are:
 | Creature World | `8001` | `/world/v1` |
 | Creature Communicator Gateway | `8002` | `/communicator/v1` |
 
-Beaky Communicator sends typed utterances, history requests, and live-stream requests only to the
+Flock Communicator sends typed utterances, history requests, and live-stream requests only to the
 gateway. The gateway forwards those operations over HTTP to Creature World. Creature World remains
 the sole authority for MongoDB conversation persistence, ordering, and idempotency. The gateway
 does not keep a second chat database.
 
 ```text
-Beaky Communicator
+Flock Communicator
     -> /communicator/v1 on gateway:8002
     -> /world/v1 on world:8001
     -> creature_world in MongoDB

@@ -317,6 +317,10 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
     /// What the world knows that bears on this moment: facts about the character, the speaker,
     /// the region, and whoever is present. Bounded; newest first.
     public var worldFacts: [Fact]
+    /// What just happened around them: the story behind the facts, oldest first. Bounded.
+    public var recentHappenings: [Happening]
+    /// What the facts' predicates mean, for the ones present.
+    public var factMeanings: [String: String]
 
     public init(
         considerationID: ConsiderationID = .generated(),
@@ -324,7 +328,9 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         utterance: PersonUtterance,
         priorConversationItems: [ConversationItem],
         sceneID: SceneID? = nil,
-        worldFacts: [Fact] = []
+        worldFacts: [Fact] = [],
+        recentHappenings: [Happening] = [],
+        factMeanings: [String: String] = [:]
     ) throws {
         guard priorConversationItems.count <= ConversationContractLimits.maximumContextItems else {
             throw WorldContractError.conversationContextTooLarge(
@@ -338,6 +344,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         self.priorConversationItems = priorConversationItems
         self.sceneID = sceneID
         self.worldFacts = worldFacts
+        self.recentHappenings = recentHappenings
+        self.factMeanings = factMeanings
     }
 
     public init(from decoder: any Decoder) throws {
@@ -355,7 +363,11 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
             utterance: container.decode(PersonUtterance.self, forKey: .utterance),
             priorConversationItems: priorConversationItems,
             sceneID: container.decodeIfPresent(SceneID.self, forKey: .sceneID),
-            worldFacts: container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? []
+            worldFacts: container.decodeIfPresent([Fact].self, forKey: .worldFacts) ?? [],
+            recentHappenings: container.decodeIfPresent(
+                [Happening].self, forKey: .recentHappenings) ?? [],
+            factMeanings: container.decodeIfPresent(
+                [String: String].self, forKey: .factMeanings) ?? [:]
         )
     }
 
@@ -367,6 +379,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         case priorConversationItems = "prior_conversation_items"
         case sceneID = "scene_id"
         case worldFacts = "world_facts"
+        case recentHappenings = "recent_happenings"
+        case factMeanings = "fact_meanings"
     }
 }
 
@@ -656,6 +670,9 @@ public struct CharacterDeliveryOutcome: Hashable, Sendable, Codable {
     public var occurredAt: Date
     public var providerReference: String?
     public var errorCode: String?
+    /// What went wrong, in the words of whoever refused — Creature Server's "Creature … is not
+    /// registered with a universe. Is the controller online?" — so the Viewer can say it.
+    public var errorMessage: String?
 
     public init(
         attemptID: DeliveryAttemptID,
@@ -664,7 +681,8 @@ public struct CharacterDeliveryOutcome: Hashable, Sendable, Codable {
         state: CharacterDeliveryOutcomeState,
         occurredAt: Date,
         providerReference: String? = nil,
-        errorCode: String? = nil
+        errorCode: String? = nil,
+        errorMessage: String? = nil
     ) {
         self.schemaVersion = WorldSchema.currentVersion
         self.attemptID = attemptID
@@ -674,6 +692,7 @@ public struct CharacterDeliveryOutcome: Hashable, Sendable, Codable {
         self.occurredAt = occurredAt
         self.providerReference = providerReference
         self.errorCode = errorCode
+        self.errorMessage = errorMessage
     }
 
     public init(from decoder: any Decoder) throws {
@@ -691,6 +710,7 @@ public struct CharacterDeliveryOutcome: Hashable, Sendable, Codable {
             forKey: .providerReference
         )
         self.errorCode = try container.decodeIfPresent(String.self, forKey: .errorCode)
+        self.errorMessage = try container.decodeIfPresent(String.self, forKey: .errorMessage)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -702,6 +722,7 @@ public struct CharacterDeliveryOutcome: Hashable, Sendable, Codable {
         case occurredAt = "occurred_at"
         case providerReference = "provider_reference"
         case errorCode = "error_code"
+        case errorMessage = "error_message"
     }
 }
 
@@ -811,11 +832,13 @@ public struct CharacterPerformanceReport: Hashable, Sendable, Codable {
     public var state: CharacterDeliveryOutcomeState
     public var providerReference: String?
     public var errorCode: String?
+    public var errorMessage: String?
 
     public init(
         state: CharacterDeliveryOutcomeState,
         providerReference: String? = nil,
-        errorCode: String? = nil
+        errorCode: String? = nil,
+        errorMessage: String? = nil
     ) throws {
         guard state == .performed || state == .failed else {
             throw WorldContractError.invalidPerformanceReport
@@ -823,6 +846,7 @@ public struct CharacterPerformanceReport: Hashable, Sendable, Codable {
         self.state = state
         self.providerReference = providerReference
         self.errorCode = errorCode
+        self.errorMessage = errorMessage
     }
 
     public init(from decoder: any Decoder) throws {
@@ -830,7 +854,8 @@ public struct CharacterPerformanceReport: Hashable, Sendable, Codable {
         try self.init(
             state: container.decode(CharacterDeliveryOutcomeState.self, forKey: .state),
             providerReference: container.decodeIfPresent(String.self, forKey: .providerReference),
-            errorCode: container.decodeIfPresent(String.self, forKey: .errorCode)
+            errorCode: container.decodeIfPresent(String.self, forKey: .errorCode),
+            errorMessage: container.decodeIfPresent(String.self, forKey: .errorMessage)
         )
     }
 
@@ -838,6 +863,7 @@ public struct CharacterPerformanceReport: Hashable, Sendable, Codable {
         case state
         case providerReference = "provider_reference"
         case errorCode = "error_code"
+        case errorMessage = "error_message"
     }
 }
 

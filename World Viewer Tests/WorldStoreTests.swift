@@ -328,6 +328,8 @@ struct ScriptedScryer: WorldScrying {
         ScenePage(scenes: [])
     }
 
+    func factKinds() async throws -> FactKindPage { FactKindPage(kinds: []) }
+
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames {
         let world = world
         return WorldStreamFrames { continuation in

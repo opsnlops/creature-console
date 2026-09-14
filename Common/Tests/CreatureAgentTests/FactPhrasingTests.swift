@@ -12,10 +12,10 @@ struct FactPhrasingTests {
     private let april = try! EntityID(validating: "person:april")
     private let home = try! EntityID(validating: "region:home")
 
-    @Test(
-        "Facts become plain sentences, with assumptions marked and the character's own place skipped"
-    )
-    func factsBecomeSentences() throws {
+    private let pacific = TimeZone(identifier: "America/Los_Angeles")!
+
+    @Test("Every fact takes one shape: who or where, what is known, since when, how it is known")
+    func factsHaveOneShape() throws {
         let facts = [
             try fact(mango, "presence.region", .string("region:home"), .observed, 1),
             try fact(beaky, "presence.region", .string("region:home"), .observed, 1),
@@ -34,96 +34,121 @@ struct FactPhrasingTests {
             try fact(home, "weather.mood", .string("gloomy"), .observed, 1),
         ]
 
-        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now)
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now, in: pacific)
 
+        // Beaky's own whereabouts and April's audibility are not for saying; everything else
+        // is, including a predicate the agent has never heard of.
+        #expect(lines.count == 4)
+        #expect(lines[0].hasPrefix("Mango · presence.region = This room · since "))
+        #expect(lines[0].hasSuffix(" (just now) · observed"))
+        #expect(lines[1].hasSuffix(" · assumed (nobody has checked) (90% sure)"))
+        #expect(lines[1].hasPrefix("April · presence.state = home · since "))
         #expect(
-            lines == [
-                "Mango is here in the room with you.",
-                "April is home (you assume; nobody has checked).",
-                "5 minutes ago, in this room: Mango said \"It is always heat sinks.\".",
-            ])
+            lines[2].hasPrefix(
+                "This room · scene.last = Mango: \"It is always heat sinks.\" · since "))
+        #expect(lines[2].contains("(5 minutes ago)"))
+        #expect(lines[3].hasPrefix("This room · weather.mood = gloomy"))
     }
 
-    @Test("The house speaks plainly: doors, motion, the temperature, and the lights")
-    func houseFactsAreSentences() throws {
+    @Test("Values render as themselves; entity IDs as names; expiries as until")
+    func valuesRenderPlainly() throws {
+        #expect(FactPhrasing.rendered(.string("unlocked")) == "unlocked")
+        #expect(FactPhrasing.rendered(.string("April's sister")) == "\"April's sister\"")
+        #expect(FactPhrasing.rendered(.string("place:front-door")) == "The front door")
+        #expect(FactPhrasing.rendered(.number(67.14)) == "67.1")
+        #expect(FactPhrasing.rendered(.number(2245)) == "2245")
+        #expect(FactPhrasing.rendered(.bool(true)) == "yes")
+        #expect(FactPhrasing.rendered(.null) == "none")
+        #expect(
+            FactPhrasing.rendered(.array([.string("Normal Evening"), .string("Movie Time")]))
+                == "[\"Normal Evening\", \"Movie Time\"]")
+        #expect(FactPhrasing.rendered(.object(["a": .number(1), "b": .string("x")])) == "a=1, b=x")
+        let jesse = try EntityID(validating: "person:jesse")
+        let expected = try Fact(
+            subjectID: jesse, predicate: WorldFacts.visitorExpected,
+            value: .string("this afternoon, to finish the deck"),
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            validFrom: now, validTo: now.addingTimeInterval(6 * 3_600), derivedFrom: [],
+            producer: FactProducer(kind: "test", id: "test", version: "1"))
+        let line = try #require(
+            FactPhrasing.lines(for: [expected], character: beaky, now: now, in: pacific).first)
+        #expect(
+            line.hasPrefix(
+                "Jesse · visitor.expected = \"this afternoon, to finish the deck\" · since "))
+        #expect(line.contains(", until "))
+        #expect(line.hasSuffix(" · reported"))
+    }
+
+    @Test("What just happened is told in order, with the clock and the age, in the world's words")
+    func happeningsAreAStory() throws {
         let frontDoor = try EntityID(validating: "place:front-door")
-        let entryway = try EntityID(validating: "place:entryway")
+        let carport = try EntityID(validating: "place:carport")
+        let story = [
+            Happening(
+                occurredAt: now.addingTimeInterval(-300), type: HouseEvents.doorUnlocked,
+                subjectID: frontDoor, summary: "The front door was just unlocked."),
+            Happening(
+                occurredAt: now.addingTimeInterval(-20), type: HouseEvents.personSeen,
+                subjectID: carport),
+        ]
+        let lines = FactPhrasing.happeningLines(
+            story, now: now, in: TimeZone(identifier: "America/Los_Angeles")!)
+        #expect(lines.count == 2)
+        #expect(lines[0].hasSuffix(" (5 minutes ago): The front door was just unlocked."))
+        #expect(lines[1].hasSuffix(" (just now): camera.person_seen at the carport"))
+        #expect(lines[0].contains(" PM ") || lines[0].contains(" AM "))
+    }
+
+    @Test("An expected visitor is a sentence, and the world says whether April is home")
+    func expectedVisitorAndHome() throws {
+        let jesse = try EntityID(validating: "person:jesse")
+        let april = try EntityID(validating: "person:april")
+        let facts = [
+            try fact(
+                jesse, WorldFacts.personDescription, .string("April's contractor"), .reported, 1),
+            try fact(
+                jesse, WorldFacts.visitorExpected, .string("this afternoon, to look at the deck"),
+                .reported, 1),
+            try fact(april, WorldFacts.personState, .string("away"), .observed, 1),
+        ]
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now, in: pacific)
+        #expect(
+            lines.contains { $0.hasPrefix("Jesse · person.description = \"April's contractor\"") })
+        #expect(
+            lines.contains {
+                $0.hasPrefix("Jesse · visitor.expected = \"this afternoon, to look at the deck\"")
+            })
+        #expect(FactPhrasing.isHome(april, in: facts) == false)
+        #expect(FactPhrasing.isHome(jesse, in: facts) == nil)
+    }
+
+    @Test("The house's facts take the same shape, and the lights are just a list")
+    func houseFactsHaveTheShape() throws {
+        let frontDoor = try EntityID(validating: "place:front-door")
         let outside = try EntityID(validating: "place:outside")
         let house = try EntityID(validating: "house:aprils-nest")
         let facts = [
             try fact(
                 frontDoor, WorldFacts.doorLock, .string("unlocked"), .observed, 1,
                 validFrom: now.addingTimeInterval(-20)),
-            try fact(
-                entryway, WorldFacts.motionActive, .bool(true), .observed, 1,
-                validFrom: now.addingTimeInterval(-90)),
             try fact(outside, "environment.temperature_f", .number(68.3), .observed, 1),
             try fact(frontDoor, "seen.person", .bool(true), .observed, 1),
             try fact(
-                try EntityID(validating: "place:driveway"), "seen.vehicle", .bool(true),
-                .observed, 1, validFrom: now.addingTimeInterval(-200)),
-            try fact(
                 house, WorldFacts.houseScenes,
                 .array([.string("Normal Evening"), .string("Movie Time")]), .observed, 1),
-            try fact(
-                house, WorldFacts.houseSceneRequested, .string("Normal Evening"), .observed, 1),
-            try fact(
-                house, WorldFacts.houseScene, .string("Movie Time"), .observed, 1,
-                validFrom: now.addingTimeInterval(-3_600 * 2)),
         ]
 
-        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now)
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now, in: pacific)
 
+        #expect(lines.count == 4)
+        #expect(lines[0].hasPrefix("The front door · door.lock = unlocked · since "))
+        #expect(lines[1].hasPrefix("Outside · environment.temperature_f = 68.3 · since "))
+        #expect(lines[2].hasPrefix("The front door · seen.person = yes · since "))
         #expect(
-            lines == [
-                "The front door was unlocked just now.",
-                "Someone moved in the entryway 1 minute ago.",
-                "It is about 68 degrees outside.",
-                "A person was seen at the front door just now.",
-                "A vehicle was seen at the driveway 3 minutes ago.",
-                "The house can set the lights to these scenes: Normal Evening, Movie Time. You cannot set them yourself: the house acts when April names one, and you will be told here when it does. Never say the lights are changing unless you are told so below; if April asks and you were not told, say the house did not catch it and ask her to name the scene.",
-                "April just asked for the lights to be set to Normal Evening, and the house is doing it right now.",
-                "The lights are set to Movie Time (since 2 hours ago).",
-            ])
+            lines[3].hasPrefix(
+                "The house · house.scenes = [\"Normal Evening\", \"Movie Time\"] · since "))
         #expect(FactPhrasing.placeName(of: frontDoor) == "The front door")
         #expect(FactPhrasing.placeName(of: outside) == "Outside")
-    }
-
-    @Test("Weather and power have words, with the judgement built in")
-    func weatherAndPowerAreSentences() throws {
-        let outside = try EntityID(validating: "place:outside")
-        let house = try EntityID(validating: "house:aprils-nest")
-        func line(_ subject: EntityID, _ predicate: String, _ value: Double) throws -> String? {
-            FactPhrasing.sentence(
-                for: try fact(subject, "environment." + predicate, .number(value), .observed, 1),
-                character: beaky, now: now)
-        }
-        #expect(try line(outside, "wind_mph", 0) == "The air is still outside.")
-        #expect(
-            try line(outside, "wind_mph", 8)
-                == "There is a light wind outside, about 8 miles per hour.")
-        #expect(
-            try line(outside, "wind_mph", 18.4) == "It is windy outside: about 18 miles per hour.")
-        #expect(
-            try line(outside, "wind_mph", 34)
-                == "It is very windy outside: about 34 miles per hour. Things may blow around.")
-        #expect(try line(outside, "rain_today_in", 0) == "It has not rained today.")
-        #expect(try line(outside, "rain_today_in", 0.34) == "It has rained 0.3 inches today.")
-        #expect(try line(outside, "rain_today_in", 1.0) == "It has rained 1.0 inch today.")
-        #expect(
-            try line(outside, "pressure_hpa", 996.3)
-                == "The barometer reads about 996 hectopascals.")
-        #expect(try line(outside, "humidity_percent", 63) == "The humidity outside is 63 percent.")
-        #expect(
-            try line(outside, "pm25_ugm3", 5.3)
-                == "The air outside is clean (fine particles about 5 micrograms per cubic meter).")
-        #expect(
-            try line(outside, "pm25_ugm3", 60)
-                == "The air outside is bad; everyone should stay inside (fine particles about 60 micrograms per cubic meter)."
-        )
-        #expect(
-            try line(house, "power_w", 2244.9)
-                == "The house is drawing about 2.2 kilowatts right now.")
     }
 
     @Test("A watching camera that has seen nothing is a sentence, not a shrug")
@@ -138,18 +163,20 @@ struct FactPhrasingTests {
         ]
 
         #expect(
-            FactPhrasing.lines(for: watching, character: beaky, now: now) == [
+            FactPhrasing.lines(for: watching, character: beaky, now: now, in: pacific) == [
                 "The cameras at the front door, the driveway and the carport have seen nobody and nothing in the last ten minutes."
             ])
         // One that has seen something drops out of the quiet list.
         let busy = watching + [try fact(driveway, "seen.vehicle", .bool(true), .observed, 1)]
+        let busyLines = FactPhrasing.lines(for: busy, character: beaky, now: now, in: pacific)
+        #expect(busyLines.count == 2)
+        #expect(busyLines[0].hasPrefix("The driveway · seen.vehicle = yes · since "))
         #expect(
-            FactPhrasing.lines(for: busy, character: beaky, now: now) == [
-                "A vehicle was seen at the driveway just now.",
-                "The cameras at the front door and the carport have seen nobody and nothing in the last ten minutes.",
-            ])
+            busyLines[1]
+                == "The cameras at the front door and the carport have seen nobody and nothing in the last ten minutes."
+        )
         #expect(
-            FactPhrasing.lines(for: [watching[0]], character: beaky, now: now) == [
+            FactPhrasing.lines(for: [watching[0]], character: beaky, now: now, in: pacific) == [
                 "The camera at the front door has seen nobody and nothing in the last ten minutes."
             ])
     }
@@ -163,18 +190,15 @@ struct FactPhrasingTests {
             try fact(april, WorldFacts.personState, .string("home"), .assumed, 0.9),
         ]
 
-        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now)
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now, in: pacific)
 
-        #expect(
-            lines == [
-                "Polly is April's sister.",
-                "April is a wizard.",
-                "April is home (you assume; nobody has checked).",
-                "That is all you know about Polly; do not make up more.",
-            ])
+        #expect(lines.count == 4)
+        #expect(lines[0].hasPrefix("Polly · person.description = \"April's sister\" · since "))
+        #expect(lines[1].hasPrefix("April · person.description = \"a wizard\" · since "))
+        #expect(lines[3] == "That is all you know about Polly; do not make up more.")
     }
 
-    @Test("A character the world knows the pronouns of is named with them")
+    @Test("Pronouns are read from the facts and never said as a fact")
     func pronounsRideWithTheName() throws {
         let facts = [
             try fact(mango, WorldFacts.characterRegion, .string("region:home"), .observed, 1),
@@ -182,13 +206,11 @@ struct FactPhrasingTests {
             try fact(april, WorldFacts.personState, .string("home"), .assumed, 0.9),
         ]
 
-        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now)
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now, in: pacific)
 
-        #expect(
-            lines == [
-                "Mango (he/him) is here in the room with you.",
-                "April is home (you assume; nobody has checked).",
-            ])
+        // Pronouns ride with the name in the persona, not as a line of their own.
+        #expect(lines.count == 2)
+        #expect(lines[0].hasPrefix("Mango · presence.region = This room"))
         #expect(FactPhrasing.pronouns(in: facts) == [mango: "he/him"])
     }
 
@@ -227,9 +249,11 @@ struct FactPhrasingTests {
             told.knowledgeBlock([], now: now).contains(
                 "- Your mind runs on the openai/gpt-6-astra model."))
         let block = mind.knowledgeBlock(
-            [try fact(mango, "presence.region", .string("region:home"), .observed, 1)], now: now)
+            [try fact(mango, "presence.region", .string("region:home"), .observed, 1)],
+            meanings: ["presence.region": "which room a bird's mind is logged into"], now: now)
         #expect(block.contains("- It is "))
-        #expect(block.contains("- Mango is here in the room with you."))
+        #expect(block.contains("- Mango · presence.region = This room · since "))
+        #expect(block.contains("What those kinds of fact mean:\n- presence.region: which room"))
     }
 
     private func fact(

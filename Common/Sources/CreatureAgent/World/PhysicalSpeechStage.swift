@@ -15,6 +15,13 @@ enum PhysicalSpeechStageError: Error, Equatable {
         case .sessionFinishFailed: "physical_speech_finish_failed"
         }
     }
+
+    /// Creature Server's own words, for the record and the Viewer.
+    var message: String {
+        switch self {
+        case .sessionStartFailed(let message), .sessionFinishFailed(let message): message
+        }
+    }
 }
 
 /// The room: something that can speak Beaky's sentences through her body as they arrive.

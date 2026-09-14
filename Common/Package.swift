@@ -21,8 +21,8 @@ let package = Package(
             name: "CreatureAppSupport",
             targets: ["CreatureAppSupport"]),
         .library(
-            name: "BeakyCommunicatorCore",
-            targets: ["BeakyCommunicatorCore"]),
+            name: "FlockCommunicatorCore",
+            targets: ["FlockCommunicatorCore"]),
         .executable(
             name: "creature-communicator-gateway",
             targets: ["creature-communicator-gateway"]),
@@ -119,22 +119,22 @@ let package = Package(
             ]),
 
         // Shared Apple-app infrastructure and visual language for Creature Console,
-        // Beaky Communicator, and Creature Scribe. Product-specific state remains in
+        // Flock Communicator, and Creature Scribe. Product-specific state remains in
         // each app target.
         .target(
             name: "CreatureAppSupport",
-            dependencies: ["BeakyCommunicatorCore", "Common", "WorldCore"]),
+            dependencies: ["FlockCommunicatorCore", "Common", "WorldCore"]),
 
         // Transport-neutral state shared by the Beaky apps and the isolated Linux gateway.
         // The gateway owns live leases; Creature World remains the authoritative simulator.
         .target(
-            name: "BeakyCommunicatorCore",
+            name: "FlockCommunicatorCore",
             dependencies: ["WorldCore"]),
 
         .target(
             name: "CreatureCommunicatorGateway",
             dependencies: [
-                "BeakyCommunicatorCore",
+                "FlockCommunicatorCore",
                 "WorldCore",
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "Hummingbird", package: "hummingbird"),
@@ -145,7 +145,7 @@ let package = Package(
         .executableTarget(
             name: "creature-communicator-gateway",
             dependencies: [
-                "BeakyCommunicatorCore",
+                "FlockCommunicatorCore",
                 "CreatureCommunicatorGateway",
                 "Observability",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
@@ -256,6 +256,7 @@ let package = Package(
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
                 .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "ServiceLifecycleTestKit", package: "swift-service-lifecycle"),
             ]
         ),
         .testTarget(
@@ -287,13 +288,13 @@ let package = Package(
             dependencies: ["CreatureAppSupport"]
         ),
         .testTarget(
-            name: "BeakyCommunicatorCoreTests",
-            dependencies: ["BeakyCommunicatorCore", "WorldCore"]
+            name: "FlockCommunicatorCoreTests",
+            dependencies: ["FlockCommunicatorCore", "WorldCore"]
         ),
         .testTarget(
             name: "CreatureCommunicatorGatewayTests",
             dependencies: [
-                "BeakyCommunicatorCore",
+                "FlockCommunicatorCore",
                 "CreatureCommunicatorGateway",
                 "creature-communicator-gateway",
                 "WorldCore",

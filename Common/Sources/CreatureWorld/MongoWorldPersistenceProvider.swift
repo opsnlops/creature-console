@@ -38,6 +38,8 @@ struct MongoWorldPersistenceConnection: Sendable {
     let submitSceneTurn: @Sendable (SceneTurnSubmission, SceneID) async throws -> SceneTurnResult
     let scene: @Sendable (SceneID) async throws -> Scene?
     let recentScenes: @Sendable (Int) async throws -> [Scene]
+    let factKinds: @Sendable () async throws -> FactKindPage
+    let setFactKind: @Sendable (String, FactKindUpdate) async throws -> FactKind
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -48,6 +50,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
+        houseConversation: ConversationID = CreatureWorldConfiguration.defaultHouseConversation,
         givenFacts: [GivenFact] = [],
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
@@ -118,7 +121,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         }
         let conversations = persistence.conversations
         let knowledge = PresentWorldKnowledge(
-            facts: persistence.facts, sessions: sessionService, regions: regions, clock: clock)
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: sessionService, regions: regions, clock: clock)
         let sceneService = SceneService(
             repository: persistence.scenes,
             clock: clock,
@@ -127,6 +131,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             knowledge: knowledge,
             announce: { _ = try await world.accept($0) },
             scheduleDeadline: { try await timerScheduler.schedule($0) },
+            cancelDeadline: { try await timerScheduler.cancel(timerID: $0) },
             recordTurn: { scene, turn in
                 // A spoken turn is a conversation item like any other, so the Communicator and
                 // history show the exchange as it is composed.
@@ -183,17 +188,71 @@ struct MongoWorldPersistenceConnection: Sendable {
                 }
             }
         }
+        // The house starts scenes: a person at the driveway, a door unlocking. The rules are
+        // `scenes.open_on`; the lead gets the floor first, then whoever else is in the region.
+        let openingPolicy = SceneOpeningPolicy(
+            rules: sceneLimits.openOn, gapSeconds: sceneLimits.houseGapSeconds,
+            quietHours: sceneLimits.quietHours)
+        let sceneOpener = Task {
+            guard !sceneLimits.openOn.isEmpty else { return }
+            do {
+                for try await delta in try await world.subscribe() {
+                    let event = delta.event
+                    guard
+                        let place = await openingPolicy.shouldOpen(for: event, at: await clock.now)
+                    else { continue }
+                    // The region the place belongs to; a person's region is wherever the lead is.
+                    var regionID = regions.first { $0.value.places.contains(place) }?.key
+                    if regionID == nil {
+                        regionID = try await sessionService.liveSession(for: leadCharacter)?
+                            .regionID
+                    }
+                    guard let regionID else { continue }
+                    let present = try await sessionService.present(in: regionID).map(\.characterID)
+                    guard !present.isEmpty else { continue }
+                    let participants =
+                        present.contains(leadCharacter)
+                        ? [leadCharacter] + present.filter { $0 != leadCharacter } : present
+                    let scene = try await sceneService.open(
+                        regionID: regionID,
+                        conversationID: houseConversation,
+                        trigger: SceneTrigger(
+                            kind: .worldEvent, eventID: event.eventID,
+                            text: SceneOpeningPolicy.triggerText(for: event, place: place)),
+                        participants: participants,
+                        trace: event.trace)
+                    logger.info(
+                        "The house opened a scene",
+                        metadata: [
+                            "scene.id": "\(scene.sceneID.rawValue)",
+                            "world.event_type": "\(event.type.rawValue)",
+                            "place": "\(place.rawValue)",
+                        ])
+                }
+            } catch {
+                logger.warning(
+                    "Stopped opening scenes for the house", metadata: ["error": "\(error)"])
+            }
+        }
         // Floor deadlines fire as world timers; the scene service hears them from the stream.
         let floorWatcher = Task {
             do {
                 for try await delta in try await world.subscribe() {
-                    guard delta.event.type == SceneService.floorExpiredEventType,
-                        case .string(let rawScene)? = delta.event.payload["scene_id"],
-                        case .string(let rawResponse)? = delta.event.payload["response_id"],
-                        let sceneID = SceneID(rawValue: rawScene),
-                        let responseID = ResponseID(rawValue: rawResponse)
+                    guard case .string(let rawScene)? = delta.event.payload["scene_id"],
+                        let sceneID = SceneID(rawValue: rawScene)
                     else { continue }
-                    try await sceneService.floorExpired(sceneID: sceneID, responseID: responseID)
+                    switch delta.event.type {
+                    case SceneService.floorExpiredEventType:
+                        guard case .string(let rawResponse)? = delta.event.payload["response_id"],
+                            let responseID = ResponseID(rawValue: rawResponse)
+                        else { continue }
+                        try await sceneService.floorExpired(
+                            sceneID: sceneID, responseID: responseID)
+                    case SceneService.floorReadyEventType:
+                        try await sceneService.floorReady(sceneID: sceneID)
+                    default:
+                        continue
+                    }
                 }
             } catch {
                 logger.warning(
@@ -263,7 +322,11 @@ struct MongoWorldPersistenceConnection: Sendable {
         subscribe = { try await world.subscribe() }
         finishSubscriptions = { await world.finishSubscriptions() }
         isHealthy = { await persistence.isHealthy() }
-        recoverTimers = { try await timerScheduler.recover() }
+        recoverTimers = {
+            try await timerScheduler.recover()
+            // The world's own catalogue of what its predicates mean, for any the store lacks.
+            try await persistence.factKinds.seed(WorldFacts.meanings, at: await clock.now)
+        }
         scheduleTimer = { try await timerScheduler.schedule($0) }
         cancelTimer = { try await timerScheduler.cancel(timerID: $0) }
         ingestUtterance = {
@@ -330,10 +393,16 @@ struct MongoWorldPersistenceConnection: Sendable {
                 hasMore: hasMore
             )
         }
+        factKinds = { FactKindPage(kinds: try await persistence.factKinds.all()) }
+        setFactKind = { predicate, update in
+            try await persistence.factKinds.set(
+                predicate, meaning: update.meaning, by: update.updatedBy, at: await clock.now)
+        }
         shutdown = {
             assumptionAnnouncer.cancel()
             sessionSweeper.cancel()
             floorWatcher.cancel()
+            sceneOpener.cancel()
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
             try? await sceneClient?.shutdown()
@@ -409,6 +478,12 @@ struct MongoWorldPersistenceConnection: Sendable {
         recentScenes: @escaping @Sendable (Int) async throws -> [Scene] = {
             _ in throw WorldAPIError.databaseUnavailable
         },
+        factKinds: @escaping @Sendable () async throws -> FactKindPage = {
+            throw WorldAPIError.databaseUnavailable
+        },
+        setFactKind: @escaping @Sendable (String, FactKindUpdate) async throws -> FactKind = {
+            _, _ in throw WorldAPIError.databaseUnavailable
+        },
         shutdown: @escaping @Sendable () async -> Void
     ) {
         self.acceptEvent = acceptEvent
@@ -435,6 +510,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.submitSceneTurn = submitSceneTurn
         self.scene = scene
         self.recentScenes = recentScenes
+        self.factKinds = factKinds
+        self.setFactKind = setFactKind
         self.shutdown = shutdown
     }
 }
@@ -458,7 +535,9 @@ actor MongoWorldPersistenceProvider {
         scenePerformance: ScenePerformanceMode = .streaming,
         regions: [EntityID: RegionConfiguration] = [:],
         leadCharacter: EntityID = CreatureWorldConfiguration.defaultLeadCharacter,
+        houseConversation: ConversationID = CreatureWorldConfiguration.defaultHouseConversation,
         givenFacts: [GivenFact] = [],
+        retention: RetentionPolicy = RetentionPolicy(),
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -467,7 +546,8 @@ actor MongoWorldPersistenceProvider {
         let conversationUpdates = self.conversationUpdates
         self.connector =
             connector ?? { uri, logger in
-                let persistence = try await MongoWorldPersistence.connect(to: uri, logger: logger)
+                let persistence = try await MongoWorldPersistence.connect(
+                    to: uri, logger: logger, retention: retention)
                 do {
                     return try MongoWorldPersistenceConnection(
                         persistence: persistence,
@@ -477,6 +557,7 @@ actor MongoWorldPersistenceProvider {
                         scenePerformance: scenePerformance,
                         regions: regions,
                         leadCharacter: leadCharacter,
+                        houseConversation: houseConversation,
                         givenFacts: givenFacts,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
@@ -682,6 +763,16 @@ actor MongoWorldPersistenceProvider {
         return try await connection.recentScenes(limit)
     }
 
+    func factKinds() async throws -> FactKindPage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.factKinds()
+    }
+
+    func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws -> FactKind {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.setFactKind(predicate, update)
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -716,8 +807,10 @@ extension MongoWorldPersistenceProvider: SceneApplicationService {}
 /// What the world knows that bears on a moment: facts about the subjects asked for, plus the
 /// region the character is in and everyone logged into it — so "who is here with you" and
 /// "what was just said in this room" ride along without the caller knowing about regions.
-private struct PresentWorldKnowledge: WorldKnowledgeProviding {
+struct PresentWorldKnowledge: WorldKnowledgeProviding {
     let facts: FactRepository
+    let events: WorldEventRepository
+    let kinds: FactKindRepository
     let sessions: CharacterSessionService
     let regions: [EntityID: RegionConfiguration]
     let clock: any WorldClock
@@ -726,24 +819,85 @@ private struct PresentWorldKnowledge: WorldKnowledgeProviding {
         async throws -> [Fact]
     {
         let now = await clock.now
-        var expanded = subjects
-        for subject in subjects {
-            guard let session = try await sessions.liveSession(for: subject) else { continue }
-            expanded.append(session.regionID)
-            expanded.append(
-                contentsOf: try await sessions.present(in: session.regionID).map(\.characterID))
-            // The doors, rooms, and outside that belong to the region — the house around them.
-            expanded.append(contentsOf: regions[session.regionID]?.places ?? [])
-        }
+        var expanded = try await surroundings(of: subjects)
         // Anyone the world can describe who is named in the words: "Who is Polly?".
         if let text, !text.isEmpty {
             let known = try await facts.subjects(
                 withPredicate: WorldFacts.personDescription, at: now)
             expanded.append(contentsOf: WorldMentions.mentioned(in: text, among: known))
         }
+        return try await facts.currentFacts(about: unique(expanded), limit: limit, at: now)
+    }
+
+    /// The story around `subjects`: storyworthy events for them and their surroundings, oldest
+    /// first, each with the world's own sentence for it where the scene openers have one.
+    func recentHappenings(about subjects: [EntityID], since: Date, limit: Int) async throws
+        -> [Happening]
+    {
+        let around = unique(try await surroundings(of: subjects))
+        // Fetch generously: heartbeats and measurements share the index and are dropped here.
+        let recent = try await events.events(about: around, since: since, limit: limit * 8)
+        return recent.filter { Happening.isStoryworthy($0.type) }
+            .suffix(limit)
+            .map { event in
+                let subject =
+                    event.subjectIDs.first { !$0.rawValue.hasPrefix("character:") }
+                    ?? event.subjectIDs.first ?? event.placeID ?? around[0]
+                return Happening(
+                    occurredAt: event.occurredAt, type: event.type, subjectID: subject,
+                    summary: Self.summary(of: event, subject: subject))
+            }
+    }
+
+    /// The store's meanings, with the world's own catalogue behind them for a predicate the
+    /// store has not been told about yet.
+    func meanings(of predicates: Set<String>) async throws -> [String: String] {
+        let stored = try await kinds.meanings(of: predicates)
+        return WorldFacts.meanings.filter { predicates.contains($0.key) }
+            .merging(stored) { _, wizard in wizard }
+    }
+
+    /// The subjects plus the region each logged-in one is in, everyone present there, and the
+    /// region's places — the house around them.
+    private func surroundings(of subjects: [EntityID]) async throws -> [EntityID] {
+        var expanded = subjects
+        for subject in subjects {
+            guard let session = try await sessions.liveSession(for: subject) else { continue }
+            expanded.append(session.regionID)
+            expanded.append(
+                contentsOf: try await sessions.present(in: session.regionID).map(\.characterID))
+            expanded.append(contentsOf: regions[session.regionID]?.places ?? [])
+        }
+        return expanded
+    }
+
+    private func unique(_ ids: [EntityID]) -> [EntityID] {
         var seen: Set<EntityID> = []
-        let unique = expanded.filter { seen.insert($0).inserted }
-        return try await facts.currentFacts(about: unique, limit: limit, at: now)
+        return ids.filter { seen.insert($0).inserted }
+    }
+
+    /// The world's sentence for a happening, when it has one: the house events use the scene
+    /// openers' words; a cast fact says who told the world what. Anything else is left to the
+    /// mind's generic rendering of type and subject.
+    static func summary(of event: WorldEventEnvelope, subject: EntityID) -> String? {
+        if event.type == GivenFactAnnouncement.eventType {
+            guard case .string(let predicate)? = event.payload["predicate"] else { return nil }
+            let value: String
+            switch event.payload["value"] {
+            case .string(let text)?: value = "\"\(text)\""
+            case .number(let number)?:
+                value = number == number.rounded() ? String(Int(number)) : String(number)
+            case .bool(let flag)?: value = flag ? "yes" : "no"
+            case .some: value = "(something)"
+            case nil: return nil
+            }
+            return
+                "\(event.source.id.rawValue) told the world: \(subject.rawValue) \(predicate) = \(value)"
+        }
+        if event.source.kind == HouseEvents.sourceKind {
+            return SceneOpeningPolicy.triggerText(for: event, place: subject)
+        }
+        return nil
     }
 }
 

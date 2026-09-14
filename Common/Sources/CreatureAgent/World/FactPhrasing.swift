@@ -4,17 +4,32 @@ import WorldCore
 /// Turns the world's facts into the plain sentences a character can think with. The model
 /// never sees `presence.region`; it sees "Mango is here in the room with you".
 enum FactPhrasing {
-    /// The "What you know" lines for a character, newest fact first, skipping facts that have
-    /// no phrasing yet rather than dumping them.
+    /// Whether the world says `person` is home: true, false, or nil when it has no idea.
+    static func isHome(_ person: EntityID, in facts: [Fact]) -> Bool? {
+        guard
+            let fact = facts.first(where: {
+                $0.subjectID == person && $0.predicate == WorldFacts.personState
+            }), case .string(let state) = fact.value
+        else { return nil }
+        switch state {
+        case "home": return true
+        case "away": return false
+        default: return nil
+        }
+    }
+
+    /// The "What you know" lines for a character, newest fact first. One shape for every fact —
+    /// who or where, the predicate, its value, since when, how it is known — so a new kind of
+    /// fact needs a meaning in the world's glossary, never a phrasing here. A frontier model
+    /// reads `The front door · door.lock = unlocked · since 8:03 PM (5 minutes ago) · observed`
+    /// and says "the front door's been unlocked since eight" in its own words.
     static func lines(
         for facts: [Fact],
         character: EntityID,
-        now: Date
+        now: Date,
+        in timeZone: TimeZone
     ) -> [String] {
-        let pronouns = pronouns(in: facts)
-        var lines = facts.compactMap {
-            sentence(for: $0, character: character, now: now, pronouns: pronouns)
-        }
+        var lines = facts.compactMap { line(for: $0, character: character, now: now, in: timeZone) }
         // Cameras that are watching and have seen nothing: silence is a fact, said once for
         // all of them, so "is something outside?" gets an answer instead of a shrug.
         let watched = facts.filter { $0.predicate == WorldFacts.cameraWatching }
@@ -31,8 +46,7 @@ enum FactPhrasing {
                 "The camera\(names.count == 1 ? "" : "s") at \(list) \(names.count == 1 ? "has" : "have") seen nobody and nothing in the last ten minutes."
             )
         }
-        // A person the world can only describe in one phrase is a blank a small model fills
-        // with invention ("Polly lives in Seattle"); say plainly that the blank is a blank.
+        // A person the world can only describe in one phrase is a blank to be left blank.
         let described = facts.filter { $0.predicate == WorldFacts.personDescription }
         for fact in described
         where facts.filter({ $0.subjectID == fact.subjectID }).count == 1 {
@@ -46,103 +60,104 @@ enum FactPhrasing {
     static func pronouns(in facts: [Fact]) -> [EntityID: String] {
         var pronouns: [EntityID: String] = [:]
         for fact in facts where fact.predicate == WorldFacts.characterPronouns {
-            if case .string(let value) = fact.value, pronouns[fact.subjectID] == nil {
-                pronouns[fact.subjectID] = value
-            }
+            if case .string(let text) = fact.value { pronouns[fact.subjectID] = text }
         }
         return pronouns
     }
 
-    static func sentence(
-        for fact: Fact, character: EntityID, now: Date, pronouns: [EntityID: String] = [:]
-    ) -> String? {
-        let subject = name(of: fact.subjectID)
-        let certainty = qualifier(for: fact.epistemic)
-        switch fact.predicate {
-        case WorldFacts.characterRegion:
-            if fact.subjectID == character { return nil }  // Beaky knows where Beaky is.
-            guard case .string = fact.value else {
-                return "\(subject) has left."
-            }
-            let who = name(of: fact.subjectID, pronouns: pronouns[fact.subjectID])
-            return "\(who) is here in the room with you\(certainty)."
-        case WorldFacts.characterPronouns:
-            return nil  // said alongside the name wherever the character is mentioned.
-        case WorldFacts.cameraWatching:
-            return nil  // said for all the quiet cameras at once, after the facts.
-        case WorldFacts.personDescription:
-            guard case .string(let description) = fact.value else { return nil }
-            return "\(subject) is \(description)."
-        case WorldFacts.personState:
-            guard case .string(let state) = fact.value else { return nil }
-            switch state {
-            case "home": return "\(subject) is home\(certainty)."
-            case "away": return "\(subject) is away\(certainty)."
-            default: return nil
-            }
-        case "presence.physically_audible":
-            return nil  // folded into the router's choice; not something to say.
-        case WorldFacts.doorLock:
-            guard case .string(let state) = fact.value else { return nil }
-            let place = placeName(of: fact.subjectID)
-            return state == "unlocked"
-                ? "\(place) was unlocked \(age(of: fact.validFrom, now: now).lowercased())."
-                : "\(place) is locked."
-        case WorldFacts.doorState:
-            guard case .string(let state) = fact.value else { return nil }
-            let place = placeName(of: fact.subjectID)
-            return state == "open"
-                ? "\(place) is open (opened \(age(of: fact.validFrom, now: now).lowercased()))."
-                : "\(place) is closed."
-        case WorldFacts.motionActive:
-            guard case .bool(true) = fact.value else { return nil }
-            return
-                "Someone moved in \(placeName(of: fact.subjectID).lowercased()) \(age(of: fact.validFrom, now: now).lowercased())."
-        case let predicate where predicate.hasPrefix(WorldFacts.seenPrefix):
-            guard case .bool(true) = fact.value else { return nil }
-            let what = String(predicate.dropFirst(WorldFacts.seenPrefix.count))
-            let article = what == "animal" ? "An" : "A"
-            let place = placeName(of: fact.subjectID)
-            let at = place == place.capitalized ? place.lowercased() : "at " + place.lowercased()
-            return
-                "\(article) \(what) was seen \(at) \(age(of: fact.validFrom, now: now).lowercased())."
-        case let predicate where predicate.hasPrefix(WorldFacts.environmentPrefix):
-            return measurement(
-                String(predicate.dropFirst(WorldFacts.environmentPrefix.count)), fact: fact)
-        case WorldFacts.houseScenes:
-            guard case .array(let names) = fact.value, !names.isEmpty else { return nil }
-            let list = names.compactMap { value -> String? in
-                if case .string(let name) = value { return name }
-                return nil
-            }
-            return
-                "The house can set the lights to these scenes: \(list.joined(separator: ", ")). You cannot set them yourself: the house acts when April names one, and you will be told here when it does. Never say the lights are changing unless you are told so below; if April asks and you were not told, say the house did not catch it and ask her to name the scene."
-        case WorldFacts.houseSceneRequested:
-            guard case .string(let scene) = fact.value else { return nil }
-            return
-                "April just asked for the lights to be set to \(scene), and the house is doing it right now."
-        case WorldFacts.houseScene:
-            guard case .string(let scene) = fact.value else { return nil }
-            return
-                "The lights are set to \(scene) (since \(age(of: fact.validFrom, now: now).lowercased()))."
-        case WorldFacts.lastScene:
-            guard case .object(let scene) = fact.value,
-                case .array(let lines)? = scene["lines"], !lines.isEmpty
-            else { return nil }
-            let spoken = lines.compactMap { line -> String? in
-                guard case .object(let entry) = line,
-                    case .string(let who)? = entry["character_id"],
-                    case .string(let text)? = entry["text"]
-                else { return nil }
-                return "\(name(of: EntityID(rawValue: who) ?? fact.subjectID)) said \"\(text)\""
-            }
-            guard !spoken.isEmpty else { return nil }
-            return "\(age(of: fact.validFrom, now: now)), in this room: "
-                + spoken.joined(separator: "; ") + "."
-        default:
-            // Unknown predicates stay out of the prompt; the Viewer shows them raw.
-            return nil
+    /// A fact that is not for saying: pronouns ride with names, audibility is the router's,
+    /// a watching camera is folded into the quiet-cameras line, and a bird knows where it is.
+    private static func isUnspoken(_ fact: Fact, character: EntityID) -> Bool {
+        fact.predicate == WorldFacts.characterPronouns
+            || fact.predicate == WorldFacts.personAudible
+            || fact.predicate == WorldFacts.cameraWatching
+            || (fact.predicate == WorldFacts.characterRegion && fact.subjectID == character)
+    }
+
+    private static func line(for fact: Fact, character: EntityID, now: Date, in timeZone: TimeZone)
+        -> String?
+    {
+        guard !isUnspoken(fact, character: character) else { return nil }
+        var parts = [
+            "\(subjectName(of: fact.subjectID)) · \(fact.predicate) = \(rendered(fact.value))"
+        ]
+        var when =
+            "since \(clock(fact.validFrom, in: timeZone)) (\(age(of: fact.validFrom, now: now).lowercased()))"
+        if let until = fact.validTo {
+            when += ", until \(clock(until, in: timeZone))"
         }
+        parts.append(when)
+        parts.append(basis(of: fact.epistemic))
+        return parts.joined(separator: " · ")
+    }
+
+    /// "observed", "assumed (nobody has checked)", "reported", "inferred (70%)".
+    static func basis(of epistemic: EpistemicState) -> String {
+        var text =
+            switch epistemic.type {
+            case .observed: "observed"
+            case .assumed: "assumed (nobody has checked)"
+            case .reported: "reported"
+            case .inferred: "inferred"
+            case .scheduled: "scheduled"
+            case .forecast: "forecast"
+            case .remembered: "remembered"
+            }
+        if epistemic.confidence < 0.999 {
+            text += " (\(Int((epistemic.confidence * 100).rounded()))% sure)"
+        }
+        return text
+    }
+
+    /// "The front door", "Mango", "April", "the house", "this room".
+    static func subjectName(of entityID: EntityID) -> String {
+        let raw = entityID.rawValue
+        if raw.hasPrefix("place:") { return placeName(of: entityID) }
+        if raw.hasPrefix("house:") { return "The house" }
+        if raw.hasPrefix("region:") { return "This room" }
+        return name(of: entityID)
+    }
+
+    /// A value as itself: `unlocked`, `"April's sister"`, `67.1`, `yes`, `none`,
+    /// `[Normal Evening, Movie Time]`, or the lines of a scene as `Beaky: "…"; Kenny: "…"`.
+    static func rendered(_ value: WorldJSONValue) -> String {
+        switch value {
+        case .string(let text):
+            if let id = EntityID(rawValue: text), text.contains(":") { return subjectName(of: id) }
+            return text.contains(" ") ? "\"\(text)\"" : text
+        case .number(let number):
+            return number == number.rounded() ? String(Int(number)) : String(format: "%.1f", number)
+        case .bool(let flag): return flag ? "yes" : "no"
+        case .null: return "none"
+        case .array(let items): return "[" + items.map(rendered).joined(separator: ", ") + "]"
+        case .object(let object):
+            if case .array(let lines)? = object["lines"] {
+                let spoken = lines.compactMap { line -> String? in
+                    guard case .object(let entry) = line,
+                        case .string(let who)? = entry["character_id"],
+                        case .string(let text)? = entry["text"]
+                    else { return nil }
+                    let speaker = EntityID(rawValue: who).map(name(of:)) ?? who
+                    return "\(speaker): \"\(text)\""
+                }
+                if !spoken.isEmpty { return spoken.joined(separator: "; ") }
+            }
+            return object.keys.sorted().map { "\($0)=\(rendered(object[$0]!))" }
+                .joined(separator: ", ")
+        }
+    }
+
+    static func clock(_ date: Date, in timeZone: TimeZone) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        return date.formatted(
+            Date.FormatStyle(
+                date: .omitted, time: .shortened, locale: calendar.locale!, calendar: calendar,
+                timeZone: timeZone)
+        )
+        .replacingOccurrences(of: "\u{202F}", with: " ")
+        .replacingOccurrences(of: "\u{00A0}", with: " ")
     }
 
     /// "It is 11:58 PM on Thursday, September 11." — the local wall clock in words, so the
@@ -163,6 +178,29 @@ enum FactPhrasing {
         return "It is \(clock) on \(day)."
             .replacingOccurrences(of: "\u{202F}", with: " ")
             .replacingOccurrences(of: "\u{00A0}", with: " ")
+    }
+
+    /// "8:03:05 PM (5 minutes ago): The front door was just unlocked." — one line per
+    /// happening, oldest first, so the mind reads the story in order. A happening the world
+    /// has no sentence for is named by its kind and subject: "camera.person_seen at the carport".
+    static func happeningLines(_ happenings: [Happening], now: Date, in timeZone: TimeZone)
+        -> [String]
+    {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        let style = Date.FormatStyle(
+            date: .omitted, time: .standard, locale: calendar.locale!, calendar: calendar,
+            timeZone: timeZone)
+        return happenings.map { happening in
+            let clock = happening.occurredAt.formatted(style)
+                .replacingOccurrences(of: "\u{202F}", with: " ")
+                .replacingOccurrences(of: "\u{00A0}", with: " ")
+            let what =
+                happening.summary
+                ?? "\(happening.type.rawValue) at \(placeName(of: happening.subjectID).lowercased())"
+            return "\(clock) (\(age(of: happening.occurredAt, now: now).lowercased())): \(what)"
+        }
     }
 
     /// The characters the facts place somewhere — logged in, not logged out (`null`).
@@ -187,68 +225,10 @@ enum FactPhrasing {
         return article.contains(name) ? name.capitalized : "The " + name
     }
 
-    /// "It is 68 degrees outside." / "The humidity in the workshop is 41 percent."
-    private static func measurement(_ predicate: String, fact: Fact) -> String? {
-        guard case .number(let value) = fact.value else { return nil }
-        let place = placeName(of: fact.subjectID)
-        let at = place == place.capitalized ? place.lowercased() : "at " + place.lowercased()
-        // Spoken numbers are whole numbers: a bird says "about 67 degrees", not "66.9".
-        let whole = Int(value.rounded())
-        let shown = (value.rounded() == value ? "" : "about ") + String(whole)
-        switch predicate {
-        case "temperature_f":
-            return "It is \(shown) degrees \(at)."
-        case "temperature_c":
-            return "It is \(shown) degrees Celsius \(at)."
-        case "humidity_percent":
-            return "The humidity \(at) is \(shown) percent."
-        case "wind_mph":
-            // April: "she can remind me when it's windy!"
-            switch value {
-            case ..<3: return "The air is still \(at)."
-            case ..<15: return "There is a light wind \(at), about \(whole) miles per hour."
-            case ..<30: return "It is windy \(at): about \(whole) miles per hour."
-            default:
-                return
-                    "It is very windy \(at): about \(whole) miles per hour. Things may blow around."
-            }
-        case "rain_today_in":
-            if value < 0.01 { return "It has not rained today." }
-            let inches = String(format: "%.1f", value)
-            return "It has rained \(inches) inch\(inches == "1.0" ? "" : "es") today."
-        case "pressure_hpa":
-            return "The barometer reads \(shown) hectopascals."
-        case "pm25_ugm3":
-            let air =
-                switch value {
-                case ..<12: "clean"
-                case ..<35: "a little hazy"
-                case ..<55: "poor; sensitive people should stay in"
-                default: "bad; everyone should stay inside"
-                }
-            return
-                "The air \(at) is \(air) (fine particles about \(whole) micrograms per cubic meter)."
-        case "power_w":
-            let kilowatts = String(format: "%.1f", value / 1_000)
-            return "The house is drawing about \(kilowatts) kilowatts right now."
-        default:
-            return "\(place): \(predicate.replacingOccurrences(of: "_", with: " ")) is \(shown)."
-        }
-    }
-
     /// "Mango (he/him)" when the world knows the pronouns, "Mango" when it does not.
     static func name(of entityID: EntityID, pronouns: String?) -> String {
         guard let pronouns, !pronouns.isEmpty else { return name(of: entityID) }
         return "\(name(of: entityID)) (\(pronouns))"
-    }
-
-    private static func qualifier(for epistemic: EpistemicState) -> String {
-        switch epistemic.type {
-        case .assumed: " (you assume; nobody has checked)"
-        case .inferred where epistemic.confidence < 0.8: " (probably)"
-        case .forecast: " (expected)"
-        default: ""
-        }
     }
 
     private static func age(of date: Date, now: Date) -> String {

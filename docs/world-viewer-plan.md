@@ -59,8 +59,8 @@ so the server, the agent, and the apps decode one definition.
 
 - **Target** `World Viewer` (macOS only, `io.opsnlops.World-Viewer`), a file-system-synchronized
   group at `World Viewer/`, package products `WorldCore` + `CreatureAppSupport`, cloned from the
-  Beaky Communicator target's pbxproj entries under a fresh ID prefix.
-- **Connection settings** mirror Beaky Communicator (`CreatureServiceSettings` + the app-family
+  Flock Communicator target's pbxproj entries under a fresh ID prefix.
+- **Connection settings** mirror Flock Communicator (`CreatureServiceSettings` + the app-family
   Keychain proxy key) under their own `worldViewer*` UserDefaults keys, so dev and prod are
   separate worlds.
 - **`WorldStore`** (`@MainActor @Observable`): connection state, a bounded ring of events (2,000

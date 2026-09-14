@@ -52,17 +52,25 @@ struct ConversationTurnRow: View {
                     Text(item.createdAt, format: .dateTime.hour().minute().second())
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.tertiary)
-                    if item.trace != nil {
-                        Image(systemName: "point.3.connected.trianglepath.dotted")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .help("Carries a W3C trace context")
-                    }
+                    TraceLink(trace: item.trace)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
                 Text(item.text)
                     .textSelection(.enabled)
                 if let delivery {
                     DeliveryChip(delivery: delivery)
+                    if let outcome = delivery.outcome, outcome.state == .failed {
+                        // Why, in the refusing service's own words — the difference between
+                        // "physical_speech_start_failed" and "Is the controller online?".
+                        Label(
+                            outcome.errorMessage ?? "No reason was recorded (before World 0.19).",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                    }
                 } else if item.authorKind == .character {
                     Text("No delivery record — this turn was cast by hand or pre-dates the router.")
                         .font(.caption2)

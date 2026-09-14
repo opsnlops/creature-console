@@ -84,7 +84,10 @@ systemd service reads `/etc/creature/world.json` by default.
 | Lead character | `lead_character` | — | — | `character:beaky` (who an unaddressed message goes to) |
 | Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
-| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.maximum_spoken_seconds`, `scenes.words_per_second` | — | — | `8`, `12`, `90`, `2.5` |
+| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
+| House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
+| Retention | `retention.event_days`, `cheap_event_days`, `processing_days`, `timer_days`, `ingress_days`, `retired_fact_days`, `delivery_days`, `scene_days` | — | — | `90`, `7`, `7`, `7`, `30`, `90`, `90`, `180` |
+| Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
 
 Example:
 
@@ -173,8 +176,153 @@ character at a time — the addressee first, then the others in a round — with
 `POST /world/v1/scenes/{scene_id}/turns`; a floor nobody answers by `floor_seconds` is a pass
 (the deadline is a world timer, `scene.floor_expired`). The scene closes when everyone passes in
 a row, at `maximum_turns`, or when the composed speech would exceed `maximum_spoken_seconds`
-(estimated at `words_per_second`); a new scene in the region interrupts an open one. Every spoken
+(estimated as below); a new scene in the region interrupts an open one. Every spoken
 turn is also a conversation item, so the Communicator shows the exchange as it is composed.
+
+**The house opens scenes** (`0.10.0`, F3): `scenes.open_on` lists the world events that
+start a scene on their own, where, and how often —
+
+```json
+"scenes": { "open_on": [
+  { "event": "camera.person_seen",  "places": ["place:driveway", "place:front-door", "place:carport"], "cooldown_seconds": 300 },
+  { "event": "camera.vehicle_seen", "places": ["place:driveway", "place:carport"], "cooldown_seconds": 300 },
+  { "event": "door.unlocked", "cooldown_seconds": 60 }
+] }
+```
+
+— the MQTT agent's areas and cooldowns, as world rules. When a matching event is accepted
+(and its place has not opened one within the cooldown), the world opens a scene in the
+region whose `places` include it (a person's event uses the lead's region), in
+`house_conversation` (default `conversation:april-house`), with the lead first and everyone
+else logged into the region after; the trigger is a stage note the birds read — "A person
+was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody logged in means
+no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
+(so the birds also know it is 66 degrees and the cameras are otherwise quiet).
+
+**The packaged `world.json` is the production config** (`0.19.1`): it is installed on the box
+that runs Creature Server, so `creature_server.url` is `http://localhost:8000`, and everything
+else in it is April's real house. A dev world elsewhere (fuzzball) edits its own copy — the
+public URL for the creature server, and never while the production world is running against it.
+
+**Failures say why** (`0.19.0`). Delivery outcomes and scene performances carry `error_message`
+beside `error_code` — Creature Server's own words. A room that cannot be readied for a scene is a
+`scene.stage_problem` event with the reason, announced when the scene opens.
+
+**Retention** (`0.18.0`, migration v10). The world keeps its raw material for a while and its
+memories for years. MongoDB TTL indexes expire: events at `expires_at` (stamped at append —
+`event_days` for the story, `cheap_event_days` for measurements and the pacing timers), event
+bookkeeping after `processing_days`, timers `timer_days` after they fire or are cancelled,
+utterance ingresses (the utterance with the fat percept it produced; the words stay in the
+conversation) after `ingress_days`, facts `retired_fact_days` after their `valid_to` (set when
+superseded or expired — a current fact never expires), deliveries and stage decisions after
+`delivery_days`, closed scenes after `scene_days`. `conversation_items`, `fact_kinds`, and the
+memory facts the nightly job will write have no TTL. A window changed in `world.json` is applied
+on the next start with `collMod`; rows from before `0.18.0` are backfilled by kind. On a chatty
+day the dev world grew about 7 MB.
+
+**The birds sleep** (`0.17.0`). `scenes.quiet_hours` — `{"from": "23:00", "to": "07:00",
+"time_zone": "America/Los_Angeles"}` — is when the house does not wake them, with no exceptions:
+"Beaky isn't a security system, she's my familiar. I have other alerts that go off at 3am." Events
+in the window are recorded and are the morning's story; cooldowns are untouched, so the first thing
+after seven may speak. Without the key the house may speak at any hour. Quiet hours silence the
+house's *initiative*, never a bird's *reply*: April's words at 3 AM — `@beaky`, "Beaky, …", or
+the room — are routed exactly as at 3 PM and answered aloud if she is home. April: "If I
+at-mention a bird they should be allowed to respond out loud during quiet hours because I
+specifically asked them to."
+
+**Every rule may speak** (`0.16.1`). Each `open_on` rule has its own cooldown, so a walk to the
+carport — the front door, then its camera, then the driveway's, then the carport's — opens four
+short scenes in forty seconds, and Beaky treats them as one event on her own ("I suspect one
+mysterious person is making a grand tour of the cameras"). April wants each of them: "If I'm at
+home and watching TV I want to know that someone's out there sooner rather than later."
+`scenes.house_gap_seconds` (default 0, off) is there for a quieter house: the least time between
+any two scenes the house opens; the events inside a gap become the story the next scene is told.
+
+**What facts mean** (`0.16.0`). The world keeps a glossary, `fact_kinds` (migration v9): one
+document per predicate with its `meaning`, seeded at every start from `WorldFacts.meanings` for
+any predicate the store lacks and never overwriting one already there. Every percept and floor
+offer carries `fact_meanings` for the predicates in its `world_facts`; the mind renders facts
+generically and reads the glossary, so a new kind of fact needs a sentence of meaning, not a
+phrasing. `GET /v1/fact-kinds` lists them; `PUT /v1/fact-kinds/{predicate}` with
+`{"meaning": "…", "updated_by": "wizard:april"}` rewords one (the Viewer's Meanings mode).
+
+**The story behind the facts** (`0.15.0`). Every percept and floor offer carries
+`recent_happenings` beside `world_facts`: the storyworthy events (`door.*`, `camera.*`,
+`motion.*`, `person.*`, `house.*`, `facts.given`; never heartbeats, timers, or measurements) of
+the last fifteen minutes for the same subjects the facts cover — the character, the speaker,
+the region, everyone present, and the region's `places` — oldest first, thirty at most, each
+with the world's own sentence where it has one. The mind reads the story in order and draws its
+own conclusions; the Viewer's timeline shows "saw N" beside "knows N".
+
+**Scenes the house opens are short** (`0.14.0`): `scenes.house_maximum_turns` (default 3 since
+`0.16.2`; April: "she can have others join her, but no more than three turns") caps a scene whose
+trigger is a world event — Beaky's remark and a reaction or two, not a twelve-turn debate about a
+visitor. If the lead's mind is silent or fails, the room still hears the event: the
+world takes the trigger sentence as her line and marks the turn `fallback: true` (the MQTT agent's
+`fallbackSpeech`, moved to where the floor is).
+
+**Casting a fact.** Anyone may tell the world something by posting a `facts.given` event:
+
+```
+curl -X POST http://fuzzball:8001/world/v1/events -H 'Content-Type: application/json' -d '{
+  "type": "facts.given", "occurred_at": "2026-09-13T20:00:00Z",
+  "source": {"id": "wizard:april", "kind": "person"},
+  "subject_ids": ["person:jesse"], "epistemic": {"type": "reported", "confidence": 1},
+  "payload": {"subject_id": "person:jesse", "predicate": "visitor.expected",
+              "value": "this afternoon, to look at the deck", "valid_for_seconds": 21600}}'
+```
+
+`valid_for_seconds` or an ISO `valid_to` gives the fact an expiry; without one it stands until
+superseded. `world.json`'s `facts` list is the same thing, cast at startup and never expiring.
+
+**The floor is paced to the room** (`0.11.0`). Composing is fast and speaking is slow: a
+twelve-turn scene generates in seconds and plays for a minute, and with the next floor offered
+the moment a line's text landed, the birds ran far ahead of what anyone had heard (the
+server's trace showed sentences waiting up to twenty seconds in the playback queue behind
+lines already composed). The world now keeps `spoken_until` — its estimate of when the room
+will finish everything queued — and offers the next floor `turn_lead_seconds` (default 2)
+before that, through a `scene.floor_ready` world timer; the scene shows `pending_floor` in
+the meantime. Each bird therefore reacts to what was actually just heard, the scene runs at
+conversation speed, and April can get a word in.
+
+The estimate is `sentence_seconds` per sentence plus the characters at
+`characters_per_second` (`0.12.0`). Those defaults — a third of a second and twenty a
+second — were fitted to Creature Server's rendered frame counts for a real scene and land
+within a tenth of a second of ElevenLabs' actual audio; the earlier words-per-second guess
+ran a quarter slow, so every hand-off carried a second of dead air. The lead covers the next
+bird's first-sentence latency and the render; a line that arrives early simply queues behind
+the one playing (the server plays a scene's sentences in order), so a generous lead costs only
+that April's interjection may land after the next line is composed. An answered floor's
+deadline is withdrawn, so `scene.floor_expired` means a real pass, never a phantom.
+
+Voices differ. Kenny's drawls at about eleven characters a second where Beaky's and Mango's
+run twenty, and at the default pace the world thought his lines were half their length — by
+the twelfth turn the birds were fifteen seconds ahead of the room again. `scenes.voices`
+gives a character its own pace (`0.13.0`):
+
+```json
+"voices": {
+  "character:kenny": { "characters_per_second": 13, "sentence_seconds": 0.4 }
+}
+```
+
+To measure a voice, take Creature Server's `StreamingAdHocSession.sentence` spans in
+Honeycomb: `animation.frames` × 20 ms is the audio length, `sentence.length` the characters;
+fit seconds = `sentence_seconds` + characters ÷ `characters_per_second`. Err on the fast side:
+April would rather the birds run a touch ahead than leave air between lines, and the 2 s lead
+keeps about a second queued either way. Creature
+Server reporting real play times (creature-server#192) will replace the estimate.
+
+**A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model
+submits `{ "text": "Not quite, Kenny.", "piece": 0 }`, `{ …, "piece": 1 }`, … and finally
+`{ "text": null }` (or a last sentence with no `piece`) for "that was the whole line". Each
+piece is spoken the moment it lands (`scene.turn_piece`; the streaming performer sends it as
+a `dialog-stream` turn — creature-server#192 asks for a `continues` flag so consecutive pieces
+keep the pose and prosody), the floor's deadline moves out by `floor_seconds` with each, a
+stale floor timer is ignored, a retried piece is a `duplicate`, and the pieces are joined
+into one turn — recorded once — when the line is done. A line that goes quiet becomes the
+line so far when the floor expires. This is what lets a frontier model's longer line start
+playing after its first sentence instead of its last.
 
 Two ways to the room, chosen by `scene_performance`:
 
@@ -535,7 +683,7 @@ Communicator history. The response body is `{ "disposition", "outcome", "convers
 before the Creature Server sink exists, the outcome is recorded as `failed` with
 `error_code: physical_speech_not_connected` rather than lost.
 
-Beaky Communicator writes a typed utterance to its local SwiftData outbox before attempting the
+Flock Communicator writes a typed utterance to its local SwiftData outbox before attempting the
 POST. Retries reuse the same utterance ID, so an interrupted request cannot make Beaky hear April
 twice. A successful response replaces the provisional local item with Creature World's canonical
 item, and history synchronization pages forward from the durable API. Creature World records

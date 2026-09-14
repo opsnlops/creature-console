@@ -491,6 +491,31 @@ struct ConversationServiceTests {
         #expect(await dependencies.communicatorSink.deliveryCount == 0)
     }
 
+    @Test("A failed performance keeps the room's reason, in its own words, for the Viewer")
+    func failedPerformanceKeepsTheReason() async throws {
+        let dependencies = try makeRouterDependencies(testCase: .home)
+        let router = try makeRouter(dependencies: dependencies)
+        let staged = try await router.stage(makeStageRequest(), in: Self.conversationID)
+        let reason =
+            "Creature 4754fc0e is not registered with a universe. Is the controller online?"
+        let performance = try CharacterPerformance(
+            intent: makeCharacterIntent(),
+            attemptID: staged.decision.attemptID,
+            outcome: CharacterPerformanceReport(
+                state: .failed, errorCode: "physical_speech_start_failed", errorMessage: reason)
+        )
+
+        let result = try await router.recordPerformance(performance, in: Self.conversationID)
+
+        #expect(result.outcome.state == .failed)
+        #expect(result.outcome.errorCode == "physical_speech_start_failed")
+        #expect(result.outcome.errorMessage == reason)
+        // And it survives the wire.
+        let data = try WorldJSON.makeEncoder().encode(result.outcome)
+        let decoded = try WorldJSON.makeDecoder().decode(CharacterDeliveryOutcome.self, from: data)
+        #expect(decoded.errorMessage == reason)
+    }
+
     @Test("A performance the world never staged is refused")
     func unstagedPerformanceIsRefused() async throws {
         let dependencies = try makeRouterDependencies(testCase: .home)

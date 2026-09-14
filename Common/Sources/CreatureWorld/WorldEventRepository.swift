@@ -12,11 +12,13 @@ struct WorldEventRepository: Sendable {
     private let events: MongoCollection
     private let eventProcessing: MongoCollection
     private let counters: MongoCollection
+    private let retention: RetentionPolicy
 
-    init(database: MongoDatabase) {
+    init(database: MongoDatabase, retention: RetentionPolicy = RetentionPolicy()) {
         self.events = database[MongoWorldCollection.events]
         self.eventProcessing = database[MongoWorldCollection.eventProcessing]
         self.counters = database[MongoWorldCollection.counters]
+        self.retention = retention
     }
 
     func append(_ proposedEvent: WorldEventEnvelope, receivedAt: Date) async throws
@@ -35,6 +37,9 @@ struct WorldEventRepository: Sendable {
 
         var document = try BSONEncoder().encode(acceptedEvent)
         document["_id"] = acceptedEvent.eventID.rawValue
+        // When this stops mattering, by kind: the TTL index on expires_at does the rest.
+        document["expires_at"] = retention.expiry(
+            for: acceptedEvent.type, occurredAt: acceptedEvent.occurredAt)
         do {
             try await events.insert(document, writeConcern: .majority())
             return .inserted(acceptedEvent)
@@ -64,6 +69,24 @@ struct WorldEventRepository: Sendable {
             try await events
             .find(["world_sequence": greaterThan])
             .sort(["world_sequence": 1])
+            .limit(limit)
+            .drain()
+        return try documents.map(decode)
+    }
+
+    /// The events about any of `subjects` since `since`, oldest first — the story a mind is
+    /// told. Callers filter by kind; this is the index-shaped query.
+    func events(about subjects: [EntityID], since: Date, limit: Int) async throws
+        -> [WorldEventEnvelope]
+    {
+        precondition(limit > 0)
+        guard !subjects.isEmpty else { return [] }
+        let anyOf: Document = ["$in": subjects.map(\.rawValue)]
+        let after: Document = ["$gte": since]
+        let documents =
+            try await events
+            .find(["subject_ids": anyOf, "occurred_at": after])
+            .sort(["occurred_at": 1])
             .limit(limit)
             .drain()
         return try documents.map(decode)
