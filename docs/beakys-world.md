@@ -145,11 +145,12 @@ asked April]", "[pass: joke already landed]"; April: "It feels a lot better." **
 tells her — `[learned: who or where | predicate | value | expires]` tags on replies, stripped from
 speech, cast as `facts.given` with April as source and her words as provenance; corrections are
 `sighting.identified`; the Viewer shows "Beaky learned: …" with Forget. `llmMemoryModel` in the
-agent config for 4b. **Step 4b (World `0.22.0` / agent `2.71.0` / Viewer `0.6.0`):** the nightly memory —
+agent config for 4b. **Step 4b (World `0.23.0` / agent `2.71.0` / Viewer `0.6.0`):** the nightly memory —
 `memory` in world.json, the 3:30 `memory.consolidate` timer, `GET /v1/days/{day}`, the job in
 Beaky's agent on `llmMemoryModel: gpt-6-astra`, `memory.episode.<day>` / `memory.reflection.<day>`
 facts kept for years and handed out sparingly. Deploy: World + agents; add `llmMemoryModel:
-gpt-6-astra` to beaky.yaml. First run: 3:30 AM Monday 2026-09-14, remembering the 13th. The
+gpt-6-astra` to beaky.yaml. First run: 3:30 AM Monday 2026-09-14, remembering the 13th — or sooner by hand: `POST
+/world/v1/days/2026-09-13/remember` (World `0.23.0`). The
 local-LLM health check no longer runs on the OpenAI backend. Next: watch the first memory land;
 Bridge plan doc; "both places".
 

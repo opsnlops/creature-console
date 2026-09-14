@@ -441,9 +441,7 @@ struct WorldHTTPAPI: Sendable {
         // lines, and what was cast.
         router.get("v1/days/:day") { _, context in
             await respond {
-                guard let day = context.parameters.get("day"),
-                    day.count == 10, day.filter({ $0 == "-" }).count == 2
-                else { throw WorldAPIError.invalidQuery(name: "day") }
+                let day = try dayParameter(context)
                 return try await execute {
                     guard let digest = try await service.dayDigest(day) else {
                         return try jsonResponse(
@@ -451,6 +449,19 @@ struct WorldHTTPAPI: Sendable {
                             status: .notFound)
                     }
                     return try jsonResponse(digest)
+                }
+            }
+        }
+
+        // Remember a day by hand: the world records the same `memory.consolidate` event the
+        // nightly clock would, and the mind with a memory model does the rest.
+        router.post("v1/days/:day/remember") { _, context in
+            await respond {
+                let day = try dayParameter(context)
+                return try await execute {
+                    try jsonResponse(
+                        WorldEventAcceptanceResponse(try await service.remember(day)),
+                        status: .accepted)
                 }
             }
         }
@@ -544,6 +555,14 @@ struct WorldHTTPAPI: Sendable {
         else {
             throw WorldAPIError.unsupportedMediaType
         }
+    }
+
+    /// The `:day` of a `/v1/days/...` route: a real calendar day, `YYYY-MM-DD`.
+    private func dayParameter(_ context: BasicRequestContext) throws -> String {
+        guard let day = context.parameters.get("day"),
+            MemoryConfiguration.bounds(ofDay: day, in: .current) != nil
+        else { throw WorldAPIError.invalidQuery(name: "day") }
+        return day
     }
 
     private func pageLimit(_ request: Request) throws -> Int {

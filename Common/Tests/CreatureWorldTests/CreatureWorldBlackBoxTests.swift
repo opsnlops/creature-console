@@ -324,6 +324,15 @@ struct CreatureWorldBlackBoxTests {
         #expect(digest.conversation.contains { $0.text == utterance.text })
         #expect(digest.happenings.contains { $0.type == HouseEvents.personSeen })
 
+        // Asking the world to remember a day by hand records the clock's event for that day.
+        let remembered = try await api.remember(today)
+        let requested = try await api.events(after: 0, from: MemoryClock.requestSourceID)
+        #expect(
+            requested.contains {
+                $0.eventID == remembered.event.eventID && $0.type == MemoryClock.eventType
+                    && $0.payload["day"] == .string(today)
+            })
+
         // The glossary is the world's, seeded from its catalogue; a Wizard may reword a line.
         let kinds = try await api.factKinds()
         #expect(kinds[WorldFacts.doorLock] == WorldFacts.meanings[WorldFacts.doorLock])
@@ -744,6 +753,15 @@ private struct WorldServiceAPI {
         #expect(response.status == .ok)
         let body = try await response.body.collect(upTo: 8 * 1_048_576)
         return try WorldJSON.makeDecoder().decode(DayDigest.self, from: body)
+    }
+
+    func remember(_ day: String) async throws -> WorldEventAcceptanceResponse {
+        var request = HTTPClientRequest(url: "\(base)/days/\(day)/remember")
+        request.method = .POST
+        let response = try await client.execute(request, timeout: .seconds(15))
+        #expect(response.status == .accepted)
+        let body = try await response.body.collect(upTo: 1_048_576)
+        return try WorldJSON.makeDecoder().decode(WorldEventAcceptanceResponse.self, from: body)
     }
 
     func factKinds() async throws -> [String: String] {

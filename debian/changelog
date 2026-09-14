@@ -1,3 +1,12 @@
+creature-cli (2.71.0+world0.23.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.23.0: remember a day by hand. POST
+    /v1/days/{day}/remember records the same `memory.consolidate` event
+    the 3:30 clock would; 202 with the event. For the first night, and
+    for any day whose memory should be redone.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 22:15:00 -0700
+
 creature-cli (2.71.0+world0.22.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * The nightly memory (step 4b). At 3:30 the world says "remember the

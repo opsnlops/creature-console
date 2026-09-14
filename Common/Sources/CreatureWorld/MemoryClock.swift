@@ -26,6 +26,30 @@ enum MemoryClock {
                 ]
             ))
     }
+
+    static let requestSourceID = try! SourceID(validating: "world:memory")
+
+    /// "Remember this day" asked for by hand (`POST /v1/days/{day}/remember`): the same event
+    /// the timer would have produced, so the mind cannot tell the two apart. Every request is
+    /// its own event; asking twice remembers twice.
+    static func request(day: String, memory: MemoryConfiguration, now: Date) throws
+        -> WorldEventEnvelope
+    {
+        try WorldEventEnvelope(
+            type: eventType,
+            occurredAt: now,
+            source: EventSource(
+                id: requestSourceID, kind: "world",
+                sourceEventID: "remember:\(day):\(WorldJSON.timestamp(now))"),
+            subjectIDs: [],
+            epistemic: EpistemicState(type: .scheduled, confidence: 1),
+            payload: [
+                "day": .string(day),
+                "time_zone": .string(memory.timeZone),
+                "requested_by": .string("api"),
+            ]
+        )
+    }
 }
 
 /// One day of the world, assembled for the memory job: happenings, the house conversation, the

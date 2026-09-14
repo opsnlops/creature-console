@@ -41,6 +41,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let factKinds: @Sendable () async throws -> FactKindPage
     let setFactKind: @Sendable (String, FactKindUpdate) async throws -> FactKind
     let dayDigest: @Sendable (String) async throws -> DayDigest?
+    let remember: @Sendable (String) async throws -> WorldEventAcceptance
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -411,6 +412,10 @@ struct MongoWorldPersistenceConnection: Sendable {
                 persistence: persistence, houseConversation: houseConversation, memory: memory
             ).digest(of: day)
         }
+        remember = { day in
+            try await world.accept(
+                MemoryClock.request(day: day, memory: memory, now: await clock.now))
+        }
         // The memory clock: one world timer for the next consolidation, rescheduled after each
         // firing. The mind that owns a memory model hears the timer's event and does the work.
         let memoryClock = Task {
@@ -519,6 +524,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         setFactKind: @escaping @Sendable (String, FactKindUpdate) async throws -> FactKind = {
             _, _ in throw WorldAPIError.databaseUnavailable
         },
+        remember: @escaping @Sendable (String) async throws -> WorldEventAcceptance = { _ in
+            throw WorldAPIError.databaseUnavailable
+        },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -551,6 +559,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.factKinds = factKinds
         self.setFactKind = setFactKind
         self.dayDigest = dayDigest
+        self.remember = remember
         self.shutdown = shutdown
     }
 }
@@ -817,6 +826,11 @@ actor MongoWorldPersistenceProvider {
     func dayDigest(_ day: String) async throws -> DayDigest? {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.dayDigest(day)
+    }
+
+    func remember(_ day: String) async throws -> WorldEventAcceptance {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.remember(day)
     }
 
     func conversationItems(

@@ -97,6 +97,8 @@ protocol WorldApplicationService: Sendable {
     func factKinds() async throws -> FactKindPage
     func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws -> FactKind
     func dayDigest(_ day: String) async throws -> DayDigest?
+    /// Asks the memory job to remember `day` now, ahead of (or again after) the nightly clock.
+    func remember(_ day: String) async throws -> WorldEventAcceptance
 }
 
 extension WorldApplicationService {
@@ -105,6 +107,9 @@ extension WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
     func dayDigest(_ day: String) async throws -> DayDigest? {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func remember(_ day: String) async throws -> WorldEventAcceptance {
         throw WorldAPIError.databaseUnavailable
     }
 }

@@ -229,8 +229,14 @@ about (value `{day, when, what, salience}`, epistemic `remembered`, confidence =
 keeps every day's memory beside the last instead of superseding it; the glossary answers for the
 family. Memories have no `valid_to`, so retention never removes them; a mind is handed only the
 `episodes_in_prompt` most salient and newest within `episode_days`, and its `reflections_in_prompt`
-newest reflections. To remember a day by hand: post a `memory.consolidate` event with `{"day":
-"2026-09-13"}` in the payload.
+newest reflections. To remember a day by hand — the first night, or a day whose memory you want redone —
+`POST /v1/days/{day}/remember` (`0.23.0`): the world records the same `memory.consolidate` event
+the clock would, `202 Accepted` with the event, and the job runs on it. Each request is its own
+event; asking twice remembers twice.
+
+```
+curl -X POST https://server.prod.chirpchirp.dev/world/v1/days/2026-09-13/remember
+```
 
 **Failures say why** (`0.19.0`). Delivery outcomes and scene performances carry `error_message`
 beside `error_code` — Creature Server's own words. A room that cannot be readied for a scene is a
