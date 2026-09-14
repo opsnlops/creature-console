@@ -728,7 +728,7 @@ struct CharacterMind: Sendable {
         let turn =
             isLead
             ? "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken)."
-            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Do not repeat what was just said."
+            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Do not repeat what was just said, and do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times."
         return """
             The house just noticed something; it is written below in parentheses, followed by \
             anything already said about it. \(company) \(april) \(turn) Think with what you know \
