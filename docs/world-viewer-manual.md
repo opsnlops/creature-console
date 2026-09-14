@@ -112,7 +112,9 @@ removes them.
 
 Right-click any fact on the Facts tab → **Forget** (`0.6.1`): the same retraction as the
 Timeline's Forget button, for any fact the world believes — a bird's memory it filed wrongly, a
-learned thing April did not mean it to keep.
+learned thing April did not mean it to keep. The fact shows as `null` for a second and then
+leaves the list on its own (`0.6.2`): the world sends no delta when a window closes, so the
+Viewer keeps its own alarm for the soonest expiry.
 
 ### When a bird passes
 

@@ -57,6 +57,7 @@ final class WorldStore {
     @ObservationIgnored private let reconnectDelay: Duration
     @ObservationIgnored private var streamTask: Task<Void, Never>?
     @ObservationIgnored private var conversationTask: Task<Void, Never>?
+    @ObservationIgnored private var expiryTask: Task<Void, Never>?
 
     convenience init(connection: WorldViewerConnection = .shared) {
         self.init(connection: connection, makeScryer: { try connection.scryer() })
@@ -98,6 +99,7 @@ final class WorldStore {
     func stop() {
         streamTask?.cancel()
         conversationTask?.cancel()
+        expiryTask?.cancel()
         streamTask = nil
         conversationTask = nil
         streamState = .idle
@@ -152,6 +154,7 @@ final class WorldStore {
             let (loadedFacts, loadedTimers, loadedKinds) = try await (factPage, timerPage, kindPage)
             guard !Task.isCancelled else { return }
             facts = loadedFacts.facts
+            sweepExpiredFacts()
             factsTruncated = loadedFacts.hasMore
             timers = loadedTimers.timers
             factKinds = loadedKinds.kinds
@@ -229,6 +232,7 @@ final class WorldStore {
                     case .snapshot(let snapshot):
                         latestSequence = snapshot.latestSequence
                         facts = snapshot.facts
+                        sweepExpiredFacts()
                         factsTruncated = snapshot.factsTruncated
                         timers = snapshot.timers
                         try await loadRecentHistory(using: scryer, upTo: snapshot.latestSequence)
@@ -319,8 +323,22 @@ final class WorldStore {
                 facts.append(fact)
             }
         }
+        sweepExpiredFacts()
+    }
+
+    /// A fact with a validity window leaves the list when the window closes, not at the next
+    /// refresh: the world sends no delta for an expiry, so the Viewer keeps its own alarm for the
+    /// soonest one (a Forget is a fact valid for one second).
+    private func sweepExpiredFacts() {
         let now = Date()
         facts.removeAll { $0.supersededBy != nil || ($0.validTo.map { $0 <= now } ?? false) }
+        expiryTask?.cancel()
+        guard let next = facts.compactMap(\.validTo).min() else { return }
+        expiryTask = Task {
+            try? await Task.sleep(for: .seconds(max(0.05, next.timeIntervalSinceNow)))
+            guard !Task.isCancelled else { return }
+            sweepExpiredFacts()
+        }
     }
 
     /// Beaky's turns arrive on the conversation stream, not the world stream: her mind posts

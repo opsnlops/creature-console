@@ -95,6 +95,29 @@ struct WorldStoreTests {
         #expect(store.facts == [stillTrue])
     }
 
+    @Test("A fact leaves the list when its window closes, with no refresh and no further delta")
+    func factsExpireOnTheirOwn() async throws {
+        // A Forget: nothing in the fact's place, valid for a moment.
+        var forgotten = try makeFact()
+        forgotten.value = .null
+        forgotten.validTo = Date().addingTimeInterval(0.3)
+        let world = ScriptedWorld(history: [])
+        await world.script([
+            .snapshot(
+                WorldSnapshot(
+                    latestSequence: 0, facts: [], timers: [], factsTruncated: false,
+                    timersTruncated: false)),
+            .delta(WorldDelta(event: try makeEvent(sequence: 1), changedFacts: [forgotten])),
+            .hold,
+        ])
+        let store = makeStore(world)
+
+        store.start()
+        defer { store.stop() }
+        try await settle { store.facts == [forgotten] }
+        try await settle { store.facts.isEmpty }
+    }
+
     @Test("A dropped stream resumes after the last sequence seen, without gaps or repeats")
     func resumesWithoutGap() async throws {
         let world = ScriptedWorld(history: [])
