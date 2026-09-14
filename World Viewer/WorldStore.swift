@@ -167,6 +167,18 @@ final class WorldStore {
         return Array(Set(facts.map(\.predicate)).subtracting(known)).sorted()
     }
 
+    /// A bird learned something April did not mean it to keep: retract it.
+    func forget(_ subjectID: EntityID, _ predicate: String) async {
+        do {
+            guard let caster = try makeScryer() as? any WorldCasting else {
+                throw WorldConversationClientError.unexpectedResponse
+            }
+            try await caster.forget(subjectID, predicate, by: "wizard:april")
+        } catch {
+            lastError = ErrorAlert(title: "The World Did Not Forget", error: error)
+        }
+    }
+
     /// Wizard Mode's one cast: reword what a kind of fact means. The world remembers who did.
     func reword(_ predicate: String, meaning: String) async {
         do {

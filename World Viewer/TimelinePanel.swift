@@ -11,7 +11,7 @@ struct TimelinePanel: View {
 
     var body: some View {
         List(filteredEvents.reversed(), id: \.eventID, selection: $selection) { event in
-            TimelineRow(event: event)
+            TimelineRow(event: event, store: store)
         }
         .searchable(text: $filter, prompt: "Filter by type, subject, or source")
         .onChange(of: selection) { _, eventID in
@@ -46,6 +46,7 @@ struct TimelinePanel: View {
 
 struct TimelineRow: View {
     let event: WorldEventEnvelope
+    var store: WorldStore? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -72,6 +73,26 @@ struct TimelineRow: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                         .textSelection(.enabled)
+                }
+                if let learned {
+                    // A bird kept something April said. A Wizard may take it back.
+                    HStack(spacing: 8) {
+                        Label(learned, systemImage: "brain")
+                            .font(.caption)
+                            .foregroundStyle(.mint)
+                            .textSelection(.enabled)
+                        Button("Forget") {
+                            if case .string(let raw)? = event.payload["subject_id"],
+                                let subject = EntityID(rawValue: raw),
+                                case .string(let predicate)? = event.payload["predicate"]
+                            {
+                                Task { await store?.forget(subject, predicate) }
+                            }
+                        }
+                        .buttonStyle(.glass)
+                        .controlSize(.mini)
+                        .help("Retract this fact: the World will believe it no longer")
+                    }
                 }
                 if event.type == SceneService.remarkDeclinedEventType,
                     case .string(let reason)? = event.payload["reason"]
@@ -106,6 +127,22 @@ struct TimelineRow: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// "Beaky learned: Jesse visitor.expected = Tuesday afternoon" - a facts.given cast by a mind.
+    private var learned: String? {
+        guard event.type.rawValue == "facts.given", event.source.kind == "mind",
+            case .string(let subject)? = event.payload["subject_id"],
+            case .string(let predicate)? = event.payload["predicate"]
+        else { return nil }
+        let who = event.source.id.rawValue.split(separator: ":").last.map(String.init) ?? "a bird"
+        let value: String =
+            switch event.payload["value"] {
+            case .string(let text)?: "\"\(text)\""
+            case .null?, nil: "nothing"
+            case .some(let other): String(describing: other)
+            }
+        return "\(who.capitalized) learned: \(subject) \(predicate) = \(value)"
     }
 
     /// A stage problem or a failed performance carries its reason in the payload.

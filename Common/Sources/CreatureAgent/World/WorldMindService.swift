@@ -125,13 +125,19 @@ struct WorldMindService: Service {
             // Each sentence goes to the world as it is composed; the world speaks it and keeps
             // the floor open for the next.
             let streamed = Streamed()
-            let decision = try await mind.consider(offer, now: await clock.now) { index, text in
-                let piece = try SceneTurnSubmission(
-                    characterID: characterID, responseID: responseID, sessionID: sessionID,
-                    text: text, piece: index)
-                let result = try await responder.submit(piece, to: sceneID)
-                await streamed.note(result.disposition)
-            }
+            let envelope = offer.envelope
+            let decision = try await mind.consider(
+                offer, now: await clock.now,
+                speak: { index, text in
+                    let piece = try SceneTurnSubmission(
+                        characterID: characterID, responseID: responseID, sessionID: sessionID,
+                        text: text, piece: index)
+                    let result = try await responder.submit(piece, to: sceneID)
+                    await streamed.note(result.disposition)
+                },
+                learn: { learned in
+                    await self.cast(learned, causedBy: envelope, key: responseID.rawValue)
+                })
             switch decision {
             case .turn(let turn):
                 submission = turn
@@ -181,8 +187,55 @@ struct WorldMindService: Service {
         }
     }
 
+    /// What April told the mind becomes facts the world keeps: cast with her as the source,
+    /// her words as provenance, and a source event id so a retried consideration casts once.
+    /// A cast that fails is logged, never fatal - the reply already went out.
+    private func cast(_ learned: [LearnedFact], causedBy envelope: WorldEventEnvelope, key: String)
+        async
+    {
+        let now = await clock.now
+        for (index, fact) in learned.enumerated() {
+            do {
+                var payload: [String: WorldJSONValue] = [
+                    "subject_id": .string(fact.subjectID.rawValue),
+                    "predicate": .string(fact.predicate),
+                    "value": .string(fact.value),
+                ]
+                if let seconds = fact.expiry.seconds(from: now, in: mind.configuration.timeZone) {
+                    payload["valid_for_seconds"] = .number(seconds)
+                }
+                let event = try WorldEventEnvelope(
+                    type: WorldEventType(validating: "facts.given"),
+                    occurredAt: now,
+                    source: EventSource(
+                        id: try SourceID(validating: "mind:\(mind.configuration.characterName)"),
+                        kind: "mind", sourceEventID: "\(key):learned:\(index)"),
+                    subjectIDs: [fact.subjectID],
+                    epistemic: EpistemicState(type: .reported, confidence: 1),
+                    payload: payload,
+                    causedBy: [.event(envelope.eventID)],
+                    trace: envelope.trace)
+                try await responder.cast(event)
+                logger.info(
+                    "Learned something from April",
+                    metadata: [
+                        "subject": "\(fact.subjectID.rawValue)", "predicate": "\(fact.predicate)",
+                        "value": "\(fact.value)", "expires": "\(fact.expiry.rawValue)",
+                    ])
+            } catch {
+                logger.error(
+                    "Could not tell the world what April said",
+                    metadata: ["error": "\(error)", "predicate": "\(fact.predicate)"])
+            }
+        }
+    }
+
     private func decideAndDeliver(_ consideration: WorldConsideration) async throws {
-        let decision = try await mind.consider(consideration, now: await clock.now)
+        let envelope = consideration.envelope
+        let key = consideration.percept.considerationID.rawValue
+        let decision = try await mind.consider(consideration, now: await clock.now) { learned in
+            await self.cast(learned, causedBy: envelope, key: key)
+        }
         let intent: CharacterUtteranceIntent
         let outcome: WorldResponseOutcome
         switch decision {

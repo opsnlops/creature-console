@@ -19,6 +19,9 @@ public enum WorldFacts {
     /// (or the Bridge, from a text), usually with an expiry; a person at the door is then
     /// almost certainly them.
     public static let visitorExpected = "visitor.expected"
+    /// Who a person a camera saw turned out to be, as April said: "no Beaky, that was just the
+    /// postman". Cast by a mind from her words, on the place.
+    public static let sightingIdentified = "sighting.identified"
 
     // The house, through the Home Assistant adapter (creature-house).
     /// A door's lock: `locked` / `unlocked`.
@@ -58,6 +61,8 @@ public enum WorldFacts {
         personDescription: "who a person is, in April's words",
         visitorExpected:
             "someone April is expecting, and when; a person turning up then is almost certainly them",
+        sightingIdentified:
+            "who the person a camera saw there turned out to be, in April's words - a correction to hold onto",
         doorLock:
             "whether the door's deadbolt is thrown, from the smart lock; says nothing about whether the door is open",
         doorState: "whether the door stands open or closed, from its contact sensor",

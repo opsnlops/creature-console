@@ -77,6 +77,57 @@ struct WorldMindServiceTests {
         #expect(posted.responseID == CharacterMind.responseID(for: percept.considerationID))
     }
 
+    @Test("What April tells her is cast into the world, and the tag is never in her words")
+    func learnsWhatAprilSays() async throws {
+        let stub = StubWorld()
+        let percept = try makePercept(
+            text:
+                "Jesse's coming Tuesday afternoon to finish the deck, and Polly lives in Portland now."
+        )
+        await stub.script(connection: 0) { _ in
+            [
+                .snapshot(latestSequence: 10),
+                .delta(sequence: 11, envelope: try self.envelope(for: percept)),
+            ]
+        }
+        await stub.script(connection: 1) { _ in [] }
+        try await Harness.run(
+            stub: stub,
+            logger: logger,
+            respond: { _ in
+                """
+                Tuesday it is; I will keep an eye on the driveway for him.
+                [learned: Jesse | visitor.expected | Tuesday afternoon, to finish the deck | tomorrow]
+                [learned: Polly | person.description | April's sister, lives in Portland | never]
+                """
+            }
+        ) { harness in
+            try await harness.runUntil {
+                let responded = await stub.responses.count == 1
+                let cast = await stub.casts.count == 2
+                return responded && cast
+            }
+        }
+
+        let posted = try #require(await stub.responses.first)
+        #expect(posted.text == "Tuesday it is; I will keep an eye on the driveway for him.")
+        let casts = await stub.casts
+        #expect(casts.map(\.type.rawValue) == ["facts.given", "facts.given"])
+        #expect(casts[0].payload["subject_id"] == .string("person:jesse"))
+        #expect(casts[0].payload["predicate"] == .string("visitor.expected"))
+        #expect(casts[0].payload["value"] == .string("Tuesday afternoon, to finish the deck"))
+        guard case .number(let seconds)? = casts[0].payload["valid_for_seconds"] else {
+            Issue.record("the expected visit should expire")
+            return
+        }
+        #expect(seconds > 86_400 && seconds <= 2 * 86_400)
+        #expect(casts[1].payload["subject_id"] == .string("person:polly"))
+        #expect(casts[1].payload["valid_for_seconds"] == nil)
+        #expect(casts[1].epistemic.type == .reported)
+        #expect(casts[1].source.kind == "mind")
+        #expect(casts[1].causedBy.count == 1)
+    }
+
     @Test("In the room, Beaky's performed turn is recorded in the world and the cursor moves")
     func performsInTheRoomAndRecords() async throws {
         let stub = StubWorld()
@@ -609,6 +660,8 @@ private actor ContextRecordingResponder: WorldTurnResponding {
         throw WorldResponderError.unavailable(status: 503)
     }
 
+    func cast(_ event: WorldEventEnvelope) async throws {}
+
     func submit(_ turn: SceneTurnSubmission, to sceneID: SceneID) async throws -> SceneTurnResult {
         throw WorldResponderError.unavailable(status: 503)
     }
@@ -666,6 +719,9 @@ actor StubWorld {
 
     private(set) var connections: [Int64?] = []
     private(set) var responses: [CharacterUtteranceIntent] = []
+    /// What the mind learned from April and cast into the world.
+    private(set) var casts: [WorldEventEnvelope] = []
+    func noteCast(_ event: WorldEventEnvelope) { casts.append(event) }
     private(set) var performances: [CharacterPerformance] = []
     private(set) var stageRequests: [CharacterStageRequest] = []
     private(set) var sceneTurns: [SceneTurnSubmission] = []
@@ -991,6 +1047,14 @@ actor StubWorld {
                 headers: [.contentType: "application/json"],
                 body: ResponseBody(byteBuffer: ByteBuffer(bytes: data))
             )
+        }
+        router.post("world/v1/events") { request, _ in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let event = try WorldJSON.makeDecoder().decode(WorldEventEnvelope.self, from: body)
+            await self.noteCast(event)
+            return Response(
+                status: .accepted, headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: ByteBuffer(string: "{}")))
         }
         router.post("world/v1/conversations/:conversationID/responses") { request, _ in
             let body = try await request.body.collect(upTo: 1_048_576)

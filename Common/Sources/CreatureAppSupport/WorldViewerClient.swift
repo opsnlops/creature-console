@@ -109,6 +109,16 @@ public struct WorldViewerClient: Sendable {
         return try WorldJSON.makeDecoder().decode(FactKind.self, from: data)
     }
 
+    /// Casts an event into the world - a Wizard's fact, or the retraction of one.
+    public func cast(_ event: WorldEventEnvelope) async throws {
+        var request = try request(pathComponents: ["events"])
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try WorldJSON.makeEncoder().encode(event)
+        let (_, response) = try await loader.data(for: request)
+        try Self.validate(response)
+    }
+
     /// Every character's most recent session: who is logged in, where, from which host.
     public func characters() async throws -> CharacterSessionPage {
         try await get(CharacterSessionPage.self, pathComponents: ["characters"])

@@ -87,6 +87,8 @@ struct CharacterMind: Sendable {
         /// `backend/model` ("openai/gpt-6-astra"): the mind is told what it runs on, so April
         /// can ask her which bird is thinking on what.
         var modelLabel: String? = nil
+        /// The house entity a learned fact about "the house" is cast on.
+        var houseID: EntityID = try! EntityID(validating: "house:aprils-nest")
 
         /// The character's plain name, as a model might label her lines: `character:beaky` → `beaky`.
         var characterName: String {
@@ -128,8 +130,9 @@ struct CharacterMind: Sendable {
 
     /// Throws only when the world could not be asked for the stage, so the caller retries the
     /// same consideration from its cursor; every other trouble becomes a recorded decision.
-    func consider(_ consideration: WorldConsideration, now: Date) async throws -> CharacterDecision
-    {
+    func consider(
+        _ consideration: WorldConsideration, now: Date, learn: Learn? = nil
+    ) async throws -> CharacterDecision {
         let percept = consideration.percept
         // Inside an `agent.turn` span this nests naturally; on its own it continues the trace
         // the utterance arrived with.
@@ -145,7 +148,13 @@ struct CharacterMind: Sendable {
             span.attributes["llm.model"] = configuration.modelName
             considerationCounter.increment()
 
-            let decision = try await decide(consideration, now: now)
+            let learning = Learning()
+            let decision = try await decide(consideration, now: now, learning: learning)
+            let learned = await learning.facts(houseID: configuration.houseID)
+            if !learned.isEmpty, let learn {
+                span.attributes["agent.learned"] = learned.count
+                await learn(learned)
+            }
             switch decision {
             case .reply:
                 span.attributes["agent.reaction"] = "reply"
@@ -169,9 +178,9 @@ struct CharacterMind: Sendable {
         }
     }
 
-    private func decide(_ consideration: WorldConsideration, now: Date) async throws
-        -> CharacterDecision
-    {
+    private func decide(
+        _ consideration: WorldConsideration, now: Date, learning: Learning
+    ) async throws -> CharacterDecision {
         let utterance = consideration.percept.utterance
 
         // Deterministic guardrails come before any model call.
@@ -209,7 +218,8 @@ struct CharacterMind: Sendable {
 
         if let stage, let decision, decision.route == .physicalSpeech {
             return await performInTheRoom(
-                consideration, decision: decision, responseID: responseID, stage: stage, now: now)
+                consideration, decision: decision, responseID: responseID, stage: stage, now: now,
+                learning: learning)
         }
 
         let transcript = makeTranscript(for: consideration.percept, route: .communicator, now: now)
@@ -222,6 +232,7 @@ struct CharacterMind: Sendable {
                     try await respond(transcript)
                 }
             }
+            await learning.note(raw)
         } catch {
             logger.error(
                 "Beaky's model did not answer",
@@ -258,7 +269,8 @@ struct CharacterMind: Sendable {
         decision: CharacterDeliveryDecision,
         responseID: ResponseID,
         stage: Stage,
-        now: Date
+        now: Date,
+        learning: Learning
     ) async -> CharacterDecision {
         let transcript = makeTranscript(
             for: consideration.percept, route: .physicalSpeech, now: now)
@@ -285,6 +297,7 @@ struct CharacterMind: Sendable {
                 // stays spoken and recorded.
                 try await withTimeout(configuration.modelTimeout) {
                     for await raw in stage.respondStreaming(transcript) {
+                        await learning.note(raw)
                         guard await spoken.offer(raw, characterName: name) else { break }
                     }
                 }
@@ -355,7 +368,11 @@ struct CharacterMind: Sendable {
 
         /// Returns `false` when the turn is over: silence was chosen or the limit was reached.
         func offer(_ raw: String, characterName: String) -> Bool {
-            let stripped = LocalLLMClient.stripThinkTags(raw)
+            // A learned-fact tag is for the world, never the room.
+            let stripped = LearnedFact.stripped(LocalLLMClient.stripThinkTags(raw))
+            guard !stripped.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return true
+            }
             if sentences.isEmpty, CharacterMind.declinesToSpeak(stripped) {
                 declined = true
                 return false
@@ -409,12 +426,14 @@ struct CharacterMind: Sendable {
     /// One sentence of a streamed scene turn, with its index; throws when the world could not
     /// take it.
     typealias SpeakPiece = @Sendable (Int, String) async throws -> Void
+    /// What April told the mind, parsed from the reply's tags, handed to the caller to cast.
+    typealias Learn = @Sendable ([LearnedFact]) async -> Void
 
     /// The world has offered this character the floor. With `speak`, the line is streamed:
     /// each sentence goes out as it is composed and the returned turn carries no text ("that
     /// was the whole line"); without it, the line is composed whole.
     func consider(
-        _ offer: WorldSceneConsideration, now: Date, speak: SpeakPiece? = nil
+        _ offer: WorldSceneConsideration, now: Date, speak: SpeakPiece? = nil, learn: Learn? = nil
     ) async throws -> SceneDecision {
         let context = ServiceContext.current ?? Self.traceContext(for: offer.envelope)
         return try await withSpan("agent.scene.consider", context: context) { span in
@@ -424,12 +443,19 @@ struct CharacterMind: Sendable {
             span.attributes["agent.persona_version"] = configuration.persona.versionTag
             span.attributes["llm.model"] = configuration.modelName
             considerationCounter.increment()
+            let learning = Learning()
             let decision: SceneDecision
             if let speak, let respondStreaming {
                 span.attributes["scene.turn.streamed"] = true
-                decision = try await streamTurn(offer.offer, now: now, respondStreaming, speak)
+                decision = try await streamTurn(
+                    offer.offer, now: now, respondStreaming, speak, learning: learning)
             } else {
-                decision = await decideTurn(offer.offer, now: now)
+                decision = await decideTurn(offer.offer, now: now, learning: learning)
+            }
+            let learned = await learning.facts(houseID: configuration.houseID)
+            if !learned.isEmpty, let learn {
+                span.attributes["agent.learned"] = learned.count
+                await learn(learned)
             }
             switch decision {
             case .turn:
@@ -452,7 +478,7 @@ struct CharacterMind: Sendable {
     /// ends when the model stops or the world's length limit is reached.
     private func streamTurn(
         _ offer: SceneTurnOffer, now: Date, _ respondStreaming: @escaping RespondStreaming,
-        _ speak: @escaping SpeakPiece
+        _ speak: @escaping SpeakPiece, learning: Learning
     ) async throws -> SceneDecision {
         func pass(_ reason: CharacterDecision.SilenceReason, quiet: String? = nil) -> SceneDecision
         {
@@ -474,6 +500,7 @@ struct CharacterMind: Sendable {
                 span.attributes["llm.streaming"] = true
                 try await withTimeout(configuration.modelTimeout) {
                     for await raw in respondStreaming(transcript) {
+                        await learning.note(raw)
                         switch await line.offer(raw) {
                         case .speak(let index, let piece):
                             try await speak(index, piece)
@@ -577,7 +604,9 @@ struct CharacterMind: Sendable {
         return text.isEmpty ? nil : text
     }
 
-    private func decideTurn(_ offer: SceneTurnOffer, now: Date) async -> SceneDecision {
+    private func decideTurn(
+        _ offer: SceneTurnOffer, now: Date, learning: Learning
+    ) async -> SceneDecision {
         func pass(_ reason: CharacterDecision.SilenceReason, quiet: String? = nil) -> SceneDecision
         {
             .pass(
@@ -597,6 +626,7 @@ struct CharacterMind: Sendable {
                     try await respond(transcript)
                 }
             }
+            await learning.note(raw)
         } catch {
             logger.error(
                 "The model did not answer the scene", metadata: ["error": "\(error)"])
@@ -776,7 +806,8 @@ struct CharacterMind: Sendable {
             or two short sentences, spoken aloud. Speak to whoever you are answering, a bird or \
             April, and do not begin your line with anyone's name unless you are singling them out. \
             Do not write anyone else's line and do not prefix your words with your name. \
-            \(newInformation) Never use emoji or symbols. Do not describe actions. \(typing)
+            \(newInformation) Never use emoji or symbols. Do not describe actions. \(typing) \
+            \(LearnedFact.contract)
             """
     }
 
@@ -791,6 +822,16 @@ struct CharacterMind: Sendable {
         nothing else, in a few words; the reason is for April's records, never spoken. Expect to \
         pass most turns - a scene that ends after one good line is a good scene.
         """
+
+    /// Everything the model wrote for one consideration, so the learned-fact tags can be read
+    /// whole at the end - a tag may span two streamed chunks.
+    actor Learning {
+        private var raw = ""
+        func note(_ chunk: String) { raw += chunk + "\n" }
+        func facts(houseID: EntityID) -> [LearnedFact] {
+            LearnedFact.all(in: raw, houseID: houseID)
+        }
+    }
 
     /// The trace context the world attached to the utterance, as a span parent.
     static func traceContext(for percept: PersonUtterancePercept) -> ServiceContext {
@@ -898,7 +939,7 @@ struct CharacterMind: Sendable {
             own voice in one to three short sentences. If you truly have nothing to add, reply with \
             exactly \(silenceToken) and nothing else. Your words are spoken aloud by your voice, so \
             never use emoji or symbols. Do not describe actions and do not mention that you are a \
-            program. \(typing)
+            program. \(typing) \(LearnedFact.contract)
             """
     }
 
@@ -965,6 +1006,8 @@ struct CharacterMind: Sendable {
     /// persona's `never` rules make it rare; this makes it impossible. A stray opening quote
     /// left behind ("*giggles* "I love you") is trimmed with the rest.
     static func withoutStageDirections(_ text: String) -> String {
+        // A learned-fact tag can be longer than a stage direction; it goes first, whole.
+        let text = LearnedFact.stripped(text)
         let pattern = #"\*[^*\n]{1,80}\*|\([^()\n]{1,80}\)|\[[^\[\]\n]{1,80}\]"#
         guard let expression = try? NSRegularExpression(pattern: pattern) else { return text }
         let range = NSRange(text.startIndex..., in: text)

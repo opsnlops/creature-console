@@ -231,6 +231,16 @@ else — persona, facts, the clock, streaming to the room — is identical.
   reason rides the pass to the world, shows in the Viewer, and is never spoken. The contract
   says to expect to pass most turns. April: "Me telling Beaky I bought groceries doesn't need to
   be a 12 turn conversation about Linux."
+- **She learns what April tells her** (`2.70.0`, step 4a). When April says something worth
+  keeping — who someone is, that someone is expected and when, that a sighting was her or the
+  postman, a correction — the mind ends its reply with `[learned: who or where | predicate |
+  value | expires]`, one per thing, three at most: `[learned: Jesse | visitor.expected |
+  Tuesday afternoon, to finish the deck | tomorrow]`. The tags are stripped before anything is
+  spoken; each becomes a `facts.given` cast to the world with April as the source (`reported`),
+  her words as provenance, and `valid_for_seconds` from `expires` (today, tomorrow, week, never)
+  in the house's zone. Names become entities — "Jesse" → `person:jesse`, "the front door" →
+  `place:front-door`, "the house" → `houseId` (default `house:aprils-nest`). Only what April
+  said, never the mind's own guess; the Viewer shows "Beaky learned: …" with a Forget button.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
   emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the

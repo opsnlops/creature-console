@@ -1,6 +1,7 @@
 import Common
 import Foundation
 import MQTTSupport
+import WorldCore
 import Yams
 
 enum LLMBackend: String, Decodable {
@@ -28,6 +29,9 @@ struct AgentConfig: Decodable {
     /// OpenAI's `service_tier`: `fast` buys lower latency for a per-token premium. Unset means
     /// the default tier.
     let llmServiceTier: String?
+    /// The model for the nightly memory job (episodes and the day's reflection), where
+    /// latency is irrelevant and quality compounds; unset means the speaking model.
+    let llmMemoryModel: String?
     let localLlmHost: String
     let localLlmPort: Int
     let localLlmMaxTokens: Int
@@ -68,6 +72,8 @@ struct AgentConfig: Decodable {
         /// The clock the character lives by. A model cannot do time-zone arithmetic, so it is
         /// told the local wall-clock time in words; the host's zone (often UTC on a server) is
         /// rarely the house's.
+        /// The house entity a learned fact about "the house" is cast on.
+        let houseID: EntityID
         let timeZone: TimeZone
 
         /// Whether the mind may perform in the room. `physical` asks the world for the stage
@@ -124,6 +130,7 @@ struct AgentConfig: Decodable {
         case llmTemperature
         case llmReasoningEffort
         case llmServiceTier
+        case llmMemoryModel
         case localLlmHost
         case localLlmPort
         case localLlmMaxTokens
@@ -137,6 +144,7 @@ struct AgentConfig: Decodable {
         case areas
         case worldUrl
         case stage
+        case houseID = "houseId"
         case regionEntityId
         case timeZone
         case personaPath
@@ -173,6 +181,7 @@ struct AgentConfig: Decodable {
                 debugDescription: "llmReasoningEffort must be low, medium, or high")
         }
         llmServiceTier = try container.decodeIfPresent(String.self, forKey: .llmServiceTier)
+        llmMemoryModel = try container.decodeIfPresent(String.self, forKey: .llmMemoryModel)
         if let tier = llmServiceTier,
             !["auto", "default", "fast", "priority", "flex"].contains(tier)
         {
@@ -241,6 +250,9 @@ struct AgentConfig: Decodable {
             stage: try container.decodeIfPresent(
                 WorldModeConfig.StagePolicy.self, forKey: .stage) ?? .physical,
             personaPath: try container.decodeIfPresent(String.self, forKey: .personaPath),
+            houseID: try EntityID(
+                validating: container.decodeIfPresent(String.self, forKey: .houseID)
+                    ?? "house:aprils-nest"),
             timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone).map {
                 guard let zone = TimeZone(identifier: $0) else {
                     throw DecodingError.dataCorruptedError(

@@ -93,6 +93,18 @@ records who reworded it and never overwrites a Wizard's words with its catalogue
 — predicates the world currently believes something under but has no meaning for — sit at the top
 waiting to be taught; until they are, the minds see them with no meaning attached.
 
+### When a bird learns
+
+A `facts.given` event cast by a mind shows on the Timeline as "Beaky learned: person:jesse
+visitor.expected = "Tuesday afternoon, to finish the deck"" in mint, with a **Forget** button
+(`0.5.0`): it casts nothing in its place, valid for a second, so the world believes it no longer.
+
+### When a bird passes
+
+A pass in a scene shows its reason in grey — "passes: Beaky already asked April", "passes: joke
+already landed" (`0.4.1`; agent `2.69.0` gives one on every pass). A scene that closes
+`everyone_passed` after a couple of good lines is the design working, not a fault.
+
 ### When the house asks
 
 A scene's trigger carries a symbol: April spoke, the house told (`house.fill`), or the house

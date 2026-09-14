@@ -37,6 +37,8 @@ protocol WorldTurnResponding: WorldStaging {
     func record(_ performance: CharacterPerformance) async throws -> WorldResponseOutcome
     /// Answers the floor in a scene; the world says whether it was still this character's turn.
     func submit(_ turn: SceneTurnSubmission, to sceneID: SceneID) async throws -> SceneTurnResult
+    /// Tells the world something April said: a `facts.given` cast with her as the source.
+    func cast(_ event: WorldEventEnvelope) async throws
 }
 
 /// Carries a `CharacterUtteranceIntent` to Creature World and reads back what happened.
@@ -113,6 +115,17 @@ struct WorldResponder: WorldTurnResponding {
             let result = try WorldJSON.makeDecoder().decode(SceneTurnResult.self, from: body)
             span.attributes["scene.turn.disposition"] = result.disposition.rawValue
             return result
+        }
+    }
+
+    func cast(_ event: WorldEventEnvelope) async throws {
+        try await withSpan("creature.world.cast", ofKind: .client) { span in
+            span.attributes["world.event_type"] = event.type.rawValue
+            let (status, body) = try await post(event, path: ["events"], span: span)
+            // 200 is a duplicate the world already has; that is fine.
+            guard status == 202 || status == 200 else {
+                throw Self.failure(status: status, body: body)
+            }
         }
     }
 

@@ -28,6 +28,8 @@ protocol WorldScrying: Sendable {
 protocol WorldCasting: Sendable {
     func setFactKind(_ predicate: String, meaning: String, by wizard: String) async throws
         -> FactKind
+    /// Retracts a fact a bird learned: a cast of nothing, valid for a second, supersedes it.
+    func forget(_ subjectID: EntityID, _ predicate: String, by wizard: String) async throws
 }
 
 /// The real thing: the typed viewer client for reads and the world stream, and the conversation
@@ -89,5 +91,23 @@ extension LiveWorldScryer: WorldCasting {
         -> FactKind
     {
         try await viewer.setFactKind(predicate, FactKindUpdate(meaning: meaning, updatedBy: wizard))
+    }
+
+    func forget(_ subjectID: EntityID, _ predicate: String, by wizard: String) async throws {
+        let event = try WorldEventEnvelope(
+            type: WorldEventType(validating: "facts.given"),
+            occurredAt: Date(),
+            source: EventSource(
+                id: try SourceID(validating: wizard), kind: "person",
+                sourceEventID: UUID().uuidString),
+            subjectIDs: [subjectID],
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: [
+                "subject_id": .string(subjectID.rawValue),
+                "predicate": .string(predicate),
+                "value": .null,
+                "valid_for_seconds": .number(1),
+            ])
+        try await viewer.cast(event)
     }
 }

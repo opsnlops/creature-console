@@ -140,7 +140,12 @@ house asks — `scenes.consider_on` rules open a `house_consideration` scene; th
 shown in the Viewer as "considered it and stayed quiet". Packaged rules: indoor cameras, motion,
 April arriving/leaving, lights changing. Then (World `0.20.1` / agent `2.69.0` / Viewer `0.4.1`): nothing new, nothing said —
 scene turns need new information for April or the bird answers `[pass: why]`; passes keep their
-reason. Next: step 4 (nightly memory on gpt-6-astra).
+reason. Live 19:50: scenes now close `everyone_passed` with reasons like "[pass: Beaky already
+asked April]", "[pass: joke already landed]"; April: "It feels a lot better." **Step 4a (agent `2.70.0` / World `0.21.0` / Viewer `0.5.0`):** she learns what April
+tells her — `[learned: who or where | predicate | value | expires]` tags on replies, stripped from
+speech, cast as `facts.given` with April as source and her words as provenance; corrections are
+`sighting.identified`; the Viewer shows "Beaky learned: …" with Forget. `llmMemoryModel` in the
+agent config for 4b. Next: step 4b (nightly memory on gpt-6-astra).
 
 **Live on prod, verified (2026-09-13 17:00–17:45):** three solo replies performed; a full
 three-bird scene; the first walk on the production world — door → four cameras → four short
