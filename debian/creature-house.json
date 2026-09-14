@@ -20,6 +20,8 @@
     { "entity_id": "binary_sensor.front_door_person_detected", "subject_id": "place:front-door", "kind": "detection", "detects": "person" },
     { "entity_id": "binary_sensor.driveway_person_detected", "subject_id": "place:driveway", "kind": "detection", "detects": "person" },
     { "entity_id": "binary_sensor.driveway_vehicle_detected", "subject_id": "place:driveway", "kind": "detection", "detects": "vehicle" },
+    { "entity_id": "binary_sensor.back_driveway_person_detected", "subject_id": "place:back-driveway", "kind": "detection", "detects": "person" },
+    { "entity_id": "binary_sensor.back_driveway_vehicle_detected", "subject_id": "place:back-driveway", "kind": "detection", "detects": "vehicle" },
     { "entity_id": "binary_sensor.carport_person_detected_2", "subject_id": "place:carport", "kind": "detection", "detects": "person" },
     { "entity_id": "binary_sensor.carport_vehicle_detected_2", "subject_id": "place:carport", "kind": "detection", "detects": "vehicle" },
     { "entity_id": "binary_sensor.workshop_person_detected", "subject_id": "place:workshop", "kind": "detection", "detects": "person" },
