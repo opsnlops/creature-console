@@ -21,6 +21,16 @@ struct HouseCommandTests {
                 == "Bunnys Room Bedtime")
     }
 
+    @Test("A message that is nothing but a scene's name is an ask, verb or no verb")
+    func bareNamesAreAsks() {
+        #expect(rule.scene(in: "normal evening", offered: offered) == "Normal Evening")
+        #expect(rule.scene(in: "Bedtime, please.", offered: offered) == "Bedtime")
+        #expect(rule.scene(in: "Movie Time now, thanks", offered: offered) == "Movie Time")
+        // The addressee's name is already stripped by the time the words arrive, but a stray
+        // one does not stop a bare ask either.
+        #expect(rule.scene(in: "beaky bedtime", offered: offered) == "Bedtime")
+    }
+
     @Test("A mention is not an ask, and an unknown scene is nothing")
     func ignoresMentions() {
         #expect(rule.scene(in: "I love movie time with you all", offered: offered) == nil)

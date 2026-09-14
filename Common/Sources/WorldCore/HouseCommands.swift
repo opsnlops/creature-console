@@ -17,13 +17,23 @@ public struct SceneRequestRule: Sendable {
     /// "bedtime").
     public func scene(in text: String, offered: [String]) -> String? {
         let words = Self.words(text)
-        guard !words.isEmpty, !Set(words).isDisjoint(with: Self.triggers) else { return nil }
+        guard !words.isEmpty else { return nil }
         let candidates = offered.filter { name in
             let nameWords = Self.words(name)
             return !nameWords.isEmpty && Self.contains(words, nameWords)
         }
-        return candidates.max { Self.words($0).count < Self.words($1).count }
+        guard let best = candidates.max(by: { Self.words($0).count < Self.words($1).count })
+        else { return nil }
+        // "@beaky normal evening" / "Goodnight, please." — the whole message is the scene's
+        // name: that is an ask with no need for a verb. A name inside a longer sentence needs
+        // one, or "I love movie time" would dim the lights.
+        let bare = words.filter { !Self.fillers.contains($0) }
+        if bare == Self.words(best) { return best }
+        return Set(words).isDisjoint(with: Self.triggers) ? nil : best
     }
+
+    /// Words that do not make a bare scene name any less bare.
+    static let fillers: Set<String> = ["please", "now", "thanks", "thank", "you", "beaky", "the"]
 
     private static func words(_ text: String) -> [String] {
         text.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)

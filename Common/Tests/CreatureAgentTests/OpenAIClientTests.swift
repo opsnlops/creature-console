@@ -1,3 +1,4 @@
+import AsyncHTTPClient
 import Foundation
 import Hummingbird
 import HummingbirdTesting
@@ -84,10 +85,13 @@ struct OpenAIClientTests {
             router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
         let sentences: [String] = try await application.test(.live) { liveClient in
             let port = try #require(liveClient.port)
+            let httpClient = HTTPClient(eventLoopGroupProvider: .singleton)
+            defer { Task { try? await httpClient.shutdown() } }
             let client = OpenAIClient(
                 apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "You are Beaky.",
                 temperature: 1, reasoningEffort: "low",
                 endpoint: URL(string: "http://localhost:\(port)/v1/responses")!,
+                streamingClient: httpClient,
                 logger: Logger(label: "openai-tests"), traceResponses: false)
             var collected: [String] = []
             for await sentence in client.respondStreaming(messages: transcript) {

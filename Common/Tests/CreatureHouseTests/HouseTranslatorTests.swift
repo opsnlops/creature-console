@@ -141,6 +141,18 @@ struct HouseTranslatorTests {
             ).isEmpty)
     }
 
+    @Test("The house tells the world which places its cameras watch, once per place")
+    func camerasAnnounceThemselves() throws {
+        let place = try EntityID(validating: "place:driveway")
+        let first = try HouseService.cameraWatching(place)
+        let again = try HouseService.cameraWatching(place)
+        #expect(first.type == HouseEvents.cameraWatching)
+        #expect(first.subjectIDs == [place])
+        #expect(first.placeID == place)
+        #expect(first.source.sourceEventID == "watching:place:driveway")
+        #expect(first.source.sourceEventID == again.source.sourceEventID)
+    }
+
     @Test("A camera detection is a moment: only turning on, and never at startup")
     func detections() throws {
         #expect(

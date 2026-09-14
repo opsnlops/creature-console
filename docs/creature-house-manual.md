@@ -45,7 +45,13 @@ profile → Security) in `/etc/default/creature-house` as `HA_TOKEN=…` and kee
 | `motion` | `binary_sensor.*` (motion) | `on` → `motion.detected`; `off` → `motion.cleared` |
 | `person` | `person.*` / `device_tracker.*` | `home` → `person.arrived`; anything else → `person.left` (moving between two away zones is neither) |
 | `measurement` | `sensor.*` with a number | → `environment.measurement_changed` with `predicate` and `value`; a move smaller than `minimum_change` **from the last value the world was told** is dropped (so a thermometer creeping 0.2° at a time still gets announced once it has drifted a degree; `0.1.1`) |
-| `detection` | `binary_sensor.<camera>_person_detected` etc. | `on` → `camera.person_seen` / `vehicle_seen` / `animal_seen` (`detects`); `off` is not news, and a camera already seeing something at startup is not news either |
+| `detection` | `binary_sensor.<camera>_person_detected` etc. | `on` → `camera.person_seen` / `vehicle_seen` / `animal_seen` (`detects`); `off` is not news, and a camera already seeing something at startup is not news either. At startup the adapter also announces `camera.watching` for each such place (`0.1.2`), so a camera that has seen nothing is a fact the birds can state — "The cameras at the front door and the driveway have seen nobody and nothing in the last ten minutes" — rather than a shrug |
+
+The packaged `house.json` maps April's weather station and power monitor as measurements —
+`humidity_percent`, `wind_mph`, `rain_today_in`, `pressure_hpa`, `pm25_ugm3` on `place:outside`
+and `power_w` on the house — and the agent has words for each ("It is windy outside: about 18
+miles per hour", "It has not rained today", "The air outside is clean", "The house is drawing
+about 2.2 kilowatts right now"). New predicates are just a mapping line plus a phrasing.
 
 Every event is about the mapping's `subject_id` (a `place:` or `person:`), `observed` with
 confidence 1, `occurred_at` = Home Assistant's `last_changed`, `source` =
@@ -81,9 +87,12 @@ With `scenes.offer` on, the adapter posts `house.scenes_offered` at startup (the
 of every `scene.*`), which becomes the `house.scenes` fact on `house_id`, phrased to the minds
 as "You can set the lights to: Normal Evening, Movie Time, …". Recognising an ask is a
 **world rule, not a model roll**: at ingress, `SceneRequestRule` matches the words against the
-offered names (case- and punctuation-insensitive, longest name wins, and only with a trigger
-word — set, switch, turn, make, lights, scene, mode, go — so "I love movie time" is a
-mention, not an ask). A match posts `house.scene_requested`; the adapter, following the
+offered names (case- and punctuation-insensitive, longest name wins). A message that is
+*nothing but* a scene's name — "@beaky normal evening", "Goodnight, please" — is an ask; a
+name inside a longer sentence needs a trigger word (set, switch, turn, make, lights, scene,
+mode, go) so "I love movie time" is a mention, not an ask (`0.8.1`). The minds are told they
+cannot set scenes themselves and must not claim the lights are changing unless the world says
+the house is doing it (agent `2.62.2`). A match posts `house.scene_requested`; the adapter, following the
 world's stream, calls `scene.turn_on` and posts `house.scene_activated` → the `house.scene`
 fact. The mind that was asked is told "April just asked for the lights to be set to Normal
 Evening, and the house is doing it right now" in the same percept, so it answers in its own

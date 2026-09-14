@@ -84,6 +84,14 @@ struct HouseService: Service {
         for state in states {
             await announce(from: nil, to: state)
         }
+        // Which places the cameras watch: nothing seen there is a fact, not a shrug.
+        var watched: [EntityID] = []
+        for mapping in configuration.mappings where mapping.kind == .detection {
+            if !watched.contains(mapping.subjectID) { watched.append(mapping.subjectID) }
+        }
+        for place in watched {
+            await delivery.deliver(try Self.cameraWatching(place))
+        }
         if configuration.offersScenes {
             let scenes = try await homeAssistant.scenes(client: client)
             logger.info("The house offers scenes", metadata: ["count": "\(scenes.count)"])
@@ -117,6 +125,22 @@ struct HouseService: Service {
                 await delivery.flush()
             }
         }
+    }
+
+    static func cameraWatching(_ place: EntityID) throws -> WorldEventEnvelope {
+        try WorldEventEnvelope(
+            type: HouseEvents.cameraWatching,
+            occurredAt: Date(),
+            source: EventSource(
+                id: try SourceID(validating: "home-assistant:cameras"),
+                kind: HouseEvents.sourceKind,
+                // The same camera on every restart is the same announcement.
+                sourceEventID: "watching:\(place.rawValue)"),
+            subjectIDs: [place],
+            placeID: place,
+            epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: ["place_id": .string(place.rawValue)]
+        )
     }
 
     static func scenesOffered(_ scenes: [HomeAssistantStream.Scene], house: EntityID) throws

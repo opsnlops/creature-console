@@ -9,6 +9,7 @@ struct HouseReducer: WorldReducer {
         HouseEvents.doorLocked, HouseEvents.doorUnlocked, HouseEvents.doorOpened,
         HouseEvents.doorClosed, HouseEvents.motionDetected, HouseEvents.motionCleared,
         HouseEvents.personSeen, HouseEvents.vehicleSeen, HouseEvents.animalSeen,
+        HouseEvents.cameraWatching,
         HouseEvents.personArrived, HouseEvents.personLeft, HouseEvents.measurementChanged,
         HouseEvents.scenesOffered, HouseEvents.sceneRequested, HouseEvents.sceneActivated,
     ]
@@ -48,6 +49,8 @@ struct HouseReducer: WorldReducer {
             ])
         case HouseEvents.motionCleared:
             return WorldReduction(changedFacts: [try fact(WorldFacts.motionActive, .bool(false))])
+        case HouseEvents.cameraWatching:
+            return WorldReduction(changedFacts: [try fact(WorldFacts.cameraWatching, .bool(true))])
         case HouseEvents.personSeen, HouseEvents.vehicleSeen, HouseEvents.animalSeen:
             let what =
                 switch event.type {
