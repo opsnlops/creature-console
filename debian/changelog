@@ -1,3 +1,13 @@
+creature-cli (2.67.0+world0.19.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.19.1: the packaged world.json is the production
+    config. The World runs on the same box as Creature Server now, so
+    `creature_server.url` is http://localhost:8000; a dev world elsewhere
+    sets its own. The rest (house conversation, places, rules, quiet
+    hours, voices, retention, facts) was already April's.
+
+ -- April White <april@creature.engineering>  Sun, 13 Sep 2026 17:45:00 -0700
+
 creature-cli (2.67.0+world0.19.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * Failures say why. The first words to the production world went

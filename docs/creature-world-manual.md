@@ -199,6 +199,11 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**The packaged `world.json` is the production config** (`0.19.1`): it is installed on the box
+that runs Creature Server, so `creature_server.url` is `http://localhost:8000`, and everything
+else in it is April's real house. A dev world elsewhere (fuzzball) edits its own copy — the
+public URL for the creature server, and never while the production world is running against it.
+
 **Failures say why** (`0.19.0`). Delivery outcomes and scene performances carry `error_message`
 beside `error_code` — Creature Server's own words. A room that cannot be readied for a scene is a
 `scene.stage_problem` event with the reason, announced when the scene opens.
