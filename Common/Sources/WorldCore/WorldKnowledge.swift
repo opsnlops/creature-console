@@ -181,4 +181,12 @@ public enum WorldKnowledgeLimits {
     /// How far back the story a percept carries reaches, and how many happenings at most.
     public static let happeningsWindow: TimeInterval = 15 * 60
     public static let maximumHappenings = 30
+    /// The calendar rides along: this many upcoming events at most, soonest first.
+    public static let maximumUpcomingEvents = 8
+    /// Words that make a question about time, widening the calendar window to a fortnight.
+    public static let timeWords: Set<String> = [
+        "weekend", "week", "tomorrow", "today", "tonight", "calendar", "schedule", "plans",
+        "appointment", "appointments", "coming", "upcoming", "when", "month", "monday", "tuesday",
+        "wednesday", "thursday", "friday", "saturday", "sunday",
+    ]
 }

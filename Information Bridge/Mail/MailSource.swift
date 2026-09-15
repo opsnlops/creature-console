@@ -23,6 +23,10 @@ actor MailSource {
     private let dropFolder: URL?
     private var book = OrderBook()
     private var seen: Set<String> = []
+    /// What the last read made of its mail, by kind - for the window, and a subjects-only log
+    /// on this Mac (`mail-readings.log`: date, kind, sender, subject; never a body).
+    private var tally: [MailKind: Int] = [:]
+    private let logFile: URL
     private(set) var status = SourceStatus(state: .on)
     private var observers: [UUID: AsyncStream<SourceStatus>.Continuation] = [:]
     private var worker: Task<Void, Never>?
@@ -39,6 +43,7 @@ actor MailSource {
         ledger = FactLedger(source: Self.sourceName, directory: directory)
         bookFile = directory.appending(path: "orders.json")
         seenFile = directory.appending(path: "mail-seen.json")
+        logFile = directory.appending(path: "mail-readings.log")
         let decoder = WorldJSON.makeDecoder()
         if let data = try? Data(contentsOf: bookFile),
             let saved = try? decoder.decode(OrderBook.self, from: data)
@@ -115,18 +120,41 @@ actor MailSource {
         guard !seen.contains(message.identifier) else { return }
         seen.insert(message.identifier)
         let kind = classifier.classify(message)
+        tally[kind, default: 0] += 1
+        var line =
+            "\(WorldJSON.timestamp(message.date)) \(kind.rawValue) <\(message.from)> \(message.subject)"
+        defer { log(line) }
         guard kind == .order || kind == .shipping else { return }
         var reading = MailReader.read(message, kind: kind)
         reading = reading.filled(with: await distill(message))
-        book.apply(reading, at: message.date)
+        let order = book.apply(reading, at: message.date)
+        line += " → \(order?.entityID.rawValue ?? "no order: needs an order or tracking number")"
+    }
+
+    private func log(_ line: String) {
+        guard let data = (line + "\n").data(using: .utf8) else { return }
+        if let handle = try? FileHandle(forWritingTo: logFile) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: data)
+        } else {
+            try? data.write(to: logFile)
+        }
     }
 
     /// Many messages at once - the backfill - then one reconciliation.
     func take(_ messages: [MailMessage], now: Date = Date()) async {
+        tally = [:]
         for message in messages.sorted(by: { $0.date < $1.date }) {
             await take(message)
         }
-        await reconcile(now: now, note: "read \(messages.count) from the last 120 days")
+        let kinds = tally.sorted { $0.key.rawValue < $1.key.rawValue }
+            .map { "\($0.value) \($0.key.rawValue)" }.joined(separator: ", ")
+        await reconcile(
+            now: now,
+            note:
+                "read \(messages.count) from the last 120 days (\(kinds.isEmpty ? "none new" : kinds))"
+        )
     }
 
     private func reconcile(now: Date, note: String?) async {

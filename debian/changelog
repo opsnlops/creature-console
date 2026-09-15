@@ -1,3 +1,14 @@
+creature-cli (2.72.0+world0.27.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.27.1: "What's on the calendar this weekend?" is
+    answered. The next three days of the calendar ride along with every
+    question - a fortnight when the words are about time - at most eight
+    events, soonest first. World-only facts (the calendar's timestamps,
+    a phone number) no longer take a mind's place on the forty-fact page:
+    they are left out of the query, not filtered after it.
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 22:15:00 -0700
+
 creature-cli (2.72.0+world0.27.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.27.0: the founding moment as a rule (Bridge plan,

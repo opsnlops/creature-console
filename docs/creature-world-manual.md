@@ -220,6 +220,12 @@ that runs Creature Server, so `creature_server.url` is `http://localhost:8000`, 
 else in it is April's real house. A dev world elsewhere (fuzzball) edits its own copy — the
 public URL for the creature server, and never while the production world is running against it.
 
+**The calendar rides along** (`0.27.1`). Every question is handed the events starting in the
+next three days — a fortnight when the question is about time (weekend, week, tomorrow, plans,
+calendar, a weekday name) — at most eight, soonest first, so "what's on this weekend?" needs no
+name in it. World-only kinds are left out of the page's query rather than filtered after it, so a
+timestamp never costs a bird one of its forty facts.
+
 **The orders' rule** (`0.27.0`, Bridge plan step 5). Every minute, beside the calendar's rule:
 an `order:*` whose `order.status` is `out_for_delivery` becomes `house · delivery.expected =
 "<items> (<carrier>), today"` valid until midnight; `delivered` becomes `delivery.arrived` for six

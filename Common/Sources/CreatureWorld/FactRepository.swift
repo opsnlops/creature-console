@@ -72,18 +72,24 @@ struct FactRepository: Sendable {
     }
 
     func currentFacts(
-        about subjects: [EntityID], family: Family = .all, limit: Int, at now: Date
+        about subjects: [EntityID], family: Family = .all, excluding predicates: Set<String> = [],
+        limit: Int, at now: Date
     ) async throws -> [Fact] {
         precondition(limit > 0)
         guard !subjects.isEmpty else { return [] }
         var query = currentQuery(at: now)
         query["subject_id"] = ["$in": subjects.map(\.rawValue)] as Document
+        var predicate: Document = [:]
         switch family {
         case .all: break
-        case .memories: query["predicate"] = ["$regex": "^memory\\."] as Document
-        case .notMemories:
-            query["predicate"] = ["$not": ["$regex": "^memory\\."] as Document] as Document
+        case .memories: predicate["$regex"] = "^memory\\."
+        case .notMemories: predicate["$not"] = ["$regex": "^memory\\."] as Document
         }
+        // The world's own facts never take a mind's place on the page.
+        if !predicates.isEmpty {
+            predicate["$nin"] = try Document(array: Array(predicates))
+        }
+        if !predicate.isEmpty { query["predicate"] = predicate }
         let documents = try await facts.find(query)
             .sort(["valid_from": -1, "_id": -1])
             .limit(limit)
@@ -117,6 +123,21 @@ struct FactRepository: Sendable {
             .limit(limit)
             .drain()
         return try documents.map(decode)
+    }
+
+    /// The subjects whose `predicate` (a timestamp) falls in the window - the events starting
+    /// soon, soonest first.
+    func subjects(withPredicate predicate: String, between from: Date, and to: Date, at now: Date)
+        async throws -> [EntityID]
+    {
+        var query = currentQuery(at: now)
+        query["predicate"] = predicate
+        query["value"] =
+            ["$gte": WorldJSON.timestamp(from), "$lte": WorldJSON.timestamp(to)] as Document
+        let documents = try await facts.find(query).sort(["value": 1]).limit(50).drain()
+        return documents.compactMap { document in
+            (document["subject_id"] as? String).flatMap(EntityID.init(rawValue:))
+        }
     }
 
     /// Current facts anywhere whose value is `entityID`: the links into it.

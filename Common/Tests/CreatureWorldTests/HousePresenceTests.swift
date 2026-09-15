@@ -439,6 +439,24 @@ struct RecentHappeningsTests {
             "contact.phone-\(suffix)", meaning: "a phone number", audience: .world,
             by: "bridge:contacts", at: start)
 
+        // "What's on this weekend?" is handed the visit without naming it: the next days of the
+        // calendar ride along with every question (the shared database holds other runs'
+        // events, so this one starts soonest). And the world-only timestamps never take a
+        // mind's place on the page.
+        try await persistence.facts.save(
+            try fact(visit, "calendar.starts_at", .string(WorldJSON.timestamp(start + 600))))
+        _ = try await persistence.factKinds.set(
+            "calendar.starts_at", meaning: "when it starts", audience: .world,
+            by: "bridge:calendar", at: start)
+        let weekend = try await knowledge.currentFacts(
+            about: [], mentionedIn: "what's on the calendar this weekend?",
+            limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(weekend.contains { $0.subjectID == visit && $0.predicate == "calendar.title" })
+        #expect(!weekend.contains { $0.predicate == "calendar.starts_at" })
+        #expect(
+            Set(weekend.map(\.subjectID).filter { $0.rawValue.hasPrefix("event:") }).count
+                <= WorldKnowledgeLimits.maximumUpcomingEvents)
+
         // Asked about the visit, a mind is handed Jesse too - but never his number.
         let handed = try await knowledge.currentFacts(
             about: [visit], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)

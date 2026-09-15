@@ -939,12 +939,15 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                 contentsOf: WorldMentions.mentioned(in: text, among: try await knownOrders(at: now))
             )
         }
+        // What is the world's alone stays with the world - and never takes a mind's place on
+        // the capped page.
+        let worldOnly = try await kinds.worldOnlyPredicates()
         // The day's facts and the memories are capped separately: a night's episodes are many
         // and newer than everything else, and would otherwise push what April taught the birds
         // yesterday off the page.
         let about = unique(expanded)
         var present = try await facts.currentFacts(
-            about: about, family: .notMemories, limit: limit, at: now)
+            about: about, family: .notMemories, excluding: worldOnly, limit: limit, at: now)
         // Links, one hop: a fact whose value is an entity (`calendar.with = person:jesse`)
         // brings that entity's facts along, so a bird handed the visit is handed the visitor.
         // One hop only, and never on the live line's critical path a second time.
@@ -952,14 +955,36 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             .filter { !about.contains($0) }
         if !linked.isEmpty {
             present += try await facts.currentFacts(
-                about: linked, family: .notMemories, limit: limit, at: now)
+                about: linked, family: .notMemories, excluding: worldOnly, limit: limit, at: now)
         }
         let remembered = try await facts.currentFacts(
             about: about + linked, family: .memories, limit: limit, at: now)
-        // What is the world's alone stays with the world.
-        let worldOnly = try await kinds.worldOnlyPredicates()
-        return (present + Self.withMemoriesTrimmed(remembered, memory: memory, now: now))
-            .filter { !worldOnly.contains($0.predicate) }
+        // What is coming: the next few days of the calendar ride along with every question, a
+        // fortnight when the words are about time - on a page of their own, so a busy week
+        // never crowds the people and places out of theirs.
+        let upcoming = try await upcomingEvents(mentionedIn: text, now: now)
+            .filter { !about.contains($0) && !linked.contains($0) }
+        let coming =
+            upcoming.isEmpty
+            ? []
+            : try await facts.currentFacts(
+                about: upcoming, family: .notMemories, excluding: worldOnly,
+                limit: WorldKnowledgeLimits.maximumUpcomingEvents * 4, at: now)
+        return present + coming + Self.withMemoriesTrimmed(remembered, memory: memory, now: now)
+    }
+
+    /// The events starting in the next three days - a fortnight when the question is about
+    /// time - soonest first, at most eight. The calendar is the one source whose facts matter
+    /// before anyone names them.
+    private func upcomingEvents(mentionedIn text: String?, now: Date) async throws -> [EntityID] {
+        let words = Set(
+            (text ?? "").lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
+        let aboutTime = !words.isDisjoint(with: WorldKnowledgeLimits.timeWords)
+        let days: TimeInterval = aboutTime ? 14 : 3
+        let soon = try await facts.subjects(
+            withPredicate: "calendar.starts_at", between: now.addingTimeInterval(-3 * 3_600),
+            and: now.addingTimeInterval(days * 86_400), at: now)
+        return Array(soon.prefix(WorldKnowledgeLimits.maximumUpcomingEvents))
     }
 
     /// One entity, whole, for the Viewer's page and a mind's question: every current fact
