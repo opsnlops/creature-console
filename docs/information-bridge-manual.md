@@ -32,8 +32,12 @@ carrier's window. When the model is not available the Mail row says so and the s
 stand alone. Mails about one order fold into one `order:<merchant>-<number>` entity — a
 carrier's tracking number joins the merchant's order — with `order.merchant`, `order.number`,
 `order.items`, `order.status`, `order.carrier`, `order.tracking` (world-only), `order.total`,
-`order.placed`, `order.expected`, `order.updated_at` (world-only; when the mail last spoke of it),
-`order.for = person:april`; kept for good. Item names are tidied (bidi marks, ellipses, Amazon's
+`order.placed`, `order.expected` (the carrier's window as a day — "arriving tomorrow" on a June 7
+mail is `June 8, 2026`, and the window is dropped once the order is delivered), `order.last_heard`
+(the day the mail last spoke of it, so a bird knows a shipped order from June is old news, not
+news), `order.updated_at` (world-only; the same, as a timestamp for the world's rules),
+`order.for = person:april`; kept for good. A tracking number the model offers is taken only if it
+looks like one (letters and digits, at least six digits). Item names are tidied (bidi marks, ellipses, Amazon's
 "and 1 more item", the model's "Shipment"/"Item" placeholders dropped); totals read "$21.69".
 When the readers improve, the Bridge's *reading version* is bumped and the mail is read again,
 the order book rebuilt from scratch, and orders that no longer exist taken back. The Sources card

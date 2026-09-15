@@ -77,7 +77,9 @@ struct OrderBook: Sendable, Codable {
             order.status = max(order.status, status, by: \.rank)
         }
         if let total = reading.total { order.total = OrderFacts.tidyTotal(total) }
-        if let expected = reading.expected { order.expected = expected }
+        if let expected = reading.expected {
+            order.expected = OrderFacts.resolveExpected(expected, mailedOn: date)
+        }
         if order.placed == nil, reading.kind == .order { order.placed = date }
         order.lastMail = max(order.lastMail, date)
         orders[key] = order
@@ -104,7 +106,12 @@ struct OrderBook: Sendable, Codable {
             // When the mail last spoke of it - the world's rules judge freshness by this, not
             // by when the Bridge got round to casting it.
             facts["order.updated_at"] = .string(WorldJSON.timestamp(order.lastMail))
-            if let expected = order.expected { facts["order.expected"] = .string(expected) }
+            // A window matters until the package is in hand; "arriving tomorrow" in June must
+            // never reach a bird in September.
+            if let expected = order.expected, order.status != .delivered {
+                facts["order.expected"] = .string(expected)
+            }
+            facts["order.last_heard"] = .string(OrderFacts.day(order.lastMail))
             result[key] = FactLedger.Wanted(entityID: order.entityID, facts: facts, validUntil: nil)
         }
         return result
@@ -131,12 +138,14 @@ enum OrderFacts {
         "order.merchant": "where April ordered from",
         "order.number": "the merchant's order number, as their mail gives it",
         "order.items": "what was ordered, as the mail names it",
-        "order.status": "where the order is: placed, shipped, out_for_delivery, or delivered",
+        "order.status":
+            "where the order was when the mail last spoke of it: placed, shipped, out_for_delivery, or delivered - see order.last_heard for how old that news is",
         "order.tracking": "the carrier's tracking number",
         "order.carrier": "who is carrying it",
         "order.total": "what the order cost, as the mail gives it",
         "order.placed": "the day the order was placed",
-        "order.expected": "when the carrier says it will arrive, in the carrier's words",
+        "order.expected": "the day the carrier said it would arrive",
+        "order.last_heard": "the day the mail last spoke of the order; older news is older",
         "order.for": "whose order it is",
         "order.updated_at":
             "when the mail last spoke of the order, as a timestamp - for the world's rules",
@@ -154,10 +163,58 @@ enum OrderFacts {
         return trimmed
     }
 
-    static func day(_ date: Date) -> String {
+    static func day(_ date: Date, zone: TimeZone = .current) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = zone
         formatter.dateFormat = "MMMM d, yyyy"
         return formatter.string(from: date)
+    }
+
+    private static let monthNames = [
+        "january", "february", "march", "april", "may", "june", "july", "august", "september",
+        "october", "november", "december",
+    ]
+    private static let weekdayNames = [
+        "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
+    ]
+
+    /// The carrier's window as a day, judged from the day the mail came: "Arriving tomorrow"
+    /// on June 7 is June 8; "by Thursday" the Thursday after; "Monday, September 16" itself.
+    /// Words the Bridge cannot place keep the mail's date beside them, so they never pass
+    /// for news.
+    static func resolveExpected(_ text: String, mailedOn mailed: Date, zone: TimeZone = .current)
+        -> String
+    {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let start = calendar.startOfDay(for: mailed)
+        let lower = text.lowercased()
+        let words = lower.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
+        for (index, word) in words.enumerated() where word.count >= 3 {
+            guard let month = monthNames.firstIndex(where: { $0.hasPrefix(word) }),
+                index + 1 < words.count, let dayNumber = Int(words[index + 1]),
+                (1...31).contains(dayNumber)
+            else { continue }
+            var components = calendar.dateComponents([.year], from: start)
+            components.month = month + 1
+            components.day = dayNumber
+            guard let date = calendar.date(from: components) else { continue }
+            // A day already gone when the mail came means next year's.
+            let resolved = date < start ? calendar.date(byAdding: .year, value: 1, to: date)! : date
+            return day(resolved, zone: zone)
+        }
+        if words.contains("today") { return day(start, zone: zone) }
+        if words.contains("tomorrow") {
+            return day(calendar.date(byAdding: .day, value: 1, to: start)!, zone: zone)
+        }
+        for (index, name) in weekdayNames.enumerated() where words.contains(name) {
+            let today = calendar.component(.weekday, from: start) - 1
+            let ahead = (index - today + 7) % 7
+            let date = calendar.date(byAdding: .day, value: ahead == 0 ? 7 : ahead, to: start)!
+            return day(date, zone: zone)
+        }
+        return
+            "\(text.trimmingCharacters(in: .whitespacesAndNewlines)) (as of \(day(mailed, zone: zone)))"
     }
 }

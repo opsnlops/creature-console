@@ -133,6 +133,56 @@ struct MailTests {
         #expect(OrderFacts.tidyTotal("21.689999999999998 USD") == "$21.69")
     }
 
+    @Test("A carrier's window becomes a day, judged from the day the mail came")
+    func expectedBecomesADay() {
+        let zone = TimeZone(identifier: "America/Los_Angeles")!
+        let june7 = Date(timeIntervalSince1970: 1_780_876_800)  // Sunday, June 7, 2026, Pacific
+        func resolve(_ text: String) -> String {
+            OrderFacts.resolveExpected(text, mailedOn: june7, zone: zone)
+        }
+        #expect(resolve("Arriving tomorrow") == "June 8, 2026")
+        #expect(resolve("Delivered today") == "June 7, 2026")
+        #expect(resolve("by Thursday, 9 PM") == "June 11, 2026")
+        #expect(resolve("Sunday") == "June 14, 2026")
+        #expect(resolve("Monday, September 16") == "September 16, 2026")
+        #expect(resolve("Jan 4") == "January 4, 2027")
+        #expect(resolve("soon") == "soon (as of June 7, 2026)")
+    }
+
+    @Test("A delivered order has no window left; every order says when the mail last spoke")
+    func expectedDropsOnceDelivered() {
+        var book = OrderBook()
+        book.apply(
+            MailReader.read(
+                mail(
+                    "s", from: "support@adafruit.com",
+                    subject: "Your Adafruit order #3312091 has shipped!",
+                    text: "Tracking number: 1Z999AA10123456784 via UPS"),
+                kind: .shipping
+            ).filled(
+                with: CommerceReading(
+                    merchant: "", orderNumber: "", trackingNumber: "Ph5FnJ4KZ", items: [],
+                    total: "", expectedDelivery: "Arriving tomorrow")),
+            at: day)
+        var wanted = try! #require(book.wanted.values.first)
+        #expect(wanted.facts["order.expected"] == .string(OrderFacts.day(day + 86_400)))
+        #expect(wanted.facts["order.last_heard"] == .string(OrderFacts.day(day)))
+        #expect(wanted.facts["order.tracking"] == .string("1Z999AA10123456784"))
+        book.apply(
+            MailReader.read(
+                mail(
+                    "d", from: "mcinfonotify@ups.com", subject: "UPS Update: Package Delivered",
+                    text: "Tracking Number: 1Z999AA10123456784", daysLater: 2),
+                kind: .shipping),
+            at: day + 2 * 86_400)
+        wanted = try! #require(book.wanted.values.first)
+        #expect(wanted.facts["order.status"] == .string("delivered"))
+        #expect(wanted.facts["order.expected"] == nil)
+        #expect(wanted.facts["order.last_heard"] == .string(OrderFacts.day(day + 2 * 86_400)))
+        #expect(!MailReader.looksLikeTracking("Ph5FnJ4KZ"))
+        #expect(MailReader.looksLikeTracking("381467870711"))
+    }
+
     @Test("A carrier's mail takes no order number, not even from the model")
     func carriersKeyByTracking() {
         let fedex = MailReader.read(

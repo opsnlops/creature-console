@@ -19,7 +19,7 @@ actor MailSource {
     static let interval: Duration = .seconds(300)
     static let backfillDays = 120
     /// Bumped when the readers change: the mail is read again and the orders rebuilt.
-    static let readingVersion = 5
+    static let readingVersion = 6
 
     private let classifier: MailClassifier
     private let distill: Distill

@@ -73,7 +73,8 @@ extension MailReading {
         if reading.orderNumber == nil, !model.orderNumber.isEmpty, !fromCarrier {
             reading.orderNumber = model.orderNumber
         }
-        if reading.tracking == nil, !model.trackingNumber.isEmpty {
+        // A tracking number has digits in it; "Ph5FnJ4KZ" is a reference the model mistook.
+        if reading.tracking == nil, MailReader.looksLikeTracking(model.trackingNumber) {
             reading.tracking = model.trackingNumber
         }
         if reading.items.isEmpty {

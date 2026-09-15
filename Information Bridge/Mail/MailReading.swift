@@ -187,6 +187,15 @@ enum MailReader {
         #"(?i)tracking\s*(?:number|no\.?|#|id)?[:\s#]*((?=[A-Z0-9]*\d{6})[A-Z0-9]{8,30})\b"#,
     ]
 
+    /// What the tracking regexes would accept on their own: letters and digits, at least six
+    /// of them digits.
+    static func looksLikeTracking(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        return trimmed.count >= 8 && trimmed.count <= 30
+            && trimmed.allSatisfy { $0.isLetter || $0.isNumber }
+            && trimmed.filter(\.isNumber).count >= 6
+    }
+
     private static func first(of patterns: [String], in text: String) -> String? {
         for pattern in patterns {
             if let value = firstGroup(pattern, in: text) { return value }
