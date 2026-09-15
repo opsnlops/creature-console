@@ -311,6 +311,9 @@
 		FEA1B1E70000000000000082 /* DuplicateInstanceGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000081 /* DuplicateInstanceGuard.swift */; };
 		FEA1B1E70000000000000091 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 		FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
+		IBA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = IBA000000000000000000015 /* WorldCore */; };
+		IBA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = IBA000000000000000000016 /* CreatureAppSupport */; };
+		IBT00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = IBT00000000000000000001B /* WorldCore */; };
 		WVA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = WVA000000000000000000015 /* WorldCore */; };
 		WVA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = WVA000000000000000000016 /* CreatureAppSupport */; };
 		WVT00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = WVT00000000000000000001B /* WorldCore */; };
@@ -344,6 +347,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = BCA000000000000000000001;
 			remoteInfo = "Flock Communicator";
+		};
+		IBT000000000000000000013 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = IBA000000000000000000001;
+			remoteInfo = "Information Bridge";
 		};
 		WVT000000000000000000013 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -608,6 +618,10 @@
 		FEA1B1E7000000000000007B /* CreatureRuntimeSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureRuntimeSummary.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000081 /* DuplicateInstanceGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateInstanceGuard.swift; sourceTree = "<group>"; };
 		FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdHocExchangeViews.swift; sourceTree = "<group>"; };
+		IBA000000000000000000002 /* Information Bridge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Information Bridge.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		IBA00000000000000000001F /* Information_Bridge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Information_Bridge.entitlements; sourceTree = "<group>"; };
+		IBA000000000000000000022 /* Information-Bridge-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Information-Bridge-Info.plist"; sourceTree = "<group>"; };
+		IBT00000000000000000000B /* Information Bridge Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Information Bridge Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		WVA000000000000000000002 /* World Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "World Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		WVA00000000000000000001F /* World_Viewer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = World_Viewer.entitlements; sourceTree = "<group>"; };
 		WVA000000000000000000022 /* World-Viewer-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "World-Viewer-Info.plist"; sourceTree = "<group>"; };
@@ -705,6 +719,16 @@
 			path = "Flock Communicator Tests";
 			sourceTree = "<group>";
 		};
+		IBA000000000000000000003 /* Information Bridge */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Information Bridge";
+			sourceTree = "<group>";
+		};
+		IBT00000000000000000000C /* Information Bridge Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Information Bridge Tests";
+			sourceTree = "<group>";
+		};
 		WVA000000000000000000003 /* World Viewer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "World Viewer";
@@ -767,6 +791,19 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				BCA00000000000000000001C /* WorldCore in Frameworks */,
+			);
+		};
+		IBA000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				IBA000000000000000000018 /* WorldCore in Frameworks */,
+				IBA000000000000000000019 /* CreatureAppSupport in Frameworks */,
+			);
+		};
+		IBT00000000000000000000E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				IBT00000000000000000001C /* WorldCore in Frameworks */,
 			);
 		};
 		WVA000000000000000000005 /* Frameworks */ = {
@@ -979,9 +1016,13 @@
 				BCA00000000000000000001F /* Flock_Communicator.entitlements */,
 				BCA000000000000000000022 /* Flock-Communicator-Info.plist */,
 				WVA000000000000000000003 /* World Viewer */,
+				IBA000000000000000000003 /* Information Bridge */,
 				WVT00000000000000000000C /* World Viewer Tests */,
+				IBT00000000000000000000C /* Information Bridge Tests */,
 				WVA00000000000000000001F /* World_Viewer.entitlements */,
+				IBA00000000000000000001F /* Information_Bridge.entitlements */,
 				WVA000000000000000000022 /* World-Viewer-Info.plist */,
+				IBA000000000000000000022 /* Information-Bridge-Info.plist */,
 				1120F1D92EB03A24000342A3 /* Lightweight Console */,
 				1120F1E72EB03A25000342A3 /* Lightweight ConsoleTests */,
 				1120F1F12EB03A25000342A3 /* Lightweight ConsoleUITests */,
@@ -1023,7 +1064,9 @@
 				BCA000000000000000000002 /* Flock Communicator.app */,
 				BCA00000000000000000000B /* Flock Communicator Tests.xctest */,
 				WVA000000000000000000002 /* World Viewer.app */,
+				IBA000000000000000000002 /* Information Bridge.app */,
 				WVT00000000000000000000B /* World Viewer Tests.xctest */,
+				IBT00000000000000000000B /* Information Bridge Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1710,6 +1753,52 @@
 			productReference = BCA00000000000000000000B /* Flock Communicator Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		IBA000000000000000000001 /* Information Bridge */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = IBA000000000000000000009 /* Build configuration list for PBXNativeTarget "Information Bridge" */;
+			buildPhases = (
+				IBA000000000000000000004 /* Sources */,
+				IBA000000000000000000005 /* Frameworks */,
+				IBA000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				IBA000000000000000000003 /* Information Bridge */,
+			);
+			name = "Information Bridge";
+			packageProductDependencies = (
+				IBA000000000000000000015 /* WorldCore */,
+				IBA000000000000000000016 /* CreatureAppSupport */,
+			);
+			productName = "Information Bridge";
+			productReference = IBA000000000000000000002 /* Information Bridge.app */;
+			productType = "com.apple.product-type.application";
+		};
+		IBT00000000000000000000A /* Information Bridge Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = IBT000000000000000000012 /* Build configuration list for PBXNativeTarget "Information Bridge Tests" */;
+			buildPhases = (
+				IBT00000000000000000000D /* Sources */,
+				IBT00000000000000000000E /* Frameworks */,
+				IBT00000000000000000000F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				IBT000000000000000000014 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				IBT00000000000000000000C /* Information Bridge Tests */,
+			);
+			name = "Information Bridge Tests";
+			packageProductDependencies = (
+				IBT00000000000000000001B /* WorldCore */,
+			);
+			productName = "Information Bridge Tests";
+			productReference = IBT00000000000000000000B /* Information Bridge Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		WVA000000000000000000001 /* World Viewer */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = WVA000000000000000000009 /* Build configuration list for PBXNativeTarget "World Viewer" */;
@@ -1791,6 +1880,10 @@
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = BCA000000000000000000001;
 					};
+					IBT00000000000000000000A = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = IBA000000000000000000001;
+					};
 					WVT00000000000000000000A = {
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = WVA000000000000000000001;
@@ -1825,7 +1918,9 @@
 				BCA000000000000000000001 /* Flock Communicator */,
 				BCA00000000000000000000A /* Flock Communicator Tests */,
 				WVA000000000000000000001 /* World Viewer */,
+				IBA000000000000000000001 /* Information Bridge */,
 				WVT00000000000000000000A /* World Viewer Tests */,
+				IBT00000000000000000000A /* Information Bridge Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -1869,6 +1964,16 @@
 			);
 		};
 		BCA00000000000000000000F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		IBA000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		IBT00000000000000000000F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -2337,6 +2442,16 @@
 			files = (
 			);
 		};
+		IBA000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		IBT00000000000000000000D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 		WVA000000000000000000004 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
@@ -2369,6 +2484,11 @@
 			isa = PBXTargetDependency;
 			target = BCA000000000000000000001 /* Flock Communicator */;
 			targetProxy = BCA000000000000000000013 /* PBXContainerItemProxy */;
+		};
+		IBT000000000000000000014 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = IBA000000000000000000001 /* Information Bridge */;
+			targetProxy = IBT000000000000000000013 /* PBXContainerItemProxy */;
 		};
 		WVT000000000000000000014 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -2956,6 +3076,115 @@
 			};
 			name = Release;
 		};
+		IBA000000000000000000007 /* Debug configuration for PBXNativeTarget "Information Bridge" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Information_Bridge.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Information-Bridge-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Information Bridge";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Information Bridge tells Creature World what it learns, on your local network.";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		IBA000000000000000000008 /* Release configuration for PBXNativeTarget "Information Bridge" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Information_Bridge.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Information-Bridge-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Information Bridge";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Information Bridge tells Creature World what it learns, on your local network.";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		IBT000000000000000000010 /* Debug configuration for PBXNativeTarget "Information Bridge Tests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Information Bridge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Information Bridge";
+			};
+			name = Debug;
+		};
+		IBT000000000000000000011 /* Release configuration for PBXNativeTarget "Information Bridge Tests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Information Bridge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Information Bridge";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		WVA000000000000000000007 /* Debug configuration for PBXNativeTarget "World Viewer" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -3132,6 +3361,22 @@
 			);
 			defaultConfigurationName = Debug;
 		};
+		IBA000000000000000000009 /* Build configuration list for PBXNativeTarget "Information Bridge" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				IBA000000000000000000007 /* Debug configuration for PBXNativeTarget "Information Bridge" */,
+				IBA000000000000000000008 /* Release configuration for PBXNativeTarget "Information Bridge" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		IBT000000000000000000012 /* Build configuration list for PBXNativeTarget "Information Bridge Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				IBT000000000000000000010 /* Debug configuration for PBXNativeTarget "Information Bridge Tests" */,
+				IBT000000000000000000011 /* Release configuration for PBXNativeTarget "Information Bridge Tests" */,
+			);
+			defaultConfigurationName = Debug;
+		};
 		WVA000000000000000000009 /* Build configuration list for PBXNativeTarget "World Viewer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -3259,6 +3504,18 @@
 		BCA000000000000000000020 /* CreatureAppSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CreatureAppSupport;
+		};
+		IBA000000000000000000015 /* WorldCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorldCore;
+		};
+		IBA000000000000000000016 /* CreatureAppSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CreatureAppSupport;
+		};
+		IBT00000000000000000001B /* WorldCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorldCore;
 		};
 		WVA000000000000000000015 /* WorldCore */ = {
 			isa = XCSwiftPackageProductDependency;

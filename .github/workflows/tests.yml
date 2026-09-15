@@ -87,11 +87,14 @@ jobs:
       fail-fast: false
       matrix:
         platform: [macOS, iOS]
-        scheme: ["Creature Console", "Flock Communicator", "World Viewer"]
+        scheme: ["Creature Console", "Flock Communicator", "World Viewer", "Information Bridge"]
         exclude:
-          # World Viewer is a macOS-only debugging window on Creature World.
+          # World Viewer is a macOS-only debugging window on Creature World; the Information
+          # Bridge lives on April's Mac.
           - platform: iOS
             scheme: "World Viewer"
+          - platform: iOS
+            scheme: "Information Bridge"
 
     steps:
       - name: Checkout code
