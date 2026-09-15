@@ -257,8 +257,12 @@ this morning."
 
 ## Step 6 — Messages: what people tell April
 
-**Source:** the Messages database (`chat.db`; TCC: Full Disk Access) read-only, or the supported
-automation path if macOS 27 offers one — decided when we get here. Only conversations April
+**Source:** the Messages database, `~/Library/Messages/chat.db`, read directly (TCC: Full Disk
+Access for the Bridge). April, 2026-09-14: "Let's do the dirty thing and look at chat.db. This
+isn't an app we're going to sell." Read-only, `immutable=1` on the SQLite URI so Messages' own
+writes are never blocked; `message.ROWID` is the checkpoint and the `source_event_id`;
+attributedBody is decoded for messages whose `text` is null (Ventura and later). A schema change in
+a macOS update is a degraded source, not a crash. Only conversations April
 allowlists in the Bridge (by mapped person) are read at all; group chats off by default. April's
 own outgoing messages are read only to resolve a reply ("yes, 6 works") — never cast.
 
@@ -325,9 +329,7 @@ suite), and the Viewer surface, in the same commit.
    mouth at all, or only visitors-to-the-house?
 4. **Merchants and carriers list** for step 5 — seed from the last month of mail, then yours to edit?
    And how far back should the first run read: a month of orders, a year?
-5. **Messages access path:** `chat.db` under Full Disk Access is the known-working way; is that
-   acceptable on this Mac, or wait for a sanctioned API?
-6. **Audience granularity:** two levels (`minds` / `world`) or three (add `lead` — only Beaky)?
+5. **Audience granularity:** two levels (`minds` / `world`) or three (add `lead` — only Beaky)?
    Two is enough for the plan; three is a small change later.
-7. **Does the Bridge get a bird?** It is an entity (`thing:information-bridge`) with health facts.
+6. **Does the Bridge get a bird?** It is an entity (`thing:information-bridge`) with health facts.
    It does not speak. Unless you want it to.
