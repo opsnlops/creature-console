@@ -98,7 +98,10 @@ enum WeatherFacts {
                 WeatherFact(
                     predicate: "forecast.tonight", value: .string(tonight), validUntil: endOfToday))
         }
-        facts.append(nextRain(snapshot.hours, now: now, calendar: calendar, until: endOfTomorrow))
+        facts.append(
+            nextRain(
+                snapshot.hours, days: snapshot.days, now: now, calendar: calendar,
+                until: endOfTomorrow))
         if let alert = snapshot.alerts.first {
             facts.append(
                 WeatherFact(
@@ -157,12 +160,31 @@ enum WeatherFacts {
         return line
     }
 
-    /// "this evening around 6", "tomorrow morning", or "not in the next two days".
+    /// "this evening around 6", "tomorrow morning", or "not in the next two days". The hour
+    /// says when; when no hour is likely but a day is - drizzle on and off, which never clears
+    /// the bar in any one hour - the day says so, and the next rain agrees with the forecast it
+    /// sits beside. (Beaky, the first night: "the forecast oddly also says no rain in the next
+    /// two days.")
     private static func nextRain(
-        _ hours: [WeatherSnapshot.Hour], now: Date, calendar: Calendar, until: Date
+        _ hours: [WeatherSnapshot.Hour], days: [WeatherSnapshot.Day], now: Date,
+        calendar: Calendar, until: Date
     ) -> WeatherFact {
         guard let first = hours.first(where: { $0.date >= now && $0.rainChance >= rainThreshold })
         else {
+            let endOfToday = calendar.date(
+                byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+            if let day = days.first(where: {
+                ($0.date >= calendar.startOfDay(for: now)) && $0.date < until
+                    && $0.rainChance >= rainThreshold
+            }) {
+                let name = calendar.isDate(day.date, inSameDayAs: now) ? "today" : "tomorrow"
+                let chance = Int((day.rainChance * 100).rounded())
+                return WeatherFact(
+                    predicate: "forecast.next_rain",
+                    value: .string(
+                        "\(name), \(day.condition.lowercased()) on and off, \(chance)% chance"),
+                    validUntil: name == "today" ? endOfToday : until)
+            }
             return WeatherFact(
                 predicate: "forecast.next_rain", value: .string("not in the next two days"),
                 validUntil: until)

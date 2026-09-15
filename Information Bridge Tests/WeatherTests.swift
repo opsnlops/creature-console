@@ -68,7 +68,9 @@ struct WeatherFactsTests {
 
     @Test("Next rain is said in human terms and holds only until it comes")
     func nextRain() {
-        let dry = WeatherFacts.facts(from: snapshot(), now: now, zone: pacific)
+        var dryDays = snapshot()
+        dryDays.days[1].rainChance = 0.1
+        let dry = WeatherFacts.facts(from: dryDays, now: now, zone: pacific)
         #expect(
             dry.first { $0.predicate == "forecast.next_rain" }?.value
                 == .string("not in the next two days"))
@@ -82,6 +84,16 @@ struct WeatherFactsTests {
         #expect(
             morning.first { $0.predicate == "forecast.next_rain" }?.value
                 == .string("tomorrow morning around 9 AM, 70% chance"))
+    }
+
+    @Test("A drizzly day with no likely hour still counts as the next rain")
+    func drizzleAgreesWithTheDay() {
+        // The fixture's tomorrow is "Rain" at 85% with no hour over the bar: the next rain is
+        // tomorrow, said as the day says it, not "none" beside a forecast of rain.
+        let facts = WeatherFacts.facts(from: snapshot(), now: now, zone: pacific)
+        let next = facts.first { $0.predicate == "forecast.next_rain" }
+        #expect(next?.value == .string("tomorrow, rain on and off, 85% chance"))
+        #expect(next?.validUntil == Date(timeIntervalSince1970: 1_789_628_400))
     }
 
     @Test("Tonight is the evening hours summed up; an alert holds until it expires")
