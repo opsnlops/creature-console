@@ -16,6 +16,7 @@ struct BridgeRootView: View {
     @AppStorage(BridgeConnection.Keys.useProxy) private var useProxy = false
     @AppStorage(BridgeConnection.Keys.proxyHost) private var proxyHost = ""
     @AppStorage(BridgeConnection.Keys.contactsOn) private var contactsOn = false
+    @AppStorage(BridgeConnection.Keys.calendarOn) private var calendarOn = false
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
     @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
@@ -52,7 +53,7 @@ struct BridgeRootView: View {
         .onChange(of: [
             serverAddress, String(serverPort), String(serverUseTLS), String(useProxy), proxyHost,
             String(weatherOn), String(useMacLocation), String(latitude), String(longitude),
-            outsideID, String(contactsOn),
+            outsideID, String(contactsOn), String(calendarOn),
         ]) {
             store.start()
         }
@@ -121,6 +122,13 @@ struct BridgeRootView: View {
                         .buttonStyle(.glass)
                         .controlSize(.small)
                     }
+                    if source == .calendar, status.state == .on {
+                        Button("Read now", systemImage: "arrow.clockwise") {
+                            Task { await store.pollCalendar() }
+                        }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
+                    }
                     if source == .addressBook, status.state != .off {
                         Button("People…", systemImage: "person.crop.rectangle.stack") {
                             openWindow(id: "people")
@@ -140,6 +148,9 @@ struct BridgeRootView: View {
                     Text(note)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+                if source == .calendar, status.state != .off, !store.calendarTitles.isEmpty {
+                    CalendarPicker(store: store)
                 }
             }
             if let attribution = store.weatherAttribution {
@@ -238,5 +249,31 @@ struct BridgeMenu: View {
         Button("Cast a test fact") { Task { await store.castTestFact() } }
         Divider()
         Button("Quit Information Bridge") { NSApplication.shared.terminate(nil) }
+    }
+}
+
+/// Which of April's calendars the Bridge reads: all of them until she unticks one.
+private struct CalendarPicker: View {
+    let store: BridgeStore
+
+    var body: some View {
+        let allowed = BridgeConnection.shared.allowedCalendars
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(store.calendarTitles, id: \.self) { title in
+                Toggle(
+                    title,
+                    isOn: Binding(
+                        get: { allowed?.contains(title) ?? true },
+                        set: { on in
+                            var next = allowed ?? Set(store.calendarTitles)
+                            if on { next.insert(title) } else { next.remove(title) }
+                            Task { await store.setAllowedCalendars(next) }
+                        })
+                )
+                .toggleStyle(.checkbox)
+                .font(.caption)
+            }
+        }
+        .padding(.leading, 28)
     }
 }

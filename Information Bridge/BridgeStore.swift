@@ -60,6 +60,8 @@ final class BridgeStore {
     private(set) var contactMap: [String: ContactMapping] = [:]
     /// People the world already knows, for pre-filling the map.
     private(set) var knownPeople: [EntityID] = []
+    /// The calendars EventKit knows, for the settings list, once the source has asked.
+    private(set) var calendarTitles: [String] = []
     var lastError: ErrorAlert?
 
     static let version =
@@ -75,6 +77,8 @@ final class BridgeStore {
     @ObservationIgnored private var weatherTask: Task<Void, Never>?
     @ObservationIgnored private var contactsSource: ContactsSource?
     @ObservationIgnored private var contactsTask: Task<Void, Never>?
+    @ObservationIgnored private var calendarSource: CalendarSource?
+    @ObservationIgnored private var calendarTask: Task<Void, Never>?
 
     init(connection: BridgeConnection = .shared) {
         self.connection = connection
@@ -110,6 +114,9 @@ final class BridgeStore {
             if connection.isContactsOn {
                 startContacts(directory: directory, box: box, client: client)
             }
+            if connection.isCalendarOn {
+                startCalendar(directory: directory, box: box, client: client)
+            }
             if connection.isWeatherOn {
                 if let sky = connection.sky {
                     skyNote = "at \(coordinates(sky)), as typed"
@@ -143,6 +150,11 @@ final class BridgeStore {
         statusTask?.cancel()
         weatherTask?.cancel()
         contactsTask?.cancel()
+        calendarTask?.cancel()
+        if let calendarSource {
+            Task { await calendarSource.stop() }
+        }
+        calendarSource = nil
         if let box {
             Task { await box.stop() }
         }
@@ -186,6 +198,49 @@ final class BridgeStore {
                 self.contactMap = await source.map
             }
         }
+    }
+
+    /// Step 4: the calendars. People in events are found through the contact map, so the
+    /// address book's cards are the resolver; without the address book on, events are people-less.
+    private func startCalendar(directory: URL, box: Outbox, client: WorldViewerClient) {
+        let contacts = contactsSource
+        let source = CalendarSource(
+            directory: directory, zone: .current, allowed: connection.allowedCalendars,
+            resolver: {
+                guard let contacts else { return PersonResolver(cards: [], map: [:]) }
+                return await PersonResolver(cards: contacts.cards, map: contacts.map)
+            }
+        ) { event in try await box.enqueue(event) }
+        calendarSource = source
+        calendarTask = Task { [weak self] in
+            do {
+                try await GlossarySeeder(client: client, source: CalendarSource.sourceName)
+                    .seed(CalendarFacts.meanings, worldOnly: CalendarFacts.worldOnly)
+            } catch {
+                await MainActor.run {
+                    self?.sources[.calendar] = SourceStatus(
+                        state: .degraded("could not seed the glossary: \(error)"))
+                }
+            }
+            if let titles = try? await CalendarSource.calendarTitles() {
+                await MainActor.run { self?.calendarTitles = titles }
+            }
+            await source.start()
+            for await status in await source.updates() {
+                guard let self else { return }
+                self.sources[.calendar] = status
+            }
+        }
+    }
+
+    /// Which calendars to read; nil for all.
+    func setAllowedCalendars(_ titles: Set<String>?) async {
+        connection.setAllowedCalendars(titles)
+        await calendarSource?.setAllowed(titles)
+    }
+
+    func pollCalendar() async {
+        await calendarSource?.poll()
     }
 
     /// April's word on a card.

@@ -22,6 +22,8 @@ final class BridgeConnection: Sendable {
         static let longitude = "informationBridgeLongitude"
         static let outsideID = "informationBridgeOutsideID"
         static let contactsOn = "informationBridgeContactsOn"
+        static let calendarOn = "informationBridgeCalendarOn"
+        static let calendarsAllowed = "informationBridgeCalendarsAllowed"
     }
 
     static let defaultHostname = "server.prod.chirpchirp.dev"
@@ -60,6 +62,21 @@ final class BridgeConnection: Sendable {
 
     var isWeatherOn: Bool { defaults.bool(forKey: Keys.weatherOn) }
     var isContactsOn: Bool { defaults.bool(forKey: Keys.contactsOn) }
+    var isCalendarOn: Bool { defaults.bool(forKey: Keys.calendarOn) }
+
+    /// The calendars April allows, by title; nil (nothing chosen yet) means all of them.
+    var allowedCalendars: Set<String>? {
+        guard let titles = defaults.stringArray(forKey: Keys.calendarsAllowed) else { return nil }
+        return Set(titles)
+    }
+
+    func setAllowedCalendars(_ titles: Set<String>?) {
+        if let titles {
+            defaults.set(Array(titles).sorted(), forKey: Keys.calendarsAllowed)
+        } else {
+            defaults.removeObject(forKey: Keys.calendarsAllowed)
+        }
+    }
 
     /// Whether the house is wherever this Mac is (the default) or at coordinates April typed.
     var usesMacLocation: Bool { defaults.object(forKey: Keys.useMacLocation) as? Bool ?? true }

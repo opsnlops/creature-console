@@ -13,6 +13,20 @@ Bridge** scheme, macOS only. Not sandboxed (Messages' `chat.db` and Full Disk Ac
 hardened runtime on. Build and run it from Xcode; it lives in the menu bar and keeps working with
 its window closed.
 
+## Calendar (`0.4.0`, plan step 4)
+
+Settings → **Calendar** → turn it on; macOS asks once for full access to Calendars. The Sources
+card then lists every calendar with a checkbox — all read until you untick one. Everything ahead
+and the last 90 days becomes an `event:<id>-<day>` entity (one per occurrence of a repeating
+event) with `calendar.title`, `calendar.when` ("Thursday, September 17 at 2:00 PM"),
+`calendar.location`, `calendar.calendar`, `calendar.all_day`, world-only `calendar.starts_at` /
+`calendar.ends_at` for the world's rules, and `calendar.with = person:jesse` when an attendee's
+email or name matches a mapped card, or a mapped person's first name is in the title. Notes never
+leave the Mac. Each event's facts hold until 90 days after it ends, so "when was Jesse last here?"
+has an answer. Re-read hourly; a moved event re-casts, a cancelled one is taken back. The world's
+own rule turns an event at the house with a person into `visitor.expected` — that is the world's,
+not the Bridge's.
+
 ## Address Book (`0.3.0`, plan step 3)
 
 Settings → **Address Book** → turn it on; macOS asks once whether the Bridge may read Contacts.

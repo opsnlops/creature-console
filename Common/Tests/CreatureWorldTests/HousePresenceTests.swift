@@ -288,6 +288,65 @@ struct RecentHappeningsTests {
         #expect(try await persistence.factKinds.worldOnlyPredicates().contains(predicate))
     }
 
+    @Test(
+        "An event at the house with a person, within a day, is a visitor expected; gone when cancelled"
+    )
+    func calendarMakesVisitors() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "visitor-rule-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let jesse = try EntityID(validating: "person:jesse-\(suffix)")
+        let visit = try EntityID(validating: "event:deck-\(suffix)")
+        let dentist = try EntityID(validating: "event:dentist-\(suffix)")
+        func fact(_ subject: EntityID, _ predicate: String, _ value: WorldJSONValue) throws
+            -> Fact
+        {
+            try Fact(
+                subjectID: subject, predicate: predicate, value: value,
+                epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: now,
+                validTo: now.addingTimeInterval(86_400 * 7), derivedFrom: [],
+                producer: FactProducer(kind: "bridge", id: "calendar", version: "1"))
+        }
+        // Jesse at the house in three hours; the dentist across town, with nobody April knows.
+        let starts = now.addingTimeInterval(3 * 3_600)
+        for f in [
+            try fact(visit, "calendar.title", .string("Deck boards")),
+            try fact(visit, "calendar.when", .string("Thursday, September 17 at 2:00 PM")),
+            try fact(visit, "calendar.starts_at", .string(WorldJSON.timestamp(starts))),
+            try fact(visit, "calendar.ends_at", .string(WorldJSON.timestamp(starts + 7_200))),
+            try fact(visit, "calendar.with", .string(jesse.rawValue)),
+            try fact(dentist, "calendar.title", .string("Dentist")),
+            try fact(dentist, "calendar.location", .string("Coupeville Dental")),
+            try fact(dentist, "calendar.starts_at", .string(WorldJSON.timestamp(starts))),
+        ] {
+            try await persistence.facts.save(f)
+        }
+        let accepted = Accepted()
+        let rule = VisitorRule(atHome: ["home"], facts: persistence.facts) {
+            await accepted.note($0)
+        }
+        // The shared database holds other runs' calendars: judge this run's events only.
+        let visitors = try await rule.sweep(now: now)
+        #expect(visitors[visit]?.person == jesse)
+        #expect(visitors[dentist] == nil)
+        #expect(visitors[visit]?.value == "Thursday, September 17 at 2:00 PM, Deck boards")
+        #expect(visitors[visit]?.until == starts + 7_200 + 2 * 3_600)
+        let first = await accepted.events.filter { $0.subjectIDs == [jesse] }
+        #expect(first.count == 1)
+        #expect(first.first?.payload["predicate"] == .string(WorldFacts.visitorExpected))
+        #expect(first.first?.source.id == VisitorRule.sourceID)
+        // The same calendar again: nothing more to say.
+        _ = try await rule.sweep(now: now + 60)
+        #expect(await accepted.events.filter { $0.subjectIDs == [jesse] }.count == 1)
+        // Two days earlier the visit is not yet a visitor, and the one cast is taken back.
+        #expect(try await rule.sweep(now: now - 2 * 86_400)[visit] == nil)
+        let last = await accepted.events.last { $0.subjectIDs == [jesse] }
+        #expect(last?.payload["value"] == .null)
+    }
+
     @Test("A world-only kind never reaches a mind; a link brings the linked entity along")
     func audienceAndLinks() async throws {
         let uri = try #require(mongoTestURI)
@@ -342,4 +401,9 @@ struct RecentHappeningsTests {
             limit: WorldKnowledgeLimits.maximumFacts)
         #expect(asked.contains { $0.subjectID == jesse && $0.predicate == "person.relationship" })
     }
+}
+
+private actor Accepted {
+    private(set) var events: [WorldEventEnvelope] = []
+    func note(_ event: WorldEventEnvelope) { events.append(event) }
 }

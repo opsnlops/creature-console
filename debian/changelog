@@ -1,3 +1,22 @@
+creature-cli (2.72.0+world0.26.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.26.0: the calendar's rule (Bridge plan, step 4). An
+    `event:*` at the house - no location, or one with a word from
+    `calendar.at_home` in world.json - with `calendar.with` a person
+    April knows, starting within a day, is `person:X · visitor.expected`
+    until two hours after it ends: the same fact April casts by telling
+    Beaky, so nothing downstream changes. Swept every minute; a
+    cancelled or moved event's visitor is taken back.
+  * Information Bridge 0.4.0: Calendar - everything ahead and 90 days
+    back from the calendars April allows, as `event:*` entities with
+    title, when (in words), start/end (world-only timestamps), location,
+    calendar, and `calendar.with` resolved through the address-book map
+    by attendee email or name, or a first name in the title. Notes never
+    leave the Mac. The address book and calendar share one ledger of
+    what was cast, so changes re-cast and cancellations take back.
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 20:20:00 -0700
+
 creature-cli (2.72.0+world0.25.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.25.1: "When is my mom's birthday?" finds Becky.

@@ -56,6 +56,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         houseConversation: ConversationID = CreatureWorldConfiguration.defaultHouseConversation,
         givenFacts: [GivenFact] = [],
         memory: MemoryConfiguration = MemoryConfiguration(),
+        calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
@@ -190,6 +191,22 @@ struct MongoWorldPersistenceConnection: Sendable {
                         "Could not sweep expired character sessions",
                         metadata: ["error": "\(error)"])
                 }
+            }
+        }
+        // The calendar's rule: an event at the house with a person April knows, within a day, is
+        // a visitor expected - the same fact April casts by saying so.
+        let visitorRule = VisitorRule(atHome: calendar.atHome, facts: persistence.facts) {
+            _ = try await world.accept($0)
+        }
+        let visitorSweeper = Task {
+            while !Task.isCancelled {
+                do {
+                    try await visitorRule.sweep(now: await clock.now)
+                } catch {
+                    logger.warning(
+                        "Could not read the calendar for visitors", metadata: ["error": "\(error)"])
+                }
+                try? await Task.sleep(for: .seconds(60))
             }
         }
         // The house starts scenes: a person at the driveway, a door unlocking. The rules are
@@ -444,6 +461,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             try await knowledge.entityPage(entityID, now: await clock.now)
         }
         shutdown = {
+            visitorSweeper.cancel()
             memoryClock.cancel()
             assumptionAnnouncer.cancel()
             sessionSweeper.cancel()
@@ -599,6 +617,7 @@ actor MongoWorldPersistenceProvider {
         givenFacts: [GivenFact] = [],
         retention: RetentionPolicy = RetentionPolicy(),
         memory: MemoryConfiguration = MemoryConfiguration(),
+        calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -621,6 +640,7 @@ actor MongoWorldPersistenceProvider {
                         houseConversation: houseConversation,
                         givenFacts: givenFacts,
                         memory: memory,
+                        calendar: calendar,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )

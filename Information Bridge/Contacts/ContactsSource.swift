@@ -15,18 +15,9 @@ actor ContactsSource {
     private let read: Read
     private let cast: Cast
     private let mapFile: URL
-    private let memoryFile: URL
+    private let ledger: FactLedger
     private(set) var cards: [ContactCard] = []
     private(set) var map: [String: ContactMapping] = [:]
-    /// What was last cast, per card: predicate → value, so only changes are sent; and on which
-    /// entity, so an unmapped card's facts can be found and taken back.
-    private var lastCast: [String: [String: WorldJSONValue]] = [:]
-    private var lastEntity: [String: EntityID] = [:]
-
-    private struct Memory: Codable {
-        var cast: [String: [String: WorldJSONValue]]
-        var entities: [String: EntityID]
-    }
     private(set) var status = SourceStatus(state: .on)
     private var observers: [UUID: AsyncStream<SourceStatus>.Continuation] = [:]
     private var worker: Task<Void, Never>?
@@ -38,18 +29,12 @@ actor ContactsSource {
         self.read = read
         self.cast = cast
         mapFile = directory.appending(path: "contacts-map.json")
-        memoryFile = directory.appending(path: "contacts-last-cast.json")
-        let decoder = WorldJSON.makeDecoder()
+        ledger = FactLedger(source: Self.sourceName, directory: directory)
         if let data = try? Data(contentsOf: mapFile),
-            let saved = try? decoder.decode([String: ContactMapping].self, from: data)
+            let saved = try? WorldJSON.makeDecoder().decode(
+                [String: ContactMapping].self, from: data)
         {
             map = saved
-        }
-        if let data = try? Data(contentsOf: memoryFile),
-            let saved = try? decoder.decode(Memory.self, from: data)
-        {
-            lastCast = saved.cast
-            lastEntity = saved.entities
         }
     }
 
@@ -108,94 +93,19 @@ actor ContactsSource {
 
     private func castChanges(now: Date) async {
         let byIdentifier = Dictionary(uniqueKeysWithValues: cards.map { ($0.identifier, $0) })
-        var cast = 0
-        // Mapped cards: cast what changed, take back what went away.
+        var wanted: [String: FactLedger.Wanted] = [:]
         for (identifier, mapping) in map {
             guard let card = byIdentifier[identifier] else { continue }
-            // Mapped to someone else now: everything on the old entity is taken back first.
-            if let before = lastEntity[identifier], before != mapping.entityID {
-                for predicate in (lastCast[identifier] ?? [:]).keys {
-                    _ = await retract(
-                        subject: before, predicate: predicate, identifier: identifier, now: now)
-                }
-                lastCast[identifier] = nil
-            }
-            let wanted = Dictionary(
-                uniqueKeysWithValues: ContactFacts.facts(from: card, mapping: mapping)
-                    .map { ($0.predicate, $0.value) })
-            let had = lastCast[identifier] ?? [:]
-            for (predicate, value) in wanted where had[predicate] != value {
-                if await send(
-                    subject: mapping.entityID, predicate: predicate, value: value,
-                    identifier: identifier, now: now)
-                {
-                    cast += 1
-                    lastCast[identifier, default: [:]][predicate] = value
-                }
-            }
-            for predicate in had.keys where wanted[predicate] == nil {
-                if await retract(
-                    subject: mapping.entityID, predicate: predicate, identifier: identifier,
-                    now: now)
-                {
-                    lastCast[identifier]?[predicate] = nil
-                }
-            }
+            wanted[identifier] = FactLedger.Wanted(
+                entityID: mapping.entityID,
+                facts: Dictionary(
+                    uniqueKeysWithValues: ContactFacts.facts(from: card, mapping: mapping)
+                        .map { ($0.predicate, $0.value) }),
+                validUntil: nil)
         }
-        // Cards no longer mapped (or no longer in the book): take everything back.
-        for (identifier, had) in lastCast
-        where map[identifier] == nil || byIdentifier[identifier] == nil {
-            guard let entity = lastEntity[identifier] ?? map[identifier]?.entityID else {
-                lastCast[identifier] = nil
-                continue
-            }
-            var remaining = had
-            for predicate in had.keys {
-                if await retract(
-                    subject: entity, predicate: predicate, identifier: identifier, now: now)
-                {
-                    remaining[predicate] = nil
-                }
-            }
-            lastCast[identifier] = remaining.isEmpty ? nil : remaining
-        }
-        for (identifier, mapping) in map { lastEntity[identifier] = mapping.entityID }
-        try? WorldJSON.makeEncoder().encode(Memory(cast: lastCast, entities: lastEntity)).write(
-            to: memoryFile, options: .atomic)
+        let cast = await ledger.reconcile(wanted, now: now, cast: cast)
         if cast > 0 {
             status.note = "\(cast) fact\(cast == 1 ? "" : "s") changed"
-        }
-    }
-
-    private func send(
-        subject: EntityID, predicate: String, value: WorldJSONValue, identifier: String, now: Date
-    ) async -> Bool {
-        do {
-            try await cast(
-                try BridgeFacts.given(
-                    subject: subject, predicate: predicate, value: value, validFor: nil,
-                    source: Self.sourceName,
-                    itemID: "\(identifier):\(predicate):\(WorldJSON.timestamp(now))", at: now))
-            return true
-        } catch {
-            status = SourceStatus(state: .degraded("\(error)"), lastRunAt: now)
-            return false
-        }
-    }
-
-    private func retract(subject: EntityID, predicate: String, identifier: String, now: Date)
-        async -> Bool
-    {
-        do {
-            try await cast(
-                try BridgeFacts.given(
-                    subject: subject, predicate: predicate, value: .null, validFor: 1,
-                    source: Self.sourceName,
-                    itemID: "\(identifier):\(predicate):gone:\(WorldJSON.timestamp(now))", at: now))
-            return true
-        } catch {
-            status = SourceStatus(state: .degraded("\(error)"), lastRunAt: now)
-            return false
         }
     }
 

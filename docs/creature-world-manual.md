@@ -86,6 +86,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
 | House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
+| Calendar rule | `calendar.at_home` (words that make a location the house) | — | — | `["home","house"]` |
 | Audience | `fact_kinds.audience` per kind (`PUT /v1/fact-kinds/{p}` with `"audience": "world"`) | — | — | `minds` |
 | Memory | `memory.hour`, `minute`, `time_zone`, `episode_days`, `episodes_in_prompt`, `reflections_in_prompt` | — | — | `3`, `30`, `America/Los_Angeles`, `30`, `10`, `2` |
 | Retention | `retention.event_days`, `cheap_event_days`, `processing_days`, `timer_days`, `ingress_days`, `retired_fact_days`, `delivery_days`, `scene_days` | — | — | `90`, `7`, `7`, `7`, `30`, `90`, `90`, `180` |
@@ -218,6 +219,14 @@ arriving or leaving, and the lights changing.
 that runs Creature Server, so `creature_server.url` is `http://localhost:8000`, and everything
 else in it is April's real house. A dev world elsewhere (fuzzball) edits its own copy — the
 public URL for the creature server, and never while the production world is running against it.
+
+**The calendar's rule** (`0.26.0`, Bridge plan step 4). Every minute the world looks at the
+current `calendar.starts_at` facts (the Bridge's `event:*` entities). An event starting within 24
+hours, at the house — no `calendar.location`, or one containing a word from `calendar.at_home` —
+with `calendar.with` a `person:*`, becomes `person:X · visitor.expected = "<when>, <title>"`
+valid until two hours after `calendar.ends_at`, cast as a `facts.given` from `world:calendar`. It
+is the same predicate April's learned tags use, so the driveway scene finds Jesse expected exactly
+as if she had said so. A cancelled or moved event's visitor is taken back.
 
 **By name or by relation** (`0.25.1`). A question brings a person's facts along when it names
 them ("Who is Polly?") or calls them what they are to April — "my mom" finds the person whose
