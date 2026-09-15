@@ -46,7 +46,7 @@ struct BridgeRootView: View {
                     }
                 }
                 .help("Sends bridge.hello on the house, valid a minute, through the real outbox")
-                Button("Reconnect", systemImage: "arrow.clockwise") { store.start() }
+                Button("Reconnect", systemImage: "arrow.clockwise") { store.restart() }
             }
         }
         .statusBanner($banner)

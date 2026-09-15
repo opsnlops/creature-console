@@ -66,6 +66,8 @@ actor FactLedger {
                     entries[item]?.facts[predicate] = nil
                 }
             }
+            // Written as it goes: a source restarted mid-way must not say it all again.
+            if count > 0, count % 25 == 0 { save() }
         }
         for (item, had) in entries where wanted[item] == nil {
             var remaining = had.facts

@@ -97,37 +97,91 @@ final class BridgeStore {
             : "point.3.filled.connected.trianglepath.dotted"
     }
 
-    /// Starts (or restarts, after a settings change) delivering and watching.
+    /// The settings each source lives by; a change to one restarts only that source.
+    private struct SourceSettings: Equatable {
+        var weather: String
+        var contacts: Bool
+        var calendar: Bool
+        var mail: String
+    }
+
+    private func sourceSettings() -> SourceSettings {
+        let sky = connection.sky.map { "\($0.place.rawValue)|\($0.latitude)|\($0.longitude)" } ?? ""
+        return SourceSettings(
+            weather: connection.isWeatherOn
+                ? "\(connection.usesMacLocation)|\(sky)|\(connection.outsideID.rawValue)" : "",
+            contacts: connection.isContactsOn,
+            calendar: connection.isCalendarOn,
+            mail: connection.isMailOn
+                ? (connection.mailSenders.carriers + connection.mailSenders.merchants)
+                    .joined(separator: ",") : "")
+    }
+
+    @ObservationIgnored private var lastSourceSettings: SourceSettings?
+    @ObservationIgnored private var lastWorldURI: String?
+
+    /// Starts the world connection and every source; on later calls, restarts only what
+    /// changed - a calendar unticked must not make the weather read the sky again.
     func start() {
-        stop()
-        worldURI = connection.worldURI
-        sources = Dictionary(
-            uniqueKeysWithValues: BridgeSource.allCases.map { ($0, SourceStatus()) })
-        do {
-            let directory = try Self.supportDirectory()
-            let box = try Outbox(directory: directory)
-            self.box = box
-            let client = try connection.client()
-            Task {
-                await box.start(
-                    cast: { event in try await client.cast(event) },
-                    castMany: { events in try await client.cast(events) })
+        let uri = connection.worldURI
+        if uri != lastWorldURI || box == nil {
+            stop()
+            lastWorldURI = uri
+            worldURI = uri
+            sources = Dictionary(
+                uniqueKeysWithValues: BridgeSource.allCases.map { ($0, SourceStatus()) })
+            do {
+                let directory = try Self.supportDirectory()
+                let box = try Outbox(directory: directory)
+                self.box = box
+                let client = try connection.client()
+                Task {
+                    await box.start(
+                        cast: { event in try await client.cast(event) },
+                        castMany: { events in try await client.cast(events) })
+                }
+                statusTask = Task { [weak self] in
+                    for await status in await box.updates() {
+                        guard let self else { return }
+                        self.outbox = status
+                    }
+                }
+            } catch {
+                lastError = ErrorAlert(title: "The Outbox Could Not Open", error: error)
             }
-            statusTask = Task { [weak self] in
-                for await status in await box.updates() {
-                    guard let self else { return }
-                    self.outbox = status
+            healthTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    await self?.refreshHealth()
+                    try? await Task.sleep(for: .seconds(30))
                 }
             }
-            if connection.isContactsOn {
-                startContacts(directory: directory, box: box, client: client)
+            heartbeatTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    await self?.heartbeat()
+                    try? await Task.sleep(for: .seconds(1_800))
+                }
             }
-            if connection.isCalendarOn {
-                startCalendar(directory: directory, box: box, client: client)
-            }
-            if connection.isMailOn {
-                startMail(directory: directory, box: box, client: client)
-            }
+            lastSourceSettings = nil
+        }
+        refreshSources()
+    }
+
+    /// Everything from scratch: the world connection and every source.
+    func restart() {
+        lastWorldURI = nil
+        start()
+    }
+
+    /// Starts, stops, or restarts each source whose settings changed since last time.
+    private func refreshSources() {
+        guard let box, let client = try? connection.client(),
+            let directory = try? Self.supportDirectory()
+        else { return }
+        let now = sourceSettings()
+        let before = lastSourceSettings
+        lastSourceSettings = now
+        if before?.weather != now.weather {
+            stopWeather()
             if connection.isWeatherOn {
                 if let sky = connection.sky {
                     skyNote = "at \(coordinates(sky)), as typed"
@@ -137,52 +191,70 @@ final class BridgeStore {
                 } else {
                     sources[.weather] = SourceStatus(state: .degraded("where is the house?"))
                 }
-            }
-        } catch {
-            lastError = ErrorAlert(title: "The Outbox Could Not Open", error: error)
-        }
-        healthTask = Task { [weak self] in
-            while !Task.isCancelled {
-                await self?.refreshHealth()
-                try? await Task.sleep(for: .seconds(30))
+            } else {
+                sources[.weather] = SourceStatus()
             }
         }
-        heartbeatTask = Task { [weak self] in
-            while !Task.isCancelled {
-                await self?.heartbeat()
-                try? await Task.sleep(for: .seconds(1_800))
+        if before?.contacts != now.contacts {
+            stopContacts()
+            if connection.isContactsOn {
+                startContacts(directory: directory, box: box, client: client)
+            } else {
+                sources[.addressBook] = SourceStatus()
             }
         }
+        if before?.calendar != now.calendar || before?.contacts != now.contacts {
+            stopCalendar()
+            if connection.isCalendarOn {
+                startCalendar(directory: directory, box: box, client: client)
+            } else {
+                sources[.calendar] = SourceStatus()
+            }
+        }
+        if before?.mail != now.mail {
+            stopMail()
+            if connection.isMailOn {
+                startMail(directory: directory, box: box, client: client)
+            } else {
+                sources[.mail] = SourceStatus()
+            }
+        }
+    }
+
+    private func stopWeather() {
+        weatherTask?.cancel()
+        if let weather { Task { await weather.stop() } }
+        weather = nil
+    }
+
+    private func stopContacts() {
+        contactsTask?.cancel()
+        if let contactsSource { Task { await contactsSource.stop() } }
+        contactsSource = nil
+    }
+
+    private func stopCalendar() {
+        calendarTask?.cancel()
+        if let calendarSource { Task { await calendarSource.stop() } }
+        calendarSource = nil
+    }
+
+    private func stopMail() {
+        mailTask?.cancel()
+        if let mailSource { Task { await mailSource.stop() } }
+        mailSource = nil
     }
 
     func stop() {
         healthTask?.cancel()
         heartbeatTask?.cancel()
         statusTask?.cancel()
-        weatherTask?.cancel()
-        contactsTask?.cancel()
-        calendarTask?.cancel()
-        mailTask?.cancel()
-        if let calendarSource {
-            Task { await calendarSource.stop() }
-        }
-        calendarSource = nil
-        if let mailSource {
-            Task { await mailSource.stop() }
-        }
-        mailSource = nil
-        if let box {
-            Task { await box.stop() }
-        }
-        if let weather {
-            Task { await weather.stop() }
-        }
-        if let contactsSource {
-            Task { await contactsSource.stop() }
-        }
+        stopWeather()
+        stopContacts()
+        stopCalendar()
+        stopMail()
+        if let box { Task { await box.stop() } }
         box = nil
-        weather = nil
-        contactsSource = nil
     }
 
     /// Step 3: the address book. Meanings first (numbers and addresses the world's alone), then
@@ -332,6 +404,7 @@ final class BridgeStore {
             contactMap = await contactsSource.map
         }
     }
+
 
     /// Step 2: the sky over the house. Meanings first, then the hourly reading.
     private func startWeather(
