@@ -1,8 +1,10 @@
 # The Information Bridge — What April's Mac Knows, the World Learns
 
 **Status:** Plan written 2026-09-14 evening, after the judgement-and-memory plan shipped (World
-`0.24.0`, agent `2.72.0`, Viewer `0.6.2`, all on prod). Nothing built yet. This is the plan
-before the code, as the judgement plan was.
+`0.24.0`, agent `2.72.0`, Viewer `0.6.2`, all on prod); revised the same evening after April read
+it — WeatherKit first, orders as entities in the world, mail and Messages as sources of what April's
+life contains, not only of delivery notices. Nothing built yet. This is the plan before the code,
+as the judgement plan was.
 **Why:** April, 2026-09-11: "The information bridge is when things get interesting because Beaky
 can start learning from things like my text messages." And the founding moment, 2026-09-13: "The
 whole reason I went down this path is because I wanted Beaky to be able to say 'April, the robot
@@ -30,10 +32,15 @@ At 2:10 the driveway camera sees a truck. The world opens a scene; Beaky is hand
 happening. "April, the robot parts are here!" — before April looks up from the workbench. Nobody
 wrote that line, and nobody wrote a rule that a truck plus a delivery fact makes that line.
 
-The second moment is quieter and comes from the calendar: "Jesse — deck boards, 2 PM Thursday" at
-the house becomes `person:jesse · visitor.expected = "Thursday 2 PM, deck boards"` by a world rule,
-so when the truck turns in on Thursday Beaky has a name for it. And the third is a text from Polly
-— "running late, there by 6" — which is the most private source and therefore last.
+Some smaller moments the same machinery makes, in the order this plan builds them:
+
+- "Beaky, is it going to rain today?" — "Not until this evening, April; about a quarter inch
+  overnight." The house's rain gauge knows the past; WeatherKit knows the next few days.
+- "Did I order a servo?" — "Yes, four, from Adafruit on the 9th. They shipped Thursday." The order
+  is an entity in the world with a number, items, and a status, from mail the Bridge read.
+- "Jesse — deck boards, 2 PM Thursday" on the calendar becomes `person:jesse · visitor.expected` by
+  a world rule, so when the truck turns in on Thursday Beaky has a name for it.
+- A text from Polly — "running late, there by 6" — and the door at 6:04: "That'll be Polly."
 
 ## Principles
 
@@ -52,6 +59,9 @@ a fact; "April will be excited" is not the Bridge's business.
 3. **The Bridge reports; the world reduces; the mind judges.** A calendar event at the house
    becoming `visitor.expected` is a world rule, deterministic and testable — not the Bridge's
    guess and not the model's. What a fact *means* to a bird is the glossary's job, as today.
+   What a source *says* — an order number, a tracking number, a date, a merchant, an item as the
+   mail names it — is fine to keep in the world: those are the facts, and April wants to ask about
+   them. What a source *is* — the message — is not.
 4. **Entities are hubs.** `person:jesse` accrues facts from every source — April's words, the
    address book, the calendar, the camera correction. A fact whose value is an entity id is a
    link (`calendar.with = person:jesse`); the world follows links one hop when it gathers what a
@@ -65,8 +75,9 @@ a fact; "April will be excited" is not the Bridge's business.
 7. **Viewable.** Every Bridge cast is on the timeline with its source; every entity has a page;
    the Bridge itself has a health line in the Viewer (last item seen per source, outbox depth,
    model availability). Done means April can see it in the Viewer and in the Bridge's own window.
-8. **Small slices, each with a moment.** Contacts first (cheap, deterministic, makes people real),
-   then the calendar (visitors), then mail (the founding moment), then Messages (last).
+8. **Small slices, each with a moment.** WeatherKit first (no privacy, fills a gap the house has
+   today, proves delivery end to end), then contacts (makes people real), the calendar (visitors),
+   mail (orders and deliveries — the founding moment — and appointments), then Messages (last).
 
 ## What the world already gives us
 
@@ -112,30 +123,70 @@ Before any source: make the world ready to receive, and the Bridge able to deliv
 
 **Moment:** the test fact appears on the Viewer timeline as `bridge:app`, and Forget removes it.
 
-## Step 2 — Contacts: people become real
+## Step 2 — WeatherKit: what the sky will do
+
+**Source:** WeatherKit, for the house's coordinates (Bridge config). No TCC; an entitlement on the
+signed app and the developer account. Deterministic; no model. Polled hourly, cast on change.
+
+**What the house already knows** (creature-house from Home Assistant): the present and the past
+— `environment.temperature_f`, `humidity_percent`, `wind_mph`, `rain_today_in`, `pressure_hpa`,
+`pm25_ugm3`, `power_w` on `place:outside`. Beaky answered "how much rain today" from that. What
+nobody knows is what comes next, and the birds sound vague when April asks.
+
+**Facts on `place:outside`** (all `minds`, `valid_to` the end of the period they describe):
+- `forecast.today` — one line as WeatherKit's summary gives it ("Rain after 6 PM, high 61°"),
+  plus `forecast.today.high_f`, `low_f`, `rain_chance_percent`, `rain_in`;
+- `forecast.tonight`, `forecast.tomorrow` — the same shape;
+- `forecast.next_rain` — "this evening around 6" / "not this week", human-grained;
+- `sun.rise`, `sun.set` — clock times are right here: they *are* the fact;
+- `weather.alert` — an active NWS alert's headline, valid until it expires; a happening
+  (`weather.alert_issued`) when one appears, so it is a candidate for a house remark under the
+  usual rules (quiet hours apply; wind advisories at 3 AM wait for morning).
+
+**Glossary seeds:** each predicate's meaning, in the plain words the world's own catalogue uses.
+
+**Moment:** "Beaky, do I need a coat?" answered with tomorrow's high and the rain window; and one
+morning, unprompted, "Wind advisory this afternoon, April — the orchard's going to be loud."
+
+## Step 3 — The address book: people become real
 
 **Source:** the Contacts framework (TCC: Contacts). Deterministic; no model.
 
-**Facts on `person:<slug>`:** `contact.phone` (`world`), `contact.email` (`world`),
-`contact.birthday` (`minds` — birds may know a birthday), `person.relationship` (`minds`; from
-the card's "related names" or April's own labels: "sister", "contractor"), `contact.address`
-(`world`). Each with `derived_from` the contact's identifier; `valid_to` none (until changed).
-A changed card re-casts; a removed one retracts.
+**The whole card is stored.** April: "address book entries, too" — it is fine to keep them in the
+world. Facts on `person:<slug>`, each with `derived_from` the contact's identifier and no
+`valid_to` (until the card changes; a changed card re-casts, a removed one retracts):
+- `contact.phone` (all numbers, labelled: `{"mobile": "…", "home": "…"}`), `contact.email`,
+  `contact.address` (labelled, as strings), `contact.organization`, `contact.job_title`;
+- `contact.birthday`, `contact.anniversary`, and the other dates on the card;
+- `contact.nickname`, `contact.pronouns` (where the card carries them — and the world's
+  `identity.pronouns` gets them too, which the personas already read);
+- `person.relationship` — from the card's related names ("sister", "contractor") or April's own
+  label in the Bridge's map; and `contact.note`, the card's notes field, if April turns it on
+  per contact (notes are where people write things they would not want read aloud).
+
+**Audience, per kind, April's toggle.** Defaults: `contact.phone`, `contact.email`,
+`contact.address`, `contact.note` are `world` — stored, on the entity page, usable by rules, never
+in a prompt; `contact.birthday`, `contact.organization`, `contact.nickname`, `person.relationship`
+are `minds`. Any of it can be flipped in Meanings. "Beaky, what's Jesse's number?" is answered by
+the Viewer, not the bird, unless April decides otherwise.
 
 **Entity resolution — April decides, once.** A contact becomes a world entity only when April maps
-it, in the Bridge's window: "Jesse Alvarez → `person:jesse`". Unmapped contacts are never cast.
-The map lives on the Mac (and is the same map Messages and Calendar use in later steps). This is
-the single rule that keeps four hundred contacts from becoming four hundred half-known people.
+it, in the Bridge's window: "Jesse Alvarez → `person:jesse`". Contacts whose name already matches
+a `person:*` the world knows (Jesse, Polly) are offered first, pre-filled; unmapped contacts are
+never cast. The map lives on the Mac and is the same map Messages and the calendar use in later
+steps. This is the single rule that keeps four hundred contacts from becoming four hundred
+half-known people.
 
-**Why first:** it makes `person:jesse` a hub with something on it before any calendar or text
-mentions him, it is the cheapest source to get right, and the audience mechanism gets exercised
-on the facts that most need it.
+**Why before the calendar:** it makes `person:jesse` a hub with something on it before any calendar
+or text mentions him, it is the cheapest source to get right, and the audience mechanism gets
+exercised on the facts that most need it.
 
 **Moment:** "Beaky, who is Jesse?" → "Your contractor, April" — from a `person.relationship` fact
-the Bridge cast, not one April typed. The Viewer's entity page for Jesse shows phone and email in
-grey (world-only) and relationship in the normal colour (minds).
+the Bridge cast, not one April typed. "When is Polly's birthday?" answered. The Viewer's entity
+page for Jesse shows phone, email, and address in grey (world-only) and the rest in the normal
+colour (minds).
 
-## Step 3 — Calendar: visitors and errands
+## Step 4 — Calendar: visitors and errands
 
 **Source:** EventKit (TCC: Calendars), allowed calendars chosen in the Bridge. Deterministic; a
 small on-device extraction only for free-text titles when needed ("Jesse deck 2pm" → who, what).
@@ -158,57 +209,84 @@ in fifteen minutes" — she may say it or not, quiet hours apply).
 **Moment:** Thursday 1:58, the driveway camera: "April, that's Jesse's truck — deck boards at
 last?" with nothing typed all week.
 
-## Step 4 — Mail: the founding moment
+## Step 5 — Mail: orders, deliveries, appointments
 
-**Source:** a MailKit extension or a Mail rule that hands selected messages to the Bridge (TCC:
-Mail via the extension; the Bridge never reads the mailbox directly). Only mail matching cheap
-deterministic pre-filters reaches the model: sender domains and subject patterns for carriers
-and merchants April lists (UPS, FedEx, USPS, Amazon, Adafruit, DigiKey, Prusa…). Everything else
-is `classified_irrelevant` and forgotten.
+**Source:** a MailKit extension or a Mail rule that hands messages to the Bridge (TCC: Mail via
+the extension; the Bridge never reads the mailbox directly). Cheap deterministic classification
+first — sender domain, subject patterns, list-unsubscribe headers — into `order`, `shipping`,
+`appointment`, `receipt`, `newsletter/irrelevant`. Only the first four reach the model; the rest
+are `classified_irrelevant` and forgotten. The merchant and carrier lists are April's, in the
+Bridge's window, seeded from what the classifier finds in the last month.
 
-**Extraction (on-device):** Foundation Models guided generation into two small types —
-`CommerceObservation` (order id, merchant, items as April would say them, tracking) and
-`ExpectedArrival` (carrier, tracking, window, "out for delivery" / "delivered"). Each field marked
-present-in-source or inferred; only present-in-source fields may become facts. Model unavailable
-→ source `degraded`, items wait, nothing is sent elsewhere.
+**Extraction (on-device):** Foundation Models guided generation into small typed results, each
+field marked present-in-source or inferred; only present-in-source fields become facts:
+- `Order` — merchant, order number, items *as the mail names them*, total, placed-on;
+- `Shipment` — carrier, tracking number, order number if given, status (`shipped`, `out for
+  delivery`, `delivered`), window;
+- `Appointment` — who/what, when, where (dentist confirmations, service visits, reservations);
+- `Receipt` — merchant, what, amount, when (so "did I pay the ferry reservation?" has an answer).
+Model unavailable → source `degraded`, items wait, nothing is sent elsewhere.
 
-**Correlation (deterministic, on the Mac):** tracking number joins arrival to order, so an
-anonymous "1 item out for delivery" becomes "robot parts (servo kit ×4)". Order facts live on the
-Mac only until they are joined or expire (30 days); they are not cast.
+**Orders are entities in the world.** April: "I think we should use order numbers in the database
+and it's okay to store those." `order:<merchant>-<number>` with `order.merchant`, `order.number`,
+`order.items` (the list, as strings), `order.placed`, `order.total`, `order.status`
+(`placed` → `shipped` → `out_for_delivery` → `delivered`), `order.tracking`, `order.expected`,
+and a link `order.for = person:april`. All `minds`. `valid_to` none while open; the Bridge retracts
+nothing — an order delivered in May is still an order in December, and "did I ever order a
+Prusa nozzle?" is a fair question. A shipment with an order number updates that order; one
+without becomes `order:<carrier>-<tracking>` until a later mail joins it.
 
-**Facts:** `house:aprils-nest · delivery.expected = "robot parts (UPS), today"` (`minds`, valid
-until midnight local), `delivery.arrived` when the carrier says so (valid 6 h) — and the camera's
-truck lets Beaky say it first. `derived_from` = `mail:<message-id>`; the message id, never the
-message.
+**The founding fact** is a world rule over orders, not a special case: an `order:*` with
+`order.status = out_for_delivery` → `house:aprils-nest · delivery.expected = "<items> (<carrier>),
+today"`, valid until midnight; `delivered` → `delivery.arrived`, valid 6 h. The truck in the
+driveway meets it, and Sol puts them together.
 
-**World:** nothing new — `delivery.expected` and `delivery.arrived` are glossary entries the Bridge
-seeds. The judgement plan's principle 3 does the rest: the truck is a happening, the delivery is
-a fact, Sol puts them together.
+**Appointments** are `event:*` entities exactly like the calendar's (step 4), with
+`calendar.source = mail`, so the same visitor rule and the same timers apply; a service visit at
+the house is a visitor.
 
-**Moment:** the one in the first paragraph. This step is done when it happens unscripted.
+**Asking about it:** "Did I order a servo?" is a solo question to Beaky. The world's mention
+resolver (`WorldMentions`) grows a second lookup: words in the question matched against
+`order.items` across current orders, so the matching orders join the subjects of the percept.
+No tool call; the facts arrive with the question, as everything does.
 
-## Step 5 — Messages: last, and by allowlist
+**Moment:** "April, the robot parts are here!" — unscripted, from a mail she never showed
+anyone. And "Did I order a servo?" — "Four, from Adafruit, on the 9th; they were out for delivery
+this morning."
+
+## Step 6 — Messages: what people tell April
 
 **Source:** the Messages database (`chat.db`; TCC: Full Disk Access) read-only, or the supported
 automation path if macOS 27 offers one — decided when we get here. Only conversations April
-allowlists in the Bridge (by mapped person) are read at all; group chats off by default.
+allowlists in the Bridge (by mapped person) are read at all; group chats off by default. April's
+own outgoing messages are read only to resolve a reply ("yes, 6 works") — never cast.
 
-**Extraction:** one type, `SocialCommitment` — who, what, when, where — from a message *to
-April* by a mapped person, present-in-source fields only. "Running late, there by 6" from Polly →
-`person:polly · visitor.expected = "tonight around 6"` (valid until 9 PM). Nothing else: no
-sentiment, no summaries, no "April said". April's own outgoing messages are never read.
+**Extraction (on-device):** from a message by a mapped person, present-in-source fields only:
+- `SocialCommitment` — who, what, when, where: "running late, there by 6" →
+  `person:polly · visitor.expected = "tonight around 6"` (valid until 9 PM);
+- `Request` — someone asked April for something: "can you grab milk?" →
+  `person:polly · asked_april = "to grab milk"` (valid a day); Beaky may remind, or not;
+- `News` — something a person said about themselves that April would want the birds to know:
+  "got the job!" → `person:polly · news = "got the job (said Tuesday)"` (valid a week; the
+  nightly memory decides whether it is worth keeping longer, as with anything else);
+- `DeliveryNote` — the ones carriers send by text ("your package was left at the front door") →
+  the same `delivery.arrived` rule as mail.
+No sentiment, no summaries of conversations, no verbatim text. The value is the fact, in the
+Bridge's words; the message id is the provenance.
 
-**Moment:** the door unlocks at 6:04; "That'll be Polly, April — she said around six."
+**Moment:** the door unlocks at 6:04; "That'll be Polly, April — she said around six." And the
+next morning, unprompted: "Polly starts the new job today, doesn't she?"
 
 ## What the Viewer shows, per step
 
 | Step | Viewer |
 |---|---|
 | 1 | Entity page; audience in Meanings; the Bridge as an entity with source health; `bridge:*` on the timeline |
-| 2 | People with contact facts greyed (world-only); relationship in the normal colour |
-| 3 | `event:*` entities; `visitor.expected` with `derived_from` the calendar event; the reducer's decision on the timeline |
-| 4 | `delivery.expected` on the house; the scene where the truck met it |
-| 5 | `visitor.expected` from a text, showing only the person and the source kind |
+| 2 | `forecast.*` and `sun.*` on `place:outside`; a `weather.alert_issued` happening on the timeline |
+| 3 | People with the whole card: phone/email/address/notes greyed (world-only); birthday, organization, relationship in the normal colour |
+| 4 | `event:*` entities; `visitor.expected` with `derived_from` the calendar event; the reducer's decision on the timeline |
+| 5 | `order:*` entities with status and items; `delivery.expected` on the house; the scene where the truck met it |
+| 6 | `visitor.expected` / `asked_april` / `news` from a text, showing only the person and the source kind |
 
 ## What the Bridge shows, in its own window
 
@@ -219,10 +297,12 @@ last N *facts* sent (never the sources); a "cast a test fact" button; model avai
 ## Versions
 
 - Step 1: World `0.25.0`, Viewer `0.7.0`, Bridge `0.1.0`.
-- Step 2: Bridge `0.2.0`; glossary seeds only.
-- Step 3: World `0.26.0` (visitor reducer, calendar timers), Bridge `0.3.0`.
-- Step 4: Bridge `0.4.0`; glossary seeds only. Tag the day the sentence is said.
-- Step 5: Bridge `0.5.0`.
+- Step 2: Bridge `0.2.0`; glossary seeds; `weather.alert_issued` as a storyworthy happening (World).
+- Step 3: Bridge `0.3.0`; glossary seeds only.
+- Step 4: World `0.26.0` (visitor reducer, calendar timers), Bridge `0.4.0`.
+- Step 5: World `0.27.0` (delivery rule over orders, order mentions), Bridge `0.5.0`. Tag the day
+  the sentence is said.
+- Step 6: Bridge `0.6.0`.
 
 Each step: docs (this plan's status line, `beakys-world.md` §0, a `docs/information-bridge-manual.md`
 started in step 1), tests (a deterministic fake distiller; the world's reducers under the black-box
@@ -230,14 +310,16 @@ suite), and the Viewer surface, in the same commit.
 
 ## Open questions for April
 
+0. **WeatherKit needs the house's coordinates and an entitlement** on the signed app — the same
+   developer account as the Console; fine?
 1. **Which Mac, exactly, and who is logged in?** The plan says the M1 MacBook Pro, lid closed, April
    logged in. Does it sleep? (Amphetamine / `caffeinate` / power settings are part of step 1.)
-2. **Contact mapping:** a manual map in the Bridge (this plan) — or should a contact with a
-   `person:*` already known to the world (Jesse, Polly) be matched by name automatically and only
-   *new* people need a decision?
+2. **Contact mapping:** the plan pre-fills matches to people the world already knows and asks
+   about everyone else. Should a whole group ("Family", "Contractors") map at once?
 3. **The calendar horizon** (7 days?) and which calendars. Does "April's dentist" belong in Beaky's
    mouth at all, or only visitors-to-the-house?
-4. **Merchants and carriers list** for step 4 — start with the ones from the last month of mail?
+4. **Merchants and carriers list** for step 5 — seed from the last month of mail, then yours to edit?
+   And how far back should the first run read: a month of orders, a year?
 5. **Messages access path:** `chat.db` under Full Disk Access is the known-working way; is that
    acceptable on this Mac, or wait for a sanctioned API?
 6. **Audience granularity:** two levels (`minds` / `world`) or three (add `lead` — only Beaky)?
