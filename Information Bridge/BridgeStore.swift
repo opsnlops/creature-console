@@ -108,7 +108,11 @@ final class BridgeStore {
             let box = try Outbox(directory: directory)
             self.box = box
             let client = try connection.client()
-            Task { await box.start { event in try await client.cast(event) } }
+            Task {
+                await box.start(
+                    cast: { event in try await client.cast(event) },
+                    castMany: { events in try await client.cast(events) })
+            }
             statusTask = Task { [weak self] in
                 for await status in await box.updates() {
                     guard let self else { return }

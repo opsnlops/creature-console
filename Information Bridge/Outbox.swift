@@ -30,6 +30,10 @@ actor Outbox {
     }
 
     typealias Cast = @Sendable (WorldEventEnvelope) async throws -> Void
+    /// Many at once, in order, when the world offers it: a backlog goes in one trip.
+    typealias CastMany = @Sendable ([WorldEventEnvelope]) async throws -> Void
+
+    static let batchSize = 100
 
     static let maximumRecent = 50
     static let firstBackoff: Duration = .seconds(2)
@@ -66,10 +70,11 @@ actor Outbox {
         wake = nil
     }
 
-    /// Delivers, in order, forever - until `stop()`. `cast` is the world's door.
-    func start(cast: @escaping Cast) {
+    /// Delivers, in order, forever - until `stop()`. `cast` is the world's door; `castMany`,
+    /// when given, takes up to `batchSize` at a time so a backlog clears in seconds.
+    func start(cast: @escaping Cast, castMany: CastMany? = nil) {
         guard worker == nil else { return }
-        worker = Task { await self.run(cast: cast) }
+        worker = Task { await self.run(cast: cast, castMany: castMany) }
     }
 
     func stop() {
@@ -97,25 +102,33 @@ actor Outbox {
         observers[id] = nil
     }
 
-    private func run(cast: Cast) async {
+    private func run(cast: Cast, castMany: CastMany?) async {
         var backoff = Self.firstBackoff
         while !Task.isCancelled {
-            guard let next = pending.first else {
+            guard !pending.isEmpty else {
                 await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                     wake = continuation
                 }
                 continue
             }
+            let batch = Array(pending.prefix(castMany == nil ? 1 : Self.batchSize))
             do {
-                try await cast(next.event)
-                pending.removeFirst()
-                status.delivered += 1
-                status.lastDeliveredAt = Date()
+                if batch.count > 1, let castMany {
+                    try await castMany(batch.map(\.event))
+                } else {
+                    try await cast(batch[0].event)
+                }
+                pending.removeFirst(batch.count)
+                let now = Date()
+                status.delivered += batch.count
+                status.lastDeliveredAt = now
                 status.lastError = nil
                 status.nextAttemptAt = nil
-                status.recent.insert(
-                    Delivered(event: next.event, deliveredAt: Date(), attempts: next.attempts + 1),
-                    at: 0)
+                for sent in batch.reversed() {
+                    status.recent.insert(
+                        Delivered(event: sent.event, deliveredAt: now, attempts: sent.attempts + 1),
+                        at: 0)
+                }
                 status.recent = Array(status.recent.prefix(Self.maximumRecent))
                 backoff = Self.firstBackoff
             } catch is CancellationError {

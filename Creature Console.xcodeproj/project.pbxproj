@@ -3197,7 +3197,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3233,7 +3233,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

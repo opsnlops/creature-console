@@ -104,7 +104,8 @@ the hour.
   (`house:aprils-nest`). The window's title bar shows the effective `/world/v1`.
 - **A durable outbox.** Every fact goes to `~/Library/Application Support/Information
   Bridge/outbox.json` first, then to the world in order, at least once, with backoff from two
-  seconds to five minutes. A world that is down, a laptop asleep, a proxy that blinks: the fact
+  seconds to five minutes — a hundred at a time through `events:batch` when there is a backlog
+  (`0.5.1`), so a first read of a calendar clears in seconds. A world that is down, a laptop asleep, a proxy that blinks: the fact
   waits and goes when it can. The world deduplicates on the source's item id, so a retry that
   already landed is a no-op. The window shows what is waiting, what was delivered, the last error,
   and when it will try again.

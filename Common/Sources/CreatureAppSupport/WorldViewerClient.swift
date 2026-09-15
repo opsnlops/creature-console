@@ -116,6 +116,24 @@ public struct WorldViewerClient: Sendable {
         try await get(EntityPage.self, pathComponents: ["entities", entityID.rawValue])
     }
 
+    /// Casts many events at once, in order, through `events:batch` - a source with a backlog.
+    /// The world takes at most `maximumBatchSize` per call.
+    public static let maximumBatchSize = 100
+
+    public func cast(_ events: [WorldEventEnvelope]) async throws {
+        precondition(events.count <= Self.maximumBatchSize)
+        var request = try request(pathComponents: ["events:batch"])
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try WorldJSON.makeEncoder().encode(Batch(events: events))
+        let (_, response) = try await loader.data(for: request)
+        try Self.validate(response)
+    }
+
+    private struct Batch: Encodable {
+        var events: [WorldEventEnvelope]
+    }
+
     /// Casts an event into the world - a Wizard's fact, or the retraction of one.
     public func cast(_ event: WorldEventEnvelope) async throws {
         var request = try request(pathComponents: ["events"])

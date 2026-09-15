@@ -74,6 +74,22 @@ struct OutboxTests {
         await reopened.stop()
     }
 
+    @Test("A backlog goes in batches, in order, when the world takes many at once")
+    func batchesABacklog() async throws {
+        let directory = temporaryDirectory()
+        let outbox = try Outbox(directory: directory)
+        let events = try (1...250).map { _ in try BridgeFacts.online(version: "t", host: "mac") }
+        for event in events { try await outbox.enqueue(event) }
+        let batches = Batches()
+        await outbox.start(
+            cast: { await batches.note([$0]) }, castMany: { await batches.note($0) })
+        try await settle { await batches.sizes.reduce(0, +) == 250 }
+        #expect(await batches.sizes == [100, 100, 50])
+        #expect(await batches.all.map(\.eventID) == events.map(\.eventID))
+        #expect(await outbox.current.delivered == 250)
+        await outbox.stop()
+    }
+
     @Test("Bridge facts carry their source, their item id, and their window")
     func factShape() throws {
         let fact = try BridgeFacts.given(
@@ -117,3 +133,12 @@ private actor Door {
 }
 
 private struct DoorClosed: Error {}
+
+private actor Batches {
+    private(set) var sizes: [Int] = []
+    private(set) var all: [WorldEventEnvelope] = []
+    func note(_ events: [WorldEventEnvelope]) {
+        sizes.append(events.count)
+        all += events
+    }
+}
