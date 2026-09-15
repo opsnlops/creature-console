@@ -453,7 +453,7 @@ run on the authoritative event loop, and tells the minds about them. The first r
 | `character.logged_in` / `logged_out` | `character:<x>` `presence.region` = `region:home` (or `null` on logout) | observed, 1 |
 | `character.logged_in` with `pronouns` (the mind's persona, `0.7.2`) | `character:<x>` `identity.pronouns` = `he/him`; outlasts the login | observed, 1 |
 | `presence.assumed` (announced from `presence.assumed` in `world.json` at startup, idempotent) | `person:april` `presence.state` = `home`, `presence.physically_audible` = `true` | assumed, configured confidence |
-| `scene.performed` | `region:home` `scene.last` = trigger and lines, valid for one hour | observed, 1 |
+| `scene.performed` | `region:home` `scene.last` = trigger and lines, valid for one hour; its meaning (`0.27.3`) tells a mind it is a record of words, not of facts, and that a question asked again gets a fresh answer | observed, 1 |
 | `facts.given` (each entry of `facts` in `world.json`, announced at startup, idempotent; `0.7.3`) | as stated, e.g. `person:polly` `person.description` = `April's sister` | reported, 1 |
 | `door.locked` / `door.unlocked`, `door.opened` / `door.closed` (from `creature-house`, `0.8.0`) | `place:<door>` `door.lock` / `door.state` | observed, 1 |
 | `motion.detected` / `motion.cleared` | `place:<room>` `motion.active` (true for ten minutes) | observed, 1 |

@@ -818,7 +818,8 @@ struct CharacterMind: Sendable {
         Take the turn only if your line adds something new for April: a fact she does not have, \
         a question she actually needs to answer, a joke that lands once. Agreeing, restating what \
         was said, riffing on your own favourite subject again, or answering a question someone \
-        already answered is not new. If you have nothing new, reply with exactly [pass: why] and \
+        already answered in this scene is not new. What was said in an earlier scene is a record, \
+        not an answer: a question asked again gets a fresh answer from what you know now. If you have nothing new, reply with exactly [pass: why] and \
         nothing else, in a few words; the reason is for April's records, never spoken. Expect to \
         pass most turns - a scene that ends after one good line is a good scene.
         """

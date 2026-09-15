@@ -93,7 +93,8 @@ public enum WorldFacts {
         characterPronouns: "a bird's pronouns, as it states them",
         personAudible:
             "whether a person can hear the room right now; the world uses it to choose between speaking aloud and the phone",
-        lastScene: "the last thing said aloud in this room: who said what, in order",
+        lastScene:
+            "what was said aloud in this room last time, in order - a record of words, not of facts: a bird may have been mistaken, and what you know from the world may have changed since. If April asks something again, answer afresh from what you know now, never by repeating a line; a question answered in an earlier scene has not been answered in this one",
         personDescription: "who a person is, in April's words",
         visitorExpected:
             "someone April is expecting, and when; a person turning up then is almost certainly them",

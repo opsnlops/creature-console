@@ -1,3 +1,19 @@
+creature-cli (2.72.1+world0.27.3+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-agent 2.72.1: a question answered in an earlier scene has
+    not been answered in this one. "Already answered" in the scene
+    contract means this scene; what the last scene said is a record,
+    and a question asked again gets a fresh answer from what the bird
+    knows now. (Mango repeated a stale "expected tomorrow" from
+    `scene.last` after the order facts had been corrected, and Beaky
+    passed because "Mango already answered".)
+  * creature-world 0.27.3: the catalogue meaning of `scene.last` says
+    the same - a record of words, not of facts; a bird may have been
+    mistaken and the world may have moved on. Reworded live on prod as
+    a Wizard the same night; this is the default for a fresh database.
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 23:00:00 -0700
+
 creature-cli (2.72.0+world0.27.2+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.27.2: a June delivery read back in September is
