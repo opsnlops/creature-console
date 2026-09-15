@@ -17,32 +17,28 @@ enum MailBackfill {
     }
 
     /// Messages from the last `days` whose sender contains one of `senders`, from every account's
-    /// inbox. Runs on the main thread, as AppleScript wants.
-    @MainActor
-    static func fetch(senders: [String], now: Date = Date()) throws -> [MailMessage] {
+    /// inbox. Mail does the filtering (one `whose` per sender, which it answers quickly) and the
+    /// script runs in its own `osascript` process, so the Bridge's window never waits on it.
+    static func fetch(senders: [String], now: Date = Date()) async throws -> [MailMessage] {
         let since = now.addingTimeInterval(-TimeInterval(days) * 86_400)
-        let sinceText = Self.appleScriptDate(since)
+        let sinceText = appleScriptDate(since)
         let separator = "\u{1F}"
         let record = "\u{1E}"
-        let senderList = senders.map { "\"\($0)\"" }.joined(separator: ", ")
+        // One `whose` per mailbox with every sender OR'd in: Mail answers each quickly, and
+        // April's rules file her mail into folders, so every mailbox but the outgoing and the
+        // discarded is searched.
+        let senderClause = senders.map { "sender contains \"\($0)\"" }.joined(separator: " or ")
         let script = """
             set sinceDate to date "\(sinceText)"
-            set senderList to {\(senderList)}
+            set skipped to {"Drafts", "Sent", "Sent Messages", "Sent Mail", "Outbox", "Trash", "Deleted Messages", "Junk", "Spam", "Junk E-mail"}
             set out to ""
             tell application "Mail"
                 repeat with acct in accounts
                     repeat with box in mailboxes of acct
-                        if name of box is "INBOX" or name of box is "Inbox" then
-                            set recent to (messages of box whose date received > sinceDate)
-                            repeat with m in recent
-                                set snd to sender of m
-                                set hit to false
-                                repeat with s in senderList
-                                    if snd contains s then set hit to true
-                                end repeat
-                                if hit then
-                                    set out to out & (id of m as string) & "\(separator)" & snd & "\(separator)" & (subject of m) & "\(separator)" & ((date received of m) as «class isot» as string) & "\(separator)" & (content of m) & "\(record)"
-                                end if
+                        if (name of box) is not in skipped then
+                            set hits to (messages of box whose date received > sinceDate and (\(senderClause)))
+                            repeat with m in hits
+                                set out to out & (id of m as string) & "\(separator)" & (sender of m) & "\(separator)" & (subject of m) & "\(separator)" & ((date received of m) as «class isot» as string) & "\(separator)" & (content of m) & "\(record)"
                             end repeat
                         end if
                     end repeat
@@ -50,24 +46,55 @@ enum MailBackfill {
             end tell
             return out
             """
-        var error: NSDictionary?
-        guard let apple = NSAppleScript(source: script) else { throw Failure.script("bad script") }
-        let result = apple.executeAndReturnError(&error)
-        if let error {
-            throw Failure.script(error[NSAppleScript.errorMessage] as? String ?? "\(error)")
-        }
-        let text = result.stringValue ?? ""
+        let text = try await run(script)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
-        return text.split(separator: Character(record), omittingEmptySubsequences: true).compactMap
-        {
-            let parts = $0.split(
+        var byID: [String: MailMessage] = [:]
+        for line in text.split(separator: Character(record), omittingEmptySubsequences: true) {
+            let parts = line.split(
                 separator: Character(separator), maxSplits: 4, omittingEmptySubsequences: false)
-            guard parts.count == 5 else { return nil }
-            let date = formatter.date(from: String(parts[3])) ?? now
-            return MailMessage(
-                identifier: "mail:" + String(parts[0]), from: String(parts[1]),
-                subject: String(parts[2]), date: date, text: String(parts[4]))
+            guard parts.count == 5 else { continue }
+            let id = "mail:" + String(parts[0])
+            byID[id] = MailMessage(
+                identifier: id, from: String(parts[1]), subject: String(parts[2]),
+                date: formatter.date(from: String(parts[3])) ?? now, text: String(parts[4]))
+        }
+        return Array(byID.values)
+    }
+
+    /// `osascript`, in a child process, off every actor: the Bridge stays responsive while Mail
+    /// works, and macOS still asks in the Bridge's name.
+    private static func run(_ script: String) async throws -> String {
+        try await withCheckedThrowingContinuation { continuation in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            process.arguments = ["-"]
+            let input = Pipe()
+            let output = Pipe()
+            let errors = Pipe()
+            process.standardInput = input
+            process.standardOutput = output
+            process.standardError = errors
+            process.terminationHandler = { finished in
+                let out = String(
+                    decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                let err = String(
+                    decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                if finished.terminationStatus == 0 {
+                    continuation.resume(returning: out)
+                } else {
+                    continuation.resume(
+                        throwing: Failure.script(
+                            err.trimmingCharacters(in: .whitespacesAndNewlines)))
+                }
+            }
+            do {
+                try process.run()
+                input.fileHandleForWriting.write(Data(script.utf8))
+                try input.fileHandleForWriting.close()
+            } catch {
+                continuation.resume(throwing: Failure.script("\(error)"))
+            }
         }
     }
 

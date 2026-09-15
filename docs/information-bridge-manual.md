@@ -23,8 +23,10 @@ domain per line; the defaults are the usual suspects). Then, once:
    plain text as a small file into the app group's folder, and the Bridge reads the folder every
    minute. The message itself stays in Mail.
 2. **Read the last 120 days** (Sources card) — the Bridge asks Mail, through its scripting
-   interface, for the last 120 days from the listed senders; macOS asks once under **Automation**.
-   It runs by itself the first time Mail is turned on.
+   interface, for the last 120 days from the listed senders, in every mailbox but Sent, Drafts,
+   Trash, and Junk (April's rules file mail into folders); macOS asks once under **Automation**.
+   It runs by itself the first time Mail is turned on, in the background — a few hundred
+   mailboxes take a minute or two, and the window stays alive meanwhile.
 
 Each message is classified cheaply by sender and subject (order, shipping, appointment, receipt,
 or irrelevant — the last is forgotten at once), read for the parts with a shape (order and

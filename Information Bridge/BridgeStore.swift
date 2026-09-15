@@ -358,7 +358,8 @@ final class BridgeStore {
         sources[.mail] = SourceStatus(state: .on, note: "asking Mail for the last 120 days…")
         let senders = connection.mailSenders
         do {
-            let messages = try MailBackfill.fetch(senders: senders.carriers + senders.merchants)
+            let messages = try await MailBackfill.fetch(
+                senders: senders.carriers + senders.merchants)
             await mailSource.take(messages)
             connection.setMailBackfilled()
         } catch {
