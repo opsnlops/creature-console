@@ -24,6 +24,9 @@ final class BridgeConnection: Sendable {
         static let contactsOn = "informationBridgeContactsOn"
         static let calendarOn = "informationBridgeCalendarOn"
         static let calendarsAllowed = "informationBridgeCalendarsAllowed"
+        static let mailOn = "informationBridgeMailOn"
+        static let mailSenders = "informationBridgeMailSenders"
+        static let mailBackfilled = "informationBridgeMailBackfilled"
     }
 
     static let defaultHostname = "server.prod.chirpchirp.dev"
@@ -63,6 +66,21 @@ final class BridgeConnection: Sendable {
     var isWeatherOn: Bool { defaults.bool(forKey: Keys.weatherOn) }
     var isContactsOn: Bool { defaults.bool(forKey: Keys.contactsOn) }
     var isCalendarOn: Bool { defaults.bool(forKey: Keys.calendarOn) }
+    var isMailOn: Bool { defaults.bool(forKey: Keys.mailOn) }
+    var isMailBackfilled: Bool { defaults.bool(forKey: Keys.mailBackfilled) }
+    func setMailBackfilled() { defaults.set(true, forKey: Keys.mailBackfilled) }
+
+    /// The carriers and merchants whose mail is read, one domain per line in Settings.
+    var mailSenders: (carriers: [String], merchants: [String]) {
+        let text = defaults.string(forKey: Keys.mailSenders) ?? ""
+        let listed = text.split(whereSeparator: { $0 == "\n" || $0 == "," })
+            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }.filter { !$0.isEmpty }
+        guard !listed.isEmpty else {
+            return (MailClassifier.defaultCarriers, MailClassifier.defaultMerchants)
+        }
+        let carriers = listed.filter { MailClassifier.defaultCarriers.contains($0) }
+        return (carriers.isEmpty ? MailClassifier.defaultCarriers : carriers, listed)
+    }
 
     /// The calendars April allows, by title; nil (nothing chosen yet) means all of them.
     var allowedCalendars: Set<String>? {

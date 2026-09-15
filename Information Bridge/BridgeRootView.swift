@@ -17,6 +17,8 @@ struct BridgeRootView: View {
     @AppStorage(BridgeConnection.Keys.proxyHost) private var proxyHost = ""
     @AppStorage(BridgeConnection.Keys.contactsOn) private var contactsOn = false
     @AppStorage(BridgeConnection.Keys.calendarOn) private var calendarOn = false
+    @AppStorage(BridgeConnection.Keys.mailOn) private var mailOn = false
+    @AppStorage(BridgeConnection.Keys.mailSenders) private var mailSenders = ""
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
     @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
@@ -53,7 +55,7 @@ struct BridgeRootView: View {
         .onChange(of: [
             serverAddress, String(serverPort), String(serverUseTLS), String(useProxy), proxyHost,
             String(weatherOn), String(useMacLocation), String(latitude), String(longitude),
-            outsideID, String(contactsOn), String(calendarOn),
+            outsideID, String(contactsOn), String(calendarOn), String(mailOn), mailSenders,
         ]) {
             store.start()
         }
@@ -122,6 +124,13 @@ struct BridgeRootView: View {
                         .buttonStyle(.glass)
                         .controlSize(.small)
                     }
+                    if source == .mail, status.state != .off {
+                        Button("Read the last 120 days", systemImage: "clock.arrow.circlepath") {
+                            Task { await store.backfillMail() }
+                        }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
+                    }
                     if source == .calendar, status.state == .on {
                         Button("Read now", systemImage: "arrow.clockwise") {
                             Task { await store.pollCalendar() }
@@ -151,6 +160,9 @@ struct BridgeRootView: View {
                 }
                 if source == .calendar, status.state != .off, !store.calendarTitles.isEmpty {
                     CalendarPicker(store: store)
+                }
+                if source == .mail, !store.orders.isEmpty {
+                    OrdersList(orders: store.orders)
                 }
             }
             if let attribution = store.weatherAttribution {
@@ -272,6 +284,45 @@ private struct CalendarPicker: View {
                 )
                 .toggleStyle(.checkbox)
                 .font(.caption)
+            }
+        }
+        .padding(.leading, 28)
+    }
+}
+
+/// The orders the mail has told the Bridge about: what the world holds as `order:*`.
+private struct OrdersList: View {
+    let orders: [Order]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(orders.prefix(12), id: \.entityID) { order in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(order.status.rawValue.replacingOccurrences(of: "_", with: " "))
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .glassEffect(
+                            .regular.tint(
+                                order.status == .delivered
+                                    ? .green.opacity(0.25) : .blue.opacity(0.2)),
+                            in: .capsule)
+                    Text(order.merchant.capitalized)
+                        .font(.caption.weight(.semibold))
+                    Text(order.description)
+                        .font(.caption)
+                        .lineLimit(1)
+                    if let number = order.number {
+                        Text("#\(number)")
+                            .font(.caption2.monospaced())
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+            if orders.count > 12 {
+                Text("and \(orders.count - 12) more")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(.leading, 28)

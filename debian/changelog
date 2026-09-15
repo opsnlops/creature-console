@@ -1,3 +1,24 @@
+creature-cli (2.72.0+world0.27.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.27.0: the founding moment as a rule (Bridge plan,
+    step 5). An `order:*` the Bridge says is out for delivery is
+    `house · delivery.expected = "<items> (<carrier>), today"` until
+    midnight; delivered is `delivery.arrived` for six hours - cast once
+    each, from `world:orders`. "Did I order a servo?" finds the order by
+    the words of what was in it. `house` in world.json names the house
+    (default house:aprils-nest).
+  * Information Bridge 0.5.0: Mail. A MailKit extension (enable it in
+    Mail → Settings → Extensions) hands each incoming message to the
+    Bridge through the app group; a one-time backfill asks Mail for the
+    last 120 days from the listed carriers and merchants. Sender and
+    subject classify; regexes read order and tracking numbers, statuses,
+    and subject-line items; Apple Intelligence on this Mac reads the body
+    into the same shape for the rest. Mails fold into one `order:*`
+    entity per order (a carrier's tracking joins the merchant's order),
+    kept for good; the mail itself is forgotten.
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 21:40:00 -0700
+
 creature-cli (2.72.0+world0.26.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.26.0: the calendar's rule (Bridge plan, step 4). An

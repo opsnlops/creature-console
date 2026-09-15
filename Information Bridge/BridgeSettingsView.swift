@@ -14,6 +14,8 @@ struct BridgeSettingsView: View {
         BridgeConnection.defaultHouseID.rawValue
     @AppStorage(BridgeConnection.Keys.contactsOn) private var contactsOn = false
     @AppStorage(BridgeConnection.Keys.calendarOn) private var calendarOn = false
+    @AppStorage(BridgeConnection.Keys.mailOn) private var mailOn = false
+    @AppStorage(BridgeConnection.Keys.mailSenders) private var mailSenders = ""
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
     @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
@@ -70,6 +72,25 @@ struct BridgeSettingsView: View {
                 Toggle("Read the calendars from EventKit", isOn: $calendarOn)
                 Text(
                     "Everything ahead and the last 90 days, from the calendars you allow in the main window. People in events are found through the address book map."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Section("Mail") {
+                Toggle("Read orders and shipments from Mail", isOn: $mailOn)
+                TextField(
+                    "Senders, one domain per line", text: $mailSenders,
+                    prompt: Text(
+                        (MailClassifier.defaultCarriers + MailClassifier.defaultMerchants)
+                            .joined(separator: "\n")),
+                    axis: .vertical
+                )
+                .lineLimit(3...8)
+                .font(.system(.body, design: .monospaced))
+                .disabled(!mailOn)
+                Text(
+                    "Enable the Information Bridge extension in Mail → Settings → Extensions for new mail; the first time, the Bridge asks Mail for the last 120 days (macOS asks once under Automation). Only mail from these senders is read; nothing of it leaves this Mac but the orders."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)

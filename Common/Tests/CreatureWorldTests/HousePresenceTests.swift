@@ -347,6 +347,64 @@ struct RecentHappeningsTests {
         #expect(last?.payload["value"] == .null)
     }
 
+    @Test(
+        "An order out for delivery is a delivery expected at the house; a question finds it by its items"
+    )
+    func ordersMakeDeliveries() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "delivery-rule-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let order = try EntityID(validating: "order:adafruit-\(suffix)")
+        func fact(_ subject: EntityID, _ predicate: String, _ value: WorldJSONValue) throws
+            -> Fact
+        {
+            try Fact(
+                subjectID: subject, predicate: predicate, value: value,
+                epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: now,
+                derivedFrom: [], producer: FactProducer(kind: "bridge", id: "mail", version: "1"))
+        }
+        for f in [
+            try fact(order, "order.merchant", .string("Adafruit")),
+            try fact(order, "order.items", .array([.string("Servo Kit ×4")])),
+            try fact(order, "order.carrier", .string("UPS")),
+            try fact(order, "order.status", .string("out_for_delivery")),
+        ] {
+            try await persistence.facts.save(f)
+        }
+        let accepted = Accepted()
+        let rule = DeliveryRule(
+            house: try EntityID(validating: "house:aprils-nest"), facts: persistence.facts,
+            zone: TimeZone(identifier: "America/Los_Angeles")!
+        ) { await accepted.note($0) }
+        let deliveries = try await rule.sweep(now: now)
+        #expect(deliveries[order] == "Servo Kit ×4 (UPS), today")
+        let mine = await accepted.events.filter { $0.subjectIDs.contains(order) }
+        #expect(mine.count == 1)
+        #expect(mine.first?.payload["predicate"] == .string("delivery.expected"))
+        #expect(mine.first?.payload["subject_id"] == .string("house:aprils-nest"))
+        // Said once; the next sweep says nothing more.
+        _ = try await rule.sweep(now: now + 60)
+        #expect(await accepted.events.filter { $0.subjectIDs.contains(order) }.count == 1)
+
+        // "Did I order a servo?" finds the order by what was in it.
+        let clock = ManualWorldClock(now: now)
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: CharacterSessionService(
+                repository: persistence.characterSessions, clock: clock, announce: { _ in }),
+            regions: [:], clock: clock)
+        let handed = try await knowledge.currentFacts(
+            about: [], mentionedIn: "Beaky, did I order a servo?",
+            limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(handed.contains { $0.subjectID == order && $0.predicate == "order.items" })
+        let unrelated = try await knowledge.currentFacts(
+            about: [], mentionedIn: "is it raining?", limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(!unrelated.contains { $0.subjectID == order })
+    }
+
     @Test("A world-only kind never reaches a mind; a link brings the linked entity along")
     func audienceAndLinks() async throws {
         let uri = try #require(mongoTestURI)

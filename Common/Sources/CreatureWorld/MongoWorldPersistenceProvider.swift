@@ -57,6 +57,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         givenFacts: [GivenFact] = [],
         memory: MemoryConfiguration = MemoryConfiguration(),
         calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
+        house: EntityID = CreatureWorldConfiguration.defaultHouse,
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
@@ -198,13 +199,20 @@ struct MongoWorldPersistenceConnection: Sendable {
         let visitorRule = VisitorRule(atHome: calendar.atHome, facts: persistence.facts) {
             _ = try await world.accept($0)
         }
+        // And the orders' rule: out for delivery is a delivery expected at the house today,
+        // delivered is a delivery arrived - the founding moment, as a rule, not a special case.
+        let deliveryRule = DeliveryRule(house: house, facts: persistence.facts, zone: memory.zone) {
+            _ = try await world.accept($0)
+        }
         let visitorSweeper = Task {
             while !Task.isCancelled {
                 do {
                     try await visitorRule.sweep(now: await clock.now)
+                    try await deliveryRule.sweep(now: await clock.now)
                 } catch {
                     logger.warning(
-                        "Could not read the calendar for visitors", metadata: ["error": "\(error)"])
+                        "Could not read the calendar or the orders",
+                        metadata: ["error": "\(error)"])
                 }
                 try? await Task.sleep(for: .seconds(60))
             }
@@ -618,6 +626,7 @@ actor MongoWorldPersistenceProvider {
         retention: RetentionPolicy = RetentionPolicy(),
         memory: MemoryConfiguration = MemoryConfiguration(),
         calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
+        house: EntityID = CreatureWorldConfiguration.defaultHouse,
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -641,6 +650,7 @@ actor MongoWorldPersistenceProvider {
                         givenFacts: givenFacts,
                         memory: memory,
                         calendar: calendar,
+                        house: house,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )
@@ -924,6 +934,10 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             expanded.append(
                 contentsOf: WorldMentions.mentioned(in: text, among: try await knownPeople(at: now))
             )
+            // And orders, by what was in them: "did I order a servo?".
+            expanded.append(
+                contentsOf: WorldMentions.mentioned(in: text, among: try await knownOrders(at: now))
+            )
         }
         // The day's facts and the memories are capped separately: a night's episodes are many
         // and newer than everything else, and would otherwise push what April taught the birds
@@ -1054,6 +1068,18 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         return people.map { WorldMentions.Known(entityID: $0.key, relationship: $0.value) }
             .sorted { $0.entityID.rawValue < $1.entityID.rawValue }
+    }
+
+    /// Every order the world holds, by the words of what was in it.
+    private func knownOrders(at now: Date) async throws -> [WorldMentions.Known] {
+        try await facts.currentFacts(about: [], predicate: "order.items", limit: 500, at: now)
+            .map { fact in
+                var words: [String] = []
+                if case .array(let items) = fact.value {
+                    words = items.compactMap { if case .string(let s) = $0 { s } else { nil } }
+                }
+                return WorldMentions.Known(entityID: fact.subjectID, words: words)
+            }
     }
 
     private func surroundings(of subjects: [EntityID]) async throws -> [EntityID] {

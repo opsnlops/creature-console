@@ -13,6 +13,32 @@ Bridge** scheme, macOS only. Not sandboxed (Messages' `chat.db` and Full Disk Ac
 hardened runtime on. Build and run it from Xcode; it lives in the menu bar and keeps working with
 its window closed.
 
+## Mail (`0.5.0`, plan step 5)
+
+Settings → **Mail** → turn it on, and list the carriers and merchants whose mail may be read (one
+domain per line; the defaults are the usual suspects). Then, once:
+
+1. **Mail → Settings → Extensions → Information Bridge → enable.** From then on Mail hands the
+   extension every incoming message; the extension writes sender, subject, date, and the body's
+   plain text as a small file into the app group's folder, and the Bridge reads the folder every
+   minute. The message itself stays in Mail.
+2. **Read the last 120 days** (Sources card) — the Bridge asks Mail, through its scripting
+   interface, for the last 120 days from the listed senders; macOS asks once under **Automation**.
+   It runs by itself the first time Mail is turned on.
+
+Each message is classified cheaply by sender and subject (order, shipping, appointment, receipt,
+or irrelevant — the last is forgotten at once), read for the parts with a shape (order and
+tracking numbers, the status in the subject, items named on the subject line), and then read by
+**Apple Intelligence on this Mac** into the same shape for the rest — item names, totals, the
+carrier's window. When the model is not available the Mail row says so and the shaped parts
+stand alone. Mails about one order fold into one `order:<merchant>-<number>` entity — a
+carrier's tracking number joins the merchant's order — with `order.merchant`, `order.number`,
+`order.items`, `order.status`, `order.carrier`, `order.tracking` (world-only), `order.total`,
+`order.placed`, `order.expected`, `order.for = person:april`; kept for good. The Sources card
+lists the orders it knows. The world's own rule turns *out for delivery* into
+`delivery.expected` on the house — "April, the robot parts are here!" is the world's, not the
+Bridge's.
+
 ## Calendar (`0.4.0`, plan step 4)
 
 Settings → **Calendar** → turn it on; macOS asks once for full access to Calendars. The Sources

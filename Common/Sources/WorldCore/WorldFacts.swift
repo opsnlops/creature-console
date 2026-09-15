@@ -100,6 +100,10 @@ public enum WorldFacts {
         memoryEpisode:
             "something that happened, as you remember it - when (in human terms, not a clock), who, what, and how much it mattered; your own memory, kept for years",
         memoryReflection: "what you came to know on a day, in your own words; your own reflection",
+        "delivery.expected":
+            "a package on its way to the house today: what it is and who is bringing it",
+        "delivery.arrived":
+            "a package the carrier says it delivered to the house, in the last few hours",
         sightingIdentified:
             "who the person a camera saw there turned out to be, in April's words - a correction to hold onto",
         doorLock:

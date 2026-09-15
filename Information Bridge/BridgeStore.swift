@@ -62,6 +62,8 @@ final class BridgeStore {
     private(set) var knownPeople: [EntityID] = []
     /// The calendars EventKit knows, for the settings list, once the source has asked.
     private(set) var calendarTitles: [String] = []
+    /// Every order the mail has told the Bridge about, newest first.
+    private(set) var orders: [Order] = []
     var lastError: ErrorAlert?
 
     static let version =
@@ -79,6 +81,8 @@ final class BridgeStore {
     @ObservationIgnored private var contactsTask: Task<Void, Never>?
     @ObservationIgnored private var calendarSource: CalendarSource?
     @ObservationIgnored private var calendarTask: Task<Void, Never>?
+    @ObservationIgnored private var mailSource: MailSource?
+    @ObservationIgnored private var mailTask: Task<Void, Never>?
 
     init(connection: BridgeConnection = .shared) {
         self.connection = connection
@@ -117,6 +121,9 @@ final class BridgeStore {
             if connection.isCalendarOn {
                 startCalendar(directory: directory, box: box, client: client)
             }
+            if connection.isMailOn {
+                startMail(directory: directory, box: box, client: client)
+            }
             if connection.isWeatherOn {
                 if let sky = connection.sky {
                     skyNote = "at \(coordinates(sky)), as typed"
@@ -151,10 +158,15 @@ final class BridgeStore {
         weatherTask?.cancel()
         contactsTask?.cancel()
         calendarTask?.cancel()
+        mailTask?.cancel()
         if let calendarSource {
             Task { await calendarSource.stop() }
         }
         calendarSource = nil
+        if let mailSource {
+            Task { await mailSource.stop() }
+        }
+        mailSource = nil
         if let box {
             Task { await box.stop() }
         }
@@ -231,6 +243,52 @@ final class BridgeStore {
                 self.sources[.calendar] = status
             }
         }
+    }
+
+    /// Step 5: the mail. The extension drops what arrives; the first time, Mail is asked for the
+    /// last 120 days from the listed senders. Orders become entities; mail never leaves the Mac.
+    private func startMail(directory: URL, box: Outbox, client: WorldViewerClient) {
+        let senders = connection.mailSenders
+        let source = MailSource(
+            directory: directory,
+            classifier: MailClassifier(carriers: senders.carriers, merchants: senders.merchants)
+        ) { event in try await box.enqueue(event) }
+        mailSource = source
+        mailTask = Task { [weak self] in
+            do {
+                try await GlossarySeeder(client: client, source: MailSource.sourceName)
+                    .seed(OrderFacts.meanings, worldOnly: OrderFacts.worldOnly)
+            } catch {
+                await MainActor.run {
+                    self?.sources[.mail] = SourceStatus(
+                        state: .degraded("could not seed the glossary: \(error)"))
+                }
+            }
+            await source.start()
+            if let self, !connection.isMailBackfilled {
+                await backfillMail()
+            }
+            for await status in await source.updates() {
+                guard let self else { return }
+                self.sources[.mail] = status
+                self.orders = await source.orders
+            }
+        }
+    }
+
+    /// Asks Mail for the last 120 days, once. Can be run again from the window.
+    func backfillMail() async {
+        guard let mailSource else { return }
+        sources[.mail] = SourceStatus(state: .on, note: "asking Mail for the last 120 days…")
+        let senders = connection.mailSenders
+        do {
+            let messages = try MailBackfill.fetch(senders: senders.carriers + senders.merchants)
+            await mailSource.take(messages)
+            connection.setMailBackfilled()
+        } catch {
+            sources[.mail] = SourceStatus(state: .degraded("\(error)"))
+        }
+        orders = await mailSource.orders
     }
 
     /// Which calendars to read; nil for all.

@@ -65,6 +65,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let memory: MemoryConfiguration
     /// The calendar rule: which locations count as the house.
     let calendar: CalendarRuleConfiguration
+    /// The house itself, the subject of what the world works out about deliveries.
+    let house: EntityID
 
     init(
         host: String = defaultHost,
@@ -81,7 +83,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         givenFacts: [GivenFact] = [],
         retention: RetentionPolicy = RetentionPolicy(),
         memory: MemoryConfiguration = MemoryConfiguration(),
-        calendar: CalendarRuleConfiguration = CalendarRuleConfiguration()
+        calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
+        house: EntityID = defaultHouse
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -120,7 +123,10 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.retention = retention
         self.memory = memory
         self.calendar = calendar
+        self.house = house
     }
+
+    static let defaultHouse = try! EntityID(validating: "house:aprils-nest")
 
     static func load(
         from url: URL?,
@@ -150,7 +156,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                 givenFacts: raw.facts ?? [],
                 retention: raw.retention ?? RetentionPolicy(),
                 memory: raw.memory ?? MemoryConfiguration(),
-                calendar: raw.calendar ?? CalendarRuleConfiguration()
+                calendar: raw.calendar ?? CalendarRuleConfiguration(),
+                house: try raw.house.map(EntityID.init(validating:)) ?? defaultHouse
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -199,7 +206,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             givenFacts: givenFacts,
             retention: retention,
             memory: memory,
-            calendar: calendar
+            calendar: calendar,
+            house: house
         )
     }
 
@@ -219,6 +227,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let retention: RetentionPolicy?
         let memory: MemoryConfiguration?
         let calendar: CalendarRuleConfiguration?
+        let house: String?
 
         private enum CodingKeys: String, CodingKey {
             case host
@@ -236,6 +245,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case retention
             case memory
             case calendar
+            case house
         }
     }
 

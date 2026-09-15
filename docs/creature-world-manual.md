@@ -220,6 +220,15 @@ that runs Creature Server, so `creature_server.url` is `http://localhost:8000`, 
 else in it is April's real house. A dev world elsewhere (fuzzball) edits its own copy — the
 public URL for the creature server, and never while the production world is running against it.
 
+**The orders' rule** (`0.27.0`, Bridge plan step 5). Every minute, beside the calendar's rule:
+an `order:*` whose `order.status` is `out_for_delivery` becomes `house · delivery.expected =
+"<items> (<carrier>), today"` valid until midnight; `delivered` becomes `delivery.arrived` for six
+hours — each said once, as a `facts.given` from `world:orders`. The truck in the driveway is a
+happening, the delivery is a fact, and the mind puts them together. A question brings an order
+along when a word of it names what was ordered ("did I order a servo?" → the Servo Kit), exactly
+or as a plural. `house` in world.json names the house the rule casts on (default
+`house:aprils-nest`).
+
 **The calendar's rule** (`0.26.0`, Bridge plan step 4). Every minute the world looks at the
 current `calendar.starts_at` facts (the Bridge's `event:*` entities). An event starting within 24
 hours, at the house — no `calendar.location`, or one containing a word from `calendar.at_home` —

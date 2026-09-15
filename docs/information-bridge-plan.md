@@ -6,7 +6,10 @@ links, `GET /v1/entities/{id}`; Viewer `0.7.0`: Entities panel, audience picker)
 same night (Bridge `0.2.0`: WeatherKit on `place:outside`, this Mac's location; live on prod by
 6:30 PM — "A light raincoat would be wise, April"). Step 3 built the same night (Bridge `0.3.0`: the People window, the whole card on the mapped
 person, phone/email/address world-only). Step 4 built the same night (Bridge `0.4.0`: EventKit → `event:*` linked through the map;
-World `0.26.0`: the visitor rule, `calendar.at_home`). Step 5, mail, is next.
+World `0.26.0`: the visitor rule, `calendar.at_home`). Step 5 built the same night (Bridge `0.5.0`: MailKit extension + scripted backfill, deterministic
+reading + Apple Intelligence on-device, orders as `order:*`; World `0.27.0`: the delivery rule,
+order lookup by items). Step 6, Messages, is next — and the founding moment awaits its first
+real delivery.
 Plan written 2026-09-14 evening, after the judgement-and-memory plan shipped (World
 `0.24.0`, agent `2.72.0`, Viewer `0.6.2`, all on prod); revised the same evening after April read
 it — WeatherKit first, orders as entities in the world, mail and Messages as sources of what April's

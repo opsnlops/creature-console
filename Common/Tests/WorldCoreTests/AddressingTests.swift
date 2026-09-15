@@ -98,6 +98,12 @@ struct AddressingTests {
         #expect(WorldMentions.mentioned(in: "call my Mother", among: family) == [becky])
         #expect(WorldMentions.mentioned(in: "is my sis coming?", among: family) == [polly])
         #expect(WorldMentions.mentioned(in: "the momentum is good", among: family).isEmpty)
+        // A thing, by the words of what it is.
+        let order = try EntityID(validating: "order:adafruit-3312091")
+        let things = [WorldMentions.Known(entityID: order, words: ["Servo Kit ×4"])]
+        #expect(WorldMentions.mentioned(in: "did I order a servo?", among: things) == [order])
+        #expect(WorldMentions.mentioned(in: "any kits coming?", among: things) == [order])
+        #expect(WorldMentions.mentioned(in: "is it raining", among: things).isEmpty)
     }
 
     @Test("The percept carries what the world knows about the character and the speaker")

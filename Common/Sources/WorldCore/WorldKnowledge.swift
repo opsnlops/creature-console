@@ -102,14 +102,17 @@ public struct NoWorldKnowledge: WorldKnowledgeProviding {
 }
 
 public enum WorldMentions {
-    /// Someone the world can describe, and what they are to April when the world knows.
+    /// Something the world can describe: a person, and what they are to April when the world
+    /// knows; or a thing, by the words that name it ("Servo Kit ×4" for an order).
     public struct Known: Equatable, Sendable {
         public var entityID: EntityID
         public var relationship: String?
+        public var words: [String]
 
-        public init(entityID: EntityID, relationship: String? = nil) {
+        public init(entityID: EntityID, relationship: String? = nil, words: [String] = []) {
             self.entityID = entityID
             self.relationship = relationship
+            self.words = words
         }
     }
 
@@ -130,6 +133,18 @@ public enum WorldMentions {
             if words.contains(String(raw[raw.index(after: colon)...]).lowercased()) {
                 return true
             }
+            // A thing named by its words - exactly, or their plural: "did I order a servo?"
+            // finds the Servo Kit; "the kitchen light" does not.
+            let named = person.words.flatMap {
+                $0.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init)
+            }
+            if named.contains(where: { name in
+                name.count >= 3 && !Self.stopWords.contains(name)
+                    && (words.contains(name) || words.contains(name + "s")
+                        || words.contains(name + "es"))
+            }) {
+                return true
+            }
             guard let relationship = person.relationship?.lowercased() else { return false }
             let relationWords = relationship.split(whereSeparator: { !$0.isLetter }).map(
                 String.init)
@@ -139,6 +154,12 @@ public enum WorldMentions {
         }
         .map(\.entityID)
     }
+
+    /// Words in an item's name that name nothing: "Kit for the Pi" is found by "kit", not "for".
+    static let stopWords: Set<String> = [
+        "the", "and", "for", "with", "pack", "set", "new", "black", "white", "pcs", "piece",
+        "pieces", "inch", "inches", "usb",
+    ]
 
     /// The everyday words for a relationship: April says "mom", the card says "Mother".
     static let synonyms: [String: [String]] = [

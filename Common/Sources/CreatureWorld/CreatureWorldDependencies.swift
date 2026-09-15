@@ -29,6 +29,7 @@ struct CreatureWorldDependencies: Sendable {
             retention: configuration.retention,
             memory: configuration.memory,
             calendar: configuration.calendar,
+            house: configuration.house,
             logger: logger
         )
         await persistence.connectIfNeeded()
