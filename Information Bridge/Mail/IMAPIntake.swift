@@ -61,6 +61,8 @@ actor IMAPIntake {
     private struct LastSeen: Codable, Equatable {
         var uidValidity: UInt32?
         var uid: UInt32
+        /// The readers this mailbox was last read with; older is read again.
+        var readingVersion: Int? = nil
     }
 
     init(account: IMAPAccount, senders: [String], directory: URL) {
@@ -71,7 +73,7 @@ actor IMAPIntake {
         if let data = try? Data(contentsOf: stateFile),
             let saved = try? JSONDecoder().decode([String: LastSeen].self, from: data)
         {
-            lastSeen = saved
+            lastSeen = saved.filter { $0.value.readingVersion == MailSource.readingVersion }
         }
     }
 
@@ -154,7 +156,8 @@ actor IMAPIntake {
                             date: info.date ?? now, text: text))
                 }
             }
-            lastSeen[name] = LastSeen(uidValidity: validity, uid: newest)
+            lastSeen[name] = LastSeen(
+                uidValidity: validity, uid: newest, readingVersion: MailSource.readingVersion)
             done.mailboxes += 1
             done.messages = messages.count
             await progress(done)

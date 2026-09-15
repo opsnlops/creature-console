@@ -81,15 +81,20 @@ struct BridgeSettingsView: View {
                 Toggle("Read orders and shipments from your mail (IMAP)", isOn: $mailOn)
                 MailAccountsEditor()
                     .disabled(!mailOn)
-                TextField(
-                    "Senders, one domain per line", text: $mailSenders,
-                    prompt: Text(
-                        (MailClassifier.defaultCarriers + MailClassifier.defaultMerchants)
-                            .joined(separator: "\n")),
-                    axis: .vertical
-                )
-                .lineLimit(3...8)
-                .font(.system(.body, design: .monospaced))
+                LabeledContent("Senders") {
+                    TextField(
+                        "Senders", text: $mailSenders,
+                        prompt: Text(
+                            "one domain per line; blank means "
+                                + (MailClassifier.defaultCarriers + MailClassifier.defaultMerchants)
+                                .joined(separator: ", ")),
+                        axis: .vertical
+                    )
+                    .labelsHidden()
+                    .lineLimit(3...8)
+                    .multilineTextAlignment(.leading)
+                    .font(.system(.body, design: .monospaced))
+                }
                 .disabled(!mailOn)
                 Text(
                     "The Bridge reads each account itself, straight from the server: the last 120 days the first time, then only what is new, every five minutes. Only mail from these senders is read; nothing of it leaves this Mac but the orders. Passwords stay in the Keychain."
@@ -254,14 +259,14 @@ private struct MailAccountsEditor: View {
                     .controlSize(.small)
             }
         }
-        HStack {
-            TextField("imap.example.com", text: $host)
-                .textContentType(.URL)
-                .autocorrectionDisabled()
-            TextField("user name", text: $username)
-                .autocorrectionDisabled()
-            SecureField("password", text: $password)
-            Button("Add") { add() }
+        TextField("Host", text: $host, prompt: Text("imap.example.com"))
+            .textContentType(.URL)
+            .autocorrectionDisabled()
+        TextField("User name", text: $username, prompt: Text("april"))
+            .autocorrectionDisabled()
+        SecureField("Password", text: $password, prompt: Text("app-specific password"))
+        LabeledContent("") {
+            Button("Add account", systemImage: "plus.circle") { add() }
                 .buttonStyle(.glassProminent)
                 .disabled(host.isEmpty || username.isEmpty || password.isEmpty)
         }

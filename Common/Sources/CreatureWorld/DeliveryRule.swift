@@ -35,8 +35,7 @@ actor DeliveryRule {
         var inForce: [EntityID: String] = [:]
         for status in statuses {
             guard case .string(let state) = status.value,
-                state == "out_for_delivery" || state == "delivered",
-                status.validFrom > now.addingTimeInterval(-2 * 86_400)
+                state == "out_for_delivery" || state == "delivered"
             else { continue }
             let order = try await facts.currentFacts(subjectID: status.subjectID, at: now)
             let text = { (predicate: String) -> String? in
@@ -47,6 +46,10 @@ actor DeliveryRule {
                 }
                 return nil
             }
+            // Fresh means the mail said so lately - not that the Bridge cast it lately: a
+            // June delivery read back in September is not at the door.
+            let spoken = text("order.updated_at").flatMap(WorldJSON.date(from:)) ?? status.validFrom
+            guard spoken > now.addingTimeInterval(-2 * 86_400) else { continue }
             var items: [String] = []
             if case .array(let values)? = order.first(where: { $0.predicate == "order.items" })?
                 .value

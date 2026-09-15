@@ -1,3 +1,13 @@
+creature-cli (2.72.0+world0.27.2+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.27.2: a June delivery read back in September is
+    not at the door. The orders' rule judges freshness by
+    `order.updated_at` - when the mail last spoke of the order - not by
+    when the Bridge got round to casting the fact. (Beaky had announced
+    DMX cables delivered today; they came in June.)
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 22:40:00 -0700
+
 creature-cli (2.72.0+world0.27.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.27.1: "What's on the calendar this weekend?" is

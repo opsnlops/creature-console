@@ -128,7 +128,22 @@ struct MailTests {
         #expect(wanted.facts["order.for"] == .string("person:april"))
         #expect(wanted.facts["order.items"] == .array([.string("Servo Kit ×4")]))
         #expect(wanted.validUntil == nil)
-        #expect(OrderFacts.worldOnly == ["order.tracking"])
+        #expect(OrderFacts.worldOnly == ["order.tracking", "order.updated_at"])
+        #expect(wanted.facts["order.updated_at"] != nil)
+        #expect(OrderFacts.tidyTotal("21.689999999999998 USD") == "$21.69")
+    }
+
+    @Test("Item names are tidied: bidi marks, ellipses, Amazon's tails, and placeholders")
+    func tidiesItems() {
+        #expect(
+            MailReading.tidy("\u{2066}2\u{2069} \"MiraLAX, Laxative Powder,...")
+                == "2 MiraLAX, Laxative Powder")
+        #expect(
+            MailReading.tidy("Amazon Basics Wired QWERTY...\" and \u{2066}1\u{2069} more item")
+                == "Amazon Basics Wired QWERTY")
+        #expect(MailReading.isPlaceholder("Item"))
+        #expect(MailReading.isPlaceholder("1 Kitchen item"))
+        #expect(!MailReading.isPlaceholder("Servo Kit ×4"))
     }
 
     @Test("The source reads its accounts, casts the orders once, and forgets the mail")

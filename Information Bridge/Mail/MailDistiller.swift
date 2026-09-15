@@ -74,13 +74,44 @@ extension MailReading {
             reading.tracking = model.trackingNumber
         }
         if reading.items.isEmpty {
-            reading.items = model.items.map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty }
+            // "Shipment", "Package", "1 item": the model naming the mail, not the goods.
+            reading.items = model.items.map(Self.tidy).filter {
+                !$0.isEmpty && !Self.isPlaceholder($0)
+            }
         }
         if reading.total == nil, !model.total.isEmpty { reading.total = model.total }
         if reading.expected == nil, !model.expectedDelivery.isEmpty {
             reading.expected = model.expectedDelivery
         }
         return reading
+    }
+}
+
+extension MailReading {
+    /// An item name as a bird could say it: no bidi marks, no trailing ellipsis, no
+    /// `" and 1 more item` tail from Amazon's subject lines.
+    static func tidy(_ item: String) -> String {
+        var text = item.replacingOccurrences(
+            of: "[\u{2066}-\u{2069}]", with: "", options: .regularExpression)
+        text = text.replacingOccurrences(
+            of: #""?\s*and \d+ more items?$"#, with: "", options: .regularExpression)
+        text = text.replacingOccurrences(
+            of: #"\s*(\.\.\.|…)"?$"#, with: "", options: .regularExpression)
+        // Quotes anywhere in what is left are the mail's, not the product's.
+        text = text.replacingOccurrences(of: "[\"“”]", with: "", options: .regularExpression)
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "',"))
+    }
+
+    /// Words a model gives when the mail names no product: not an item.
+    static func isPlaceholder(_ item: String) -> Bool {
+        let lower = item.lowercased()
+        let generic = [
+            "shipment", "package", "parcel", "order", "your order", "delivery", "item", "items",
+            "your package", "your shipment",
+        ]
+        if generic.contains(lower) { return true }
+        // "1 Kitchen item", "2 items": Amazon's placeholders.
+        return lower.range(of: #"^\d+\s+(\w+\s+)?items?$"#, options: .regularExpression) != nil
     }
 }

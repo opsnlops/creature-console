@@ -297,7 +297,7 @@ struct RecentHappeningsTests {
             to: uri, logger: .init(label: "visitor-rule-tests"))
         defer { Task { await persistence.cluster.disconnect() } }
         let suffix = UUID().uuidString.lowercased()
-        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let now = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
         let jesse = try EntityID(validating: "person:jesse-\(suffix)")
         let visit = try EntityID(validating: "event:deck-\(suffix)")
         let dentist = try EntityID(validating: "event:dentist-\(suffix)")
@@ -307,7 +307,7 @@ struct RecentHappeningsTests {
             try Fact(
                 subjectID: subject, predicate: predicate, value: value,
                 epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: now,
-                validTo: now.addingTimeInterval(86_400 * 7), derivedFrom: [],
+                validTo: now.addingTimeInterval(3_600), derivedFrom: [],
                 producer: FactProducer(kind: "bridge", id: "calendar", version: "1"))
         }
         // Jesse at the house in three hours; the dentist across town, with nobody April knows.
@@ -356,7 +356,10 @@ struct RecentHappeningsTests {
             to: uri, logger: .init(label: "delivery-rule-tests"))
         defer { Task { await persistence.cluster.disconnect() } }
         let suffix = UUID().uuidString.lowercased()
-        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        // A word of this run's own, so the shared database's other runs never crowd it out.
+        let word =
+            "gizmo" + String((0..<6).map { _ in "abcdefghijklmnopqrstuvwxyz".randomElement()! })
+        let now = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
         let order = try EntityID(validating: "order:adafruit-\(suffix)")
         func fact(_ subject: EntityID, _ predicate: String, _ value: WorldJSONValue) throws
             -> Fact
@@ -364,13 +367,23 @@ struct RecentHappeningsTests {
             try Fact(
                 subjectID: subject, predicate: predicate, value: value,
                 epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: now,
-                derivedFrom: [], producer: FactProducer(kind: "bridge", id: "mail", version: "1"))
+                validTo: now.addingTimeInterval(3_600), derivedFrom: [],
+                producer: FactProducer(kind: "bridge", id: "mail", version: "1"))
         }
         for f in [
             try fact(order, "order.merchant", .string("Adafruit")),
-            try fact(order, "order.items", .array([.string("Servo Kit ×4")])),
+            try fact(order, "order.items", .array([.string("\(word.capitalized) Kit ×4")])),
             try fact(order, "order.carrier", .string("UPS")),
             try fact(order, "order.status", .string("out_for_delivery")),
+            try fact(order, "order.updated_at", .string(WorldJSON.timestamp(now - 3_600))),
+        ] {
+            try await persistence.facts.save(f)
+        }
+        // An old order read back today is not at the door: the mail's date decides.
+        let stale = try EntityID(validating: "order:old-\(suffix)")
+        for f in [
+            try fact(stale, "order.status", .string("delivered")),
+            try fact(stale, "order.updated_at", .string(WorldJSON.timestamp(now - 90 * 86_400))),
         ] {
             try await persistence.facts.save(f)
         }
@@ -380,7 +393,8 @@ struct RecentHappeningsTests {
             zone: TimeZone(identifier: "America/Los_Angeles")!
         ) { await accepted.note($0) }
         let deliveries = try await rule.sweep(now: now)
-        #expect(deliveries[order] == "Servo Kit ×4 (UPS), today")
+        #expect(deliveries[order] == "\(word.capitalized) Kit ×4 (UPS), today")
+        #expect(deliveries[stale] == nil)
         let mine = await accepted.events.filter { $0.subjectIDs.contains(order) }
         #expect(mine.count == 1)
         #expect(mine.first?.payload["predicate"] == .string("delivery.expected"))
@@ -397,7 +411,7 @@ struct RecentHappeningsTests {
                 repository: persistence.characterSessions, clock: clock, announce: { _ in }),
             regions: [:], clock: clock)
         let handed = try await knowledge.currentFacts(
-            about: [], mentionedIn: "Beaky, did I order a servo?",
+            about: [], mentionedIn: "Beaky, did I order a \(word)?",
             limit: WorldKnowledgeLimits.maximumFacts)
         #expect(handed.contains { $0.subjectID == order && $0.predicate == "order.items" })
         let unrelated = try await knowledge.currentFacts(
@@ -411,7 +425,7 @@ struct RecentHappeningsTests {
         let persistence = try await MongoWorldPersistence.connect(
             to: uri, logger: .init(label: "audience-tests"))
         defer { Task { await persistence.cluster.disconnect() } }
-        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let start = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
         let clock = ManualWorldClock(now: start)
         let suffix = UUID().uuidString.lowercased()
         let visit = try EntityID(validating: "event:deck-\(suffix)")
@@ -427,7 +441,8 @@ struct RecentHappeningsTests {
             try Fact(
                 subjectID: subject, predicate: predicate, value: value,
                 epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: start,
-                derivedFrom: [], producer: FactProducer(kind: "test", id: "bridge", version: "1"))
+                validTo: start.addingTimeInterval(3_600), derivedFrom: [],
+                producer: FactProducer(kind: "test", id: "bridge", version: "1"))
         }
         try await persistence.facts.save(try fact(visit, "calendar.title", .string("deck boards")))
         try await persistence.facts.save(try fact(visit, "calendar.with", .string(jesse.rawValue)))

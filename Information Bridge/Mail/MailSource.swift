@@ -18,6 +18,8 @@ actor MailSource {
     static let sourceName = "mail"
     static let interval: Duration = .seconds(300)
     static let backfillDays = 120
+    /// Bumped when the readers change: the mail is read again and the orders rebuilt.
+    static let readingVersion = 4
 
     private let classifier: MailClassifier
     private let distill: Distill
@@ -49,15 +51,16 @@ actor MailSource {
         seenFile = directory.appending(path: "mail-seen.json")
         logFile = directory.appending(path: "mail-readings.log")
         let decoder = WorldJSON.makeDecoder()
-        if let data = try? Data(contentsOf: bookFile),
-            let saved = try? decoder.decode(OrderBook.self, from: data)
-        {
-            book = saved
-        }
         if let data = try? Data(contentsOf: seenFile),
-            let saved = try? decoder.decode(Set<String>.self, from: data)
+            let saved = try? decoder.decode(Seen.self, from: data),
+            saved.readingVersion == Self.readingVersion
         {
-            seen = saved
+            seen = saved.identifiers
+            if let data = try? Data(contentsOf: bookFile),
+                let book = try? decoder.decode(OrderBook.self, from: data)
+            {
+                self.book = book
+            }
         }
     }
 
@@ -141,8 +144,15 @@ actor MailSource {
     /// Many messages at once - the backfill - then one reconciliation.
     func take(_ messages: [MailMessage], now: Date = Date()) async {
         tally = [:]
+        var taken = 0
         for message in messages.sorted(by: { $0.date < $1.date }) {
             await take(message)
+            taken += 1
+            // A first read is hundreds of messages and the model takes a moment with each:
+            // the world hears about the orders as they come, not at the end.
+            if taken % 25 == 0 {
+                await reconcile(now: now, note: "read \(taken) of \(messages.count)…")
+            }
         }
         let kinds = tally.sorted { $0.key.rawValue < $1.key.rawValue }
             .map { "\($0.value) \($0.key.rawValue)" }.joined(separator: ", ")
@@ -153,10 +163,16 @@ actor MailSource {
         )
     }
 
+    private struct Seen: Codable {
+        var readingVersion: Int
+        var identifiers: Set<String>
+    }
+
     private func reconcile(now: Date, note: String?) async {
         let encoder = WorldJSON.makeEncoder()
         try? encoder.encode(book).write(to: bookFile, options: .atomic)
-        try? encoder.encode(seen).write(to: seenFile, options: .atomic)
+        try? encoder.encode(Seen(readingVersion: Self.readingVersion, identifiers: seen))
+            .write(to: seenFile, options: .atomic)
         let cast = await ledger.reconcile(book.wanted, now: now, cast: cast)
         var line = note ?? "\(book.orders.count) orders known"
         if cast > 0 { line += " · \(cast) fact\(cast == 1 ? "" : "s") changed" }

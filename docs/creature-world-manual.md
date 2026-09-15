@@ -226,8 +226,9 @@ calendar, a weekday name) — at most eight, soonest first, so "what's on this w
 name in it. World-only kinds are left out of the page's query rather than filtered after it, so a
 timestamp never costs a bird one of its forty facts.
 
-**The orders' rule** (`0.27.0`, Bridge plan step 5). Every minute, beside the calendar's rule:
-an `order:*` whose `order.status` is `out_for_delivery` becomes `house · delivery.expected =
+**The orders' rule** (`0.27.0`, Bridge plan step 5; `0.27.2` judges by `order.updated_at`, the
+mail's own date, so a backfilled June delivery is never announced). Every minute, beside the
+calendar's rule: an `order:*` whose `order.status` is `out_for_delivery` becomes `house · delivery.expected =
 "<items> (<carrier>), today"` valid until midnight; `delivered` becomes `delivery.arrived` for six
 hours — each said once, as a `facts.given` from `world:orders`. The truck in the driveway is a
 happening, the delivery is a fact, and the mind puts them together. A question brings an order

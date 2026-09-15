@@ -76,7 +76,7 @@ struct OrderBook: Sendable, Codable {
         if let status = reading.status, date >= order.lastMail || status.rank > order.status.rank {
             order.status = max(order.status, status, by: \.rank)
         }
-        if let total = reading.total { order.total = total }
+        if let total = reading.total { order.total = OrderFacts.tidyTotal(total) }
         if let expected = reading.expected { order.expected = expected }
         if order.placed == nil, reading.kind == .order { order.placed = date }
         order.lastMail = max(order.lastMail, date)
@@ -101,6 +101,9 @@ struct OrderBook: Sendable, Codable {
             if let placed = order.placed {
                 facts["order.placed"] = .string(OrderFacts.day(placed))
             }
+            // When the mail last spoke of it - the world's rules judge freshness by this, not
+            // by when the Bridge got round to casting it.
+            facts["order.updated_at"] = .string(WorldJSON.timestamp(order.lastMail))
             if let expected = order.expected { facts["order.expected"] = .string(expected) }
             result[key] = FactLedger.Wanted(entityID: order.entityID, facts: facts, validUntil: nil)
         }
@@ -135,8 +138,21 @@ enum OrderFacts {
         "order.placed": "the day the order was placed",
         "order.expected": "when the carrier says it will arrive, in the carrier's words",
         "order.for": "whose order it is",
+        "order.updated_at":
+            "when the mail last spoke of the order, as a timestamp - for the world's rules",
     ]
-    static let worldOnly: Set<String> = ["order.tracking"]
+    static let worldOnly: Set<String> = ["order.tracking", "order.updated_at"]
+
+    /// "21.689999999999998 USD" → "$21.69"; anything the model gives as words stays as words.
+    static func tidyTotal(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        let parts = trimmed.split(separator: " ")
+        if parts.count == 2, let amount = Double(parts[0]), parts[1].uppercased() == "USD" {
+            return String(format: "$%.2f", amount)
+        }
+        if let amount = Double(trimmed) { return String(format: "$%.2f", amount) }
+        return trimmed
+    }
 
     static func day(_ date: Date) -> String {
         let formatter = DateFormatter()

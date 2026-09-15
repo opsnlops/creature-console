@@ -47,6 +47,10 @@ struct MailClassifier: Sendable {
             }
             return .irrelevant
         }
+        // The daily digest of what is in the mailbox is not a shipment.
+        if subject.contains("daily digest") || from.contains("informeddelivery") {
+            return .irrelevant
+        }
         if Self.shippingWords.contains(where: { subject.contains($0) }) { return .shipping }
         if Self.orderWords.contains(where: { subject.contains($0) }) { return .order }
         if Self.receiptWords.contains(where: { subject.contains($0) }) { return .receipt }
@@ -59,7 +63,7 @@ struct MailClassifier: Sendable {
         "arriving", "in transit", "your package", "has arrived", "arrives",
     ]
     static let orderWords = [
-        "order confirmation", "your order", "order of", "order #", "order number",
+        "order confirmation", "your order", "order of", "ordered:", "order #", "order number",
         "thanks for your order", "thank you for your order", "order placed",
         "we received your order", "order received",
     ]
@@ -99,15 +103,23 @@ enum MailReader {
     static func read(_ message: MailMessage, kind: MailKind) -> MailReading {
         let subject = message.subject
         let text = subject + "\n" + message.text
+        let merchant = merchant(of: message)
+        let carrier = carrier(in: message)
+        // A carrier's mail has no merchant order number in it worth trusting; the tracking
+        // number is what joins it to the order. Amazon is both, and keeps its order numbers.
+        let fromCarrier = merchant.map { Self.carrierNames.contains($0) } ?? false
         return MailReading(
             kind: kind,
-            merchant: merchant(of: message),
-            carrier: carrier(in: message),
-            orderNumber: first(of: orderNumberPatterns, in: text),
+            merchant: merchant,
+            carrier: carrier,
+            orderNumber: fromCarrier && merchant != "amazon"
+                ? nil : first(of: orderNumberPatterns, in: text),
             tracking: first(of: trackingPatterns, in: text),
             status: status(in: subject),
             items: items(in: subject))
     }
+
+    static let carrierNames: Set<String> = ["ups", "fedex", "usps", "dhl", "ontrac"]
 
     /// "adafruit" from orders@adafruit.com, "amazon" from ship-confirm@amazon.com.
     static func merchant(of message: MailMessage) -> String? {
@@ -161,15 +173,18 @@ enum MailReader {
         return []
     }
 
+    /// Order numbers: Amazon's 3-7-7 shape, or "order #1234567" / "Order Number: WH-20441" -
+    /// a token after the word that is mostly digits, never a stray word from the body.
     static let orderNumberPatterns = [
-        #"(?i)order\s*(?:number|no\.?|#|id)?[:\s#]*([A-Z0-9][A-Z0-9-]{4,24})"#,
-        #"(?i)order[:\s]+#?(\d{3}-\d{7}-\d{7})"#,
+        #"(?i)order[:\s]*#?[:\s]*(\d{3}-\d{7}-\d{7})"#,
+        #"(?i)order\s*(?:number|no\.?|#|id)?[:\s#]*(\d{5,20})\b"#,
+        #"(?i)order\s*(?:number|no\.?|#|id)[:\s#]*([A-Z]{1,4}-?\d{4,20})\b"#,
     ]
     static let trackingPatterns = [
         #"\b(1Z[0-9A-Z]{16})\b"#,  // UPS
         #"\b(\d{20,22})\b"#,  // USPS
         #"\b(\d{12}|\d{15})\b"#,  // FedEx
-        #"(?i)tracking\s*(?:number|no\.?|#|id)?[:\s#]*([A-Z0-9]{8,30})"#,
+        #"(?i)tracking\s*(?:number|no\.?|#|id)?[:\s#]*((?=[A-Z0-9]*\d{6})[A-Z0-9]{8,30})\b"#,
     ]
 
     private static func first(of patterns: [String], in text: String) -> String? {
