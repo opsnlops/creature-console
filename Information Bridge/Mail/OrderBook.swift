@@ -139,13 +139,15 @@ enum OrderFacts {
         "order.number": "the merchant's order number, as their mail gives it",
         "order.items": "what was ordered, as the mail names it",
         "order.status":
-            "where the order was when the mail last spoke of it: placed, shipped, out_for_delivery, or delivered - see order.last_heard for how old that news is",
+            "where the order was as of order.last_heard: placed, shipped, out_for_delivery, or delivered; a shipped order not heard of for weeks has almost surely arrived",
         "order.tracking": "the carrier's tracking number",
         "order.carrier": "who is carrying it",
         "order.total": "what the order cost, as the mail gives it",
         "order.placed": "the day the order was placed",
-        "order.expected": "the day the carrier said it would arrive",
-        "order.last_heard": "the day the mail last spoke of the order; older news is older",
+        "order.expected":
+            "the day the carrier said it would arrive, as of order.last_heard; the mail rarely says when a package actually came, so a day long past is old news, not a delivery due",
+        "order.last_heard":
+            "the day the mail last spoke of the order - how old the news in order.status and order.expected is",
         "order.for": "whose order it is",
         "order.updated_at":
             "when the mail last spoke of the order, as a timestamp - for the world's rules",

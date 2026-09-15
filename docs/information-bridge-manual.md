@@ -37,7 +37,10 @@ mail is `June 8, 2026`, and the window is dropped once the order is delivered), 
 (the day the mail last spoke of it, so a bird knows a shipped order from June is old news, not
 news), `order.updated_at` (world-only; the same, as a timestamp for the world's rules),
 `order.for = person:april`; kept for good. A tracking number the model offers is taken only if it
-looks like one (letters and digits, at least six digits). Item names are tidied (bidi marks, ellipses, Amazon's
+looks like one (letters and digits, at least six digits). Every fact line a mind reads is stamped
+with when the *world* learned it, which for a re-read is minutes ago — so the order meanings say
+outright that `order.status` and `order.expected` are as of `order.last_heard`, and that the mail
+rarely says when a package actually came. Item names are tidied (bidi marks, ellipses, Amazon's
 "and 1 more item", the model's "Shipment"/"Item" placeholders dropped); totals read "$21.69".
 When the readers improve, the Bridge's *reading version* is bumped and the mail is read again,
 the order book rebuilt from scratch, and orders that no longer exist taken back. The Sources card
@@ -106,8 +109,9 @@ value changes:
 - `sun.rise`, `sun.set` — clock times, which here are the fact;
 - `weather.alert` — an alert in force, until it expires.
 
-The meanings are seeded into the world's glossary the first time (a Wizard's rewording is never
-overwritten). **Read now** in the Sources card reads the sky without waiting for the hour. The
+The meanings are seeded into the world's glossary when a source starts; a meaning the Bridge
+itself wrote last is brought up to date when its words change (since `0.7.1`), and a Wizard's
+rewording is never overwritten. **Read now** in the Sources card reads the sky without waiting for the hour. The
 Apple Weather mark and the data-sources link are shown in the Sources card, as Apple's terms
 require. A failed reading shows the source as degraded with the reason; the Bridge tries again on
 the hour.
