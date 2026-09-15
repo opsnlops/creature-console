@@ -33,8 +33,14 @@ public final class ProxyAPIKeyStore {
             throw ProxyAPIKeyStoreError.missingSharedAccessGroup
         }
 
-        sharedBackend = KeychainBackend(accessGroup: normalizedAccessGroup)
-        legacyBackend = migrateLegacyConsoleKey ? KeychainBackend(accessGroup: nil) : nil
+        sharedBackend = KeychainBackend(
+            accessGroup: normalizedAccessGroup, service: CreatureAppFamily.proxyKeychainService,
+            account: CreatureAppFamily.proxyAPIKeyAccount)
+        legacyBackend =
+            migrateLegacyConsoleKey
+            ? KeychainBackend(
+                accessGroup: nil, service: CreatureAppFamily.proxyKeychainService,
+                account: CreatureAppFamily.proxyAPIKeyAccount) : nil
     }
 
     init(
@@ -84,8 +90,32 @@ protocol ProxyAPIKeyBacking {
     func set(_ value: String?) throws
 }
 
-private struct KeychainBackend: ProxyAPIKeyBacking {
+/// One secret in the Creature app family's shared Keychain, by service and account -
+/// synchronizable, so a password typed on one Mac is there on the next. The proxy API key is
+/// one such item; an IMAP password is another.
+public struct CreatureKeychainItem: Sendable {
+    private let backend: KeychainBackend
+
+    /// The item in the shared access group the app declares in its Info.plist.
+    public init(service: String, account: String, bundle: Bundle = .main) throws {
+        guard
+            let accessGroup = bundle.object(
+                forInfoDictionaryKey: CreatureAppFamily.sharedKeychainAccessGroupInfoKey
+            ) as? String, !accessGroup.trimmingCharacters(in: .whitespaces).isEmpty
+        else {
+            throw ProxyAPIKeyStoreError.missingSharedAccessGroup
+        }
+        backend = KeychainBackend(accessGroup: accessGroup, service: service, account: account)
+    }
+
+    public func value() throws -> String? { try backend.value() }
+    public func set(_ value: String?) throws { try backend.set(value) }
+}
+
+struct KeychainBackend: ProxyAPIKeyBacking, Sendable {
     let accessGroup: String?
+    let service: String
+    let account: String
 
     func value() throws -> String? {
         var query = baseQuery
@@ -132,8 +162,8 @@ private struct KeychainBackend: ProxyAPIKeyBacking {
     private var baseQuery: [String: Any] {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: CreatureAppFamily.proxyKeychainService,
-            kSecAttrAccount as String: CreatureAppFamily.proxyAPIKeyAccount,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
         if let accessGroup {

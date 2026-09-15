@@ -78,7 +78,9 @@ struct BridgeSettingsView: View {
             }
 
             Section("Mail") {
-                Toggle("Read orders and shipments from Mail", isOn: $mailOn)
+                Toggle("Read orders and shipments from your mail (IMAP)", isOn: $mailOn)
+                MailAccountsEditor()
+                    .disabled(!mailOn)
                 TextField(
                     "Senders, one domain per line", text: $mailSenders,
                     prompt: Text(
@@ -90,7 +92,7 @@ struct BridgeSettingsView: View {
                 .font(.system(.body, design: .monospaced))
                 .disabled(!mailOn)
                 Text(
-                    "Enable the Information Bridge extension in Mail → Settings → Extensions for new mail; the first time, the Bridge asks Mail for the last 120 days (macOS asks once under Automation). Only mail from these senders is read; nothing of it leaves this Mac but the orders."
+                    "The Bridge reads each account itself, straight from the server: the last 120 days the first time, then only what is new, every five minutes. Only mail from these senders is read; nothing of it leaves this Mac but the orders. Passwords stay in the Keychain."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -224,4 +226,73 @@ struct BridgeSettingsView: View {
 
 #Preview {
     BridgeSettingsView()
+}
+
+/// April's IMAP accounts: host, user, and a password that goes straight to the Keychain.
+private struct MailAccountsEditor: View {
+    @AppStorage(BridgeConnection.Keys.mailAccounts) private var stored = Data()
+    @State private var host = ""
+    @State private var username = ""
+    @State private var password = ""
+    @State private var problem: String?
+
+    private var accounts: [IMAPAccount] {
+        (try? JSONDecoder().decode([IMAPAccount].self, from: stored)) ?? []
+    }
+
+    var body: some View {
+        ForEach(accounts) { account in
+            HStack {
+                Label(account.id, systemImage: "envelope.badge")
+                    .font(.system(.body, design: .monospaced))
+                Spacer()
+                Text(IMAPPasswords.password(for: account) == nil ? "no password" : "password kept")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Remove", systemImage: "xmark.circle") { remove(account) }
+                    .buttonStyle(.glass)
+                    .controlSize(.small)
+            }
+        }
+        HStack {
+            TextField("imap.example.com", text: $host)
+                .textContentType(.URL)
+                .autocorrectionDisabled()
+            TextField("user name", text: $username)
+                .autocorrectionDisabled()
+            SecureField("password", text: $password)
+            Button("Add") { add() }
+                .buttonStyle(.glassProminent)
+                .disabled(host.isEmpty || username.isEmpty || password.isEmpty)
+        }
+        if let problem {
+            Label(problem, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        }
+    }
+
+    private func add() {
+        let account = IMAPAccount(
+            host: host.trimmingCharacters(in: .whitespaces).lowercased(),
+            username: username.trimmingCharacters(in: .whitespaces))
+        do {
+            try IMAPPasswords.set(password, for: account)
+        } catch {
+            problem = "\(error)"
+            return
+        }
+        var next = accounts.filter { $0.id != account.id }
+        next.append(account)
+        stored = (try? JSONEncoder().encode(next)) ?? Data()
+        host = ""
+        username = ""
+        password = ""
+        problem = nil
+    }
+
+    private func remove(_ account: IMAPAccount) {
+        try? IMAPPasswords.set("", for: account)
+        stored = (try? JSONEncoder().encode(accounts.filter { $0.id != account.id })) ?? Data()
+    }
 }

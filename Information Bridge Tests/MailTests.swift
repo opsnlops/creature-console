@@ -131,33 +131,31 @@ struct MailTests {
         #expect(OrderFacts.worldOnly == ["order.tracking"])
     }
 
-    @Test("The source reads a drop folder, casts the orders once, and forgets the mail")
+    @Test("The source reads its accounts, casts the orders once, and forgets the mail")
     func sourceCastsOrders() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(
             path: "mail-tests-\(UUID().uuidString.lowercased())")
-        let drop = directory.appending(path: "drop")
-        try FileManager.default.createDirectory(at: drop, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let casts = Casts()
-        let source = MailSource(
-            directory: directory, classifier: MailClassifier(), dropFolder: drop,
-            distill: { _ in nil }
-        ) { await casts.note($0) }
         let message = mail(
             "mail:1", from: "support@adafruit.com",
             subject: "Your Adafruit order #3312091 has shipped!",
             text: "Tracking number: 1Z999AA10123456784 via UPS")
-        try WorldJSON.makeEncoder().encode(message).write(to: drop.appending(path: "0001.json"))
+        let source = MailSource(
+            directory: directory, classifier: MailClassifier(),
+            fetch: { _ in [message] },  // the same mail every time, as an account would answer
+            distill: { _ in nil }
+        ) { await casts.note($0) }
         await source.poll(now: day)
         let events = await casts.events
         #expect(!events.isEmpty)
         #expect(events.allSatisfy { $0.subjectIDs.first?.rawValue == "order:adafruit-3312091" })
         #expect(events.allSatisfy { $0.source.id.rawValue == "bridge:mail" })
-        #expect(try FileManager.default.contentsOfDirectory(atPath: drop.path).isEmpty)
-        // The same mail again - a redelivered drop - says nothing new.
-        try WorldJSON.makeEncoder().encode(message).write(to: drop.appending(path: "0002.json"))
+        // The same mail again says nothing new.
         await source.poll(now: day + 60)
         #expect(await casts.events.count == events.count)
         #expect(await source.orders.count == 1)
+        #expect(await source.status.state == .on)
     }
 }
 

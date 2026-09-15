@@ -13,20 +13,16 @@ Bridge** scheme, macOS only. Not sandboxed (Messages' `chat.db` and Full Disk Ac
 hardened runtime on. Build and run it from Xcode; it lives in the menu bar and keeps working with
 its window closed.
 
-## Mail (`0.5.0`, plan step 5)
+## Mail (`0.6.0`, plan step 5)
 
-Settings → **Mail** → turn it on, and list the carriers and merchants whose mail may be read (one
-domain per line; the defaults are the usual suspects). Then, once:
-
-1. **Mail → Settings → Extensions → Information Bridge → enable.** From then on Mail hands the
-   extension every incoming message; the extension writes sender, subject, date, and the body's
-   plain text as a small file into the app group's folder, and the Bridge reads the folder every
-   minute. The message itself stays in Mail.
-2. **Read the last 120 days** (Sources card) — the Bridge asks Mail, through its scripting
-   interface, for the last 120 days from the listed senders, in every mailbox but Sent, Drafts,
-   Trash, and Junk (April's rules file mail into folders); macOS asks once under **Automation**.
-   It runs by itself the first time Mail is turned on, in the background — a few hundred
-   mailboxes take a minute or two, and the window stays alive meanwhile.
+Settings → **Mail** → turn it on, add each IMAP account (host, user name, password — the
+password goes to the Creature family's shared Keychain, synchronizable, so it is there on the
+next Mac too), and list the carriers and merchants whose mail may be read (one domain per line;
+the defaults are the usual suspects). No Mail.app in the loop: the Bridge reads each account
+itself. The first read of a mailbox goes back 120 days; every read after — every five minutes,
+or **Read now** — asks only for what is newer than the last UID seen, remembered per mailbox on
+this Mac. Every mailbox is read but Sent, Drafts, Trash, and Junk (April's rules file mail into
+folders such as Amazon and Deliveries).
 
 Each message is classified cheaply by sender and subject (order, shipping, appointment, receipt,
 or irrelevant — the last is forgotten at once), read for the parts with a shape (order and
@@ -37,7 +33,8 @@ stand alone. Mails about one order fold into one `order:<merchant>-<number>` ent
 carrier's tracking number joins the merchant's order — with `order.merchant`, `order.number`,
 `order.items`, `order.status`, `order.carrier`, `order.tracking` (world-only), `order.total`,
 `order.placed`, `order.expected`, `order.for = person:april`; kept for good. The Sources card
-lists the orders it knows. The world's own rule turns *out for delivery* into
+lists the orders it knows and, on the Mac, `mail-readings.log` says what each message became
+(date, kind, sender, subject — never a body). The world's own rule turns *out for delivery* into
 `delivery.expected` on the house — "April, the robot parts are here!" is the world's, not the
 Bridge's.
 

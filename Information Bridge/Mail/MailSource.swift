@@ -1,26 +1,31 @@
 import Foundation
 import WorldCore
 
-/// Step 5 of the plan: April's mail. Messages arrive two ways - the Mail extension drops each
-/// incoming one it was handed into the shared folder, and a one-time backfill asks Mail itself
-/// for the last 120 days from the carriers and merchants April lists. Each is classified
-/// cheaply, read for its numbers, read again by the on-device model for the rest, folded into
-/// the order book, and forgotten. The world holds orders; it never holds mail.
+/// Step 5 of the plan: April's mail, straight from her IMAP accounts - her own server, iCloud
+/// - with no Mail.app between. The first read of a mailbox goes back 120 days; every read after
+/// asks only for what is newer, every five minutes. Each message from the carriers and merchants
+/// April lists is classified cheaply, read for its numbers, read again by the on-device model
+/// for the rest, folded into the order book, and forgotten. The world holds orders; it never
+/// holds mail.
 actor MailSource {
     typealias Cast = @Sendable (WorldEventEnvelope) async throws -> Void
     typealias Distill = @Sendable (MailMessage) async -> CommerceReading?
+    /// Everything new from the accounts; the intake remembers where it was.
+    typealias Fetch =
+        @Sendable (_ progress: @Sendable (String) async -> Void) async throws
+        -> [MailMessage]
 
     static let sourceName = "mail"
-    static let appGroup = "group.io.opsnlops.information-bridge"
-    static let interval: Duration = .seconds(60)
+    static let interval: Duration = .seconds(300)
+    static let backfillDays = 120
 
     private let classifier: MailClassifier
     private let distill: Distill
+    private let fetch: Fetch
     private let cast: Cast
     private let ledger: FactLedger
     private let bookFile: URL
     private let seenFile: URL
-    private let dropFolder: URL?
     private var book = OrderBook()
     private var seen: Set<String> = []
     /// What the last read made of its mail, by kind - for the window, and a subjects-only log
@@ -32,14 +37,13 @@ actor MailSource {
     private var worker: Task<Void, Never>?
 
     init(
-        directory: URL, classifier: MailClassifier,
-        dropFolder: URL? = MailSource.sharedDropFolder(),
+        directory: URL, classifier: MailClassifier, fetch: @escaping Fetch,
         distill: @escaping Distill = { await MailDistiller().read($0) }, cast: @escaping Cast
     ) {
         self.classifier = classifier
         self.distill = distill
+        self.fetch = fetch
         self.cast = cast
-        self.dropFolder = dropFolder
         ledger = FactLedger(source: Self.sourceName, directory: directory)
         bookFile = directory.appending(path: "orders.json")
         seenFile = directory.appending(path: "mail-seen.json")
@@ -55,12 +59,6 @@ actor MailSource {
         {
             seen = saved
         }
-    }
-
-    /// Where the Mail extension leaves what it was handed: the app group's container.
-    static func sharedDropFolder() -> URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
-            .appending(path: "mail-drop")
     }
 
     var orders: [Order] { Array(book.orders.values).sorted { $0.lastMail > $1.lastMail } }
@@ -93,26 +91,24 @@ actor MailSource {
 
     private func forget(_ id: UUID) { observers[id] = nil }
 
-    /// Takes what the extension dropped, then reconciles the orders with the world.
+    /// Asks the accounts for what is new, folds it in, and reconciles the orders with the world.
     func poll(now: Date = Date()) async {
-        var taken = 0
-        if let dropFolder {
-            let files =
-                (try? FileManager.default.contentsOfDirectory(
-                    at: dropFolder, includingPropertiesForKeys: nil)) ?? []
-            for file in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-            where file.pathExtension == "json" {
-                if let data = try? Data(contentsOf: file),
-                    let message = try? WorldJSON.makeDecoder().decode(MailMessage.self, from: data)
-                {
-                    await take(message)
-                    taken += 1
-                }
-                try? FileManager.default.removeItem(at: file)
+        status = SourceStatus(state: .on, lastRunAt: status.lastRunAt, note: "reading mail…")
+        publish()
+        do {
+            let messages = try await fetch { [weak self] line in
+                await self?.report(line)
             }
+            await take(messages, now: now)
+        } catch {
+            status = SourceStatus(state: .degraded("\(error)"), lastRunAt: now)
+            publish()
         }
-        await reconcile(
-            now: now, note: taken > 0 ? "\(taken) new mail\(taken == 1 ? "" : "s")" : nil)
+    }
+
+    private func report(_ line: String) {
+        status.note = line
+        publish()
     }
 
     /// One message, wherever it came from: classified, read, distilled, folded in, forgotten.

@@ -9,11 +9,12 @@ person, phone/email/address world-only). Step 4 built the same night (Bridge `0.
 World `0.26.0`: the visitor rule, `calendar.at_home`). Step 5 built the same night (Bridge `0.5.0`: MailKit extension + scripted backfill, deterministic
 reading + Apple Intelligence on-device, orders as `order:*`; World `0.27.0`: the delivery rule,
 order lookup by items). Step 6, Messages, is next — and the founding moment awaits its first
-real delivery. **Step 5b, later:** replace the MailKit extension and the AppleScript backfill with
-IMAP from the Bridge itself (April: "are we doing this the hard way not using IMAP?") — iCloud
-by app-specific password first, the Gmail account when the OAuth dance is worth an evening; one
-mechanism, no Mail.app in the loop. The order book, the readings, the distiller, and the world's
-rules stay as they are; only the intake changes.
+real delivery. **Step 5b, done the same night** (Bridge `0.6.0`): the MailKit extension and the AppleScript
+backfill are gone; the Bridge reads IMAP itself through SwiftMail (April: "are we doing this the
+hard way not using IMAP?" — and "I don't need Gmail", so no OAuth). Her own server and iCloud,
+passwords in the shared Keychain; the first read of a mailbox goes back 120 days, then only what
+is newer than the last UID seen. The order book, the readings, the distiller, and the world's
+rules did not change.
 Plan written 2026-09-14 evening, after the judgement-and-memory plan shipped (World
 `0.24.0`, agent `2.72.0`, Viewer `0.6.2`, all on prod); revised the same evening after April read
 it — WeatherKit first, orders as entities in the world, mail and Messages as sources of what April's

@@ -19,6 +19,7 @@ struct BridgeRootView: View {
     @AppStorage(BridgeConnection.Keys.calendarOn) private var calendarOn = false
     @AppStorage(BridgeConnection.Keys.mailOn) private var mailOn = false
     @AppStorage(BridgeConnection.Keys.mailSenders) private var mailSenders = ""
+    @AppStorage(BridgeConnection.Keys.mailAccounts) private var mailAccounts = Data()
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
     @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
@@ -56,6 +57,7 @@ struct BridgeRootView: View {
             serverAddress, String(serverPort), String(serverUseTLS), String(useProxy), proxyHost,
             String(weatherOn), String(useMacLocation), String(latitude), String(longitude),
             outsideID, String(contactsOn), String(calendarOn), String(mailOn), mailSenders,
+            String(mailAccounts.count),
         ]) {
             store.start()
         }
@@ -124,9 +126,9 @@ struct BridgeRootView: View {
                         .buttonStyle(.glass)
                         .controlSize(.small)
                     }
-                    if source == .mail, status.state != .off {
-                        Button("Read the last 120 days", systemImage: "clock.arrow.circlepath") {
-                            Task { await store.backfillMail() }
+                    if source == .mail, status.state == .on {
+                        Button("Read now", systemImage: "arrow.clockwise") {
+                            Task { await store.pollMail() }
                         }
                         .buttonStyle(.glass)
                         .controlSize(.small)

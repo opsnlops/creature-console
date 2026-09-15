@@ -313,11 +313,11 @@
 		FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 		IBA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = IBA000000000000000000015 /* WorldCore */; };
 		IBA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = IBA000000000000000000016 /* CreatureAppSupport */; };
+		IBS000000000000000000003 /* SwiftMail in Frameworks */ = {isa = PBXBuildFile; productRef = IBS000000000000000000002 /* SwiftMail */; };
 		IBT00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = IBT00000000000000000001B /* WorldCore */; };
 		WVA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = WVA000000000000000000015 /* WorldCore */; };
 		WVA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = WVA000000000000000000016 /* CreatureAppSupport */; };
 		WVT00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = WVT00000000000000000001B /* WorldCore */; };
-		IBM00000000000000000000D /* Information Bridge Mail.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = IBM000000000000000000002 /* Information Bridge Mail.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -363,28 +363,7 @@
 			remoteGlobalIDString = WVA000000000000000000001;
 			remoteInfo = "World Viewer";
 		};
-		IBM00000000000000000000A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 11703D8029DD197F00EF7E3D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = IBM000000000000000000001;
-			remoteInfo = "Information Bridge Mail";
-		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		IBM00000000000000000000C /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				IBM00000000000000000000D /* Information Bridge Mail.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidationProcessor.swift; sourceTree = "<group>"; };
@@ -648,7 +627,6 @@
 		WVA00000000000000000001F /* World_Viewer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = World_Viewer.entitlements; sourceTree = "<group>"; };
 		WVA000000000000000000022 /* World-Viewer-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "World-Viewer-Info.plist"; sourceTree = "<group>"; };
 		WVT00000000000000000000B /* World Viewer Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "World Viewer Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		IBM000000000000000000002 /* Information Bridge Mail.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Information Bridge Mail.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -678,13 +656,6 @@
 				CreatureModelTests.swift,
 			);
 			target = 11754B6C2C0050AF001A6C83 /* Creature Console Tests */;
-		};
-		IBM00000000000000000000E /* Exceptions for "Information Bridge Mail" folder in "Information Bridge Mail" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = IBM000000000000000000001 /* Information Bridge Mail */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -769,14 +740,6 @@
 			path = "World Viewer Tests";
 			sourceTree = "<group>";
 		};
-		IBM000000000000000000003 /* Information Bridge Mail */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				IBM00000000000000000000E /* Exceptions for "Information Bridge Mail" folder in "Information Bridge Mail" target */,
-			);
-			path = "Information Bridge Mail";
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -836,6 +799,7 @@
 			files = (
 				IBA000000000000000000018 /* WorldCore in Frameworks */,
 				IBA000000000000000000019 /* CreatureAppSupport in Frameworks */,
+				IBS000000000000000000003 /* SwiftMail in Frameworks */,
 			);
 		};
 		IBT00000000000000000000E /* Frameworks */ = {
@@ -856,13 +820,6 @@
 			files = (
 				WVT00000000000000000001C /* WorldCore in Frameworks */,
 			);
-		};
-		IBM000000000000000000005 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -1062,7 +1019,6 @@
 				BCA000000000000000000022 /* Flock-Communicator-Info.plist */,
 				WVA000000000000000000003 /* World Viewer */,
 				IBA000000000000000000003 /* Information Bridge */,
-				IBM000000000000000000003 /* Information Bridge Mail */,
 				WVT00000000000000000000C /* World Viewer Tests */,
 				IBT00000000000000000000C /* Information Bridge Tests */,
 				WVA00000000000000000001F /* World_Viewer.entitlements */,
@@ -1111,7 +1067,6 @@
 				BCA00000000000000000000B /* Flock Communicator Tests.xctest */,
 				WVA000000000000000000002 /* World Viewer.app */,
 				IBA000000000000000000002 /* Information Bridge.app */,
-				IBM000000000000000000002 /* Information Bridge Mail.appex */,
 				WVT00000000000000000000B /* World Viewer Tests.xctest */,
 				IBT00000000000000000000B /* Information Bridge Tests.xctest */,
 			);
@@ -1807,12 +1762,10 @@
 				IBA000000000000000000004 /* Sources */,
 				IBA000000000000000000005 /* Frameworks */,
 				IBA000000000000000000006 /* Resources */,
-				IBM00000000000000000000C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				IBM00000000000000000000B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				IBA000000000000000000003 /* Information Bridge */,
@@ -1821,6 +1774,7 @@
 			packageProductDependencies = (
 				IBA000000000000000000015 /* WorldCore */,
 				IBA000000000000000000016 /* CreatureAppSupport */,
+				IBS000000000000000000002 /* SwiftMail */,
 			);
 			productName = "Information Bridge";
 			productReference = IBA000000000000000000002 /* Information Bridge.app */;
@@ -1896,28 +1850,6 @@
 			productReference = WVT00000000000000000000B /* World Viewer Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		IBM000000000000000000001 /* Information Bridge Mail */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = IBM000000000000000000009 /* Build configuration list for PBXNativeTarget "Information Bridge Mail" */;
-			buildPhases = (
-				IBM000000000000000000004 /* Sources */,
-				IBM000000000000000000005 /* Frameworks */,
-				IBM000000000000000000006 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				IBM000000000000000000003 /* Information Bridge Mail */,
-			);
-			name = "Information Bridge Mail";
-			packageProductDependencies = (
-			);
-			productName = "Information Bridge Mail";
-			productReference = IBM000000000000000000002 /* Information Bridge Mail.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1957,9 +1889,6 @@
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = IBA000000000000000000001;
 					};
-					IBM000000000000000000001 = {
-						CreatedOnToolsVersion = 26.0;
-					};
 					WVT00000000000000000000A = {
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = WVA000000000000000000001;
@@ -1980,6 +1909,7 @@
 				1199D6B82BF5C3A3004E0D64 /* XCRemoteSwiftPackageReference "swift-log" */,
 				1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */,
 				118331982C005BD80017DC2A /* XCRemoteSwiftPackageReference "ViewInspector" */,
+				IBS000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftMail" */,
 			);
 			preferredProjectObjectVersion = 90;
 			productRefGroup = 11703D8929DD197F00EF7E3D /* Products */;
@@ -1995,7 +1925,6 @@
 				BCA00000000000000000000A /* Flock Communicator Tests */,
 				WVA000000000000000000001 /* World Viewer */,
 				IBA000000000000000000001 /* Information Bridge */,
-				IBM000000000000000000001 /* Information Bridge Mail */,
 				WVT00000000000000000000A /* World Viewer Tests */,
 				IBT00000000000000000000A /* Information Bridge Tests */,
 			);
@@ -2064,13 +1993,6 @@
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
-		};
-		IBM000000000000000000006 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
@@ -2546,13 +2468,6 @@
 			files = (
 			);
 		};
-		IBM000000000000000000004 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -2585,11 +2500,6 @@
 			isa = PBXTargetDependency;
 			target = WVA000000000000000000001 /* World Viewer */;
 			targetProxy = WVT000000000000000000013 /* PBXContainerItemProxy */;
-		};
-		IBM00000000000000000000B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = IBM000000000000000000001 /* Information Bridge Mail */;
-			targetProxy = IBM00000000000000000000A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -3190,7 +3100,6 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Information Bridge";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Information Bridge reads your calendars here, on this Mac, and sends the world the events as facts - never the notes.";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Information Bridge asks Mail for the last 120 days of orders and shipments, once. The mail stays in Mail.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Information Bridge reads your address book here, on this Mac, and sends the world only the people you map.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Information Bridge tells Creature World what it learns, on your local network.";
@@ -3198,7 +3107,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.5.4;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3227,7 +3136,6 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Information Bridge";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Information Bridge reads your calendars here, on this Mac, and sends the world the events as facts - never the notes.";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Information Bridge asks Mail for the last 120 days of orders and shipments, once. The mail stays in Mail.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Information Bridge reads your address book here, on this Mac, and sends the world only the people you map.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Information Bridge tells Creature World what it learns, on your local network.";
@@ -3235,7 +3143,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.5.4;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3400,61 +3308,6 @@
 			};
 			name = Release;
 		};
-		IBM000000000000000000007 /* Debug configuration for PBXNativeTarget "Information Bridge Mail" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "Information Bridge Mail/Information_Bridge_Mail.entitlements";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Information Bridge Mail/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Information Bridge";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks @executable_path/../../../../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.5.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge.Mail";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = macosx;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6.0;
-			};
-			name = Debug;
-		};
-		IBM000000000000000000008 /* Release configuration for PBXNativeTarget "Information Bridge Mail" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "Information Bridge Mail/Information_Bridge_Mail.entitlements";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Information Bridge Mail/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Information Bridge";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks @executable_path/../../../../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.5.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge.Mail";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = macosx;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6.0;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -3554,15 +3407,6 @@
 			);
 			defaultConfigurationName = Debug;
 		};
-		IBM000000000000000000009 /* Build configuration list for PBXNativeTarget "Information Bridge Mail" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				IBM000000000000000000007 /* Debug configuration for PBXNativeTarget "Information Bridge Mail" */,
-				IBM000000000000000000008 /* Release configuration for PBXNativeTarget "Information Bridge Mail" */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -3604,6 +3448,14 @@
 			requirement = {
 				kind = exactVersion;
 				version = 0.8.0;
+			};
+		};
+		IBS000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftMail" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Cocoanetics/SwiftMail.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.11.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -3682,6 +3534,11 @@
 		IBA000000000000000000016 /* CreatureAppSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CreatureAppSupport;
+		};
+		IBS000000000000000000002 /* SwiftMail */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = IBS000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftMail" */;
+			productName = SwiftMail;
 		};
 		IBT00000000000000000001B /* WorldCore */ = {
 			isa = XCSwiftPackageProductDependency;

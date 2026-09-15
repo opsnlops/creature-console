@@ -113,8 +113,8 @@ final class BridgeStore {
             contacts: connection.isContactsOn,
             calendar: connection.isCalendarOn,
             mail: connection.isMailOn
-                ? (connection.mailSenders.carriers + connection.mailSenders.merchants)
-                    .joined(separator: ",") : "")
+                ? (connection.mailSenders.carriers + connection.mailSenders.merchants
+                    + connection.mailAccounts.map(\.id)).joined(separator: ",") : "")
     }
 
     @ObservationIgnored private var lastSourceSettings: SourceSettings?
@@ -321,13 +321,29 @@ final class BridgeStore {
         }
     }
 
-    /// Step 5: the mail. The extension drops what arrives; the first time, Mail is asked for the
-    /// last 120 days from the listed senders. Orders become entities; mail never leaves the Mac.
+    /// Step 5: the mail, from April's IMAP accounts. Orders become entities; mail never leaves
+    /// the Mac. The first read of each mailbox goes back 120 days, then only what is new.
     private func startMail(directory: URL, box: Outbox, client: WorldViewerClient) {
         let senders = connection.mailSenders
+        let accounts = connection.mailAccounts
+        let intakes = accounts.map {
+            IMAPIntake(
+                account: $0, senders: senders.carriers + senders.merchants, directory: directory)
+        }
         let source = MailSource(
             directory: directory,
-            classifier: MailClassifier(carriers: senders.carriers, merchants: senders.merchants)
+            classifier: MailClassifier(carriers: senders.carriers, merchants: senders.merchants),
+            fetch: { progress in
+                var all: [MailMessage] = []
+                for (account, intake) in zip(accounts, intakes) {
+                    all += try await intake.read(since: MailSource.backfillDays) { done in
+                        await progress(
+                            "\(account.host): \(done.mailboxes) mailboxes read, \(done.messages) messages"
+                        )
+                    }
+                }
+                return all
+            }
         ) { event in try await box.enqueue(event) }
         mailSource = source
         mailTask = Task { [weak self] in
@@ -340,10 +356,14 @@ final class BridgeStore {
                         state: .degraded("could not seed the glossary: \(error)"))
                 }
             }
-            await source.start()
-            if let self, !connection.isMailBackfilled {
-                await backfillMail()
+            if accounts.isEmpty {
+                await MainActor.run {
+                    self?.sources[.mail] = SourceStatus(
+                        state: .degraded("no accounts yet - add one in Settings"))
+                }
+                return
             }
+            await source.start()
             for await status in await source.updates() {
                 guard let self else { return }
                 self.sources[.mail] = status
@@ -352,20 +372,14 @@ final class BridgeStore {
         }
     }
 
-    /// Asks Mail for the last 120 days, once. Can be run again from the window.
-    func backfillMail() async {
-        guard let mailSource else { return }
-        sources[.mail] = SourceStatus(state: .on, note: "asking Mail for the last 120 days…")
-        let senders = connection.mailSenders
-        do {
-            let messages = try await MailBackfill.fetch(
-                senders: senders.carriers + senders.merchants)
-            await mailSource.take(messages)
-            connection.setMailBackfilled()
-        } catch {
-            sources[.mail] = SourceStatus(state: .degraded("\(error)"))
-        }
-        orders = await mailSource.orders
+    /// Reads the accounts now rather than waiting for the next five minutes.
+    func pollMail() async {
+        await mailSource?.poll()
+    }
+
+    /// The account's mailboxes, for choosing which to read.
+    func mailboxes(of account: IMAPAccount) async throws -> [String] {
+        try await IMAPIntake.mailboxes(of: account)
     }
 
     /// Which calendars to read; nil for all.

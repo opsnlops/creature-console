@@ -26,7 +26,7 @@ final class BridgeConnection: Sendable {
         static let calendarsAllowed = "informationBridgeCalendarsAllowed"
         static let mailOn = "informationBridgeMailOn"
         static let mailSenders = "informationBridgeMailSenders"
-        static let mailBackfilled = "informationBridgeMailBackfilled"
+        static let mailAccounts = "informationBridgeMailAccounts"
     }
 
     static let defaultHostname = "server.prod.chirpchirp.dev"
@@ -67,8 +67,18 @@ final class BridgeConnection: Sendable {
     var isContactsOn: Bool { defaults.bool(forKey: Keys.contactsOn) }
     var isCalendarOn: Bool { defaults.bool(forKey: Keys.calendarOn) }
     var isMailOn: Bool { defaults.bool(forKey: Keys.mailOn) }
-    var isMailBackfilled: Bool { defaults.bool(forKey: Keys.mailBackfilled) }
-    func setMailBackfilled() { defaults.set(true, forKey: Keys.mailBackfilled) }
+
+    /// The IMAP accounts the Bridge reads; passwords are in the Keychain, not here.
+    var mailAccounts: [IMAPAccount] {
+        guard let data = defaults.data(forKey: Keys.mailAccounts),
+            let accounts = try? JSONDecoder().decode([IMAPAccount].self, from: data)
+        else { return [] }
+        return accounts
+    }
+
+    func setMailAccounts(_ accounts: [IMAPAccount]) {
+        defaults.set(try? JSONEncoder().encode(accounts), forKey: Keys.mailAccounts)
+    }
 
     /// The carriers and merchants whose mail is read, one domain per line in Settings.
     var mailSenders: (carriers: [String], merchants: [String]) {
