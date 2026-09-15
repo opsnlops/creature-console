@@ -70,6 +70,13 @@ struct MemoryJob: Sendable {
             let recollection = try JSONDecoder().decode(Recollection.self, from: data)
             let episodes = Array(recollection.episodes.prefix(Self.maximumEpisodes))
             span.attributes["memory.episodes"] = episodes.count
+            // Remembering a day again replaces that day's memory: what an earlier run kept -
+            // on every subject, in every slot - is taken back before the new memory is cast.
+            let earlier = try await fetchMemories(of: day)
+            span.attributes["memory.replaced"] = earlier.count
+            for fact in earlier {
+                try await self.cast(retractionEvent(fact, key: key, now: now))
+            }
             var cast = 0
             let names = Self.names(in: digest, houseID: houseID, including: characterID)
             for (index, episode) in episodes.enumerated() {
@@ -128,7 +135,8 @@ struct MemoryJob: Sendable {
 
                 Rules. An episode is one thing that happened, in a sentence or two, about the people, \
                 places, or the house it concerns ("about" names them as they appear in the record: a \
-                person's first name, "the front door", "the house", or a bird's name). "when" is \
+                person's first name, "the front door", "the house", a bird's name, or for a named \
+                thing such as a car or a printer, "thing: Hopper"). "when" is \
                 human-grained - "Sunday afternoon", "late Sunday night", "around dinner" - never a \
                 clock time. "salience" is how much it will matter later, 0 to 1: a contractor \
                 finishing the deck is 0.8, April going to the store is 0.2, a bird at the feeder is 0. \
@@ -210,6 +218,25 @@ struct MemoryJob: Sendable {
             ])
     }
 
+    /// Nothing in the fact's place, valid for a moment: the same retraction as the Viewer's
+    /// Forget, from the mind that kept it.
+    private func retractionEvent(_ fact: Fact, key: String, now: Date) throws
+        -> WorldEventEnvelope
+    {
+        try WorldEventEnvelope(
+            type: WorldEventType(validating: "facts.given"),
+            occurredAt: now,
+            source: source(sourceEventID: "\(key):replace:\(fact.factID.rawValue)"),
+            subjectIDs: [fact.subjectID],
+            epistemic: EpistemicState(type: .remembered, confidence: 1),
+            payload: [
+                "subject_id": .string(fact.subjectID.rawValue),
+                "predicate": .string(fact.predicate),
+                "value": .null,
+                "valid_for_seconds": .number(1),
+            ])
+    }
+
     private func reflectionEvent(_ text: String, day: String, key: String, now: Date) throws
         -> WorldEventEnvelope
     {
@@ -261,5 +288,39 @@ struct MemoryJob: Sendable {
         }
         return try WorldJSON.makeDecoder().decode(
             DayDigest.self, from: Data(body.readableBytesView))
+    }
+
+    /// Every memory of `day` the world currently holds, on every subject: the episodes
+    /// (`memory.episode.<day>.`) and the reflection (`memory.reflection.<day>`).
+    private func fetchMemories(of day: String) async throws -> [Fact] {
+        var memories: [Fact] = []
+        for prefix in [
+            "\(WorldFacts.memoryEpisode).\(day).", "\(WorldFacts.memoryReflection).\(day)",
+        ] {
+            var after: FactID?
+            repeat {
+                var url = worldURL
+                url.append(path: "facts")
+                url.append(
+                    queryItems: [
+                        URLQueryItem(name: "predicate_prefix", value: prefix),
+                        URLQueryItem(name: "limit", value: "200"),
+                    ]
+                        + (after.map { [URLQueryItem(name: "after_fact_id", value: $0.rawValue)] }
+                            ?? []))
+                let request = HTTPClientRequest(url: url.absoluteString)
+                let response = try await client.execute(
+                    request, timeout: .seconds(30), logger: logger)
+                let body = try await response.body.collect(upTo: 8 * 1_048_576)
+                guard response.status == .ok else {
+                    throw WorldResponderError.unavailable(status: UInt(response.status.code))
+                }
+                let page = try WorldJSON.makeDecoder().decode(
+                    WorldFactPage.self, from: Data(body.readableBytesView))
+                memories += page.facts
+                after = page.hasMore ? page.nextFactID : nil
+            } while after != nil
+        }
+        return memories
     }
 }

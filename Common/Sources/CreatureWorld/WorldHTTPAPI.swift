@@ -399,11 +399,19 @@ struct WorldHTTPAPI: Sendable {
                 let after = try request.uri.queryParameters["after_fact_id"].map {
                     try FactID(validating: String($0))
                 }
+                let predicatePrefix = try request.uri.queryParameters["predicate_prefix"].map {
+                    let prefix = String($0)
+                    guard !prefix.isEmpty, prefix.count <= 120 else {
+                        throw WorldAPIError.invalidQuery(name: "predicate_prefix")
+                    }
+                    return prefix
+                }
                 let limit = try pageLimit(request)
                 return try await execute {
                     try jsonResponse(
                         await service.currentFacts(
                             subjectID: subjectID,
+                            predicatePrefix: predicatePrefix,
                             after: after,
                             limit: limit
                         )

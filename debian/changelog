@@ -1,3 +1,23 @@
+creature-cli (2.72.0+world0.24.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * What the first clock run taught us. Remembering a day again now
+    replaces that day's memory: the job takes back every episode and
+    reflection an earlier run kept - on every subject, in every slot -
+    before casting the new ones, so a re-numbered day leaves no ghosts.
+    A named thing - "thing: Hopper", April's car - is `thing:hopper`,
+    not a person.
+  * creature-world 0.24.0: GET /v1/facts?predicate_prefix= narrows the
+    facts page to a family across every subject (what the memory job
+    uses to find a day's memories). And the one that made Mango say "that
+    fact is not in my database": the 40-fact page a mind is handed is
+    newest first, and a night's 28 memory facts are newer than the car
+    April described at 11pm - memories are now fetched and trimmed apart
+    from the day's facts, so they sit beside them instead of on top.
+  * creature-agent 2.72.0: the above; the scene tests' fixed-date offer
+    became stale on 2026-09-14 16:33 UTC and is now made at run time.
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 17:00:00 -0700
+
 creature-cli (2.71.3+world0.23.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-agent 2.71.3: a learned thing about a bird is filed on the

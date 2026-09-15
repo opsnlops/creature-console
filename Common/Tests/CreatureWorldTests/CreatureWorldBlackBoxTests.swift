@@ -188,6 +188,13 @@ struct CreatureWorldBlackBoxTests {
         #expect(mangoPresence.value == .string(region.rawValue))
         #expect(mangoPresence.epistemic.type == .observed)
         _ = try await api.waitForFact(about: beaky, predicate: WorldFacts.characterRegion)
+        // A family of facts across every subject, for the memory job: both birds' presence
+        // under one prefix, nothing under a prefix nobody uses.
+        let family = try await api.facts(predicatePrefix: "presence.")
+        #expect(family.contains { $0.subjectID == mango })
+        #expect(family.contains { $0.subjectID == beaky })
+        #expect(family.allSatisfy { $0.predicate.hasPrefix("presence.") })
+        #expect(try await api.facts(predicatePrefix: "memory.episode.1999-01-01.").isEmpty)
 
         let sceneUtterance = try makeUtterance(
             in: conversationID, sourceID: SourceID(validating: "communicator:blackbox"),
@@ -787,13 +794,29 @@ private struct WorldServiceAPI {
     }
 
     func facts(about subjectID: EntityID) async throws -> [Fact] {
-        let response = try await client.execute(
-            HTTPClientRequest(url: "\(base)/facts?subject_id=\(subjectID.rawValue)&limit=100"),
-            timeout: .seconds(15)
-        )
-        #expect(response.status == .ok)
-        let body = try await response.body.collect(upTo: 1_048_576)
-        return try WorldJSON.makeDecoder().decode(WorldFactPage.self, from: body).facts
+        try await facts(query: "subject_id=\(subjectID.rawValue)")
+    }
+
+    func facts(predicatePrefix: String) async throws -> [Fact] {
+        try await facts(query: "predicate_prefix=\(predicatePrefix)")
+    }
+
+    /// Every page, as a client that means "all of them" reads them.
+    private func facts(query: String) async throws -> [Fact] {
+        var all: [Fact] = []
+        var after: FactID?
+        repeat {
+            let cursor = after.map { "&after_fact_id=\($0.rawValue)" } ?? ""
+            let response = try await client.execute(
+                HTTPClientRequest(url: "\(base)/facts?\(query)&limit=100\(cursor)"),
+                timeout: .seconds(15))
+            #expect(response.status == .ok)
+            let body = try await response.body.collect(upTo: 1_048_576)
+            let page = try WorldJSON.makeDecoder().decode(WorldFactPage.self, from: body)
+            all += page.facts
+            after = page.hasMore ? page.nextFactID : nil
+        } while after != nil
+        return all
     }
 
     /// Facts are reduced on the world's own loop after an event is accepted, so a caller who

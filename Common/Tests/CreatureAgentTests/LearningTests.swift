@@ -47,6 +47,11 @@ struct LearningTests {
         #expect(names.entity(named: "Kenny")?.rawValue == "character:kenny")
         #expect(names.entity(named: "kenny")?.rawValue == "character:kenny")
         #expect(names.entity(named: "Mango")?.rawValue == "person:mango")
+        // A named thing, when the mind says so; the house by any spelling of its kind.
+        #expect(names.entity(named: "thing: Hopper")?.rawValue == "thing:hopper")
+        #expect(names.entity(named: "Thing: the Prusa printer")?.rawValue == "thing:prusa-printer")
+        #expect(names.entity(named: "house: April's nest") == house)
+        #expect(names.entity(named: "robot: Kenny") == nil)
         #expect(names.entity(named: "") == nil)
     }
 

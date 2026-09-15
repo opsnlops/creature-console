@@ -87,8 +87,9 @@ struct WorldAPIErrorResponse: Codable, Equatable, Sendable {
 protocol WorldApplicationService: Sendable {
     func accept(_ event: WorldEventEnvelope) async throws -> WorldEventAcceptance
     func events(after sequence: Int64, limit: Int) async throws -> WorldEventPage
-    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws
-        -> WorldFactPage
+    func currentFacts(
+        subjectID: EntityID?, predicatePrefix: String?, after: FactID?, limit: Int
+    ) async throws -> WorldFactPage
     func timers(status: WorldTimerStatus?, after: TimerID?, limit: Int) async throws
         -> WorldTimerPage
     func snapshot(limit: Int) async throws -> WorldSnapshot
@@ -261,9 +262,9 @@ struct UnavailableWorldApplicationService: WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
 
-    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws
-        -> WorldFactPage
-    {
+    func currentFacts(
+        subjectID: EntityID?, predicatePrefix: String?, after: FactID?, limit: Int
+    ) async throws -> WorldFactPage {
         throw WorldAPIError.databaseUnavailable
     }
 

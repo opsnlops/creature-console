@@ -65,13 +65,25 @@ struct FactRepository: Sendable {
     }
 
     /// Current facts about any of `subjects`, newest first, bounded.
-    func currentFacts(about subjects: [EntityID], limit: Int, at now: Date) async throws
-        -> [Fact]
-    {
+    /// Memories are a family apart: they are fetched and trimmed on their own so a night's
+    /// worth of episodes never crowds the facts of the day out of a capped page.
+    enum Family: Sendable {
+        case all, memories, notMemories
+    }
+
+    func currentFacts(
+        about subjects: [EntityID], family: Family = .all, limit: Int, at now: Date
+    ) async throws -> [Fact] {
         precondition(limit > 0)
         guard !subjects.isEmpty else { return [] }
         var query = currentQuery(at: now)
         query["subject_id"] = ["$in": subjects.map(\.rawValue)] as Document
+        switch family {
+        case .all: break
+        case .memories: query["predicate"] = ["$regex": "^memory\\."] as Document
+        case .notMemories:
+            query["predicate"] = ["$not": ["$regex": "^memory\\."] as Document] as Document
+        }
         let documents = try await facts.find(query)
             .sort(["valid_from": -1, "_id": -1])
             .limit(limit)
@@ -79,13 +91,22 @@ struct FactRepository: Sendable {
         return try documents.map(decode)
     }
 
-    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int, at now: Date)
-        async throws -> [Fact]
-    {
+    /// `predicatePrefix` narrows to a family - `memory.episode.2026-09-13.` is one day's
+    /// episodes on every subject.
+    func currentFacts(
+        subjectID: EntityID?, predicatePrefix: String? = nil, after: FactID?, limit: Int,
+        at now: Date
+    ) async throws -> [Fact] {
         precondition(limit > 0)
         var query = currentQuery(at: now)
         if let subjectID {
             query["subject_id"] = subjectID.rawValue
+        }
+        if let predicatePrefix {
+            query["predicate"] =
+                [
+                    "$regex": "^" + NSRegularExpression.escapedPattern(for: predicatePrefix)
+                ] as Document
         }
         if let after {
             let greaterThan: Document = ["$gt": after.rawValue]

@@ -155,8 +155,19 @@ local-LLM health check no longer runs on the OpenAI backend. Agent `2.71.3`: lea
 a bird go on `character:` (one `EntityNames` resolver for tags and memory); the contract asks for
 an existing kind first and not to re-keep what another bird just kept.
 
+**First clock run (2026-09-14 03:30:00, 0.1 ms late):** 12 episodes, 28 facts, everything April
+said after midnight included (Hopper the ID.4, OpenEVSE, SRE, WordPress, feeders), reflection
+in her voice. Two faults fixed in World `0.24.0` / agent `2.72.0`: a re-numbered day left the
+by-hand run's slots behind (re-remembering now replaces the day, via `predicate_prefix`), and
+Hopper was filed as `person:hopper` (`thing:` kind). A third, found when Mango said "that fact is not in my
+database" about the car: the 40-fact page is newest first and the night's 28 memories out-ranked
+the `vehicle.*` facts — memories are now fetched and trimmed apart from the day's facts. Also:
+the scene tests' fixed-date offer went stale on 09-14 16:33 UTC — made at run time now. April is on macOS 27 / Swift 6.4; Linux has
+no 6.4 release yet (swift.org tops out at 6.3.3; only `swiftlang/swift:nightly-6.4.x` images), so
+CI stays on 6.3.3 until 6.4.0 ships — check back.
+
 **To do, in order:**
-1. Check the 3:30 clock run of 2026-09-14 (re-remembers the 13th) against the by-hand one.
+1. ~~Check the 3:30 clock run~~ done; re-run the 13th once 2.72.0 is deployed to clear the ghosts.
 2. `docs/information-bridge-plan.md` — the plan before any code (see §Bridge notes below).
 3. **Storage in view:** `GET /v1/storage` (collection counts and bytes from `collStats`) and a
    line in the Viewer's health panel, so retention windows get tuned from evidence. April is

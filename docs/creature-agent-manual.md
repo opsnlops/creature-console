@@ -246,6 +246,10 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **Remembering again replaces** (`2.72.0`). A day remembered a second time — by hand, or the
+  clock after a by-hand run — is taken back first, every slot on every subject, then written
+  afresh; the by-hand run and the clock run never stand side by side. A named thing in an
+  episode — "thing: Hopper", April's car — is `thing:hopper`, not a person.
 - **She remembers the day** (`2.71.0`, step 4b). With `llmMemoryModel` set (Beaky:
   `gpt-6-astra`; the chorus leaves it unset), the mind answers the world's nightly
   `memory.consolidate` by fetching the day's digest and asking the memory model for JSON —

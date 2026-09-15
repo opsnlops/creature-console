@@ -4,6 +4,8 @@ import WorldCore
 
 @testable import creature_world
 
+private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+
 @Suite("The world's side of memory")
 struct MemoryConfigurationTests {
     private let pacific = TimeZone(identifier: "America/Los_Angeles")!
@@ -91,5 +93,55 @@ struct MemoryConfigurationTests {
         #expect(
             WorldFacts.memoryFamily(of: "memory.episode.2026-09-13") == WorldFacts.memoryEpisode)
         #expect(WorldFacts.memoryFamily(of: "door.lock") == nil)
+    }
+}
+
+@Suite(
+    "Memories beside the day's facts",
+    .enabled(if: mongoTestURI != nil, "Set MONGODB_TEST_URI to run MongoDB integration tests"))
+struct MemoriesBesideFactsTests {
+    @Test("A night of episodes does not push what April taught the birds off the page")
+    func memoriesDoNotCrowdOutFacts() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "memory-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let april = try EntityID(validating: "person:april-\(suffix)")
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: start.addingTimeInterval(7_200))
+        func fact(_ predicate: String, _ value: WorldJSONValue, at offset: TimeInterval) throws
+            -> Fact
+        {
+            try Fact(
+                subjectID: april, predicate: predicate, value: value,
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                validFrom: start.addingTimeInterval(offset), derivedFrom: [],
+                producer: FactProducer(kind: "test", id: "memory", version: "1"))
+        }
+        // What April taught them in the evening, then a night's memory of it - more episodes
+        // than the page holds, every one newer than the car.
+        try await persistence.facts.save(
+            try fact("vehicle.model", .string("Volkswagen ID.4"), at: 0))
+        for slot in 1...(WorldKnowledgeLimits.maximumFacts + 5) {
+            try await persistence.facts.save(
+                try fact(
+                    "memory.episode.2026-09-13.\(slot)",
+                    .object(["what": .string("episode \(slot)"), "salience": .number(0.5)]),
+                    at: 3_600 + Double(slot)))
+        }
+        var memory = MemoryConfiguration()
+        memory.episodesInPrompt = 3
+        var knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: CharacterSessionService(
+                repository: persistence.characterSessions, clock: clock, announce: { _ in }),
+            regions: [:], clock: clock)
+        knowledge.memory = memory
+
+        let handed = try await knowledge.currentFacts(
+            about: [april], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(handed.contains { $0.predicate == "vehicle.model" })
+        #expect(handed.filter { $0.predicate.hasPrefix("memory.episode.") }.count == 3)
     }
 }

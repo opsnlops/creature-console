@@ -111,28 +111,43 @@ struct EntityNames: Sendable {
         }
     }
 
+    /// The kinds a mind may name outright: "thing: Hopper" is `thing:hopper`, a named car,
+    /// computer, or printer - not a person.
+    static let kinds: Set<String> = ["person", "place", "house", "character", "thing"]
+
     /// "Jesse" → `person:jesse`; "the front door" → `place:front-door`; "the house" → the
-    /// configured house; "Mango" → `character:mango` when Mango is known; an id the mind
-    /// already wrote (`person:jesse`) is taken as is.
+    /// configured house; "Mango" → `character:mango` when Mango is known; "thing: Hopper" or
+    /// an id the mind already wrote (`person:jesse`) → that kind, the name made a slug.
     func entity(named name: String) -> EntityID? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.contains(":"), let id = EntityID(rawValue: trimmed.lowercased()) {
-            let prefix = trimmed.lowercased().prefix { $0 != ":" }
-            return ["person", "place", "house", "character"].contains(prefix) ? id : nil
+        if let colon = trimmed.firstIndex(of: ":") {
+            let kind = trimmed[..<colon].trimmingCharacters(in: .whitespaces).lowercased()
+            guard Self.kinds.contains(kind),
+                let slug = Self.slug(String(trimmed[trimmed.index(after: colon)...]))
+            else { return nil }
+            if kind == "house" { return houseID }
+            return EntityID(rawValue: "\(kind):\(slug)")
         }
         if let character = characters[Self.key(trimmed)] { return character }
-        var words = trimmed.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-            .map(String.init)
-        if words.first == "the" { words.removeFirst() }
-        guard !words.isEmpty, words.count <= 4 else { return nil }
-        if words == ["house"] { return houseID }
-        let slug = words.joined(separator: "-")
+        guard let slug = Self.slug(trimmed) else { return nil }
+        if slug == "house" { return houseID }
         let placeWords: Set<String> = [
             "door", "driveway", "carport", "kitchen", "workshop", "orchard", "porch", "garage",
             "entryway", "room", "yard", "deck", "outside", "gate",
         ]
-        let kind = words.contains(where: placeWords.contains) ? "place" : "person"
+        let kind =
+            slug.split(separator: "-").contains(where: { placeWords.contains(String($0)) })
+            ? "place" : "person"
         return EntityID(rawValue: "\(kind):\(slug)")
+    }
+
+    /// "The Front Door" → `front-door`; nothing, or more than four words, is no name.
+    private static func slug(_ name: String) -> String? {
+        var words = name.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .map(String.init)
+        if words.first == "the" { words.removeFirst() }
+        guard !words.isEmpty, words.count <= 4 else { return nil }
+        return words.joined(separator: "-")
     }
 
     private static func key(_ name: String) -> String {

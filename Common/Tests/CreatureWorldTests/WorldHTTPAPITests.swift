@@ -1220,9 +1220,9 @@ private actor TestWorldApplicationService: WorldApplicationService {
         )
     }
 
-    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws
-        -> WorldFactPage
-    {
+    func currentFacts(
+        subjectID: EntityID?, predicatePrefix: String?, after: FactID?, limit: Int
+    ) async throws -> WorldFactPage {
         WorldFactPage(facts: [], nextFactID: nil, hasMore: false)
     }
 
@@ -1283,9 +1283,9 @@ private struct SlowWorldApplicationService: WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
 
-    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws
-        -> WorldFactPage
-    {
+    func currentFacts(
+        subjectID: EntityID?, predicatePrefix: String?, after: FactID?, limit: Int
+    ) async throws -> WorldFactPage {
         throw WorldAPIError.databaseUnavailable
     }
 
@@ -1322,9 +1322,9 @@ private actor BlockingWorldApplicationService: WorldApplicationService {
         return WorldEventPage(events: [], nextSequence: sequence, hasMore: false)
     }
 
-    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws
-        -> WorldFactPage
-    {
+    func currentFacts(
+        subjectID: EntityID?, predicatePrefix: String?, after: FactID?, limit: Int
+    ) async throws -> WorldFactPage {
         throw WorldAPIError.databaseUnavailable
     }
 

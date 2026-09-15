@@ -69,17 +69,33 @@ struct MemoryJobTests {
               {"about": ["Jesse", "the deck", "April"], "when": "Sunday around noon",
                "what": "Jesse came and finished the deck; April was pleased", "salience": 0.8},
               {"about": ["the front door"], "when": "Sunday noon", "what": "April unlocked the front door for Jesse", "salience": 0.1},
-              {"about": ["Mango", "April"], "when": "Sunday evening", "what": "April teased Mango about Debian", "salience": 0.4}
+              {"about": ["Mango", "April"], "when": "Sunday evening", "what": "April teased Mango about Debian", "salience": 0.4},
+              {"about": ["thing: Hopper", "April"], "when": "Sunday evening", "what": "April introduced Hopper, her electric car", "salience": 0.5}
             ], "reflection": "April's deck project is nearly done and she is happy about it."}
             """
-        // A tiny world that serves the digest.
+        // A tiny world that serves the digest, and one memory an earlier run of the day left.
         let digest = try digest()
+        let stale = try Fact(
+            subjectID: try EntityID(validating: "person:april"),
+            predicate: "memory.episode.2026-09-13.4", value: .string("an earlier telling"),
+            epistemic: EpistemicState(type: .remembered, confidence: 0.5), validFrom: now,
+            derivedFrom: [], producer: FactProducer(kind: "mind", id: "beaky", version: "1"))
         let router = Router(context: BasicRequestContext.self)
         router.get("world/v1/days/:day") { _, _ in
             Response(
                 status: .ok, headers: [.contentType: "application/json"],
                 body: ResponseBody(
                     byteBuffer: ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(digest))))
+        }
+        router.get("world/v1/facts") { request, _ in
+            let prefix = request.uri.queryParameters["predicate_prefix"].map(String.init) ?? ""
+            let page = WorldFactPage(
+                facts: stale.predicate.hasPrefix(prefix) ? [stale] : [], nextFactID: nil,
+                hasMore: false)
+            return Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(page))))
         }
         let application = Application(
             router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
@@ -102,20 +118,29 @@ struct MemoryJobTests {
         }
 
         let events = await casts.events
-        // Three subjects for the first episode, one for the second, two for the third (Mango is
-        // a character, not a person, because he spoke that day), the reflection, the summary.
-        #expect(events.count == 8)
+        // The earlier run's memory taken back first; then three subjects for the first episode,
+        // one for the second, two for the third (Mango is a character, not a person, because he
+        // spoke that day), two for the fourth (Hopper is a thing), the reflection, the summary.
+        #expect(events.count == 11)
+        #expect(events[0].payload["predicate"] == .string("memory.episode.2026-09-13.4"))
+        #expect(events[0].payload["value"] == .null)
+        #expect(events[0].payload["subject_id"] == .string("person:april"))
         #expect(events.contains { $0.payload["subject_id"] == .string("character:mango") })
         #expect(!events.contains { $0.payload["subject_id"] == .string("person:mango") })
+        #expect(events.contains { $0.payload["subject_id"] == .string("thing:hopper") })
         let jesse = try #require(
             events.first { $0.payload["subject_id"] == .string("person:jesse") })
         #expect(jesse.type.rawValue == "facts.given")
         #expect(jesse.payload["predicate"] == .string("memory.episode.2026-09-13.1"))
         // Two episodes on one subject are two facts, not one superseding the other.
-        let april = events.filter { $0.payload["subject_id"] == .string("person:april") }
+        let april = events.filter {
+            $0.payload["subject_id"] == .string("person:april") && $0.payload["value"] != .null
+        }
         #expect(
-            april.map { $0.payload["predicate"] }
-                == [.string("memory.episode.2026-09-13.1"), .string("memory.episode.2026-09-13.3")])
+            april.map { $0.payload["predicate"] } == [
+                .string("memory.episode.2026-09-13.1"), .string("memory.episode.2026-09-13.3"),
+                .string("memory.episode.2026-09-13.4"),
+            ])
         #expect(jesse.epistemic.type == .remembered)
         #expect(jesse.source.kind == "mind")
         guard case .object(let value)? = jesse.payload["value"] else {
@@ -129,7 +154,7 @@ struct MemoryJobTests {
             events.first { $0.payload["predicate"] == .string("memory.reflection.2026-09-13") })
         #expect(reflection.subjectIDs == [beaky])
         let done = try #require(events.first { $0.type.rawValue == "memory.consolidated" })
-        #expect(done.payload["episodes"] == .number(3))
+        #expect(done.payload["episodes"] == .number(4))
         #expect(done.payload["model"] == .string("gpt-6-astra"))
         // Keyed by the asking event: a retry of this night is idempotent, another asking is new.
         #expect(

@@ -8,7 +8,7 @@ import WorldCore
 struct MongoWorldPersistenceConnection: Sendable {
     let acceptEvent: @Sendable (WorldEventEnvelope) async throws -> WorldEventAcceptance
     let events: @Sendable (Int64, Int) async throws -> WorldEventPage
-    let currentFacts: @Sendable (EntityID?, FactID?, Int) async throws -> WorldFactPage
+    let currentFacts: @Sendable (EntityID?, String?, FactID?, Int) async throws -> WorldFactPage
     let timers: @Sendable (WorldTimerStatus?, TimerID?, Int) async throws -> WorldTimerPage
     let snapshot: @Sendable (Int) async throws -> WorldSnapshot
     let subscribe: @Sendable () async throws -> WorldDeltaStream
@@ -286,9 +286,10 @@ struct MongoWorldPersistenceConnection: Sendable {
                 hasMore: hasMore
             )
         }
-        currentFacts = { subjectID, after, limit in
+        currentFacts = { subjectID, predicatePrefix, after, limit in
             let loaded = try await persistence.facts.currentFacts(
                 subjectID: subjectID,
+                predicatePrefix: predicatePrefix,
                 after: after,
                 limit: limit + 1,
                 at: await clock.now
@@ -458,9 +459,11 @@ struct MongoWorldPersistenceConnection: Sendable {
         events: @escaping @Sendable (Int64, Int) async throws -> WorldEventPage = {
             _, _ in throw WorldAPIError.databaseUnavailable
         },
-        currentFacts: @escaping @Sendable (EntityID?, FactID?, Int) async throws -> WorldFactPage =
+        currentFacts:
+            @escaping @Sendable (EntityID?, String?, FactID?, Int) async throws ->
+            WorldFactPage =
             {
-                _, _, _ in throw WorldAPIError.databaseUnavailable
+                _, _, _, _ in throw WorldAPIError.databaseUnavailable
             },
         timers:
             @escaping @Sendable (WorldTimerStatus?, TimerID?, Int) async throws -> WorldTimerPage =
@@ -694,11 +697,11 @@ actor MongoWorldPersistenceProvider {
         return try await connection.events(sequence, limit)
     }
 
-    func currentFacts(subjectID: EntityID?, after: FactID?, limit: Int) async throws
-        -> WorldFactPage
-    {
+    func currentFacts(
+        subjectID: EntityID?, predicatePrefix: String?, after: FactID?, limit: Int
+    ) async throws -> WorldFactPage {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
-        return try await connection.currentFacts(subjectID, after, limit)
+        return try await connection.currentFacts(subjectID, predicatePrefix, after, limit)
     }
 
     func timers(status: WorldTimerStatus?, after: TimerID?, limit: Int) async throws
@@ -887,8 +890,15 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                 withPredicate: WorldFacts.personDescription, at: now)
             expanded.append(contentsOf: WorldMentions.mentioned(in: text, among: known))
         }
-        let all = try await facts.currentFacts(about: unique(expanded), limit: limit, at: now)
-        return Self.withMemoriesTrimmed(all, memory: memory, now: now)
+        // The day's facts and the memories are capped separately: a night's episodes are many
+        // and newer than everything else, and would otherwise push what April taught the birds
+        // yesterday off the page.
+        let about = unique(expanded)
+        let present = try await facts.currentFacts(
+            about: about, family: .notMemories, limit: limit, at: now)
+        let remembered = try await facts.currentFacts(
+            about: about, family: .memories, limit: limit, at: now)
+        return present + Self.withMemoriesTrimmed(remembered, memory: memory, now: now)
     }
 
     /// Memories are kept for years but handed out sparingly: an episode only while it is

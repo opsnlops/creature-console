@@ -38,6 +38,7 @@ public struct WorldViewerClient: Sendable {
 
     public func facts(
         subjectID: EntityID? = nil,
+        predicatePrefix: String? = nil,
         after factID: FactID? = nil,
         limit: Int = 100
     ) async throws -> WorldFactPage {
@@ -46,6 +47,7 @@ public struct WorldViewerClient: Sendable {
             pathComponents: ["facts"],
             queryItems: [
                 subjectID.map { URLQueryItem(name: "subject_id", value: $0.rawValue) },
+                predicatePrefix.map { URLQueryItem(name: "predicate_prefix", value: $0) },
                 factID.map { URLQueryItem(name: "after_fact_id", value: $0.rawValue) },
                 URLQueryItem(name: "limit", value: String(limit)),
             ].compactMap { $0 }

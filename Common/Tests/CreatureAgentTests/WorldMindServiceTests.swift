@@ -732,7 +732,9 @@ actor StubWorld {
     func openScene(trigger text: String, responseID: ResponseID) throws -> (
         Scene, WorldEventEnvelope
     ) {
-        let now = Date(timeIntervalSince1970: 1_789_400_000)
+        // The mind judges the floor's deadline against the wall clock, so the offer is made now
+        // - a fixed date here is a test that starts failing an hour after that date.
+        let now = Date()
         let beaky = try EntityID(validating: "character:beaky")
         let mango = try EntityID(validating: "character:mango")
         let trigger = SceneTrigger(
