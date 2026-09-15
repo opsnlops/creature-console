@@ -133,6 +133,26 @@ struct MailTests {
         #expect(OrderFacts.tidyTotal("21.689999999999998 USD") == "$21.69")
     }
 
+    @Test("A carrier's mail takes no order number, not even from the model")
+    func carriersKeyByTracking() {
+        let fedex = MailReader.read(
+            mail(
+                "f", from: "FedEx Delivery Manager <TrackingUpdates@fedex.com>",
+                subject: "Your shipment is on the way 381467870711",
+                text: "Reference: S931R234. Order number S931R234."),
+            kind: .shipping)
+        #expect(fedex.orderNumber == nil)
+        #expect(fedex.tracking == "381467870711")
+        let filled = fedex.filled(
+            with: CommerceReading(
+                merchant: "FedEx", orderNumber: "S931R234", trackingNumber: "", items: [],
+                total: "", expectedDelivery: ""))
+        #expect(filled.orderNumber == nil)
+        var book = OrderBook()
+        book.apply(filled, at: day)
+        #expect(book.orders.keys.first == "fedex-381467870711")
+    }
+
     @Test("Item names are tidied: bidi marks, ellipses, Amazon's tails, and placeholders")
     func tidiesItems() {
         #expect(

@@ -67,7 +67,10 @@ extension MailReading {
         if reading.merchant == nil, !model.merchant.isEmpty {
             reading.merchant = model.merchant.lowercased()
         }
-        if reading.orderNumber == nil, !model.orderNumber.isEmpty {
+        // A carrier's mail carries references of its own, not the merchant's order number; only
+        // the tracking number joins it to an order. Amazon is both and keeps its numbers.
+        let fromCarrier = reading.merchant.map { MailReader.carrierNames.contains($0) } ?? false
+        if reading.orderNumber == nil, !model.orderNumber.isEmpty, !fromCarrier {
             reading.orderNumber = model.orderNumber
         }
         if reading.tracking == nil, !model.trackingNumber.isEmpty {
