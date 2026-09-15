@@ -333,5 +333,13 @@ struct RecentHappeningsTests {
         let page = try await knowledge.entityPage(jesse, now: start)
         #expect(page.facts.contains { $0.predicate == "contact.phone-\(suffix)" })
         #expect(page.linkedFrom.map(\.subjectID) == [visit])
+
+        // "My contractor" finds Jesse by what he is to April, with no name in the question.
+        try await persistence.facts.save(
+            try fact(jesse, WorldFacts.personRelationship, .string("General Contractor")))
+        let asked = try await knowledge.currentFacts(
+            about: [], mentionedIn: "is my contractor coming today?",
+            limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(asked.contains { $0.subjectID == jesse && $0.predicate == "person.relationship" })
     }
 }

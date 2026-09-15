@@ -1,3 +1,14 @@
+creature-cli (2.72.0+world0.25.1+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.25.1: "When is my mom's birthday?" finds Becky.
+    A question reaches a person by name or by what they are to April -
+    the words of `person.relationship` and their everyday synonyms (mom,
+    dad, sis) - and the people the world can describe now include
+    everyone the address book mapped, not only those April described in
+    her own words.
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 19:45:00 -0700
+
 creature-cli (2.72.0+world0.25.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-world 0.25.0: the wall and the hub (Information Bridge plan,

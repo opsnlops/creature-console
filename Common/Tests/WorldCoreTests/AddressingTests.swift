@@ -87,6 +87,17 @@ struct AddressingTests {
         #expect(WorldMentions.mentioned(in: "tell POLLY and april hi", among: known) == known)
         #expect(WorldMentions.mentioned(in: "Pollyanna is a book", among: known).isEmpty)
         #expect(WorldMentions.mentioned(in: "", among: known).isEmpty)
+        // By what they are to April, in April's everyday words.
+        let becky = try EntityID(validating: "person:becky")
+        let family = [
+            WorldMentions.Known(entityID: becky, relationship: "Mother"),
+            WorldMentions.Known(entityID: polly, relationship: "Sister"),
+            WorldMentions.Known(entityID: april),
+        ]
+        #expect(WorldMentions.mentioned(in: "When is my mom's birthday?", among: family) == [becky])
+        #expect(WorldMentions.mentioned(in: "call my Mother", among: family) == [becky])
+        #expect(WorldMentions.mentioned(in: "is my sis coming?", among: family) == [polly])
+        #expect(WorldMentions.mentioned(in: "the momentum is good", among: family).isEmpty)
     }
 
     @Test("The percept carries what the world knows about the character and the speaker")

@@ -127,6 +127,19 @@ struct FactRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// Every current fact with `predicate`, on any subject (`about` empty) or the given ones.
+    func currentFacts(about subjects: [EntityID], predicate: String, limit: Int, at now: Date)
+        async throws -> [Fact]
+    {
+        var query = currentQuery(at: now)
+        query["predicate"] = predicate
+        if !subjects.isEmpty {
+            query["subject_id"] = ["$in": subjects.map(\.rawValue)] as Document
+        }
+        let documents = try await facts.find(query).limit(limit).drain()
+        return try documents.map(decode)
+    }
+
     /// The subjects that currently have a fact with `predicate` — the people the world can
     /// describe, for instance.
     func subjects(withPredicate predicate: String, at now: Date) async throws -> [EntityID] {

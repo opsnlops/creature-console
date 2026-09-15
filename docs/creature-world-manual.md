@@ -219,6 +219,12 @@ that runs Creature Server, so `creature_server.url` is `http://localhost:8000`, 
 else in it is April's real house. A dev world elsewhere (fuzzball) edits its own copy — the
 public URL for the creature server, and never while the production world is running against it.
 
+**By name or by relation** (`0.25.1`). A question brings a person's facts along when it names
+them ("Who is Polly?") or calls them what they are to April — "my mom" finds the person whose
+`person.relationship` is "Mother", by the relationship's own words and their everyday synonyms
+(mom, dad, sis, grandma…). The people the world can describe are everyone with a
+`person.description`, a `contact.name`, or a `person.relationship`.
+
 **The wall and the hub** (`0.25.0`, Bridge plan step 1). Every kind of fact has an **audience**:
 `minds` (the default — handed to the birds) or `world` (kept, shown in the Viewer, usable by the
 world's rules, never put in a prompt; a phone number). `PUT /v1/fact-kinds/{predicate}` takes

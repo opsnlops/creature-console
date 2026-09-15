@@ -898,11 +898,12 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     {
         let now = await clock.now
         var expanded = try await surroundings(of: subjects)
-        // Anyone the world can describe who is named in the words: "Who is Polly?".
+        // Anyone the world can describe who is named in the words - "Who is Polly?" - or
+        // called by what they are to April: "when is my mom's birthday?".
         if let text, !text.isEmpty {
-            let known = try await facts.subjects(
-                withPredicate: WorldFacts.personDescription, at: now)
-            expanded.append(contentsOf: WorldMentions.mentioned(in: text, among: known))
+            expanded.append(
+                contentsOf: WorldMentions.mentioned(in: text, among: try await knownPeople(at: now))
+            )
         }
         // The day's facts and the memories are capped separately: a night's episodes are many
         // and newer than everything else, and would otherwise push what April taught the birds
@@ -1015,6 +1016,26 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
 
     /// The subjects plus the region each logged-in one is in, everyone present there, and the
     /// region's places — the house around them.
+    /// Everyone the world can describe: by April's words (`person.description`), by the address
+    /// book (`contact.name`), or by what they are to her (`person.relationship`).
+    private func knownPeople(at now: Date) async throws -> [WorldMentions.Known] {
+        var people: [EntityID: String?] = [:]
+        for predicate in [WorldFacts.personDescription, "contact.name"] {
+            for subject in try await facts.subjects(withPredicate: predicate, at: now) {
+                people[subject] = people[subject] ?? nil
+            }
+        }
+        for fact in try await facts.currentFacts(
+            about: [], predicate: WorldFacts.personRelationship, limit: 500, at: now)
+        {
+            if case .string(let relationship) = fact.value {
+                people[fact.subjectID] = relationship
+            }
+        }
+        return people.map { WorldMentions.Known(entityID: $0.key, relationship: $0.value) }
+            .sorted { $0.entityID.rawValue < $1.entityID.rawValue }
+    }
+
     private func surroundings(of subjects: [EntityID]) async throws -> [EntityID] {
         var expanded = subjects
         for subject in subjects {

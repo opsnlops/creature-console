@@ -102,17 +102,56 @@ public struct NoWorldKnowledge: WorldKnowledgeProviding {
 }
 
 public enum WorldMentions {
+    /// Someone the world can describe, and what they are to April when the world knows.
+    public struct Known: Equatable, Sendable {
+        public var entityID: EntityID
+        public var relationship: String?
+
+        public init(entityID: EntityID, relationship: String? = nil) {
+            self.entityID = entityID
+            self.relationship = relationship
+        }
+    }
+
     /// The entities among `known` whose plain name ("polly" in `person:polly`) appears as a
     /// word in `text`, case-insensitively.
     public static func mentioned(in text: String, among known: [EntityID]) -> [EntityID] {
+        mentioned(in: text, among: known.map { Known(entityID: $0) })
+    }
+
+    /// By name, or by what they are to April: "my mom" finds the person whose relationship is
+    /// "Mother". The words of the relationship count, and their everyday synonyms.
+    public static func mentioned(in text: String, among known: [Known]) -> [EntityID] {
         let words = Set(
             text.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
-        return known.filter { id in
-            let raw = id.rawValue
+        return known.filter { person in
+            let raw = person.entityID.rawValue
             guard let colon = raw.firstIndex(of: ":") else { return false }
-            return words.contains(String(raw[raw.index(after: colon)...]).lowercased())
+            if words.contains(String(raw[raw.index(after: colon)...]).lowercased()) {
+                return true
+            }
+            guard let relationship = person.relationship?.lowercased() else { return false }
+            let relationWords = relationship.split(whereSeparator: { !$0.isLetter }).map(
+                String.init)
+            return relationWords.contains { word in
+                words.contains(word) || (synonyms[word] ?? []).contains { words.contains($0) }
+            }
         }
+        .map(\.entityID)
     }
+
+    /// The everyday words for a relationship: April says "mom", the card says "Mother".
+    static let synonyms: [String: [String]] = [
+        "mother": ["mom", "mum", "mama", "mommy"],
+        "father": ["dad", "papa", "daddy"],
+        "sister": ["sis"],
+        "brother": ["bro"],
+        "grandmother": ["grandma", "nana", "gran"],
+        "grandfather": ["grandpa", "gramps"],
+        "spouse": ["wife", "husband", "partner"],
+        "contractor": ["builder"],
+        "doctor": ["physician"],
+    ]
 }
 
 public enum WorldKnowledgeLimits {
