@@ -43,7 +43,7 @@ jobs:
         run: |
           curl -O https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz
           tar zxf swiftly-$(uname -m).tar.gz
-          ./swiftly init --quiet-shell-followup
+          ./swiftly init --quiet-shell-followup --skip-install
           source "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
           swiftly install "${SWIFT_VERSION}"
           swift --version
