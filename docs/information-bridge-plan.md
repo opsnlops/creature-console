@@ -17,7 +17,8 @@ already knows how to hold, show, forget, and remember facts. It is not a new wor
 + Creature Scribe, the on-device distillation pipeline, the source and privacy protocols) — still
 right in shape; this plan orders and narrows it into slices we can ship and see.
 **Runs on:** April's M1 MacBook Pro (48 GB), freed when the birds moved to OpenAI. Logged in as
-April, app running, lid closed. macOS 27, Apple Foundation Models on-device.
+April, app running, lid closed; April keeps it from sleeping. macOS 27, Apple Foundation Models
+on-device. The Bridge is not a bird and never speaks: "it is just a source of facts for Beaky."
 
 ## The moment
 
@@ -127,7 +128,21 @@ Before any source: make the world ready to receive, and the Bridge able to deliv
 ## Step 2 — WeatherKit: what the sky will do
 
 **Source:** WeatherKit, for the house's coordinates (Bridge config). No TCC; an entitlement on the
-signed app and the developer account. Deterministic; no model. Polled hourly, cast on change.
+signed app and the developer account (below). Deterministic; no model. Polled hourly, cast on
+change. Apple's terms require attribution wherever the data is shown: the Bridge's window and the
+Viewer's entity page for `place:outside` carry the " Weather" mark and the attribution link.
+
+**Getting the entitlement** (April's full developer account, the same as the Console's):
+1. developer.apple.com → Certificates, Identifiers & Profiles → Identifiers → the Bridge's App ID
+   (`io.opsnlops.Information-Bridge`) → **App Services** tab → tick **WeatherKit** → Save.
+2. In Xcode, the Bridge target → Signing & Capabilities → **+ Capability** → WeatherKit. That
+   writes `com.apple.developer.weatherkit` into the entitlements file; automatic signing
+   regenerates the provisioning profile.
+3. Wait — the service takes up to half an hour to provision after step 1; before that, calls fail
+   with a 401 and nothing is wrong with the code.
+4. The REST flavour (JWT with the WeatherKit key) is not needed: the Swift `WeatherService` on a
+   signed app authenticates by the entitlement alone. 500,000 calls a month are free; hourly
+   polling for one place is 720.
 
 **What the house already knows** (creature-house from Home Assistant): the present and the past
 — `environment.temperature_f`, `humidity_percent`, `wind_mph`, `rain_today_in`, `pressure_hpa`,
@@ -192,7 +207,8 @@ colour (minds).
 **Source:** EventKit (TCC: Calendars), allowed calendars chosen in the Bridge. Deterministic; a
 small on-device extraction only for free-text titles when needed ("Jesse deck 2pm" → who, what).
 
-**Entities and facts:** each event within the horizon (default: the next 7 days) is
+**Entities and facts:** each event within the horizon — everything in the future, and the past
+90 days so "when was Jesse last here?" has an answer — is
 `event:<calendar-item-id>` with `calendar.title`, `calendar.starts`, `calendar.ends`,
 `calendar.location`, `calendar.with = person:jesse` (a link, when an attendee or the title
 resolves through April's map), all `minds`. Cancelled → retracted. Rescheduled → re-cast.
@@ -215,7 +231,8 @@ last?" with nothing typed all week.
 **Source:** a MailKit extension or a Mail rule that hands messages to the Bridge (TCC: Mail via
 the extension; the Bridge never reads the mailbox directly). Cheap deterministic classification
 first — sender domain, subject patterns, list-unsubscribe headers — into `order`, `shipping`,
-`appointment`, `receipt`, `newsletter/irrelevant`. Only the first four reach the model; the rest
+`appointment`, `receipt`, `newsletter/irrelevant`. The first run reads the last 120 days, so the
+world starts with the summer's orders; after that, new mail as it arrives. Only the first four reach the model; the rest
 are `classified_irrelevant` and forgotten. The merchant and carrier lists are April's, in the
 Bridge's window, seeded from what the classifier finds in the last month.
 
@@ -319,17 +336,12 @@ suite), and the Viewer surface, in the same commit.
 
 ## Open questions for April
 
-0. **WeatherKit needs the house's coordinates and an entitlement** on the signed app — the same
-   developer account as the Console; fine?
-1. **Which Mac, exactly, and who is logged in?** The plan says the M1 MacBook Pro, lid closed, April
-   logged in. Does it sleep? (Amphetamine / `caffeinate` / power settings are part of step 1.)
-2. **Contact mapping:** the plan pre-fills matches to people the world already knows and asks
+Answered 2026-09-14 evening: the M1 MacBook Pro (48 GB), kept from sleeping; WeatherKit on the
+Console's developer account (steps in step 2); the calendar reads everything ahead and 90 days
+back; mail reads 120 days back on the first run; the Bridge does not get a bird.
+
+1. **Contact mapping:** the plan pre-fills matches to people the world already knows and asks
    about everyone else. Should a whole group ("Family", "Contractors") map at once?
-3. **The calendar horizon** (7 days?) and which calendars. Does "April's dentist" belong in Beaky's
-   mouth at all, or only visitors-to-the-house?
-4. **Merchants and carriers list** for step 5 — seed from the last month of mail, then yours to edit?
-   And how far back should the first run read: a month of orders, a year?
-5. **Audience granularity:** two levels (`minds` / `world`) or three (add `lead` — only Beaky)?
+2. **Merchants and carriers list** for step 5 — seed from the 120 days, then yours to edit?
+3. **Audience granularity:** two levels (`minds` / `world`) or three (add `lead` — only Beaky)?
    Two is enough for the plan; three is a small change later.
-6. **Does the Bridge get a bird?** It is an entity (`thing:information-bridge`) with health facts.
-   It does not speak. Unless you want it to.
