@@ -12,6 +12,12 @@ struct BridgeSettingsView: View {
         "proxy.prod.chirpchirp.dev"
     @AppStorage(BridgeConnection.Keys.houseID) private var houseID =
         BridgeConnection.defaultHouseID.rawValue
+    @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
+    @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
+    @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
+    @AppStorage(BridgeConnection.Keys.longitude) private var longitude = 0.0
+    @AppStorage(BridgeConnection.Keys.outsideID) private var outsideID =
+        BridgeConnection.defaultOutsideID.rawValue
 
     @State private var proxyAPIKey = ""
     @State private var hasLoadedAPIKey = false
@@ -47,6 +53,39 @@ struct BridgeSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
                 }
+            }
+
+            Section("Weather") {
+                Toggle("Read the sky from WeatherKit", isOn: $weatherOn)
+                Toggle("The house is wherever this Mac is", isOn: $useMacLocation)
+                    .disabled(!weatherOn)
+                if !useMacLocation {
+                    TextField(
+                        "Latitude", value: $latitude,
+                        format: .number.precision(.fractionLength(0...5))
+                    )
+                    .disabled(!weatherOn)
+                    TextField(
+                        "Longitude", value: $longitude,
+                        format: .number.precision(.fractionLength(0...5))
+                    )
+                    .disabled(!weatherOn)
+                    if weatherOn && latitude == 0 && longitude == 0 {
+                        Label(
+                            "Where is the house? Weather stays off until it knows.",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    }
+                }
+                TextField("Place", text: $outsideID)
+                    .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+                    .disabled(!weatherOn)
+                Text("macOS asks once whether Information Bridge may know where this Mac is.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("External Ingress Proxy") {

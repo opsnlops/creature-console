@@ -1,6 +1,7 @@
 import CreatureAppSupport
 import Foundation
 import Observation
+import WeatherKit
 import WorldCore
 
 /// The sources the Bridge will read, in the order the plan builds them. All off until their
@@ -50,6 +51,10 @@ final class BridgeStore {
     private(set) var healthError: String?
     private(set) var outbox = Outbox.Status()
     private(set) var worldURI = ""
+    private(set) var sources: [BridgeSource: SourceStatus] = [:]
+    private(set) var weatherAttribution: WeatherAttributionInfo?
+    /// Where the sky is being read, and how the Bridge knows.
+    private(set) var skyNote: String?
     var lastError: ErrorAlert?
 
     static let version =
@@ -61,6 +66,8 @@ final class BridgeStore {
     @ObservationIgnored private var healthTask: Task<Void, Never>?
     @ObservationIgnored private var heartbeatTask: Task<Void, Never>?
     @ObservationIgnored private var statusTask: Task<Void, Never>?
+    @ObservationIgnored private var weather: WeatherSource?
+    @ObservationIgnored private var weatherTask: Task<Void, Never>?
 
     init(connection: BridgeConnection = .shared) {
         self.connection = connection
@@ -79,8 +86,11 @@ final class BridgeStore {
     func start() {
         stop()
         worldURI = connection.worldURI
+        sources = Dictionary(
+            uniqueKeysWithValues: BridgeSource.allCases.map { ($0, SourceStatus()) })
         do {
-            let box = try Outbox(directory: Self.supportDirectory())
+            let directory = try Self.supportDirectory()
+            let box = try Outbox(directory: directory)
             self.box = box
             let client = try connection.client()
             Task { await box.start { event in try await client.cast(event) } }
@@ -88,6 +98,16 @@ final class BridgeStore {
                 for await status in await box.updates() {
                     guard let self else { return }
                     self.outbox = status
+                }
+            }
+            if connection.isWeatherOn {
+                if let sky = connection.sky {
+                    skyNote = "at \(coordinates(sky)), as typed"
+                    startWeather(sky, directory: directory, box: box, client: client)
+                } else if connection.usesMacLocation {
+                    locateThenStartWeather(directory: directory, box: box, client: client)
+                } else {
+                    sources[.weather] = SourceStatus(state: .degraded("where is the house?"))
                 }
             }
         } catch {
@@ -111,10 +131,91 @@ final class BridgeStore {
         healthTask?.cancel()
         heartbeatTask?.cancel()
         statusTask?.cancel()
+        weatherTask?.cancel()
         if let box {
             Task { await box.stop() }
         }
+        if let weather {
+            Task { await weather.stop() }
+        }
         box = nil
+        weather = nil
+    }
+
+    /// Step 2: the sky over the house. Meanings first, then the hourly reading.
+    private func startWeather(
+        _ sky: BridgeConnection.Sky, directory: URL, box: Outbox, client: WorldViewerClient
+    ) {
+        let source = WeatherSource(
+            place: sky.place, latitude: sky.latitude, longitude: sky.longitude, zone: .current,
+            directory: directory
+        ) { event in try await box.enqueue(event) }
+        weather = source
+        weatherTask = Task { [weak self] in
+            do {
+                try await GlossarySeeder(client: client, source: WeatherSource.sourceName)
+                    .seed(WeatherFacts.meanings)
+            } catch {
+                await MainActor.run {
+                    self?.sources[.weather] = SourceStatus(
+                        state: .degraded("could not seed the glossary: \(error)"))
+                }
+            }
+            await source.start()
+            for await status in await source.updates() {
+                guard let self else { return }
+                self.sources[.weather] = status
+            }
+        }
+        Task { [weak self] in
+            let attribution = try? await WeatherAttributionInfo.load()
+            self?.weatherAttribution = attribution
+        }
+    }
+
+    /// The house is wherever this Mac is: ask once, remember, and start reading the sky. A
+    /// remembered fix starts weather at once; a fresh one restarts it if the Mac has moved.
+    private func locateThenStartWeather(directory: URL, box: Outbox, client: WorldViewerClient) {
+        if let remembered = connection.rememberedMacLocation {
+            skyNote = "at \(coordinates(remembered)), where this Mac was last found"
+            startWeather(remembered, directory: directory, box: box, client: client)
+        } else {
+            sources[.weather] = SourceStatus(state: .degraded("finding this Mac…"))
+        }
+        Task { [weak self] in
+            do {
+                let fix = try await MacLocation.fix()
+                guard let self else { return }
+                let sky = BridgeConnection.Sky(
+                    place: connection.outsideID, latitude: fix.latitude, longitude: fix.longitude)
+                let moved =
+                    connection.rememberedMacLocation.map {
+                        abs($0.latitude - sky.latitude) > 0.01
+                            || abs($0.longitude - sky.longitude) > 0.01
+                    } ?? true
+                connection.rememberMacLocation(latitude: fix.latitude, longitude: fix.longitude)
+                skyNote = "at \(coordinates(sky)), from this Mac (±\(Int(fix.accuracyMeters)) m)"
+                if moved || weather == nil {
+                    if let weather { await weather.stop() }
+                    startWeather(sky, directory: directory, box: box, client: client)
+                }
+            } catch {
+                guard let self else { return }
+                if weather == nil {
+                    sources[.weather] = SourceStatus(state: .degraded("\(error)"))
+                }
+                skyNote = "\(error)"
+            }
+        }
+    }
+
+    private func coordinates(_ sky: BridgeConnection.Sky) -> String {
+        String(format: "%.4f, %.4f", sky.latitude, sky.longitude)
+    }
+
+    /// Reads the sky now rather than waiting for the hour.
+    func pollWeather() async {
+        await weather?.poll()
     }
 
     func refreshHealth() async {
@@ -154,5 +255,20 @@ final class BridgeStore {
             for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil,
             create: true
         ).appending(path: "Information Bridge")
+    }
+}
+
+/// Apple's terms: wherever WeatherKit data is shown, so is the Apple Weather mark and a link
+/// to the legal page. Loaded once from WeatherKit itself.
+struct WeatherAttributionInfo: Equatable, Sendable {
+    var serviceName: String
+    var legalPageURL: URL
+    var markURL: URL
+
+    static func load() async throws -> WeatherAttributionInfo {
+        let attribution = try await WeatherService.shared.attribution
+        return WeatherAttributionInfo(
+            serviceName: attribution.serviceName, legalPageURL: attribution.legalPageURL,
+            markURL: attribution.combinedMarkDarkURL)
     }
 }

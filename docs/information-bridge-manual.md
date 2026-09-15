@@ -13,7 +13,32 @@ Bridge** scheme, macOS only. Not sandboxed (Messages' `chat.db` and Full Disk Ac
 hardened runtime on. Build and run it from Xcode; it lives in the menu bar and keeps working with
 its window closed.
 
-## What it does today (`0.1.0`, plan step 1)
+## Weather (`0.2.0`, plan step 2)
+
+Settings → **Weather**: turn it on. The house is wherever this Mac is: macOS asks once whether
+the Bridge may know its location (System Settings → Privacy & Security → Location Services if
+you said no), the Bridge remembers the fix so a restart does not wait for one, and re-checks on
+each start in case the Mac moved. Turn off "The house is wherever this Mac is" to type
+coordinates instead. The Bridge asks WeatherKit once an hour — the daily forecast, the next two days by the
+hour, any alerts — and casts facts on `place:outside` (the Place field, if the house's outside is
+called something else), each holding until the end of the period it describes, and only when its
+value changes:
+
+- `forecast.today` — "Partly cloudy, high 61°, low 52°, 30% chance of rain (about a quarter
+  inch)", with `forecast.today.high_f`, `.low_f`, `.rain_chance_percent`, `.rain_in` beside it;
+- `forecast.tonight` — the evening hours summed up; `forecast.tomorrow` and its numbers;
+- `forecast.next_rain` — "this evening around 6 PM, 70% chance", or "not in the next two days";
+  holds only until the rain comes;
+- `sun.rise`, `sun.set` — clock times, which here are the fact;
+- `weather.alert` — an alert in force, until it expires.
+
+The meanings are seeded into the world's glossary the first time (a Wizard's rewording is never
+overwritten). **Read now** in the Sources card reads the sky without waiting for the hour. The
+Apple Weather mark and the data-sources link are shown in the Sources card, as Apple's terms
+require. A failed reading shows the source as degraded with the reason; the Bridge tries again on
+the hour.
+
+## What it does (`0.1.0`, plan step 1)
 
 - **Talks to one world.** Settings (⌘,) hold the world's address (default
   `server.prod.chirpchirp.dev:443`, TLS), the proxy if any, and the house it speaks for
@@ -43,6 +68,7 @@ is Thursday's. April can Forget any of it in the Viewer.
 
 ## Provisioning
 
-Automatic signing on the Creature developer team. The App ID needs **WeatherKit** ticked under App
-Services on developer.apple.com before step 2 (it takes up to half an hour to provision). TCC
+Automatic signing on the Creature developer team. The App ID has **WeatherKit** ticked under App
+Services on developer.apple.com (April registered it by hand on 2026-09-14) and the entitlement is
+in `Information_Bridge.entitlements`. TCC
 permissions — Contacts, Calendars, Full Disk Access — are asked for by the step that needs them.

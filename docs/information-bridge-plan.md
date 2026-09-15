@@ -1,6 +1,9 @@
 # The Information Bridge — What April's Mac Knows, the World Learns
 
-**Status:** Plan written 2026-09-14 evening, after the judgement-and-memory plan shipped (World
+**Status:** Step 1's app half built 2026-09-14 (Bridge `0.1.0`: outbox, heartbeat, test fact —
+first `bridge.hello` on prod at 5:50 PM) and step 2 built the same night (Bridge `0.2.0`:
+WeatherKit on `place:outside`); the world half of step 1 (audience, links, entity page) is next.
+Plan written 2026-09-14 evening, after the judgement-and-memory plan shipped (World
 `0.24.0`, agent `2.72.0`, Viewer `0.6.2`, all on prod); revised the same evening after April read
 it — WeatherKit first, orders as entities in the world, mail and Messages as sources of what April's
 life contains, not only of delivery notices. Nothing built yet. This is the plan before the code,
@@ -127,7 +130,8 @@ Before any source: make the world ready to receive, and the Bridge able to deliv
 
 ## Step 2 — WeatherKit: what the sky will do
 
-**Source:** WeatherKit, for the house's coordinates (Bridge config). No TCC; an entitlement on the
+**Source:** WeatherKit, for the house's coordinates — this Mac's location by default, asked once
+under Location Services (April: "I don't want to enter lat/long"), or typed. No TCC; an entitlement on the
 signed app and the developer account (below). Deterministic; no model. Polled hourly, cast on
 change. Apple's terms require attribution wherever the data is shown: the Bridge's window and the
 Viewer's entity page for `place:outside` carry the " Weather" mark and the attribution link.

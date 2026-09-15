@@ -16,11 +16,17 @@ final class BridgeConnection: Sendable {
         static let useProxy = "informationBridgeServerUseProxy"
         static let proxyHost = "informationBridgeServerProxyHost"
         static let houseID = "informationBridgeHouseID"
+        static let weatherOn = "informationBridgeWeatherOn"
+        static let useMacLocation = "informationBridgeUseMacLocation"
+        static let latitude = "informationBridgeLatitude"
+        static let longitude = "informationBridgeLongitude"
+        static let outsideID = "informationBridgeOutsideID"
     }
 
     static let defaultHostname = "server.prod.chirpchirp.dev"
     static let defaultPort = 443
     static let defaultHouseID = try! EntityID(validating: "house:aprils-nest")
+    static let defaultOutsideID = try! EntityID(validating: "place:outside")
 
     private let defaults: UserDefaults
     private let keyStore: ProxyAPIKeyStore?
@@ -42,6 +48,47 @@ final class BridgeConnection: Sendable {
     var houseID: EntityID {
         (defaults.string(forKey: Keys.houseID).flatMap(EntityID.init(rawValue:)))
             ?? Self.defaultHouseID
+    }
+
+    /// The place the sky is over, and where it is. Weather is off until April says where.
+    struct Sky: Equatable, Sendable {
+        var place: EntityID
+        var latitude: Double
+        var longitude: Double
+    }
+
+    var isWeatherOn: Bool { defaults.bool(forKey: Keys.weatherOn) }
+
+    /// Whether the house is wherever this Mac is (the default) or at coordinates April typed.
+    var usesMacLocation: Bool { defaults.object(forKey: Keys.useMacLocation) as? Bool ?? true }
+
+    var outsideID: EntityID {
+        (defaults.string(forKey: Keys.outsideID).flatMap(EntityID.init(rawValue:)))
+            ?? Self.defaultOutsideID
+    }
+
+    /// The sky as configured by hand; nil when weather is off, this Mac's location is to be
+    /// used instead, or nothing has been typed.
+    var sky: Sky? {
+        guard isWeatherOn, !usesMacLocation,
+            let latitude = defaults.object(forKey: Keys.latitude) as? Double,
+            let longitude = defaults.object(forKey: Keys.longitude) as? Double,
+            latitude != 0 || longitude != 0
+        else { return nil }
+        return Sky(place: outsideID, latitude: latitude, longitude: longitude)
+    }
+
+    /// The last place this Mac was found, so a restart need not wait for a fix.
+    var rememberedMacLocation: Sky? {
+        guard let latitude = defaults.object(forKey: "informationBridgeMacLatitude") as? Double,
+            let longitude = defaults.object(forKey: "informationBridgeMacLongitude") as? Double
+        else { return nil }
+        return Sky(place: outsideID, latitude: latitude, longitude: longitude)
+    }
+
+    func rememberMacLocation(latitude: Double, longitude: Double) {
+        defaults.set(latitude, forKey: "informationBridgeMacLatitude")
+        defaults.set(longitude, forKey: "informationBridgeMacLongitude")
     }
 
     func client() throws -> WorldViewerClient {

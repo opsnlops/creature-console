@@ -15,13 +15,34 @@ enum BridgeFacts {
         validFor seconds: TimeInterval?,
         source: String, itemID: String, at now: Date = Date()
     ) throws -> WorldEventEnvelope {
+        try given(
+            subject: subject, predicate: predicate, value: value,
+            window: seconds.map { .number($0) }.map { ("valid_for_seconds", $0) },
+            source: source, itemID: itemID, at: now)
+    }
+
+    /// The same, holding until a moment: the end of the day a forecast is for.
+    static func given(
+        subject: EntityID, predicate: String, value: WorldJSONValue, validUntil: Date,
+        source: String, itemID: String, at now: Date = Date()
+    ) throws -> WorldEventEnvelope {
+        try given(
+            subject: subject, predicate: predicate, value: value,
+            window: ("valid_to", .string(WorldJSON.timestamp(validUntil))),
+            source: source, itemID: itemID, at: now)
+    }
+
+    private static func given(
+        subject: EntityID, predicate: String, value: WorldJSONValue,
+        window: (String, WorldJSONValue)?, source: String, itemID: String, at now: Date
+    ) throws -> WorldEventEnvelope {
         var payload: [String: WorldJSONValue] = [
             "subject_id": .string(subject.rawValue),
             "predicate": .string(predicate),
             "value": value,
         ]
-        if let seconds {
-            payload["valid_for_seconds"] = .number(seconds)
+        if let window {
+            payload[window.0] = window.1
         }
         return try WorldEventEnvelope(
             type: eventType,

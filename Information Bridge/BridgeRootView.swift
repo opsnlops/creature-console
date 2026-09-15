@@ -14,6 +14,11 @@ struct BridgeRootView: View {
     @AppStorage(BridgeConnection.Keys.useTLS) private var serverUseTLS = true
     @AppStorage(BridgeConnection.Keys.useProxy) private var useProxy = false
     @AppStorage(BridgeConnection.Keys.proxyHost) private var proxyHost = ""
+    @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
+    @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
+    @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
+    @AppStorage(BridgeConnection.Keys.longitude) private var longitude = 0.0
+    @AppStorage(BridgeConnection.Keys.outsideID) private var outsideID = ""
 
     var body: some View {
         ScrollView {
@@ -44,6 +49,8 @@ struct BridgeRootView: View {
         .task { store.start() }
         .onChange(of: [
             serverAddress, String(serverPort), String(serverUseTLS), String(useProxy), proxyHost,
+            String(weatherOn), String(useMacLocation), String(latitude), String(longitude),
+            outsideID,
         ]) {
             store.start()
         }
@@ -91,20 +98,72 @@ struct BridgeRootView: View {
     private var sourcesCard: some View {
         card("Sources", symbol: "tray.2") {
             ForEach(BridgeSource.allCases) { source in
-                HStack {
+                let status = store.sources[source] ?? SourceStatus()
+                HStack(alignment: .firstTextBaseline) {
                     Label(source.title, systemImage: source.symbol)
+                    if let at = status.lastRunAt {
+                        Text("read at \(at, format: .dateTime.hour().minute())")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let note = status.note {
+                        Text("· \(note)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Spacer()
-                    Text("off · step \(source.step)")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .glassEffect(.regular.tint(.gray.opacity(0.2)), in: .capsule)
+                    if source == .weather, status.state == .on {
+                        Button("Read now", systemImage: "arrow.clockwise") {
+                            Task { await store.pollWeather() }
+                        }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
+                    }
+                    statusPill(status, step: source.step)
                 }
+                if case .degraded(let why) = status.state {
+                    Label(why, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                }
+                if source == .weather, let note = store.skyNote {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if let attribution = store.weatherAttribution {
+                HStack(spacing: 6) {
+                    AsyncImage(url: attribution.markURL) { image in
+                        image.resizable().scaledToFit()
+                    } placeholder: {
+                        Text(attribution.serviceName)
+                    }
+                    .frame(height: 14)
+                    Link("Weather data sources", destination: attribution.legalPageURL)
+                        .font(.caption)
+                }
+                .padding(.top, 4)
             }
             Text("Each source comes alive with its step of the plan. Nothing is read until then.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private func statusPill(_ status: SourceStatus, step: Int) -> some View {
+        let (text, tint): (String, Color) =
+            switch status.state {
+            case .off: ("off · step \(step)", .gray)
+            case .on: ("on", .green)
+            case .degraded: ("degraded", .orange)
+            }
+        return Text(text)
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .glassEffect(.regular.tint(tint.opacity(0.25)), in: .capsule)
     }
 
     private var recentCard: some View {
