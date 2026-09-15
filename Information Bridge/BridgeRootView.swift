@@ -7,6 +7,7 @@ import WorldCore
 struct BridgeRootView: View {
     @Bindable var store: BridgeStore
     @State private var banner: String?
+    @Environment(\.openWindow) private var openWindow
 
     @AppStorage(BridgeConnection.Keys.address) private var serverAddress =
         BridgeConnection.defaultHostname
@@ -14,6 +15,7 @@ struct BridgeRootView: View {
     @AppStorage(BridgeConnection.Keys.useTLS) private var serverUseTLS = true
     @AppStorage(BridgeConnection.Keys.useProxy) private var useProxy = false
     @AppStorage(BridgeConnection.Keys.proxyHost) private var proxyHost = ""
+    @AppStorage(BridgeConnection.Keys.contactsOn) private var contactsOn = false
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
     @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
@@ -50,7 +52,7 @@ struct BridgeRootView: View {
         .onChange(of: [
             serverAddress, String(serverPort), String(serverUseTLS), String(useProxy), proxyHost,
             String(weatherOn), String(useMacLocation), String(latitude), String(longitude),
-            outsideID,
+            outsideID, String(contactsOn),
         ]) {
             store.start()
         }
@@ -115,6 +117,13 @@ struct BridgeRootView: View {
                     if source == .weather, status.state == .on {
                         Button("Read now", systemImage: "arrow.clockwise") {
                             Task { await store.pollWeather() }
+                        }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
+                    }
+                    if source == .addressBook, status.state != .off {
+                        Button("People…", systemImage: "person.crop.rectangle.stack") {
+                            openWindow(id: "people")
                         }
                         .buttonStyle(.glass)
                         .controlSize(.small)

@@ -21,6 +21,7 @@ final class BridgeConnection: Sendable {
         static let latitude = "informationBridgeLatitude"
         static let longitude = "informationBridgeLongitude"
         static let outsideID = "informationBridgeOutsideID"
+        static let contactsOn = "informationBridgeContactsOn"
     }
 
     static let defaultHostname = "server.prod.chirpchirp.dev"
@@ -58,6 +59,7 @@ final class BridgeConnection: Sendable {
     }
 
     var isWeatherOn: Bool { defaults.bool(forKey: Keys.weatherOn) }
+    var isContactsOn: Bool { defaults.bool(forKey: Keys.contactsOn) }
 
     /// Whether the house is wherever this Mac is (the default) or at coordinates April typed.
     var usesMacLocation: Bool { defaults.object(forKey: Keys.useMacLocation) as? Bool ?? true }

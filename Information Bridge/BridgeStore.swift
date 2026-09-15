@@ -55,6 +55,11 @@ final class BridgeStore {
     private(set) var weatherAttribution: WeatherAttributionInfo?
     /// Where the sky is being read, and how the Bridge knows.
     private(set) var skyNote: String?
+    /// The address book as last read, and April's map from cards to people.
+    private(set) var contacts: [ContactCard] = []
+    private(set) var contactMap: [String: ContactMapping] = [:]
+    /// People the world already knows, for pre-filling the map.
+    private(set) var knownPeople: [EntityID] = []
     var lastError: ErrorAlert?
 
     static let version =
@@ -68,6 +73,8 @@ final class BridgeStore {
     @ObservationIgnored private var statusTask: Task<Void, Never>?
     @ObservationIgnored private var weather: WeatherSource?
     @ObservationIgnored private var weatherTask: Task<Void, Never>?
+    @ObservationIgnored private var contactsSource: ContactsSource?
+    @ObservationIgnored private var contactsTask: Task<Void, Never>?
 
     init(connection: BridgeConnection = .shared) {
         self.connection = connection
@@ -99,6 +106,9 @@ final class BridgeStore {
                     guard let self else { return }
                     self.outbox = status
                 }
+            }
+            if connection.isContactsOn {
+                startContacts(directory: directory, box: box, client: client)
             }
             if connection.isWeatherOn {
                 if let sky = connection.sky {
@@ -132,14 +142,78 @@ final class BridgeStore {
         heartbeatTask?.cancel()
         statusTask?.cancel()
         weatherTask?.cancel()
+        contactsTask?.cancel()
         if let box {
             Task { await box.stop() }
         }
         if let weather {
             Task { await weather.stop() }
         }
+        if let contactsSource {
+            Task { await contactsSource.stop() }
+        }
         box = nil
         weather = nil
+        contactsSource = nil
+    }
+
+    /// Step 3: the address book. Meanings first (numbers and addresses the world's alone), then
+    /// the cards, then whatever April has mapped.
+    private func startContacts(directory: URL, box: Outbox, client: WorldViewerClient) {
+        let source = ContactsSource(directory: directory) { event in try await box.enqueue(event) }
+        contactsSource = source
+        contactsTask = Task { [weak self] in
+            do {
+                try await GlossarySeeder(client: client, source: ContactsSource.sourceName)
+                    .seed(ContactFacts.meanings, worldOnly: ContactFacts.worldOnly)
+            } catch {
+                await MainActor.run {
+                    self?.sources[.addressBook] = SourceStatus(
+                        state: .degraded("could not seed the glossary: \(error)"))
+                }
+            }
+            // Who the world already knows as a person: anyone with a fact, by any source.
+            if let page = try? await client.facts(limit: WorldViewerClient.maximumPageSize) {
+                let people = Set(
+                    page.facts.map(\.subjectID).filter { $0.rawValue.hasPrefix("person:") })
+                await MainActor.run { self?.knownPeople = Array(people) }
+            }
+            await source.start()
+            for await status in await source.updates() {
+                guard let self else { return }
+                self.sources[.addressBook] = status
+                self.contacts = await source.cards
+                self.contactMap = await source.map
+            }
+        }
+    }
+
+    /// April's word on a card.
+    func setContactMapping(_ mapping: ContactMapping?, for identifier: String) async {
+        guard let contactsSource else { return }
+        await contactsSource.setMapping(mapping, for: identifier)
+        contactMap = await contactsSource.map
+        sources[.addressBook] = await contactsSource.status
+    }
+
+    /// A person the world already knows whose name matches the card - `person:jesse` for Jesse
+    /// - and nobody else's card is mapped to yet. Empty when there is no such person.
+    func suggestedEntity(for card: ContactCard) -> String {
+        let first = card.givenName.lowercased().filter { $0.isLetter || $0.isNumber }
+        guard !first.isEmpty else { return "" }
+        let candidate = "person:\(first)"
+        guard knownPeople.contains(where: { $0.rawValue == candidate }),
+            !contactMap.values.contains(where: { $0.entityID.rawValue == candidate })
+        else { return "" }
+        return candidate
+    }
+
+    func pollContacts() async {
+        await contactsSource?.poll()
+        if let contactsSource {
+            contacts = await contactsSource.cards
+            contactMap = await contactsSource.map
+        }
     }
 
     /// Step 2: the sky over the house. Meanings first, then the hourly reading.

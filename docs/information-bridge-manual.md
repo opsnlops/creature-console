@@ -13,6 +13,25 @@ Bridge** scheme, macOS only. Not sandboxed (Messages' `chat.db` and Full Disk Ac
 hardened runtime on. Build and run it from Xcode; it lives in the menu bar and keeps working with
 its window closed.
 
+## Address Book (`0.3.0`, plan step 3)
+
+Settings → **Address Book** → turn it on; macOS asks once whether the Bridge may read Contacts.
+Then **People…** in the Sources card opens the map: every card in the address book, a field for
+the person it is in the world (`person:jesse`), and a field for what they are to April ("my
+contractor") which becomes `person.relationship` in her words. **A card becomes a person in the
+world only when it is mapped**; the rest of the address book stays on the Mac. Where the world
+already knows a person by that first name and no other card is mapped to them, a **Use
+person:jesse** button pre-fills it.
+
+A mapped card's whole content is cast on the person, with no expiry: `contact.name`,
+`contact.nickname`, `contact.phone`, `contact.email`, `contact.address` (each by the card's own
+labels), `contact.organization`, `contact.job_title`, `contact.birthday` ("March 4"), and
+`person.relationship` (April's word, else the card's related names read the other way round).
+The glossary is seeded with **phone, email, and address as world-only** — stored, on the entity
+page, never in a prompt — and the rest for the minds; flip any of them in the Viewer's Meanings.
+The book is re-read hourly; a changed card re-casts what changed, a card unmapped (or gone from
+the book) has every fact taken back, and a card mapped to someone else moves.
+
 ## Weather (`0.2.0`, plan step 2)
 
 Settings → **Weather**: turn it on. The house is wherever this Mac is: macOS asks once whether

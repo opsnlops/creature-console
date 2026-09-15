@@ -4,7 +4,8 @@
 first `bridge.hello` on prod at 5:50 PM) and the world half (World `0.25.0`: audience, one-hop
 links, `GET /v1/entities/{id}`; Viewer `0.7.0`: Entities panel, audience picker). Step 2 built the
 same night (Bridge `0.2.0`: WeatherKit on `place:outside`, this Mac's location; live on prod by
-6:30 PM — "A light raincoat would be wise, April"). Step 3, the address book, is next.
+6:30 PM — "A light raincoat would be wise, April"). Step 3 built the same night (Bridge `0.3.0`: the People window, the whole card on the mapped
+person, phone/email/address world-only). Step 4, the calendar, is next.
 Plan written 2026-09-14 evening, after the judgement-and-memory plan shipped (World
 `0.24.0`, agent `2.72.0`, Viewer `0.6.2`, all on prod); revised the same evening after April read
 it — WeatherKit first, orders as entities in the world, mail and Messages as sources of what April's

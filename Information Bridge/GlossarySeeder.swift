@@ -8,12 +8,16 @@ struct GlossarySeeder: Sendable {
     let client: WorldViewerClient
     let source: String
 
-    func seed(_ meanings: [String: String]) async throws {
+    /// `worldOnly` names the kinds that are the world's alone - never in a prompt.
+    func seed(_ meanings: [String: String], worldOnly: Set<String> = []) async throws {
         let known = Set(try await client.factKinds().kinds.map(\.predicate))
         for (predicate, meaning) in meanings.sorted(by: { $0.key < $1.key })
         where !known.contains(predicate) {
             _ = try await client.setFactKind(
-                predicate, FactKindUpdate(meaning: meaning, updatedBy: "bridge:\(source)"))
+                predicate,
+                FactKindUpdate(
+                    meaning: meaning, audience: worldOnly.contains(predicate) ? .world : .minds,
+                    updatedBy: "bridge:\(source)"))
         }
     }
 }

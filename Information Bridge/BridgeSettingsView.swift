@@ -12,6 +12,7 @@ struct BridgeSettingsView: View {
         "proxy.prod.chirpchirp.dev"
     @AppStorage(BridgeConnection.Keys.houseID) private var houseID =
         BridgeConnection.defaultHouseID.rawValue
+    @AppStorage(BridgeConnection.Keys.contactsOn) private var contactsOn = false
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
     @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
@@ -53,6 +54,15 @@ struct BridgeSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
                 }
+            }
+
+            Section("Address Book") {
+                Toggle("Read the address book from Contacts", isOn: $contactsOn)
+                Text(
+                    "A card becomes a person in the world only when you map it in the People window. macOS asks once whether Information Bridge may read Contacts."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             Section("Weather") {

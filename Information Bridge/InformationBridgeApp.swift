@@ -13,6 +13,12 @@ struct InformationBridgeApp: App {
         }
         .defaultSize(width: 900, height: 620)
 
+        // April's map from address-book cards to the world's people.
+        Window("People", id: "people") {
+            PeopleView(store: store)
+        }
+        .defaultSize(width: 760, height: 520)
+
         // The Bridge keeps working with the window closed; the menu bar is where it shows.
         MenuBarExtra {
             BridgeMenu(store: store)
