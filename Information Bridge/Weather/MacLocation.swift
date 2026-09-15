@@ -12,14 +12,17 @@ enum MacLocation {
     }
 
     enum Failure: Error, CustomStringConvertible {
-        case denied
+        case denied(CLAuthorizationStatus)
         case unavailable
+        case unanswered
 
         var description: String {
             switch self {
-            case .denied:
-                "Location Services are off for Information Bridge (System Settings → Privacy & Security → Location Services)"
+            case .denied(let status):
+                "Location Services are off for Information Bridge (System Settings → Privacy & Security → Location Services); status \(status.rawValue)"
             case .unavailable: "This Mac could not work out where it is"
+            case .unanswered:
+                "macOS never asked whether the Bridge may know where this Mac is (is Location Services on in System Settings → Privacy & Security?)"
             }
         }
     }
@@ -27,16 +30,25 @@ enum MacLocation {
     /// The first good fix, or a reason there is none. Waits at most `timeout`. Live updates
     /// alone never prompt on macOS; the manager asks, and the answer is awaited first.
     static func fix(timeout: Duration = .seconds(60)) async throws -> Fix {
-        let status = await Authorizer().authorize()
+        let status = try await withThrowingTaskGroup(of: CLAuthorizationStatus.self) { group in
+            group.addTask { await Authorizer().authorize() }
+            group.addTask {
+                try await Task.sleep(for: .seconds(90))
+                throw Failure.unanswered
+            }
+            guard let status = try await group.next() else { throw Failure.unanswered }
+            group.cancelAll()
+            return status
+        }
         switch status {
-        case .denied, .restricted: throw Failure.denied
+        case .denied, .restricted: throw Failure.denied(status)
         default: break
         }
         return try await withThrowingTaskGroup(of: Fix.self) { group in
             group.addTask {
                 for try await update in CLLocationUpdate.liveUpdates() {
                     if update.authorizationDenied || update.authorizationDeniedGlobally {
-                        throw Failure.denied
+                        throw Failure.denied(.denied)
                     }
                     if update.locationUnavailable { throw Failure.unavailable }
                     if let location = update.location {
@@ -71,6 +83,8 @@ enum MacLocation {
             return await withCheckedContinuation { continuation in
                 self.continuation = continuation
                 manager.requestWhenInUseAuthorization()
+                // Some macOS releases only put the dialog up once a fix is actually wanted.
+                manager.startUpdatingLocation()
             }
         }
 
@@ -81,6 +95,7 @@ enum MacLocation {
         private func answered() {
             let status = manager.authorizationStatus
             guard status != .notDetermined, let continuation else { return }
+            manager.stopUpdatingLocation()
             self.continuation = nil
             continuation.resume(returning: status)
         }

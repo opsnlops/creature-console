@@ -4,6 +4,8 @@
 <dict>
 	<key>com.apple.developer.weatherkit</key>
 	<true/>
+	<key>com.apple.security.personal-information.location</key>
+	<true/>
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)io.opsnlops.CreatureApps</string>

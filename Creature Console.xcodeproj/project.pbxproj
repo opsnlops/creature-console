@@ -3096,6 +3096,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Information Bridge tells Creature World what it learns, on your local network.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.2.0;
@@ -3129,6 +3130,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "April's Creature Workshop";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Information Bridge tells Creature World what it learns, on your local network.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 0.2.0;
