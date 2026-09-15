@@ -10,6 +10,7 @@ enum Scried: Hashable, Identifiable {
     case timer(WorldTimer)
     case character(CharacterSession)
     case scene(WorldCore.Scene)
+    case entity(EntityPage)
 
     var id: String {
         switch self {
@@ -19,6 +20,7 @@ enum Scried: Hashable, Identifiable {
         case .timer(let timer): "timer:\(timer.timerID.rawValue)"
         case .character(let session): "session:\(session.sessionID.rawValue)"
         case .scene(let scene): scene.sceneID.rawValue
+        case .entity(let page): "entity:\(page.entityID.rawValue)"
         }
     }
 
@@ -30,6 +32,7 @@ enum Scried: Hashable, Identifiable {
         case .timer(let timer): timer.purpose.rawValue
         case .character(let session): session.characterID.rawValue
         case .scene(let scene): "Scene · \(scene.trigger.text)"
+        case .entity(let page): page.entityID.rawValue
         }
     }
 
@@ -47,6 +50,7 @@ enum Scried: Hashable, Identifiable {
             case .timer(let timer): data = try encoder.encode(timer)
             case .character(let session): data = try encoder.encode(session)
             case .scene(let scene): data = try encoder.encode(scene)
+            case .entity(let page): data = try encoder.encode(page)
             }
             return String(decoding: data, as: UTF8.self)
         } catch {

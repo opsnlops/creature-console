@@ -21,13 +21,16 @@ protocol WorldScrying: Sendable {
     func conversationUpdates(in conversationID: ConversationID) throws
         -> WorldConversationUpdateStream
     func factKinds() async throws -> FactKindPage
+    /// One entity, whole.
+    func entity(_ entityID: EntityID) async throws -> EntityPage
 }
 
 /// The Viewer's one kind of write, kept apart from the reads on purpose: a Wizard casting a
 /// meaning into the world's glossary.
 protocol WorldCasting: Sendable {
-    func setFactKind(_ predicate: String, meaning: String, by wizard: String) async throws
-        -> FactKind
+    func setFactKind(
+        _ predicate: String, meaning: String, audience: FactAudience?, by wizard: String
+    ) async throws -> FactKind
     /// Retracts a fact a bird learned: a cast of nothing, valid for a second, supersedes it.
     func forget(_ subjectID: EntityID, _ predicate: String, by wizard: String) async throws
 }
@@ -84,13 +87,18 @@ struct LiveWorldScryer: WorldScrying {
     }
 
     func factKinds() async throws -> FactKindPage { try await viewer.factKinds() }
+
+    func entity(_ entityID: EntityID) async throws -> EntityPage {
+        try await viewer.entity(entityID)
+    }
 }
 
 extension LiveWorldScryer: WorldCasting {
-    func setFactKind(_ predicate: String, meaning: String, by wizard: String) async throws
-        -> FactKind
-    {
-        try await viewer.setFactKind(predicate, FactKindUpdate(meaning: meaning, updatedBy: wizard))
+    func setFactKind(
+        _ predicate: String, meaning: String, audience: FactAudience?, by wizard: String
+    ) async throws -> FactKind {
+        try await viewer.setFactKind(
+            predicate, FactKindUpdate(meaning: meaning, audience: audience, updatedBy: wizard))
     }
 
     func forget(_ subjectID: EntityID, _ predicate: String, by wizard: String) async throws {

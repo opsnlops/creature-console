@@ -8,6 +8,7 @@ enum WorldPanel: String, CaseIterable, Identifiable {
     case characters = "Characters"
     case scenes = "Scenes"
     case facts = "Facts"
+    case entities = "Entities"
     case timers = "Timers"
 
     // Sidebar selection is typed `WorldPanel?`, so the row identity must be the panel itself.
@@ -20,6 +21,7 @@ enum WorldPanel: String, CaseIterable, Identifiable {
         case .characters: "bird"
         case .scenes: "theatermasks"
         case .facts: "sparkles.rectangle.stack"
+        case .entities: "person.text.rectangle"
         case .timers: "hourglass"
         }
     }
@@ -57,11 +59,15 @@ struct WorldViewerRootView: View {
                 case .characters: CharactersPanel(store: store, scried: $scried)
                 case .scenes: ScenesPanel(store: store, scried: $scried)
                 case .facts: FactsPanel(store: store, scried: $scried)
+                case .entities: EntitiesPanel(store: store, scried: $scried)
                 case .timers: TimersPanel(store: store, scried: $scried)
                 }
             }
             .navigationTitle((panel ?? .timeline).rawValue)
             .navigationSubtitle(store.worldURI)
+        }
+        .onChange(of: store.chosenEntity) { _, chosen in
+            if chosen != nil { panel = .entities }
         }
         .inspector(isPresented: $showsMundaneView) {
             MundaneView(scried: scried)
@@ -96,6 +102,7 @@ struct WorldViewerRootView: View {
         case .characters: store.characters.filter { $0.state == .active }.count
         case .scenes: store.scenes.filter { $0.state == .open }.count
         case .facts: store.facts.count
+        case .entities: store.knownEntities.count
         case .timers: store.timers.count
         }
     }

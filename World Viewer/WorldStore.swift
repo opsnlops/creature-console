@@ -182,13 +182,39 @@ final class WorldStore {
         }
     }
 
-    /// Wizard Mode's one cast: reword what a kind of fact means. The world remembers who did.
-    func reword(_ predicate: String, meaning: String) async {
+    /// The entity April has asked to see whole; the root view turns to the Entities panel.
+    var chosenEntity: EntityID?
+
+    /// Everything the world currently believes something about, by kind then name.
+    var knownEntities: [EntityID] {
+        Array(Set(facts.map(\.subjectID))).sorted { $0.rawValue < $1.rawValue }
+    }
+
+    /// One entity, whole, from the world.
+    func entity(_ entityID: EntityID) async -> EntityPage? {
+        do {
+            return try await makeScryer().entity(entityID)
+        } catch {
+            lastError = ErrorAlert(
+                title: "The World Could Not Show \(entityID.rawValue)", error: error)
+            return nil
+        }
+    }
+
+    /// Who a kind of fact is for, as the glossary says; `minds` when it says nothing.
+    func audience(of predicate: String) -> FactAudience {
+        factKinds.first { $0.predicate == predicate }?.audience ?? .minds
+    }
+
+    /// Wizard Mode's casts on the glossary: reword what a kind of fact means, or say who it is
+    /// for. The world remembers who did.
+    func reword(_ predicate: String, meaning: String, audience: FactAudience? = nil) async {
         do {
             guard let caster = try makeScryer() as? any WorldCasting else {
                 throw WorldConversationClientError.unexpectedResponse
             }
-            let kind = try await caster.setFactKind(predicate, meaning: meaning, by: "wizard:april")
+            let kind = try await caster.setFactKind(
+                predicate, meaning: meaning, audience: audience, by: "wizard:april")
             guard !Task.isCancelled else { return }
             if let index = factKinds.firstIndex(where: { $0.predicate == predicate }) {
                 factKinds[index] = kind

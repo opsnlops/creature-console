@@ -31,6 +31,21 @@ public enum WorldFacts {
     /// A bird's own paragraph about a day, on the bird: what it came to know.
     public static let memoryReflection = "memory.reflection"
 
+    /// The kinds of entity a fact's value may point at. A fact whose value is such an id is a
+    /// link - `calendar.with = person:jesse` - and the world follows links one hop when it
+    /// gathers what a mind is handed.
+    public static let linkKinds: Set<String> = [
+        "person", "place", "house", "character", "thing", "event", "order",
+    ]
+
+    /// The entity a value points at, if it is a link.
+    public static func link(in value: WorldJSONValue) -> EntityID? {
+        guard case .string(let raw) = value, let colon = raw.firstIndex(of: ":"),
+            linkKinds.contains(String(raw[..<colon])), let id = EntityID(rawValue: raw)
+        else { return nil }
+        return id
+    }
+
     /// A memory's predicate carries its day — `memory.episode.2026-09-13` — so every day's
     /// memory of a subject stands beside the last instead of superseding it. The family is the
     /// predicate without the day.

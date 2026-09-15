@@ -108,6 +108,22 @@ themselves are facts — `memory.episode.<day>.<n>` on each person, place, or bi
 `memory.episode` / `memory.reflection` families in Meanings. They carry no expiry; retention never
 removes them.
 
+### Entities
+
+The **Entities** panel (`0.7.0`) is the world one hub at a time: pick any subject the world
+believes something about, type an id (`person:jesse`), or right-click a fact anywhere → **Show
+person:jesse** (a fact whose value is an entity also offers to show *that*). The page lists the
+entity's facts — the ones the birds are handed in the normal colour, world-only ones in grey with
+a "world only" tag — links as buttons that open the other entity, what points at this one,
+what the birds remember about it, and the last week of its events. Forget works here too. The
+Mundane view carries the whole page as the world returned it.
+
+### Audience
+
+Every meaning on the Meanings tab has a picker: **minds** (handed to the birds, the default) or
+**world only** (kept and shown, used by the world's rules, never put in a prompt). A phone number
+is world only; a birthday is not. The choice is cast into the glossary as a Wizard's word.
+
 ### Forgetting a fact
 
 Right-click any fact on the Facts tab → **Forget** (`0.6.1`): the same retraction as the

@@ -57,6 +57,15 @@ struct FactsPanel: View {
             }
             .padding(.vertical, 2)
             .contextMenu {
+                Button("Show \(fact.subjectID.rawValue)", systemImage: "person.text.rectangle") {
+                    store.chosenEntity = fact.subjectID
+                }
+                if let target = WorldFacts.link(in: fact.value) {
+                    Button("Show \(target.rawValue)", systemImage: "arrow.turn.down.right") {
+                        store.chosenEntity = target
+                    }
+                }
+                Divider()
                 // Any fact can be taken back: the world casts nothing in its place.
                 Button("Forget", systemImage: "eraser") {
                     Task { await store.forget(fact.subjectID, fact.predicate) }
@@ -111,15 +120,17 @@ private struct MeaningsList: View {
             if !store.undefinedPredicates.isEmpty {
                 Section("New words: the World believes these but cannot say what they mean") {
                     ForEach(store.undefinedPredicates, id: \.self) { predicate in
-                        MeaningRow(predicate: predicate, meaning: "", updatedBy: nil, store: store)
+                        MeaningRow(
+                            predicate: predicate, meaning: "", updatedBy: nil, audience: nil,
+                            store: store)
                     }
                 }
             }
-            Section("What each kind of fact means to the minds") {
+            Section("What each kind of fact means, and who it is for") {
                 ForEach(store.factKinds, id: \.predicate) { kind in
                     MeaningRow(
                         predicate: kind.predicate, meaning: kind.meaning,
-                        updatedBy: kind.updatedBy, store: store)
+                        updatedBy: kind.updatedBy, audience: kind.audience, store: store)
                 }
             }
         }
@@ -137,6 +148,8 @@ private struct MeaningRow: View {
     let predicate: String
     let meaning: String
     let updatedBy: String?
+    /// nil for a word the world has no meaning for yet.
+    let audience: FactAudience?
     let store: WorldStore
     @State private var draft = ""
     @FocusState private var editing: Bool
@@ -150,6 +163,29 @@ private struct MeaningRow: View {
                     Text("reworded by \(updatedBy)")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
+                }
+                if let audience {
+                    // Who this kind is for: the birds, or the world alone (a phone number).
+                    Picker(
+                        "Audience",
+                        selection: Binding(
+                            get: { audience },
+                            set: { new in
+                                Task {
+                                    await store.reword(predicate, meaning: meaning, audience: new)
+                                }
+                            })
+                    ) {
+                        Text("minds").tag(FactAudience.minds)
+                        Text("world only").tag(FactAudience.world)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .controlSize(.mini)
+                    .fixedSize()
+                    .help(
+                        "minds: handed to the birds. world only: kept and shown here, never put in a prompt."
+                    )
                 }
             }
             TextField("What does this mean to a bird?", text: $draft, axis: .vertical)

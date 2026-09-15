@@ -119,6 +119,14 @@ struct FactRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// Current facts anywhere whose value is `entityID`: the links into it.
+    func currentFacts(pointingAt entityID: EntityID, at now: Date) async throws -> [Fact] {
+        var query = currentQuery(at: now)
+        query["value"] = entityID.rawValue
+        let documents = try await facts.find(query).sort(["valid_from": -1]).limit(100).drain()
+        return try documents.map(decode)
+    }
+
     /// The subjects that currently have a fact with `predicate` — the people the world can
     /// describe, for instance.
     func subjects(withPredicate predicate: String, at now: Date) async throws -> [EntityID] {

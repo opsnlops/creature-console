@@ -1,3 +1,19 @@
+creature-cli (2.72.0+world0.25.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
+
+  * creature-world 0.25.0: the wall and the hub (Information Bridge plan,
+    step 1). `fact_kinds.audience` - `minds` (handed to the birds, the
+    default) or `world` (kept, shown, used by rules, never in a prompt);
+    PUT /v1/fact-kinds/{p} takes it, and the knowledge a mind is handed
+    drops world-only facts. Links, one hop: a fact whose value is an
+    entity (`calendar.with = person:jesse`) brings that entity's facts
+    along. GET /v1/entities/{id}: one entity whole - its facts, what
+    points at it, its recent events.
+  * World Viewer 0.7.0: the Entities panel (pick, type, or "Show …" from
+    any fact), the entity page with world-only facts in grey and links
+    as buttons, and an audience picker on every meaning.
+
+ -- April White <april@creature.engineering>  Mon, 14 Sep 2026 19:30:00 -0700
+
 creature-cli (2.72.0+world0.24.0+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * What the first clock run taught us. Remembering a day again now

@@ -266,13 +266,72 @@ struct RecentHappeningsTests {
                 == WorldFacts.meanings[WorldFacts.doorLock])
 
         let reworded = try await persistence.factKinds.set(
-            predicate, meaning: "as April puts it", by: "wizard:april", at: start + 60)
+            predicate, meaning: "as April puts it", audience: nil, by: "wizard:april",
+            at: start + 60)
         #expect(reworded.updatedBy == "wizard:april")
+        #expect(reworded.audience == .minds)
         try await persistence.factKinds.seed([predicate: "from the catalogue"], at: start + 120)
         #expect(try await knowledge.meanings(of: [predicate]) == [predicate: "as April puts it"])
         #expect(
             try await persistence.factKinds.all().contains {
                 $0.predicate == predicate && $0.meaning == "as April puts it"
             })
+        // An audience set once stays through a rewording that says nothing about it.
+        let worldOnly = try await persistence.factKinds.set(
+            predicate, meaning: "the world's alone", audience: .world, by: "wizard:april",
+            at: start + 180)
+        #expect(worldOnly.audience == .world)
+        let rewordedAgain = try await persistence.factKinds.set(
+            predicate, meaning: "still the world's", audience: nil, by: "wizard:april",
+            at: start + 240)
+        #expect(rewordedAgain.audience == .world)
+        #expect(try await persistence.factKinds.worldOnlyPredicates().contains(predicate))
+    }
+
+    @Test("A world-only kind never reaches a mind; a link brings the linked entity along")
+    func audienceAndLinks() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "audience-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: start)
+        let suffix = UUID().uuidString.lowercased()
+        let visit = try EntityID(validating: "event:deck-\(suffix)")
+        let jesse = try EntityID(validating: "person:jesse-\(suffix)")
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: CharacterSessionService(
+                repository: persistence.characterSessions, clock: clock, announce: { _ in }),
+            regions: [:], clock: clock)
+        func fact(_ subject: EntityID, _ predicate: String, _ value: WorldJSONValue) throws
+            -> Fact
+        {
+            try Fact(
+                subjectID: subject, predicate: predicate, value: value,
+                epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: start,
+                derivedFrom: [], producer: FactProducer(kind: "test", id: "bridge", version: "1"))
+        }
+        try await persistence.facts.save(try fact(visit, "calendar.title", .string("deck boards")))
+        try await persistence.facts.save(try fact(visit, "calendar.with", .string(jesse.rawValue)))
+        try await persistence.facts.save(
+            try fact(jesse, "person.relationship", .string("April's contractor")))
+        try await persistence.facts.save(
+            try fact(jesse, "contact.phone-\(suffix)", .string("360-555-0100")))
+        _ = try await persistence.factKinds.set(
+            "contact.phone-\(suffix)", meaning: "a phone number", audience: .world,
+            by: "bridge:contacts", at: start)
+
+        // Asked about the visit, a mind is handed Jesse too - but never his number.
+        let handed = try await knowledge.currentFacts(
+            about: [visit], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(handed.contains { $0.subjectID == jesse && $0.predicate == "person.relationship" })
+        #expect(!handed.contains { $0.predicate == "contact.phone-\(suffix)" })
+        #expect(handed.contains { $0.predicate == "calendar.with" })
+
+        // The entity page holds everything, and knows what points at Jesse.
+        let page = try await knowledge.entityPage(jesse, now: start)
+        #expect(page.facts.contains { $0.predicate == "contact.phone-\(suffix)" })
+        #expect(page.linkedFrom.map(\.subjectID) == [visit])
     }
 }

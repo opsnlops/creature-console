@@ -50,6 +50,8 @@ struct CreatureWorldBlackBoxTests {
             validating: "conversation:blackbox-\(UUID().uuidString.lowercased())"
         )
         // This run's own driveway too: the house opens a scene when a person is seen there.
+        // The floor is long so the house scene's deadline never passes mid-test and the lead's
+        // silence is never filled with the fallback line while the assertions are counting.
         let driveway = try EntityID(validating: "place:driveway-\(UUID().uuidString.lowercased())")
         try Data(
             """
@@ -57,7 +59,7 @@ struct CreatureWorldBlackBoxTests {
              "house_conversation": "\(conversationID.rawValue)",
              "lead_character": "\(beaky.rawValue)",
              "regions": {"\(region.rawValue)": {"stage_id": "stage:test", "places": ["\(driveway.rawValue)"]}},
-             "scenes": {"open_on": [{"event": "camera.person_seen", "places": ["\(driveway.rawValue)"], "cooldown_seconds": 300}]}}
+             "scenes": {"floor_seconds": 120, "open_on": [{"event": "camera.person_seen", "places": ["\(driveway.rawValue)"], "cooldown_seconds": 300}]}}
             """.utf8
         ).write(to: configURL)
         defer { try? FileManager.default.removeItem(at: configURL) }
@@ -195,6 +197,11 @@ struct CreatureWorldBlackBoxTests {
         #expect(family.contains { $0.subjectID == beaky })
         #expect(family.allSatisfy { $0.predicate.hasPrefix("presence.") })
         #expect(try await api.facts(predicatePrefix: "memory.episode.1999-01-01.").isEmpty)
+        // One entity, whole: Mango's page carries his presence and the login that made it.
+        let mangoPage = try await api.entity(mango)
+        #expect(mangoPage.entityID == mango)
+        #expect(mangoPage.facts.contains { $0.predicate == WorldFacts.characterRegion })
+        #expect(mangoPage.events.contains { $0.subjectIDs.contains(mango) })
 
         let sceneUtterance = try makeUtterance(
             in: conversationID, sourceID: SourceID(validating: "communicator:blackbox"),
@@ -361,7 +368,9 @@ struct CreatureWorldBlackBoxTests {
 
         let conversation = try await api.conversationItems(in: conversationID)
         #expect(conversation.filter { $0.authorKind == .person }.count == 2)
-        #expect(conversation.filter { $0.authorKind == .character }.count == 4)
+        #expect(
+            conversation.filter { $0.authorKind == .character }.count == 4,
+            "\(conversation.map { "\($0.authorID.rawValue): \($0.text)" })")
         #expect(
             Set(conversation.map(\.text)).isSuperset(of: [
                 utterance.text, intent.text, stagedIntent.text, sceneUtterance.text,
@@ -795,6 +804,14 @@ private struct WorldServiceAPI {
 
     func facts(about subjectID: EntityID) async throws -> [Fact] {
         try await facts(query: "subject_id=\(subjectID.rawValue)")
+    }
+
+    func entity(_ entityID: EntityID) async throws -> EntityPage {
+        let response = try await client.execute(
+            HTTPClientRequest(url: "\(base)/entities/\(entityID.rawValue)"), timeout: .seconds(15))
+        #expect(response.status == .ok)
+        let body = try await response.body.collect(upTo: 4 * 1_048_576)
+        return try WorldJSON.makeDecoder().decode(EntityPage.self, from: body)
     }
 
     func facts(predicatePrefix: String) async throws -> [Fact] {

@@ -1,8 +1,10 @@
 # The Information Bridge — What April's Mac Knows, the World Learns
 
-**Status:** Step 1's app half built 2026-09-14 (Bridge `0.1.0`: outbox, heartbeat, test fact —
-first `bridge.hello` on prod at 5:50 PM) and step 2 built the same night (Bridge `0.2.0`:
-WeatherKit on `place:outside`); the world half of step 1 (audience, links, entity page) is next.
+**Status:** Step 1 built 2026-09-14 — the app (Bridge `0.1.0`: outbox, heartbeat, test fact;
+first `bridge.hello` on prod at 5:50 PM) and the world half (World `0.25.0`: audience, one-hop
+links, `GET /v1/entities/{id}`; Viewer `0.7.0`: Entities panel, audience picker). Step 2 built the
+same night (Bridge `0.2.0`: WeatherKit on `place:outside`, this Mac's location; live on prod by
+6:30 PM — "A light raincoat would be wise, April"). Step 3, the address book, is next.
 Plan written 2026-09-14 evening, after the judgement-and-memory plan shipped (World
 `0.24.0`, agent `2.72.0`, Viewer `0.6.2`, all on prod); revised the same evening after April read
 it — WeatherKit first, orders as entities in the world, mail and Messages as sources of what April's

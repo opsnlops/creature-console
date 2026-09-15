@@ -461,6 +461,16 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // One entity, whole: the Viewer's entity page.
+        router.get("v1/entities/:id") { _, context in
+            await respond {
+                guard let raw = context.parameters.get("id"),
+                    let entityID = raw.removingPercentEncoding.flatMap(EntityID.init(rawValue:))
+                else { throw WorldAPIError.invalidQuery(name: "id") }
+                return try await execute { try jsonResponse(await service.entity(entityID)) }
+            }
+        }
+
         // Remember a day by hand: the world records the same `memory.consolidate` event the
         // nightly clock would, and the mind with a memory model does the rest.
         router.post("v1/days/:day/remember") { _, context in

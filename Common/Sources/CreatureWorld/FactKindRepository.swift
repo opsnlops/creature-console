@@ -42,23 +42,35 @@ struct FactKindRepository: Sendable {
         return meanings
     }
 
-    func set(_ predicate: String, meaning: String, by editor: String, at now: Date) async throws
-        -> FactKind
-    {
+    /// Sets the meaning; the audience too when given, else it stays as it was (`minds` new).
+    func set(
+        _ predicate: String, meaning: String, audience: FactAudience?, by editor: String,
+        at now: Date
+    ) async throws -> FactKind {
+        let current = try await kinds.findOne(["_id": predicate]).map(decode)
         let kind = FactKind(
-            predicate: predicate, meaning: meaning, updatedAt: now, updatedBy: editor)
+            predicate: predicate, meaning: meaning,
+            audience: audience ?? current?.audience ?? .minds, updatedAt: now, updatedBy: editor)
         let document: Document = [
-            "_id": predicate, "predicate": predicate, "meaning": meaning, "updated_at": now,
-            "updated_by": editor,
+            "_id": predicate, "predicate": predicate, "meaning": meaning,
+            "audience": kind.audience.rawValue, "updated_at": now, "updated_by": editor,
         ]
         try await kinds.upsert(document, where: ["_id": predicate])
         return kind
+    }
+
+    /// The predicates whose facts are the world's alone, never a mind's.
+    func worldOnlyPredicates() async throws -> Set<String> {
+        let documents = try await kinds.find(["audience": FactAudience.world.rawValue]).drain()
+        return Set(try documents.map(decode).map(\.predicate))
     }
 
     private func decode(_ document: Document) throws -> FactKind {
         FactKind(
             predicate: document["predicate"] as? String ?? (document["_id"] as? String ?? ""),
             meaning: document["meaning"] as? String ?? "",
+            audience: (document["audience"] as? String).flatMap(FactAudience.init(rawValue:))
+                ?? .minds,
             updatedAt: document["updated_at"] as? Date ?? Date(timeIntervalSince1970: 0),
             updatedBy: document["updated_by"] as? String ?? Self.worldEditor)
     }

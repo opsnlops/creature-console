@@ -107,41 +107,96 @@ public struct DayDigest: Codable, Equatable, Sendable {
     }
 }
 
-/// What a predicate means, as the world tells its minds. Seeded from `WorldFacts.meanings`;
-/// a Wizard may reword it in the Viewer, and the world remembers who did.
+/// Who a kind of fact is for. `minds`: handed to the birds in their prompts (the default).
+/// `world`: kept, shown in the Viewer, usable by the world's rules - never put in a prompt.
+/// A phone number is `world`; a birthday is `minds`.
+public enum FactAudience: String, Codable, Equatable, Sendable, CaseIterable {
+    case minds
+    case world
+}
+
+/// What a predicate means, as the world tells its minds, and who it is for. Seeded from
+/// `WorldFacts.meanings`; a Wizard may reword it in the Viewer, and the world remembers who did.
 public struct FactKind: Codable, Equatable, Sendable {
     public var predicate: String
     public var meaning: String
+    public var audience: FactAudience
     public var updatedAt: Date
     public var updatedBy: String
 
-    public init(predicate: String, meaning: String, updatedAt: Date, updatedBy: String) {
+    public init(
+        predicate: String, meaning: String, audience: FactAudience = .minds, updatedAt: Date,
+        updatedBy: String
+    ) {
         self.predicate = predicate
         self.meaning = meaning
+        self.audience = audience
         self.updatedAt = updatedAt
         self.updatedBy = updatedBy
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        predicate = try container.decode(String.self, forKey: .predicate)
+        meaning = try container.decode(String.self, forKey: .meaning)
+        audience = try container.decodeIfPresent(FactAudience.self, forKey: .audience) ?? .minds
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        updatedBy = try container.decode(String.self, forKey: .updatedBy)
     }
 
     private enum CodingKeys: String, CodingKey {
         case predicate
         case meaning
+        case audience
         case updatedAt = "updated_at"
         case updatedBy = "updated_by"
     }
 }
 
+/// A Wizard's (or a source's) word on a kind: the meaning, and optionally who it is for. An
+/// absent audience leaves the kind's audience as it is (`minds` for a new kind).
 public struct FactKindUpdate: Codable, Equatable, Sendable {
     public var meaning: String
+    public var audience: FactAudience?
     public var updatedBy: String
 
-    public init(meaning: String, updatedBy: String) {
+    public init(meaning: String, audience: FactAudience? = nil, updatedBy: String) {
         self.meaning = meaning
+        self.audience = audience
         self.updatedBy = updatedBy
     }
 
     private enum CodingKeys: String, CodingKey {
         case meaning
+        case audience
         case updatedBy = "updated_by"
+    }
+}
+
+/// One entity, whole: what the world believes about it, what elsewhere points at it, and what
+/// has happened around it lately. The Viewer's entity page, and a mind's "who is Jesse?".
+public struct EntityPage: Codable, Hashable, Sendable {
+    public var entityID: EntityID
+    /// Current facts about the entity, every audience.
+    public var facts: [Fact]
+    /// Current facts elsewhere whose value is this entity: `calendar.with = person:jesse`.
+    public var linkedFrom: [Fact]
+    /// Recent events with the entity as a subject, newest first.
+    public var events: [WorldEventEnvelope]
+
+    public init(entityID: EntityID, facts: [Fact], linkedFrom: [Fact], events: [WorldEventEnvelope])
+    {
+        self.entityID = entityID
+        self.facts = facts
+        self.linkedFrom = linkedFrom
+        self.events = events
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case entityID = "entity_id"
+        case facts
+        case linkedFrom = "linked_from"
+        case events
     }
 }
 

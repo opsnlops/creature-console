@@ -42,6 +42,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let setFactKind: @Sendable (String, FactKindUpdate) async throws -> FactKind
     let dayDigest: @Sendable (String) async throws -> DayDigest?
     let remember: @Sendable (String) async throws -> WorldEventAcceptance
+    let entity: @Sendable (EntityID) async throws -> EntityPage
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -436,7 +437,11 @@ struct MongoWorldPersistenceConnection: Sendable {
         }
         setFactKind = { predicate, update in
             try await persistence.factKinds.set(
-                predicate, meaning: update.meaning, by: update.updatedBy, at: await clock.now)
+                predicate, meaning: update.meaning, audience: update.audience,
+                by: update.updatedBy, at: await clock.now)
+        }
+        entity = { entityID in
+            try await knowledge.entityPage(entityID, now: await clock.now)
         }
         shutdown = {
             memoryClock.cancel()
@@ -530,6 +535,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         remember: @escaping @Sendable (String) async throws -> WorldEventAcceptance = { _ in
             throw WorldAPIError.databaseUnavailable
         },
+        entity: @escaping @Sendable (EntityID) async throws -> EntityPage = { _ in
+            throw WorldAPIError.databaseUnavailable
+        },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -563,6 +571,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.setFactKind = setFactKind
         self.dayDigest = dayDigest
         self.remember = remember
+        self.entity = entity
         self.shutdown = shutdown
     }
 }
@@ -836,6 +845,11 @@ actor MongoWorldPersistenceProvider {
         return try await connection.remember(day)
     }
 
+    func entity(_ entityID: EntityID) async throws -> EntityPage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.entity(entityID)
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -894,11 +908,35 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         // and newer than everything else, and would otherwise push what April taught the birds
         // yesterday off the page.
         let about = unique(expanded)
-        let present = try await facts.currentFacts(
+        var present = try await facts.currentFacts(
             about: about, family: .notMemories, limit: limit, at: now)
+        // Links, one hop: a fact whose value is an entity (`calendar.with = person:jesse`)
+        // brings that entity's facts along, so a bird handed the visit is handed the visitor.
+        // One hop only, and never on the live line's critical path a second time.
+        let linked = unique(present.compactMap { WorldFacts.link(in: $0.value) })
+            .filter { !about.contains($0) }
+        if !linked.isEmpty {
+            present += try await facts.currentFacts(
+                about: linked, family: .notMemories, limit: limit, at: now)
+        }
         let remembered = try await facts.currentFacts(
-            about: about, family: .memories, limit: limit, at: now)
-        return present + Self.withMemoriesTrimmed(remembered, memory: memory, now: now)
+            about: about + linked, family: .memories, limit: limit, at: now)
+        // What is the world's alone stays with the world.
+        let worldOnly = try await kinds.worldOnlyPredicates()
+        return (present + Self.withMemoriesTrimmed(remembered, memory: memory, now: now))
+            .filter { !worldOnly.contains($0.predicate) }
+    }
+
+    /// One entity, whole, for the Viewer's page and a mind's question: every current fact
+    /// about it (every audience), the facts elsewhere that point at it, and its recent events.
+    func entityPage(_ entityID: EntityID, now: Date) async throws -> EntityPage {
+        let about = try await facts.currentFacts(subjectID: entityID, at: now)
+        let linkedFrom = try await facts.currentFacts(pointingAt: entityID, at: now)
+        let recent = try await events.events(
+            about: [entityID], since: now.addingTimeInterval(-7 * 86_400), limit: 50)
+        return EntityPage(
+            entityID: entityID, facts: about, linkedFrom: linkedFrom,
+            events: recent.sorted { $0.occurredAt > $1.occurredAt })
     }
 
     /// Memories are kept for years but handed out sparingly: an episode only while it is

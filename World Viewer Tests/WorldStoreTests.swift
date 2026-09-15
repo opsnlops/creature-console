@@ -353,6 +353,10 @@ struct ScriptedScryer: WorldScrying {
 
     func factKinds() async throws -> FactKindPage { FactKindPage(kinds: []) }
 
+    func entity(_ entityID: EntityID) async throws -> EntityPage {
+        EntityPage(entityID: entityID, facts: [], linkedFrom: [], events: [])
+    }
+
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames {
         let world = world
         return WorldStreamFrames { continuation in

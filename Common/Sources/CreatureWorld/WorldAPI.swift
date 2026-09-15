@@ -100,6 +100,8 @@ protocol WorldApplicationService: Sendable {
     func dayDigest(_ day: String) async throws -> DayDigest?
     /// Asks the memory job to remember `day` now, ahead of (or again after) the nightly clock.
     func remember(_ day: String) async throws -> WorldEventAcceptance
+    /// One entity, whole.
+    func entity(_ entityID: EntityID) async throws -> EntityPage
 }
 
 extension WorldApplicationService {
@@ -111,6 +113,9 @@ extension WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
     func remember(_ day: String) async throws -> WorldEventAcceptance {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func entity(_ entityID: EntityID) async throws -> EntityPage {
         throw WorldAPIError.databaseUnavailable
     }
 }

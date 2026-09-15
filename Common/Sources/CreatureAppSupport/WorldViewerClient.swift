@@ -111,6 +111,11 @@ public struct WorldViewerClient: Sendable {
         return try WorldJSON.makeDecoder().decode(FactKind.self, from: data)
     }
 
+    /// One entity, whole: its facts (every audience), what points at it, its recent events.
+    public func entity(_ entityID: EntityID) async throws -> EntityPage {
+        try await get(EntityPage.self, pathComponents: ["entities", entityID.rawValue])
+    }
+
     /// Casts an event into the world - a Wizard's fact, or the retraction of one.
     public func cast(_ event: WorldEventEnvelope) async throws {
         var request = try request(pathComponents: ["events"])
