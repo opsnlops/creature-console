@@ -40,7 +40,8 @@ Some smaller moments the same machinery makes, in the order this plan builds the
   is an entity in the world with a number, items, and a status, from mail the Bridge read.
 - "Jesse — deck boards, 2 PM Thursday" on the calendar becomes `person:jesse · visitor.expected` by
   a world rule, so when the truck turns in on Thursday Beaky has a name for it.
-- A text from Polly — "running late, there by 6" — and the door at 6:04: "That'll be Polly."
+- A text from Jesse — "on my way" — and the truck twenty minutes later: "Hi Jesse! April,
+  Jesse's here." A text from Polly — "running late, there by 6" — and the door at 6:04.
 
 ## Principles
 
@@ -263,7 +264,10 @@ own outgoing messages are read only to resolve a reply ("yes, 6 works") — neve
 
 **Extraction (on-device):** from a message by a mapped person, present-in-source fields only:
 - `SocialCommitment` — who, what, when, where: "running late, there by 6" →
-  `person:polly · visitor.expected = "tonight around 6"` (valid until 9 PM);
+  `person:polly · visitor.expected = "tonight around 6"` (valid until 9 PM). "On my way" from
+  Jesse → `person:jesse · visitor.expected = "on his way, any minute"` (valid two hours). April:
+  "If Jesse texts me to say he's on the way, Beaky should know so she can greet him by name when
+  he arrives." The truck is the happening, the text is the fact, and the greeting is hers;
 - `Request` — someone asked April for something: "can you grab milk?" →
   `person:polly · asked_april = "to grab milk"` (valid a day); Beaky may remind, or not;
 - `News` — something a person said about themselves that April would want the birds to know:
@@ -274,7 +278,8 @@ own outgoing messages are read only to resolve a reply ("yes, 6 works") — neve
 No sentiment, no summaries of conversations, no verbatim text. The value is the fact, in the
 Bridge's words; the message id is the provenance.
 
-**Moment:** the door unlocks at 6:04; "That'll be Polly, April — she said around six." And the
+**Moment:** Jesse texts "on my way" at 1:40; the driveway camera at 1:58; the door: "Hi Jesse! April,
+Jesse's here." The door unlocks at 6:04; "That'll be Polly, April — she said around six." And the
 next morning, unprompted: "Polly starts the new job today, doesn't she?"
 
 ## What the Viewer shows, per step
