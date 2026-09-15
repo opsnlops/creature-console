@@ -19,6 +19,8 @@ struct ContactCard: Equatable, Sendable, Codable {
     var birthday: DateComponents?
     /// Label → name, from the card's related names ("sister", "spouse").
     var relations: [String: String]
+    /// The card's own word on who it is in the world: the URL labeled "Beaky", as written.
+    var link: String? = nil
 
     var fullName: String {
         [givenName, familyName].filter { !$0.isEmpty }.joined(separator: " ")
@@ -26,9 +28,39 @@ struct ContactCard: Equatable, Sendable, Codable {
 }
 
 /// April's word on a card: which entity it is, and, if she says so, what the person is to her.
+/// It lives on the card itself, as a URL labeled "Beaky" - `person:jesse; general contractor` -
+/// so it syncs with the address book, can be edited in Contacts on any device, and goes with
+/// the Bridge wherever it runs. The People window reads and writes that field; nothing else
+/// remembers it.
 struct ContactMapping: Equatable, Sendable, Codable {
+    static let label = "Beaky"
+
     var entityID: EntityID
     var relationship: String?
+
+    init(entityID: EntityID, relationship: String? = nil) {
+        self.entityID = entityID
+        self.relationship = relationship
+    }
+
+    /// From the card's field: "person:jesse" or "person:jesse; general contractor". Anything
+    /// that is not a person is no mapping.
+    init?(cardValue: String) {
+        let parts = cardValue.split(separator: ";", maxSplits: 1).map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard let raw = parts.first?.lowercased(), raw.hasPrefix("person:"),
+            let id = EntityID(rawValue: raw)
+        else { return nil }
+        entityID = id
+        let rest = parts.count > 1 ? parts[1] : ""
+        relationship = rest.isEmpty ? nil : rest
+    }
+
+    /// What goes on the card.
+    var cardValue: String {
+        relationship.map { "\(entityID.rawValue); \($0)" } ?? entityID.rawValue
+    }
 }
 
 /// One fact the Bridge will cast about a person.

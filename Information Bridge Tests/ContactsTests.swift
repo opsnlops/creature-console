@@ -49,13 +49,18 @@ struct ContactsTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let casts = Casts()
         let book = Book(cards: [card(), card("card-polly")])
-        let source = ContactsSource(directory: directory, read: { await book.cards }) {
+        let source = ContactsSource(
+            directory: directory, read: { await book.cards },
+            write: { identifier, value in await book.link(identifier, to: value) }
+        ) {
             await casts.note($0)
         }
         await source.poll()
         #expect(await casts.events.isEmpty)  // nothing mapped, nothing said
 
-        await source.setMapping(ContactMapping(entityID: jesse), for: "card-jesse")
+        try await source.setMapping(ContactMapping(entityID: jesse), for: "card-jesse")
+        // The word went onto the card, where Contacts on any device can see and change it.
+        #expect(await book.cards.first?.link == "person:jesse")
         let first = await casts.events
         #expect(first.count == 8)
         #expect(first.allSatisfy { $0.subjectIDs == [jesse] })
@@ -66,8 +71,9 @@ struct ContactsTests {
         await source.poll()
         #expect(await casts.events.count == 8)
 
-        // Jesse's number changes: one fact re-cast.
+        // Jesse's number changes: one fact re-cast. (The card keeps its word.)
         var changed = card()
+        changed.link = "person:jesse"
         changed.phones = ["mobile": "(360) 555-0199"]
         await book.replace(changed)
         await source.poll()
@@ -76,12 +82,58 @@ struct ContactsTests {
         #expect(after.last?.payload["predicate"] == .string("contact.phone"))
 
         // Unmapped: every fact taken back, as nothing valid for a second.
-        await source.setMapping(nil, for: "card-jesse")
+        try await source.setMapping(nil, for: "card-jesse")
         let retractions = await casts.events.dropFirst(9)
         #expect(retractions.count == 8)
         #expect(retractions.allSatisfy { $0.payload["value"] == .null })
         #expect(retractions.allSatisfy { $0.payload["valid_for_seconds"] == .number(1) })
         #expect(await source.status.state == .on)
+    }
+
+    @Test("The card's own word is the map; a map from before is carried onto the cards once")
+    func cardCarriesTheWord() async throws {
+        #expect(
+            ContactMapping(cardValue: "person:jesse; general contractor")
+                == ContactMapping(entityID: jesse, relationship: "general contractor"))
+        #expect(ContactMapping(cardValue: "Person:Jesse") == ContactMapping(entityID: jesse))
+        #expect(ContactMapping(cardValue: "https://example.com") == nil)
+        #expect(
+            ContactMapping(entityID: jesse, relationship: "general contractor").cardValue
+                == "person:jesse; general contractor")
+
+        let directory = FileManager.default.temporaryDirectory.appending(
+            path: "contacts-tests-\(UUID().uuidString.lowercased())")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let oldMap = [
+            "card-polly": ContactMapping(entityID: try EntityID(validating: "person:polly"))
+        ]
+        try WorldJSON.makeEncoder().encode(oldMap).write(
+            to: directory.appending(path: "contacts-map.json"))
+        var jesseCard = card()
+        jesseCard.link = "person:jesse; general contractor"
+        let book = Book(cards: [jesseCard, card("card-polly")])
+        let casts = Casts()
+        let source = ContactsSource(
+            directory: directory, read: { await book.cards },
+            write: { identifier, value in await book.link(identifier, to: value) }
+        ) {
+            await casts.note($0)
+        }
+        await source.poll()
+        let map = await source.map
+        #expect(map["card-jesse"]?.relationship == "general contractor")
+        #expect(map["card-polly"]?.entityID.rawValue == "person:polly")
+        #expect(await book.cards.last?.link == "person:polly")
+        #expect(
+            !FileManager.default.fileExists(
+                atPath: directory.appending(path: "contacts-map.json").path))
+        #expect(
+            await casts.events.contains { $0.payload["value"] == .string("general contractor") })
+
+        // Edited in Contacts, by hand: the next read follows the card.
+        await book.link("card-jesse", to: nil)
+        await source.poll()
+        #expect(await source.map["card-jesse"] == nil)
     }
 }
 
@@ -95,5 +147,12 @@ private actor Book {
     init(cards: [ContactCard]) { self.cards = cards }
     func replace(_ card: ContactCard) {
         cards = cards.map { $0.identifier == card.identifier ? card : $0 }
+    }
+    func link(_ identifier: String, to value: String?) {
+        cards = cards.map {
+            var card = $0
+            if card.identifier == identifier { card.link = value }
+            return card
+        }
     }
 }

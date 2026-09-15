@@ -393,9 +393,16 @@ final class BridgeStore {
     }
 
     /// April's word on a card.
+    /// Writes April's word onto the card: the Contacts framework says no when the card is
+    /// read-only (an Exchange directory, say) or when Contacts access was denied.
     func setContactMapping(_ mapping: ContactMapping?, for identifier: String) async {
         guard let contactsSource else { return }
-        await contactsSource.setMapping(mapping, for: identifier)
+        do {
+            try await contactsSource.setMapping(mapping, for: identifier)
+        } catch {
+            lastError = ErrorAlert(title: "The Card Was Not Changed", error: error)
+        }
+        contacts = await contactsSource.cards
         contactMap = await contactsSource.map
         sources[.addressBook] = await contactsSource.status
     }

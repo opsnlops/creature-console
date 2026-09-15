@@ -8,7 +8,7 @@ same night (Bridge `0.2.0`: WeatherKit on `place:outside`, this Mac's location; 
 person, phone/email/address world-only). Step 4 built the same night (Bridge `0.4.0`: EventKit → `event:*` linked through the map;
 World `0.26.0`: the visitor rule, `calendar.at_home`). Step 5 built the same night (Bridge `0.5.0`: MailKit extension + scripted backfill, deterministic
 reading + Apple Intelligence on-device, orders as `order:*`; World `0.27.0`: the delivery rule,
-order lookup by items). Step 6, Messages, is next — and the founding moment awaits its first
+order lookup by items). Bridge `0.6.3`: carrier windows become days, `order.last_heard`. Bridge `0.7.0`: the person map moved onto the cards (URL labeled Beaky) and event notes can name the person. Step 6, Messages, is next — and the founding moment awaits its first
 real delivery. **Step 5b, done the same night** (Bridge `0.6.0`): the MailKit extension and the AppleScript
 backfill are gone; the Bridge reads IMAP itself through SwiftMail (April: "are we doing this the
 hard way not using IMAP?" — and "I don't need Gmail", so no OAuth). Her own server and iCloud,
@@ -205,9 +205,17 @@ the Viewer, not the bird, unless April decides otherwise.
 **Entity resolution — April decides, once.** A contact becomes a world entity only when April maps
 it, in the Bridge's window: "Jesse Alvarez → `person:jesse`". Contacts whose name already matches
 a `person:*` the world knows (Jesse, Polly) are offered first, pre-filled; unmapped contacts are
-never cast. The map lives on the Mac and is the same map Messages and the calendar use in later
-steps. This is the single rule that keeps four hundred contacts from becoming four hundred
-half-known people.
+never cast. The map is the same map Messages and the calendar use in later steps. This is the
+single rule that keeps four hundred contacts from becoming four hundred half-known people.
+
+**Revised 2026-09-14 night (Bridge `0.7.0`), after April found the map "one-shot and basically
+impossible to go back and edit":** the map lives *on the card*, not on the Mac — a URL labeled
+**Beaky** reading `person:jesse; general contractor`. Contacts syncs it, April can edit it in
+Contacts on any device, the People window is only an editor for that field, and the Bridge
+re-reads the cards after each change. April's first thought was the Notes field; Apple gates
+Notes behind the restricted `contacts.notes` entitlement, so the URL field it is (switch if the
+entitlement is ever granted). The calendar gets the same two-way door: a line `Beaky:
+person:jesse` (or `Beaky: nobody`) in an event's notes beats the attendee/title guess.
 
 **Why before the calendar:** it makes `person:jesse` a hub with something on it before any calendar
 or text mentions him, it is the cheapest source to get right, and the audience mechanism gets

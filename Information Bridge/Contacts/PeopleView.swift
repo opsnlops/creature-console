@@ -2,8 +2,10 @@ import CreatureAppSupport
 import SwiftUI
 import WorldCore
 
-/// April's map from address-book cards to the world's people. A card becomes a person only
-/// when she says which one; the rest of the address book stays on the Mac, unread by anyone.
+/// April's map from address-book cards to the world's people, kept on the cards themselves: a
+/// URL labeled "Beaky" reading `person:jesse; general contractor`, editable here or in Contacts
+/// on any of her devices. A card becomes a person only when it says which one; the rest of the
+/// address book stays on the Mac, unread by anyone.
 struct PeopleView: View {
     @Bindable var store: BridgeStore
     @State private var search = ""
@@ -30,6 +32,13 @@ struct PeopleView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(12)
+            Text(
+                "Written on the card as a URL labeled “\(ContactMapping.label)” — person:jesse; general contractor — so it syncs with Contacts and can be edited there too."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
             if store.contacts.isEmpty {
                 ContentUnavailableView(
                     "No cards yet", systemImage: "person.crop.rectangle.stack",

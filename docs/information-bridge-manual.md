@@ -54,21 +54,29 @@ and the last 90 days becomes an `event:<id>-<day>` entity (one per occurrence of
 event) with `calendar.title`, `calendar.when` ("Thursday, September 17 at 2:00 PM"),
 `calendar.location`, `calendar.calendar`, `calendar.all_day`, world-only `calendar.starts_at` /
 `calendar.ends_at` for the world's rules, and `calendar.with = person:jesse` when an attendee's
-email or name matches a mapped card, or a mapped person's first name is in the title. Notes never
-leave the Mac. Each event's facts hold until 90 days after it ends, so "when was Jesse last here?"
+email or name matches a mapped card, or a mapped person's first name is in the title. **Your own
+word wins:** a line `Beaky: person:jesse` in the event's notes says who it is with whatever the
+guess was, and `Beaky: nobody` says there is no one — edit the event in Calendar on any device.
+The rest of the notes never leave the Mac. Each event's facts hold until 90 days after it ends, so "when was Jesse last here?"
 has an answer. Re-read hourly; a moved event re-casts, a cancelled one is taken back. The world's
 own rule turns an event at the house with a person into `visitor.expected` — that is the world's,
 not the Bridge's.
 
-## Address Book (`0.3.0`, plan step 3)
+## Address Book (`0.3.0`, plan step 3; the card keeps its own word since `0.7.0`)
 
 Settings → **Address Book** → turn it on; macOS asks once whether the Bridge may read Contacts.
 Then **People…** in the Sources card opens the map: every card in the address book, a field for
 the person it is in the world (`person:jesse`), and a field for what they are to April ("my
-contractor") which becomes `person.relationship` in her words. **A card becomes a person in the
-world only when it is mapped**; the rest of the address book stays on the Mac. Where the world
-already knows a person by that first name and no other card is mapped to them, a **Use
-person:jesse** button pre-fills it.
+contractor") which becomes `person.relationship` in her words. **The map lives on the card
+itself** — a URL labeled **Beaky** reading `person:jesse; my contractor` — so it syncs with the
+address book, can be edited in Contacts on any device (change the value, or delete the field to
+unmap), and goes with the Bridge when it moves to another Mac; the People window is just a
+convenient editor for that field, and re-reads the cards after every change. (The Notes field
+would have been nicer, but Apple gates it behind an entitlement the Bridge does not have.) A
+`contacts-map.json` from before `0.7.0` is written onto the cards once, then set aside as
+`contacts-map.moved`. **A card becomes a person in the world only when it is mapped**; the rest
+of the address book stays on the Mac. Where the world already knows a person by that first name
+and no other card is mapped to them, a **Use person:jesse** button pre-fills it.
 
 A mapped card's whole content is cast on the person, with no expiry: `contact.name`,
 `contact.nickname`, `contact.phone`, `contact.email`, `contact.address` (each by the card's own

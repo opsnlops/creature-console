@@ -58,6 +58,18 @@ struct CalendarTests {
         let nobody = CalendarFacts.facts(
             from: item("Dentist", allDay: true), resolver: resolver, zone: pacific)
         #expect(nobody.facts["calendar.with"] == nil)
+
+        // April's own word in the notes beats the guess, either way.
+        var told = item("Dentist")
+        told.notes = "bring the forms\nBeaky: person:jesse"
+        #expect(
+            CalendarFacts.facts(from: told, resolver: resolver, zone: pacific)
+                .facts["calendar.with"] == .string("person:jesse"))
+        var notJesse = item("Jesse - deck boards")
+        notJesse.notes = "beaky: nobody"
+        #expect(
+            CalendarFacts.facts(from: notJesse, resolver: resolver, zone: pacific)
+                .facts["calendar.with"] == nil)
         #expect(nobody.facts["calendar.when"] == .string("Thursday, September 17 (all day)"))
         #expect(nobody.facts["calendar.all_day"] == .bool(true))
         #expect(CalendarFacts.worldOnly == ["calendar.starts_at", "calendar.ends_at"])

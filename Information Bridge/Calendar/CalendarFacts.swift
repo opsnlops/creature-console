@@ -54,6 +54,28 @@ struct PersonResolver: Sendable {
         let words = title.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init)
         return words.lazy.compactMap { byFirstName[$0] ?? nil }.first
     }
+
+    /// April's own word in the event's notes, which beats every guess: a line "Beaky: person:jesse"
+    /// says who it is with; "Beaky: nobody" says the guess is wrong and there is no one.
+    enum Word: Equatable {
+        case person(EntityID)
+        case nobody
+    }
+
+    static func word(inNotes notes: String) -> Word? {
+        for line in notes.split(whereSeparator: \.isNewline) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard let colon = trimmed.firstIndex(of: ":"),
+                trimmed[..<colon].trimmingCharacters(in: .whitespaces).lowercased()
+                    == ContactMapping.label.lowercased()
+            else { continue }
+            let value = trimmed[trimmed.index(after: colon)...]
+                .trimmingCharacters(in: .whitespaces).lowercased()
+            if ["nobody", "none", "no one", "no-one"].contains(value) { return .nobody }
+            if value.hasPrefix("person:"), let id = EntityID(rawValue: value) { return .person(id) }
+        }
+        return nil
+    }
 }
 
 /// The facts an event makes, on `event:<id>`. The world's own rule turns an event at the house
@@ -68,7 +90,8 @@ enum CalendarFacts {
         "calendar.starts_at": "when the event starts, as a timestamp - for the world's rules",
         "calendar.ends_at": "when the event ends, as a timestamp - for the world's rules",
         "calendar.location": "where the event is, as the calendar has it",
-        "calendar.with": "the person the event is with, when the calendar names one April knows",
+        "calendar.with":
+            "the person the event is with - April's own word in the event's notes, or an attendee or name the calendar gives that April knows",
         "calendar.calendar": "which of April's calendars the event is on",
         "calendar.all_day": "whether the event is an all-day one",
     ]
@@ -87,9 +110,15 @@ enum CalendarFacts {
         ]
         if item.isAllDay { facts["calendar.all_day"] = .bool(true) }
         if !item.location.isEmpty { facts["calendar.location"] = .string(item.location) }
-        let with =
-            item.attendees.lazy.compactMap { resolver.person(email: $0.email, name: $0.name) }.first
-            ?? resolver.person(inTitle: item.title)
+        let with: EntityID?
+        switch PersonResolver.word(inNotes: item.notes) {
+        case .person(let id): with = id
+        case .nobody: with = nil
+        case nil:
+            with =
+                item.attendees.lazy.compactMap { resolver.person(email: $0.email, name: $0.name) }
+                .first ?? resolver.person(inTitle: item.title)
+        }
         if let with { facts["calendar.with"] = .string(with.rawValue) }
         return FactLedger.Wanted(
             entityID: entityID(for: item), facts: facts,
