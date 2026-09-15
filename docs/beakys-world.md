@@ -168,7 +168,7 @@ CI stays on 6.3.3 until 6.4.0 ships — check back.
 
 **To do, in order:**
 1. ~~Check the 3:30 clock run~~ done; re-run the 13th once 2.72.0 is deployed to clear the ghosts.
-2. `docs/information-bridge-plan.md` — the plan before any code (see §Bridge notes below).
+2. ~~`docs/information-bridge-plan.md`~~ written 2026-09-14 evening: five steps (wall + hub → contacts → calendar → mail → messages), each with a moment; open questions at the end are April's to answer before step 1.
 3. **Storage in view:** `GET /v1/storage` (collection counts and bytes from `collStats`) and a
    line in the Viewer's health panel, so retention windows get tuned from evidence. April is
    weighing dedicated MongoDB hardware; the estimate is low-single-digit GB steady state, and
