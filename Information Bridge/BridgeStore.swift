@@ -105,6 +105,7 @@ final class BridgeStore {
     var isConnected: Bool { health?.status == "ok" }
 
     var menuBarSymbol: String {
+        if standingBy != nil { return "pause.circle" }
         if outbox.pending > 0 { return "tray.and.arrow.up" }
         return isConnected
             ? "point.3.connected.trianglepath.dotted"
@@ -150,7 +151,20 @@ final class BridgeStore {
 
     /// Starts the world connection and every source; on later calls, restarts only what
     /// changed - a calendar unticked must not make the weather read the sky again.
+    /// True inside the test host: the app is launched to host the tests, and must not start
+    /// reading this Mac and talking to the world - a second Bridge, from a test run.
+    nonisolated static let isHostingTests =
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        || ProcessInfo.processInfo.environment["XCTestSessionIdentifier"] != nil
+
+    /// Another Bridge, elsewhere, whose heartbeat is in force: this one stands by. The world
+    /// must hear one voice; two ledgers would take turns re-casting and retracting the same
+    /// facts. Nil when this Bridge is the one.
+    private(set) var standingBy: String?
+    @ObservationIgnored private var standbyTask: Task<Void, Never>?
+
     func start() {
+        guard !Self.isHostingTests else { return }
         let uri = connection.worldURI
         if uri != lastWorldURI || box == nil {
             stop()
@@ -158,39 +172,73 @@ final class BridgeStore {
             worldURI = uri
             sources = Dictionary(
                 uniqueKeysWithValues: BridgeSource.allCases.map { ($0, SourceStatus()) })
-            do {
-                let directory = try Self.supportDirectory()
-                let box = try Outbox(directory: directory)
-                self.box = box
-                let client = try connection.client()
-                Task {
-                    await box.start(
-                        cast: { event in try await client.cast(event) },
-                        castMany: { events in try await client.cast(events) })
-                }
-                statusTask = Task { [weak self] in
-                    for await status in await box.updates() {
-                        guard let self else { return }
-                        self.outbox = status
+            // Before a word is said: is another Bridge already speaking for this world?
+            standbyTask = Task { [weak self] in
+                guard let self else { return }
+                while !Task.isCancelled {
+                    if let other = await self.otherBridgeOnline() {
+                        self.standingBy = other
+                        try? await Pace.sleep(seconds: 60)
+                        continue
                     }
-                }
-            } catch {
-                lastError = ErrorAlert(title: "The Outbox Could Not Open", error: error)
-            }
-            healthTask = Task { [weak self] in
-                while !Task.isCancelled {
-                    await self?.refreshHealth()
-                    try? await Task.sleep(for: .seconds(30))
+                    self.standingBy = nil
+                    self.startSpeaking()
+                    return
                 }
             }
-            heartbeatTask = Task { [weak self] in
-                while !Task.isCancelled {
-                    await self?.heartbeat()
-                    try? await Task.sleep(for: .seconds(300))
-                }
-            }
-            lastSourceSettings = nil
+        } else if standingBy == nil {
+            refreshSources()
         }
+    }
+
+    /// The other Bridge's heartbeat, if one is in force: "Information Bridge 0.10.2 (759) on
+    /// April's MacBook Pro". Nil when the world holds none, or holds this Mac's own.
+    private func otherBridgeOnline() async -> String? {
+        guard let client = try? connection.client(),
+            let page = try? await client.entity(BridgeFacts.bridgeID)
+        else { return nil }
+        for fact in page.facts where fact.predicate == "bridge.online" {
+            if case .string(let text) = fact.value, !text.hasSuffix(" on \(Self.host)") {
+                return text
+            }
+        }
+        return nil
+    }
+
+    /// This Bridge is the one: the outbox, the heartbeat, the sources.
+    private func startSpeaking() {
+        do {
+            let directory = try Self.supportDirectory()
+            let box = try Outbox(directory: directory)
+            self.box = box
+            let client = try connection.client()
+            Task {
+                await box.start(
+                    cast: { event in try await client.cast(event) },
+                    castMany: { events in try await client.cast(events) })
+            }
+            statusTask = Task { [weak self] in
+                for await status in await box.updates() {
+                    guard let self else { return }
+                    self.outbox = status
+                }
+            }
+        } catch {
+            lastError = ErrorAlert(title: "The Outbox Could Not Open", error: error)
+        }
+        healthTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refreshHealth()
+                try? await Pace.sleep(seconds: 30)
+            }
+        }
+        heartbeatTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.heartbeat()
+                try? await Pace.sleep(seconds: 300)
+            }
+        }
+        lastSourceSettings = nil
         refreshSources()
     }
 
@@ -290,6 +338,7 @@ final class BridgeStore {
     }
 
     func stop() {
+        standbyTask?.cancel()
         healthTask?.cancel()
         heartbeatTask?.cancel()
         statusTask?.cancel()

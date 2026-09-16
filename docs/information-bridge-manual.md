@@ -36,6 +36,22 @@ user-initiated activity assertion for its whole life (`0.10.2`): without it App 
 the five-minute heartbeat to ten once the window was closed, and it asks macOS not to idle-sleep
 while the Bridge runs.
 
+## One voice (`0.10.3`)
+
+The world must hear one Bridge: two, each with its own ledger, would take turns re-casting
+and retracting the same facts. Two guards. **On one Mac**, a second copy launched beside a
+running one (launchd relaunching next to a copy run from Xcode, say) quits at once. **Across
+Macs**, before it says a word the Bridge reads the world's `bridge.online`; if another host's
+heartbeat is in force it **stands by** — the window and the menu bar say so — checks every
+minute, and takes over only when that heartbeat lapses (a quarter hour after the other Bridge
+last spoke). So the laptop can be the Bridge while cottontail's copy, run for development,
+waits politely — and if the laptop dies, cottontail's takes over within fifteen minutes.
+
+The heartbeat and every poll are timed by a strict dispatch timer (`Pace.sleep`): plain
+`Task.sleep` on an idle Mac with the display off was stretched to double by timer coalescing,
+whatever assertions the app held. And the test host never starts the Bridge - a test run on
+cottontail was casting a heartbeat and the weather to production.
+
 ## Mail (`0.6.0`, plan step 5)
 
 Settings → **Mail** → turn it on, add each IMAP account (host, user name, password — the

@@ -60,7 +60,7 @@ actor WeatherSource {
         worker = Task {
             while !Task.isCancelled {
                 await self.poll()
-                try? await Task.sleep(for: Self.interval)
+                try? await Pace.sleep(for: Self.interval)
             }
         }
     }

@@ -70,6 +70,14 @@ struct BridgeRootView: View {
 
     private var worldCard: some View {
         card("Creature World", symbol: "globe.americas") {
+            if let other = store.standingBy {
+                Label(
+                    "Standing by: \(other) is speaking for this world. This Bridge will take over when that heartbeat lapses.",
+                    systemImage: "pause.circle"
+                )
+                .foregroundStyle(.orange)
+                .textSelection(.enabled)
+            }
             if let health = store.health {
                 LabeledContent("Status", value: health.status)
                 LabeledContent("World", value: health.buildVersion)

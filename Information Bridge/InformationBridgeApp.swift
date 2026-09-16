@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The Information Bridge: what April's Mac knows, the world learns. A source of facts for
@@ -12,6 +13,19 @@ struct InformationBridgeApp: App {
     @State private var wakefulness = ProcessInfo.processInfo.beginActivity(
         options: [.userInitiated, .idleSystemSleepDisabled],
         reason: "Reading the house for the birds, all the time")
+
+    init() {
+        // One Bridge per Mac: launchd relaunching beside a copy run from Xcode, or a second
+        // click on the icon, must not make two. The newcomer leaves.
+        if !BridgeStore.isHostingTests,
+            NSRunningApplication.runningApplications(
+                withBundleIdentifier: Bundle.main.bundleIdentifier ?? ""
+            ).count > 1
+        {
+            NSApplication.shared.terminate(nil)
+            exit(0)
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
