@@ -37,8 +37,11 @@ actor FactLedger {
     /// Brings the world to `wanted`: casts new and changed facts, takes back facts that went
     /// away and items that are gone, moves an item whose entity changed. Returns how many
     /// facts were cast. A cast that fails leaves the ledger as it was for that fact, so it is
-    /// tried again next time.
-    func reconcile(_ wanted: [String: Wanted], now: Date, cast: Cast) async -> Int {
+    /// tried again next time. With `keepingMissing`, items not in `wanted` are left alone - a
+    /// source part-way through reading everything again has not yet got to them.
+    func reconcile(_ wanted: [String: Wanted], now: Date, keepingMissing: Bool = false, cast: Cast)
+        async -> Int
+    {
         var count = 0
         for (item, want) in wanted {
             if let had = entries[item], had.entityID != want.entityID {
@@ -69,7 +72,7 @@ actor FactLedger {
             // Written as it goes: a source restarted mid-way must not say it all again.
             if count > 0, count % 25 == 0 { save() }
         }
-        for (item, had) in entries where wanted[item] == nil {
+        for (item, had) in entries where wanted[item] == nil && !keepingMissing {
             var remaining = had.facts
             for predicate in had.facts.keys {
                 if await retract(had.entityID, predicate, item: item, now: now, cast: cast) {

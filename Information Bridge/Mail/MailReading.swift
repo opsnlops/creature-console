@@ -24,6 +24,9 @@ enum MailKind: String, Equatable, Sendable, Codable {
 struct MailClassifier: Sendable {
     var carriers: [String]
     var merchants: [String]
+    /// Email addresses of people April has mapped in the address book: whatever they write is
+    /// worth reading for an appointment - "see you Thursday" has no appointment word in it.
+    var people: Set<String> = []
 
     static let defaultCarriers = ["ups.com", "fedex.com", "usps.com", "dhl.com", "ontrac.com"]
     static let defaultMerchants = [
@@ -31,18 +34,37 @@ struct MailClassifier: Sendable {
         "mcmaster.com", "pololu.com", "servocity.com", "etsy.com", "ebay.com",
     ]
 
-    init(carriers: [String] = defaultCarriers, merchants: [String] = defaultMerchants) {
+    init(
+        carriers: [String] = defaultCarriers, merchants: [String] = defaultMerchants,
+        people: [String] = []
+    ) {
         self.carriers = carriers.map { $0.lowercased() }
         self.merchants = merchants.map { $0.lowercased() }
+        self.people = Set(people.map { $0.lowercased() })
     }
 
     func classify(_ message: MailMessage) -> MailKind {
-        let from = message.from.lowercased()
-        let subject = message.subject.lowercased()
+        classify(from: message.from, subject: message.subject)
+    }
+
+    /// Whether a message is worth fetching at all: an order, a shipment, or an appointment.
+    func isInteresting(from: String, subject: String) -> Bool {
+        switch classify(from: from, subject: subject) {
+        case .order, .shipping, .appointment: true
+        case .receipt, .irrelevant: false
+        }
+    }
+
+    func classify(from rawFrom: String, subject rawSubject: String) -> MailKind {
+        let from = rawFrom.lowercased()
+        let subject = rawSubject.lowercased()
         let known = carriers + merchants
         guard known.contains(where: { from.contains($0) }) else {
-            // Appointment confirmations come from anyone; the subject must say so plainly.
-            if Self.appointmentWords.contains(where: { subject.contains($0) }) {
+            // Appointment confirmations come from anyone; the subject must say so plainly -
+            // unless it is from someone April knows, whose every mail may be about a visit.
+            if Self.appointmentWords.contains(where: { subject.contains($0) })
+                || people.contains(where: { from.contains($0) })
+            {
                 return .appointment
             }
             return .irrelevant
@@ -70,7 +92,9 @@ struct MailClassifier: Sendable {
     static let receiptWords = ["receipt", "invoice", "payment", "paid"]
     static let appointmentWords = [
         "appointment", "reservation confirmed", "your reservation", "booking confirmed",
-        "is confirmed", "reminder: your",
+        "is confirmed", "reminder: your", "service reminder", "upcoming service",
+        "scheduled service",
+        "is scheduled", "has been scheduled", "we'll be there", "visit scheduled",
     ]
 }
 
@@ -194,6 +218,25 @@ enum MailReader {
         return trimmed.count >= 8 && trimmed.count <= 30
             && trimmed.allSatisfy { $0.isLetter || $0.isNumber }
             && trimmed.filter(\.isNumber).count >= 6
+    }
+
+    /// "maria@example.com" from `Maria Lopez <maria@example.com>`, lowercased.
+    static func address(of from: String) -> String {
+        if let open = from.firstIndex(of: "<"), let close = from.firstIndex(of: ">"), open < close {
+            return from[from.index(after: open)..<close].lowercased()
+        }
+        return from.trimmingCharacters(in: .whitespaces).lowercased()
+    }
+
+    /// "Maria Lopez" from `Maria Lopez <maria@example.com>`; the address's name part otherwise.
+    static func displayName(of from: String) -> String {
+        if let angle = from.firstIndex(of: "<") {
+            let name = from[..<angle].trimmingCharacters(in: .whitespaces)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+            if !name.isEmpty { return name }
+        }
+        let address = from.trimmingCharacters(in: CharacterSet(charactersIn: "<> "))
+        return address.split(separator: "@").first.map(String.init) ?? address
     }
 
     private static func first(of patterns: [String], in text: String) -> String? {

@@ -22,7 +22,12 @@ since `0.7.2`; before that a locked Mac read as "no password" until the next pol
 the defaults are the usual suspects). No Mail.app in the loop: the Bridge reads each account
 itself. The first read of a mailbox goes back 120 days; every read after — every five minutes,
 or **Read now** — asks only for what is newer than the last UID seen, remembered per mailbox on
-this Mac. Every mailbox is read but Sent, Drafts, Trash, and Junk (April's rules file mail into
+this Mac. The senders list decides whose mail counts as orders and shipments; appointments are
+recognised from anyone by their subject, and **every mail from a person mapped in the address
+book** is read for one, whatever its subject. The inbox is also watched with **IMAP IDLE** on a
+connection of its own (since `0.9.0`): when the server says a message arrived, the Bridge reads
+at once — the cleaning lady's reply is in the world in seconds — and the five-minute poll stays
+as the safety net and covers the folders your server-side rules file mail into. Every mailbox is read but Sent, Drafts, Trash, and Junk (April's rules file mail into
 folders such as Amazon and Deliveries).
 
 Each message is classified cheaply by sender and subject (order, shipping, appointment, receipt,
@@ -43,7 +48,8 @@ with when the *world* learned it, which for a re-read is minutes ago — so the 
 outright that `order.status` and `order.expected` are as of `order.last_heard`, and that the mail
 rarely says when a package actually came. Item names are tidied (bidi marks, ellipses, Amazon's
 "and 1 more item", the model's "Shipment"/"Item" placeholders dropped); totals read "$21.69".
-When the readers improve, the Bridge's *reading version* is bumped and the mail is read again,
+Since `0.9.0` only the headers of most mail are fetched; the body is read for orders, shipments,
+and appointments. When the readers improve, the Bridge's *reading version* is bumped and the mail is read again,
 the order book rebuilt from scratch, and orders that no longer exist taken back. The Sources card
 lists the orders it knows and, on the Mac, `mail-readings.log` says what each message became
 (date, kind, sender, subject — never a body). The world's own rule turns *out for delivery* into
@@ -90,6 +96,37 @@ The glossary is seeded with **phone, email, and address as world-only** — stor
 page, never in a prompt — and the rest for the minds; flip any of them in the Viewer's Meanings.
 The book is re-read hourly; a changed card re-casts what changed, a card unmapped (or gone from
 the book) has every fact taken back, and a card mapped to someone else moves.
+
+### Appointments (`0.9.0`)
+
+Mail from anyone whose subject says *appointment*, *reminder: your*, *is scheduled*, *service
+reminder* and the like is read too — the pest control company's "Appointment Reminder" is the
+case in point. (Since `0.9.0` the Bridge fetches the headers of all new mail and the bodies only
+of orders, shipments, and appointments, so an appointment can come from any sender.) Apple
+Intelligence reads it into who, what, the date and time *copied as written*, and whether it is
+at April's home; the copied date must be in the mail or the reading is refused, and the day and
+window are then resolved by the Bridge, not the model ("Sep 15, 2026", "Thursday, September
+17", "9/18", "tomorrow", "between 8 and 10 am"). **At home is decided by evidence:** the mail
+prints the street from April's own card in Contacts (the Me card) — the model's guess only
+stands when there is no Me card. Each becomes `event:mail-<business>-<yyyyMMdd>` with the
+calendar's own predicates (`calendar.title = "Monthly Service (Whidbey Pest Control)"`,
+`calendar.when`, `calendar.starts_at`/`ends_at`, `calendar.calendar = Mail`, `calendar.location
+= home`), so "what's on this week?" includes it; and an appointment at the house also puts
+`visitor.expected = "Whidbey Pest Control for Monthly Service, Tuesday, September 15 (time not
+given)"` on the house for the window (the working day when no time is given) plus two hours —
+so a truck in the driveway that Tuesday is "that'll be the pest people". A cancellation mail
+takes it back; a day past is let go. The Sources card lists the appointments ahead.
+
+A **reply is read as a thread**: the sender's latest words, then what they quoted (April's own
+earlier message, usually) marked as April's, with the "On … at 7:05 PM, April wrote:" line
+dropped so its date and time can never pass for the appointment's. April's quoted words are
+real-world knowledge — "I might not be home when the crew arrives, I'll leave the front door
+unlocked" is how the Bridge knows the cleaning crew comes to the house. When the first reading
+leaves "at home" unsettled, the model is asked that one question separately and must quote the
+words that say so; the quote must be in the thread *and* be about the house (home, door,
+crew, arrive…) — "on the mainland" is a place, but not this one. A person's mail names no
+business, so the business on their card (else their name) stands in. A day written with no
+month ("the 16th") is the next such day.
 
 ## Messages (`0.8.0`, plan step 6)
 

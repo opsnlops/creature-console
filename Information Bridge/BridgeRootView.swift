@@ -181,6 +181,9 @@ struct BridgeRootView: View {
                 if source == .calendar, status.state != .off, !store.calendarTitles.isEmpty {
                     CalendarPicker(store: store)
                 }
+                if source == .mail, !store.appointments.isEmpty {
+                    AppointmentsList(appointments: store.appointments)
+                }
                 if source == .mail, !store.orders.isEmpty {
                     OrdersList(orders: store.orders)
                 }
@@ -334,6 +337,38 @@ private struct ToldList: View {
                     Text(item.when.isEmpty ? item.what : "\(item.what), \(item.when)")
                         .lineLimit(1)
                     Text(item.until, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .font(.callout)
+            }
+        }
+        .padding(.leading, 28)
+    }
+}
+
+/// The appointments the mail has told the Bridge about: an event each, and a visitor on the
+/// house for the ones at the house.
+private struct AppointmentsList: View {
+    let appointments: [Appointment]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(appointments.prefix(6), id: \.key) { appointment in
+                HStack(spacing: 8) {
+                    Text(appointment.atHome ? "at home" : "away")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(
+                            (appointment.atHome ? Color.green : Color.gray).opacity(0.15),
+                            in: Capsule())
+                    Text(appointment.business)
+                        .fontWeight(.medium)
+                    if !appointment.service.isEmpty {
+                        Text(appointment.service).lineLimit(1)
+                    }
+                    Text(AppointmentFacts.when(appointment, zone: .current))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

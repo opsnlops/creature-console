@@ -50,6 +50,13 @@ struct MailTests {
             classifier.classify(
                 mail("6", from: "deals@amazon.com", subject: "Deals you might like")) == .irrelevant
         )
+        // Someone April knows: read whatever the subject, in case it is about a visit.
+        let knowing = MailClassifier(people: ["maria@example.com"])
+        #expect(
+            knowing.classify(mail("7", from: "Maria <maria@example.com>", subject: "Thursday"))
+                == .appointment)
+        #expect(knowing.isInteresting(from: "maria@example.com", subject: "Thursday"))
+        #expect(!knowing.isInteresting(from: "polly@example.com", subject: "Thursday"))
     }
 
     @Test("Numbers and statuses have a shape the regexes find; item names come off the subject")
@@ -228,7 +235,7 @@ struct MailTests {
             text: "Tracking number: 1Z999AA10123456784 via UPS")
         let source = MailSource(
             directory: directory, classifier: MailClassifier(),
-            fetch: { _ in [message] },  // the same mail every time, as an account would answer
+            fetch: { _ in ([message], {}) },  // the same mail every time, as an account would answer
             distill: { _ in nil }
         ) { await casts.note($0) }
         await source.poll(now: day)

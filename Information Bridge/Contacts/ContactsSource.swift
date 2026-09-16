@@ -11,12 +11,17 @@ actor ContactsSource {
     typealias Read = @Sendable () async throws -> [ContactCard]
     /// Writes a card's "Beaky" field; nil clears it.
     typealias Write = @Sendable (_ identifier: String, _ value: String?) async throws -> Void
+    /// The street lines of April's own card, lowercased - how the Bridge knows a mail that
+    /// prints her address is about her house.
+    typealias ReadHome = @Sendable () async -> [String]
 
     static let sourceName = "contacts"
     static let interval: Duration = .seconds(3_600)
 
     private let read: Read
     private let write: Write
+    private let readHome: ReadHome
+    private(set) var homeStreets: [String] = []
     private let cast: Cast
     /// Where the map lived before it moved onto the cards; carried over once, then set aside.
     private let oldMapFile: URL
@@ -30,10 +35,12 @@ actor ContactsSource {
     init(
         directory: URL, read: @escaping Read = ContactsSource.readFromContacts,
         write: @escaping Write = ContactsSource.writeToContacts,
+        readHome: @escaping ReadHome = ContactsSource.readHomeFromContacts,
         cast: @escaping Cast
     ) {
         self.read = read
         self.write = write
+        self.readHome = readHome
         self.cast = cast
         oldMapFile = directory.appending(path: "contacts-map.json")
         ledger = FactLedger(source: Self.sourceName, directory: directory)
@@ -109,6 +116,7 @@ actor ContactsSource {
     func poll(now: Date = Date()) async {
         do {
             cards = try await read()
+            homeStreets = await readHome()
             try await carryOverOldMap()
             readMap()
             await castChanges(now: now)
@@ -188,6 +196,21 @@ actor ContactsSource {
                 ))
         }
         return cards
+    }
+
+    /// April's own card's streets: "12 Mulberry Ln" → "12 mulberry ln". Empty when
+    /// there is no Me card or it has no address.
+    static func readHomeFromContacts() async -> [String] {
+        let store = CNContactStore()
+        guard
+            let me = try? store.unifiedMeContactWithKeys(toFetch: [
+                CNContactPostalAddressesKey as CNKeyDescriptor
+            ])
+        else { return [] }
+        return me.postalAddresses.map {
+            $0.value.street.lowercased().replacingOccurrences(of: "\n", with: " ")
+                .trimmingCharacters(in: .whitespaces)
+        }.filter { !$0.isEmpty }
     }
 
     private static func isBeakyField(_ value: CNLabeledValue<NSString>) -> Bool {

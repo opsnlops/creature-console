@@ -64,6 +64,8 @@ final class BridgeStore {
     private(set) var calendarTitles: [String] = []
     /// Every order the mail has told the Bridge about, newest first.
     private(set) var orders: [Order] = []
+    /// Appointments the mail has told the Bridge about, soonest first.
+    private(set) var appointments: [Appointment] = []
     /// What the texts have told the Bridge lately, newest first.
     private(set) var told: [MessageTold] = []
     var lastError: ErrorAlert?
@@ -85,6 +87,8 @@ final class BridgeStore {
     @ObservationIgnored private var calendarTask: Task<Void, Never>?
     @ObservationIgnored private var mailSource: MailSource?
     @ObservationIgnored private var mailTask: Task<Void, Never>?
+    /// One IDLE watch per account, on its inbox.
+    @ObservationIgnored private var mailWatches: [Task<Void, Never>] = []
     @ObservationIgnored private var messagesSource: MessagesSource?
     @ObservationIgnored private var messagesTask: Task<Void, Never>?
 
@@ -119,10 +123,20 @@ final class BridgeStore {
             calendar: connection.isCalendarOn,
             mail: connection.isMailOn
                 ? (connection.mailSenders.carriers + connection.mailSenders.merchants
-                    + connection.mailAccounts.map(\.id)).joined(separator: ",") : "",
+                    + connection.mailAccounts.map(\.id) + mappedEmails.sorted()).joined(
+                        separator: ",")
+                : "",
             messages: connection.isMessagesOn
                 ? "\(connection.readsGroupChats)|\(connection.messagesLookbackDays)|\(connection.messagesExtraHandles.joined(separator: ","))"
                 : "")
+    }
+
+    /// The email addresses of everyone mapped in the address book - the mail from them is read
+    /// for appointments, so Mail restarts when this changes.
+    private var mappedEmails: [String] {
+        contactMap.keys.compactMap { identifier in
+            contacts.first { $0.identifier == identifier }?.emails.values
+        }.flatMap { $0 }.map { $0.lowercased() }
     }
 
     @ObservationIgnored private var lastSourceSettings: SourceSettings?
@@ -219,7 +233,7 @@ final class BridgeStore {
                 sources[.calendar] = SourceStatus()
             }
         }
-        if before?.mail != now.mail {
+        if before?.mail != now.mail || before?.contacts != now.contacts {
             stopMail()
             if connection.isMailOn {
                 startMail(directory: directory, box: box, client: client)
@@ -256,6 +270,8 @@ final class BridgeStore {
     }
 
     private func stopMail() {
+        for watch in mailWatches { watch.cancel() }
+        mailWatches = []
         mailTask?.cancel()
         if let mailSource { Task { await mailSource.stop() } }
         mailSource = nil
@@ -307,6 +323,8 @@ final class BridgeStore {
                 self.sources[.addressBook] = status
                 self.contacts = await source.cards
                 self.contactMap = await source.map
+                // The people are known now: Mail reads their letters too.
+                self.refreshSources()
             }
         }
     }
@@ -348,17 +366,36 @@ final class BridgeStore {
     /// the Mac. The first read of each mailbox goes back 120 days, then only what is new.
     private func startMail(directory: URL, box: Outbox, client: WorldViewerClient) {
         let senders = connection.mailSenders
+        // Mail from anyone April has mapped is read for an appointment, whatever its subject.
+        let classifier = MailClassifier(
+            carriers: senders.carriers, merchants: senders.merchants, people: mappedEmails)
         let accounts = connection.mailAccounts
         // The read goes on while April is out and the Mac is locked; a password kept before
         // the Bridge knew to ask for that is fixed up here.
         for account in accounts { try? IMAPPasswords.allowReadingWhileLocked(for: account) }
         let intakes = accounts.map {
             IMAPIntake(
-                account: $0, senders: senders.carriers + senders.merchants, directory: directory)
+                account: $0, interest: { classifier.isInteresting(from: $0, subject: $1) },
+                directory: directory)
         }
+        let contacts = contactsSource
         let source = MailSource(
             directory: directory,
-            classifier: MailClassifier(carriers: senders.carriers, merchants: senders.merchants),
+            classifier: classifier, house: connection.houseID,
+            homeStreets: { await contacts?.homeStreets ?? [] },
+            senderName: { from in
+                guard let contacts else { return nil }
+                let address = MailReader.address(of: from)
+                let cards = await contacts.cards
+                let map = await contacts.map
+                guard
+                    let card = cards.first(where: {
+                        map[$0.identifier] != nil
+                            && $0.emails.values.contains { $0.lowercased() == address }
+                    })
+                else { return nil }
+                return card.organization.isEmpty ? card.fullName : card.organization
+            },
             fetch: { progress in
                 var all: [MailMessage] = []
                 for (account, intake) in zip(accounts, intakes) {
@@ -368,14 +405,16 @@ final class BridgeStore {
                         )
                     }
                 }
-                return all
+                return (all, { for intake in intakes { await intake.commit() } })
             }
         ) { event in try await box.enqueue(event) }
         mailSource = source
         mailTask = Task { [weak self] in
             do {
                 try await GlossarySeeder(client: client, source: MailSource.sourceName)
-                    .seed(OrderFacts.meanings, worldOnly: OrderFacts.worldOnly)
+                    .seed(
+                        OrderFacts.meanings.merging(CalendarFacts.meanings) { own, _ in own },
+                        worldOnly: OrderFacts.worldOnly.union(CalendarFacts.worldOnly))
             } catch {
                 await MainActor.run {
                     self?.sources[.mail] = SourceStatus(
@@ -390,10 +429,16 @@ final class BridgeStore {
                 return
             }
             await source.start()
+            // The inbox is watched with IDLE too: new mail is read the moment it lands.
+            let watches = zip(accounts, intakes).map { account, intake in
+                intake.watchInbox(account: account) { await source.poll() }
+            }
+            await MainActor.run { self?.mailWatches = watches }
             for await status in await source.updates() {
                 guard let self else { return }
                 self.sources[.mail] = status
                 self.orders = await source.orders
+                self.appointments = await source.upcomingAppointments
             }
         }
     }

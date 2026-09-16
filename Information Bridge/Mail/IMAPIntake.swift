@@ -1,6 +1,7 @@
 import CreatureAppSupport
 import Foundation
 import SwiftMail
+import os
 
 /// One IMAP account the Bridge reads: April's own server first, iCloud second. The password
 /// lives in the Keychain; everything else in defaults. No Mail.app in the loop.
@@ -64,20 +65,29 @@ enum IMAPIntakeFailure: Error, CustomStringConvertible {
     }
 }
 
-/// Reads an account: every allowed mailbox, messages since a date from the listed senders,
-/// as `MailMessage`s. The first read goes back 120 days; later ones ask only for UIDs newer
-/// than the last seen in each mailbox, remembered on this Mac.
+/// Reads an account: every allowed mailbox, messages since a date, as `MailMessage`s. The
+/// headers of everything new are fetched and offered to `interest`; only the bodies of the
+/// messages it wants (orders, shipments, appointments - by sender and subject) are read. The
+/// first read goes back 120 days; later ones ask only for UIDs newer than the last seen in
+/// each mailbox, remembered on this Mac.
 actor IMAPIntake {
+    static let log = Logger(subsystem: "io.opsnlops.Information-Bridge", category: "mail")
+
     struct Progress: Equatable, Sendable {
         var mailboxes = 0
         var messages = 0
     }
 
     private let account: IMAPAccount
-    private let senders: [String]
+    /// Whether a message, by sender and subject, is worth its body.
+    typealias Interest = @Sendable (_ from: String, _ subject: String) -> Bool
+    private let interest: Interest
     private let stateFile: URL
-    /// Last UID seen per mailbox, with the UIDVALIDITY it was seen under.
+    /// Last UID seen per mailbox, with the UIDVALIDITY it was seen under - as committed.
     private var lastSeen: [String: LastSeen] = [:]
+    /// What the last read reached, kept until the source says it has taken the messages: a
+    /// Bridge stopped mid-way must read them again, not skip them.
+    private var pending: [String: LastSeen] = [:]
 
     private struct LastSeen: Codable, Equatable {
         var uidValidity: UInt32?
@@ -86,9 +96,9 @@ actor IMAPIntake {
         var readingVersion: Int? = nil
     }
 
-    init(account: IMAPAccount, senders: [String], directory: URL) {
+    init(account: IMAPAccount, interest: @escaping Interest, directory: URL) {
         self.account = account
-        self.senders = senders
+        self.interest = interest
         stateFile = directory.appending(
             path: "imap-\(account.id.filter { $0.isLetter || $0.isNumber || $0 == "." })-seen.json")
         if let data = try? Data(contentsOf: stateFile),
@@ -108,8 +118,9 @@ actor IMAPIntake {
         return try await server.listMailboxes().map(\.name).sorted()
     }
 
-    /// Everything new from the listed senders: the last `days` on a first read of a mailbox,
-    /// newer than the last seen afterwards. `progress` is told as each mailbox is done.
+    /// Everything new that `interest` wants: the last `days` on a first read of a mailbox,
+    /// newer than the last seen afterwards. `progress` is told as each mailbox is done. The
+    /// checkpoint moves only on `commit()`, once the caller has done with the messages.
     func read(
         since days: Int, now: Date = Date(),
         progress: @Sendable (Progress) async -> Void = { _ in }
@@ -131,23 +142,19 @@ actor IMAPIntake {
         }
         var messages: [MailMessage] = []
         var done = Progress()
+        pending = lastSeen
         for name in names {
             let selection = try await server.selectMailbox(name)
             let validity: UInt32? = selection.uidValidity.value
             var seen = lastSeen[name]
             if let seen, let validity, seen.uidValidity != validity {
                 // The server renumbered: start this mailbox over.
-                lastSeen[name] = nil
+                pending[name] = nil
             }
-            seen = lastSeen[name]
-            var criteria: [SearchCriteria] = [
+            seen = pending[name]
+            let criteria: [SearchCriteria] = [
                 .since(now.addingTimeInterval(-TimeInterval(days) * 86_400))
             ]
-            if !senders.isEmpty {
-                var clause = SearchCriteria.from(senders[0])
-                for sender in senders.dropFirst() { clause = .or(.from(sender), clause) }
-                criteria.append(clause)
-            }
             let found: MessageIdentifierSet<UID> =
                 if let seen {
                     try await server.search(
@@ -162,6 +169,14 @@ actor IMAPIntake {
                 for info in infos {
                     guard let uid = info.uid else { continue }
                     newest = max(newest, UInt32(uid.value))
+                    // Headers only, for most mail: the body is fetched when the sender and
+                    // subject say it is an order, a shipment, or an appointment.
+                    guard interest(info.from ?? "", info.subject ?? "") else {
+                        Self.log.debug(
+                            "Mail: \(name, privacy: .public) uid \(uid.value) from \(info.from ?? "", privacy: .private) \"\(info.subject ?? "", privacy: .private)\" - headers only, not read"
+                        )
+                        continue
+                    }
                     let message = try await server.fetchMessage(from: info)
                     let text = message.textBody ?? MailText.plain(fromHTML: message.htmlBody ?? "")
                     messages.append(
@@ -173,19 +188,106 @@ actor IMAPIntake {
                             date: info.date ?? now, text: text))
                 }
             }
-            lastSeen[name] = LastSeen(
+            pending[name] = LastSeen(
                 uidValidity: validity, uid: newest, readingVersion: MailSource.readingVersion)
             done.mailboxes += 1
             done.messages = messages.count
             await progress(done)
         }
-        try? JSONEncoder().encode(lastSeen).write(to: stateFile, options: .atomic)
         return messages
+    }
+
+    /// Watches the inbox with IMAP IDLE on a connection of its own, and calls `changed` the
+    /// moment the server says a message arrived - the cleaning lady's reply reaches the world
+    /// in seconds, not at the next poll. SwiftMail renews the IDLE and reconnects on its
+    /// own; a session that ends anyway is begun again after a pause. Cancel the task to stop.
+    static let watchedMailbox = "INBOX"
+
+    nonisolated func watchInbox(
+        account: IMAPAccount, changed: @escaping @Sendable () async -> Void
+    ) -> Task<Void, Never> {
+        Task {
+            var pause: Duration = .seconds(5)
+            while !Task.isCancelled {
+                do {
+                    let password = try IMAPPasswords.password(for: account)
+                    let server = IMAPServer(host: account.host, port: account.port)
+                    try await server.connect()
+                    try await server.login(username: account.username, password: password)
+                    let session = try await server.idle(on: Self.watchedMailbox)
+                    Self.log.notice(
+                        "Mail: watching \(account.id, privacy: .public) \(Self.watchedMailbox) with IDLE"
+                    )
+                    pause = .seconds(5)
+                    await withTaskCancellationHandler {
+                        for await event in session.events {
+                            if case .exists = event {
+                                Self.log.notice("Mail: the server says new mail arrived")
+                                await changed()
+                            }
+                            if case .bye = event { break }
+                        }
+                    } onCancel: {
+                        Task { try? await session.done() }
+                    }
+                    try? await server.disconnect()
+                } catch {
+                    Self.log.error(
+                        "Mail: IDLE on \(account.id, privacy: .public) failed - \("\(error)", privacy: .public)"
+                    )
+                }
+                guard !Task.isCancelled else { return }
+                try? await Task.sleep(for: pause)
+                pause = min(pause * 2, .seconds(300))
+            }
+        }
+    }
+
+    /// The messages of the last read are taken: the next read starts after them.
+    func commit() {
+        lastSeen = pending
+        try? JSONEncoder().encode(lastSeen).write(to: stateFile, options: .atomic)
     }
 }
 
-/// HTML to readable text, for the mails that have no plain part.
+/// HTML to readable text, for the mails that have no plain part; and a reply split into the
+/// latest words and the quoted thread beneath.
 enum MailText {
+    /// The newest part of a reply and what it quotes, with the "On <date>, <who> wrote:"
+    /// attribution and the `>` markers gone - a date on that line is nobody's appointment.
+    static func parts(of text: String) -> (latest: String, quoted: String) {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        var cut: Int?
+        for (index, line) in lines.enumerated() {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix(">") || trimmed.hasPrefix("-----Original Message")
+                || (trimmed.hasPrefix("On ") && trimmed.hasSuffix("wrote:"))
+                || (trimmed.hasPrefix("On ") && index + 1 < lines.count
+                    && lines[index + 1].trimmingCharacters(in: .whitespaces).hasSuffix("wrote:"))
+            {
+                cut = index
+                break
+            }
+        }
+        guard let cut else { return (text.trimmingCharacters(in: .whitespacesAndNewlines), "") }
+        let latest = lines[..<cut].joined(separator: "\n")
+        let quoted = lines[cut...].filter { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            return !(trimmed.hasPrefix("On ") && trimmed.hasSuffix("wrote:"))
+                && !trimmed.hasPrefix("-----Original Message") && !trimmed.hasSuffix("wrote:")
+        }.map { line -> String in
+            var stripped = Substring(line)
+            while let first = stripped.first, first == ">" || first == " " {
+                stripped = stripped.dropFirst()
+            }
+            return String(stripped)
+        }.joined(separator: "\n")
+        return (
+            latest.trimmingCharacters(in: .whitespacesAndNewlines),
+            quoted.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+    }
+
     static func plain(fromHTML html: String) -> String {
         var text = html
         text = text.replacingOccurrences(
