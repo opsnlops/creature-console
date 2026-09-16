@@ -196,6 +196,40 @@ struct WorldStoreTests {
         #expect(store.conversationItems == [question, answer])
     }
 
+    @Test("A conversation longer than a page is followed to its end, and grows from there")
+    func longConversationsAreFollowedToTheEnd() async throws {
+        let world = ScriptedWorld(history: [])
+        await world.script([.hold])
+        let conversationID = try ConversationID(validating: "conversation:april-house")
+        var items: [ConversationItem] = []
+        for index in 0..<(WorldViewerClient.maximumPageSize * 2 + 3) {
+            items.append(
+                try ConversationItem(
+                    conversationID: conversationID, authorID: april, authorKind: .person,
+                    text: "line \(index)",
+                    createdAt: Date(timeIntervalSince1970: 1_789_200_000 + Double(index)),
+                    utteranceID: .generated()))
+        }
+        await world.setConversation(items: items, deliveries: [])
+        let store = makeStore(world)
+        store.start()
+        defer { store.stop() }
+        try await settle {
+            store.conversationItems.count == min(items.count, WorldStore.maximumConversationItems)
+        }
+        #expect(store.conversationItems.last?.text == "line \(items.count - 1)")
+
+        // One more line: only it is fetched, and it lands at the end.
+        let latest = try ConversationItem(
+            conversationID: conversationID, authorID: april, authorKind: .person,
+            text: "the newest", createdAt: Date(timeIntervalSince1970: 1_789_300_000),
+            utteranceID: .generated())
+        await world.setConversation(items: items + [latest], deliveries: [])
+        await store.refreshConversation()
+        #expect(store.conversationItems.last?.text == "the newest")
+        #expect(store.conversationItems.count <= WorldStore.maximumConversationItems)
+    }
+
     // MARK: - Helpers
 
     private func makeStore(_ world: ScriptedWorld) -> WorldStore {
@@ -330,10 +364,17 @@ struct ScriptedScryer: WorldScrying {
         WorldTimerPage(timers: [], nextTimerID: nil, hasMore: false)
     }
 
-    func conversationItems(in conversationID: ConversationID, limit: Int) async throws
-        -> ConversationItemPage
-    {
-        ConversationItemPage(items: await world.conversation().0, nextItemID: nil, hasMore: false)
+    /// Pages as the world does: oldest first, `limit` at a time, after a given item.
+    func conversationItems(
+        in conversationID: ConversationID, after itemID: ConversationItemID?, limit: Int
+    ) async throws -> ConversationItemPage {
+        var items = await world.conversation().0
+        if let itemID, let index = items.firstIndex(where: { $0.itemID == itemID }) {
+            items = Array(items[(index + 1)...])
+        }
+        let page = Array(items.prefix(limit))
+        return ConversationItemPage(
+            items: page, nextItemID: page.last?.itemID, hasMore: items.count > limit)
     }
 
     func deliveries(in conversationID: ConversationID, limit: Int) async throws

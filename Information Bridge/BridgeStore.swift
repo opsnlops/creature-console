@@ -70,8 +70,14 @@ final class BridgeStore {
     private(set) var told: [MessageTold] = []
     var lastError: ErrorAlert?
 
-    static let version =
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+    /// "0.10.0 (756)": the marketing version and the build number, which is the commit count.
+    static let version: String = {
+        let marketing =
+            Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? "dev"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+        return "\(marketing) (\(build))"
+    }()
     static let host = Host.current().localizedName ?? ProcessInfo.processInfo.hostName
 
     private let connection: BridgeConnection
@@ -180,7 +186,7 @@ final class BridgeStore {
             heartbeatTask = Task { [weak self] in
                 while !Task.isCancelled {
                     await self?.heartbeat()
-                    try? await Task.sleep(for: .seconds(1_800))
+                    try? await Task.sleep(for: .seconds(300))
                 }
             }
             lastSourceSettings = nil

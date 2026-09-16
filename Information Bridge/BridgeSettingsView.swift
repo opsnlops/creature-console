@@ -27,6 +27,8 @@ struct BridgeSettingsView: View {
     @AppStorage(BridgeConnection.Keys.outsideID) private var outsideID =
         BridgeConnection.defaultOutsideID.rawValue
 
+    @State private var keepRunning = KeepRunning.isOn
+    @State private var keepRunningStatus = KeepRunning.statusText
     @State private var proxyAPIKey = ""
     @State private var hasLoadedAPIKey = false
     @State private var errorAlert: ErrorAlert?
@@ -102,6 +104,36 @@ struct BridgeSettingsView: View {
                 .disabled(!mailOn)
                 Text(
                     "The Bridge reads each account itself, straight from the server: the last 120 days the first time, then only what is new, every five minutes. Only mail from these senders is read; nothing of it leaves this Mac but the orders. Passwords stay in the Keychain."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Section("Keep Running") {
+                Toggle("Start at login and come back if it stops", isOn: $keepRunning)
+                    .onChange(of: keepRunning) { _, wanted in
+                        do {
+                            if wanted {
+                                try KeepRunning.turnOn()
+                            } else {
+                                try KeepRunning.turnOff()
+                            }
+                        } catch {
+                            errorAlert = ErrorAlert(title: "Login Item Not Changed", error: error)
+                            keepRunning = KeepRunning.isOn
+                        }
+                        keepRunningStatus = KeepRunning.statusText
+                    }
+                HStack {
+                    Text(keepRunningStatus)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Login Items…") { KeepRunning.openLoginItems() }
+                        .controlSize(.small)
+                }
+                Text(
+                    "The Bridge is meant to run unattended on this Mac. This registers a launch agent that starts it at login and relaunches it within seconds if it ever quits; macOS lists it under Login Items."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)

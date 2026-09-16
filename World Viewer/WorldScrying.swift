@@ -11,8 +11,9 @@ protocol WorldScrying: Sendable {
     func events(after sequence: Int64, limit: Int) async throws -> WorldEventPage
     func facts(limit: Int) async throws -> WorldFactPage
     func timers(limit: Int) async throws -> WorldTimerPage
-    func conversationItems(in conversationID: ConversationID, limit: Int) async throws
-        -> ConversationItemPage
+    func conversationItems(
+        in conversationID: ConversationID, after itemID: ConversationItemID?, limit: Int
+    ) async throws -> ConversationItemPage
     func characters() async throws -> CharacterSessionPage
     func scenes(limit: Int) async throws -> ScenePage
     func deliveries(in conversationID: ConversationID, limit: Int) async throws
@@ -56,10 +57,10 @@ struct LiveWorldScryer: WorldScrying {
 
     func timers(limit: Int) async throws -> WorldTimerPage { try await viewer.timers(limit: limit) }
 
-    func conversationItems(in conversationID: ConversationID, limit: Int) async throws
-        -> ConversationItemPage
-    {
-        try await viewer.conversationItems(in: conversationID, limit: limit)
+    func conversationItems(
+        in conversationID: ConversationID, after itemID: ConversationItemID?, limit: Int
+    ) async throws -> ConversationItemPage {
+        try await viewer.conversationItems(in: conversationID, after: itemID, limit: limit)
     }
 
     func deliveries(in conversationID: ConversationID, limit: Int) async throws

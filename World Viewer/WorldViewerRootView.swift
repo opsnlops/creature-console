@@ -130,6 +130,24 @@ struct WorldConnectionHeader: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
+            if let heartbeat = store.bridgeHeartbeat {
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    let alive = heartbeat.isCurrent(at: context.date)
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(alive ? Color.green : Color.orange)
+                            .frame(width: 6, height: 6)
+                        Text(
+                            alive
+                                ? "\(heartbeat.text) · heard \(heartbeat.heardAt, style: .relative) ago"
+                                : "\(heartbeat.text) · not heard from since \(heartbeat.heardAt, style: .time)"
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(alive ? .secondary : Color.orange)
+                        .lineLimit(2)
+                    }
+                }
+            }
             if let sequence = store.latestSequence {
                 Text("sequence \(sequence)")
                     .font(.caption2.monospacedDigit())

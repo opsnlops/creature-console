@@ -55,14 +55,15 @@ enum BridgeFacts {
             payload: payload)
     }
 
-    /// The Bridge's own heartbeat: `thing:information-bridge · bridge.online`, valid an hour, so
+    /// The Bridge's own heartbeat: `thing:information-bridge · bridge.online`, valid a quarter
+    /// hour and cast every five minutes, so
     /// a Bridge that stops is a fact that expires.
     static func online(version: String, host: String, at now: Date = Date()) throws
         -> WorldEventEnvelope
     {
         try given(
             subject: bridgeID, predicate: "bridge.online",
-            value: .string("Information Bridge \(version) on \(host)"), validFor: 3_600,
+            value: .string("Information Bridge \(version) on \(host)"), validFor: 900,
             source: "app", itemID: "online:\(WorldJSON.timestamp(now))", at: now)
     }
 

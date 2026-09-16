@@ -16,6 +16,8 @@ Open `Creature Console.xcodeproj`, choose the **World Viewer** scheme, and run (
 
 | Setting | Meaning | Default |
 | --- | --- | --- |
+| Conversation | The newest 500 items of the conversation, followed live. The history is served oldest-first a page at a time; before `0.7.1` only the first page was ever read, so a conversation past 500 items froze in the panel | |
+| (health corner) | Beneath the world's version: the Information Bridge's heartbeat, green with "heard N minutes ago" while the world holds it, orange with "not heard from since …" once it has expired (`0.7.1`) | |
 | Address / Port / Use TLS | The Creature World to watch (fuzzball is `10.69.66.1:8001`; production is `server.prod.chirpchirp.dev:443` with TLS) | `127.0.0.1:8001` |
 | Conversation ID | Which conversation the Conversation panel follows | `conversation:april-house` |
 | Use Proxy / Proxy Host / API Key | Reach the world from outside the LAN through the ingress proxy; the key is the app-family Keychain item shared with Creature Console and Flock Communicator | off |

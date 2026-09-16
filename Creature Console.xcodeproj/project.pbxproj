@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		IBA00000000000000000001B /* io.opsnlops.Information-Bridge.agent.plist in Launch Agent */ = {isa = PBXBuildFile; fileRef = IBA00000000000000000001A /* io.opsnlops.Information-Bridge.agent.plist */; };
 		0930B7036CD140AB9A85D6AC /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DFE236913DA409FB1992756 /* DebugSettings.swift */; };
 		1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */; };
 		110C412B2E516F270079CA75 /* EmergencyStopMessageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */; };
@@ -365,7 +366,22 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		IBA00000000000000000001C /* Launch Agent */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "Contents/Library/LaunchAgents";
+			dstSubfolderSpec = 1;
+			files = (
+				IBA00000000000000000001B /* io.opsnlops.Information-Bridge.agent.plist in Launch Agent */,
+			);
+			name = "Launch Agent";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		IBA00000000000000000001A /* io.opsnlops.Information-Bridge.agent.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "io.opsnlops.Information-Bridge.agent.plist"; sourceTree = "<group>"; };
 		1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidationProcessor.swift; sourceTree = "<group>"; };
 		110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyStopMessageProcessor.swift; sourceTree = "<group>"; };
 		110CABE72A959A00007769E4 /* SoundDataImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundDataImporter.swift; sourceTree = "<group>"; };
@@ -1015,6 +1031,7 @@
 				117C871C2CA0CC82007B5682 /* Creature TVUITests */,
 				BCA000000000000000000003 /* Flock Communicator */,
 				BCA00000000000000000000C /* Flock Communicator Tests */,
+				IBA00000000000000000001A /* io.opsnlops.Information-Bridge.agent.plist */,
 				BCA00000000000000000001F /* Flock_Communicator.entitlements */,
 				BCA000000000000000000022 /* Flock-Communicator-Info.plist */,
 				WVA000000000000000000003 /* World Viewer */,
@@ -1762,6 +1779,8 @@
 				IBA000000000000000000004 /* Sources */,
 				IBA000000000000000000005 /* Frameworks */,
 				IBA000000000000000000006 /* Resources */,
+				IBA00000000000000000001D /* Stamp Build Number */,
+				IBA00000000000000000001C /* Launch Agent */,
 			);
 			buildRules = (
 			);
@@ -1996,6 +2015,72 @@
 
 /* Begin PBXShellScriptBuildPhase section */
 		323048998CFAFF61434DF674 /* Stamp Build Number */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp Build Number";
+			shellPath = /bin/sh;
+			shellScript = (
+				"# Stamp CFBundleVersion with a monotonically increasing integer.",
+				"#",
+				"# App Store Connect requires CFBundleVersion to be a number that only ever goes up",
+				"# for a given marketing version. The previous git-short-SHA scheme is hexadecimal and",
+				"# unordered, so uploads were rejected outright — that is why this exists.",
+				"#",
+				"# The value is the number of commits reachable from HEAD. That is stateless,",
+				"# reproducible from any full checkout, and monotonic because commits only ever",
+				"# accumulate. Two builds of the same commit produce the same number, so to re-upload",
+				"# without a code change, either make a commit or raise BUILD_NUMBER_BASE below —",
+				"# raising it also jumps the sequence past anything already uploaded.",
+				"#",
+				"# Stamped at build time into the processed Info.plist so the signature covers it.",
+				"# CURRENT_PROJECT_VERSION in the project is only the fallback for a git-less build.",
+				"set -eu",
+				"",
+				"BUILD_NUMBER_BASE=0",
+				"",
+				"INFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"",
+				"if [ ! -f \"${INFO_PLIST}\" ]; then",
+				"  echo \"error: Info.plist not found at ${INFO_PLIST}; cannot stamp build number\"",
+				"  exit 1",
+				"fi",
+				"",
+				"COMMIT_COUNT=$(/usr/bin/git -C \"${SRCROOT}\" rev-list --count HEAD 2>/dev/null || true)",
+				"",
+				"# A shallow checkout counts only the commits it fetched, which would silently produce",
+				"# a much smaller build number than a full clone. CI defaults to depth 1, so warn loudly",
+				"# rather than let a bad number reach an upload.",
+				"IS_SHALLOW=$(/usr/bin/git -C \"${SRCROOT}\" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)",
+				"if [ \"${IS_SHALLOW}\" = \"true\" ]; then",
+				"  echo \"warning: shallow git checkout — commit count ${COMMIT_COUNT} is not the real history depth.\"",
+				"  echo \"warning: do not ship this build; fetch the full history first (git fetch --unshallow).\"",
+				"fi",
+				"",
+				"if printf '%s' \"${COMMIT_COUNT}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  BUILD_NUMBER=$((BUILD_NUMBER_BASE + COMMIT_COUNT))",
+				"else",
+				"  # No git at all (archiving an exported source tree). Fall back rather than failing",
+				"  # the build, but say so: this number does not move, so it must not be shipped twice.",
+				"  BUILD_NUMBER=\"${CURRENT_PROJECT_VERSION:-}\"",
+				"  echo \"warning: git unavailable — falling back to CURRENT_PROJECT_VERSION=${BUILD_NUMBER}.\"",
+				"  echo \"warning: that number does NOT increment. Do not upload this build.\"",
+				"fi",
+				"",
+				"if ! printf '%s' \"${BUILD_NUMBER}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  echo \"error: computed build number '${BUILD_NUMBER}' is not a positive integer\"",
+				"  exit 1",
+				"fi",
+				"",
+				"/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${BUILD_NUMBER}\" \"${INFO_PLIST}\" \\",
+				"  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${BUILD_NUMBER}\" \"${INFO_PLIST}\"",
+				"echo \"Stamped CFBundleVersion = ${BUILD_NUMBER} (${COMMIT_COUNT:-?} commits + base ${BUILD_NUMBER_BASE})\"",
+				"",
+			);
+			showEnvVarsInLog = 0;
+		};
+		IBA00000000000000000001D /* Stamp Build Number */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			inputPaths = (
@@ -3088,6 +3173,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -3105,7 +3191,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3124,6 +3210,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -3141,7 +3228,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3218,7 +3305,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.7.0;
+				MARKETING_VERSION = 0.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3250,7 +3337,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.7.0;
+				MARKETING_VERSION = 0.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

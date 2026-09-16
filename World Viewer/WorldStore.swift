@@ -41,6 +41,17 @@ final class WorldStore {
     private(set) var latestSequence: Int64?
     private(set) var facts: [Fact] = []
     private(set) var factsTruncated = false
+    /// The Information Bridge's last heartbeat, remembered after it expires so the health
+    /// line can say "not heard from since 5:44 PM" rather than nothing.
+    private(set) var bridgeHeartbeat: BridgeHeartbeat?
+
+    struct BridgeHeartbeat: Equatable, Sendable {
+        var text: String
+        var heardAt: Date
+        var validTo: Date?
+        /// The world still holds it: the Bridge is alive as far as the world knows.
+        func isCurrent(at now: Date) -> Bool { validTo.map { $0 > now } ?? true }
+    }
     /// The world's glossary: what each predicate means to its minds.
     private(set) var factKinds: [FactKind] = []
     private(set) var timers: [WorldTimer] = []
@@ -227,14 +238,29 @@ final class WorldStore {
         }
     }
 
+    /// How much of the conversation the panel keeps: the newest of it. The whole history is
+    /// the nightly memory's business, not the window's.
+    static let maximumConversationItems = 500
+
+    /// The conversation is served oldest first, a page at a time: the first load walks every
+    /// page to the end (the house has said more than a page's worth), and each update asks
+    /// only for what came after the last item seen.
     private func loadConversation() async throws {
         let scryer = try makeScryer()
         let limit = WorldViewerClient.maximumPageSize
-        async let items = scryer.conversationItems(in: conversationID, limit: limit)
-        async let page = scryer.deliveries(in: conversationID, limit: limit)
-        let (loadedItems, loadedDeliveries) = try await (items, page)
+        var items = conversationItems
+        var after = items.last?.itemID
+        while true {
+            let page = try await scryer.conversationItems(
+                in: conversationID, after: after, limit: limit)
+            guard !Task.isCancelled else { return }
+            items += page.items
+            guard page.hasMore, let last = page.items.last else { break }
+            after = last.itemID
+        }
+        let loadedDeliveries = try await scryer.deliveries(in: conversationID, limit: limit)
         guard !Task.isCancelled else { return }
-        conversationItems = loadedItems.items
+        conversationItems = Array(items.suffix(Self.maximumConversationItems))
         deliveries = Dictionary(
             loadedDeliveries.deliveries.map { ($0.intent.responseID, $0) },
             uniquingKeysWith: { _, newest in newest }
@@ -258,6 +284,7 @@ final class WorldStore {
                     case .snapshot(let snapshot):
                         latestSequence = snapshot.latestSequence
                         facts = snapshot.facts
+                        for fact in snapshot.facts { noteBridgeHeartbeat(fact) }
                         sweepExpiredFacts()
                         factsTruncated = snapshot.factsTruncated
                         timers = snapshot.timers
@@ -339,6 +366,7 @@ final class WorldStore {
     /// applies the same rule rather than showing two "current" answers until a refresh.
     private func apply(changedFacts: [Fact]) {
         for fact in changedFacts {
+            noteBridgeHeartbeat(fact)
             facts.removeAll {
                 $0.factID != fact.factID && $0.subjectID == fact.subjectID
                     && $0.predicate == fact.predicate
@@ -355,6 +383,17 @@ final class WorldStore {
     /// A fact with a validity window leaves the list when the window closes, not at the next
     /// refresh: the world sends no delta for an expiry, so the Viewer keeps its own alarm for the
     /// soonest one (a Forget is a fact valid for one second).
+    static let bridgeHeartbeatPredicate = "bridge.online"
+
+    private func noteBridgeHeartbeat(_ fact: Fact) {
+        guard fact.predicate == Self.bridgeHeartbeatPredicate, fact.supersededBy == nil,
+            case .string(let text) = fact.value,
+            bridgeHeartbeat.map({ fact.validFrom >= $0.heardAt }) ?? true
+        else { return }
+        bridgeHeartbeat = BridgeHeartbeat(
+            text: text, heardAt: fact.validFrom, validTo: fact.validTo)
+    }
+
     private func sweepExpiredFacts() {
         let now = Date()
         facts.removeAll { $0.supersededBy != nil || ($0.validTo.map { $0 <= now } ?? false) }

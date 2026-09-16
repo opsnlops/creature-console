@@ -11,7 +11,22 @@ April's M1 MacBook Pro (48 GB), logged in as April, kept from sleeping. Bundle
 `io.opsnlops.Information-Bridge`, in the Creature Console Xcode project as the **Information
 Bridge** scheme, macOS only. Not sandboxed (Messages' `chat.db` and Full Disk Access need that);
 hardened runtime on. Build and run it from Xcode; it lives in the menu bar and keeps working with
-its window closed.
+its window closed. The build number is the git commit count, stamped at build time like the
+Console's (`0.10.0 (756)` in the heartbeat and the window), so the Viewer says exactly which
+commit a Mac is running.
+
+## Keep Running (`0.10.0`)
+
+The Bridge is meant to run unattended. Settings → **Keep Running** → *Start at login and come
+back if it stops* registers a launch agent that ships inside the app bundle
+(`Contents/Library/LaunchAgents/io.opsnlops.Information-Bridge.agent.plist`, `RunAtLoad` +
+`KeepAlive`) through `SMAppService`: launchd starts the Bridge at login and relaunches it
+within seconds if it ever quits or crashes. macOS lists it under System Settings → General →
+Login Items, where it can be allowed or turned off as well; the settings line says which
+state it is in. The Bridge's heartbeat (`thing:information-bridge · bridge.online`) is cast
+every five minutes and valid for fifteen, and the World Viewer's health corner shows it —
+"Information Bridge 0.10.0 on cottontail · heard 2 minutes ago", or in orange, "not heard
+from since 5:44 PM" — so a Bridge that has stopped is noticed by the world, not discovered.
 
 ## Mail (`0.6.0`, plan step 5)
 
