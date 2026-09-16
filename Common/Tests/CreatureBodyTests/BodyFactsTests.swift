@@ -50,7 +50,50 @@ struct BodyFactsTests {
             byMotor["1"]
                 == .object(["position": .number(1500), "amps": .number(0.4), "watts": .number(4.8)])
         )
-        #expect(Set(BodyFacts.meanings.keys) == Set(facts.keys).union(motorFacts.keys))
+        #expect(Set(BodyFacts.meanings.keys).isSuperset(of: Set(facts.keys).union(motorFacts.keys)))
+    }
+
+    @Test("A Dynamixel report is every servo, the warmest, and the ones not answering")
+    func servosBecomeFacts() {
+        let report = DynamixelSensorReport(
+            creatureId: "beaky-id", creatureName: "Beaky",
+            motors: [
+                DynamixelSensors(
+                    dxlId: 1, temperatureF: 96.8, presentLoad: 120, voltageMv: 11_900,
+                    voltageV: 11.9, presentPosition: 2048, online: true),
+                DynamixelSensors(
+                    dxlId: 2, temperatureF: 104.0, presentLoad: -40, voltageMv: 11_900,
+                    voltageV: 11.9, presentPosition: 1700, online: true),
+                DynamixelSensors(
+                    dxlId: 3, temperatureF: 0, presentLoad: 0, voltageMv: 0, voltageV: 0,
+                    presentPosition: nil, online: false),
+            ])
+        let facts = BodyFacts.facts(from: report)
+        #expect(facts["body.servo_temperature_f"] == .string("104 °F, servo 2"))
+        #expect(facts["body.servos_offline"] == .array([.string("3")]))
+        guard case .object(let servos)? = facts["body.servos"] else {
+            Issue.record("no servos")
+            return
+        }
+        #expect(
+            servos["2"]
+                == .object([
+                    "temperature_f": .number(104), "load": .number(-40), "volts": .number(11.9),
+                    "online": .bool(true), "position": .number(1700),
+                ]))
+        // A servo going offline is a change worth saying, whatever the numbers.
+        var back = servos
+        back["3"] = .object([
+            "temperature_f": .number(0), "load": .number(0), "volts": .number(0),
+            "online": .bool(true),
+        ])
+        #expect(
+            BodyFacts.changed(
+                "body.servos", from: .object(servos), to: .object(back), thresholds: .init()))
+        #expect(
+            !BodyFacts.changed(
+                "body.servos", from: .object(servos), to: .object(servos), thresholds: .init()))
+        #expect(Set(BodyFacts.meanings.keys).isSuperset(of: facts.keys))
     }
 
     @Test(
@@ -72,6 +115,43 @@ struct BodyFactsTests {
         #expect(changes(78.0, at: 32) == ["body.board_temperature_f"])  // a degree is news
         #expect(changes(78.0, at: 300).isEmpty)  // steady
         #expect(changes(78.0, at: 520) == ["body.board_temperature_f", "body.power"])  // said again at 80% of its life
+    }
+
+    @Test("The server's counters are its vital signs; a bird's runtime state is what it is doing")
+    func serverAndRuntimeBecomeFacts() {
+        var counters = SystemCountersDTO(totalFrames: 1_000, animationsPlayed: 7, soundsPlayed: 3)
+        let first = BodyFacts.facts(from: counters, previous: nil, now: now)
+        #expect(first["server.frames_per_second"] == nil)
+        #expect(first["server.animations_played"] == .number(Double(counters.animationsPlayed)))
+        counters.totalFrames += 6_000
+        let second = BodyFacts.facts(
+            from: counters,
+            previous: (
+                SystemCountersDTO(totalFrames: 1_000, animationsPlayed: 7, soundsPlayed: 3), now
+            ), now: now + 60)
+        #expect(second["server.frames_per_second"] == .number(100))
+        #expect(Set(BodyFacts.meanings.keys).isSuperset(of: second.keys))
+
+        // The error type has no public initializer: the runtime comes from JSON, as it does live.
+        let runtime = try! JSONDecoder().decode(
+            CreatureRuntime.self,
+            from: Data(
+                """
+                {"idle_enabled": true,
+                 "activity": {"state": "running", "animation_id": "a1", "reason": "ad_hoc"},
+                 "last_error": {"message": "servo 3 timed out", "timestamp": 1789500000}}
+                """.utf8))
+        let facts = BodyFacts.facts(from: runtime)
+        #expect(
+            facts["body.activity"] == .string("playing an ad-hoc animation - speaking, most likely")
+        )
+        #expect(facts["body.idle_enabled"] == .bool(true))
+        if case .string(let error)? = facts["body.last_error"] {
+            #expect(error.hasPrefix("servo 3 timed out (at "))
+        } else {
+            Issue.record("no last error")
+        }
+        #expect(Set(BodyFacts.meanings.keys).isSuperset(of: facts.keys))
     }
 
     @Test("A creature's name finds its entity; the configuration can say otherwise")

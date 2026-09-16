@@ -27,6 +27,8 @@ struct BodyConfiguration: Equatable, Sendable {
     var validForSeconds = 600
     /// A fact is said again only after this many seconds, however much it changes.
     var minimumIntervalSeconds = 30
+    /// The server's totals climb every tick; they are said this often at most.
+    var serverIntervalSeconds = 60
     /// What counts as a change, per reading.
     var thresholds = Thresholds()
     /// Creature name → entity, for the creatures whose names do not slug to their entity
@@ -40,6 +42,9 @@ struct BodyConfiguration: Equatable, Sendable {
         var watts = 0.25
         var motorAmps = 0.05
         var motorPosition = 10
+        /// Dynamixel present-load units, of a range of about ±1000.
+        var servoLoad = 50
+        var framesPerSecond = 5.0
 
         init() {}
 
@@ -52,6 +57,9 @@ struct BodyConfiguration: Equatable, Sendable {
             watts = try container.decodeIfPresent(Double.self, forKey: .watts) ?? 0.25
             motorAmps = try container.decodeIfPresent(Double.self, forKey: .motorAmps) ?? 0.05
             motorPosition = try container.decodeIfPresent(Int.self, forKey: .motorPosition) ?? 10
+            servoLoad = try container.decodeIfPresent(Int.self, forKey: .servoLoad) ?? 50
+            framesPerSecond =
+                try container.decodeIfPresent(Double.self, forKey: .framesPerSecond) ?? 5
         }
 
         enum CodingKeys: String, CodingKey {
@@ -59,6 +67,8 @@ struct BodyConfiguration: Equatable, Sendable {
             case volts, amps, watts
             case motorAmps = "motor_amps"
             case motorPosition = "motor_position"
+            case servoLoad = "servo_load"
+            case framesPerSecond = "frames_per_second"
         }
     }
 
@@ -70,6 +80,7 @@ struct BodyConfiguration: Equatable, Sendable {
         var worldURL: String?
         var validForSeconds: Int?
         var minimumIntervalSeconds: Int?
+        var serverIntervalSeconds: Int?
         var thresholds: Thresholds?
         var characters: [String: String]?
 
@@ -81,6 +92,7 @@ struct BodyConfiguration: Equatable, Sendable {
             case worldURL = "world_url"
             case validForSeconds = "valid_for_seconds"
             case minimumIntervalSeconds = "minimum_interval_seconds"
+            case serverIntervalSeconds = "server_interval_seconds"
             case thresholds
             case characters
         }
@@ -105,6 +117,9 @@ struct BodyConfiguration: Equatable, Sendable {
             if let seconds = raw.validForSeconds { configuration.validForSeconds = seconds }
             if let seconds = raw.minimumIntervalSeconds {
                 configuration.minimumIntervalSeconds = seconds
+            }
+            if let seconds = raw.serverIntervalSeconds {
+                configuration.serverIntervalSeconds = seconds
             }
             if let thresholds = raw.thresholds { configuration.thresholds = thresholds }
             configuration.characters = try Dictionary(

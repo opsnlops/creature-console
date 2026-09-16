@@ -5,13 +5,16 @@
   "world_url": "http://127.0.0.1:8001/world/v1",
   "valid_for_seconds": 600,
   "minimum_interval_seconds": 30,
+  "server_interval_seconds": 60,
   "thresholds": {
     "temperature_f": 0.5,
     "volts": 0.1,
     "amps": 0.05,
     "watts": 0.25,
     "motor_amps": 0.05,
-    "motor_position": 10
+    "motor_position": 10,
+    "servo_load": 50,
+    "frames_per_second": 5
   },
   "characters": {}
 }

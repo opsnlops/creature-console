@@ -145,11 +145,17 @@ struct BodyProcessor: MessageProcessor {
     func processCacheInvalidation(_ cacheInvalidation: CacheInvalidation) async {}
     func processEmergencyStop(_ emergencyStop: EmergencyStop) async {}
     func processLog(_ logItem: ServerLogItem) async {}
-    func processDynamixelSensorReport(_ report: DynamixelSensorReport) async {}
+    func processDynamixelSensorReport(_ report: DynamixelSensorReport) async {
+        await state.take(
+            creatureID: report.creatureId, name: report.creatureName,
+            facts: BodyFacts.facts(from: report))
+    }
     func processNotice(_ notice: Notice) async {}
     func processPlaylistStatus(_ playlistStatus: PlaylistStatus) async {}
     func processStatusLights(_ statusLights: VirtualStatusLightsDTO) async {}
-    func processSystemCounters(_ counters: ServerCountersPayload) async {}
+    func processSystemCounters(_ payload: ServerCountersPayload) async {
+        await state.takeServer(payload)
+    }
     func processWatchdogWarning(_ watchdogWarning: WatchdogWarning) async {}
     func processJobProgress(_ jobProgress: JobProgress) async {}
     func processJobComplete(_ jobComplete: JobCompletion) async {}
@@ -165,6 +171,7 @@ actor BodyState {
     private let logger: Logger
     private var ledger = BodyLedger()
     private var unknown: Set<CreatureIdentifier> = []
+    private var lastCounters: (counters: SystemCountersDTO, at: Date)?
 
     init(
         configuration: BodyConfiguration, names: [CreatureIdentifier: String], world: WorldGate,
@@ -176,9 +183,28 @@ actor BodyState {
         self.logger = logger
     }
 
-    func take(creatureID: CreatureIdentifier, facts: [String: WorldJSONValue], now: Date = Date())
-        async
-    {
+    /// The server's counters: its own vital signs, and each bird's runtime state.
+    func takeServer(_ payload: ServerCountersPayload, now: Date = Date()) async {
+        let serverFacts = BodyFacts.facts(from: payload.counters, previous: lastCounters, now: now)
+        lastCounters = (payload.counters, now)
+        await say(
+            serverFacts, about: BodyFacts.serverID, now: now,
+            interval: TimeInterval(configuration.serverIntervalSeconds))
+        for state in payload.runtimeStates {
+            guard let runtime = state.runtime else { continue }
+            await take(
+                creatureID: state.creatureId, facts: BodyFacts.facts(from: runtime), now: now)
+        }
+    }
+
+    func take(
+        creatureID: CreatureIdentifier, name reported: String? = nil,
+        facts: [String: WorldJSONValue], now: Date = Date()
+    ) async {
+        // A Dynamixel report names its creature; remember it in case the server's list did not.
+        if let reported, !reported.isEmpty, names[creatureID] == nil {
+            names[creatureID] = reported
+        }
         guard let name = names[creatureID], let subject = configuration.character(named: name)
         else {
             if unknown.insert(creatureID).inserted {
@@ -188,10 +214,18 @@ actor BodyState {
             }
             return
         }
+        await say(
+            facts, about: subject, now: now,
+            interval: TimeInterval(configuration.minimumIntervalSeconds))
+    }
+
+    private func say(
+        _ facts: [String: WorldJSONValue], about subject: EntityID, now: Date,
+        interval: TimeInterval
+    ) async {
         let changes = ledger.changes(
             for: subject, facts: facts, now: now, thresholds: configuration.thresholds,
-            minimumInterval: TimeInterval(configuration.minimumIntervalSeconds),
-            validFor: TimeInterval(configuration.validForSeconds))
+            minimumInterval: interval, validFor: TimeInterval(configuration.validForSeconds))
         guard !changes.isEmpty else { return }
         do {
             let events = try changes.map {

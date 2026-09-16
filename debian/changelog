@@ -1,3 +1,19 @@
+creature-cli (2.72.1+world0.27.3+house0.1.4+gateway0.1.6+body0.2.0) unstable; urgency=medium
+
+  * creature-body 0.2.0: the server's metrics too - Beaky's special
+    version of the spell. Server counters become server.counters,
+    server.frames_per_second, server.animations_played, and
+    server.sounds_played on thing:creature-server (at most every 60 s),
+    and each bird's runtime state becomes body.activity ("playing an
+    ad-hoc animation - speaking, most likely"), body.idle_enabled, and
+    body.last_error.
+  * creature-body 0.1.1: Beaky's kind of body. Dynamixel sensor reports
+    become body.servos (per servo: temperature, load, volts, position,
+    online), body.servo_temperature_f (the warmest, and which), and
+    body.servos_offline. A servo going offline is always said.
+
+ -- April White <april@creature.engineering>  Tue, 15 Sep 2026 23:10:00 -0700
+
 creature-cli (2.72.1+world0.27.3+house0.1.4+gateway0.1.6+body0.1.0) unstable; urgency=medium
 
   * creature-body 0.1.0, new: the birds' sensors into the world. Follows
