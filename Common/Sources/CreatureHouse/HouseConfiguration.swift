@@ -84,7 +84,8 @@ struct EntityMapping: Equatable, Sendable {
         /// `sensor.*` with a number: → `environment.measurement_changed` with `predicate`.
         case measurement
         /// A camera's `*_person_detected` / `*_vehicle_detected` / `*_animal_detected`:
-        /// `on` → `camera.<detects>_seen`; `off` is not news.
+        /// `on` → `camera.<detects>_seen`; `off` after a long enough `on` →
+        /// `camera.<detects>_gone` (never for animals).
         case detection
     }
 
@@ -101,6 +102,10 @@ struct EntityMapping: Equatable, Sendable {
     let minimumChange: Double
     /// For detections: what the camera saw.
     let detects: Detects?
+    /// For detections: how long a sighting must last before its end is news. Ten minutes: a
+    /// car that passed is nothing twice; a car that sat for two hours has gone.
+    let goneAfterSeconds: TimeInterval
+    static let defaultGoneAfterSeconds: TimeInterval = 600
 
     struct Raw: Decodable {
         let entityID: String
@@ -109,6 +114,7 @@ struct EntityMapping: Equatable, Sendable {
         let predicate: String?
         let minimumChange: Double?
         let detects: Detects?
+        let goneAfterSeconds: TimeInterval?
 
         private enum CodingKeys: String, CodingKey {
             case entityID = "entity_id"
@@ -117,12 +123,14 @@ struct EntityMapping: Equatable, Sendable {
             case predicate
             case minimumChange = "minimum_change"
             case detects
+            case goneAfterSeconds = "gone_after_seconds"
         }
     }
 
     init(
         entityID: String, subjectID: EntityID, kind: Kind, predicate: String? = nil,
-        minimumChange: Double = 0, detects: Detects? = nil
+        minimumChange: Double = 0, detects: Detects? = nil,
+        goneAfterSeconds: TimeInterval = EntityMapping.defaultGoneAfterSeconds
     ) {
         self.entityID = entityID
         self.subjectID = subjectID
@@ -130,6 +138,7 @@ struct EntityMapping: Equatable, Sendable {
         self.predicate = predicate
         self.minimumChange = minimumChange
         self.detects = detects
+        self.goneAfterSeconds = goneAfterSeconds
     }
 
     init(raw: Raw) throws {
@@ -154,7 +163,8 @@ struct EntityMapping: Equatable, Sendable {
             kind: raw.kind,
             predicate: raw.predicate,
             minimumChange: raw.minimumChange ?? 0,
-            detects: raw.detects
+            detects: raw.detects,
+            goneAfterSeconds: raw.goneAfterSeconds ?? Self.defaultGoneAfterSeconds
         )
     }
 }

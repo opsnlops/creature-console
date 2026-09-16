@@ -9,6 +9,7 @@ struct HouseReducer: WorldReducer {
         HouseEvents.doorLocked, HouseEvents.doorUnlocked, HouseEvents.doorOpened,
         HouseEvents.doorClosed, HouseEvents.motionDetected, HouseEvents.motionCleared,
         HouseEvents.personSeen, HouseEvents.vehicleSeen, HouseEvents.animalSeen,
+        HouseEvents.personGone, HouseEvents.vehicleGone,
         HouseEvents.cameraWatching,
         HouseEvents.personArrived, HouseEvents.personLeft, HouseEvents.measurementChanged,
         HouseEvents.scenesOffered, HouseEvents.sceneRequested, HouseEvents.sceneActivated,
@@ -60,6 +61,12 @@ struct HouseReducer: WorldReducer {
                 }
             return WorldReduction(changedFacts: [
                 try fact(WorldFacts.seenPrefix + what, .bool(true), validFor: Self.motionLifetime)
+            ])
+        case HouseEvents.personGone, HouseEvents.vehicleGone:
+            // The sighting is over: the seen.* fact goes, whatever life it had left.
+            let what = event.type == HouseEvents.personGone ? "person" : "vehicle"
+            return WorldReduction(changedFacts: [
+                try fact(WorldFacts.seenPrefix + what, .bool(false), validFor: 1)
             ])
         case HouseEvents.personArrived:
             // Evidence: this supersedes the configured assumption for the same person.

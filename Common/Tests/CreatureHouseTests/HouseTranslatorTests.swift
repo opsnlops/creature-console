@@ -160,10 +160,11 @@ struct HouseTranslatorTests {
                 from: state("binary_sensor.driveway_vehicle_detected", "off"),
                 to: state("binary_sensor.driveway_vehicle_detected", "on")
             ).only?.type == HouseEvents.vehicleSeen)
+        // A car that passed: turning off a minute later is nothing twice.
         #expect(
             try translator.events(
                 from: state("binary_sensor.driveway_vehicle_detected", "on"),
-                to: state("binary_sensor.driveway_vehicle_detected", "off")
+                to: state("binary_sensor.driveway_vehicle_detected", "off", at: now + 60)
             ).isEmpty)
         #expect(
             try translator.events(
@@ -172,12 +173,35 @@ struct HouseTranslatorTests {
             .isEmpty)
     }
 
+    @Test("A sighting that lasted is news when it ends: the cleaners leaving")
+    func longSightingsEnd() throws {
+        // The cleaners' car sat in the driveway for two hours, then went.
+        let gone = try translator.events(
+            from: state("binary_sensor.driveway_vehicle_detected", "on"),
+            to: state("binary_sensor.driveway_vehicle_detected", "off", at: now + 2 * 3_600)
+        ).only
+        #expect(gone?.type == HouseEvents.vehicleGone)
+        #expect(gone?.payload["after_seconds"] == .number(7_200))
+        #expect(gone?.subjectIDs.first?.rawValue == "place:driveway")
+        // Exactly the threshold counts; a second less does not.
+        #expect(
+            try translator.events(
+                from: state("binary_sensor.driveway_vehicle_detected", "on"),
+                to: state("binary_sensor.driveway_vehicle_detected", "off", at: now + 600)
+            ).only?.type == HouseEvents.vehicleGone)
+        #expect(
+            try translator.events(
+                from: state("binary_sensor.driveway_vehicle_detected", "on"),
+                to: state("binary_sensor.driveway_vehicle_detected", "off", at: now + 599)
+            ).isEmpty)
+    }
+
     private func state(
         _ entityID: String, _ state: String, attributes: [String: WorldJSONValue] = [:],
-        context: String? = nil
+        context: String? = nil, at changed: Date? = nil
     ) -> EntityState {
         EntityState(
-            entityID: entityID, state: state, attributes: attributes, lastChanged: now,
+            entityID: entityID, state: state, attributes: attributes, lastChanged: changed ?? now,
             contextID: context)
     }
 }

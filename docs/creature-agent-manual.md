@@ -246,6 +246,11 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **No hands, and April's decisions are hers** (`2.72.3`). The scene contract says a bird cannot
+  lock doors, set lights, or move anything - it can only say - and that a decision April has
+  made is made: say your view once, then let it stand; never ask her to confirm it or press her
+  to change it. The house-remark contract weighs facts by how they are known and how fresh
+  ("something observed a minute ago outranks something expected later today").
 - **Tags never reach the room, in scenes either** (`2.72.2`). Beaky said "[learned: April
   medical.labs …]" aloud: the scene path stripped think-tags but not learning tags. They are
   stripped before speech now, across sentence boundaries.

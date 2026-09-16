@@ -30,6 +30,10 @@ struct HouseTranslator: Sendable {
             "state": .string(new.state),
         ]
         if let old { payload["previous_state"] = .string(old.state) }
+        if let old, type == HouseEvents.personGone || type == HouseEvents.vehicleGone {
+            payload["after_seconds"] = .number(
+                new.lastChanged.timeIntervalSince(old.lastChanged).rounded())
+        }
         if mapping.kind == .measurement, let predicate = mapping.predicate,
             let value = Double(new.state)
         {
@@ -91,8 +95,20 @@ struct HouseTranslator: Sendable {
             return HouseEvents.measurementChanged
         case .detection:
             // A detection is a moment; only the moment it happens is news, and at startup a
-            // camera that happens to be seeing something is not "news" either.
-            guard new.state == "on", old != nil else { return nil }
+            // camera that happens to be seeing something is not "news" either. Its end is news
+            // too, once it has lasted: a car that sat in the driveway for two hours has gone -
+            // the cleaners leaving - while a car that passed is nothing twice.
+            guard let old else { return nil }
+            if old.state == "on", new.state == "off" {
+                guard new.lastChanged.timeIntervalSince(old.lastChanged) >= mapping.goneAfterSeconds
+                else { return nil }
+                switch mapping.detects {
+                case .person?: return HouseEvents.personGone
+                case .vehicle?: return HouseEvents.vehicleGone
+                default: return nil  // animals never wake the birds, coming or going
+                }
+            }
+            guard new.state == "on" else { return nil }
             switch mapping.detects {
             case .person?: return HouseEvents.personSeen
             case .vehicle?: return HouseEvents.vehicleSeen

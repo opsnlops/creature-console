@@ -1,3 +1,28 @@
+creature-cli (2.72.3+world0.28.0+house0.2.0+gateway0.1.6+body0.2.0) unstable; urgency=medium
+
+  * creature-house 0.2.0: a sighting that lasted is news when it ends.
+    A camera detection turning off after at least gone_after_seconds
+    (600) of on becomes camera.person_gone / camera.vehicle_gone with
+    after_seconds - the cleaners' car leaving after two hours, which the
+    house used to swallow because only turning on was a moment. Never
+    for animals. Nothing to configure: the default is ten minutes.
+  * creature-world 0.28.0: an ending is an occasion wherever its
+    beginning is - an open_on/consider_on rule for camera.vehicle_seen at
+    a place covers camera.vehicle_gone there, so no world.json change is
+    needed. The trigger reads "A vehicle that had been at the driveway
+    for 2 hours and 10 minutes has gone."; the seen.* fact is retracted.
+  * creature-agent 2.72.3: no hands, and April's decisions are hers. The
+    scene contract now says a bird cannot lock doors, set lights, or move
+    anything, and that a decision April has made is made - say your view
+    once, then let it stand; never ask her to confirm it or press her to
+    change it. (Three turns of "do you want the door locked now?" after
+    she had said to leave it unlocked.) The house-remark contract weighs
+    facts by how they are known and how fresh: something observed a
+    minute ago outranks something expected later today (a car a minute
+    after "April just came home" was guessed to be the cleaner).
+
+ -- April White <april@creature.engineering>  Wed, 16 Sep 2026 17:20:00 -0700
+
 creature-cli (2.72.2+world0.27.3+house0.1.4+gateway0.1.6+body0.2.0) unstable; urgency=medium
 
   * creature-agent 2.72.2: a name the world already holds is that entity,

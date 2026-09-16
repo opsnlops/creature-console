@@ -187,12 +187,38 @@ struct SceneOpeningTests {
                 .isEmpty)
     }
 
-    private func event(_ type: WorldEventType, _ subject: EntityID) throws -> WorldEventEnvelope {
+    @Test("An ending is an occasion wherever its beginning is, and reads as a stay")
+    func endingsFollowBeginnings() async throws {
+        let policy = SceneOpeningPolicy(
+            rules: [SceneOpeningRule(event: HouseEvents.vehicleSeen, places: [driveway])])
+        let gone = try event(
+            HouseEvents.vehicleGone, driveway, payload: ["after_seconds": .number(7_800)])
+        #expect(
+            await policy.occasion(for: gone, at: now)
+                == SceneOpeningPolicy.Occasion(place: driveway, kind: .worldEvent))
+        #expect(
+            SceneOpeningPolicy.triggerText(for: gone, place: driveway)
+                == "A vehicle that had been at the driveway for 2 hours and 10 minutes has gone.")
+        let brief = try event(
+            HouseEvents.personGone, driveway, payload: ["after_seconds": .number(1_500)])
+        #expect(
+            SceneOpeningPolicy.triggerText(for: brief, place: driveway)
+                == "A person who had been at the driveway for 25 minutes is no longer seen there.")
+        // Nowhere a vehicle is watched for, nothing.
+        let elsewhere = try EntityID(validating: "place:kitchen")
+        #expect(
+            await policy.occasion(for: try event(HouseEvents.vehicleGone, elsewhere), at: now)
+                == nil)
+    }
+
+    private func event(
+        _ type: WorldEventType, _ subject: EntityID, payload: [String: WorldJSONValue] = [:]
+    ) throws -> WorldEventEnvelope {
         try WorldEventEnvelope(
             type: type, occurredAt: now,
             source: EventSource(
                 id: SourceID(validating: "home-assistant:test"), kind: "home-assistant"),
             subjectIDs: [subject], epistemic: EpistemicState(type: .observed, confidence: 1),
-            payload: [:])
+            payload: payload)
     }
 }

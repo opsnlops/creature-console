@@ -148,6 +148,11 @@ public enum HouseEvents {
     public static let personSeen = WorldEventType(rawValue: "camera.person_seen")!
     public static let vehicleSeen = WorldEventType(rawValue: "camera.vehicle_seen")!
     public static let animalSeen = WorldEventType(rawValue: "camera.animal_seen")!
+    /// The end of a long detection: a vehicle that sat in the driveway for two hours has
+    /// gone, a person who was about for an hour is no longer seen. `after_seconds` in the
+    /// payload says how long they were there. The moment the cleaners leave.
+    public static let personGone = WorldEventType(rawValue: "camera.person_gone")!
+    public static let vehicleGone = WorldEventType(rawValue: "camera.vehicle_gone")!
     /// The house says a camera watches a place (at startup, per detection mapping).
     public static let cameraWatching = WorldEventType(rawValue: "camera.watching")!
     public static let personArrived = WorldEventType(rawValue: "person.arrived")!

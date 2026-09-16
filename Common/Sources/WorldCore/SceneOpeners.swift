@@ -144,9 +144,19 @@ public actor SceneOpeningPolicy {
         guard let place = event.subjectIDs.first else { return nil }
         // The birds sleep. Cooldowns are not touched: the first thing after seven may speak.
         if let quietHours, quietHours.contains(now) { return nil }
+        // An ending is considered wherever its beginning is: a rule for `camera.vehicle_seen`
+        // at the driveway also covers `camera.vehicle_gone` there, so the cleaners leaving is an
+        // occasion without a line of configuration.
+        let asSeen: WorldEventType? =
+            switch event.type {
+            case HouseEvents.personGone: HouseEvents.personSeen
+            case HouseEvents.vehicleGone: HouseEvents.vehicleSeen
+            default: nil
+            }
         func matching(_ candidates: [SceneOpeningRule]) -> SceneOpeningRule? {
             candidates.first {
-                $0.event == event.type && ($0.places.isEmpty || $0.places.contains(place))
+                ($0.event == event.type || $0.event == asSeen)
+                    && ($0.places.isEmpty || $0.places.contains(place))
             }
         }
         let kind: SceneTrigger.Kind
@@ -170,6 +180,19 @@ public actor SceneOpeningPolicy {
         return Occasion(place: place, kind: kind)
     }
 
+    /// " for two hours" / " for 25 minutes", from `after_seconds`; nothing when unknown.
+    static func stay(_ event: WorldEventEnvelope) -> String {
+        guard case .number(let seconds)? = event.payload["after_seconds"], seconds >= 60 else {
+            return ""
+        }
+        let minutes = Int(seconds / 60)
+        if minutes < 60 { return " for \(minutes) minutes" }
+        let hours = minutes / 60
+        let rest = minutes % 60
+        if rest < 10 { return " for \(hours == 1 ? "an hour" : "\(hours) hours")" }
+        return " for \(hours == 1 ? "an hour" : "\(hours) hours") and \(rest) minutes"
+    }
+
     /// The stage note the birds read: "(A person was seen at the driveway.)"
     public static func triggerText(for event: WorldEventEnvelope, place: EntityID) -> String {
         let name = placeName(place)
@@ -179,6 +202,10 @@ public actor SceneOpeningPolicy {
         // that asserts a direction steers the mind before it has read the story.
         case HouseEvents.vehicleSeen: return "A vehicle was just seen at \(name)."
         case HouseEvents.animalSeen: return "An animal was just seen at \(name)."
+        case HouseEvents.personGone:
+            return "A person who had been at \(name)\(stay(event)) is no longer seen there."
+        case HouseEvents.vehicleGone:
+            return "A vehicle that had been at \(name)\(stay(event)) has gone."
         case HouseEvents.doorUnlocked:
             return "\(name.prefix(1).uppercased() + name.dropFirst()) was just unlocked."
         case HouseEvents.doorLocked:

@@ -203,6 +203,11 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**An ending is an occasion wherever its beginning is** (`0.28.0`): a rule for `camera.vehicle_seen`
+at a place also covers `camera.vehicle_gone` there (likewise person), so the cleaners leaving after
+two hours opens a scene — "A vehicle that had been at the driveway for 2 hours and 10 minutes has
+gone." — with no change to `world.json`; the `seen.*` fact is retracted.
+
 **The house asks** (`0.20.0`, step 3 of the judgement plan). Beside `scenes.open_on` — the
 events the lead *must* speak to — `scenes.consider_on` lists the events the house *asks* about:
 the same rule shape (event, places, cooldown), but the scene opens with trigger kind
