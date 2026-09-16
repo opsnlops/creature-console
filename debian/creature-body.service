@@ -1,0 +1,32 @@
+[Unit]
+Description=Creature Body: the birds' sensors into Beaky's world
+Documentation=https://github.com/opsnlops/creature-console
+After=network-online.target creature-world.service creature-server.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=creature-body
+DynamicUser=yes
+EnvironmentFile=-/etc/default/creature-body
+ExecStart=/bin/creature-body --config /etc/creature/body.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

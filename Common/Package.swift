@@ -29,6 +29,9 @@ let package = Package(
         .executable(
             name: "creature-house",
             targets: ["creature-house"]),
+        .executable(
+            name: "creature-body",
+            targets: ["creature-body"]),
 
     ],
     dependencies: [
@@ -247,6 +250,21 @@ let package = Package(
                 .product(name: "Tracing", package: "swift-distributed-tracing"),
             ],
             path: "Sources/CreatureHouse/"),
+        .executableTarget(
+            name: "creature-body",
+            dependencies: [
+                "Common",
+                "Observability",
+                "WorldCore",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+            ],
+            path: "Sources/CreatureBody/"),
+        .testTarget(
+            name: "CreatureBodyTests",
+            dependencies: ["creature-body", "Common", "WorldCore"]),
         .testTarget(
             name: "CreatureHouseTests",
             dependencies: [

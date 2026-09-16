@@ -31,7 +31,10 @@ from since 5:44 PM" — so a Bridge that has stopped is noticed by the world, no
 `/usr/bin/caffeinate -s` running, so the Mac on its charger does not sleep, lid closed or not
 (the first night proved a closed lid with nothing holding it puts the Bridge to sleep — the
 heartbeat stopped at 04:18 and came back at 04:35 when the lid opened). If a Mac still sleeps
-behind its lid, `sudo pmset -a disablesleep 1` is the stronger word.
+behind its lid, `sudo pmset -a disablesleep 1` is the stronger word. The app also holds a
+user-initiated activity assertion for its whole life (`0.10.2`): without it App Nap stretched
+the five-minute heartbeat to ten once the window was closed, and it asks macOS not to idle-sleep
+while the Bridge runs.
 
 ## Mail (`0.6.0`, plan step 5)
 

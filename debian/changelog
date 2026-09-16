@@ -1,3 +1,16 @@
+creature-cli (2.72.1+world0.27.3+house0.1.4+gateway0.1.6+body0.1.0) unstable; urgency=medium
+
+  * creature-body 0.1.0, new: the birds' sensors into the world. Follows
+    Creature Server's board and motor sensor reports and casts
+    body.board_temperature_f, body.power, body.motors, and
+    body.motor_load_a on character:<name>, said when they change past a
+    threshold and no more often than every 30 s, each valid ten minutes
+    so a bird that goes quiet stops feeling its body. Configured like
+    the world: /etc/creature/body.json, then CREATURE_* environment,
+    then options. The birds were curious.
+
+ -- April White <april@creature.engineering>  Tue, 15 Sep 2026 22:30:00 -0700
+
 creature-cli (2.72.1+world0.27.3+house0.1.4+gateway0.1.6) unstable; urgency=medium
 
   * creature-agent 2.72.1: a question answered in an earlier scene has

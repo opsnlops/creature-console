@@ -6,6 +6,12 @@ import SwiftUI
 @main
 struct InformationBridgeApp: App {
     @State private var store = BridgeStore()
+    /// Held for the life of the app: macOS must never nap it. The first night showed the
+    /// five-minute heartbeat arriving every ten - App Nap stretching a menu-bar app's timers
+    /// once its window is closed - and this also asks the system not to idle-sleep.
+    @State private var wakefulness = ProcessInfo.processInfo.beginActivity(
+        options: [.userInitiated, .idleSystemSleepDisabled],
+        reason: "Reading the house for the birds, all the time")
 
     var body: some Scene {
         WindowGroup {

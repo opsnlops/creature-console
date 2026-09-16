@@ -46,3 +46,11 @@ Description: Home Assistant adapter for Beaky's Virtual World
  Follows Home Assistant and tells Creature World what the house sees (doors,
  motion, people, temperatures, camera detections) and sets lighting scenes when
  a character is asked to. The token lives in /etc/default/creature-house.
+
+Package: creature-body
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The birds' sensors, into Beaky's Virtual World
+ Follows Creature Server's sensor reports and tells Creature World what each
+ bird's body says - board temperature, power rails, motors - as facts on the
+ bird, said when they change and forgotten when the bird goes quiet.

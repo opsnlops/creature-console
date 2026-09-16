@@ -1,0 +1,18 @@
+# Creature Body environment overrides.
+#
+# The service reads its non-secret defaults from /etc/creature/body.json. Uncomment values
+# here only when an environment override is preferable. A proxy API key, if the server is
+# reached through the proxy, lives here and nowhere else.
+
+#CREATURE_SERVER_HOST=127.0.0.1
+#CREATURE_SERVER_PORT=8000
+#CREATURE_SERVER_TLS=false
+#CREATURE_PROXY_HOST=
+#CREATURE_PROXY_API_KEY=
+#CREATURE_WORLD_URL=http://127.0.0.1:8001/world/v1
+
+# OpenTelemetry (uncomment to enable OTLP export).
+#OTEL_SERVICE_NAME=creature-body
+#OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
+#OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=YOUR_API_KEY_HERE
+#OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf

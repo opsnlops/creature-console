@@ -1,0 +1,17 @@
+{
+  "server_host": "127.0.0.1",
+  "server_port": 8000,
+  "server_uses_tls": false,
+  "world_url": "http://127.0.0.1:8001/world/v1",
+  "valid_for_seconds": 600,
+  "minimum_interval_seconds": 30,
+  "thresholds": {
+    "temperature_f": 0.5,
+    "volts": 0.1,
+    "amps": 0.05,
+    "watts": 0.25,
+    "motor_amps": 0.05,
+    "motor_position": 10
+  },
+  "characters": {}
+}
