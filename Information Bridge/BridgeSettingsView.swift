@@ -16,6 +16,10 @@ struct BridgeSettingsView: View {
     @AppStorage(BridgeConnection.Keys.calendarOn) private var calendarOn = false
     @AppStorage(BridgeConnection.Keys.mailOn) private var mailOn = false
     @AppStorage(BridgeConnection.Keys.mailSenders) private var mailSenders = ""
+    @AppStorage(BridgeConnection.Keys.messagesOn) private var messagesOn = false
+    @AppStorage(BridgeConnection.Keys.messagesGroupChats) private var messagesGroupChats = false
+    @AppStorage(BridgeConnection.Keys.messagesExtraHandles) private var messagesExtraHandles = ""
+    @AppStorage(BridgeConnection.Keys.messagesLookbackDays) private var messagesLookbackDays = 1
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
     @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
@@ -98,6 +102,34 @@ struct BridgeSettingsView: View {
                 .disabled(!mailOn)
                 Text(
                     "The Bridge reads each account itself, straight from the server: the last 120 days the first time, then only what is new, every five minutes. Only mail from these senders is read; nothing of it leaves this Mac but the orders. Passwords stay in the Keychain."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Section("Messages") {
+                Toggle("Read what people text April, from Messages", isOn: $messagesOn)
+                Toggle("Read group chats too", isOn: $messagesGroupChats)
+                    .disabled(!messagesOn)
+                Stepper(
+                    "First read looks back \(messagesLookbackDays) day\(messagesLookbackDays == 1 ? "" : "s")",
+                    value: $messagesLookbackDays, in: 1...90
+                )
+                .disabled(!messagesOn)
+                LabeledContent("Carriers' numbers") {
+                    TextField(
+                        "Carriers' numbers", text: $messagesExtraHandles,
+                        prompt: Text(
+                            "short codes or numbers that text delivery notices, one per line"),
+                        axis: .vertical
+                    )
+                    .labelsHidden()
+                    .lineLimit(2...6)
+                    .font(.system(.body, design: .monospaced))
+                }
+                .disabled(!messagesOn)
+                Text(
+                    "Reads Messages' own database on this Mac every minute - it needs Full Disk Access (System Settings → Privacy & Security). Only texts from people mapped in the address book (and the numbers above) are looked at, only by Apple Intelligence on this Mac, and only what they mean goes to the world: on the way, a request, news, a delivery. The words never leave the Mac; April's own texts are skipped."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)

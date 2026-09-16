@@ -91,6 +91,33 @@ page, never in a prompt — and the rest for the minds; flip any of them in the 
 The book is re-read hourly; a changed card re-casts what changed, a card unmapped (or gone from
 the book) has every fact taken back, and a card mapped to someone else moves.
 
+## Messages (`0.8.0`, plan step 6)
+
+Settings → **Messages** → turn it on. The Bridge reads Messages' own database
+(`~/Library/Messages/chat.db`) directly, read-only and `immutable` so Messages is never blocked
+— which needs **Full Disk Access**: System Settings → Privacy & Security → Full Disk Access →
+add Information Bridge (the Xcode build's `Information Bridge.app`), then turn the source off and
+on. Without it the row says so. Every minute, whatever is new is read; the first run starts from
+the last day only, never the archive. **Only texts from people mapped in the address book are
+looked at** (and the carriers' numbers listed in Settings — short codes that text "left at the
+front door"); April's own texts, strangers, and group chats (unless ticked) are skipped unread.
+
+Each such text is read by **Apple Intelligence on this Mac** into a kind and a few words —
+*visit* ("on the way", "running late, there by 6"), *request* ("asked April to grab milk"),
+*news* ("got the job"), *delivery* — or *nothing*, which is most of them. The words go to the
+world on the person, with when they were texted beside them: `person:jesse · visitor.expected =
+"on the way (texted 1:40 PM)"` for two hours (or until three hours past a time the text names,
+so "there by 6" holds until 9); `person.asked_april` for a day; `person.news` for a week;
+`house · delivery.arrived` for six hours, the same fact the mail's rule makes. What runs out is
+let go; the world had the `valid_to` all along. **The text itself is never written down and
+never leaves the Mac**; `message-readings.log` records when, from which number, and what it
+became. Without Apple Intelligence nothing is read — there is no deterministic reading of a
+text — and the row says so. The Sources card lists what the texts have said lately.
+
+The moment this is for, from the plan: Jesse texts "on my way" at 1:40; the driveway camera at
+1:58; "Hi Jesse! April, Jesse's here." — the text is the fact, the truck is the happening, and
+the greeting is the bird's own.
+
 ## Weather (`0.2.0`, plan step 2)
 
 Settings → **Weather**: turn it on. The house is wherever this Mac is: macOS asks once whether

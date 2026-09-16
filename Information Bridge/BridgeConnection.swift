@@ -27,6 +27,10 @@ final class BridgeConnection: Sendable {
         static let mailOn = "informationBridgeMailOn"
         static let mailSenders = "informationBridgeMailSenders"
         static let mailAccounts = "informationBridgeMailAccounts"
+        static let messagesOn = "informationBridgeMessagesOn"
+        static let messagesGroupChats = "informationBridgeMessagesGroupChats"
+        static let messagesExtraHandles = "informationBridgeMessagesExtraHandles"
+        static let messagesLookbackDays = "informationBridgeMessagesLookbackDays"
     }
 
     static let defaultHostname = "server.prod.chirpchirp.dev"
@@ -67,6 +71,20 @@ final class BridgeConnection: Sendable {
     var isContactsOn: Bool { defaults.bool(forKey: Keys.contactsOn) }
     var isCalendarOn: Bool { defaults.bool(forKey: Keys.calendarOn) }
     var isMailOn: Bool { defaults.bool(forKey: Keys.mailOn) }
+    var isMessagesOn: Bool { defaults.bool(forKey: Keys.messagesOn) }
+    var readsGroupChats: Bool { defaults.bool(forKey: Keys.messagesGroupChats) }
+    /// How far the first read looks back; one day unless April says otherwise (a test reads
+    /// further, and only what is still in force is cast).
+    var messagesLookbackDays: Int {
+        let days = defaults.integer(forKey: Keys.messagesLookbackDays)
+        return days > 0 ? days : 1
+    }
+    /// Numbers texts are read from even when no card is mapped to them: the carriers.
+    var messagesExtraHandles: [String] {
+        (defaults.string(forKey: Keys.messagesExtraHandles) ?? "")
+            .split(whereSeparator: { $0 == "\n" || $0 == "," })
+            .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
 
     /// The IMAP accounts the Bridge reads; passwords are in the Keychain, not here.
     var mailAccounts: [IMAPAccount] {

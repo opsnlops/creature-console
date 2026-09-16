@@ -8,7 +8,7 @@ same night (Bridge `0.2.0`: WeatherKit on `place:outside`, this Mac's location; 
 person, phone/email/address world-only). Step 4 built the same night (Bridge `0.4.0`: EventKit → `event:*` linked through the map;
 World `0.26.0`: the visitor rule, `calendar.at_home`). Step 5 built the same night (Bridge `0.5.0`: MailKit extension + scripted backfill, deterministic
 reading + Apple Intelligence on-device, orders as `order:*`; World `0.27.0`: the delivery rule,
-order lookup by items). Bridge `0.6.3`: carrier windows become days, `order.last_heard`. Bridge `0.7.0`: the person map moved onto the cards (URL labeled Beaky) and event notes can name the person. Step 6, Messages, is next — and the founding moment awaits its first
+order lookup by items). Bridge `0.6.3`: carrier windows become days, `order.last_heard`. Bridge `0.7.0`: the person map moved onto the cards (URL labeled Beaky) and event notes can name the person. Bridge `0.8.0`: step 6, Messages via `chat.db`, built. All six steps are built; what remains is living with them — and the founding moment awaits its first
 real delivery. **Step 5b, done the same night** (Bridge `0.6.0`): the MailKit extension and the AppleScript
 backfill are gone; the Bridge reads IMAP itself through SwiftMail (April: "are we doing this the
 hard way not using IMAP?" — and "I don't need Gmail", so no OAuth). Her own server and iCloud,
@@ -297,6 +297,11 @@ anyone. And "Did I order a servo?" — "Four, from Adafruit, on the 9th; they we
 this morning."
 
 ## Step 6 — Messages: what people tell April
+
+**Built 2026-09-15 evening (Bridge `0.8.0`)** as below, with two departures: the first run reads
+only the last day (never the archive), and the on-device model is the only reader — without
+Apple Intelligence the source says so and reads nothing, since a text has no regex-able shape.
+Awaiting April's Full Disk Access grant and the first real "on my way".
 
 **Source:** the Messages database, `~/Library/Messages/chat.db`, read directly (TCC: Full Disk
 Access for the Bridge). April, 2026-09-14: "Let's do the dirty thing and look at chat.db. This

@@ -83,6 +83,13 @@ actor FactLedger {
         return count
     }
 
+    /// Lets items go without taking anything back: their facts carried a `valid_to` the world
+    /// has already honoured, so there is nothing left to retract.
+    func forget(_ items: Set<String>) {
+        for item in items { entries[item] = nil }
+        save()
+    }
+
     private func send(
         _ entity: EntityID, _ predicate: String, _ value: WorldJSONValue, validUntil: Date?,
         item: String, now: Date, cast: Cast

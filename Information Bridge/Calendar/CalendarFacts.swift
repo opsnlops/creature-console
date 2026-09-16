@@ -20,10 +20,12 @@ struct CalendarItem: Equatable, Sendable, Codable {
     }
 }
 
-/// Who an attendee, or a name in a title, is in the world: built from April's contact map, so
-/// "Jesse Alvarez" and jesse@example.com both find `person:jesse`.
+/// Who an attendee, a name in a title, or a phone number on a text is in the world: built from
+/// April's contact map, so "Jesse Alvarez", jesse@example.com, and +1 360 555 0100 all find
+/// `person:jesse`.
 struct PersonResolver: Sendable {
     private var byEmail: [String: EntityID] = [:]
+    private var byPhone: [String: EntityID] = [:]
     private var byName: [String: EntityID] = [:]
     private var byFirstName: [String: EntityID] = [:]
 
@@ -32,6 +34,10 @@ struct PersonResolver: Sendable {
             guard let card = cards.first(where: { $0.identifier == identifier }) else { continue }
             for email in card.emails.values {
                 byEmail[email.lowercased()] = mapping.entityID
+            }
+            for phone in card.phones.values {
+                let key = Self.phoneKey(phone)
+                if key.count >= 7 { byPhone[key] = mapping.entityID }
             }
             if !card.fullName.isEmpty { byName[card.fullName.lowercased()] = mapping.entityID }
             if !card.nickname.isEmpty { byName[card.nickname.lowercased()] = mapping.entityID }
@@ -47,6 +53,10 @@ struct PersonResolver: Sendable {
         if let email, let id = byEmail[email.lowercased()] { return id }
         if let name, let id = byName[name.lowercased()] { return id }
         return nil
+    }
+
+    func person(phone: String) -> EntityID? {
+        byPhone[Self.phoneKey(phone)]
     }
 
     /// The first mapped person whose first name is a word of the title: "Jesse - deck boards".

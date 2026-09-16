@@ -64,6 +64,8 @@ final class BridgeStore {
     private(set) var calendarTitles: [String] = []
     /// Every order the mail has told the Bridge about, newest first.
     private(set) var orders: [Order] = []
+    /// What the texts have told the Bridge lately, newest first.
+    private(set) var told: [MessageTold] = []
     var lastError: ErrorAlert?
 
     static let version =
@@ -83,6 +85,8 @@ final class BridgeStore {
     @ObservationIgnored private var calendarTask: Task<Void, Never>?
     @ObservationIgnored private var mailSource: MailSource?
     @ObservationIgnored private var mailTask: Task<Void, Never>?
+    @ObservationIgnored private var messagesSource: MessagesSource?
+    @ObservationIgnored private var messagesTask: Task<Void, Never>?
 
     init(connection: BridgeConnection = .shared) {
         self.connection = connection
@@ -103,6 +107,7 @@ final class BridgeStore {
         var contacts: Bool
         var calendar: Bool
         var mail: String
+        var messages: String
     }
 
     private func sourceSettings() -> SourceSettings {
@@ -114,7 +119,10 @@ final class BridgeStore {
             calendar: connection.isCalendarOn,
             mail: connection.isMailOn
                 ? (connection.mailSenders.carriers + connection.mailSenders.merchants
-                    + connection.mailAccounts.map(\.id)).joined(separator: ",") : "")
+                    + connection.mailAccounts.map(\.id)).joined(separator: ",") : "",
+            messages: connection.isMessagesOn
+                ? "\(connection.readsGroupChats)|\(connection.messagesLookbackDays)|\(connection.messagesExtraHandles.joined(separator: ","))"
+                : "")
     }
 
     @ObservationIgnored private var lastSourceSettings: SourceSettings?
@@ -219,6 +227,14 @@ final class BridgeStore {
                 sources[.mail] = SourceStatus()
             }
         }
+        if before?.messages != now.messages || before?.contacts != now.contacts {
+            stopMessages()
+            if connection.isMessagesOn {
+                startMessages(directory: directory, box: box, client: client)
+            } else {
+                sources[.messages] = SourceStatus()
+            }
+        }
     }
 
     private func stopWeather() {
@@ -245,6 +261,12 @@ final class BridgeStore {
         mailSource = nil
     }
 
+    private func stopMessages() {
+        messagesTask?.cancel()
+        if let messagesSource { Task { await messagesSource.stop() } }
+        messagesSource = nil
+    }
+
     func stop() {
         healthTask?.cancel()
         heartbeatTask?.cancel()
@@ -253,6 +275,7 @@ final class BridgeStore {
         stopContacts()
         stopCalendar()
         stopMail()
+        stopMessages()
         if let box { Task { await box.stop() } }
         box = nil
     }
@@ -378,6 +401,51 @@ final class BridgeStore {
     /// Reads the accounts now rather than waiting for the next five minutes.
     func pollMail() async {
         await mailSource?.poll()
+    }
+
+    /// Step 6: what people tell April by text. People are found through the contact map, as
+    /// the calendar's are; without the address book on, no text is from anyone April knows.
+    private func startMessages(directory: URL, box: Outbox, client: WorldViewerClient) {
+        let contacts = contactsSource
+        let intake = MessagesIntake()
+        let source = MessagesSource(
+            directory: directory, house: connection.houseID,
+            readGroupChats: connection.readsGroupChats,
+            extraHandles: connection.messagesExtraHandles,
+            lookbackDays: connection.messagesLookbackDays,
+            fetch: { after, since in try intake.read(after: after, since: since) },
+            resolver: {
+                guard let contacts else { return PersonResolver(cards: [], map: [:]) }
+                return PersonResolver(cards: await contacts.cards, map: await contacts.map)
+            }
+        ) { event in try await box.enqueue(event) }
+        messagesSource = source
+        messagesTask = Task { [weak self] in
+            do {
+                try await GlossarySeeder(client: client, source: MessagesSource.sourceName)
+                    .seed(MessageFacts.meanings)
+            } catch {
+                await MainActor.run {
+                    self?.sources[.messages] = SourceStatus(
+                        state: .degraded("could not seed the glossary: \(error)"))
+                }
+            }
+            await source.start()
+            for await status in await source.updates() {
+                guard let self else { return }
+                self.sources[.messages] = status
+                self.told = await source.told
+            }
+        }
+    }
+
+    func pollMessages() async {
+        await messagesSource?.poll()
+    }
+
+    /// Reads the look-back window again from the start, as on a first run.
+    func startMessagesOver() async {
+        await messagesSource?.startOver()
     }
 
     /// The account's mailboxes, for choosing which to read.

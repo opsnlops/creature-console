@@ -20,6 +20,10 @@ struct BridgeRootView: View {
     @AppStorage(BridgeConnection.Keys.mailOn) private var mailOn = false
     @AppStorage(BridgeConnection.Keys.mailSenders) private var mailSenders = ""
     @AppStorage(BridgeConnection.Keys.mailAccounts) private var mailAccounts = Data()
+    @AppStorage(BridgeConnection.Keys.messagesOn) private var messagesOn = false
+    @AppStorage(BridgeConnection.Keys.messagesGroupChats) private var messagesGroupChats = false
+    @AppStorage(BridgeConnection.Keys.messagesExtraHandles) private var messagesExtraHandles = ""
+    @AppStorage(BridgeConnection.Keys.messagesLookbackDays) private var messagesLookbackDays = 1
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
     @AppStorage(BridgeConnection.Keys.latitude) private var latitude = 0.0
@@ -57,7 +61,8 @@ struct BridgeRootView: View {
             serverAddress, String(serverPort), String(serverUseTLS), String(useProxy), proxyHost,
             String(weatherOn), String(useMacLocation), String(latitude), String(longitude),
             outsideID, String(contactsOn), String(calendarOn), String(mailOn), mailSenders,
-            String(mailAccounts.count),
+            String(mailAccounts.count), String(messagesOn), String(messagesGroupChats),
+            messagesExtraHandles, String(messagesLookbackDays),
         ]) {
             store.start()
         }
@@ -140,6 +145,19 @@ struct BridgeRootView: View {
                         .buttonStyle(.glass)
                         .controlSize(.small)
                     }
+                    if source == .messages, status.state == .on {
+                        Button("Start over", systemImage: "backward.end") {
+                            Task { await store.startMessagesOver() }
+                        }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
+                        .help("Read the look-back window again from the start")
+                        Button("Read now", systemImage: "arrow.clockwise") {
+                            Task { await store.pollMessages() }
+                        }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
+                    }
                     if source == .addressBook, status.state != .off {
                         Button("People…", systemImage: "person.crop.rectangle.stack") {
                             openWindow(id: "people")
@@ -165,6 +183,9 @@ struct BridgeRootView: View {
                 }
                 if source == .mail, !store.orders.isEmpty {
                     OrdersList(orders: store.orders)
+                }
+                if source == .messages, !store.told.isEmpty {
+                    ToldList(told: store.told)
                 }
             }
             if let attribution = store.weatherAttribution {
@@ -286,6 +307,37 @@ private struct CalendarPicker: View {
                 )
                 .toggleStyle(.checkbox)
                 .font(.caption)
+            }
+        }
+        .padding(.leading, 28)
+    }
+}
+
+/// What the texts have told the Bridge: the fact in the Bridge's words, never the text.
+private struct ToldList: View {
+    let told: [MessageTold]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(told.prefix(8), id: \.item) { item in
+                HStack(spacing: 8) {
+                    Text(item.kind.rawValue)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(.blue.opacity(0.15), in: Capsule())
+                    Text(
+                        item.person.rawValue.split(separator: ":").last.map(String.init)?
+                            .capitalized ?? ""
+                    )
+                    .fontWeight(.medium)
+                    Text(item.when.isEmpty ? item.what : "\(item.what), \(item.when)")
+                        .lineLimit(1)
+                    Text(item.until, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .font(.callout)
             }
         }
         .padding(.leading, 28)
