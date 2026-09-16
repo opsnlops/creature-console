@@ -60,6 +60,30 @@ struct LearnedFact: Equatable, Sendable {
         return expression.stringByReplacingMatches(in: text, range: range, withTemplate: "")
     }
 
+    /// Strips tags from text that arrives a sentence at a time: a tag cut by the sentence
+    /// splitter ("[learned: April | medical.labs | getting labs now." / "| today]") is
+    /// dropped across the pieces, `inTag` carrying the cut from one piece to the next.
+    static func strippedStreaming(_ text: String, inTag: inout Bool) -> String {
+        var result = ""
+        var rest = Substring(text)
+        while !rest.isEmpty {
+            if inTag {
+                guard let close = rest.firstIndex(of: "]") else { return result }
+                rest = rest[rest.index(after: close)...]
+                inTag = false
+                continue
+            }
+            guard let open = rest.range(of: "[learned:") else {
+                result += rest
+                return result
+            }
+            result += rest[..<open.lowerBound]
+            rest = rest[open.upperBound...]
+            inTag = true
+        }
+        return result
+    }
+
     static func parse(_ inner: String, names: EntityNames) -> LearnedFact? {
         let parts = inner.split(separator: "|", omittingEmptySubsequences: false)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -98,16 +122,29 @@ struct LearnedFact: Equatable, Sendable {
 struct EntityNames: Sendable {
     let houseID: EntityID
     private(set) var characters: [String: EntityID] = [:]
+    /// Every entity the mind was shown, by its slug: a name it learns something about that
+    /// the world already holds - "Information Bridge" when `thing:information-bridge` is in
+    /// the facts - is that entity, whatever kind the mind wrote. The world knows; the mind
+    /// guesses.
+    private(set) var known: [String: EntityID] = [:]
 
-    init(houseID: EntityID, characters: [EntityID] = []) {
+    init(houseID: EntityID, characters: [EntityID] = [], known: [EntityID] = []) {
         self.houseID = houseID
         add(characters)
+        add(known)
     }
 
-    /// Adds every `character:` id, keyed by its name; anything else is ignored.
+    /// Adds every id: a `character:` by its name too, everything by its slug. The first id
+    /// for a slug stands; the birds and the house are added first.
     mutating func add(_ ids: [EntityID]) {
-        for id in ids where id.rawValue.hasPrefix("character:") {
-            characters[Self.key(FactPhrasing.name(of: id))] = id
+        for id in ids {
+            if id.rawValue.hasPrefix("character:") {
+                characters[Self.key(FactPhrasing.name(of: id))] = id
+            }
+            if let colon = id.rawValue.firstIndex(of: ":") {
+                let slug = String(id.rawValue[id.rawValue.index(after: colon)...])
+                if known[slug] == nil { known[slug] = id }
+            }
         }
     }
 
@@ -126,11 +163,14 @@ struct EntityNames: Sendable {
                 let slug = Self.slug(String(trimmed[trimmed.index(after: colon)...]))
             else { return nil }
             if kind == "house" { return houseID }
+            // The world already holds this name under a kind: that one, not the mind's.
+            if let existing = known[slug] { return existing }
             return EntityID(rawValue: "\(kind):\(slug)")
         }
         if let character = characters[Self.key(trimmed)] { return character }
         guard let slug = Self.slug(trimmed) else { return nil }
         if slug == "house" { return houseID }
+        if let existing = known[slug] { return existing }
         let placeWords: Set<String> = [
             "door", "driveway", "carport", "kitchen", "workshop", "orchard", "porch", "garage",
             "entryway", "room", "yard", "deck", "outside", "gate",

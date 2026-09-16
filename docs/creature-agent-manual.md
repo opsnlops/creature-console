@@ -246,6 +246,13 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **Tags never reach the room, in scenes either** (`2.72.2`). Beaky said "[learned: April
+  medical.labs …]" aloud: the scene path stripped think-tags but not learning tags. They are
+  stripped before speech now, across sentence boundaries.
+- **A known name is that entity** (`2.72.2`). A learned fact or memory about a name the world
+  already holds - `thing:information-bridge`, `place:orchard`, an order - lands on that entity
+  whatever kind the mind wrote; only a genuinely new name gets the mind's kind (or the
+  person/place guess). Mango had filed the Bridge as `person:information-bridge`.
 - **An earlier scene is a record, not an answer** (`2.72.1`). The scene contract's "already
   answered" means answered *in this scene*; a question April asks again gets a fresh answer
   from what the bird knows now, never a repeat of `scene.last`. (Mango had echoed a stale

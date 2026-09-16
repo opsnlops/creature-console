@@ -271,6 +271,10 @@ struct MemoryJob: Sendable {
         let spoke = digest.conversation.map(\.who) + digest.scenes.flatMap { $0.lines.map(\.who) }
         var names = EntityNames(houseID: houseID, characters: [own])
         names.add(spoke.compactMap { EntityID(rawValue: $0) })
+        // Everything the day's record touched is known: a memory about the Information
+        // Bridge lands on thing:information-bridge, not on a person of that name.
+        names.add(digest.happenings.map(\.subjectID))
+        names.add(digest.learned.compactMap { EntityID(rawValue: $0.who) })
         return names
     }
 

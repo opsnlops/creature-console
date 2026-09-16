@@ -29,9 +29,12 @@ every five minutes and valid for fifteen, and the World Viewer's health corner s
 from since 5:44 PM" — so a Bridge that has stopped is noticed by the world, not discovered.
 *Keep this Mac awake while it is on power* registers a second agent that keeps
 `/usr/bin/caffeinate -s` running, so the Mac on its charger does not sleep, lid closed or not
-(the first night proved a closed lid with nothing holding it puts the Bridge to sleep — the
-heartbeat stopped at 04:18 and came back at 04:35 when the lid opened). If a Mac still sleeps
-behind its lid, `sudo pmset -a disablesleep 1` is the stronger word. The app also holds a
+(the first night proved a closed lid puts the Bridge to sleep — the heartbeat stopped at 04:18
+and came back at 04:35 when the lid opened, and again with `pmset disablesleep` set: the
+world's log showed the 30-second health polls stop the minute the lid closed and resume the
+minute it opened). **On the laptop, leave the lid open and let the display sleep**, or plug in a
+display (a headless HDMI plug will do) so macOS treats a closed lid as clamshell mode. Nothing
+in the app can run while the Mac sleeps; `sudo pmset -g` shows whether `SleepDisabled` took. The app also holds a
 user-initiated activity assertion for its whole life (`0.10.2`): without it App Nap stretched
 the five-minute heartbeat to ten once the window was closed, and it asks macOS not to idle-sleep
 while the Bridge runs.
@@ -50,7 +53,11 @@ waits politely — and if the laptop dies, cottontail's takes over within fiftee
 The heartbeat and every poll are timed by a strict dispatch timer (`Pace.sleep`): plain
 `Task.sleep` on an idle Mac with the display off was stretched to double by timer coalescing,
 whatever assertions the app held. And the test host never starts the Bridge - a test run on
-cottontail was casting a heartbeat and the weather to production.
+cottontail was casting a heartbeat and the weather to production. And the world is reached
+through a session with real timeouts (`0.10.4`): `URLSession.shared` gives a request sixty
+seconds and a *resource* seven days, so a connection left half-open when the laptop's lid
+closed hung the outbox's delivery indefinitely - and the outbox delivers in order, so the
+heartbeat behind it never went. Twenty seconds, then the outbox retries on a fresh connection.
 
 ## Mail (`0.6.0`, plan step 5)
 

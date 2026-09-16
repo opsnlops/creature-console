@@ -1,3 +1,17 @@
+creature-cli (2.72.2+world0.27.3+house0.1.4+gateway0.1.6+body0.2.0) unstable; urgency=medium
+
+  * creature-agent 2.72.2: a name the world already holds is that entity,
+    whatever kind the mind wrote. Mango learned "person:
+    information-bridge · deployment.host" when thing:information-bridge
+    was in the very facts it was shown; learned facts and memories now
+    resolve against every entity the mind saw (and the day's record).
+  * creature-agent 2.72.2: in a scene, the [learned: ...] tags were spoken
+    - the scene path stripped think-tags but not the learning tags, and
+    the contract puts them in the last sentence. Stripped before speech
+    now, even when the sentence splitter cuts a tag in two.
+
+ -- April White <april@creature.engineering>  Wed, 16 Sep 2026 16:25:00 -0700
+
 creature-cli (2.72.1+world0.27.3+house0.1.4+gateway0.1.6+body0.2.0) unstable; urgency=medium
 
   * creature-body 0.2.0: the server's metrics too - Beaky's special

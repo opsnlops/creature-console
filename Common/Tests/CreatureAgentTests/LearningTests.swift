@@ -55,6 +55,26 @@ struct LearningTests {
         #expect(names.entity(named: "") == nil)
     }
 
+    @Test("A name the world already holds is that entity, whatever kind the mind wrote")
+    func knownEntitiesWin() throws {
+        var known = names
+        known.add([
+            try EntityID(validating: "thing:information-bridge"),
+            try EntityID(validating: "place:orchard"),
+            try EntityID(validating: "order:amazon-123"),
+        ])
+        // Mango wrote "person: Information Bridge"; the world knows it as a thing.
+        #expect(
+            known.entity(named: "person: Information Bridge")?.rawValue
+                == "thing:information-bridge")
+        #expect(
+            known.entity(named: "the Information Bridge")?.rawValue == "thing:information-bridge")
+        #expect(known.entity(named: "Orchard")?.rawValue == "place:orchard")
+        // Unknown names still get the mind's kind, or the guess.
+        #expect(known.entity(named: "person: Tamara")?.rawValue == "person:tamara")
+        #expect(known.entity(named: "Polly")?.rawValue == "person:polly")
+    }
+
     @Test("The tags never reach the room")
     func tagsAreStripped() {
         let raw =
@@ -65,6 +85,34 @@ struct LearningTests {
         #expect(
             CharacterMind.validate(
                 "[learned: Jesse | visitor.expected | Tuesday | week]", spokenBy: "beaky") == nil)
+    }
+
+    @Test("In a scene, the tags never reach the room either - even cut across two sentences")
+    func tagsAreStrippedWhileStreaming() {
+        var inTag = false
+        // The whole tag in the last sentence, as Beaky's "excellent wizard maintenance" line had it.
+        let last = CharacterMind.scenePiece(
+            "That is excellent wizard maintenance. [learned: April medical.labs getting Dr. Montgomery labs now today]",
+            first: false, characterName: "Beaky", speaker: nil, inTag: &inTag)
+        #expect(last == "That is excellent wizard maintenance.")
+        #expect(!inTag)
+        // A tag the sentence splitter cut at the period inside its value.
+        let head = CharacterMind.scenePiece(
+            "Glad it went well. [learned: April | medical.labs | labs with Dr. Montgomery.",
+            first: true, characterName: "Beaky", speaker: nil, inTag: &inTag)
+        #expect(head == "Glad it went well.")
+        #expect(inTag)
+        let tail = CharacterMind.scenePiece(
+            " | today] See you soon.", first: false, characterName: "Beaky", speaker: nil,
+            inTag: &inTag)
+        #expect(tail == "See you soon.")
+        #expect(!inTag)
+        // A piece that is nothing but the tag's tail is nothing to say.
+        inTag = true
+        #expect(
+            CharacterMind.scenePiece(
+                "now today]", first: false, characterName: "Beaky", speaker: nil, inTag: &inTag)
+                == nil)
     }
 
     @Test("Expiries are counted in the house's day")

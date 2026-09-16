@@ -157,8 +157,23 @@ final class BridgeConnection: Sendable {
     }
 
     func client() throws -> WorldViewerClient {
-        WorldViewerClient(connection: settings().connection(proxyAPIKey: try keyStore?.apiKey()))
+        WorldViewerClient(
+            connection: settings().connection(proxyAPIKey: try keyStore?.apiKey()),
+            loader: Self.session)
     }
+
+    /// The Bridge's own session, with timeouts that mean it. `URLSession.shared` allows a
+    /// request sixty seconds and a *resource* seven days: a connection left half-open when the
+    /// laptop's lid closed hung the outbox's delivery indefinitely, and the outbox delivers
+    /// in order, so the heartbeat behind it never went. Twenty seconds, then it is an error
+    /// the outbox retries on a fresh connection.
+    static let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 20
+        configuration.timeoutIntervalForResource = 45
+        configuration.waitsForConnectivity = false
+        return URLSession(configuration: configuration)
+    }()
 
     func settings() -> CreatureServiceSettings {
         CreatureServiceSettings(

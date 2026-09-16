@@ -556,6 +556,8 @@ struct CharacterMind: Sendable {
         private let characterName: String
         private let speaker: String?
         private let startedAt: Date
+        /// Inside a `[learned:` tag the sentence splitter cut in two.
+        private var inTag = false
 
         init(characterName: String, speaker: String?, startedAt: Date) {
             self.characterName = characterName
@@ -570,7 +572,8 @@ struct CharacterMind: Sendable {
         func offer(_ raw: String) -> Verdict {
             guard
                 let piece = CharacterMind.scenePiece(
-                    raw, first: spoken.isEmpty, characterName: characterName, speaker: speaker)
+                    raw, first: spoken.isEmpty, characterName: characterName, speaker: speaker,
+                    inTag: &inTag)
             else {
                 if spoken.isEmpty, CharacterMind.declinesToSpeak(raw) {
                     declined = true
@@ -590,9 +593,13 @@ struct CharacterMind: Sendable {
     /// One sentence of a scene line, cleaned for speech; `nil` when there is nothing to say
     /// in it (a stage direction alone, a label, silence).
     static func scenePiece(
-        _ raw: String, first: Bool, characterName: String, speaker: String?
+        _ raw: String, first: Bool, characterName: String, speaker: String?,
+        inTag: inout Bool
     ) -> String? {
-        let stripped = LocalLLMClient.stripThinkTags(raw)
+        // What the mind learned is for the world, never the room: the tags go before
+        // anything is spoken, even when the sentence splitter cut one in two.
+        let stripped = LearnedFact.strippedStreaming(
+            LocalLLMClient.stripThinkTags(raw), inTag: &inTag)
         if first, declinesToSpeak(stripped) { return nil }
         var text = first ? withoutSpeakerLabel(stripped, characterName: characterName) : stripped
         text = TextSanitizer.sanitize(withoutStageDirections(text)).text
@@ -835,17 +842,21 @@ struct CharacterMind: Sendable {
     }
 
     /// The birds a learned tag may name: this one, and whoever the world says is present.
+    /// Every entity in the facts the mind was shown counts as known: what it learns about
+    /// one of them lands on it, not on a guess at its kind.
     private func names(for percept: PersonUtterancePercept) -> EntityNames {
         EntityNames(
             houseID: configuration.houseID,
             characters: [configuration.characterID]
-                + FactPhrasing.presentCharacters(in: percept.worldFacts))
+                + FactPhrasing.presentCharacters(in: percept.worldFacts),
+            known: percept.worldFacts.map(\.subjectID))
     }
 
     private func names(for offer: SceneTurnOffer) -> EntityNames {
         EntityNames(
             houseID: configuration.houseID,
-            characters: [configuration.characterID] + offer.participants)
+            characters: [configuration.characterID] + offer.participants,
+            known: offer.worldFacts.map(\.subjectID))
     }
 
     /// The trace context the world attached to the utterance, as a span parent.
