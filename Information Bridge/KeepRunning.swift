@@ -36,4 +36,29 @@ enum KeepRunning {
     static func openLoginItems() {
         SMAppService.openSystemSettingsLoginItems()
     }
+
+    // MARK: - Staying awake
+
+    /// A second agent, `/usr/bin/caffeinate -s` kept alive by launchd: while the Mac is on
+    /// power it does not go to sleep, lid closed or not, so the Bridge reads through the night.
+    /// The heartbeat proves whether it holds; if a Mac still sleeps behind its lid,
+    /// `sudo pmset -a disablesleep 1` is the stronger word.
+    static let awakePlist = "io.opsnlops.Information-Bridge.awake.plist"
+
+    private static var awake: SMAppService { .agent(plistName: awakePlist) }
+
+    static var isAwakeOn: Bool { awake.status == .enabled }
+
+    static var awakeStatusText: String {
+        switch awake.status {
+        case .enabled: "on - caffeinate holds the Mac awake while it is on power"
+        case .requiresApproval: "waiting for approval in System Settings → General → Login Items"
+        case .notRegistered: "off"
+        case .notFound: "the awake agent is missing from the app bundle"
+        @unknown default: "unknown"
+        }
+    }
+
+    static func turnAwakeOn() throws { try awake.register() }
+    static func turnAwakeOff() throws { try awake.unregister() }
 }

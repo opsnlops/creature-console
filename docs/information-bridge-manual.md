@@ -27,6 +27,11 @@ state it is in. The Bridge's heartbeat (`thing:information-bridge · bridge.onli
 every five minutes and valid for fifteen, and the World Viewer's health corner shows it —
 "Information Bridge 0.10.0 on cottontail · heard 2 minutes ago", or in orange, "not heard
 from since 5:44 PM" — so a Bridge that has stopped is noticed by the world, not discovered.
+*Keep this Mac awake while it is on power* registers a second agent that keeps
+`/usr/bin/caffeinate -s` running, so the Mac on its charger does not sleep, lid closed or not
+(the first night proved a closed lid with nothing holding it puts the Bridge to sleep — the
+heartbeat stopped at 04:18 and came back at 04:35 when the lid opened). If a Mac still sleeps
+behind its lid, `sudo pmset -a disablesleep 1` is the stronger word.
 
 ## Mail (`0.6.0`, plan step 5)
 

@@ -29,6 +29,8 @@ struct BridgeSettingsView: View {
 
     @State private var keepRunning = KeepRunning.isOn
     @State private var keepRunningStatus = KeepRunning.statusText
+    @State private var stayAwake = KeepRunning.isAwakeOn
+    @State private var stayAwakeStatus = KeepRunning.awakeStatusText
     @State private var proxyAPIKey = ""
     @State private var hasLoadedAPIKey = false
     @State private var errorAlert: ErrorAlert?
@@ -134,6 +136,28 @@ struct BridgeSettingsView: View {
                 }
                 Text(
                     "The Bridge is meant to run unattended on this Mac. This registers a launch agent that starts it at login and relaunches it within seconds if it ever quits; macOS lists it under Login Items."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                Toggle("Keep this Mac awake while it is on power", isOn: $stayAwake)
+                    .onChange(of: stayAwake) { _, wanted in
+                        do {
+                            if wanted {
+                                try KeepRunning.turnAwakeOn()
+                            } else {
+                                try KeepRunning.turnAwakeOff()
+                            }
+                        } catch {
+                            errorAlert = ErrorAlert(title: "Awake Agent Not Changed", error: error)
+                            stayAwake = KeepRunning.isAwakeOn
+                        }
+                        stayAwakeStatus = KeepRunning.awakeStatusText
+                    }
+                Text(stayAwakeStatus)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(
+                    "A second agent runs caffeinate so the Mac does not sleep on the charger, lid closed or not; the Bridge's heartbeat in the World Viewer shows whether it holds. If this Mac still sleeps behind its lid, the stronger word is: sudo pmset -a disablesleep 1"
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)

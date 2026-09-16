@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		IBA000000000000000000031 /* io.opsnlops.Information-Bridge.awake.plist in Launch Agent */ = {isa = PBXBuildFile; fileRef = IBA000000000000000000030 /* io.opsnlops.Information-Bridge.awake.plist */; };
 		IBA00000000000000000001B /* io.opsnlops.Information-Bridge.agent.plist in Launch Agent */ = {isa = PBXBuildFile; fileRef = IBA00000000000000000001A /* io.opsnlops.Information-Bridge.agent.plist */; };
 		0930B7036CD140AB9A85D6AC /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DFE236913DA409FB1992756 /* DebugSettings.swift */; };
 		1107942B2C44D8FA008EF68E /* CacheInvalidationProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */; };
@@ -374,6 +375,7 @@
 			dstSubfolderSpec = 1;
 			files = (
 				IBA00000000000000000001B /* io.opsnlops.Information-Bridge.agent.plist in Launch Agent */,
+				IBA000000000000000000031 /* io.opsnlops.Information-Bridge.awake.plist in Launch Agent */,
 			);
 			name = "Launch Agent";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -381,6 +383,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		IBA000000000000000000030 /* io.opsnlops.Information-Bridge.awake.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "io.opsnlops.Information-Bridge.awake.plist"; sourceTree = "<group>"; };
 		IBA00000000000000000001A /* io.opsnlops.Information-Bridge.agent.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "io.opsnlops.Information-Bridge.agent.plist"; sourceTree = "<group>"; };
 		1107942A2C44D8FA008EF68E /* CacheInvalidationProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidationProcessor.swift; sourceTree = "<group>"; };
 		110C412A2E516F270079CA75 /* EmergencyStopMessageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyStopMessageProcessor.swift; sourceTree = "<group>"; };
@@ -1032,6 +1035,7 @@
 				BCA000000000000000000003 /* Flock Communicator */,
 				BCA00000000000000000000C /* Flock Communicator Tests */,
 				IBA00000000000000000001A /* io.opsnlops.Information-Bridge.agent.plist */,
+				IBA000000000000000000030 /* io.opsnlops.Information-Bridge.awake.plist */,
 				BCA00000000000000000001F /* Flock_Communicator.entitlements */,
 				BCA000000000000000000022 /* Flock-Communicator-Info.plist */,
 				WVA000000000000000000003 /* World Viewer */,
@@ -3191,7 +3195,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.10.0;
+				MARKETING_VERSION = 0.10.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3228,7 +3232,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Information Bridge asks where this Mac is once, so it can read the sky over the house.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.10.0;
+				MARKETING_VERSION = 0.10.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
