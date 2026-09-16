@@ -23,22 +23,43 @@ struct IMAPAccount: Equatable, Sendable, Codable, Identifiable {
 enum IMAPPasswords {
     static let service = "io.opsnlops.Information-Bridge.imap"
 
-    static func password(for account: IMAPAccount) -> String? {
-        try? CreatureKeychainItem(service: service, account: account.id).value()
+    /// The password, or nil when none was ever set. A Keychain that will not answer - the Mac
+    /// locked while April is out, most often - is an error, not an absence.
+    static func password(for account: IMAPAccount) throws -> String {
+        let item = try CreatureKeychainItem(service: service, account: account.id)
+        do {
+            guard let password = try item.value() else {
+                throw IMAPIntakeFailure.noPassword(account.id)
+            }
+            return password
+        } catch let error as ProxyAPIKeyStoreError {
+            throw IMAPIntakeFailure.keychain(account.id, error)
+        }
     }
 
     static func set(_ password: String, for account: IMAPAccount) throws {
         try CreatureKeychainItem(service: service, account: account.id)
             .set(password.isEmpty ? nil : password)
     }
+
+    /// Makes the password readable while the Mac is locked, so the hourly read goes on while
+    /// April is out. Called when Mail starts; a password set before this existed is fixed up.
+    static func allowReadingWhileLocked(for account: IMAPAccount) throws {
+        try CreatureKeychainItem(service: service, account: account.id).allowReadingWhileLocked()
+    }
 }
 
 enum IMAPIntakeFailure: Error, CustomStringConvertible {
     case noPassword(String)
+    case keychain(String, ProxyAPIKeyStoreError)
 
     var description: String {
         switch self {
         case .noPassword(let account): "no password for \(account) - set one in Settings"
+        case .keychain(let account, let error):
+            error.isMacLocked
+                ? "the Keychain will not give the password for \(account) while the Mac is locked - trying again"
+                : "the Keychain will not give the password for \(account): \(error)"
         }
     }
 }
@@ -79,9 +100,7 @@ actor IMAPIntake {
 
     /// The account's mailboxes, for the settings list.
     static func mailboxes(of account: IMAPAccount) async throws -> [String] {
-        guard let password = IMAPPasswords.password(for: account) else {
-            throw IMAPIntakeFailure.noPassword(account.id)
-        }
+        let password = try IMAPPasswords.password(for: account)
         let server = IMAPServer(host: account.host, port: account.port)
         try await server.connect()
         defer { Task { try? await server.disconnect() } }
@@ -95,9 +114,7 @@ actor IMAPIntake {
         since days: Int, now: Date = Date(),
         progress: @Sendable (Progress) async -> Void = { _ in }
     ) async throws -> [MailMessage] {
-        guard let password = IMAPPasswords.password(for: account) else {
-            throw IMAPIntakeFailure.noPassword(account.id)
-        }
+        let password = try IMAPPasswords.password(for: account)
         let server = IMAPServer(host: account.host, port: account.port)
         try await server.connect()
         defer { Task { try? await server.disconnect() } }

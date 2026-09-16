@@ -110,6 +110,19 @@ public struct CreatureKeychainItem: Sendable {
 
     public func value() throws -> String? { try backend.value() }
     public func set(_ value: String?) throws { try backend.set(value) }
+
+    /// The Keychain refuses to hand over an item while the Mac is locked unless the item says
+    /// otherwise; an app that works while April is out (the Bridge reading mail) needs
+    /// otherwise. Idempotent; nothing to do when the item is absent.
+    public func allowReadingWhileLocked() throws { try backend.allowReadingWhileLocked() }
+}
+
+extension ProxyAPIKeyStoreError {
+    /// The Keychain said no because the Mac is locked - a passing condition, not a missing item.
+    public var isMacLocked: Bool {
+        if case .keychainFailure(let status) = self { return status == errSecInteractionNotAllowed }
+        return false
+    }
 }
 
 struct KeychainBackend: ProxyAPIKeyBacking, Sendable {
@@ -140,10 +153,14 @@ struct KeychainBackend: ProxyAPIKeyBacking, Sendable {
             var addQuery = baseQuery
             addQuery[kSecValueData as String] = data
             addQuery[kSecAttrSynchronizable as String] = kCFBooleanTrue
+            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
 
             let status = SecItemAdd(addQuery as CFDictionary, nil)
             if status == errSecDuplicateItem {
-                let update = [kSecValueData as String: data]
+                let update: [String: Any] = [
+                    kSecValueData as String: data,
+                    kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+                ]
                 let updateStatus = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
                 guard updateStatus == errSecSuccess else {
                     throw ProxyAPIKeyStoreError.keychainFailure(updateStatus)
@@ -156,6 +173,14 @@ struct KeychainBackend: ProxyAPIKeyBacking, Sendable {
             guard status == errSecSuccess || status == errSecItemNotFound else {
                 throw ProxyAPIKeyStoreError.keychainFailure(status)
             }
+        }
+    }
+
+    func allowReadingWhileLocked() throws {
+        let update = [kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock]
+        let status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw ProxyAPIKeyStoreError.keychainFailure(status)
         }
     }
 

@@ -326,6 +326,9 @@ final class BridgeStore {
     private func startMail(directory: URL, box: Outbox, client: WorldViewerClient) {
         let senders = connection.mailSenders
         let accounts = connection.mailAccounts
+        // The read goes on while April is out and the Mac is locked; a password kept before
+        // the Bridge knew to ask for that is fixed up here.
+        for account in accounts { try? IMAPPasswords.allowReadingWhileLocked(for: account) }
         let intakes = accounts.map {
             IMAPIntake(
                 account: $0, senders: senders.carriers + senders.merchants, directory: directory)

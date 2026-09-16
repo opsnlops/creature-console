@@ -17,7 +17,8 @@ its window closed.
 
 Settings → **Mail** → turn it on, add each IMAP account (host, user name, password — the
 password goes to the Creature family's shared Keychain, synchronizable, so it is there on the
-next Mac too), and list the carriers and merchants whose mail may be read (one domain per line;
+next Mac too, and readable while the Mac is locked so the read goes on while April is out —
+since `0.7.2`; before that a locked Mac read as "no password" until the next poll), and list the carriers and merchants whose mail may be read (one domain per line;
 the defaults are the usual suspects). No Mail.app in the loop: the Bridge reads each account
 itself. The first read of a mailbox goes back 120 days; every read after — every five minutes,
 or **Read now** — asks only for what is newer than the last UID seen, remembered per mailbox on

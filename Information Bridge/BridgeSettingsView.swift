@@ -251,9 +251,12 @@ private struct MailAccountsEditor: View {
                 Label(account.id, systemImage: "envelope.badge")
                     .font(.system(.body, design: .monospaced))
                 Spacer()
-                Text(IMAPPasswords.password(for: account) == nil ? "no password" : "password kept")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(
+                    (try? IMAPPasswords.password(for: account)) == nil
+                        ? "no password" : "password kept"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 Button("Remove", systemImage: "xmark.circle") { remove(account) }
                     .buttonStyle(.glass)
                     .controlSize(.small)
