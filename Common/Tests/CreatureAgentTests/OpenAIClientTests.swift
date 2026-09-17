@@ -60,18 +60,15 @@ struct OpenAIClientTests {
         "With tools, the body carries the world's tools as functions; after a round, the call and its answer ride along"
     )
     func requestBodyCarriesTools() throws {
-        let tools = ModelTools(
-            serverLabel: "world",
-            definitions: [
-                WorldMCPClient.ToolDefinition(
-                    name: "query_entity", description: "One entity, whole.",
-                    inputSchema: .object([
-                        "type": .string("object"),
-                        "properties": .object(["entity_id": .object(["type": .string("string")])]),
-                        "required": .array([.string("entity_id")]),
-                    ]))
-            ],
-            call: { _, _ in "" }, onCall: { _ in })
+        let tools = [
+            WorldMCPClient.ToolDefinition(
+                name: "query_entity", description: "One entity, whole.",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object(["entity_id": .object(["type": .string("string")])]),
+                    "required": .array([.string("entity_id")]),
+                ]))
+        ]
         let client = OpenAIClient(
             apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "unused", temperature: 0.9,
             reasoningEffort: nil, logger: Logger(label: "openai-tests"), traceResponses: false)
@@ -172,10 +169,12 @@ struct OpenAIClientTests {
                 logger: Logger(label: "openai-tests"), traceResponses: false)
             let tools = ModelTools(
                 serverLabel: "world",
-                definitions: [
-                    WorldMCPClient.ToolDefinition(
-                        name: "query_entity", description: "", inputSchema: .object([:]))
-                ],
+                catalogue: {
+                    [
+                        WorldMCPClient.ToolDefinition(
+                            name: "query_entity", description: "", inputSchema: .object([:]))
+                    ]
+                },
                 call: { name, arguments in
                     #expect(name == "query_entity")
                     #expect(arguments == #"{"entity_id":"person:jesse"}"#)

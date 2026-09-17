@@ -1,3 +1,15 @@
+creature-cli (2.75.3+world0.33.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.75.3: the tool catalogue is asked for when needed,
+    not once at startup. Deployed together with the world, the mind came
+    up while the world was still starting, tools/list failed, and she
+    answered "who is Tamara?" without tools for the life of the process.
+    WorldToolCatalogue keeps what it found and retries a failure after
+    thirty seconds; a world that is down leaves her without tools for a
+    moment, never for good.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 02:55:00 -0700
+
 creature-cli (2.75.2+world0.33.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.33.0: search. "Leverage MongoDB to make magic, it'll

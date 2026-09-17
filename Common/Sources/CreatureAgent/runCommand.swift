@@ -471,50 +471,40 @@ private func runWorldMode(
     var tools: ModelTools?
     if let url = world.worldMCPURL {
         let mcp = WorldMCPClient(url: url, client: client, logger: logger)
-        do {
-            let allowed = Set(ModelTools.defaultAllowedTools)
-            let definitions = try await mcp.listTools().filter { allowed.contains($0.name) }
-            tools = ModelTools(
-                serverLabel: "world", definitions: definitions,
-                call: { name, arguments in try await mcp.call(name, arguments: arguments) },
-                onCall: { call in
-                    do {
-                        try await responder.cast(
-                            try WorldEventEnvelope(
-                                type: WorldEventType(validating: "mind.tool_called"),
-                                occurredAt: Date(),
-                                source: EventSource(
-                                    id: SourceID(
-                                        validating:
-                                            "mind:\(FactPhrasing.name(of: characterID).lowercased())"
-                                    ),
-                                    kind: "mind"),
-                                subjectIDs: [characterID],
-                                epistemic: EpistemicState(type: .observed, confidence: 1),
-                                payload: [
-                                    "tool": .string(call.name),
-                                    "server": .string(call.server),
-                                    "arguments": .string(String(call.arguments.prefix(500))),
-                                    "output_characters": .number(Double(call.output?.count ?? 0)),
-                                    "error": call.error.map { .string(String($0.prefix(200))) }
-                                        ?? .null,
-                                ]))
-                    } catch {
-                        logger.warning(
-                            "Could not record a look-up", metadata: ["error": "\(error)"])
-                    }
-                })
-            logger.info(
-                "The world is at hand as tools",
-                metadata: [
-                    "mcp.url": "\(url.absoluteString)",
-                    "mcp.tools": "\(definitions.map(\.name).joined(separator: ","))",
-                ])
-        } catch {
-            logger.error(
-                "WorldMCP would not list its tools; the mind runs without them",
-                metadata: ["mcp.url": "\(url.absoluteString)", "error": "\(error)"])
-        }
+        let catalogue = WorldToolCatalogue(
+            mcp: mcp, allowed: Set(ModelTools.defaultAllowedTools), logger: logger)
+        tools = ModelTools(
+            serverLabel: "world", catalogue: { await catalogue.definitions() },
+            call: { name, arguments in try await mcp.call(name, arguments: arguments) },
+            onCall: { call in
+                do {
+                    try await responder.cast(
+                        try WorldEventEnvelope(
+                            type: WorldEventType(validating: "mind.tool_called"),
+                            occurredAt: Date(),
+                            source: EventSource(
+                                id: SourceID(
+                                    validating:
+                                        "mind:\(FactPhrasing.name(of: characterID).lowercased())"),
+                                kind: "mind"),
+                            subjectIDs: [characterID],
+                            epistemic: EpistemicState(type: .observed, confidence: 1),
+                            payload: [
+                                "tool": .string(call.name),
+                                "server": .string(call.server),
+                                "arguments": .string(String(call.arguments.prefix(500))),
+                                "output_characters": .number(Double(call.output?.count ?? 0)),
+                                "error": call.error.map { .string(String($0.prefix(200))) }
+                                    ?? .null,
+                            ]))
+                } catch {
+                    logger.warning(
+                        "Could not record a look-up", metadata: ["error": "\(error)"])
+                }
+            })
+        // Ask now so the log says at startup whether the world answered; a miss is retried
+        // at the first question.
+        _ = await catalogue.definitions()
     }
     let mind = CharacterMind(
         configuration: CharacterMind.Configuration(

@@ -157,7 +157,7 @@ struct CharacterMindTests {
     @Test("A question from April carries the world's tools and their contract; a scene turn never")
     func toolsGoWithQuestionsOnly() async throws {
         let tools = ModelTools(
-            serverLabel: "world", definitions: [], call: { _, _ in "" }, onCall: { _ in })
+            serverLabel: "world", catalogue: { [] }, call: { _, _ in "" }, onCall: { _ in })
         let handed = Handed()
         var configuration = makeMind { _, _ in "unused" }.configuration
         configuration.tools = tools

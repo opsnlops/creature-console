@@ -305,7 +305,10 @@ else — persona, facts, the clock, streaming to the room — is identical.
   events never do; they must be quick. The first sentence of a look-up answer waits for the
   look-up. Every call is cast back as a `mind.tool_called` event on her (`tool`, `arguments`,
   `output_characters`, `error`), so the Viewer's Timeline shows "looked it up: query_entity".
-  A world that will not list its tools leaves the mind without them, never without a voice.
+  A world that will not list its tools leaves the mind without them for the moment, never
+  without a voice: the catalogue is asked for when a question needs it and a failure is
+  retried after thirty seconds (`2.75.3` - deployed together, the mind came up before the
+  world did and went a whole evening without tools).
   A local model has no tools.
 - **She settles what she believes** (`2.73.0`, plan Phase 9; `docs/memory-consolidation-plan.md`).
   After the day's episodes, the same run reads the beliefs the flock holds and a month of

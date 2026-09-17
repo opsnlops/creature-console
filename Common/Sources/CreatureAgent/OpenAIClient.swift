@@ -84,7 +84,7 @@ struct OpenAIClient: Sendable {
         for round in 0...ModelTools.maximumRounds {
             logger.debug("Sending OpenAI response request (model: \(model), round: \(round))")
             // The last round offers no tools: the model must answer with what it has.
-            let offered = round < ModelTools.maximumRounds ? tools : nil
+            let offered = round < ModelTools.maximumRounds ? await tools?.catalogue() ?? [] : []
             var request = makeRequest(for: transcript, stream: false, tools: offered, extra: extra)
             request.timeoutInterval = tools == nil ? 60 : 90
 
@@ -169,7 +169,8 @@ struct OpenAIClient: Sendable {
                     // streams; the words, when they come, flow as before.
                     var extra: [ResponseRequest.Item] = []
                     for round in 0...ModelTools.maximumRounds {
-                        let offered = round < ModelTools.maximumRounds ? tools : nil
+                        let offered =
+                            round < ModelTools.maximumRounds ? await tools?.catalogue() ?? [] : []
                         let request = makeRequest(
                             for: transcript, stream: true, tools: offered, extra: extra)
                         var streamRequest = HTTPClientRequest(url: request.url!.absoluteString)
@@ -225,7 +226,7 @@ struct OpenAIClient: Sendable {
 
     func makeRequest(
         for transcript: [LocalLLMClient.Message], stream: Bool, json: Bool = false,
-        tools: ModelTools? = nil, extra: [ResponseRequest.Item] = []
+        tools: [WorldMCPClient.ToolDefinition] = [], extra: [ResponseRequest.Item] = []
     ) -> URLRequest {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -369,7 +370,7 @@ struct ResponseRequest: Encodable {
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
         reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false,
-        tools: ModelTools? = nil, extra: [Item] = [], cacheKey: String? = nil
+        tools: [WorldMCPClient.ToolDefinition] = [], extra: [Item] = [], cacheKey: String? = nil
     ) {
         self.model = model
         self.input = transcript.map(Item.init) + extra
@@ -379,7 +380,7 @@ struct ResponseRequest: Encodable {
         self.temperature = reasoningEffort == nil ? temperature : nil
         self.serviceTier = serviceTier
         self.stream = stream
-        self.tools = tools.map { $0.definitions.map(Tool.init) }
+        self.tools = tools.isEmpty ? nil : tools.map(Tool.init)
         self.promptCacheKey = cacheKey
     }
 }
