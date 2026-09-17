@@ -311,6 +311,9 @@ final class WorldStore {
                         try await loadRecentHistory(using: scryer, upTo: snapshot.latestSequence)
                         try await loadCharacters()
                         try await loadScenes()
+                        // The glossary comes with the world, not only on Refresh: without it
+                        // every word on Meanings looks new.
+                        factKinds = try await scryer.factKinds().kinds
                         streamState = .live
                     case .event(let event):
                         append(event)

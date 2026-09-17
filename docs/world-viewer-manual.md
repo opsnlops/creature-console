@@ -88,12 +88,27 @@ Facts holds who is logged into which region, April's assumed presence, and the r
 scene; a superseded fact leaves the list the moment its replacement arrives. When the world
 knows nothing, Facts is empty and says so — the Viewer never invents a fact to fill the space.
 
+**Tree** (`0.9.0`) is the same facts as an outline: kind › entity › predicate family › fact —
+`person` › `april` › `presence.` › `presence.state = home` — with a count on every branch, so
+a glance says where the world's attention is ("person 41, character 30"). The field at the
+top narrows the tree to facts mentioning every word typed, in the subject, the predicate, or
+the value ("jesse sunday"). A fact's row is the same as on the list, with the same right-click
+menu (Show, Why?, Forget); right-click an entity for its page. April: "I want to be able to
+browse the facts in a tree."
+
 **Meanings** (`0.2.0`) is the panel's other mode, and Wizard Mode's first cast: the world's
 glossary of what each kind of fact means to the minds (`fact_kinds`, seeded by the world from
 its own catalogue). Edit a line in place and it is cast on return or when focus leaves; the world
 records who reworded it and never overwrites a Wizard's words with its catalogue again. New words
 — predicates the world currently believes something under but has no meaning for — sit at the top
-waiting to be taught; until they are, the minds see them with no meaning attached.
+waiting to be taught; until they are, the minds see them with no meaning attached. **The
+evidence** (`0.9.0`): under every word, what the world holds under it right now — "12 current
+facts on 4 subjects · observed · by reducer house" — and, opened, up to eight of them (subject,
+value, basis); click one to scry it — and scrying anything opens the Mundane view if it was
+closed (`0.9.0`). Also fixed in `0.9.0`: the glossary is loaded with the world's snapshot,
+not only on Refresh — before, every word looked new until the toolbar's Refresh was pressed. A memory family's line covers every day's predicate. A
+word with no current fact says so. April: "I want to be able to see the details about a fact
+so I can make sure I'm assigning the right meaning."
 
 ### When a bird learns
 

@@ -69,6 +69,10 @@ struct WorldViewerRootView: View {
         .onChange(of: store.chosenEntity) { _, chosen in
             if chosen != nil { panel = .entities }
         }
+        // Scrying something opens the Mundane view if it was closed: a click means "show me".
+        .onChange(of: scried) { _, picked in
+            if picked != nil { showsMundaneView = true }
+        }
         .inspector(isPresented: $showsMundaneView) {
             MundaneView(scried: scried)
                 .inspectorColumnWidth(min: 300, ideal: 380)
