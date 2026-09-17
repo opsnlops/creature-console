@@ -471,6 +471,21 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // Why?: the fact, the events and facts it was derived from, and what superseded it.
+        router.get("v1/facts/:factID/explain") { _, context in
+            await respond {
+                guard let raw = context.parameters.get("factID"),
+                    let factID = raw.removingPercentEncoding.flatMap(FactID.init(rawValue:))
+                else { throw WorldAPIError.invalidQuery(name: "fact_id") }
+                return try await execute {
+                    guard let explanation = try await service.explain(factID: factID) else {
+                        return Response(status: .notFound)
+                    }
+                    return try jsonResponse(explanation)
+                }
+            }
+        }
+
         // Remember a day by hand: the world records the same `memory.consolidate` event the
         // nightly clock would, and the mind with a memory model does the rest.
         router.post("v1/days/:day/remember") { _, context in

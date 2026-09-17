@@ -212,6 +212,26 @@ final class WorldStore {
         }
     }
 
+    /// Why?: the provenance walk behind a fact, from the world. `.gone` when the world no
+    /// longer holds the fact; `.failed` when it could not be asked (the alert says why).
+    func explain(_ factID: FactID) async -> Explanation {
+        do {
+            if let explanation = try await makeScryer().explain(factID) {
+                return .explained(explanation)
+            }
+            return .gone
+        } catch {
+            lastError = ErrorAlert(title: "The World Could Not Explain That Fact", error: error)
+            return .failed
+        }
+    }
+
+    enum Explanation {
+        case explained(FactExplanation)
+        case gone
+        case failed
+    }
+
     /// Who a kind of fact is for, as the glossary says; `minds` when it says nothing.
     func audience(of predicate: String) -> FactAudience {
         factKinds.first { $0.predicate == predicate }?.audience ?? .minds

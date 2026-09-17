@@ -302,7 +302,10 @@ value is an entity id of a known kind (`person`, `place`, `house`, `character`, 
 `order`) is a link — `calendar.with = person:jesse` — and when the world gathers what a mind is
 handed it brings the linked entity's facts along, once, never a second hop. **`GET
 /v1/entities/{id}`** returns one entity whole: its current facts of every audience, the current
-facts elsewhere whose value is it (`linked_from`), and its events of the last week.
+facts elsewhere whose value is it (`linked_from`), and its events of the last week. **`GET
+/v1/facts/{fact_id}/explain`** (`0.30.1`) is Why?: the fact, the events it was derived from,
+the facts behind those (a few levels down), and what superseded it — the walk WorldMCP's
+`explain_fact` makes, for the Viewer's Why? sheet. 404 for a fact the world never held.
 
 **The nightly memory** (`0.22.0`, step 4b). The world keeps the clock: a `memory.consolidate`
 world timer fires at `memory.hour:minute` in `memory.time_zone` (rescheduled after each firing;

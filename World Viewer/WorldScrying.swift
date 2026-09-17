@@ -24,6 +24,7 @@ protocol WorldScrying: Sendable {
     func factKinds() async throws -> FactKindPage
     /// One entity, whole.
     func entity(_ entityID: EntityID) async throws -> EntityPage
+    func explain(_ factID: FactID) async throws -> FactExplanation?
 }
 
 /// The Viewer's one kind of write, kept apart from the reads on purpose: a Wizard casting a
@@ -91,6 +92,10 @@ struct LiveWorldScryer: WorldScrying {
 
     func entity(_ entityID: EntityID) async throws -> EntityPage {
         try await viewer.entity(entityID)
+    }
+
+    func explain(_ factID: FactID) async throws -> FactExplanation? {
+        try await viewer.explain(factID)
     }
 }
 

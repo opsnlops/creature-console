@@ -87,6 +87,7 @@ struct EntityPageView: View {
     let page: EntityPage
     let store: WorldStore
     @Binding var scried: Scried?
+    @State private var asking: WhySheet.Asking?
 
     private var memories: [Fact] {
         page.facts.filter { WorldFacts.memoryFamily(of: $0.predicate) != nil }
@@ -147,6 +148,7 @@ struct EntityPageView: View {
                 }
             }
         }
+        .sheet(item: $asking) { WhySheet(store: store, fact: $0.fact) }
     }
 
     private func factRow(_ fact: Fact) -> some View {
@@ -192,6 +194,7 @@ struct EntityPageView: View {
         .contentShape(Rectangle())
         .onTapGesture { scried = .fact(fact) }
         .contextMenu {
+            Button("Why?", systemImage: "questionmark.circle") { asking = .init(fact) }
             Button("Forget", systemImage: "eraser") {
                 Task { await store.forget(fact.subjectID, fact.predicate) }
             }

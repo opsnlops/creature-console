@@ -13,6 +13,7 @@ struct FactsPanel: View {
     @Binding var scried: Scried?
     @State private var selection: FactID?
     @State private var mode: Mode = .facts
+    @State private var asking: WhySheet.Asking?
 
     var body: some View {
         Group {
@@ -34,6 +35,7 @@ struct FactsPanel: View {
                 }
             }
         }
+        .sheet(item: $asking) { WhySheet(store: store, fact: $0.fact) }
     }
 
     private var factList: some View {
@@ -65,6 +67,7 @@ struct FactsPanel: View {
                         store.chosenEntity = target
                     }
                 }
+                Button("Why?", systemImage: "questionmark.circle") { asking = .init(fact) }
                 Divider()
                 // Any fact can be taken back: the world casts nothing in its place.
                 Button("Forget", systemImage: "eraser") {

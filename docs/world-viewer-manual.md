@@ -126,6 +126,17 @@ Every meaning on the Meanings tab has a picker: **minds** (handed to the birds, 
 **world only** (kept and shown, used by the world's rules, never put in a prompt). A phone number
 is world only; a birthday is not. The choice is cast into the glossary as a Wizard's word.
 
+### Why?
+
+Right-click any fact — on the Facts tab or an entity's page — → **Why?** (`0.8.0`, VW-011):
+a sheet with the fact, then *because the world was told* — each event behind it with its type,
+who told the world, when, and its whole payload — then the facts it was derived from and, for
+a fact that has been replaced, what superseded it. A `visitor.expected` on the house walks
+back to the Bridge's `facts.given` from the mail; a `presence.state` to the house's
+`camera.person_seen`; a bird's memory to the day it remembered. The same walk as WorldMCP's
+`explain_fact` (`GET /v1/facts/{id}/explain`, world `0.30.1`). A fact the world has already
+let go of says so instead of a sheet of nothing.
+
 ### Forgetting a fact
 
 Right-click any fact on the Facts tab → **Forget** (`0.6.1`): the same retraction as the
@@ -200,5 +211,5 @@ xcodebuild test -project "Creature Console.xcodeproj" -scheme "World Viewer" -de
 
 ## Not yet
 
-Entities, provenance and *Why?* (VW-011 #102), Honeycomb trace links (needs a URL template
-setting), and any write path. The Viewer will never cast a spell; it only scries.
+Honeycomb trace links (needs a URL template setting), and any write path beyond Forget and
+the Wizard's words. The Viewer will never cast a spell; it only scries.

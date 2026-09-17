@@ -1,3 +1,13 @@
+creature-cli (2.72.4+world0.30.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.30.1: Why? over REST for the World Viewer (VW-011):
+    GET /v1/facts/{fact_id}/explain returns the same provenance walk as
+    WorldMCP's explain_fact - the fact, the events it came from, the
+    facts behind those, and what superseded it. 404 for a fact the world
+    never held, 400 for an id that is not a fact's.
+
+ -- April White <april@creature.engineering>  Wed, 16 Sep 2026 21:30:00 -0700
+
 creature-cli (2.72.4+world0.30.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.30.0: the proactive departure (plan Phase 6). An

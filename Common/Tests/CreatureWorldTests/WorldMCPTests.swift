@@ -123,6 +123,56 @@ struct WorldMCPTests {
         }
     }
 
+    @Test("Why? over REST: the same walk, for the Viewer")
+    func explainsOverREST() async throws {
+        let world = MCPWorld()
+        let event = try WorldEventEnvelope(
+            eventID: EventID(validating: "00000000-0000-0000-0000-000000000002"),
+            type: WorldEventType(validating: "facts.given"),
+            occurredAt: Date(timeIntervalSince1970: 1_789_500_000),
+            source: EventSource(id: SourceID(validating: "bridge:mail"), kind: "bridge"),
+            subjectIDs: [house], epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: ["predicate": .string("visitor.expected")])
+        let fact = try Fact(
+            subjectID: house, predicate: "visitor.expected",
+            value: .string("Quality Cleaning, Etc, Wednesday"),
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            validFrom: Date(timeIntervalSince1970: 1_789_500_000),
+            derivedFrom: [.event(event.eventID)],
+            producer: FactProducer(kind: "bridge", id: "mail", version: "1"))
+        await world.set(facts: [fact], events: [event])
+        let application = makeCreatureWorldApplication(
+            dependencies: .testing(
+                configuration: try CreatureWorldConfiguration(port: 8080),
+                logger: Logger(label: "explain-tests"),
+                buildInfo: CreatureWorldBuildInfo(version: "explain-test", schemaVersion: 1),
+                worldService: world,
+                conversationService: UnavailableConversationApplicationService(),
+                characterSessionService: UnavailableCharacterSessionApplicationService()),
+            apiConfiguration: .default)
+
+        try await application.test(.router) { client in
+            try await client.execute(
+                uri: "/world/v1/facts/\(fact.factID.rawValue)/explain", method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let explanation = try WorldJSON.makeDecoder().decode(
+                    FactExplanation.self, from: response.body)
+                #expect(explanation.fact.factID == fact.factID)
+                #expect(explanation.events.map(\.eventID) == [event.eventID])
+            }
+            try await client.execute(
+                uri: "/world/v1/facts/\(FactID.generated().rawValue)/explain", method: .get
+            ) { response in
+                #expect(response.status == .notFound)
+            }
+            try await client.execute(uri: "/world/v1/facts/not-a-fact/explain", method: .get) {
+                response in
+                #expect(response.status == .badRequest)
+            }
+        }
+    }
+
     @Test("Resource templates match by segment and hand the names over decoded")
     func templatesMatch() {
         #expect(

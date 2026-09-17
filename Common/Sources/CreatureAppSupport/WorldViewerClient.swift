@@ -112,6 +112,17 @@ public struct WorldViewerClient: Sendable {
     }
 
     /// One entity, whole: its facts (every audience), what points at it, its recent events.
+    /// Why a fact is what it is: the events and facts behind it, and what superseded it.
+    /// `nil` when the world no longer holds the fact at all - not an error, an answer.
+    public func explain(_ factID: FactID) async throws -> FactExplanation? {
+        do {
+            return try await get(
+                FactExplanation.self, pathComponents: ["facts", factID.rawValue, "explain"])
+        } catch WorldConversationClientError.requestFailed(statusCode: 404) {
+            return nil
+        }
+    }
+
     public func entity(_ entityID: EntityID) async throws -> EntityPage {
         try await get(EntityPage.self, pathComponents: ["entities", entityID.rawValue])
     }
