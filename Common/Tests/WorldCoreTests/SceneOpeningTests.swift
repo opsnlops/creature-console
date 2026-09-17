@@ -187,6 +187,24 @@ struct SceneOpeningTests {
                 .isEmpty)
     }
 
+    @Test("Telemetry is a fact, never a story: a body's power rail is not a happening")
+    func telemetryIsNotStory() throws {
+        let rail = try WorldEventEnvelope(
+            type: WorldEventType(validating: "facts.given"), occurredAt: now,
+            source: EventSource(id: SourceID(validating: "body:sensors"), kind: "body"),
+            subjectIDs: [try EntityID(validating: "character:mango")],
+            epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: ["predicate": .string("body.power")])
+        #expect(Happening.isStoryworthy(rail.type))
+        #expect(!Happening.isStoryworthy(rail))
+        let told = try WorldEventEnvelope(
+            type: WorldEventType(validating: "facts.given"), occurredAt: now,
+            source: EventSource(id: SourceID(validating: "bridge:mail"), kind: "bridge"),
+            subjectIDs: [driveway], epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: ["predicate": .string("visitor.expected")])
+        #expect(Happening.isStoryworthy(told))
+    }
+
     @Test("An ending is an occasion wherever its beginning is, and reads as a stay")
     func endingsFollowBeginnings() async throws {
         let policy = SceneOpeningPolicy(

@@ -67,6 +67,17 @@ public struct Happening: Codable, Hashable, Sendable {
         }
     }
 
+    /// Whether this event is a story, kind and source together: telemetry is not. A bird's
+    /// power rail, read every thirty seconds, is a fact about its body and never a happening
+    /// - thirty of them in a row pushed the door and the driveway out of the story entirely.
+    public static func isStoryworthy(_ event: WorldEventEnvelope) -> Bool {
+        guard isStoryworthy(event.type) else { return false }
+        return !telemetrySourceKinds.contains(event.source.kind)
+    }
+
+    /// Sources whose facts are state, not story.
+    public static let telemetrySourceKinds: Set<String> = ["body"]
+
     private enum CodingKeys: String, CodingKey {
         case occurredAt = "occurred_at"
         case type

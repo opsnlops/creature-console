@@ -25,8 +25,10 @@ struct BodyConfiguration: Equatable, Sendable {
     /// How long a body fact holds without a newer reading: a bird that stops reporting stops
     /// feeling its body, and says so.
     var validForSeconds = 600
-    /// A fact is said again only after this many seconds, however much it changes.
-    var minimumIntervalSeconds = 30
+    /// A fact is said again only after this many seconds, however much it changes. Two
+    /// minutes: the first night a noisy rail said itself every thirty seconds and drowned the
+    /// house out of the birds' story.
+    var minimumIntervalSeconds = 120
     /// The server's totals climb every tick; they are said this often at most.
     var serverIntervalSeconds = 60
     /// What counts as a change, per reading.
@@ -36,11 +38,11 @@ struct BodyConfiguration: Equatable, Sendable {
     var characters: [String: EntityID] = [:]
 
     struct Thresholds: Codable, Equatable, Sendable {
-        var temperatureF = 0.5
-        var volts = 0.1
-        var amps = 0.05
-        var watts = 0.25
-        var motorAmps = 0.05
+        var temperatureF = 1.0
+        var volts = 0.25
+        var amps = 0.2
+        var watts = 1.0
+        var motorAmps = 0.1
         var motorPosition = 10
         /// Dynamixel present-load units, of a range of about ±1000.
         var servoLoad = 50
@@ -51,11 +53,11 @@ struct BodyConfiguration: Equatable, Sendable {
         /// Any threshold left out of the file keeps its default.
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            temperatureF = try container.decodeIfPresent(Double.self, forKey: .temperatureF) ?? 0.5
-            volts = try container.decodeIfPresent(Double.self, forKey: .volts) ?? 0.1
-            amps = try container.decodeIfPresent(Double.self, forKey: .amps) ?? 0.05
-            watts = try container.decodeIfPresent(Double.self, forKey: .watts) ?? 0.25
-            motorAmps = try container.decodeIfPresent(Double.self, forKey: .motorAmps) ?? 0.05
+            temperatureF = try container.decodeIfPresent(Double.self, forKey: .temperatureF) ?? 1.0
+            volts = try container.decodeIfPresent(Double.self, forKey: .volts) ?? 0.25
+            amps = try container.decodeIfPresent(Double.self, forKey: .amps) ?? 0.2
+            watts = try container.decodeIfPresent(Double.self, forKey: .watts) ?? 1.0
+            motorAmps = try container.decodeIfPresent(Double.self, forKey: .motorAmps) ?? 0.1
             motorPosition = try container.decodeIfPresent(Int.self, forKey: .motorPosition) ?? 10
             servoLoad = try container.decodeIfPresent(Int.self, forKey: .servoLoad) ?? 50
             framesPerSecond =

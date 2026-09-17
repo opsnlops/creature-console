@@ -111,10 +111,10 @@ struct BodyFactsTests {
         }
         #expect(changes(77.0, at: 0) == ["body.board_temperature_f", "body.power"])  // first word
         #expect(changes(77.2, at: 1).isEmpty)  // within the interval
-        #expect(changes(77.2, at: 31).isEmpty)  // too small a change
-        #expect(changes(78.0, at: 32) == ["body.board_temperature_f"])  // a degree is news
-        #expect(changes(78.0, at: 300).isEmpty)  // steady
-        #expect(changes(78.0, at: 520) == ["body.board_temperature_f", "body.power"])  // said again at 80% of its life
+        #expect(changes(77.8, at: 31).isEmpty)  // too small a change
+        #expect(changes(78.5, at: 32) == ["body.board_temperature_f"])  // a degree and a half is news
+        #expect(changes(78.5, at: 300).isEmpty)  // steady
+        #expect(changes(78.5, at: 520) == ["body.board_temperature_f", "body.power"])  // said again at 80% of its life
     }
 
     @Test("The server's counters are its vital signs; a bird's runtime state is what it is doing")
@@ -177,7 +177,7 @@ struct BodyFactsTests {
         #expect(fromFile.serverHost == "server.local")
         #expect(fromFile.minimumIntervalSeconds == 45)
         #expect(fromFile.thresholds.temperatureF == 1.0)
-        #expect(fromFile.thresholds.volts == 0.1)
+        #expect(fromFile.thresholds.volts == 0.25)
         let overridden = try BodyConfiguration.load(
             from: file,
             environment: ["CREATURE_SERVER_HOST": "elsewhere", "CREATURE_PROXY_API_KEY": "k"])

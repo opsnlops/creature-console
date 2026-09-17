@@ -203,6 +203,11 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**Telemetry is a fact, never a story** (`0.29.2`): events from a `body` source (the birds'
+sensors, the server's counters) are facts about the birds and are never happenings — the first
+thing WorldMCP showed was a mind's story that was thirty lines of Mango's power rail, with the
+door and the driveway pushed out. Applies to scenes and to the nightly digest.
+
 **Recent orders are news** (`0.29.1`): a question with order-words in it ("did I just order
 anything?", "any packages coming?") hands the minds every order the mail spoke of in the last
 two days, newest first, whether or not the goods are named — Amazon's confirmation had called

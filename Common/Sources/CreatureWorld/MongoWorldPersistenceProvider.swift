@@ -1120,7 +1120,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         let around = unique(try await surroundings(of: subjects))
         // Fetch generously: heartbeats and measurements share the index and are dropped here.
         let recent = try await events.events(about: around, since: since, limit: limit * 8)
-        return recent.filter { Happening.isStoryworthy($0.type) }
+        return recent.filter { Happening.isStoryworthy($0) }
             .suffix(limit)
             .map { event in
                 let subject =

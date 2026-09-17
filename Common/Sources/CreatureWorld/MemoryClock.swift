@@ -65,7 +65,7 @@ struct DayDigestBuilder {
         }
         let events = try await persistence.events.events(
             from: bounds.from, to: bounds.to, limit: 5_000)
-        let happenings = events.filter { Happening.isStoryworthy($0.type) }.map { event in
+        let happenings = events.filter { Happening.isStoryworthy($0) }.map { event in
             let subject =
                 event.subjectIDs.first { !$0.rawValue.hasPrefix("character:") }
                 ?? event.subjectIDs.first ?? event.placeID ?? houseConversationEntity

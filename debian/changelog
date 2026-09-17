@@ -1,5 +1,14 @@
-creature-cli (2.72.3+world0.29.1+house0.2.0+gateway0.1.6+body0.2.0) unstable; urgency=medium
+creature-cli (2.72.3+world0.29.2+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
+  * creature-world 0.29.2: telemetry is a fact, never a story. The first
+    thing WorldMCP showed was a mind's recent story: thirty of thirty
+    lines were "Mango body.power = (something)", the door and the
+    driveway pushed out entirely. Events from a "body" source are facts
+    about the birds and no longer happenings, for scenes and for the
+    nightly digest alike.
+  * creature-body 0.2.1: calmer. Thresholds a rail must move by before
+    it is said again (1 °F, 0.25 V, 0.2 A, 1 W, 0.1 A of motor load) and
+    two minutes between sayings, not thirty seconds.
   * creature-world 0.29.1: "did I order anything?" April ordered
     toothpaste; the order reached the world 46 seconds later, but the
     birds only found orders by the names of their items, and "did I

@@ -40,8 +40,11 @@ so it never lapses while the bird is still reporting.
 ## Saying only what changed
 
 Reports arrive about once a second; the world is told when a reading **changes past a
-threshold** (`thresholds`: 0.5 °F, 0.1 V, 0.05 A, 0.25 W, 10 position ticks, 0.05 A of motor
-load, 50 units of Dynamixel load; a servo going offline or coming back is always said) and **no more often than every 30 seconds** per fact (`minimum_interval_seconds`). The
+threshold** (`thresholds`, since `0.2.1`: 1 °F, 0.25 V, 0.2 A, 1 W, 10 position ticks, 0.1 A of
+motor load, 50 units of Dynamixel load; a servo going offline or coming back is always said) and
+**no more often than every two minutes** per fact (`minimum_interval_seconds`, 120). The first
+night's 30 s and 0.25 W had a noisy 3.3 V rail saying itself twice a minute, and the world now
+keeps such telemetry out of the birds' story regardless. The
 meanings are seeded into the world's glossary the first time, for the minds; a Wizard's
 rewording is never overwritten.
 
