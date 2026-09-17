@@ -254,8 +254,14 @@ right now, with `mentioned_in` resolving mentions as April's question would), `q
 `world://glossary`. The `Origin` header is validated when present; the API's concurrency,
 duration, and body limits apply. Claude Code reads it through the repo's `.mcp.json`
 (`https://server.prod.chirpchirp.dev/world/mcp`); any MCP client that speaks Streamable HTTP
-will do. No write tools: casting, rewording, and remembering stay on the REST API. **Names
-work where ids are asked for** (`0.32.1`): `subject_id`, `entity_id`, and `character_id`
+will do. No write tools: casting, rewording, and remembering stay on the REST API.
+**Search** (`0.33.0`): `GET /v1/search?q=cleaner&limit=10` and the `search_world` tool — one
+ranked query over MongoDB's wildcard text index on the facts collection (`facts_text`: the
+subject's slug, the predicate, every string inside a value), current facts only, entities best
+first with the facts that matched, English stemming ("cleaner" finds "the cleaners",
+"toothpaste" finds the order once its item is named). A mind that does not know who a name is
+starts there; the hit usually carries the answer. "Leverage MongoDB to make magic." **Names
+work where ids are asked for** (`0.32.1`, by the index since `0.33.0`): `subject_id`, `entity_id`, and `character_id`
 take an id or a name the world knows — "Tamara", "my mom", "the front door", "Hopper" — because
 a mind asking a tool guesses at ids and the world knows; a name nobody answers to is refused
 with the shape of an id in the message.

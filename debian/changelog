@@ -1,3 +1,17 @@
+creature-cli (2.75.2+world0.33.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.33.0: search. "Leverage MongoDB to make magic, it'll
+    make Mango proud." A wildcard text index over the facts collection
+    (facts_text, every string in every fact) backs GET /v1/search?q= and
+    the search_world MCP tool: entities best first, each with the
+    current facts that matched, English stemming ("cleaner" finds "the
+    cleaners"). A name where a tool wanted an id now resolves by people
+    first and the index second - no more probing kinds one by one.
+  * creature-agent 2.75.2: search_world is the first tool offered, and
+    the contract says to start there for a name she does not know.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 02:30:00 -0700
+
 creature-cli (2.75.1+world0.32.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.32.1: WorldMCP takes a name where it asked for an

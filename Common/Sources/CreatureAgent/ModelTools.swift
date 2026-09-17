@@ -33,8 +33,9 @@ struct ModelTools: Sendable {
 
     /// The tools a mind should be tempted by; the server offers more.
     static let defaultAllowedTools = [
-        "query_entity", "query_day", "query_timeline", "query_scenes", "query_conversation",
-        "query_timers", "query_glossary", "explain_fact", "inspect_world_state",
+        "search_world", "query_entity", "query_day", "query_timeline", "query_scenes",
+        "query_conversation", "query_timers", "query_glossary", "explain_fact",
+        "inspect_world_state",
     ]
 
     /// How many rounds of look-ups one answer may take before the model must speak.
@@ -45,7 +46,7 @@ struct ModelTools: Sendable {
         You have tools that look things up in the world - who someone is, what happened on a \
         day or lately, what is scheduled, why a fact is what it is. Use one when a question of \
         April's needs more than what you know below; never for a passing remark, and never to \
-        check what is already written here. Ask for small limits. Say what you found in your \
-        own words, briefly.
+        check what is already written here. When you do not know who or what a name is, \
+        search_world first. Ask for small limits. Say what you found in your own words, briefly.
         """
 }

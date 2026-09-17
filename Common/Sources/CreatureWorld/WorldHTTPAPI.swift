@@ -471,6 +471,26 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // Search: anything by a word, over MongoDB's text index - entities best first, each
+        // with the facts that matched.
+        router.get("v1/search") { request, _ in
+            await respond {
+                guard
+                    let query = request.uri.queryParameters["q"].map(String.init)?
+                        .removingPercentEncoding?.trimmingCharacters(in: .whitespacesAndNewlines),
+                    !query.isEmpty
+                else { throw WorldAPIError.invalidQuery(name: "q") }
+                let limit = min(
+                    max(
+                        request.uri.queryParameters["limit"].flatMap { Int($0) }
+                            ?? WorldSearchLimits.defaultHits, 1),
+                    WorldSearchLimits.maximumHits)
+                return try await execute {
+                    try jsonResponse(await service.search(query, limit: limit))
+                }
+            }
+        }
+
         // Why?: the fact, the events and facts it was derived from, and what superseded it.
         router.get("v1/facts/:factID/explain") { _, context in
             await respond {

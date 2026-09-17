@@ -55,6 +55,22 @@ struct FactRepository: Sendable {
         )
     }
 
+    /// Current facts matching `query` by MongoDB text search over the whole fact - subject,
+    /// predicate, and every string in the value - best first, with each fact's text score.
+    /// English stemming and case-folding are the index's: "cleaner" finds "the cleaners".
+    func search(_ query: String, limit: Int, at now: Date) async throws -> [(Fact, Double)] {
+        var filter = currentQuery(at: now)
+        filter["$text"] = ["$search": query] as Document
+        let documents = try await facts.find(filter)
+            .project(["score": ["$meta": "textScore"] as Document] as Document)
+            .sort(["score": .textScore])
+            .limit(limit)
+            .drain()
+        return try documents.map { document in
+            (try decode(document), document["score"] as? Double ?? 0)
+        }
+    }
+
     /// One fact by id, current or not.
     func fact(withID factID: FactID) async throws -> Fact? {
         try await facts.findOne(["_id": factID.rawValue]).map(decode)

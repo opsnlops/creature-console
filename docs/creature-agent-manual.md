@@ -291,7 +291,8 @@ else — persona, facts, the clock, streaming to the room — is identical.
 - **She looks things up** (`2.74.1`; `worldMcpUrl`). April: "As the knowledge in the world
   grows we're quickly going to hit the limit of what we can pre-emptively send in the context
   to the agent." With `worldMcpUrl` set and the OpenAI backend, the mind asks WorldMCP for
-  its tools at startup (`tools/list`, kept to the query tools and `explain_fact`) and offers
+  its tools at startup (`tools/list`, kept to `search_world`, the query tools and
+  `explain_fact`) and offers
   them to the model as *function* tools on every question from April. When the model asks
   for one, the mind runs it against the world (`tools/call`, on the LAN - the model provider
   never reaches the world; April: "that's safer"), hands the answer back as a

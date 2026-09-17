@@ -46,6 +46,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let perspective: @Sendable (EntityID, String?) async throws -> CharacterPerspective
     let explain: @Sendable (FactID) async throws -> FactExplanation?
     let entityNamed: @Sendable (String) async throws -> EntityID?
+    let search: @Sendable (String, Int) async throws -> WorldSearchPage
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -496,9 +497,36 @@ struct MongoWorldPersistenceConnection: Sendable {
                     since: now.addingTimeInterval(-WorldKnowledgeLimits.happeningsWindow),
                     limit: WorldKnowledgeLimits.maximumHappenings))
         }
+        // Search: MongoDB's text index over every fact, grouped by entity, best first, with
+        // the facts that matched. One query answers "who is Tamara?", "the cleaner", or
+        // "toothpaste" - a mind never has to guess at an id.
+        let search: @Sendable (String, Int) async throws -> WorldSearchPage = { query, limit in
+            let now = await clock.now
+            let scored = try await persistence.facts.search(
+                query, limit: max(limit, 1) * WorldSearchLimits.factsPerEntity, at: now)
+            var order: [EntityID] = []
+            var hits: [EntityID: WorldSearchHit] = [:]
+            for (fact, score) in scored {
+                if var hit = hits[fact.subjectID] {
+                    if hit.facts.count < WorldSearchLimits.factsPerEntity {
+                        hit.facts.append(fact)
+                    }
+                    hit.score = max(hit.score, score)
+                    hits[fact.subjectID] = hit
+                } else {
+                    order.append(fact.subjectID)
+                    hits[fact.subjectID] = WorldSearchHit(
+                        entityID: fact.subjectID, score: score, facts: [fact])
+                }
+            }
+            return WorldSearchPage(
+                query: query,
+                hits: order.prefix(limit).compactMap { hits[$0] }.sorted { $0.score > $1.score })
+        }
+        self.search = search
         // A name the world knows, as an entity: "Tamara" or "my mom" by the people the world
-        // can describe; "the front door", "Hopper", "Mango" by their slug under any kind. A
-        // mind asking a tool guesses at ids; the world knows.
+        // can describe (relationship words and their synonyms count); anything else by the
+        // text index. A mind asking a tool guesses at ids; the world knows.
         entityNamed = { name in
             let now = await clock.now
             let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -508,19 +536,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             ).first {
                 return person
             }
-            var words = trimmed.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-                .map(String.init)
-            if words.first == "the" { words.removeFirst() }
-            guard !words.isEmpty else { return nil }
-            let slug = words.joined(separator: "-")
-            for kind in ["character", "person", "place", "thing", "house", "order", "event"] {
-                guard let candidate = EntityID(rawValue: "\(kind):\(slug)") else { continue }
-                if try await !persistence.facts.currentFacts(subjectID: candidate, at: now).isEmpty
-                {
-                    return candidate
-                }
-            }
-            return nil
+            return try await search(trimmed, 1).hits.first?.entityID
         }
         // Why: the fact, then whatever it was derived from, a few levels down, nearest first.
         explain = { factID in
@@ -656,6 +672,9 @@ struct MongoWorldPersistenceConnection: Sendable {
             throw WorldAPIError.databaseUnavailable
         },
         entityNamed: @escaping @Sendable (String) async throws -> EntityID? = { _ in nil },
+        search: @escaping @Sendable (String, Int) async throws -> WorldSearchPage = { _, _ in
+            throw WorldAPIError.databaseUnavailable
+        },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -693,6 +712,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.perspective = perspective
         self.explain = explain
         self.entityNamed = entityNamed
+        self.search = search
         self.shutdown = shutdown
     }
 }
@@ -992,6 +1012,11 @@ actor MongoWorldPersistenceProvider {
     func entity(named name: String) async throws -> EntityID? {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.entityNamed(name)
+    }
+
+    func search(_ query: String, limit: Int) async throws -> WorldSearchPage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.search(query, limit)
     }
 
     func conversationItems(

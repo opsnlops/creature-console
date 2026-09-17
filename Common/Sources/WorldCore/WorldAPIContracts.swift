@@ -223,6 +223,36 @@ public struct FactExplanation: Codable, Hashable, Sendable {
     }
 }
 
+/// What a search found: an entity, how well it matched, and the current facts that matched -
+/// so "the cleaner" answers with `person:tamara` and the relationship that said so, and a mind
+/// often needs no second call.
+public struct WorldSearchHit: Codable, Hashable, Sendable {
+    public var entityID: EntityID
+    public var score: Double
+    public var facts: [Fact]
+
+    public init(entityID: EntityID, score: Double, facts: [Fact]) {
+        self.entityID = entityID
+        self.score = score
+        self.facts = facts
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case entityID = "entity_id"
+        case score, facts
+    }
+}
+
+public struct WorldSearchPage: Codable, Hashable, Sendable {
+    public var query: String
+    public var hits: [WorldSearchHit]
+
+    public init(query: String, hits: [WorldSearchHit]) {
+        self.query = query
+        self.hits = hits
+    }
+}
+
 /// One entity, whole: what the world believes about it, what elsewhere points at it, and what
 /// has happened around it lately. The Viewer's entity page, and a mind's "who is Jesse?".
 public struct EntityPage: Codable, Hashable, Sendable {

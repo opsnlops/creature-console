@@ -161,6 +161,23 @@ struct WorldMCPTests {
                 return
             }
             #expect(items.first?["subject_id"] == .string("person:tamara"))
+            // search_world: entities with the facts that matched, and the tool is listed.
+            let searched = try await call(
+                #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search_world","arguments":{"query":"tamara"}}}"#
+            )
+            guard case .array(let hits)? = searched?["result"]?["structuredContent"]?["hits"]
+            else {
+                Issue.record("no hits: \(String(describing: searched))")
+                return
+            }
+            #expect(hits.first?["entity_id"] == .string("person:tamara"))
+            #expect(hits.first?["facts"]?.arrayCount == 1)
+            let listed = try await call(#"{"jsonrpc":"2.0","id":4,"method":"tools/list"}"#)
+            guard case .array(let tools)? = listed?["result"]?["tools"] else {
+                Issue.record("no tools")
+                return
+            }
+            #expect(tools.first?["name"] == .string("search_world"))
             let stranger = try await call(
                 #"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"query_entity","arguments":{"entity_id":"Zed"}}}"#
             )
@@ -216,6 +233,18 @@ struct WorldMCPTests {
             }
             try await client.execute(uri: "/world/v1/facts/not-a-fact/explain", method: .get) {
                 response in
+                #expect(response.status == .badRequest)
+            }
+            // Search over REST, for the Viewer and curl.
+            try await client.execute(uri: "/world/v1/search?q=cleaning&limit=5", method: .get) {
+                response in
+                #expect(response.status == .ok)
+                let page = try WorldJSON.makeDecoder().decode(
+                    WorldSearchPage.self, from: response.body)
+                #expect(page.query == "cleaning")
+                #expect(page.hits.map(\.entityID) == [house])
+            }
+            try await client.execute(uri: "/world/v1/search", method: .get) { response in
                 #expect(response.status == .badRequest)
             }
         }
@@ -284,8 +313,19 @@ private actor MCPWorld: WorldApplicationService {
             characterID: characterID, facts: facts, factMeanings: [:], recentHappenings: [])
     }
     func entity(named name: String) async throws -> EntityID? {
-        let slug = name.lowercased()
-        return facts.map(\.subjectID).first { $0.rawValue.hasSuffix(":" + slug) }
+        try await search(name, limit: 1).hits.first?.entityID
+    }
+    func search(_ query: String, limit: Int) async throws -> WorldSearchPage {
+        let word = query.lowercased()
+        let matching = facts.filter { fact in
+            fact.subjectID.rawValue.contains(word)
+                || (fact.value.stringValue?.lowercased().contains(word) ?? false)
+        }
+        let grouped = Dictionary(grouping: matching, by: \.subjectID)
+        return WorldSearchPage(
+            query: query,
+            hits: grouped.map { WorldSearchHit(entityID: $0.key, score: 1, facts: $0.value) }
+                .prefix(limit).map { $0 })
     }
     func explain(factID: FactID) async throws -> FactExplanation? {
         guard let fact = facts.first(where: { $0.factID == factID }) else { return nil }
@@ -304,6 +344,10 @@ extension WorldJSONValue {
     }
     fileprivate var stringValue: String? {
         if case .string(let text) = self { return text }
+        return nil
+    }
+    fileprivate var arrayCount: Int? {
+        if case .array(let items) = self { return items.count }
         return nil
     }
 }

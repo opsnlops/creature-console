@@ -223,8 +223,12 @@ struct MongoWorldMigrator: Sendable {
                 "subject_id": 1,
             ]
         )
+        // Search: every string in every fact - the subject's slug, the predicate, the values
+        // inside objects and arrays - in one text index, so "who is Tamara?" or "the
+        // cleaner" is one ranked query rather than a guess at an id. Mango would approve.
+        let text = CreateIndexes.Index(named: "facts_text", keys: ["$**": "text"])
         try await database[MongoWorldCollection.facts].createIndexes([
-            factID, activeFacts, predicateSubjects,
+            factID, activeFacts, predicateSubjects, text,
         ])
     }
 

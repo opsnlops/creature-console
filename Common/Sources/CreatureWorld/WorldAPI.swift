@@ -110,6 +110,9 @@ protocol WorldApplicationService: Sendable {
     /// The entity a name the world knows stands for - "Tamara", "my mom", "the front door" -
     /// or nil when it knows nobody by it. An id is returned as itself.
     func entity(named name: String) async throws -> EntityID?
+    /// Anything by a word: entities ranked by how well their current facts match, each with
+    /// the facts that matched.
+    func search(_ query: String, limit: Int) async throws -> WorldSearchPage
 }
 
 extension WorldApplicationService {
@@ -135,6 +138,9 @@ extension WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
     func entity(named name: String) async throws -> EntityID? { nil }
+    func search(_ query: String, limit: Int) async throws -> WorldSearchPage {
+        throw WorldAPIError.databaseUnavailable
+    }
 }
 
 protocol ConversationApplicationService: Sendable {

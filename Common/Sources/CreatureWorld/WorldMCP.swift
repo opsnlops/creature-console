@@ -147,6 +147,15 @@ struct WorldMCP: Sendable {
 
     static let tools: [Tool] = [
         Tool(
+            name: "search_world",
+            description:
+                "Find anything by a word or two - a name, a thing, a place, an order, a phrase from a memory. Searches every current fact (subjects, predicates, values) and returns entities best first, each with the facts that matched. Start here when you do not know an entity's id.",
+            properties: [
+                "query": string(
+                    "Words to search for, e.g. \"Tamara\", \"cleaner\", \"toothpaste\"."),
+                "limit": integer("At most this many entities (default 10, max 50)."),
+            ], required: ["query"]),
+        Tool(
             name: "inspect_world_state",
             description:
                 "Current facts, newest first: everything, or one subject, or one predicate prefix (e.g. \"visitor.\", \"body.\"). Each fact carries its epistemic basis, validity window, and provenance.",
@@ -241,6 +250,15 @@ struct WorldMCP: Sendable {
                 predicatePrefix: arguments["predicate_prefix"].flatMap(\.stringValue),
                 after: nil, limit: limit(arguments["limit"], default: 100, max: 500))
             result = page.facts
+        case "search_world":
+            guard case .string(let query)? = arguments["query"],
+                !query.trimmingCharacters(in: .whitespaces).isEmpty
+            else { throw Failure.invalidParams("query is required") }
+            result = try await service.search(
+                query,
+                limit: limit(
+                    arguments["limit"], default: WorldSearchLimits.defaultHits,
+                    max: WorldSearchLimits.maximumHits))
         case "query_entity":
             guard let id = try await entityID(arguments["entity_id"]) else {
                 throw Failure.invalidParams("entity_id is required")

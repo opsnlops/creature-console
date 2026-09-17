@@ -188,6 +188,7 @@ public enum WorldMentions {
 public enum WorldKnowledgeLimits {
     /// The most facts a single percept carries.
     public static let maximumFacts = 40
+
     /// How far back the story a percept carries reaches, and how many happenings at most.
     public static let happeningsWindow: TimeInterval = 15 * 60
     public static let maximumHappenings = 30
@@ -209,4 +210,11 @@ public enum WorldKnowledgeLimits {
         "appointment", "appointments", "coming", "upcoming", "when", "month", "monday", "tuesday",
         "wednesday", "thursday", "friday", "saturday", "sunday",
     ]
+}
+
+/// How much a search hands back: hits are entities, each with a few of the facts that matched.
+public enum WorldSearchLimits {
+    public static let defaultHits = 10
+    public static let maximumHits = 50
+    public static let factsPerEntity = 5
 }
