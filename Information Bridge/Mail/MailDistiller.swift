@@ -115,7 +115,8 @@ extension MailReading {
             "your package", "your shipment",
         ]
         if generic.contains(lower) { return true }
-        // "1 Kitchen item", "2 items": Amazon's placeholders.
-        return lower.range(of: #"^\d+\s+(\w+\s+)?items?$"#, options: .regularExpression) != nil
+        // "1 Kitchen item", "1 Personal Care item", "5 Kitchen, Essentials, and other items",
+        // "2 items": Amazon's placeholders - a count, some category words, "item(s)".
+        return lower.range(of: #"^\d+\s+(.+\s+)?items?$"#, options: .regularExpression) != nil
     }
 }

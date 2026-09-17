@@ -220,7 +220,23 @@ struct MailTests {
                 == "Amazon Basics Wired QWERTY")
         #expect(MailReading.isPlaceholder("Item"))
         #expect(MailReading.isPlaceholder("1 Kitchen item"))
+        #expect(MailReading.isPlaceholder("1 Personal Care item"))
+        #expect(MailReading.isPlaceholder("5 Kitchen, Essentials, and other items"))
         #expect(!MailReading.isPlaceholder("Servo Kit ×4"))
+        // A placeholder on the subject leaves the items to the model: "did I order toothpaste?"
+        let placeholder = MailReader.read(
+            mail(
+                "p", from: "auto-confirm@amazon.com", subject: "Ordered: \"1 Personal Care item\"",
+                text: "Order # 111-0746960-3342613"),
+            kind: .order)
+        #expect(placeholder.items.isEmpty)
+        #expect(
+            placeholder.filled(
+                with: CommerceReading(
+                    merchant: "Amazon", orderNumber: "", trackingNumber: "",
+                    items: ["Crest 3D White Toothpaste, 2-pack"], total: "$19.07",
+                    expectedDelivery: "")
+            ).items == ["Crest 3D White Toothpaste, 2-pack"])
     }
 
     @Test("The source reads its accounts, casts the orders once, and forgets the mail")

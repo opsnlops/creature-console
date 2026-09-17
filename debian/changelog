@@ -1,5 +1,11 @@
-creature-cli (2.72.3+world0.29.0+house0.2.0+gateway0.1.6+body0.2.0) unstable; urgency=medium
+creature-cli (2.72.3+world0.29.1+house0.2.0+gateway0.1.6+body0.2.0) unstable; urgency=medium
 
+  * creature-world 0.29.1: "did I order anything?" April ordered
+    toothpaste; the order reached the world 46 seconds later, but the
+    birds only found orders by the names of their items, and "did I
+    just order anything" names none. Order-words in a question (order,
+    ordered, bought, package, delivery, ...) now hand the minds every
+    order the mail spoke of in the last two days, newest first.
   * creature-world 0.29.0: WorldMCP. The Model Context Protocol over
     stateless Streamable HTTP at POST /world/mcp (GET/DELETE 405; no
     legacy /sse), protocol 2025-06-18, read only, through the same

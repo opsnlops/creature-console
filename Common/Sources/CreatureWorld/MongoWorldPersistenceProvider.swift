@@ -1008,6 +1008,13 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             expanded.append(
                 contentsOf: WorldMentions.mentioned(in: text, among: try await knownOrders(at: now))
             )
+            // And the newest orders whenever orders are the subject: "did I just order
+            // toothpaste?" when the mail only said "1 Personal Care item".
+            let words = Set(
+                text.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
+            if !words.isDisjoint(with: WorldKnowledgeLimits.orderWords) {
+                expanded.append(contentsOf: try await recentOrders(at: now))
+            }
         }
         // What is the world's alone stays with the world - and never takes a mind's place on
         // the capped page.
@@ -1166,6 +1173,22 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     }
 
     /// Every order the world holds, by the words of what was in it.
+    /// Orders the mail spoke of in the last two days, newest first.
+    private func recentOrders(at now: Date) async throws -> [EntityID] {
+        let since = now.addingTimeInterval(-WorldKnowledgeLimits.recentOrderWindow)
+        return try await facts.currentFacts(
+            about: [], predicate: "order.updated_at", limit: 500, at: now
+        )
+        .compactMap { fact -> (EntityID, Date)? in
+            guard case .string(let raw) = fact.value, let at = WorldJSON.date(from: raw),
+                at >= since
+            else { return nil }
+            return (fact.subjectID, at)
+        }
+        .sorted { $0.1 > $1.1 }
+        .map(\.0)
+    }
+
     private func knownOrders(at now: Date) async throws -> [WorldMentions.Known] {
         try await facts.currentFacts(about: [], predicate: "order.items", limit: 500, at: now)
             .map { fact in

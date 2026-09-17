@@ -94,6 +94,9 @@ with when the *world* learned it, which for a re-read is minutes ago — so the 
 outright that `order.status` and `order.expected` are as of `order.last_heard`, and that the mail
 rarely says when a package actually came. Item names are tidied (bidi marks, ellipses, Amazon's
 "and 1 more item", the model's "Shipment"/"Item" placeholders dropped); totals read "$21.69".
+Amazon's category placeholders on the subject — "1 Personal Care item", "5 Kitchen, Essentials,
+and other items" — are no names at all: they are left empty so Apple Intelligence names the
+goods from the body (`0.10.5`, reading version 12; the toothpaste that Beaky could not see).
 Since `0.9.0` only the headers of most mail are fetched; the body is read for orders, shipments,
 and appointments. When the readers improve, the Bridge's *reading version* is bumped and the mail is read again,
 the order book rebuilt from scratch, and orders that no longer exist taken back. The Sources card

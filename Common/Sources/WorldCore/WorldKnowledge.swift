@@ -184,6 +184,16 @@ public enum WorldKnowledgeLimits {
     /// The calendar rides along: this many upcoming events at most, soonest first.
     public static let maximumUpcomingEvents = 8
     /// Words that make a question about time, widening the calendar window to a fortnight.
+    /// Words that make the newest orders relevant even when nothing in them is named: "did I
+    /// just order toothpaste?" when the mail called it "1 Personal Care item".
+    public static let orderWords: Set<String> = [
+        "order", "ordered", "ordering", "bought", "buy", "purchase", "purchased", "package",
+        "packages", "parcel", "delivery", "delivered", "shipped", "shipment", "arriving",
+        "arrive", "tracking",
+    ]
+    /// How far back an order counts as news.
+    public static let recentOrderWindow: TimeInterval = 2 * 86_400
+
     public static let timeWords: Set<String> = [
         "weekend", "week", "tomorrow", "today", "tonight", "calendar", "schedule", "plans",
         "appointment", "appointments", "coming", "upcoming", "when", "month", "monday", "tuesday",

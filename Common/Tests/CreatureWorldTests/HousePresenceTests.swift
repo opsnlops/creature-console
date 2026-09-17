@@ -417,6 +417,13 @@ struct RecentHappeningsTests {
         let unrelated = try await knowledge.currentFacts(
             about: [], mentionedIn: "is it raining?", limit: WorldKnowledgeLimits.maximumFacts)
         #expect(!unrelated.contains { $0.subjectID == order })
+        // "Did I order anything?" names nothing in the order, but the order is news - the mail
+        // spoke of it an hour ago - so it is handed over; the ninety-day-old one is not.
+        let anything = try await knowledge.currentFacts(
+            about: [], mentionedIn: "did I just order anything?",
+            limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(anything.contains { $0.subjectID == order && $0.predicate == "order.items" })
+        #expect(!anything.contains { $0.subjectID == stale })
     }
 
     @Test("A world-only kind never reaches a mind; a link brings the linked entity along")

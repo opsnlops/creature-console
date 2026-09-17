@@ -203,6 +203,11 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**Recent orders are news** (`0.29.1`): a question with order-words in it ("did I just order
+anything?", "any packages coming?") hands the minds every order the mail spoke of in the last
+two days, newest first, whether or not the goods are named — Amazon's confirmation had called
+the toothpaste "1 Personal Care item", and the birds could not see it.
+
 **WorldMCP** (`0.29.0`, plan §4.13 / Phase 8): the Model Context Protocol over stateless
 Streamable HTTP at one endpoint, `POST /world/mcp` — a JSON-RPC message in, JSON out; `GET` and
 `DELETE` answer 405 (the world sends nothing unasked and keeps no sessions; there is no legacy

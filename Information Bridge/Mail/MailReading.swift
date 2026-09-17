@@ -190,8 +190,9 @@ enum MailReader {
         ]
         for pattern in patterns {
             if let match = firstGroup(pattern, in: subject) {
-                let item = match.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !item.isEmpty { return [item] }
+                let item = MailReading.tidy(match)
+                // A placeholder is no name: left empty, the model names the goods from the body.
+                if !item.isEmpty, !MailReading.isPlaceholder(item) { return [item] }
             }
         }
         return []
