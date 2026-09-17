@@ -184,6 +184,15 @@ else — persona, facts, the clock, streaming to the room — is identical.
   conversation items the world attached to the percept — both authors, in order — so Beaky sees
   what she herself said last. Consecutive messages from one author are merged into one turn
   because Mistral's chat template rejects non-alternating roles.
+- **It is laid out for the cache** (`2.75.0`). April: "We are not using token caching well
+  at all." A frontier provider charges a fraction for the unchanged *prefix* of a prompt, so
+  on the OpenAI backend the prompt is layered: one system message with the persona, the
+  contract, and the glossary (stable from call to call), then the conversation so far, then
+  a second system message with the facts of the moment and the time, then the newest turn.
+  Everything before that second message is the same text as the last call — a bird's
+  scene turns and answers share it — and `prompt_cache_key` (the character id) keeps one
+  bird's requests on one cache. The local backend keeps the single system message its chat
+  template needs.
 - **It is who its persona says** (`2.60.0`). With `personaPath`, the system prompt is the
   persona rendered in sections — who you are, how you talk, what you care about and steer away
   from, *the ones here and how you feel about them* (only the characters the world's presence

@@ -122,6 +122,38 @@ struct CharacterMindTests {
         #expect(decision == .silence(reason: reason))
     }
 
+    @Test("Placed before the newest turn, the facts of the moment leave a stable prefix to cache")
+    func knowledgeBeforeNewestLeavesAStablePrefix() throws {
+        var configuration = makeMind { _, _ in "unused" }.configuration
+        configuration.knowledgePlacement = .beforeNewest
+        let mind = CharacterMind(
+            configuration: configuration, respond: { _, _ in "unused" },
+            logger: Logger(label: "character-mind-tests"))
+        let percept = try makePercept(
+            text: "Who is here?",
+            prior: [("person", "Hello", 1), ("character", "Hello April.", 2)])
+
+        let transcript = mind.makeTranscript(for: percept, now: now)
+
+        // Persona and contract, then the turns, then the moment, then the newest.
+        #expect(transcript.map(\.role) == [.system, .user, .assistant, .system, .user])
+        #expect(transcript[0].content.hasPrefix("You are Beaky."))
+        #expect(transcript[0].content.contains("The conversation so far is shown above"))
+        #expect(!transcript[0].content.contains("What you know right now"))
+        #expect(transcript[3].content.hasPrefix("What you know right now"))
+        #expect(transcript[3].content.contains("It is "))
+        #expect(transcript[4].content == "Who is here?")
+        // Asked a minute later, the prefix is the same text; only the moment moved.
+        let later = mind.makeTranscript(for: percept, now: now.addingTimeInterval(60))
+        #expect(later[0].content == transcript[0].content)
+        #expect(later[1].content == transcript[1].content)
+        #expect(later[3].content != transcript[3].content)
+        // Within the system message, the one-message shape a chat template needs.
+        let plain = makeMind { _, _ in "unused" }.makeTranscript(for: percept, now: now)
+        #expect(plain.map(\.role) == [.system, .user, .assistant, .user])
+        #expect(plain[0].content.contains("What you know right now"))
+    }
+
     @Test("A question from April carries the world's tools and their contract; a scene turn never")
     func toolsGoWithQuestionsOnly() async throws {
         let tools = ModelTools(

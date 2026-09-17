@@ -28,6 +28,8 @@ struct OpenAIClient: Sendable {
     /// `fast` for lower latency at a premium; nil for the default tier.
     private let serviceTier: String?
     private let minSentenceChars: Int
+    /// Routes every request of this mind to the same cache: one bird, one prefix.
+    private let cacheKey: String?
     /// Streaming goes through AsyncHTTPClient: on Linux, a per-request `URLSession` torn down
     /// as an HTTPS stream completes trips swift-corelibs-foundation's `_MultiHandle` retain
     /// check and aborts the process — Beaky died mid-sentence four times on 2026-09-12.
@@ -41,11 +43,13 @@ struct OpenAIClient: Sendable {
         reasoningEffort: String? = nil,
         serviceTier: String? = nil,
         minSentenceChars: Int = 0,
+        cacheKey: String? = nil,
         endpoint: URL = OpenAIClient.defaultEndpoint,
         streamingClient: HTTPClient? = nil,
         logger: Logger,
         traceResponses: Bool
     ) {
+        self.cacheKey = cacheKey
         self.endpoint = endpoint
         self.streamingClient = streamingClient
         self.apiKey = apiKey
@@ -232,7 +236,7 @@ struct OpenAIClient: Sendable {
             ResponseRequest(
                 model: model, transcript: transcript, temperature: temperature,
                 reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream,
-                json: json, tools: tools, extra: extra))
+                json: json, tools: tools, extra: extra, cacheKey: cacheKey))
         return request
     }
 
@@ -352,16 +356,20 @@ struct ResponseRequest: Encodable {
     let stream: Bool
     let store = false
     let tools: [Tool]?
+    /// The provider caches a prompt's unchanged prefix; the key keeps one bird's requests
+    /// together so hers is the prefix it finds.
+    let promptCacheKey: String?
 
     private enum CodingKeys: String, CodingKey {
         case model, input, temperature, reasoning, text, stream, store, tools
         case serviceTier = "service_tier"
+        case promptCacheKey = "prompt_cache_key"
     }
 
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
         reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false,
-        tools: ModelTools? = nil, extra: [Item] = []
+        tools: ModelTools? = nil, extra: [Item] = [], cacheKey: String? = nil
     ) {
         self.model = model
         self.input = transcript.map(Item.init) + extra
@@ -372,6 +380,7 @@ struct ResponseRequest: Encodable {
         self.serviceTier = serviceTier
         self.stream = stream
         self.tools = tools.map { $0.definitions.map(Tool.init) }
+        self.promptCacheKey = cacheKey
     }
 }
 

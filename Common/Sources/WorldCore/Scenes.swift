@@ -107,6 +107,8 @@ public enum SceneState: String, Hashable, Sendable, Codable {
 public enum SceneCloseReason: String, Hashable, Sendable, Codable {
     /// Everyone present passed in a row.
     case everyonePassed = "everyone_passed"
+    /// Everyone had a turn and the last line asked for nothing more.
+    case roundDone = "round_done"
     case maximumTurns = "maximum_turns"
     case maximumSpokenSeconds = "maximum_spoken_seconds"
     /// A person spoke again; the scene yields to the new exchange.
@@ -525,7 +527,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
 
     public init(
         floorSeconds: TimeInterval = 8,
-        maximumTurns: Int = 12,
+        maximumTurns: Int = 6,
         houseMaximumTurns: Int = 3,
         maximumSpokenSeconds: TimeInterval = 90,
         charactersPerSecond: Double = 20,

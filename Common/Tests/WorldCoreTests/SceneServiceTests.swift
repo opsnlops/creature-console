@@ -49,8 +49,10 @@ struct SceneServiceTests {
         let second = try await world.service.submit(
             SceneTurnSubmission(
                 characterID: mango, responseID: try #require(first.scene.floor?.responseID),
-                text: "Or it is more heat sinks. It is always heat sinks."),
+                text: "Or is it more heat sinks, Beaky?"),
             to: scene.sceneID)
+        // A question keeps the scene open past the first round.
+        #expect(second.scene.state == .open)
         #expect(second.scene.floor?.characterID == beaky)
 
         let beakyPasses = try await world.service.submit(
@@ -267,13 +269,67 @@ struct SceneServiceTests {
         #expect(current.floor?.characterID == mango)
     }
 
+    @Test(
+        "One round by default: the scene closes once everyone has spoken and nothing asks for more")
+    func roundDoneCloses() async throws {
+        let kenny = try EntityID(validating: "character:kenny")
+        let world = makeWorld()
+        var scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango, kenny])
+        for line in [
+            "I love you too, April.", "Noted, and recorded in MongoDB.",
+            "Kenny loves you too, with all his pieces.",
+        ] {
+            let floor = try #require(scene.floor)
+            scene = try await world.service.submit(
+                SceneTurnSubmission(
+                    characterID: floor.characterID, responseID: floor.responseID, text: line),
+                to: scene.sceneID
+            ).scene
+        }
+        let final = try #require(try await world.service.scene(id: scene.sceneID))
+        // Kenny naming himself is not a call on anyone.
+        #expect(final.closeReason == .roundDone)
+        #expect(final.turns.count == 3)
+        #expect(final.state == .performed)
+
+        // A name or a question at the end of the round keeps it going.
+        let asked = makeWorld()
+        var open = try await asked.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        for line in ["Mango will know.", "I do know."] {
+            let floor = try #require(open.floor)
+            open = try await asked.service.submit(
+                SceneTurnSubmission(
+                    characterID: floor.characterID, responseID: floor.responseID, text: line),
+                to: open.sceneID
+            ).scene
+        }
+        #expect(open.closeReason == .roundDone)
+        var named = try await asked.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        for line in ["Mango will know.", "I do, Beaky."] {
+            let floor = try #require(named.floor)
+            named = try await asked.service.submit(
+                SceneTurnSubmission(
+                    characterID: floor.characterID, responseID: floor.responseID, text: line),
+                to: named.sceneID
+            ).scene
+        }
+        #expect(named.state == .open)
+        #expect(named.turns.count == 2)
+    }
+
     @Test("The cutoffs end a scene that would otherwise run on")
     func cutoffsClose() async throws {
         let world = makeWorld(limits: SceneLimits(maximumTurns: 3))
         var scene = try await world.service.open(
             regionID: home, conversationID: conversation,
             trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
-        for line in ["One.", "Two.", "Three."] {
+        for line in ["One?", "Two?", "Three?"] {
             let floor = try #require(scene.floor)
             scene = try await world.service.submit(
                 SceneTurnSubmission(
@@ -324,16 +380,10 @@ struct SceneServiceTests {
             regionID: home, conversationID: conversation,
             trigger: makeTrigger(addressee: beaky), participants: [beaky])
         let floor = try #require(loud.floor)
+        // Alone, her one line is the round; the scene closes and the performance fails.
         _ = try await broken.service.submit(
             SceneTurnSubmission(
                 characterID: beaky, responseID: floor.responseID, text: "Alone but talking."),
-            to: loud.sceneID)
-        _ = try await broken.service.submit(
-            SceneTurnSubmission(
-                characterID: beaky,
-                responseID: try #require(
-                    try await broken.service.scene(id: loud.sceneID)?.floor?.responseID),
-                text: nil),
             to: loud.sceneID)
         let failed = try #require(try await broken.service.scene(id: loud.sceneID))
         #expect(failed.state == .abandoned)
@@ -402,7 +452,7 @@ struct SceneServiceTests {
         #expect(scene.closeReason == .maximumTurns)
         #expect(scene.turns.count == 2)
 
-        // A pass later in a house scene is still a pass, and April's scenes keep the long cap.
+        // April's scenes keep the long cap, as long as the lines keep asking.
         let chatty = try await world.service.open(
             regionID: home, conversationID: conversation,
             trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
@@ -411,7 +461,7 @@ struct SceneServiceTests {
         for _ in 0..<3 {
             current = try await world.service.submit(
                 SceneTurnSubmission(
-                    characterID: floor.characterID, responseID: floor.responseID, text: "More."),
+                    characterID: floor.characterID, responseID: floor.responseID, text: "More?"),
                 to: current.sceneID
             ).scene
             floor = try #require(current.floor)

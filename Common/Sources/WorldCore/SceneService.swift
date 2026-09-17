@@ -440,11 +440,21 @@ public actor SceneService {
         return scene.participants[(index + 1) % scene.participants.count]
     }
 
-    /// The cutoffs: everyone passed in a row, too many turns, or too much to say.
+    /// The cutoffs: everyone passed in a row, the round is done, too many turns, or too much
+    /// to say.
     private func closeReason(for scene: Scene) -> SceneCloseReason? {
         let count = scene.participants.count
         if scene.turns.count >= count, scene.turns.suffix(count).allSatisfy(\.isPass) {
             return .everyonePassed
+        }
+        // One round by default. Once everyone has had a turn, the scene goes on only when the
+        // last line asked for more - a question, or another bird named. "Beaky I still love
+        // you" once ran to twelve turns, five of them passes, every one a model call carrying
+        // the whole world; a scene's third round is rarely its best.
+        if scene.turns.count >= count, scene.turns.count % count == 0,
+            let last = scene.spokenTurns.last, !Self.callsForMore(last, in: scene)
+        {
+            return .roundDone
         }
         let cap = scene.trigger.isHouseOccasion ? limits.houseMaximumTurns : limits.maximumTurns
         if scene.turns.count >= cap {
@@ -457,6 +467,25 @@ public actor SceneService {
             return .maximumSpokenSeconds
         }
         return nil
+    }
+
+    /// Whether a spoken line leaves something for the others to answer: a question, or one
+    /// of the other participants named (a bird speaking of itself in the third person -
+    /// "Kenny loves you too" - is not calling on anyone).
+    static func callsForMore(_ turn: SceneTurn, in scene: Scene) -> Bool {
+        guard let text = turn.text?.lowercased() else { return false }
+        if text.contains("?") { return true }
+        let words = Set(text.split(whereSeparator: { !$0.isLetter }).map(String.init))
+        return scene.participants.contains { other in
+            other != turn.characterID && words.contains(Self.name(of: other))
+        }
+    }
+
+    /// `character:kenny` → `kenny`.
+    private static func name(of entityID: EntityID) -> String {
+        let raw = entityID.rawValue
+        guard let colon = raw.firstIndex(of: ":") else { return raw.lowercased() }
+        return String(raw[raw.index(after: colon)...]).lowercased()
     }
 
     // MARK: - Closing and performing

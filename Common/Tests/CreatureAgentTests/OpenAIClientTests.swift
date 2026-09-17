@@ -37,6 +37,16 @@ struct OpenAIClientTests {
         #expect(
             ((plain["text"] as? [String: Any])?["format"] as? [String: String])?["type"] == "text")
 
+        #expect(plain["prompt_cache_key"] == nil)
+        let keyed = OpenAIClient(
+            apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "unused", temperature: 0.9,
+            cacheKey: "character:beaky", logger: Logger(label: "openai-tests"),
+            traceResponses: false)
+        let keyedData = try #require(keyed.makeRequest(for: transcript, stream: true).httpBody)
+        let keyedBody = try #require(
+            JSONSerialization.jsonObject(with: keyedData) as? [String: Any])
+        #expect(keyedBody["prompt_cache_key"] as? String == "character:beaky")
+
         let reasoning = try body(reasoningEffort: "low")
         #expect((reasoning["reasoning"] as? [String: String])?["effort"] == "low")
         #expect(reasoning["temperature"] == nil)

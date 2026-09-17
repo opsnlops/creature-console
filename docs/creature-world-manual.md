@@ -84,7 +84,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Lead character | `lead_character` | — | — | `character:beaky` (who an unaddressed message goes to) |
 | Scene performance | `scene_performance` | — | — | `streaming` (`complete` renders the whole scene at once) |
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
-| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `12`, `2`, `90` |
+| Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `6`, `3`, `90` |
 | House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
 | Calendar rule | `calendar.at_home` (words that make a location the house) | — | — | `["home","house"]` |
 | Audience | `fact_kinds.audience` per kind (`PUT /v1/fact-kinds/{p}` with `"audience": "world"`) | — | — | `minds` |
@@ -179,8 +179,12 @@ character at a time — the addressee first, then the others in a round — with
 `scene.turn_offered` event for each offer. A mind answers with a line or a pass through
 `POST /world/v1/scenes/{scene_id}/turns`; a floor nobody answers by `floor_seconds` is a pass
 (the deadline is a world timer, `scene.floor_expired`). The scene closes when everyone passes in
-a row, at `maximum_turns`, or when the composed speech would exceed `maximum_spoken_seconds`
-(estimated as below); a new scene in the region interrupts an open one. Every spoken
+a row, **when the round is done** (`0.32.0`: once everyone has had a turn, it goes on only if
+the last spoken line asked for more — a question, or another bird named; `round_done`), at
+`maximum_turns` (now 6), or when the composed speech would exceed `maximum_spoken_seconds`
+(estimated as below); a new scene in the region interrupts an open one. The round rule is the
+first cut at cost: "Beaky I still love you" once ran to twelve turns, five of them passes, and
+every pass was a model call carrying the whole world. Every spoken
 turn is also a conversation item, so the Communicator shows the exchange as it is composed.
 
 **The house opens scenes** (`0.10.0`, F3): `scenes.open_on` lists the world events that

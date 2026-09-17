@@ -1,3 +1,21 @@
+creature-cli (2.75.0+world0.32.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * Cost. "We are not using token caching well at all."
+  * creature-world 0.32.0: the round rule. Once everyone has had a turn
+    a scene goes on only if the last spoken line asked for more - a
+    question, or another bird named (a bird naming itself does not
+    count); otherwise it closes, round_done. maximum_turns 12 -> 6.
+    Twelve scenes tonight ran ~80 turns, ~35 of them passes, every pass
+    a model call carrying the whole world.
+  * creature-agent 2.75.0: the prompt laid out for the provider's cache
+    on the OpenAI backend - persona, contract, glossary in one system
+    message; the conversation; the facts of the moment in a second
+    system message just before the newest turn - so the unchanged
+    prefix is served from cache call after call; prompt_cache_key is
+    the character id. The local backend keeps its single system message.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 01:05:00 -0700
+
 creature-cli (2.74.1+world0.31.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.74.1: the mind runs the tool loop itself. 2.74.0

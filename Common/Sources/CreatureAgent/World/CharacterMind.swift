@@ -94,6 +94,18 @@ struct CharacterMind: Sendable {
         /// The world as tools, for a question from April; `nil` and the mind knows only what
         /// it is handed. A house remark never gets them - it must be quick.
         var tools: ModelTools? = nil
+        /// Where the world's facts go in the prompt. `.beforeNewest` puts the stable parts -
+        /// persona, contract, the glossary - first and the facts of the moment in their own
+        /// item just before the newest message, so a provider's prompt cache serves the
+        /// stable prefix (and the conversation so far) across every call a bird makes.
+        /// `.withinSystem` keeps everything in the one system message a local chat template
+        /// insists on. April: "We are not using token caching well at all."
+        var knowledgePlacement: KnowledgePlacement = .withinSystem
+
+        enum KnowledgePlacement: Sendable {
+            case withinSystem
+            case beforeNewest
+        }
 
         /// The character's plain name, as a model might label her lines: `character:beaky` → `beaky`.
         var characterName: String {
@@ -688,17 +700,10 @@ struct CharacterMind: Sendable {
                 isLead: offer.turns.isEmpty,
                 mayDecline: offer.trigger.kind == .houseConsideration)
         }
-        var transcript = [
-            LocalLLMClient.Message(
-                role: .system,
-                content: configuration.persona.rendered(
-                    present: present, pronouns: FactPhrasing.pronouns(in: offer.worldFacts))
-                    + "\n\n" + contract
-                    + knowledgeBlock(
-                        offer.worldFacts, happenings: offer.recentHappenings,
-                        meanings: offer.factMeanings, now: now)
-            )
-        ]
+        let opening =
+            configuration.persona.rendered(
+                present: present, pronouns: FactPhrasing.pronouns(in: offer.worldFacts))
+            + "\n\n" + contract
         var script = ""
         switch offer.trigger.kind {
         case .personUtterance:
@@ -712,8 +717,10 @@ struct CharacterMind: Sendable {
             script += "\(Self.name(of: turn.characterID)): \(text)\n"
         }
         script += "\(configuration.characterName.capitalized):"
-        transcript.append(LocalLLMClient.Message(role: .user, content: script))
-        return transcript
+        return layered(
+            opening: opening, facts: offer.worldFacts, happenings: offer.recentHappenings,
+            meanings: offer.factMeanings, now: now,
+            turns: [LocalLLMClient.Message(role: .user, content: script)])
     }
 
     static func name(of entityID: EntityID) -> String {
@@ -739,12 +746,7 @@ struct CharacterMind: Sendable {
         var block =
             "\n\nWhat you know right now, from the world itself (trust this over guesses; each line is who or where, what is known, since when, and how it is known):\n"
             + lines.map { "- " + $0 }.joined(separator: "\n")
-        if !meanings.isEmpty {
-            block +=
-                "\n\nWhat those kinds of fact mean:\n"
-                + meanings.keys.sorted().map { "- \($0): \(meanings[$0]!)" }
-                .joined(separator: "\n")
-        }
+        block += Self.meaningsBlock(meanings)
         // The story behind the facts: what the house saw, in order, so the mind can work out
         // what is going on rather than be told.
         let story = FactPhrasing.happeningLines(
@@ -755,6 +757,14 @@ struct CharacterMind: Sendable {
                 + story.map { "- " + $0 }.joined(separator: "\n")
         }
         return block
+    }
+
+    /// The glossary: what each kind of fact means. Sorted, and the same from call to call
+    /// while the same kinds are in play - the cacheable part of what the world hands over.
+    static func meaningsBlock(_ meanings: [String: String]) -> String {
+        guard !meanings.isEmpty else { return "" }
+        return "\n\nWhat those kinds of fact mean:\n"
+            + meanings.keys.sorted().map { "- \($0): \(meanings[$0]!)" }.joined(separator: "\n")
     }
 
     static let april = try! EntityID(validating: "person:april")
@@ -912,18 +922,11 @@ struct CharacterMind: Sendable {
         let present =
             [percept.utterance.speakerID]
             + FactPhrasing.presentCharacters(in: percept.worldFacts)
-        var transcript = [
-            LocalLLMClient.Message(
-                role: .system,
-                content: configuration.persona.rendered(
-                    present: present, pronouns: FactPhrasing.pronouns(in: percept.worldFacts))
-                    + "\n\n" + Self.contract(for: route)
-                    + (configuration.tools == nil ? "" : " " + ModelTools.contract)
-                    + knowledgeBlock(
-                        percept.worldFacts, happenings: percept.recentHappenings,
-                        meanings: percept.factMeanings, now: now)
-            )
-        ]
+        let opening =
+            configuration.persona.rendered(
+                present: present, pronouns: FactPhrasing.pronouns(in: percept.worldFacts))
+            + "\n\n" + Self.contract(for: route)
+            + (configuration.tools == nil ? "" : " " + ModelTools.contract)
         let prior = percept.priorConversationItems
             .sorted { ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue) }
             .suffix(configuration.maximumContextTurns)
@@ -934,9 +937,40 @@ struct CharacterMind: Sendable {
             )
         }
         turns.append(LocalLLMClient.Message(role: .user, content: percept.utterance.text))
-        transcript.append(
-            contentsOf: Self.openingWithTheUser(Self.coalescingConsecutiveTurns(turns)))
-        return transcript
+        turns = Self.openingWithTheUser(Self.coalescingConsecutiveTurns(turns))
+        return layered(
+            opening: opening, facts: percept.worldFacts, happenings: percept.recentHappenings,
+            meanings: percept.factMeanings, now: now, turns: turns)
+    }
+
+    /// The prompt in the shape the backend caches best (`knowledgePlacement`): the opening
+    /// and, in one system message or two, the glossary and the facts of the moment; then
+    /// the turns, the newest last. With `.beforeNewest` the facts sit in their own system
+    /// item just before the newest turn, so everything before it - persona, contract,
+    /// glossary, the conversation so far - is the same text call after call.
+    func layered(
+        opening: String, facts: [Fact], happenings: [Happening], meanings: [String: String],
+        now: Date, turns: [LocalLLMClient.Message]
+    ) -> [LocalLLMClient.Message] {
+        switch configuration.knowledgePlacement {
+        case .withinSystem:
+            return [
+                LocalLLMClient.Message(
+                    role: .system,
+                    content: opening
+                        + knowledgeBlock(
+                            facts, happenings: happenings, meanings: meanings, now: now))
+            ] + turns
+        case .beforeNewest:
+            let stable = LocalLLMClient.Message(
+                role: .system, content: opening + Self.meaningsBlock(meanings))
+            let moment = LocalLLMClient.Message(
+                role: .system,
+                content: String(
+                    knowledgeBlock(facts, happenings: happenings, meanings: [:], now: now)
+                        .drop(while: \.isNewline)))
+            return [stable] + turns.dropLast() + [moment] + turns.suffix(1)
+        }
     }
 
     /// Chat templates such as Mistral's also require the first turn after the system message to

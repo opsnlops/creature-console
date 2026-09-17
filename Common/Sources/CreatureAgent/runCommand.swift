@@ -392,6 +392,7 @@ private func runWorldMode(
             reasoningEffort: config.llmReasoningEffort,
             serviceTier: config.llmServiceTier,
             minSentenceChars: config.minSentenceChars,
+            cacheKey: characterID.rawValue,
             streamingClient: modelClient,
             logger: logger,
             traceResponses: traceResponses
@@ -527,7 +528,10 @@ private func runWorldMode(
             timeZone: world.timeZone,
             modelLabel: "\(config.llmBackend.rawValue)/\(config.llmModel)",
             houseID: world.houseID,
-            tools: tools
+            tools: tools,
+            // A frontier backend caches the prompt's unchanged prefix; a local chat template
+            // wants one system message.
+            knowledgePlacement: config.llmBackend == .openai ? .beforeNewest : .withinSystem
         ),
         respond: respond,
         respondStreaming: respondStreaming,

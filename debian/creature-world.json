@@ -21,7 +21,7 @@
   },
   "scenes": {
     "floor_seconds": 8,
-    "maximum_turns": 12,
+    "maximum_turns": 6,
     "house_maximum_turns": 3,
     "maximum_spoken_seconds": 90,
     "voices": {
