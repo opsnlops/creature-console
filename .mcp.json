@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "creature-world": {
+      "type": "http",
+      "url": "https://server.prod.chirpchirp.dev/world/mcp"
+    }
+  }
+}

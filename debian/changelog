@@ -1,3 +1,20 @@
+creature-cli (2.72.3+world0.29.0+house0.2.0+gateway0.1.6+body0.2.0) unstable; urgency=medium
+
+  * creature-world 0.29.0: WorldMCP. The Model Context Protocol over
+    stateless Streamable HTTP at POST /world/mcp (GET/DELETE 405; no
+    legacy /sse), protocol 2025-06-18, read only, through the same
+    application services as the REST API. Tools: inspect_world_state,
+    query_entity, explain_fact (a provenance walk), query_timeline,
+    query_character_perspective (exactly what a mind is handed),
+    query_scenes, query_conversation, query_timers, query_day,
+    query_glossary. Resources: world://entities/{id}, world://characters/
+    {id}/perspective and /memories, world://events/recent, world://timers,
+    world://scenes/recent, world://provenance/{fact_id}, world://glossary.
+    Origin validated; the API's concurrency, duration, and body limits
+    apply. For debugging without curl and python.
+
+ -- April White <april@creature.engineering>  Wed, 16 Sep 2026 18:10:00 -0700
+
 creature-cli (2.72.3+world0.28.0+house0.2.0+gateway0.1.6+body0.2.0) unstable; urgency=medium
 
   * creature-house 0.2.0: a sighting that lasted is news when it ends.

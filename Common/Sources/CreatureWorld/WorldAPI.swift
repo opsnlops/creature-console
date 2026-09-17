@@ -102,6 +102,11 @@ protocol WorldApplicationService: Sendable {
     func remember(_ day: String) async throws -> WorldEventAcceptance
     /// One entity, whole.
     func entity(_ entityID: EntityID) async throws -> EntityPage
+    /// What a mind would be handed right now.
+    func perspective(of characterID: EntityID, mentionedIn text: String?) async throws
+        -> CharacterPerspective
+    /// Why a fact is what it is.
+    func explain(factID: FactID) async throws -> FactExplanation?
 }
 
 extension WorldApplicationService {
@@ -116,6 +121,14 @@ extension WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
     func entity(_ entityID: EntityID) async throws -> EntityPage {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func perspective(of characterID: EntityID, mentionedIn text: String?) async throws
+        -> CharacterPerspective
+    {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func explain(factID: FactID) async throws -> FactExplanation? {
         throw WorldAPIError.databaseUnavailable
     }
 }

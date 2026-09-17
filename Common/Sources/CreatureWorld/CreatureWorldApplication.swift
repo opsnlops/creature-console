@@ -19,7 +19,7 @@ func makeCreatureWorldApplication(
             response: health
         )
     }
-    WorldHTTPAPI(
+    let api = WorldHTTPAPI(
         configuration: dependencies.configuration,
         service: dependencies.worldService,
         conversationService: dependencies.conversationService,
@@ -27,7 +27,9 @@ func makeCreatureWorldApplication(
         sceneService: dependencies.sceneService,
         limits: apiConfiguration,
         logger: dependencies.logger
-    ).addRoutes(to: worldRoutes)
+    )
+    api.addRoutes(to: worldRoutes)
+    api.addMCPRoutes(to: worldRoutes, version: dependencies.buildInfo.version)
 
     let lifecycleReporter = CreatureWorldLifecycleReporter(logger: dependencies.logger)
     let persistenceServices: [any Service] =

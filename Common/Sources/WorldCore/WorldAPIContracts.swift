@@ -173,6 +173,56 @@ public struct FactKindUpdate: Codable, Equatable, Sendable {
     }
 }
 
+/// What a mind would be handed right now: the facts about a character, its region, and April,
+/// with the mentions in `text` if any, the meanings of those kinds, and the story so far. The
+/// WorldMCP `query_character_perspective` tool - the same knowledge a scene offer carries.
+public struct CharacterPerspective: Codable, Hashable, Sendable {
+    public var characterID: EntityID
+    public var facts: [Fact]
+    public var factMeanings: [String: String]
+    public var recentHappenings: [Happening]
+
+    public init(
+        characterID: EntityID, facts: [Fact], factMeanings: [String: String],
+        recentHappenings: [Happening]
+    ) {
+        self.characterID = characterID
+        self.facts = facts
+        self.factMeanings = factMeanings
+        self.recentHappenings = recentHappenings
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case characterID = "character_id"
+        case facts
+        case factMeanings = "fact_meanings"
+        case recentHappenings = "recent_happenings"
+    }
+}
+
+/// Why a fact is what it is: the fact, the events and facts it was derived from (walked a few
+/// levels), and what superseded it, if anything. The WorldMCP `explain_fact` tool.
+public struct FactExplanation: Codable, Hashable, Sendable {
+    public var fact: Fact
+    /// The events behind it, nearest first.
+    public var events: [WorldEventEnvelope]
+    /// Facts behind it (a derived fact's inputs), nearest first.
+    public var facts: [Fact]
+    public var supersededBy: Fact?
+
+    public init(fact: Fact, events: [WorldEventEnvelope], facts: [Fact], supersededBy: Fact?) {
+        self.fact = fact
+        self.events = events
+        self.facts = facts
+        self.supersededBy = supersededBy
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case fact, events, facts
+        case supersededBy = "superseded_by"
+    }
+}
+
 /// One entity, whole: what the world believes about it, what elsewhere points at it, and what
 /// has happened around it lately. The Viewer's entity page, and a mind's "who is Jesse?".
 public struct EntityPage: Codable, Hashable, Sendable {

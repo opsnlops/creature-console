@@ -43,6 +43,8 @@ struct MongoWorldPersistenceConnection: Sendable {
     let dayDigest: @Sendable (String) async throws -> DayDigest?
     let remember: @Sendable (String) async throws -> WorldEventAcceptance
     let entity: @Sendable (EntityID) async throws -> EntityPage
+    let perspective: @Sendable (EntityID, String?) async throws -> CharacterPerspective
+    let explain: @Sendable (FactID) async throws -> FactExplanation?
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -468,6 +470,55 @@ struct MongoWorldPersistenceConnection: Sendable {
         entity = { entityID in
             try await knowledge.entityPage(entityID, now: await clock.now)
         }
+        // What a mind would be handed: the same gathering a scene offer does, for the
+        // character, every region, and April.
+        perspective = { characterID, text in
+            let now = await clock.now
+            let subjects =
+                [characterID] + Array(regions.keys).sorted { $0.rawValue < $1.rawValue }
+                + [try EntityID(validating: "person:april")]
+            let facts = try await knowledge.currentFacts(
+                about: subjects, mentionedIn: text, limit: WorldKnowledgeLimits.maximumFacts)
+            return CharacterPerspective(
+                characterID: characterID, facts: facts,
+                factMeanings: try await knowledge.meanings(of: Set(facts.map(\.predicate))),
+                recentHappenings: try await knowledge.recentHappenings(
+                    about: subjects,
+                    since: now.addingTimeInterval(-WorldKnowledgeLimits.happeningsWindow),
+                    limit: WorldKnowledgeLimits.maximumHappenings))
+        }
+        // Why: the fact, then whatever it was derived from, a few levels down, nearest first.
+        explain = { factID in
+            guard let fact = try await persistence.facts.fact(withID: factID) else { return nil }
+            var events: [WorldEventEnvelope] = []
+            var facts: [Fact] = []
+            var frontier = fact.derivedFrom
+            var seen: Set<String> = [factID.rawValue]
+            for _ in 0..<4 where !frontier.isEmpty {
+                var next: [ProvenanceReference] = []
+                for reference in frontier {
+                    guard seen.insert(reference.description).inserted else { continue }
+                    switch reference {
+                    case .event(let eventID):
+                        if let event = try await persistence.events.event(withID: eventID) {
+                            events.append(event)
+                        }
+                    case .fact(let id):
+                        if let earlier = try await persistence.facts.fact(withID: id) {
+                            facts.append(earlier)
+                            next += earlier.derivedFrom
+                        }
+                    }
+                }
+                frontier = next
+            }
+            var successor: Fact?
+            if let successorID = fact.supersededBy {
+                successor = try await persistence.facts.fact(withID: successorID)
+            }
+            return FactExplanation(
+                fact: fact, events: events, facts: facts, supersededBy: successor)
+        }
         shutdown = {
             visitorSweeper.cancel()
             memoryClock.cancel()
@@ -564,6 +615,11 @@ struct MongoWorldPersistenceConnection: Sendable {
         entity: @escaping @Sendable (EntityID) async throws -> EntityPage = { _ in
             throw WorldAPIError.databaseUnavailable
         },
+        perspective: @escaping @Sendable (EntityID, String?) async throws -> CharacterPerspective =
+            { _, _ in throw WorldAPIError.databaseUnavailable },
+        explain: @escaping @Sendable (FactID) async throws -> FactExplanation? = { _ in
+            throw WorldAPIError.databaseUnavailable
+        },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -598,6 +654,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.dayDigest = dayDigest
         self.remember = remember
         self.entity = entity
+        self.perspective = perspective
+        self.explain = explain
         self.shutdown = shutdown
     }
 }
@@ -878,6 +936,18 @@ actor MongoWorldPersistenceProvider {
     func entity(_ entityID: EntityID) async throws -> EntityPage {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.entity(entityID)
+    }
+
+    func perspective(of characterID: EntityID, mentionedIn text: String?) async throws
+        -> CharacterPerspective
+    {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.perspective(characterID, text)
+    }
+
+    func explain(factID: FactID) async throws -> FactExplanation? {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.explain(factID)
     }
 
     func conversationItems(

@@ -55,6 +55,11 @@ struct FactRepository: Sendable {
         )
     }
 
+    /// One fact by id, current or not.
+    func fact(withID factID: FactID) async throws -> Fact? {
+        try await facts.findOne(["_id": factID.rawValue]).map(decode)
+    }
+
     func currentFacts(subjectID: EntityID? = nil, at now: Date = Date()) async throws -> [Fact] {
         var query = currentQuery(at: now)
         if let subjectID {

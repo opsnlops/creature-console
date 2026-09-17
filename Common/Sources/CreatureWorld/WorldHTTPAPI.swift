@@ -558,6 +558,39 @@ struct WorldHTTPAPI: Sendable {
         }
     }
 
+    /// WorldMCP: the Model Context Protocol over stateless Streamable HTTP at one endpoint,
+    /// `/world/mcp`. POST carries one JSON-RPC message and answers with JSON (never the legacy
+    /// `/sse` + `/message` pair); GET and DELETE are 405, since the world sends nothing
+    /// unasked and keeps no sessions. Read only, through the same services as the rest.
+    func addMCPRoutes(to router: RouterGroup<BasicRequestContext>, version: String) {
+        let mcp = WorldMCP(
+            service: service, conversationService: conversationService,
+            sceneService: sceneService, version: version,
+            houseConversation: configuration.houseConversation)
+        router.post("mcp") { request, _ in
+            await respond {
+                try validateOrigin(request)
+                try requireJSON(request)
+                let body = try await request.body.collect(upTo: limits.maximumBodyBytes)
+                return try await execute {
+                    guard let answer = await mcp.handle(Data(buffer: body)) else {
+                        return Response(status: .accepted)
+                    }
+                    return Response(
+                        status: .ok,
+                        headers: [.contentType: "application/json; charset=utf-8"],
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: answer)))
+                }
+            }
+        }
+        router.get("mcp") { _, _ in
+            Response(status: .methodNotAllowed, headers: [.allow: "POST"])
+        }
+        router.delete("mcp") { _, _ in
+            Response(status: .methodNotAllowed, headers: [.allow: "POST"])
+        }
+    }
+
     private func validateOrigin(_ request: Request) throws {
         guard let origin = request.headers[.origin] else { return }
         guard configuration.allowedOrigins.contains(String(origin)) else {

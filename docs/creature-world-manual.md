@@ -203,6 +203,23 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**WorldMCP** (`0.29.0`, plan §4.13 / Phase 8): the Model Context Protocol over stateless
+Streamable HTTP at one endpoint, `POST /world/mcp` — a JSON-RPC message in, JSON out; `GET` and
+`DELETE` answer 405 (the world sends nothing unasked and keeps no sessions; there is no legacy
+`/sse` + `/message` pair). Protocol `2025-06-18`. Read only, through the same application
+services as the REST API. Tools: `inspect_world_state` (facts by subject/prefix),
+`query_entity`, `explain_fact` (the fact, the events and facts it was derived from a few levels
+down, and what superseded it — Why?), `query_timeline` (newest first, or after a sequence, by
+type prefix or subject), `query_character_perspective` (exactly what a mind would be handed
+right now, with `mentioned_in` resolving mentions as April's question would), `query_scenes`,
+`query_conversation`, `query_timers`, `query_day`, `query_glossary`. Resources:
+`world://entities/{id}`, `world://characters/{id}/perspective`, `world://characters/{id}/memories`,
+`world://events/recent`, `world://timers`, `world://scenes/recent`, `world://provenance/{fact_id}`,
+`world://glossary`. The `Origin` header is validated when present; the API's concurrency,
+duration, and body limits apply. Claude Code reads it through the repo's `.mcp.json`
+(`https://server.prod.chirpchirp.dev/world/mcp`); any MCP client that speaks Streamable HTTP
+will do. No write tools: casting, rewording, and remembering stay on the REST API.
+
 **An ending is an occasion wherever its beginning is** (`0.28.0`): a rule for `camera.vehicle_seen`
 at a place also covers `camera.vehicle_gone` there (likewise person), so the cleaners leaving after
 two hours opens a scene — "A vehicle that had been at the driveway for 2 hours and 10 minutes has
