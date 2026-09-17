@@ -107,6 +107,9 @@ protocol WorldApplicationService: Sendable {
         -> CharacterPerspective
     /// Why a fact is what it is.
     func explain(factID: FactID) async throws -> FactExplanation?
+    /// The entity a name the world knows stands for - "Tamara", "my mom", "the front door" -
+    /// or nil when it knows nobody by it. An id is returned as itself.
+    func entity(named name: String) async throws -> EntityID?
 }
 
 extension WorldApplicationService {
@@ -131,6 +134,7 @@ extension WorldApplicationService {
     func explain(factID: FactID) async throws -> FactExplanation? {
         throw WorldAPIError.databaseUnavailable
     }
+    func entity(named name: String) async throws -> EntityID? { nil }
 }
 
 protocol ConversationApplicationService: Sendable {

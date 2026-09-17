@@ -1,3 +1,15 @@
+creature-cli (2.75.1+world0.32.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.32.1: WorldMCP takes a name where it asked for an
+    id. Beaky's first look-up asked for "Tamara" and was refused with
+    invalidNamespacedID; the world knew her as person:tamara all along.
+    A tool's subject_id / entity_id / character_id may now be a name the
+    world knows (people by name or relationship, anything by its slug
+    under any kind), and a stranger is refused with the shape of an id
+    in the message. GET /v1 unchanged.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 01:55:00 -0700
+
 creature-cli (2.75.1+world0.32.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.75.1: the tools reach the room. April's question

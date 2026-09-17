@@ -45,6 +45,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let entity: @Sendable (EntityID) async throws -> EntityPage
     let perspective: @Sendable (EntityID, String?) async throws -> CharacterPerspective
     let explain: @Sendable (FactID) async throws -> FactExplanation?
+    let entityNamed: @Sendable (String) async throws -> EntityID?
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -495,6 +496,32 @@ struct MongoWorldPersistenceConnection: Sendable {
                     since: now.addingTimeInterval(-WorldKnowledgeLimits.happeningsWindow),
                     limit: WorldKnowledgeLimits.maximumHappenings))
         }
+        // A name the world knows, as an entity: "Tamara" or "my mom" by the people the world
+        // can describe; "the front door", "Hopper", "Mango" by their slug under any kind. A
+        // mind asking a tool guesses at ids; the world knows.
+        entityNamed = { name in
+            let now = await clock.now
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.contains(":"), let id = EntityID(rawValue: trimmed) { return id }
+            if let person = WorldMentions.mentioned(
+                in: trimmed, among: try await knowledge.knownPeople(at: now)
+            ).first {
+                return person
+            }
+            var words = trimmed.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+                .map(String.init)
+            if words.first == "the" { words.removeFirst() }
+            guard !words.isEmpty else { return nil }
+            let slug = words.joined(separator: "-")
+            for kind in ["character", "person", "place", "thing", "house", "order", "event"] {
+                guard let candidate = EntityID(rawValue: "\(kind):\(slug)") else { continue }
+                if try await !persistence.facts.currentFacts(subjectID: candidate, at: now).isEmpty
+                {
+                    return candidate
+                }
+            }
+            return nil
+        }
         // Why: the fact, then whatever it was derived from, a few levels down, nearest first.
         explain = { factID in
             guard let fact = try await persistence.facts.fact(withID: factID) else { return nil }
@@ -628,6 +655,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         explain: @escaping @Sendable (FactID) async throws -> FactExplanation? = { _ in
             throw WorldAPIError.databaseUnavailable
         },
+        entityNamed: @escaping @Sendable (String) async throws -> EntityID? = { _ in nil },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -664,6 +692,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.entity = entity
         self.perspective = perspective
         self.explain = explain
+        self.entityNamed = entityNamed
         self.shutdown = shutdown
     }
 }
@@ -960,6 +989,11 @@ actor MongoWorldPersistenceProvider {
         return try await connection.explain(factID)
     }
 
+    func entity(named name: String) async throws -> EntityID? {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.entityNamed(name)
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -1174,7 +1208,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     /// region's places — the house around them.
     /// Everyone the world can describe: by April's words (`person.description`), by the address
     /// book (`contact.name`), or by what they are to her (`person.relationship`).
-    private func knownPeople(at now: Date) async throws -> [WorldMentions.Known] {
+    func knownPeople(at now: Date) async throws -> [WorldMentions.Known] {
         var people: [EntityID: String?] = [:]
         for predicate in [WorldFacts.personDescription, "contact.name"] {
             for subject in try await facts.subjects(withPredicate: predicate, at: now) {

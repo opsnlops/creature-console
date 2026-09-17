@@ -151,7 +151,9 @@ struct WorldMCP: Sendable {
             description:
                 "Current facts, newest first: everything, or one subject, or one predicate prefix (e.g. \"visitor.\", \"body.\"). Each fact carries its epistemic basis, validity window, and provenance.",
             properties: [
-                "subject_id": string("An entity id, e.g. house:aprils-nest."),
+                "subject_id": string(
+                    "An entity id (person:tamara, place:front-door, house:aprils-nest) or a name the world knows (\"Tamara\", \"my mom\")."
+                ),
                 "predicate_prefix": string("A predicate or prefix, e.g. order. or presence.state."),
                 "limit": integer("At most this many facts (default 100, max 500)."),
             ], required: []),
@@ -159,7 +161,11 @@ struct WorldMCP: Sendable {
             name: "query_entity",
             description:
                 "One entity, whole: its current facts (every audience), the facts elsewhere that point at it, and recent events about it.",
-            properties: ["entity_id": string("The entity id.")], required: ["entity_id"]),
+            properties: [
+                "entity_id": string(
+                    "An entity id (person:tamara, character:mango, thing:hopper) or a name the world knows."
+                )
+            ], required: ["entity_id"]),
         Tool(
             name: "explain_fact",
             description:
@@ -231,12 +237,12 @@ struct WorldMCP: Sendable {
         switch name {
         case "inspect_world_state":
             let page = try await service.currentFacts(
-                subjectID: try entityID(arguments["subject_id"]),
+                subjectID: try await entityID(arguments["subject_id"]),
                 predicatePrefix: arguments["predicate_prefix"].flatMap(\.stringValue),
                 after: nil, limit: limit(arguments["limit"], default: 100, max: 500))
             result = page.facts
         case "query_entity":
-            guard let id = try entityID(arguments["entity_id"]) else {
+            guard let id = try await entityID(arguments["entity_id"]) else {
                 throw Failure.invalidParams("entity_id is required")
             }
             result = try await service.entity(id)
@@ -244,7 +250,7 @@ struct WorldMCP: Sendable {
             let factID: FactID
             if case .string(let raw)? = arguments["fact_id"] {
                 factID = try FactID(validating: raw)
-            } else if let subject = try entityID(arguments["subject_id"]),
+            } else if let subject = try await entityID(arguments["subject_id"]),
                 case .string(let predicate)? = arguments["predicate"]
             {
                 let page = try await service.currentFacts(
@@ -263,7 +269,7 @@ struct WorldMCP: Sendable {
         case "query_timeline":
             result = try await timeline(arguments)
         case "query_character_perspective":
-            guard let id = try entityID(arguments["character_id"]) else {
+            guard let id = try await entityID(arguments["character_id"]) else {
                 throw Failure.invalidParams("character_id is required")
             }
             result = try await service.perspective(
@@ -302,7 +308,7 @@ struct WorldMCP: Sendable {
     func timeline(_ arguments: WorldJSONValue) async throws -> [WorldEventEnvelope] {
         let wanted = limit(arguments["limit"], default: 50, max: 500)
         let typePrefix = arguments["type_prefix"].flatMap(\.stringValue)
-        let subject = try entityID(arguments["subject_id"])
+        let subject = try await entityID(arguments["subject_id"])
         func keep(_ event: WorldEventEnvelope) -> Bool {
             (typePrefix.map { event.type.rawValue.hasPrefix($0) } ?? true)
                 && (subject.map { event.subjectIDs.contains($0) } ?? true)
@@ -500,9 +506,18 @@ struct WorldMCP: Sendable {
 
     // MARK: - Arguments
 
-    private func entityID(_ value: WorldJSONValue?) throws -> EntityID? {
-        guard case .string(let raw)? = value, !raw.isEmpty else { return nil }
-        return try EntityID(validating: raw)
+    /// An entity from a tool argument: an id (`person:tamara`), or a name the world knows -
+    /// a mind asked "who is Tamara?" and asked the world for "Tamara", which is what it had.
+    /// A name nobody answers to is a clear refusal with the shape of an id in it.
+    private func entityID(_ value: WorldJSONValue?) async throws -> EntityID? {
+        guard case .string(let raw)? = value else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let id = try? EntityID(validating: trimmed), trimmed.contains(":") { return id }
+        if let known = try await service.entity(named: trimmed) { return known }
+        throw Failure.invalidParams(
+            "the world knows no entity called \"\(trimmed)\"; ids look like person:tamara, place:front-door, character:beaky - or give a name the world has facts about"
+        )
     }
 
     private func limit(_ value: WorldJSONValue?, default fallback: Int, max cap: Int) -> Int {

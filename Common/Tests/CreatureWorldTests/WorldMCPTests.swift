@@ -123,6 +123,54 @@ struct WorldMCPTests {
         }
     }
 
+    @Test(
+        "A tool takes a name the world knows in place of an id; a stranger gets a refusal with the id's shape"
+    )
+    func namesResolve() async throws {
+        let world = MCPWorld()
+        let tamara = try EntityID(validating: "person:tamara")
+        let fact = try Fact(
+            subjectID: tamara, predicate: "contact.name", value: .string("Tamara"),
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            validFrom: Date(timeIntervalSince1970: 1_789_500_000), derivedFrom: [],
+            producer: FactProducer(kind: "bridge", id: "contacts", version: "1"))
+        await world.set(facts: [fact], events: [])
+        let application = makeCreatureWorldApplication(
+            dependencies: .testing(
+                configuration: try CreatureWorldConfiguration(port: 8080),
+                logger: Logger(label: "mcp-tests"),
+                buildInfo: CreatureWorldBuildInfo(version: "mcp-test", schemaVersion: 1),
+                worldService: world,
+                conversationService: UnavailableConversationApplicationService(),
+                characterSessionService: UnavailableCharacterSessionApplicationService()),
+            apiConfiguration: .default)
+        try await application.test(.router) { client in
+            func call(_ json: String) async throws -> WorldJSONValue? {
+                let response = try await client.execute(
+                    uri: "/world/mcp", method: .post,
+                    headers: [.contentType: "application/json", .accept: "application/json"],
+                    body: ByteBuffer(string: json))
+                return try WorldJSON.makeDecoder().decode(WorldJSONValue.self, from: response.body)
+            }
+            let found = try await call(
+                #"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"inspect_world_state","arguments":{"subject_id":"Tamara","limit":20}}}"#
+            )
+            guard case .array(let items)? = found?["result"]?["structuredContent"]?["items"]
+            else {
+                Issue.record("no items: \(String(describing: found))")
+                return
+            }
+            #expect(items.first?["subject_id"] == .string("person:tamara"))
+            let stranger = try await call(
+                #"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"query_entity","arguments":{"entity_id":"Zed"}}}"#
+            )
+            #expect(stranger?["error"]?["code"] == .number(-32602))
+            #expect(
+                stranger?["error"]?["message"]?.stringValue?.contains("ids look like person:tamara")
+                    == true)
+        }
+    }
+
     @Test("Why? over REST: the same walk, for the Viewer")
     func explainsOverREST() async throws {
         let world = MCPWorld()
@@ -234,6 +282,10 @@ private actor MCPWorld: WorldApplicationService {
     {
         CharacterPerspective(
             characterID: characterID, facts: facts, factMeanings: [:], recentHappenings: [])
+    }
+    func entity(named name: String) async throws -> EntityID? {
+        let slug = name.lowercased()
+        return facts.map(\.subjectID).first { $0.rawValue.hasSuffix(":" + slug) }
     }
     func explain(factID: FactID) async throws -> FactExplanation? {
         guard let fact = facts.first(where: { $0.factID == factID }) else { return nil }

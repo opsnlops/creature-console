@@ -254,7 +254,11 @@ right now, with `mentioned_in` resolving mentions as April's question would), `q
 `world://glossary`. The `Origin` header is validated when present; the API's concurrency,
 duration, and body limits apply. Claude Code reads it through the repo's `.mcp.json`
 (`https://server.prod.chirpchirp.dev/world/mcp`); any MCP client that speaks Streamable HTTP
-will do. No write tools: casting, rewording, and remembering stay on the REST API.
+will do. No write tools: casting, rewording, and remembering stay on the REST API. **Names
+work where ids are asked for** (`0.32.1`): `subject_id`, `entity_id`, and `character_id`
+take an id or a name the world knows — "Tamara", "my mom", "the front door", "Hopper" — because
+a mind asking a tool guesses at ids and the world knows; a name nobody answers to is refused
+with the shape of an id in the message.
 
 **An ending is an occasion wherever its beginning is** (`0.28.0`): a rule for `camera.vehicle_seen`
 at a place also covers `camera.vehicle_gone` there (likewise person), so the cleaners leaving after
