@@ -463,42 +463,57 @@ private func runWorldMode(
         case .communicatorOnly:
             nil
         }
-    // The world as tools (`worldMcpUrl`): every look-up the model makes is cast back into
-    // the world as `mind.tool_called`, so the Viewer and Why? show what she checked.
-    let tools: ModelTools? = world.worldMCPURL.map { url in
-        ModelTools(
-            serverLabel: "world", serverURL: url, allowedTools: ModelTools.defaultAllowedTools,
-            onCall: { call in
-                do {
-                    try await responder.cast(
-                        try WorldEventEnvelope(
-                            type: WorldEventType(validating: "mind.tool_called"),
-                            occurredAt: Date(),
-                            source: EventSource(
-                                id: SourceID(
-                                    validating:
-                                        "mind:\(FactPhrasing.name(of: characterID).lowercased())"),
-                                kind: "mind"),
-                            subjectIDs: [characterID],
-                            epistemic: EpistemicState(type: .observed, confidence: 1),
-                            payload: [
-                                "tool": .string(call.name),
-                                "server": .string(call.server),
-                                "arguments": .string(String(call.arguments.prefix(500))),
-                                "output_characters": .number(Double(call.output?.count ?? 0)),
-                                "error": call.error.map { .string(String($0.prefix(200))) }
-                                    ?? .null,
-                            ]))
-                } catch {
-                    logger.warning(
-                        "Could not record a look-up", metadata: ["error": "\(error)"])
-                }
-            })
-    }
-    if let tools {
-        logger.info(
-            "The world is at hand as tools",
-            metadata: ["mcp.url": "\(tools.serverURL.absoluteString)"])
+    // The world as tools (`worldMcpUrl`): the tools are whatever WorldMCP lists at startup,
+    // the mind runs each call the model asks for, and every look-up is cast back into the
+    // world as `mind.tool_called`, so the Viewer and Why? show what she checked. A world
+    // that cannot list its tools leaves the mind without them rather than without a voice.
+    var tools: ModelTools?
+    if let url = world.worldMCPURL {
+        let mcp = WorldMCPClient(url: url, client: client, logger: logger)
+        do {
+            let allowed = Set(ModelTools.defaultAllowedTools)
+            let definitions = try await mcp.listTools().filter { allowed.contains($0.name) }
+            tools = ModelTools(
+                serverLabel: "world", definitions: definitions,
+                call: { name, arguments in try await mcp.call(name, arguments: arguments) },
+                onCall: { call in
+                    do {
+                        try await responder.cast(
+                            try WorldEventEnvelope(
+                                type: WorldEventType(validating: "mind.tool_called"),
+                                occurredAt: Date(),
+                                source: EventSource(
+                                    id: SourceID(
+                                        validating:
+                                            "mind:\(FactPhrasing.name(of: characterID).lowercased())"
+                                    ),
+                                    kind: "mind"),
+                                subjectIDs: [characterID],
+                                epistemic: EpistemicState(type: .observed, confidence: 1),
+                                payload: [
+                                    "tool": .string(call.name),
+                                    "server": .string(call.server),
+                                    "arguments": .string(String(call.arguments.prefix(500))),
+                                    "output_characters": .number(Double(call.output?.count ?? 0)),
+                                    "error": call.error.map { .string(String($0.prefix(200))) }
+                                        ?? .null,
+                                ]))
+                    } catch {
+                        logger.warning(
+                            "Could not record a look-up", metadata: ["error": "\(error)"])
+                    }
+                })
+            logger.info(
+                "The world is at hand as tools",
+                metadata: [
+                    "mcp.url": "\(url.absoluteString)",
+                    "mcp.tools": "\(definitions.map(\.name).joined(separator: ","))",
+                ])
+        } catch {
+            logger.error(
+                "WorldMCP would not list its tools; the mind runs without them",
+                metadata: ["mcp.url": "\(url.absoluteString)", "error": "\(error)"])
+        }
     }
     let mind = CharacterMind(
         configuration: CharacterMind.Configuration(

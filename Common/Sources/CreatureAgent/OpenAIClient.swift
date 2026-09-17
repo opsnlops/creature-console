@@ -70,35 +70,69 @@ struct OpenAIClient: Sendable {
 
     // MARK: - A transcript (world mode)
 
-    /// With `tools`, the model may look things up in the world (WorldMCP) before answering;
-    /// the calls it made are reported through `tools.onCall` once the answer is in.
+    /// With `tools`, the model may look things up in the world before answering: each round
+    /// it asks for is run by the mind and handed back, up to `ModelTools.maximumRounds`, and
+    /// every call is reported through `tools.onCall`.
     func respond(messages transcript: [LocalLLMClient.Message], tools: ModelTools? = nil)
         async throws -> String
     {
-        logger.debug("Sending OpenAI response request (model: \(model))")
-        var request = makeRequest(for: transcript, stream: false, tools: tools)
-        request.timeoutInterval = tools == nil ? 60 : 90
+        var extra: [ResponseRequest.Item] = []
+        for round in 0...ModelTools.maximumRounds {
+            logger.debug("Sending OpenAI response request (model: \(model), round: \(round))")
+            // The last round offers no tools: the model must answer with what it has.
+            let offered = round < ModelTools.maximumRounds ? tools : nil
+            var request = makeRequest(for: transcript, stream: false, tools: offered, extra: extra)
+            request.timeoutInterval = tools == nil ? 60 : 90
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw OpenAIClientError.invalidResponse
-        }
-        guard 200..<300 ~= httpResponse.statusCode else {
-            let message = String(data: data, encoding: .utf8) ?? ""
-            logger.error("OpenAI request failed with status \(httpResponse.statusCode)")
-            throw OpenAIClientError.httpError(code: httpResponse.statusCode, body: message)
-        }
-        if traceResponses, let bodyString = String(data: data, encoding: .utf8) {
-            logger.info("OpenAI raw response: \(bodyString)")
-        }
-        let output = try OpenAIResponseParser.outputText(from: data)
-        logger.debug("OpenAI response received (chars: \(output.count))")
-        if let tools {
-            for call in OpenAIResponseParser.toolCalls(from: data) {
-                await tools.onCall(call)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw OpenAIClientError.invalidResponse
             }
+            guard 200..<300 ~= httpResponse.statusCode else {
+                let message = String(data: data, encoding: .utf8) ?? ""
+                logger.error("OpenAI request failed with status \(httpResponse.statusCode)")
+                throw OpenAIClientError.httpError(code: httpResponse.statusCode, body: message)
+            }
+            if traceResponses, let bodyString = String(data: data, encoding: .utf8) {
+                logger.info("OpenAI raw response: \(bodyString)")
+            }
+            let calls = OpenAIResponseParser.functionCalls(from: data)
+            if let tools, !calls.isEmpty {
+                extra += await run(calls, with: tools)
+                continue
+            }
+            let output = try OpenAIResponseParser.outputText(from: data)
+            logger.debug("OpenAI response received (chars: \(output.count))")
+            return output
         }
-        return output
+        throw OpenAIClientError.missingOutputText
+    }
+
+    /// Runs the calls a round asked for and returns the items that carry them back: the
+    /// call itself, then its output (or the failure, in words the model can act on).
+    private func run(_ calls: [OpenAIResponseParser.FunctionCall], with tools: ModelTools) async
+        -> [ResponseRequest.Item]
+    {
+        var items: [ResponseRequest.Item] = []
+        for call in calls {
+            items.append(.functionCall(call))
+            var record = ModelTools.Call(
+                server: tools.serverLabel, name: call.name, arguments: call.arguments)
+            do {
+                let output = try await tools.call(call.name, call.arguments)
+                record.output = output
+                items.append(.functionCallOutput(callID: call.callID, output: output))
+                logger.info("Looked it up: \(call.name) (\(output.count) chars)")
+            } catch {
+                record.error = "\(error)"
+                items.append(
+                    .functionCallOutput(
+                        callID: call.callID, output: "The world could not answer: \(error)"))
+                logger.warning("A look-up failed: \(call.name): \(error)")
+            }
+            await tools.onCall(record)
+        }
+        return items
     }
 
     /// Sentences as the model composes them, from the Responses API's SSE stream
@@ -106,7 +140,6 @@ struct OpenAIClient: Sendable {
     func respondStreaming(messages transcript: [LocalLLMClient.Message], tools: ModelTools? = nil)
         -> AsyncStream<String>
     {
-        let request = makeRequest(for: transcript, stream: true, tools: tools)
         let logger = self.logger
         let model = self.model
         let traceResponses = self.traceResponses
@@ -128,40 +161,47 @@ struct OpenAIClient: Sendable {
                 }
                 do {
                     guard let client else { throw OpenAIClientError.streamingUnavailable }
-                    var streamRequest = HTTPClientRequest(url: request.url!.absoluteString)
-                    streamRequest.method = .POST
-                    for (name, value) in request.allHTTPHeaderFields ?? [:] {
-                        streamRequest.headers.add(name: name, value: value)
-                    }
-                    streamRequest.body = .bytes(request.httpBody ?? Data())
-                    let response = try await client.execute(streamRequest, timeout: .seconds(60))
-                    guard response.status == .ok else {
-                        let body = try await response.body.collect(upTo: 65_536)
-                        throw OpenAIClientError.httpError(
-                            code: Int(response.status.code), body: String(buffer: body))
-                    }
-                    var parser = ServerSentEventParser()
-                    for try await buffer in response.body {
-                        for frame in parser.feed(String(buffer: buffer)) {
-                            // A tool the model called is reported as it completes; the
-                            // words come after.
-                            if let tools,
-                                let call = OpenAIResponseParser.streamedToolCall(
+                    // A round that asks for tools is run and answered, and the next round
+                    // streams; the words, when they come, flow as before.
+                    var extra: [ResponseRequest.Item] = []
+                    for round in 0...ModelTools.maximumRounds {
+                        let offered = round < ModelTools.maximumRounds ? tools : nil
+                        let request = makeRequest(
+                            for: transcript, stream: true, tools: offered, extra: extra)
+                        var streamRequest = HTTPClientRequest(url: request.url!.absoluteString)
+                        streamRequest.method = .POST
+                        for (name, value) in request.allHTTPHeaderFields ?? [:] {
+                            streamRequest.headers.add(name: name, value: value)
+                        }
+                        streamRequest.body = .bytes(request.httpBody ?? Data())
+                        let response = try await client.execute(
+                            streamRequest, timeout: .seconds(60))
+                        guard response.status == .ok else {
+                            let body = try await response.body.collect(upTo: 65_536)
+                            throw OpenAIClientError.httpError(
+                                code: Int(response.status.code), body: String(buffer: body))
+                        }
+                        var parser = ServerSentEventParser()
+                        var calls: [OpenAIResponseParser.FunctionCall] = []
+                        for try await buffer in response.body {
+                            for frame in parser.feed(String(buffer: buffer)) {
+                                if let call = OpenAIResponseParser.streamedFunctionCall(
                                     fromData: frame.data)
-                            {
-                                logger.info(
-                                    "LLM looked it up: \(call.name)\(call.error.map { " (failed: \($0))" } ?? "")"
-                                )
-                                await tools.onCall(call)
-                                continue
-                            }
-                            guard
-                                let delta = OpenAIResponseParser.streamedDelta(fromData: frame.data)
-                            else { continue }
-                            for sentence in assembler.feed(delta) {
-                                emit(sentence, final: false)
+                                {
+                                    calls.append(call)
+                                    continue
+                                }
+                                guard
+                                    let delta = OpenAIResponseParser.streamedDelta(
+                                        fromData: frame.data)
+                                else { continue }
+                                for sentence in assembler.feed(delta) {
+                                    emit(sentence, final: false)
+                                }
                             }
                         }
+                        guard let tools, !calls.isEmpty else { break }
+                        extra += await run(calls, with: tools)
                     }
                     if let remaining = assembler.flush() {
                         emit(remaining, final: true)
@@ -181,7 +221,7 @@ struct OpenAIClient: Sendable {
 
     func makeRequest(
         for transcript: [LocalLLMClient.Message], stream: Bool, json: Bool = false,
-        tools: ModelTools? = nil
+        tools: ModelTools? = nil, extra: [ResponseRequest.Item] = []
     ) -> URLRequest {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -192,7 +232,7 @@ struct OpenAIClient: Sendable {
             ResponseRequest(
                 model: model, transcript: transcript, temperature: temperature,
                 reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream,
-                json: json, tools: tools))
+                json: json, tools: tools, extra: extra))
         return request
     }
 
@@ -225,25 +265,53 @@ struct OpenAIClient: Sendable {
 /// `assistant` items with typed content (`input_text` in, `output_text` out), reasoning
 /// effort when set, and nothing stored on OpenAI's side.
 struct ResponseRequest: Encodable {
-    struct Item: Encodable {
+    /// An input item: a message of the transcript, or - after a round of look-ups - the call
+    /// the model made and what the mind found, so the model can carry on.
+    enum Item: Encodable {
         struct Content: Encodable {
             let type: String
             let text: String
         }
-        let role: String
-        let content: [Content]
+        case message(role: String, content: [Content])
+        case functionCall(OpenAIResponseParser.FunctionCall)
+        case functionCallOutput(callID: String, output: String)
 
         init(_ message: LocalLLMClient.Message) {
             switch message.role {
             case .system:
-                role = "developer"
-                content = [Content(type: "input_text", text: message.content)]
+                self = .message(
+                    role: "developer", content: [Content(type: "input_text", text: message.content)]
+                )
             case .user:
-                role = "user"
-                content = [Content(type: "input_text", text: message.content)]
+                self = .message(
+                    role: "user", content: [Content(type: "input_text", text: message.content)])
             case .assistant:
-                role = "assistant"
-                content = [Content(type: "output_text", text: message.content)]
+                self = .message(
+                    role: "assistant",
+                    content: [Content(type: "output_text", text: message.content)])
+            }
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case role, content, type, name, arguments, output
+            case callID = "call_id"
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            switch self {
+            case .message(let role, let content):
+                try container.encode(role, forKey: .role)
+                try container.encode(content, forKey: .content)
+            case .functionCall(let call):
+                try container.encode("function_call", forKey: .type)
+                try container.encode(call.callID, forKey: .callID)
+                try container.encode(call.name, forKey: .name)
+                try container.encode(call.arguments, forKey: .arguments)
+            case .functionCallOutput(let callID, let output):
+                try container.encode("function_call_output", forKey: .type)
+                try container.encode(callID, forKey: .callID)
+                try container.encode(output, forKey: .output)
             }
         }
     }
@@ -259,27 +327,19 @@ struct ResponseRequest: Encodable {
         init(json: Bool) { format = Format(type: json ? "json_object" : "text") }
     }
 
-    /// A remote MCP server the model may call on its own: WorldMCP, read only, no approvals
-    /// (there is nothing to approve - every tool is a look-up).
+    /// A function the model may ask for: one of WorldMCP's tools, as the world lists it. The
+    /// mind runs it; the model only asks.
     struct Tool: Encodable {
-        let type = "mcp"
-        let serverLabel: String
-        let serverURL: String
-        let allowedTools: [String]
-        let requireApproval = "never"
+        let type = "function"
+        let name: String
+        let description: String
+        let parameters: WorldJSONValue
+        let strict = false
 
-        private enum CodingKeys: String, CodingKey {
-            case type
-            case serverLabel = "server_label"
-            case serverURL = "server_url"
-            case allowedTools = "allowed_tools"
-            case requireApproval = "require_approval"
-        }
-
-        init(_ tools: ModelTools) {
-            serverLabel = tools.serverLabel
-            serverURL = tools.serverURL.absoluteString
-            allowedTools = tools.allowedTools
+        init(_ definition: WorldMCPClient.ToolDefinition) {
+            name = definition.name
+            description = definition.description
+            parameters = definition.inputSchema
         }
     }
 
@@ -301,17 +361,17 @@ struct ResponseRequest: Encodable {
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
         reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false,
-        tools: ModelTools? = nil
+        tools: ModelTools? = nil, extra: [Item] = []
     ) {
         self.model = model
-        self.input = transcript.map(Item.init)
+        self.input = transcript.map(Item.init) + extra
         self.text = Text(json: json)
         // Reasoning models refuse a temperature; send one or the other.
         self.reasoning = reasoningEffort.map(Reasoning.init(effort:))
         self.temperature = reasoningEffort == nil ? temperature : nil
         self.serviceTier = serviceTier
         self.stream = stream
-        self.tools = tools.map { [Tool($0)] }
+        self.tools = tools.map { $0.definitions.map(Tool.init) }
     }
 }
 

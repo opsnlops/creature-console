@@ -1,3 +1,17 @@
+creature-cli (2.74.1+world0.31.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.74.1: the mind runs the tool loop itself. 2.74.0
+    offered WorldMCP to OpenAI as a remote MCP server, which needs the
+    world reachable from OpenAI - it is not, and exposing it was not
+    worth it. Now the mind lists WorldMCP's tools at startup, offers
+    them as function tools, runs each call the model asks for against
+    the world on the LAN, and hands the answer back (at most three
+    rounds). worldMcpUrl is the world's own address. Answers past
+    16,000 characters are cut with a note. A world that will not list
+    its tools leaves the mind without them, never without a voice.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 00:30:00 -0700
+
 creature-cli (2.74.0+world0.31.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.74.0: the world as tools. With worldMcpUrl set

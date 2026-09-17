@@ -113,7 +113,7 @@ World mode keys:
 | `llmTimeoutSeconds` | `60` | model call deadline |
 | `regionEntityId` | `region:home` | the region this mind logs into; a character is in one region at a time |
 | `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
-| `worldMcpUrl` | unset | `2.74.0`, OpenAI backend only: WorldMCP at the **public** ingress (`https://server.prod.chirpchirp.dev/world/mcp`) as the model's tools. The provider calls the server, not this host, so a LAN address will not do. See *She looks things up* below |
+| `worldMcpUrl` | unset | `2.74.1`, OpenAI backend only: WorldMCP as the model's tools, reached by **this mind** (`http://127.0.0.1:8001/world/mcp` beside the world; the LAN address elsewhere). The model asks; the mind runs the call. See *She looks things up* below |
 | `llmBackend` | `local` | `local` (Mistral on the LAN) or `openai` (`2.61.0`): a mind may run on OpenAI's Responses API, streamed sentence by sentence like the local model, so one bird can be compared against Mistral live (`llm.model` is on every span). The key comes from `OPENAI_API_KEY` in `/etc/default/creature-agent-<instance>` (never in git) or `llmApiKey` |
 | `llmReasoningEffort` | none | `low`, `medium`, or `high` for OpenAI reasoning models; when set, no `temperature` is sent |
 | `llmServiceTier` | none | OpenAI `service_tier`: `fast` buys lower latency for a per-token premium (about 2× on the models that support it); a bird in a room may be worth it (`2.62.0`) |
@@ -279,20 +279,23 @@ else — persona, facts, the clock, streaming to the room — is identical.
   runs on its own so the stream keeps flowing; one night at a time. April: "She'll know 'Jesse was
   here on Monday' and not 'Jesse was here at 4:39:29 PM on Monday'." `OPENAI_MEMORY_API_KEY`
   in the instance's defaults file puts the night's spend on its own key.
-- **She looks things up** (`2.74.0`; `worldMcpUrl`). April: "As the knowledge in the world
+- **She looks things up** (`2.74.1`; `worldMcpUrl`). April: "As the knowledge in the world
   grows we're quickly going to hit the limit of what we can pre-emptively send in the context
-  to the agent." With `worldMcpUrl` set and the OpenAI backend, a question from April carries
-  WorldMCP as a remote MCP tool on the Responses API (`type: mcp`, read only, no approvals,
-  `allowed_tools` = the query tools and `explain_fact`), and the contract tells her when to
-  use one: for a question that needs more than what she was handed - who someone is, what
-  happened on a day, what is scheduled, why a fact is what it is - never for a passing remark
-  and never to re-check what is already in the prompt. House remarks and scene turns never
-  get tools; they must be quick. The provider calls the world directly and the answer arrives
-  in the same stream afterwards, so the first sentence of a look-up answer waits for the
-  look-up. Every call she makes is cast back as a `mind.tool_called` event on her (`tool`,
-  `arguments`, `output_characters`, `error`), so the Viewer's Timeline shows "looked it up:
-  query_entity" and Why? on anything she learned from it can reach the call. A local model
-  has no tools.
+  to the agent." With `worldMcpUrl` set and the OpenAI backend, the mind asks WorldMCP for
+  its tools at startup (`tools/list`, kept to the query tools and `explain_fact`) and offers
+  them to the model as *function* tools on every question from April. When the model asks
+  for one, the mind runs it against the world (`tools/call`, on the LAN - the model provider
+  never reaches the world; April: "that's safer"), hands the answer back as a
+  `function_call_output`, and the model goes on; at most three rounds, then it must speak.
+  The contract tells her when: a question that needs more than what she was handed - who
+  someone is, what happened on a day, what is scheduled, why a fact is what it is - never for
+  a passing remark, never to re-check what is in the prompt, and with small limits (an
+  answer past 16 000 characters is cut, and says so). House remarks and scene turns never
+  get tools; they must be quick. The first sentence of a look-up answer waits for the
+  look-up. Every call is cast back as a `mind.tool_called` event on her (`tool`, `arguments`,
+  `output_characters`, `error`), so the Viewer's Timeline shows "looked it up: query_entity".
+  A world that will not list its tools leaves the mind without them, never without a voice.
+  A local model has no tools.
 - **She settles what she believes** (`2.73.0`, plan Phase 9; `docs/memory-consolidation-plan.md`).
   After the day's episodes, the same run reads the beliefs the flock holds and a month of
   episodes (paged from `GET /v1/facts?predicate_prefix=memory.`) and asks the memory model,

@@ -46,56 +46,153 @@ struct OpenAIClientTests {
                 == "fast")
     }
 
-    @Test("With tools, the body carries WorldMCP as a remote MCP tool, read only, no approvals")
+    @Test(
+        "With tools, the body carries the world's tools as functions; after a round, the call and its answer ride along"
+    )
     func requestBodyCarriesTools() throws {
         let tools = ModelTools(
-            serverLabel: "world", serverURL: URL(string: "https://example.test/world/mcp")!,
-            allowedTools: ["query_entity", "query_day"], onCall: { _ in })
+            serverLabel: "world",
+            definitions: [
+                WorldMCPClient.ToolDefinition(
+                    name: "query_entity", description: "One entity, whole.",
+                    inputSchema: .object([
+                        "type": .string("object"),
+                        "properties": .object(["entity_id": .object(["type": .string("string")])]),
+                        "required": .array([.string("entity_id")]),
+                    ]))
+            ],
+            call: { _, _ in "" }, onCall: { _ in })
         let client = OpenAIClient(
             apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "unused", temperature: 0.9,
             reasoningEffort: nil, logger: Logger(label: "openai-tests"), traceResponses: false)
+        let call = OpenAIResponseParser.FunctionCall(
+            callID: "call_1", name: "query_entity", arguments: #"{"entity_id":"person:jesse"}"#)
         let with = try #require(
-            client.makeRequest(for: transcript, stream: true, tools: tools).httpBody)
+            client.makeRequest(
+                for: transcript, stream: true, tools: tools,
+                extra: [.functionCall(call), .functionCallOutput(callID: "call_1", output: "{}")]
+            ).httpBody)
         let body = try #require(JSONSerialization.jsonObject(with: with) as? [String: Any])
         let listed = try #require(body["tools"] as? [[String: Any]])
         #expect(listed.count == 1)
-        #expect(listed[0]["type"] as? String == "mcp")
-        #expect(listed[0]["server_label"] as? String == "world")
-        #expect(listed[0]["server_url"] as? String == "https://example.test/world/mcp")
-        #expect(listed[0]["allowed_tools"] as? [String] == ["query_entity", "query_day"])
-        #expect(listed[0]["require_approval"] as? String == "never")
+        #expect(listed[0]["type"] as? String == "function")
+        #expect(listed[0]["name"] as? String == "query_entity")
+        #expect(listed[0]["description"] as? String == "One entity, whole.")
+        #expect((listed[0]["parameters"] as? [String: Any])?["type"] as? String == "object")
+        #expect(listed[0]["strict"] as? Bool == false)
+        let input = try #require(body["input"] as? [[String: Any]])
+        #expect(input.count == transcript.count + 2)
+        #expect(input[4]["type"] as? String == "function_call")
+        #expect(input[4]["call_id"] as? String == "call_1")
+        #expect(input[4]["name"] as? String == "query_entity")
+        #expect(input[5]["type"] as? String == "function_call_output")
+        #expect(input[5]["output"] as? String == "{}")
         let without = try #require(client.makeRequest(for: transcript, stream: true).httpBody)
         #expect(
             (try JSONSerialization.jsonObject(with: without) as? [String: Any])?["tools"] == nil)
     }
 
     @Test(
-        "A completed MCP call in the stream is a call, not words; a whole response lists its calls")
-    func toolCallsAreReported() throws {
+        "A completed function call in the stream is a call, not words; a whole response lists its calls"
+    )
+    func functionCallsAreParsed() throws {
         let done =
-            #"{"type":"response.output_item.done","output_index":0,"item":{"id":"mcp_1","type":"mcp_call","server_label":"world","name":"query_entity","arguments":"{\"entity_id\":\"person:jesse\"}","output":"{\"facts\":[]}","error":null}}"#
-        let call = try #require(OpenAIResponseParser.streamedToolCall(fromData: done))
+            #"{"type":"response.output_item.done","output_index":0,"item":{"id":"fc_1","type":"function_call","call_id":"call_1","name":"query_entity","arguments":"{\"entity_id\":\"person:jesse\"}","status":"completed"}}"#
+        let call = try #require(OpenAIResponseParser.streamedFunctionCall(fromData: done))
+        #expect(call.callID == "call_1")
         #expect(call.name == "query_entity")
-        #expect(call.server == "world")
         #expect(call.arguments == #"{"entity_id":"person:jesse"}"#)
-        #expect(call.output == #"{"facts":[]}"#)
-        #expect(call.error == nil)
         #expect(OpenAIResponseParser.streamedDelta(fromData: done) == nil)
         #expect(
-            OpenAIResponseParser.streamedToolCall(
+            OpenAIResponseParser.streamedFunctionCall(
                 fromData:
                     #"{"type":"response.output_item.done","item":{"type":"message","content":[]}}"#
             ) == nil)
         #expect(
-            OpenAIResponseParser.streamedToolCall(
+            OpenAIResponseParser.streamedFunctionCall(
                 fromData: #"{"type":"response.output_text.delta","delta":"Hi"}"#) == nil)
 
         let whole =
-            #"{"output":[{"type":"mcp_list_tools","server_label":"world","tools":[]},{"type":"mcp_call","server_label":"world","name":"query_day","arguments":"{\"day\":\"2026-09-15\"}","output":null,"error":"timed out"},{"type":"message","content":[{"type":"output_text","text":"Nothing much."}]}]}"#
-        let calls = OpenAIResponseParser.toolCalls(from: Data(whole.utf8))
-        #expect(calls.map(\.name) == ["query_day"])
-        #expect(calls.first?.error == "timed out")
+            #"{"output":[{"type":"function_call","call_id":"call_2","name":"query_day","arguments":"{\"day\":\"2026-09-15\"}"},{"type":"message","content":[{"type":"output_text","text":"Nothing much."}]}]}"#
+        let calls = OpenAIResponseParser.functionCalls(from: Data(whole.utf8))
+        #expect(
+            calls == [
+                .init(callID: "call_2", name: "query_day", arguments: #"{"day":"2026-09-15"}"#)
+            ])
         #expect(try OpenAIResponseParser.outputText(from: Data(whole.utf8)) == "Nothing much.")
+    }
+
+    @Test("The mind runs the loop: a round that asks for a tool is answered, then the words stream")
+    func runsTheToolLoop() async throws {
+        let rounds = Rounds()
+        let router = Router(context: BasicRequestContext.self)
+        router.post("v1/responses") { request, _ in
+            let body = try await request.body.collect(upTo: 65_536)
+            let json = try JSONSerialization.jsonObject(with: Data(buffer: body)) as? [String: Any]
+            let input = json?["input"] as? [[String: Any]] ?? []
+            let round = try await rounds.next(input: input)
+            var events = "event: response.created\ndata: {\"type\":\"response.created\"}\n\n"
+            if round == 0 {
+                // The model asks; the arguments arrive whole with the item.
+                events +=
+                    "event: response.output_item.done\ndata: {\"type\":\"response.output_item.done\",\"item\":{\"type\":\"function_call\",\"call_id\":\"call_9\",\"name\":\"query_entity\",\"arguments\":\"{\\\"entity_id\\\":\\\"person:jesse\\\"}\"}}\n\n"
+            } else {
+                for delta in ["Jesse is your contractor, April. ", "He was here Sunday."] {
+                    events +=
+                        "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"\(delta)\"}\n\n"
+                }
+            }
+            events += "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n"
+            return Response(
+                status: .ok, headers: [.contentType: "text/event-stream"],
+                body: .init(byteBuffer: ByteBuffer(string: events)))
+        }
+        let application = Application(
+            router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
+        let records = Records()
+        let sentences: [String] = try await application.test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let httpClient = HTTPClient(eventLoopGroupProvider: .singleton)
+            defer { Task { try? await httpClient.shutdown() } }
+            let client = OpenAIClient(
+                apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "You are Beaky.",
+                temperature: 1, reasoningEffort: "low",
+                endpoint: URL(string: "http://localhost:\(port)/v1/responses")!,
+                streamingClient: httpClient,
+                logger: Logger(label: "openai-tests"), traceResponses: false)
+            let tools = ModelTools(
+                serverLabel: "world",
+                definitions: [
+                    WorldMCPClient.ToolDefinition(
+                        name: "query_entity", description: "", inputSchema: .object([:]))
+                ],
+                call: { name, arguments in
+                    #expect(name == "query_entity")
+                    #expect(arguments == #"{"entity_id":"person:jesse"}"#)
+                    return #"{"facts":[{"predicate":"person.relationship","value":"contractor"}]}"#
+                },
+                onCall: { await records.note($0) })
+            var collected: [String] = []
+            for await sentence in client.respondStreaming(messages: transcript, tools: tools) {
+                collected.append(sentence)
+            }
+            return collected
+        }
+
+        #expect(sentences == ["Jesse is your contractor, April.", "He was here Sunday."])
+        // The second round carried the call and its answer back to the model.
+        let second =
+            try JSONSerialization.jsonObject(with: Data(await rounds.json(ofRound: 1).utf8))
+            as? [[String: Any]] ?? []
+        #expect(second.count == transcript.count + 2)
+        #expect(second[transcript.count]["type"] as? String == "function_call")
+        #expect(second[transcript.count + 1]["type"] as? String == "function_call_output")
+        #expect(
+            (second[transcript.count + 1]["output"] as? String)?.contains("contractor") == true)
+        let recorded = await records.calls
+        #expect(recorded.map(\.name) == ["query_entity"])
+        #expect(recorded.first?.output?.contains("contractor") == true)
+        #expect(recorded.first?.error == nil)
     }
 
     @Test("Only output_text deltas carry words; lifecycle events and [DONE] are ignored")
@@ -187,4 +284,20 @@ struct SentenceAssemblerTests {
         #expect(thinking.feed("<think>plan the reply</think>\"Yes. \"") == ["Yes."])
         #expect(thinking.flush() == nil)
     }
+}
+
+/// Each round's input items, kept as the JSON text (a `[String: Any]` cannot leave an actor).
+private actor Rounds {
+    var inputs: [String] = []
+    func next(input: [[String: Any]]) throws -> Int {
+        inputs.append(
+            String(decoding: try JSONSerialization.data(withJSONObject: input), as: UTF8.self))
+        return inputs.count - 1
+    }
+    func json(ofRound round: Int) -> String { inputs[round] }
+}
+
+private actor Records {
+    var calls: [ModelTools.Call] = []
+    func note(_ call: ModelTools.Call) { calls.append(call) }
 }

@@ -17,22 +17,29 @@ struct OpenAIResponseParser {
         return event.delta
     }
 
-    /// A completed MCP call in the stream: `response.output_item.done` with an `mcp_call`
-    /// item. Nothing for any other event.
-    static func streamedToolCall(fromData json: String) -> ModelTools.Call? {
+    /// A tool the model asks the mind to run, with the id its answer must carry back.
+    struct FunctionCall: Sendable, Equatable {
+        var callID: String
+        var name: String
+        var arguments: String
+    }
+
+    /// A completed function call in the stream: `response.output_item.done` with a
+    /// `function_call` item (the arguments whole). Nothing for any other event.
+    static func streamedFunctionCall(fromData json: String) -> FunctionCall? {
         guard json != "[DONE]", let data = json.data(using: .utf8),
             let event = try? JSONDecoder().decode(StreamEvent.self, from: data),
             event.type == "response.output_item.done", let item = event.item
         else { return nil }
-        return item.toolCall
+        return item.functionCall
     }
 
-    /// The MCP calls a whole (non-streamed) response made, in order.
-    static func toolCalls(from data: Data) -> [ModelTools.Call] {
+    /// The function calls a whole (non-streamed) response asks for, in order.
+    static func functionCalls(from data: Data) -> [FunctionCall] {
         guard let response = try? JSONDecoder().decode(ResponseEnvelope.self, from: data) else {
             return []
         }
-        return response.output?.compactMap(\.toolCall) ?? []
+        return response.output?.compactMap(\.functionCall) ?? []
     }
 
     static func outputText(from data: Data) throws -> String {
@@ -56,22 +63,19 @@ private struct ResponseEnvelope: Decodable {
 private struct ResponseOutputItem: Decodable {
     let content: [ResponseContent]?
     let type: String?
-    let serverLabel: String?
+    let callID: String?
     let name: String?
     let arguments: String?
-    let output: String?
-    let error: String?
 
     private enum CodingKeys: String, CodingKey {
-        case content, type, name, arguments, output, error
-        case serverLabel = "server_label"
+        case content, type, name, arguments
+        case callID = "call_id"
     }
 
-    var toolCall: ModelTools.Call? {
-        guard type == "mcp_call", let name else { return nil }
-        return ModelTools.Call(
-            server: serverLabel ?? "", name: name, arguments: arguments ?? "", output: output,
-            error: error)
+    var functionCall: OpenAIResponseParser.FunctionCall? {
+        guard type == "function_call", let name, let callID else { return nil }
+        return OpenAIResponseParser.FunctionCall(
+            callID: callID, name: name, arguments: arguments ?? "{}")
     }
 
     var textValue: String? {
