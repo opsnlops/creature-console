@@ -348,6 +348,7 @@ private actor TestTimerStore: WorldTimerStore, WorldEventStore, WorldFactStore {
 
     func save(_: Fact) {}
     func supersede(by _: Fact) {}
+    func currentFacts(subjectID _: EntityID?, at _: Date) -> [Fact] { [] }
 }
 
 private enum TestTimerStoreError: Error {

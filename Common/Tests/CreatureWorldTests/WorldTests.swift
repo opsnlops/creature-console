@@ -122,6 +122,63 @@ struct WorldTests {
         #expect(await world.publishedDeltaCount == 2)
     }
 
+    @Test("The real world knows: an observed arrival retracts what was reported about where")
+    func observedPresenceRetractsReportedPresence() async throws {
+        let store = TestWorldStore()
+        let april = try EntityID(validating: "person:april")
+        func reported(_ predicate: String, _ value: String, type: EpistemicType = .reported)
+            throws -> Fact
+        {
+            try Fact(
+                subjectID: april, predicate: predicate, value: .string(value),
+                epistemic: EpistemicState(type: type, confidence: 1),
+                validFrom: Date(timeIntervalSince1970: 1_788_990_000),
+                validTo: Date(timeIntervalSince1970: 1_789_100_000),
+                derivedFrom: [], producer: FactProducer(kind: "reducer", id: "given", version: "1"))
+        }
+        // What Kenny learned at ten, what a wizard said, and what the world assumes.
+        let location = try reported("presence.location", "at the doctor")
+        let expected = try reported("presence.expected", "back by three")
+        let audible = try reported("presence.physically_audible", "true", type: .assumed)
+        let unrelated = try reported("person.relationship", "the one who feeds us")
+        for fact in [location, expected, audible, unrelated] { try await store.save(fact) }
+
+        let world = World(
+            eventStore: store, factStore: store, reducers: [HouseReducer()],
+            clock: FixedWorldClock(now: Self.receivedAt))
+        var iterator = try await world.subscribe().makeAsyncIterator()
+        let arrived = try WorldEventEnvelope(
+            eventID: EventID(validating: "00000000-0000-0000-0000-000000000030"),
+            type: HouseEvents.personArrived,
+            occurredAt: Date(timeIntervalSince1970: 1_788_999_000),
+            source: EventSource(id: SourceID(validating: "home-assistant:tracker"), kind: "house"),
+            subjectIDs: [april], epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: [:])
+        _ = try await world.accept(arrived)
+
+        let delta = try #require(await iterator.next())
+        let changed = Dictionary(
+            uniqueKeysWithValues: delta.changedFacts.map { ($0.predicate, $0) })
+        #expect(changed[WorldFacts.personState]?.value == .string("home"))
+        // The reported presence facts are ended by null facts that point at the arrival and at
+        // what they ended - Why? can show "because April came home".
+        for predicate in ["presence.location", "presence.expected"] {
+            let gone = try #require(changed[predicate])
+            #expect(gone.value == .null)
+            #expect(gone.derivedFrom.contains(.event(arrived.eventID)))
+            #expect(gone.validTo == arrived.occurredAt.addingTimeInterval(1))
+        }
+        #expect(changed["presence.physically_audible"] == nil)
+        #expect(changed["person.relationship"] == nil)
+        let current = await store.currentFacts(
+            subjectID: april, at: arrived.occurredAt.addingTimeInterval(5))
+        #expect(
+            Set(current.map(\.predicate))
+                == [WorldFacts.personState, "presence.physically_audible", "person.relationship"])
+        let ended = try #require(await store.fact(location.factID))
+        #expect(ended.supersededBy == changed["presence.location"]?.factID)
+    }
+
     @Test("Duplicate source events are not reduced or published")
     func duplicateSourceEventsAreIdempotent() async throws {
         let store = TestWorldStore()
@@ -586,6 +643,7 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
     var appendAttemptCount: Int { appendAttempts.count }
     var appendedEventIDs: [EventID] { appendAttempts }
     var savedFactIDs: [FactID] { factInsertionOrder }
+    func fact(_ factID: FactID) -> Fact? { factsByID[factID] }
     var factSaveAttemptIDs: [FactID] { factSaveAttempts }
     var processedEventIDsSnapshot: Set<EventID> { processedEventIDs }
 
@@ -636,6 +694,13 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
         {
             factsByID[id]?.validTo = fact.validFrom
             factsByID[id]?.supersededBy = fact.factID
+        }
+    }
+
+    func currentFacts(subjectID: EntityID?, at now: Date) -> [Fact] {
+        factInsertionOrder.compactMap { factsByID[$0] }.filter {
+            (subjectID == nil || $0.subjectID == subjectID) && $0.supersededBy == nil
+                && $0.validFrom <= now && ($0.validTo.map { $0 > now } ?? true)
         }
     }
 

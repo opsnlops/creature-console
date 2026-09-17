@@ -203,6 +203,16 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**The real world knows where April is** (`0.30.2`): when the house observes a person arriving
+or leaving (`person.arrived` / `person.left` from Home Assistant), every *reported* `presence.*`
+fact about them is retracted — Kenny's learned `presence.location = "at the doctor"` good
+until 7 AM, a wizard's `presence.expected`. Each is ended by a `null` fact derived from the
+arrival, so Why? on the old fact shows what ended it. Observed and assumed presence facts
+(`presence.state`, `presence.physically_audible`) stay. April: "I know better than they do
+where I am." Under the hood a reducer sees one event and never the store, so it asks for a
+retraction by subject and predicate prefix (`WorldReduction.retractions`) and the world
+resolves it against the current facts when it applies the reduction.
+
 **The departures' rule** (`0.30.0`, plan Phase 6): an event on the calendar that is *away*
 (location not among `calendar.at_home`, not all-day, within `departures.horizon_hours`) has a
 leave-by time — its start less the travel to its location, by the words in the location

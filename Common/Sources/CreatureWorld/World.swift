@@ -214,6 +214,7 @@ actor World {
             let reduction = try reducer.reduce(event)
             combinedReduction.changedFacts.append(contentsOf: reduction.changedFacts)
             combinedReduction.derivedEvents.append(contentsOf: reduction.derivedEvents)
+            combinedReduction.retractions.append(contentsOf: reduction.retractions)
         }
         return combinedReduction
     }
@@ -307,12 +308,25 @@ private struct WorldEventProcessor: Sendable {
                         span.attributes["world.event_lag_ms"] = lag
                         telemetry.eventLagTimer.recordMilliseconds(Int64(lag.rounded()))
                     }
-                    let reduction = try await reduce(acceptedEvent)
+                    var reduction = try await reduce(acceptedEvent)
                     for fact in reduction.changedFacts {
                         // One current value per subject and predicate: the newer fact closes
                         // the older, and the older points at what replaced it.
                         try await factStore.supersede(by: fact)
                         try await factStore.save(fact)
+                    }
+                    // What the event made moot, found in the store and ended the same way, so
+                    // they leave the deltas like any other change.
+                    for retraction in reduction.retractions {
+                        let moot = try await factStore.currentFacts(
+                            subjectID: retraction.subjectID, at: acceptedEvent.occurredAt
+                        ).filter(retraction.covers)
+                        for old in moot {
+                            let gone = try retraction.ending(old, by: acceptedEvent)
+                            try await factStore.supersede(by: gone)
+                            try await factStore.save(gone)
+                            reduction.changedFacts.append(gone)
+                        }
                     }
                     return reduction
                 }

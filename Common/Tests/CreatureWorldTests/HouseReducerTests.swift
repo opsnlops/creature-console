@@ -46,6 +46,12 @@ struct HouseReducerTests {
         #expect(arrived.predicate == WorldFacts.personState)
         #expect(arrived.value == .string("home"))
         #expect(arrived.epistemic.type == .observed)
+        // Coming and going make whatever was reported about where the person is moot.
+        for type in [HouseEvents.personArrived, HouseEvents.personLeft] {
+            let retractions = try reducer.reduce(try event(type, april)).retractions
+            #expect(retractions.map(\.predicatePrefix) == ["presence."])
+            #expect(retractions.first?.except == [WorldFacts.personState])
+        }
 
         let temperature = try #require(
             try reduce(

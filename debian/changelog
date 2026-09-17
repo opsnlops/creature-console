@@ -1,3 +1,16 @@
+creature-cli (2.72.4+world0.30.2+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.30.2: the real world knows where April is. When the
+    house observes a person arriving or leaving (person.arrived /
+    person.left), every *reported* presence.* fact about them - a bird's
+    learned "at the doctor" until 7 AM, a wizard's "back by three" - is
+    retracted by a null fact derived from the arrival, so Why? shows
+    what ended it. Observed and assumed presence facts stay. Reducers
+    can now ask for retractions by subject and predicate prefix
+    (WorldReduction.retractions), resolved against the store.
+
+ -- April White <april@creature.engineering>  Wed, 16 Sep 2026 22:15:00 -0700
+
 creature-cli (2.72.4+world0.30.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.30.1: Why? over REST for the World Viewer (VW-011):

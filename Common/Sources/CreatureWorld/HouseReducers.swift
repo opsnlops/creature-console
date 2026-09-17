@@ -68,15 +68,18 @@ struct HouseReducer: WorldReducer {
             return WorldReduction(changedFacts: [
                 try fact(WorldFacts.seenPrefix + what, .bool(false), validFor: 1)
             ])
-        case HouseEvents.personArrived:
-            // Evidence: this supersedes the configured assumption for the same person.
-            return WorldReduction(changedFacts: [
-                try fact(WorldFacts.personState, .string(PersonPresenceState.home.rawValue))
-            ])
-        case HouseEvents.personLeft:
-            return WorldReduction(changedFacts: [
-                try fact(WorldFacts.personState, .string(PersonPresenceState.away.rawValue))
-            ])
+        case HouseEvents.personArrived, HouseEvents.personLeft:
+            // Evidence: this supersedes the configured assumption for the same person - and
+            // whatever the minds had been told about where they were ("at the doctor" until
+            // 7 AM, learned at 10). April: "I know better than they do where I am."
+            let state: PersonPresenceState = event.type == HouseEvents.personArrived ? .home : .away
+            return WorldReduction(
+                changedFacts: [try fact(WorldFacts.personState, .string(state.rawValue))],
+                retractions: [
+                    FactRetraction(
+                        subjectID: subject, predicatePrefix: WorldFacts.presencePrefix,
+                        except: [WorldFacts.personState], producer: producer)
+                ])
         case HouseEvents.measurementChanged:
             guard case .string(let predicate)? = event.payload["predicate"],
                 let value = event.payload["value"]

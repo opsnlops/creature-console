@@ -7,6 +7,10 @@ public enum WorldFacts {
     public static let characterRegion = "presence.region"
     /// Whether a person is home, away, or unknown.
     public static let personState = "presence.state"
+    /// Every fact about where someone is: `presence.state`, and whatever the minds learn -
+    /// `presence.location` "at the doctor", `presence.expected` "back by three". An observed
+    /// arrival or departure retracts the reported ones.
+    public static let presencePrefix = "presence."
     public static let personAudible = "presence.physically_audible"
     /// A character's pronouns, as its persona states them; told to the world at login.
     public static let characterPronouns = "identity.pronouns"

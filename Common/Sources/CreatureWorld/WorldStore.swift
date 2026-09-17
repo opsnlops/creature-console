@@ -12,6 +12,8 @@ protocol WorldFactStore: Sendable {
     /// Closes every current fact with the same subject and predicate as `fact`, marking each
     /// as superseded by it, so a subject has one current value per predicate.
     func supersede(by fact: Fact) async throws
+    /// A subject's current facts, for a reduction's retractions.
+    func currentFacts(subjectID: EntityID?, at now: Date) async throws -> [Fact]
 }
 
 protocol WorldTimerStore: Sendable {
