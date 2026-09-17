@@ -98,6 +98,8 @@ public enum WorldFacts {
         personDescription: "who a person is, in April's words",
         visitorExpected:
             "someone April is expecting, and when; a person turning up then is almost certainly them",
+        "departure.due":
+            "somewhere April has to be, away from the house, and when she should leave to make it - from her calendar and the travel time to the place",
         memoryEpisode:
             "something that happened, as you remember it - when (in human terms, not a clock), who, what, and how much it mattered; your own memory, kept for years",
         memoryReflection: "what you came to know on a day, in your own words; your own reflection",
@@ -155,6 +157,10 @@ public enum HouseEvents {
     public static let vehicleGone = WorldEventType(rawValue: "camera.vehicle_gone")!
     /// The house says a camera watches a place (at startup, per detection mapping).
     public static let cameraWatching = WorldEventType(rawValue: "camera.watching")!
+    /// The house's own word on the calendar: an away event's leave-by time is near
+    /// (`departure.soon`, the heads-up) or here (`departure.now`), and April is still home.
+    public static let departureSoon = WorldEventType(rawValue: "departure.soon")!
+    public static let departureNow = WorldEventType(rawValue: "departure.now")!
     public static let personArrived = WorldEventType(rawValue: "person.arrived")!
     public static let personLeft = WorldEventType(rawValue: "person.left")!
     public static let measurementChanged = WorldEventType(

@@ -203,6 +203,18 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**The departures' rule** (`0.30.0`, plan Phase 6): an event on the calendar that is *away*
+(location not among `calendar.at_home`, not all-day, within `departures.horizon_hours`) has a
+leave-by time — its start less the travel to its location, by the words in the location
+(`departures.travel`: `{"words": ["seattle", "ferry"], "minutes": 90}`; `default_travel_minutes`
+otherwise). The world casts `house · departure.due = "Personal Training in Freeland at 3:45 PM;
+leaving by 3:25 PM makes it"` until the event starts. When the heads-up (`heads_up_minutes`, 20)
+arrives and `person:april · presence.state = home`, the house opens a **consideration** with
+`departure.soon` ("Leaving soon: … April is home."), and once more at leave-by itself with
+`departure.now` ("It is time to leave: …"). Each is said once per event; already away, nothing
+is said. No `consider_on` line is needed — a departure is always the house asking. Swept every
+minute beside the visitor and delivery rules; the fact shows on the house's entity page.
+
 **Telemetry is a fact, never a story** (`0.29.2`): events from a `body` source (the birds'
 sensors, the server's counters) are facts about the birds and are never happenings — the first
 thing WorldMCP showed was a mind's story that was thirty lines of Mango's power rail, with the

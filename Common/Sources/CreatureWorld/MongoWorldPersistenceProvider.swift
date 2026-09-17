@@ -59,6 +59,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         givenFacts: [GivenFact] = [],
         memory: MemoryConfiguration = MemoryConfiguration(),
         calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
+        departures: DepartureRuleConfiguration = DepartureRuleConfiguration(),
         house: EntityID = CreatureWorldConfiguration.defaultHouse,
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
@@ -206,11 +207,18 @@ struct MongoWorldPersistenceConnection: Sendable {
         let deliveryRule = DeliveryRule(house: house, facts: persistence.facts, zone: memory.zone) {
             _ = try await world.accept($0)
         }
+        // And the departures' rule: an away event's leave-by time drawing near while April is
+        // home is the house's own occasion - the plan's "you'll miss the ferry".
+        let departureRule = DepartureRule(
+            configuration: departures, atHome: calendar.atHome, house: house, zone: memory.zone,
+            facts: persistence.facts
+        ) { _ = try await world.accept($0) }
         let visitorSweeper = Task {
             while !Task.isCancelled {
                 do {
                     try await visitorRule.sweep(now: await clock.now)
                     try await deliveryRule.sweep(now: await clock.now)
+                    try await departureRule.sweep(now: await clock.now)
                 } catch {
                     logger.warning(
                         "Could not read the calendar or the orders",
@@ -684,6 +692,7 @@ actor MongoWorldPersistenceProvider {
         retention: RetentionPolicy = RetentionPolicy(),
         memory: MemoryConfiguration = MemoryConfiguration(),
         calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
+        departures: DepartureRuleConfiguration = DepartureRuleConfiguration(),
         house: EntityID = CreatureWorldConfiguration.defaultHouse,
         logger: Logger,
         connector: Connector? = nil
@@ -708,6 +717,7 @@ actor MongoWorldPersistenceProvider {
                         givenFacts: givenFacts,
                         memory: memory,
                         calendar: calendar,
+                        departures: departures,
                         house: house,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger

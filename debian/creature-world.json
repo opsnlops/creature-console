@@ -43,6 +43,17 @@
     ]
   },
   "calendar": { "at_home": ["home", "house", "april's nest"] },
+  "departures": {
+    "heads_up_minutes": 20,
+    "default_travel_minutes": 30,
+    "horizon_hours": 18,
+    "travel": [
+      { "words": ["seattle", "mukilteo", "ferry", "everett", "lynnwood", "bellevue"], "minutes": 90 },
+      { "words": ["freeland", "langley", "clinton", "bayview"], "minutes": 20 },
+      { "words": ["coupeville"], "minutes": 40 },
+      { "words": ["oak harbor"], "minutes": 60 }
+    ]
+  },
   "memory": { "hour": 3, "minute": 30, "time_zone": "America/Los_Angeles", "episode_days": 30, "episodes_in_prompt": 10, "reflections_in_prompt": 2 },
   "retention": {
     "event_days": 90, "cheap_event_days": 7, "processing_days": 7, "timer_days": 7,

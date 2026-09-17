@@ -153,6 +153,16 @@ public actor SceneOpeningPolicy {
             case HouseEvents.vehicleGone: HouseEvents.vehicleSeen
             default: nil
             }
+        // A departure is always the house asking, with no line of configuration: the rule
+        // that made it already decided April is home and the time is near.
+        if event.type == HouseEvents.departureSoon || event.type == HouseEvents.departureNow {
+            let key =
+                "\(SceneTrigger.Kind.houseConsideration.rawValue)|\(event.type.rawValue)|\(place.rawValue)"
+            if let last = lastOpened[key], now.timeIntervalSince(last) < 300 { return nil }
+            lastOpened[key] = now
+            lastOpenedAny = now
+            return Occasion(place: place, kind: .houseConsideration)
+        }
         func matching(_ candidates: [SceneOpeningRule]) -> SceneOpeningRule? {
             candidates.first {
                 ($0.event == event.type || $0.event == asSeen)
@@ -202,6 +212,12 @@ public actor SceneOpeningPolicy {
         // that asserts a direction steers the mind before it has read the story.
         case HouseEvents.vehicleSeen: return "A vehicle was just seen at \(name)."
         case HouseEvents.animalSeen: return "An animal was just seen at \(name)."
+        case HouseEvents.departureSoon, HouseEvents.departureNow:
+            let value: String
+            if case .string(let text)? = event.payload["value"] { value = text } else { value = "" }
+            return event.type == HouseEvents.departureNow
+                ? "It is time to leave: \(value). April is still home."
+                : "Leaving soon: \(value). April is home."
         case HouseEvents.personGone:
             return "A person who had been at \(name)\(stay(event)) is no longer seen there."
         case HouseEvents.vehicleGone:

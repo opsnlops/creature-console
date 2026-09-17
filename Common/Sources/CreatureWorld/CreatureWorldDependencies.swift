@@ -29,6 +29,7 @@ struct CreatureWorldDependencies: Sendable {
             retention: configuration.retention,
             memory: configuration.memory,
             calendar: configuration.calendar,
+            departures: configuration.departures,
             house: configuration.house,
             logger: logger
         )

@@ -246,6 +246,9 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **A departure is told plainly** (`2.72.4`). The house-remark contract forbids instructions
+  and safety advice with one exception: when the house says leaving soon or time to leave, the
+  bird tells April plainly and kindly, once, with the time, and lets it be.
 - **No hands, and April's decisions are hers** (`2.72.3`). The scene contract says a bird cannot
   lock doors, set lights, or move anything - it can only say - and that a decision April has
   made is made: say your view once, then let it stand; never ask her to confirm it or press her

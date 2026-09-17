@@ -62,9 +62,8 @@ public struct Happening: Codable, Hashable, Sendable {
     public static func isStoryworthy(_ type: WorldEventType) -> Bool {
         let raw = type.rawValue
         if raw == "camera.watching" || raw == "environment.measurement_changed" { return false }
-        return ["door.", "camera.", "motion.", "person.", "house.", "facts."].contains {
-            raw.hasPrefix($0)
-        }
+        return ["door.", "camera.", "motion.", "person.", "house.", "facts.", "departure."]
+            .contains { raw.hasPrefix($0) }
     }
 
     /// Whether this event is a story, kind and source together: telemetry is not. A bird's

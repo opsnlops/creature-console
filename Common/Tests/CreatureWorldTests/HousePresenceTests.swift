@@ -348,6 +348,107 @@ struct RecentHappeningsTests {
     }
 
     @Test(
+        "An away event has a leave-by time; near it, with April home, the house speaks - once each")
+    func departuresAreOccasions() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "departure-rule-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let now = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
+        let zone = TimeZone(identifier: "America/Los_Angeles")!
+        let house = try EntityID(validating: "house:departures-\(suffix)")
+        let training = try EntityID(validating: "event:training-\(suffix)")
+        let dinner = try EntityID(validating: "event:dinner-\(suffix)")
+        let april = try EntityID(validating: "person:april")
+        func fact(_ subject: EntityID, _ predicate: String, _ value: WorldJSONValue) throws
+            -> Fact
+        {
+            try Fact(
+                subjectID: subject, predicate: predicate, value: value,
+                epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: now,
+                validTo: now.addingTimeInterval(3 * 3_600), derivedFrom: [],
+                producer: FactProducer(kind: "bridge", id: "calendar", version: "1"))
+        }
+        // Training in Freeland in 45 minutes (20 to get there: leave by +25); dinner at home.
+        let starts = now.addingTimeInterval(45 * 60)
+        for f in [
+            try fact(training, "calendar.title", .string("Training \(suffix)")),
+            try fact(
+                training, "calendar.location",
+                .string("5522 Freeland Avenue, Freeland, Washington 98249")),
+            try fact(training, "calendar.starts_at", .string(WorldJSON.timestamp(starts))),
+            try fact(dinner, "calendar.title", .string("Dinner")),
+            try fact(dinner, "calendar.location", .string("Home")),
+            try fact(dinner, "calendar.starts_at", .string(WorldJSON.timestamp(starts))),
+        ] {
+            try await persistence.facts.save(f)
+        }
+        // April is home. (A fact of this test's own house is not enough: presence is hers.)
+        try await persistence.facts.save(
+            try Fact(
+                subjectID: april, predicate: WorldFacts.personState, value: .string("home"),
+                epistemic: EpistemicState(type: .observed, confidence: 1), validFrom: now,
+                validTo: now.addingTimeInterval(3 * 3_600), derivedFrom: [],
+                producer: FactProducer(kind: "house", id: "test-\(suffix)", version: "1")))
+        let accepted = Accepted()
+        let rule = DepartureRule(
+            configuration: DepartureRuleConfiguration(
+                headsUpMinutes: 20, defaultTravelMinutes: 30,
+                travel: [.init(words: ["freeland"], minutes: 20)]),
+            atHome: ["home"], house: house, zone: zone, facts: persistence.facts
+        ) { await accepted.note($0) }
+
+        // Only this test's training counts: the shared database has other runs' away events.
+        func mine() async -> [WorldEventEnvelope] {
+            await accepted.events.filter { event in
+                event.subjectIDs.contains(training)
+                    || {
+                        if case .string(let value)? = event.payload["value"] {
+                            return value.hasPrefix("Training \(suffix) in Freeland")
+                        }
+                        return false
+                    }()
+            }
+        }
+        // Now: the fact is cast, nothing said yet (leave-by is 25 minutes out, heads-up is 20).
+        let inForce = try await rule.sweep(now: now)
+        #expect(inForce[training]?.leaveBy == starts.addingTimeInterval(-20 * 60))
+        #expect(inForce[dinner] == nil)
+        var events = await mine()
+        #expect(events.count == 1)
+        #expect(events[0].payload["predicate"] == .string("departure.due"))
+        #expect(events[0].subjectIDs == [house])
+        if case .string(let value)? = events[0].payload["value"] {
+            #expect(value.contains("leaving by"))
+        } else {
+            Issue.record("no departure value")
+        }
+        // Six minutes on: inside the heads-up. The house speaks once.
+        _ = try await rule.sweep(now: now + 6 * 60)
+        events = await mine()
+        #expect(events.count == 2)
+        #expect(events[1].type == HouseEvents.departureSoon)
+        _ = try await rule.sweep(now: now + 10 * 60)
+        #expect(await mine().count == 2)
+        // Leave-by itself: once more.
+        _ = try await rule.sweep(now: now + 26 * 60)
+        events = await mine()
+        #expect(events.count == 3)
+        #expect(events[2].type == HouseEvents.departureNow)
+        _ = try await rule.sweep(now: now + 30 * 60)
+        #expect(await mine().count == 3)
+        // The words the birds read, and the occasion the house makes of them.
+        #expect(
+            SceneOpeningPolicy.triggerText(for: events[2], place: house).hasPrefix(
+                "It is time to leave: Training \(suffix) in Freeland at "))
+        let policy = SceneOpeningPolicy(rules: [])
+        #expect(
+            await policy.occasion(for: events[1], at: now + 6 * 60)
+                == SceneOpeningPolicy.Occasion(place: house, kind: .houseConsideration))
+    }
+
+    @Test(
         "An order out for delivery is a delivery expected at the house; a question finds it by its items"
     )
     func ordersMakeDeliveries() async throws {

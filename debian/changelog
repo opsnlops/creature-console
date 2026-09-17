@@ -1,3 +1,21 @@
+creature-cli (2.72.4+world0.30.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.30.0: the proactive departure (plan Phase 6). An
+    away event on the calendar has a leave-by time - its start less the
+    travel to its location, by the words in it (`departures` in
+    world.json: seattle/ferry 90 min, freeland 20, oak harbor 60, ...).
+    The house casts house · departure.due ("Personal Training in
+    Freeland at 3:45 PM; leaving by 3:25 PM makes it") until the event
+    starts, and when the heads-up (20 min) arrives with April still
+    home, opens a house consideration - departure.soon - and once more
+    at leave-by itself, departure.now. Each said once; away, nothing.
+    No consider_on line needed. "You'll miss the ferry."
+  * creature-agent 2.72.4: the house-remark contract's one exception to
+    "never instructions": a departure is told plainly and kindly, once,
+    with the time, and let be.
+
+ -- April White <april@creature.engineering>  Wed, 16 Sep 2026 19:20:00 -0700
+
 creature-cli (2.72.3+world0.29.2+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.29.2: telemetry is a fact, never a story. The first
