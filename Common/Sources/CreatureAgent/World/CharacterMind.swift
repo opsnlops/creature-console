@@ -783,7 +783,7 @@ struct CharacterMind: Sendable {
             ? (mayDecline
                 ? "The house is asking whether this deserves a word. If it does, say something about it out loud, as yourself, in one or two short sentences. If it does not - the same delivery van as every afternoon, a bird at the feeder, motion in a room April is already in, something you have already remarked on - reply with exactly [quiet: why] and nothing else, in a few words; the reason is for April's records, never spoken. Say something when there is something in it for April or something odd; stay quiet when there is not."
                 : "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken).")
-            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Do not repeat what was just said, and do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times."
+            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Do not repeat what was just said, and do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times - and one your beliefs about yourself call worn out is done."
         return """
             The house just noticed something; it is written below in parentheses, followed by \
             anything already said about it. \(company) \(april) \(turn) Think with what you know \

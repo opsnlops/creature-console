@@ -73,11 +73,28 @@ struct MemoryJobTests {
               {"about": ["thing: Hopper", "April"], "when": "Sunday evening", "what": "April introduced Hopper, her electric car", "salience": 0.5}
             ], "reflection": "April's deck project is nearly done and she is happy about it."}
             """
-        // A tiny world that serves the digest, and one memory an earlier run of the day left.
+        // And what the month settles into: a belief kept, one on a bird, one of a kind the
+        // world does not know (dropped), one about nobody the record names (dropped).
+        let consolidation = """
+            {"beliefs": [
+              {"about": "April", "kind": "habit", "what": "April likes to show the birds her projects as they finish", "salience": 0.7, "since": "September 2026", "from": ["2026-09-13"]},
+              {"about": "April", "kind": "preference", "what": "April teases Mango about Debian and enjoys it", "salience": 0.4, "since": "September 2026", "from": ["2026-09-13"]},
+              {"about": "Mango", "kind": "self", "what": "Mango rises to Debian jokes every time", "salience": 0.5, "since": "September 2026", "from": ["2026-09-13"]},
+              {"about": "April", "kind": "mood", "what": "not a kind", "salience": 0.9, "since": "", "from": []},
+              {"about": "Zed", "kind": "habit", "what": "nobody the record names", "salience": 0.9, "since": "", "from": []}
+            ]}
+            """
+        // A tiny world that serves the digest, one memory an earlier run of the day left, and
+        // one belief the flock held until tonight.
         let digest = try digest()
         let stale = try Fact(
             subjectID: try EntityID(validating: "person:april"),
             predicate: "memory.episode.2026-09-13.4", value: .string("an earlier telling"),
+            epistemic: EpistemicState(type: .remembered, confidence: 0.5), validFrom: now,
+            derivedFrom: [], producer: FactProducer(kind: "mind", id: "beaky", version: "1"))
+        let held = try Fact(
+            subjectID: try EntityID(validating: "person:april"),
+            predicate: "memory.belief.1", value: .string("an earlier belief"),
             epistemic: EpistemicState(type: .remembered, confidence: 0.5), validFrom: now,
             derivedFrom: [], producer: FactProducer(kind: "mind", id: "beaky", version: "1"))
         let router = Router(context: BasicRequestContext.self)
@@ -90,7 +107,7 @@ struct MemoryJobTests {
         router.get("world/v1/facts") { request, _ in
             let prefix = request.uri.queryParameters["predicate_prefix"].map(String.init) ?? ""
             let page = WorldFactPage(
-                facts: stale.predicate.hasPrefix(prefix) ? [stale] : [], nextFactID: nil,
+                facts: [stale, held].filter { $0.predicate.hasPrefix(prefix) }, nextFactID: nil,
                 hasMore: false)
             return Response(
                 status: .ok, headers: [.contentType: "application/json"],
@@ -108,7 +125,13 @@ struct MemoryJobTests {
                 worldURL: URL(string: "http://localhost:\(port)/world/v1")!,
                 characterID: beaky, persona: .text("You are Beaky."),
                 houseID: house, modelName: "gpt-6-astra",
-                respondJSON: { _ in Data(recollection.utf8) },
+                respondJSON: { messages in
+                    let asked = messages.first?.content ?? ""
+                    return Data(
+                        (asked.contains("Write what you believe now")
+                            ? consolidation : recollection)
+                            .utf8)
+                },
                 cast: { await casts.note($0) }, client: client,
                 logger: Logger(label: "memory-tests"))
             try await job.remember(
@@ -120,8 +143,9 @@ struct MemoryJobTests {
         let events = await casts.events
         // The earlier run's memory taken back first; then three subjects for the first episode,
         // one for the second, two for the third (Mango is a character, not a person, because he
-        // spoke that day), two for the fourth (Hopper is a thing), the reflection, the summary.
-        #expect(events.count == 11)
+        // spoke that day), two for the fourth (Hopper is a thing), the reflection; then the
+        // old belief taken back and three cast; then the summary.
+        #expect(events.count == 15)
         #expect(events[0].payload["predicate"] == .string("memory.episode.2026-09-13.4"))
         #expect(events[0].payload["value"] == .null)
         #expect(events[0].payload["subject_id"] == .string("person:april"))
@@ -135,6 +159,7 @@ struct MemoryJobTests {
         // Two episodes on one subject are two facts, not one superseding the other.
         let april = events.filter {
             $0.payload["subject_id"] == .string("person:april") && $0.payload["value"] != .null
+                && ($0.payload["predicate"]?.stringValue ?? "").hasPrefix("memory.episode.")
         }
         #expect(
             april.map { $0.payload["predicate"] } == [
@@ -155,6 +180,39 @@ struct MemoryJobTests {
         #expect(reflection.subjectIDs == [beaky])
         let done = try #require(events.first { $0.type.rawValue == "memory.consolidated" })
         #expect(done.payload["episodes"] == .number(4))
+        #expect(done.payload["beliefs"] == .number(3))
+        #expect(events.last?.type.rawValue == "memory.consolidated")
+        // Beliefs: the held one ended, April's two in slots by salience, Mango's own on him.
+        let unbelieved = try #require(
+            events.first {
+                $0.payload["predicate"] == .string("memory.belief.1")
+                    && $0.payload["value"] == .null
+            })
+        #expect(unbelieved.source.sourceEventID?.contains(":unbelieve:") == true)
+        let aprilBeliefs = events.filter {
+            $0.payload["subject_id"] == .string("person:april")
+                && ($0.payload["predicate"]?.stringValue ?? "").hasPrefix("memory.belief.")
+                && $0.payload["value"] != .null
+        }
+        #expect(
+            aprilBeliefs.map { $0.payload["predicate"] } == [
+                .string("memory.belief.1"), .string("memory.belief.2"),
+            ])
+        guard case .object(let first)? = aprilBeliefs.first?.payload["value"] else {
+            Issue.record("belief value")
+            return
+        }
+        #expect(first["kind"] == .string("habit"))
+        #expect(first["from"] == .array([.string("2026-09-13")]))
+        #expect(aprilBeliefs.first?.epistemic.confidence == 0.7)
+        let mangoBelief = try #require(
+            events.first {
+                $0.payload["subject_id"] == .string("character:mango")
+                    && $0.payload["predicate"] == .string("memory.belief.1")
+            })
+        #expect(mangoBelief.source.sourceEventID?.hasSuffix(":belief:character:mango:1") == true)
+        #expect(!events.contains { $0.payload["subject_id"] == .string("person:zed") })
+        #expect(!events.contains { ($0.payload["value"]?.objectValue?["kind"]) == .string("mood") })
         #expect(done.payload["model"] == .string("gpt-6-astra"))
         // Keyed by the asking event: a retry of this night is idempotent, another asking is new.
         #expect(
@@ -176,4 +234,15 @@ struct MemoryJobTests {
 private actor Casts {
     private(set) var events: [WorldEventEnvelope] = []
     func note(_ event: WorldEventEnvelope) { events.append(event) }
+}
+
+extension WorldJSONValue {
+    fileprivate var stringValue: String? {
+        if case .string(let text) = self { return text }
+        return nil
+    }
+    fileprivate var objectValue: [String: WorldJSONValue]? {
+        if case .object(let object) = self { return object }
+        return nil
+    }
 }

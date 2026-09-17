@@ -465,7 +465,7 @@ struct WorldMCP: Sendable {
         ResourceRoute(template: "world://characters/{character_id}/memories") { mcp, fill in
             try await mcp.service.currentFacts(
                 subjectID: try EntityID(validating: fill["character_id"]!),
-                predicatePrefix: WorldFacts.memoryEpisode, after: nil, limit: 200
+                predicatePrefix: "memory.", after: nil, limit: 200
             ).facts
         },
         ResourceRoute(template: "world://provenance/{fact_id}") { mcp, fill in

@@ -36,6 +36,13 @@ public enum WorldFacts {
     public static let memoryEpisode = "memory.episode"
     /// A bird's own paragraph about a day, on the bird: what it came to know.
     public static let memoryReflection = "memory.reflection"
+    /// What the flock has come to believe about a person, place, thing, or itself, settled
+    /// from many days' episodes by the nightly consolidation: `{kind, what, salience, since,
+    /// from}` on the subject, in numbered slots (`memory.belief.1`). `kind` is `habit`,
+    /// `preference`, `relationship`, or `self` (a bird's own patterns - what landed, what is
+    /// worn out). Kept for good; revised, never aged out.
+    public static let memoryBelief = "memory.belief"
+    public static let beliefKinds: Set<String> = ["habit", "preference", "relationship", "self"]
 
     /// The kinds of entity a fact's value may point at. A fact whose value is such an id is a
     /// link - `calendar.with = person:jesse` - and the world follows links one hop when it
@@ -56,7 +63,7 @@ public enum WorldFacts {
     /// memory of a subject stands beside the last instead of superseding it. The family is the
     /// predicate without the day.
     public static func memoryFamily(of predicate: String) -> String? {
-        for family in [memoryEpisode, memoryReflection]
+        for family in [memoryEpisode, memoryReflection, memoryBelief]
         where predicate == family || predicate.hasPrefix(family + ".") {
             return family
         }
@@ -107,6 +114,8 @@ public enum WorldFacts {
         memoryEpisode:
             "something that happened, as you remember it - when (in human terms, not a clock), who, what, and how much it mattered; your own memory, kept for years",
         memoryReflection: "what you came to know on a day, in your own words; your own reflection",
+        memoryBelief:
+            "what you have come to believe over many days - a habit or preference of theirs, what they are to you, or (on yourself) what you tend to do and what is worn out; your own settled view, not an observation; the days it rests on are listed",
         "delivery.expected":
             "a package on its way to the house today: what it is and who is bringing it",
         "delivery.arrived":

@@ -278,6 +278,16 @@ else — persona, facts, the clock, streaming to the room — is identical.
   runs on its own so the stream keeps flowing; one night at a time. April: "She'll know 'Jesse was
   here on Monday' and not 'Jesse was here at 4:39:29 PM on Monday'." `OPENAI_MEMORY_API_KEY`
   in the instance's defaults file puts the night's spend on its own key.
+- **She settles what she believes** (`2.73.0`, plan Phase 9; `docs/memory-consolidation-plan.md`).
+  After the day's episodes, the same run reads the beliefs the flock holds and a month of
+  episodes (paged from `GET /v1/facts?predicate_prefix=memory.`) and asks the memory model,
+  in one JSON call, for what it believes now — kept, revised, dropped, added — and casts
+  `memory.belief.<n>` on each subject: `{kind, what, salience, since, from}`, `kind` one of
+  `habit`, `preference`, `relationship`, `self` (a bird's own patterns: "Mango's database
+  joke has been made three times; it is worn out"). At most 4 per subject, 40 in all, and
+  only on entities the record already names — a belief about a name nobody has an episode for
+  is dropped, never a new person. The old set is taken back first, keyed by the run like the
+  day's episodes. A `self` belief that a joke is worn out ends it: the scene contract says so.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
   emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the

@@ -1,3 +1,21 @@
+creature-cli (2.73.0+world0.31.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * Phase 9, first slice: beliefs (docs/memory-consolidation-plan.md).
+    A new memory family, memory.belief, kept for good and always handed
+    to a mind: {kind, what, salience, since, from} on the subject, kind
+    in habit / preference / relationship / self. The nightly run, after
+    the day's episodes, reads the beliefs held and a month of episodes
+    and writes what the flock believes now - kept, revised, dropped,
+    added - replacing the set, keyed by the run. Beliefs land only on
+    entities the record already names.
+  * creature-world 0.31.0: memory.belief family and meaning; beliefs
+    handed out most salient first, never aged out (memory.beliefs_in_prompt,
+    12); the MCP memories resource covers every memory family.
+  * creature-agent 2.73.0: the consolidation step; a self belief that a
+    joke is worn out ends it.
+
+ -- April White <april@creature.engineering>  Wed, 16 Sep 2026 23:10:00 -0700
+
 creature-cli (2.72.4+world0.30.2+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.30.2: the real world knows where April is. When the

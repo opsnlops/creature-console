@@ -17,10 +17,13 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
     var episodesInPrompt: Int
     /// The most reflections a mind is handed (its own, newest first).
     var reflectionsInPrompt: Int
+    /// The most beliefs a single prompt carries, most salient first. Beliefs never age out.
+    var beliefsInPrompt: Int
 
     init(
         hour: Int = 3, minute: Int = 30, timeZone: String = "America/Los_Angeles",
-        episodeDays: Int = 30, episodesInPrompt: Int = 10, reflectionsInPrompt: Int = 2
+        episodeDays: Int = 30, episodesInPrompt: Int = 10, reflectionsInPrompt: Int = 2,
+        beliefsInPrompt: Int = 12
     ) {
         self.hour = hour
         self.minute = minute
@@ -28,6 +31,7 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
         self.episodeDays = episodeDays
         self.episodesInPrompt = episodesInPrompt
         self.reflectionsInPrompt = reflectionsInPrompt
+        self.beliefsInPrompt = beliefsInPrompt
     }
 
     var zone: TimeZone { TimeZone(identifier: timeZone) ?? .current }
@@ -72,6 +76,7 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
         case episodeDays = "episode_days"
         case episodesInPrompt = "episodes_in_prompt"
         case reflectionsInPrompt = "reflections_in_prompt"
+        case beliefsInPrompt = "beliefs_in_prompt"
     }
 
     init(from decoder: any Decoder) throws {
@@ -87,7 +92,9 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
             episodesInPrompt: try container.decodeIfPresent(Int.self, forKey: .episodesInPrompt)
                 ?? defaults.episodesInPrompt,
             reflectionsInPrompt: try container.decodeIfPresent(
-                Int.self, forKey: .reflectionsInPrompt) ?? defaults.reflectionsInPrompt)
+                Int.self, forKey: .reflectionsInPrompt) ?? defaults.reflectionsInPrompt,
+            beliefsInPrompt: try container.decodeIfPresent(Int.self, forKey: .beliefsInPrompt)
+                ?? defaults.beliefsInPrompt)
         guard (0...23).contains(hour), (0...59).contains(minute),
             TimeZone(identifier: timeZone) != nil
         else { throw CreatureWorldConfigurationError.invalidRetention("memory") }

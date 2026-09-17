@@ -67,11 +67,28 @@ struct MemoryConfigurationTests {
                     validFrom: now.addingTimeInterval(-TimeInterval(13 - day) * 86_400),
                     derivedFrom: [], producer: FactProducer(kind: "test", id: "t", version: "1")))
         }
+        // Beliefs never age out: the oldest, most salient one is handed over before a fresh
+        // trivial one, and the ancient one is still there.
+        func belief(_ slot: Int, salience: Double, age: TimeInterval) throws -> Fact {
+            try Fact(
+                subjectID: jesse, predicate: "memory.belief.\(slot)",
+                value: .object([
+                    "kind": .string("relationship"), "what": .string("belief \(slot)"),
+                    "salience": .number(salience),
+                ]),
+                epistemic: EpistemicState(type: .remembered, confidence: salience),
+                validFrom: now.addingTimeInterval(-age), derivedFrom: [],
+                producer: FactProducer(kind: "test", id: "t", version: "1"))
+        }
+        let beliefs = [
+            try belief(1, salience: 0.9, age: 200 * 86_400), try belief(2, salience: 0.2, age: 0),
+            try belief(3, salience: 0.6, age: 40 * 86_400),
+        ]
         let facts =
             [plain, old] + (try (5...13).map { try episode($0, salience: $0 == 7 ? 0.9 : 0.3) })
-            + reflections
+            + reflections + beliefs
         let memory = MemoryConfiguration(
-            episodeDays: 30, episodesInPrompt: 3, reflectionsInPrompt: 2)
+            episodeDays: 30, episodesInPrompt: 3, reflectionsInPrompt: 2, beliefsInPrompt: 2)
 
         let trimmed = PresentWorldKnowledge.withMemoriesTrimmed(facts, memory: memory, now: now)
 
@@ -90,6 +107,10 @@ struct MemoryConfigurationTests {
             kept.map(\.predicate).sorted() == [
                 "memory.reflection.2026-09-12", "memory.reflection.2026-09-13",
             ])
+        #expect(
+            trimmed.filter { $0.predicate.hasPrefix("memory.belief.") }.map(\.predicate)
+                == ["memory.belief.1", "memory.belief.3"])
+        #expect(WorldFacts.memoryFamily(of: "memory.belief.1") == WorldFacts.memoryBelief)
         #expect(
             WorldFacts.memoryFamily(of: "memory.episode.2026-09-13") == WorldFacts.memoryEpisode)
         #expect(WorldFacts.memoryFamily(of: "door.lock") == nil)

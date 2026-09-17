@@ -1087,7 +1087,8 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     }
 
     /// Memories are kept for years but handed out sparingly: an episode only while it is
-    /// recent, the newest and most salient first, and a bird's own reflections newest first.
+    /// recent, the newest and most salient first; a bird's own reflections newest first; and
+    /// beliefs - what the month settled into - the most salient first, never aged out.
     static func withMemoriesTrimmed(_ facts: [Fact], memory: MemoryConfiguration, now: Date)
         -> [Fact]
     {
@@ -1106,10 +1107,19 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         .sorted { $0.validFrom > $1.validFrom }
         let keptReflections = Set(reflections.prefix(memory.reflectionsInPrompt).map(\.factID))
+        let beliefs = facts.filter {
+            WorldFacts.memoryFamily(of: $0.predicate) == WorldFacts.memoryBelief
+        }
+        .sorted {
+            salience($0) > salience($1)
+                || (salience($0) == salience($1) && $0.validFrom > $1.validFrom)
+        }
+        let keptBeliefs = Set(beliefs.prefix(memory.beliefsInPrompt).map(\.factID))
         return facts.filter {
             switch WorldFacts.memoryFamily(of: $0.predicate) {
             case WorldFacts.memoryEpisode?: keptEpisodes.contains($0.factID)
             case WorldFacts.memoryReflection?: keptReflections.contains($0.factID)
+            case WorldFacts.memoryBelief?: keptBeliefs.contains($0.factID)
             default: true
             }
         }

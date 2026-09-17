@@ -108,7 +108,10 @@ The nightly memory (`0.6.0`; World `0.22.0`, agent `2.71.0`) shows as "Beaky rem
 themselves are facts — `memory.episode.<day>.<n>` on each person, place, or bird they concern and
 `memory.reflection.<day>` on the bird — and read like any other fact on the Facts tab, under the
 `memory.episode` / `memory.reflection` families in Meanings. They carry no expiry; retention never
-removes them.
+removes them. **Beliefs** (`0.8.1`; World `0.31.0`, agent `2.73.0`) — what the month's episodes
+settled into, `memory.belief.<n>` — show on an entity's page under **Come to believe**, above
+**Remembered**; a bird's `self` beliefs are on the bird's own page. Why? on a belief shows the
+consolidation run that wrote it; the days it rests on are in its value.
 
 ### Entities
 

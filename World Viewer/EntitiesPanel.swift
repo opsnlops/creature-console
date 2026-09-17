@@ -90,7 +90,14 @@ struct EntityPageView: View {
     @State private var asking: WhySheet.Asking?
 
     private var memories: [Fact] {
-        page.facts.filter { WorldFacts.memoryFamily(of: $0.predicate) != nil }
+        page.facts.filter {
+            let family = WorldFacts.memoryFamily(of: $0.predicate)
+            return family != nil && family != WorldFacts.memoryBelief
+        }
+    }
+    /// What the flock has settled on about this entity - the month's episodes consolidated.
+    private var beliefs: [Fact] {
+        page.facts.filter { WorldFacts.memoryFamily(of: $0.predicate) == WorldFacts.memoryBelief }
     }
     private var present: [Fact] {
         page.facts.filter { WorldFacts.memoryFamily(of: $0.predicate) == nil }
@@ -120,6 +127,13 @@ struct EntityPageView: View {
                             Text("· \(fact.predicate)")
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                }
+            }
+            if !beliefs.isEmpty {
+                Section("Come to believe") {
+                    ForEach(beliefs, id: \.factID) { fact in
+                        factRow(fact)
                     }
                 }
             }

@@ -181,6 +181,16 @@ struct EntityNames: Sendable {
         return EntityID(rawValue: "\(kind):\(slug)")
     }
 
+    /// The same, but only for an entity the world already holds - the house, a bird, or a
+    /// name that has facts. A belief about nobody the record names is no belief.
+    func knownEntity(named name: String) -> EntityID? {
+        guard let id = entity(named: name) else { return nil }
+        if id == houseID || characters.values.contains(id) || known.values.contains(id) {
+            return id
+        }
+        return nil
+    }
+
     /// "The Front Door" → `front-door`; nothing, or more than four words, is no name.
     private static func slug(_ name: String) -> String? {
         var words = name.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber })

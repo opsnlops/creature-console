@@ -25,6 +25,19 @@ struct MemoryJob: Sendable {
         var reflection: String
     }
 
+    /// What the model gives back for the month: the flock's beliefs, whole.
+    struct Consolidation: Decodable, Equatable, Sendable {
+        struct Belief: Decodable, Equatable, Sendable {
+            var about: String
+            var kind: String
+            var what: String
+            var salience: Double
+            var since: String
+            var from: [String]
+        }
+        var beliefs: [Belief]
+    }
+
     typealias RespondJSON = @Sendable ([LocalLLMClient.Message]) async throws -> Data
 
     let worldURL: URL
@@ -38,6 +51,12 @@ struct MemoryJob: Sendable {
     let logger: Logger
 
     static let maximumEpisodes = 12
+    /// Beliefs are few by design: the settled view, not a second diary.
+    static let maximumBeliefs = 40
+    static let maximumBeliefsPerSubject = 4
+    /// How far back the consolidation reads episodes; the world hands them out for as long.
+    static let beliefDays = 30
+    static let reflectionDays = 7
 
     /// Remember `day` (`2026-09-13`, in the house's zone). `run` is the id of the
     /// `memory.consolidate` event asking: every cast is keyed by it, so a retry of the same
@@ -93,6 +112,9 @@ struct MemoryJob: Sendable {
             if !reflection.isEmpty {
                 try await self.cast(reflectionEvent(reflection, day: day, key: key, now: now))
             }
+            // Then the month: what all those days have settled into.
+            let beliefs = try await consolidate(day: day, key: key, names: names, now: now)
+            span.attributes["memory.beliefs"] = beliefs
             try await self.cast(
                 try WorldEventEnvelope(
                     type: WorldEventType(validating: "memory.consolidated"),
@@ -104,6 +126,7 @@ struct MemoryJob: Sendable {
                         "day": .string(day),
                         "episodes": .number(Double(episodes.count)),
                         "facts": .number(Double(cast)),
+                        "beliefs": .number(Double(beliefs)),
                         "reflection": .string(String(reflection.prefix(500))),
                         "model": .string(modelName),
                     ]))
@@ -111,9 +134,170 @@ struct MemoryJob: Sendable {
                 "Remembered the day",
                 metadata: [
                     "memory.day": "\(day)", "memory.episodes": "\(episodes.count)",
-                    "memory.facts": "\(cast)",
+                    "memory.facts": "\(cast)", "memory.beliefs": "\(beliefs)",
                 ])
         }
+    }
+
+    // MARK: - Beliefs
+
+    /// Consolidation (plan Phase 9, `docs/memory-consolidation-plan.md`): the beliefs the
+    /// flock holds, revised against the last month of episodes. The whole set is rewritten
+    /// each night - kept, revised, dropped, added - and replaces the old one, keyed by the
+    /// run like the day's episodes. Returns how many beliefs were cast.
+    func consolidate(day: String, key: String, names: EntityNames, now: Date) async throws -> Int {
+        try await withSpan("agent.memory.consolidate") { span in
+            let cutoff = Self.dayString(daysBefore: Self.beliefDays, of: day)
+            let episodes = try await fetchFacts(prefix: WorldFacts.memoryEpisode + ".")
+                .filter { Self.day(of: $0.predicate).map { $0 >= cutoff } ?? false }
+            let held = try await fetchFacts(prefix: WorldFacts.memoryBelief + ".")
+            let reflections = try await fetchFacts(prefix: WorldFacts.memoryReflection + ".")
+                .filter {
+                    $0.subjectID == characterID
+                        && (Self.day(of: $0.predicate).map {
+                            $0 >= Self.dayString(daysBefore: Self.reflectionDays, of: day)
+                        } ?? false)
+                }
+            span.attributes["memory.episodes_read"] = episodes.count
+            span.attributes["memory.beliefs_held"] = held.count
+            guard !episodes.isEmpty else { return 0 }
+            let transcript = Self.beliefTranscript(
+                held: held, episodes: episodes, reflections: reflections, persona: persona,
+                characterID: characterID)
+            let data = try await withSpan("llm.generate") { inner in
+                inner.attributes["llm.model"] = modelName
+                inner.attributes["llm.json"] = true
+                return try await respondJSON(transcript)
+            }
+            let consolidation = try JSONDecoder().decode(Consolidation.self, from: data)
+            // The day's names, plus everyone with an episode or a belief; nobody new.
+            var names = names
+            names.add((episodes + held).map(\.subjectID))
+            // Resolved and grouped, so each subject's beliefs take numbered slots in turn.
+            var grouped: [EntityID: [Consolidation.Belief]] = [:]
+            var order: [EntityID] = []
+            for belief in consolidation.beliefs.prefix(Self.maximumBeliefs)
+            where WorldFacts.beliefKinds.contains(belief.kind) {
+                guard let subject = names.knownEntity(named: belief.about) else { continue }
+                if grouped[subject] == nil { order.append(subject) }
+                grouped[subject, default: []].append(belief)
+            }
+            for fact in held {
+                try await self.cast(retractionEvent(fact, key: key, stage: "unbelieve", now: now))
+            }
+            var cast = 0
+            for subject in order {
+                let kept = grouped[subject]!.sorted { $0.salience > $1.salience }
+                    .prefix(Self.maximumBeliefsPerSubject)
+                for (index, belief) in kept.enumerated() {
+                    try await self.cast(
+                        beliefEvent(belief, subject: subject, index: index, key: key, now: now))
+                    cast += 1
+                }
+            }
+            span.attributes["memory.beliefs"] = cast
+            return cast
+        }
+    }
+
+    static func beliefTranscript(
+        held: [Fact], episodes: [Fact], reflections: [Fact], persona: CharacterPersona,
+        characterID: EntityID
+    ) -> [LocalLLMClient.Message] {
+        let name = FactPhrasing.name(of: characterID)
+        let system =
+            persona.rendered(present: []) + """
+
+
+                It is the middle of the night. Below is what you, \(name), have come to believe so \
+                far, and your memories of the last month - episodes about the people, places, and \
+                things around you, and your own reflections. Write what you believe now. Answer with \
+                one JSON object and nothing else: {"beliefs": [{"about": "April", "kind": "habit", \
+                "what": "April gets excited about new robot parts and wants to hear the moment a \
+                package is on the porch", "salience": 0.8, "since": "September 2026", "from": \
+                ["2026-09-13", "2026-09-15"]}]}.
+
+                Rules. A belief is something settled, not something that happened: a habit or \
+                preference of theirs; what someone is to you ("Jesse is April's contractor; he \
+                texts when he is on his way"); or, on a bird - yourself included - what it tends \
+                to do and whether it has worn thin ("Mango's database joke has been made three \
+                times; it is worn out"). "kind" is habit, preference, relationship, or self. \
+                "about" names the person, place, thing, or bird as the record does. "from" lists \
+                the days it rests on. Keep a belief that still holds (copy it, adding new days), \
+                revise one the month has changed, drop one the record contradicts, and add one when \
+                more than one day shows it - or one day when April said it outright. At most \
+                \(maximumBeliefsPerSubject) per subject; leave out the trivial. "salience" is how \
+                much it should shape what you say, 0 to 1. Only what the record shows; never \
+                invent. No emoji.
+                """
+        var body = "What you believe now:\n"
+        if held.isEmpty {
+            body += "- nothing settled yet\n"
+        }
+        for fact in held {
+            body +=
+                "- \(FactPhrasing.subjectName(of: fact.subjectID)): \(FactPhrasing.rendered(fact.value))\n"
+        }
+        body += "\nYour memories of the last month, oldest first:\n"
+        for fact in episodes.sorted(by: { $0.predicate < $1.predicate }) {
+            body +=
+                "- \(FactPhrasing.subjectName(of: fact.subjectID)): \(FactPhrasing.rendered(fact.value))\n"
+        }
+        if !reflections.isEmpty {
+            body += "\nYour reflections:\n"
+            for fact in reflections.sorted(by: { $0.predicate < $1.predicate }) {
+                body += "- \(FactPhrasing.rendered(fact.value))\n"
+            }
+        }
+        return [
+            LocalLLMClient.Message(role: .system, content: system),
+            LocalLLMClient.Message(role: .user, content: body),
+        ]
+    }
+
+    /// The day a memory predicate carries: `memory.episode.2026-09-13.2` → `2026-09-13`.
+    static func day(of predicate: String) -> String? {
+        guard let family = WorldFacts.memoryFamily(of: predicate) else { return nil }
+        let rest = predicate.dropFirst(family.count + 1)
+        let day = rest.split(separator: ".").first.map(String.init) ?? ""
+        return day.count == 10 ? day : nil
+    }
+
+    /// `days` before `day`, as a day string; ISO days compare as strings.
+    static func dayString(daysBefore days: Int, of day: String) -> String {
+        let parts = day.split(separator: "-").compactMap { Int($0) }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        guard parts.count == 3,
+            let date = calendar.date(
+                from: DateComponents(year: parts[0], month: parts[1], day: parts[2])),
+            let earlier = calendar.date(byAdding: .day, value: -days, to: date)
+        else { return day }
+        let p = calendar.dateComponents([.year, .month, .day], from: earlier)
+        return String(format: "%04d-%02d-%02d", p.year!, p.month!, p.day!)
+    }
+
+    private func beliefEvent(
+        _ belief: Consolidation.Belief, subject: EntityID, index: Int, key: String, now: Date
+    ) throws -> WorldEventEnvelope {
+        try WorldEventEnvelope(
+            type: WorldEventType(validating: "facts.given"),
+            occurredAt: now,
+            source: source(sourceEventID: "\(key):belief:\(subject.rawValue):\(index + 1)"),
+            subjectIDs: [subject],
+            epistemic: EpistemicState(
+                type: .remembered, confidence: min(1, max(0, belief.salience))),
+            payload: [
+                "subject_id": .string(subject.rawValue),
+                "predicate": .string("\(WorldFacts.memoryBelief).\(index + 1)"),
+                "value": .object([
+                    "kind": .string(belief.kind),
+                    "what": .string(String(belief.what.prefix(400))),
+                    "salience": .number(min(1, max(0, belief.salience))),
+                    "since": .string(String(belief.since.prefix(40))),
+                    "from": .array(belief.from.prefix(12).map { .string(String($0.prefix(10))) }),
+                ]),
+            ])
     }
 
     // MARK: - The prompt
@@ -220,13 +404,13 @@ struct MemoryJob: Sendable {
 
     /// Nothing in the fact's place, valid for a moment: the same retraction as the Viewer's
     /// Forget, from the mind that kept it.
-    private func retractionEvent(_ fact: Fact, key: String, now: Date) throws
-        -> WorldEventEnvelope
+    private func retractionEvent(_ fact: Fact, key: String, stage: String = "replace", now: Date)
+        throws -> WorldEventEnvelope
     {
         try WorldEventEnvelope(
             type: WorldEventType(validating: "facts.given"),
             occurredAt: now,
-            source: source(sourceEventID: "\(key):replace:\(fact.factID.rawValue)"),
+            source: source(sourceEventID: "\(key):\(stage):\(fact.factID.rawValue)"),
             subjectIDs: [fact.subjectID],
             epistemic: EpistemicState(type: .remembered, confidence: 1),
             payload: [
@@ -297,10 +481,14 @@ struct MemoryJob: Sendable {
     /// Every memory of `day` the world currently holds, on every subject: the episodes
     /// (`memory.episode.<day>.`) and the reflection (`memory.reflection.<day>`).
     private func fetchMemories(of day: String) async throws -> [Fact] {
+        try await fetchFacts(prefix: "\(WorldFacts.memoryEpisode).\(day).")
+            + fetchFacts(prefix: "\(WorldFacts.memoryReflection).\(day)")
+    }
+
+    /// Every current fact whose predicate starts with `prefix`, on every subject, paged.
+    private func fetchFacts(prefix: String) async throws -> [Fact] {
         var memories: [Fact] = []
-        for prefix in [
-            "\(WorldFacts.memoryEpisode).\(day).", "\(WorldFacts.memoryReflection).\(day)",
-        ] {
+        do {
             var after: FactID?
             repeat {
                 var url = worldURL
