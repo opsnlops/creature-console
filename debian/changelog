@@ -1,3 +1,19 @@
+creature-cli (2.75.4+world0.33.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * The tools honour audience. With search working, Beaky read Polly's
+    mobile number aloud in the room: contact.phone is a world-only kind
+    - "kept and shown, never put in a prompt" - and the envelope has
+    always honoured that, but WorldMCP was built for a person debugging
+    and returned every audience.
+  * creature-world 0.33.1: a tools/call whose params carry
+    _meta.audience = "minds" never returns a world-only fact - from
+    search_world, query_entity, inspect_world_state, or explain_fact
+    (a world-only fact has no why for a mind). Without _meta, a person
+    debugging sees everything, as before.
+  * creature-agent 2.75.4: every call the mind runs says it is a mind.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 03:15:00 -0700
+
 creature-cli (2.75.3+world0.33.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.75.3: the tool catalogue is asked for when needed,

@@ -305,6 +305,8 @@ else — persona, facts, the clock, streaming to the room — is identical.
   events never do; they must be quick. The first sentence of a look-up answer waits for the
   look-up. Every call is cast back as a `mind.tool_called` event on her (`tool`, `arguments`,
   `output_characters`, `error`), so the Viewer's Timeline shows "looked it up: query_entity".
+  Every call the mind runs says it is a mind (`_meta.audience`), so a world-only fact - a
+  phone number - never comes back through a tool (`2.75.4`, world `0.33.1`).
   A world that will not list its tools leaves the mind without them for the moment, never
   without a voice: the catalogue is asked for when a question needs it and a failure is
   retried after thirty seconds (`2.75.3` - deployed together, the mind came up before the

@@ -54,8 +54,13 @@ struct WorldMCPClient: Sendable {
             parsed = try WorldJSON.makeDecoder().decode(
                 WorldJSONValue.self, from: Data(arguments.utf8))
         }
+        // A mind is a mind: the world keeps what is for the world alone out of the answer.
         let result = try await rpc(
-            "tools/call", params: .object(["name": .string(name), "arguments": parsed]))
+            "tools/call",
+            params: .object([
+                "name": .string(name), "arguments": parsed,
+                "_meta": .object(["audience": .string(FactAudience.minds.rawValue)]),
+            ]))
         if case .bool(true)? = result["isError"] {
             throw Failure(description: Self.text(of: result))
         }

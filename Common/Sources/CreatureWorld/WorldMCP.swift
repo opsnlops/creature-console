@@ -237,11 +237,30 @@ struct WorldMCP: Sendable {
             properties: [:], required: []),
     ]
 
+    /// Who is asking. A mind says so (`params._meta.audience = "minds"`), and then a fact the
+    /// glossary keeps for the world alone - a phone number, a street - never reaches it: the
+    /// envelope has always honoured `audience`, and a tool must not be the way around it.
+    /// Beaky once read Polly's mobile number aloud in the room. A person debugging asks
+    /// without `_meta` and sees everything.
+    private func audience(of params: WorldJSONValue) -> FactAudience? {
+        guard case .string(let raw)? = params["_meta"]?["audience"] else { return nil }
+        return FactAudience(rawValue: raw)
+    }
+
+    /// The facts a caller may see: all of them, or the minds' alone.
+    private func visible(_ facts: [Fact], to audience: FactAudience?) async throws -> [Fact] {
+        guard audience == .minds else { return facts }
+        let hidden = Set(
+            try await service.factKinds().kinds.filter { $0.audience == .world }.map(\.predicate))
+        return facts.filter { !hidden.contains($0.predicate) }
+    }
+
     private func callTool(_ params: WorldJSONValue) async throws -> WorldJSONValue {
         guard case .string(let name)? = params["name"] else {
             throw Failure.invalidParams("tools/call needs a name")
         }
         let arguments = params["arguments"] ?? .object([:])
+        let audience = audience(of: params)
         let result: any Encodable & Sendable
         switch name {
         case "inspect_world_state":
@@ -249,21 +268,33 @@ struct WorldMCP: Sendable {
                 subjectID: try await entityID(arguments["subject_id"]),
                 predicatePrefix: arguments["predicate_prefix"].flatMap(\.stringValue),
                 after: nil, limit: limit(arguments["limit"], default: 100, max: 500))
-            result = page.facts
+            result = try await visible(page.facts, to: audience)
         case "search_world":
             guard case .string(let query)? = arguments["query"],
                 !query.trimmingCharacters(in: .whitespaces).isEmpty
             else { throw Failure.invalidParams("query is required") }
-            result = try await service.search(
+            var page = try await service.search(
                 query,
                 limit: limit(
                     arguments["limit"], default: WorldSearchLimits.defaultHits,
                     max: WorldSearchLimits.maximumHits))
+            if audience == .minds {
+                var kept: [WorldSearchHit] = []
+                for var hit in page.hits {
+                    hit.facts = try await visible(hit.facts, to: audience)
+                    if !hit.facts.isEmpty { kept.append(hit) }
+                }
+                page.hits = kept
+            }
+            result = page
         case "query_entity":
             guard let id = try await entityID(arguments["entity_id"]) else {
                 throw Failure.invalidParams("entity_id is required")
             }
-            result = try await service.entity(id)
+            var page = try await service.entity(id)
+            page.facts = try await visible(page.facts, to: audience)
+            page.linkedFrom = try await visible(page.linkedFrom, to: audience)
+            result = page
         case "explain_fact":
             let factID: FactID
             if case .string(let raw)? = arguments["fact_id"] {
@@ -280,8 +311,18 @@ struct WorldMCP: Sendable {
             } else {
                 throw Failure.invalidParams("give fact_id, or subject_id and predicate")
             }
-            guard let explanation = try await service.explain(factID: factID) else {
+            guard var explanation = try await service.explain(factID: factID) else {
                 throw Failure.notFound(factID.rawValue)
+            }
+            if audience == .minds {
+                // A world-only fact has no why for a mind; the facts behind one are trimmed.
+                guard try await !visible([explanation.fact], to: audience).isEmpty else {
+                    throw Failure.notFound(factID.rawValue)
+                }
+                explanation.facts = try await visible(explanation.facts, to: audience)
+                if let successor = explanation.supersededBy {
+                    explanation.supersededBy = try await visible([successor], to: audience).first
+                }
             }
             result = explanation
         case "query_timeline":

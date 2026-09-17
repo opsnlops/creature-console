@@ -188,6 +188,82 @@ struct WorldMCPTests {
         }
     }
 
+    @Test("A mind's call never sees a world-only fact; a person debugging sees everything")
+    func audienceIsHonoured() async throws {
+        let world = MCPWorld()
+        let polly = try EntityID(validating: "person:polly")
+        func fact(_ predicate: String, _ value: String) throws -> Fact {
+            try Fact(
+                subjectID: polly, predicate: predicate, value: .string(value),
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                validFrom: Date(timeIntervalSince1970: 1_789_500_000), derivedFrom: [],
+                producer: FactProducer(kind: "bridge", id: "contacts", version: "1"))
+        }
+        let name = try fact("contact.name", "Polly Jacobs")
+        let phone = try fact("contact.phone", "1 937 555 0100")
+        await world.set(facts: [name, phone], events: [])
+        await world.set(worldOnly: ["contact.phone"])
+        let application = makeCreatureWorldApplication(
+            dependencies: .testing(
+                configuration: try CreatureWorldConfiguration(port: 8080),
+                logger: Logger(label: "mcp-tests"),
+                buildInfo: CreatureWorldBuildInfo(version: "mcp-test", schemaVersion: 1),
+                worldService: world,
+                conversationService: UnavailableConversationApplicationService(),
+                characterSessionService: UnavailableCharacterSessionApplicationService()),
+            apiConfiguration: .default)
+        try await application.test(.router) { client in
+            func call(_ json: String) async throws -> WorldJSONValue? {
+                let response = try await client.execute(
+                    uri: "/world/mcp", method: .post,
+                    headers: [.contentType: "application/json", .accept: "application/json"],
+                    body: ByteBuffer(string: json))
+                return try WorldJSON.makeDecoder().decode(WorldJSONValue.self, from: response.body)
+            }
+            func predicates(_ value: WorldJSONValue?) -> [String] {
+                guard case .array(let items)? = value else { return [] }
+                return items.compactMap { $0["predicate"]?.stringValue }.sorted()
+            }
+            let asMind = #","_meta":{"audience":"minds"}}}"#
+            // The phone is there for a person debugging...
+            let debugging = try await call(
+                #"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"query_entity","arguments":{"entity_id":"person:polly"}}}"#
+            )
+            #expect(
+                predicates(debugging?["result"]?["structuredContent"]?["facts"])
+                    == ["contact.name", "contact.phone"])
+            // ...and gone for a mind, from every tool that hands facts over.
+            let mind = try await call(
+                #"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"query_entity","arguments":{"entity_id":"person:polly"}"#
+                    + asMind
+            )
+            #expect(predicates(mind?["result"]?["structuredContent"]?["facts"]) == ["contact.name"])
+            let searched = try await call(
+                #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search_world","arguments":{"query":"polly"}"#
+                    + asMind
+            )
+            guard case .array(let hits)? = searched?["result"]?["structuredContent"]?["hits"]
+            else {
+                Issue.record("no hits")
+                return
+            }
+            #expect(predicates(hits.first?["facts"]) == ["contact.name"])
+            let inspected = try await call(
+                #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"inspect_world_state","arguments":{"subject_id":"person:polly"}"#
+                    + asMind
+            )
+            #expect(
+                predicates(inspected?["result"]?["structuredContent"]?["items"]) == ["contact.name"]
+            )
+            // Why? on the phone itself: not for a mind.
+            let why = try await call(
+                #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"explain_fact","arguments":{"fact_id":""#
+                    + phone.factID.rawValue + #""}"# + asMind
+            )
+            #expect(why?["error"]?["code"] == .number(-32002))
+        }
+    }
+
     @Test("Why? over REST: the same walk, for the Viewer")
     func explainsOverREST() async throws {
         let world = MCPWorld()
@@ -300,7 +376,16 @@ private actor MCPWorld: WorldApplicationService {
     }
     func subscribe() async throws -> WorldDeltaStream { throw WorldAPIError.databaseUnavailable }
     func finishSubscriptions() async {}
-    func factKinds() async throws -> FactKindPage { FactKindPage(kinds: []) }
+    private var worldOnly: Set<String> = []
+    func set(worldOnly: Set<String>) { self.worldOnly = worldOnly }
+    func factKinds() async throws -> FactKindPage {
+        FactKindPage(
+            kinds: worldOnly.sorted().map {
+                FactKind(
+                    predicate: $0, meaning: "for the world alone", audience: .world,
+                    updatedAt: Date(timeIntervalSince1970: 0), updatedBy: "test")
+            })
+    }
     func entity(_ entityID: EntityID) async throws -> EntityPage {
         EntityPage(
             entityID: entityID, facts: facts.filter { $0.subjectID == entityID }, linkedFrom: [],

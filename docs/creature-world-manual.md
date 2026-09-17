@@ -255,6 +255,11 @@ right now, with `mentioned_in` resolving mentions as April's question would), `q
 duration, and body limits apply. Claude Code reads it through the repo's `.mcp.json`
 (`https://server.prod.chirpchirp.dev/world/mcp`); any MCP client that speaks Streamable HTTP
 will do. No write tools: casting, rewording, and remembering stay on the REST API.
+**The tools honour audience** (`0.33.1`): a `tools/call` whose params carry
+`_meta.audience = "minds"` never returns a world-only fact (a phone number, a street) — from
+`search_world`, `query_entity`, `inspect_world_state`, or `explain_fact` — because the envelope
+has always honoured `audience` and a tool must not be the way around it; Beaky once read
+Polly's mobile number aloud. Without `_meta`, a person debugging sees everything.
 **Search** (`0.33.0`): `GET /v1/search?q=cleaner&limit=10` and the `search_world` tool — one
 ranked query over MongoDB's wildcard text index on the facts collection (`facts_text`: the
 subject's slug, the predicate, every string inside a value), current facts only, entities best
