@@ -490,6 +490,13 @@ struct CharacterMind: Sendable {
         }
     }
 
+    /// The world as tools for a scene turn that answers a person - April's question in the
+    /// room opens a scene, and that is where "who is Tamara?" is answered. A house remark or
+    /// a world event never gets them: those must be quick.
+    private func tools(for offer: SceneTurnOffer) -> ModelTools? {
+        offer.trigger.kind == .personUtterance ? configuration.tools : nil
+    }
+
     /// Stream the line: the first sentence decides silence and loses any speaker label or
     /// hail; every sentence is speech-clean; each goes to the world as it lands, and the turn
     /// ends when the model stops or the world's length limit is reached.
@@ -516,7 +523,7 @@ struct CharacterMind: Sendable {
                 span.attributes["llm.transcript.turns"] = transcript.count
                 span.attributes["llm.streaming"] = true
                 try await withTimeout(configuration.modelTimeout) {
-                    for await raw in respondStreaming(transcript, nil) {
+                    for await raw in respondStreaming(transcript, tools(for: offer)) {
                         await learning.note(raw)
                         switch await line.offer(raw) {
                         case .speak(let index, let piece):
@@ -647,7 +654,7 @@ struct CharacterMind: Sendable {
                 span.attributes["llm.model"] = configuration.modelName
                 span.attributes["llm.transcript.turns"] = transcript.count
                 return try await withTimeout(configuration.modelTimeout) {
-                    try await respond(transcript, nil)
+                    try await respond(transcript, tools(for: offer))
                 }
             }
             await learning.note(raw)
@@ -692,7 +699,9 @@ struct CharacterMind: Sendable {
         let contract: String
         switch offer.trigger.kind {
         case .personUtterance:
-            contract = Self.sceneContract(others: others)
+            contract =
+                Self.sceneContract(others: others)
+                + (configuration.tools == nil ? "" : " " + ModelTools.contract)
         case .worldEvent, .houseConsideration:
             contract = Self.houseRemarkContract(
                 others: others,

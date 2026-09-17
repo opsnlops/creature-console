@@ -1,3 +1,14 @@
+creature-cli (2.75.1+world0.32.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.75.1: the tools reach the room. April's question
+    in the house opens a scene, and the scene turn paths handed the
+    model no tools - "who is Tamara?" got an honest "I don't know" from
+    a bird never given the means to look. A scene turn answering a
+    person now carries the tools (and their contract); a house remark
+    or a world event still never does.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 01:35:00 -0700
+
 creature-cli (2.75.0+world0.32.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * Cost. "We are not using token caching well at all."

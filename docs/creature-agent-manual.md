@@ -299,8 +299,9 @@ else — persona, facts, the clock, streaming to the room — is identical.
   The contract tells her when: a question that needs more than what she was handed - who
   someone is, what happened on a day, what is scheduled, why a fact is what it is - never for
   a passing remark, never to re-check what is in the prompt, and with small limits (an
-  answer past 16 000 characters is cut, and says so). House remarks and scene turns never
-  get tools; they must be quick. The first sentence of a look-up answer waits for the
+  answer past 16 000 characters is cut, and says so). A scene turn answering a person carries
+  them too (`2.75.1` - April's question in the room is a scene); house remarks and world
+  events never do; they must be quick. The first sentence of a look-up answer waits for the
   look-up. Every call is cast back as a `mind.tool_called` event on her (`tool`, `arguments`,
   `output_characters`, `error`), so the Viewer's Timeline shows "looked it up: query_entity".
   A world that will not list its tools leaves the mind without them, never without a voice.

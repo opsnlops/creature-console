@@ -97,6 +97,36 @@ struct StreamedSceneTurnTests {
             modelName: "test")
     }
 
+    @Test("April's question in the room carries the tools; the house's remark never does")
+    func toolsFollowThePerson() async throws {
+        let handed = HandedTools()
+        var tooled = configuration
+        tooled.tools = ModelTools(
+            serverLabel: "world", definitions: [], call: { _, _ in "" }, onCall: { _ in })
+        let mind = CharacterMind(
+            configuration: tooled,
+            respond: { transcript, tools in
+                await handed.note(tools != nil, contract: transcript.first?.content ?? "")
+                return "Tamara is the cleaner from Quality Cleaning."
+            },
+            logger: Logger(label: "streamed-scene-tests"))
+        _ = try await mind.consider(try makeOffer(), now: now)
+        var house = try makeOffer().offer
+        house.trigger = SceneTrigger(
+            kind: .worldEvent, eventID: .generated(),
+            text: "A person was just seen at the carport.")
+        let envelope = try WorldEventEnvelope(
+            occurredAt: now,
+            source: EventSource(id: SourceID(validating: "world:scenes"), kind: "world"),
+            subjectIDs: [beaky], epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: house)
+        _ = try await mind.consider(
+            WorldSceneConsideration(worldSequence: 2, envelope: envelope, offer: house), now: now)
+        #expect(await handed.tooled == [true, false])
+        #expect(await handed.contracts[0].contains("You have tools that look things up"))
+        #expect(!(await handed.contracts[1].contains("You have tools")))
+    }
+
     private func makeMind(sentences: [String]) -> CharacterMind {
         CharacterMind(
             configuration: configuration,
@@ -133,4 +163,13 @@ struct StreamedSceneTurnTests {
 private actor Spoken {
     private(set) var pieces: [String] = []
     func record(_ index: Int, _ text: String) { pieces.append("\(index):\(text)") }
+}
+
+private actor HandedTools {
+    var tooled: [Bool] = []
+    var contracts: [String] = []
+    func note(_ hasTools: Bool, contract: String) {
+        tooled.append(hasTools)
+        contracts.append(contract)
+    }
 }
