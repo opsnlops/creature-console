@@ -70,10 +70,14 @@ struct OpenAIClient: Sendable {
 
     // MARK: - A transcript (world mode)
 
-    func respond(messages transcript: [LocalLLMClient.Message]) async throws -> String {
+    /// With `tools`, the model may look things up in the world (WorldMCP) before answering;
+    /// the calls it made are reported through `tools.onCall` once the answer is in.
+    func respond(messages transcript: [LocalLLMClient.Message], tools: ModelTools? = nil)
+        async throws -> String
+    {
         logger.debug("Sending OpenAI response request (model: \(model))")
-        var request = makeRequest(for: transcript, stream: false)
-        request.timeoutInterval = 60
+        var request = makeRequest(for: transcript, stream: false, tools: tools)
+        request.timeoutInterval = tools == nil ? 60 : 90
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -89,13 +93,20 @@ struct OpenAIClient: Sendable {
         }
         let output = try OpenAIResponseParser.outputText(from: data)
         logger.debug("OpenAI response received (chars: \(output.count))")
+        if let tools {
+            for call in OpenAIResponseParser.toolCalls(from: data) {
+                await tools.onCall(call)
+            }
+        }
         return output
     }
 
     /// Sentences as the model composes them, from the Responses API's SSE stream
     /// (`response.output_text.delta` events carry the text).
-    func respondStreaming(messages transcript: [LocalLLMClient.Message]) -> AsyncStream<String> {
-        let request = makeRequest(for: transcript, stream: true)
+    func respondStreaming(messages transcript: [LocalLLMClient.Message], tools: ModelTools? = nil)
+        -> AsyncStream<String>
+    {
+        let request = makeRequest(for: transcript, stream: true, tools: tools)
         let logger = self.logger
         let model = self.model
         let traceResponses = self.traceResponses
@@ -132,6 +143,18 @@ struct OpenAIClient: Sendable {
                     var parser = ServerSentEventParser()
                     for try await buffer in response.body {
                         for frame in parser.feed(String(buffer: buffer)) {
+                            // A tool the model called is reported as it completes; the
+                            // words come after.
+                            if let tools,
+                                let call = OpenAIResponseParser.streamedToolCall(
+                                    fromData: frame.data)
+                            {
+                                logger.info(
+                                    "LLM looked it up: \(call.name)\(call.error.map { " (failed: \($0))" } ?? "")"
+                                )
+                                await tools.onCall(call)
+                                continue
+                            }
                             guard
                                 let delta = OpenAIResponseParser.streamedDelta(fromData: frame.data)
                             else { continue }
@@ -157,7 +180,8 @@ struct OpenAIClient: Sendable {
     // MARK: - Request
 
     func makeRequest(
-        for transcript: [LocalLLMClient.Message], stream: Bool, json: Bool = false
+        for transcript: [LocalLLMClient.Message], stream: Bool, json: Bool = false,
+        tools: ModelTools? = nil
     ) -> URLRequest {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -168,7 +192,7 @@ struct OpenAIClient: Sendable {
             ResponseRequest(
                 model: model, transcript: transcript, temperature: temperature,
                 reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream,
-                json: json))
+                json: json, tools: tools))
         return request
     }
 
@@ -235,6 +259,30 @@ struct ResponseRequest: Encodable {
         init(json: Bool) { format = Format(type: json ? "json_object" : "text") }
     }
 
+    /// A remote MCP server the model may call on its own: WorldMCP, read only, no approvals
+    /// (there is nothing to approve - every tool is a look-up).
+    struct Tool: Encodable {
+        let type = "mcp"
+        let serverLabel: String
+        let serverURL: String
+        let allowedTools: [String]
+        let requireApproval = "never"
+
+        private enum CodingKeys: String, CodingKey {
+            case type
+            case serverLabel = "server_label"
+            case serverURL = "server_url"
+            case allowedTools = "allowed_tools"
+            case requireApproval = "require_approval"
+        }
+
+        init(_ tools: ModelTools) {
+            serverLabel = tools.serverLabel
+            serverURL = tools.serverURL.absoluteString
+            allowedTools = tools.allowedTools
+        }
+    }
+
     let model: String
     let input: [Item]
     let temperature: Double?
@@ -243,15 +291,17 @@ struct ResponseRequest: Encodable {
     let serviceTier: String?
     let stream: Bool
     let store = false
+    let tools: [Tool]?
 
     private enum CodingKeys: String, CodingKey {
-        case model, input, temperature, reasoning, text, stream, store
+        case model, input, temperature, reasoning, text, stream, store, tools
         case serviceTier = "service_tier"
     }
 
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
-        reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false
+        reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false,
+        tools: ModelTools? = nil
     ) {
         self.model = model
         self.input = transcript.map(Item.init)
@@ -261,6 +311,7 @@ struct ResponseRequest: Encodable {
         self.temperature = reasoningEffort == nil ? temperature : nil
         self.serviceTier = serviceTier
         self.stream = stream
+        self.tools = tools.map { [Tool($0)] }
     }
 }
 

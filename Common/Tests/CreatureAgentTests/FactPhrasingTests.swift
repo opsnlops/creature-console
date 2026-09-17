@@ -233,7 +233,7 @@ struct FactPhrasingTests {
                 persona: .text("You are Beaky."), characterID: beaky, personID: april,
                 maximumReplyAge: 3_600, maximumContextTurns: 20, modelTimeout: .seconds(5),
                 modelName: "test"),
-            respond: { _ in "" }, logger: .init(label: "fact-phrasing-tests"))
+            respond: { _, _ in "" }, logger: .init(label: "fact-phrasing-tests"))
 
         let timeOnly = mind.knowledgeBlock([], now: now)
         #expect(timeOnly.contains("What you know right now"))
@@ -243,7 +243,7 @@ struct FactPhrasingTests {
         var knowing = mind.configuration
         knowing.modelLabel = "openai/gpt-6-astra"
         let told = CharacterMind(
-            configuration: knowing, respond: { _ in "" },
+            configuration: knowing, respond: { _, _ in "" },
             logger: .init(label: "fact-phrasing-tests"))
         #expect(
             told.knowledgeBlock([], now: now).contains(

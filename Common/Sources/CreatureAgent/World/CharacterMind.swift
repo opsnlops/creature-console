@@ -44,9 +44,11 @@ enum SceneDecision: Equatable, Sendable {
 /// The mind authors words. It never chooses a transport, and it never reads anything the world
 /// did not put in the percept.
 struct CharacterMind: Sendable {
-    typealias Respond = @Sendable ([LocalLLMClient.Message]) async throws -> String
+    /// The model's whole answer; with `ModelTools`, it may look things up in the world first.
+    typealias Respond = @Sendable ([LocalLLMClient.Message], ModelTools?) async throws -> String
     /// The model's answer as sentences, in order, as they are produced.
-    typealias RespondStreaming = @Sendable ([LocalLLMClient.Message]) -> AsyncStream<String>
+    typealias RespondStreaming =
+        @Sendable ([LocalLLMClient.Message], ModelTools?) -> AsyncStream<String>
 
     /// Where the world put Beaky for this turn, and what she has to perform it with.
     struct Stage: Sendable {
@@ -89,6 +91,9 @@ struct CharacterMind: Sendable {
         var modelLabel: String? = nil
         /// The house entity a learned fact about "the house" is cast on.
         var houseID: EntityID = try! EntityID(validating: "house:aprils-nest")
+        /// The world as tools, for a question from April; `nil` and the mind knows only what
+        /// it is handed. A house remark never gets them - it must be quick.
+        var tools: ModelTools? = nil
 
         /// The character's plain name, as a model might label her lines: `character:beaky` → `beaky`.
         var characterName: String {
@@ -229,7 +234,7 @@ struct CharacterMind: Sendable {
                 span.attributes["llm.model"] = configuration.modelName
                 span.attributes["llm.transcript.turns"] = transcript.count
                 return try await withTimeout(configuration.modelTimeout) {
-                    try await respond(transcript)
+                    try await respond(transcript, configuration.tools)
                 }
             }
             await learning.note(raw)
@@ -296,7 +301,7 @@ struct CharacterMind: Sendable {
                 // A timeout cancels the model loop; whatever was already offered to the room
                 // stays spoken and recorded.
                 try await withTimeout(configuration.modelTimeout) {
-                    for await raw in stage.respondStreaming(transcript) {
+                    for await raw in stage.respondStreaming(transcript, configuration.tools) {
                         await learning.note(raw)
                         guard await spoken.offer(raw, characterName: name) else { break }
                     }
@@ -499,7 +504,7 @@ struct CharacterMind: Sendable {
                 span.attributes["llm.transcript.turns"] = transcript.count
                 span.attributes["llm.streaming"] = true
                 try await withTimeout(configuration.modelTimeout) {
-                    for await raw in respondStreaming(transcript) {
+                    for await raw in respondStreaming(transcript, nil) {
                         await learning.note(raw)
                         switch await line.offer(raw) {
                         case .speak(let index, let piece):
@@ -630,7 +635,7 @@ struct CharacterMind: Sendable {
                 span.attributes["llm.model"] = configuration.modelName
                 span.attributes["llm.transcript.turns"] = transcript.count
                 return try await withTimeout(configuration.modelTimeout) {
-                    try await respond(transcript)
+                    try await respond(transcript, nil)
                 }
             }
             await learning.note(raw)
@@ -913,6 +918,7 @@ struct CharacterMind: Sendable {
                 content: configuration.persona.rendered(
                     present: present, pronouns: FactPhrasing.pronouns(in: percept.worldFacts))
                     + "\n\n" + Self.contract(for: route)
+                    + (configuration.tools == nil ? "" : " " + ModelTools.contract)
                     + knowledgeBlock(
                         percept.worldFacts, happenings: percept.recentHappenings,
                         meanings: percept.factMeanings, now: now)

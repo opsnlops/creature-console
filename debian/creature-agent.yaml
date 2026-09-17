@@ -54,6 +54,11 @@ areas:
 # episodes and reflection. Only the bird that should remember sets it - Beaky - on the same
 # key (or OPENAI_MEMORY_API_KEY in /etc/default/creature-agent-<instance> for its own project).
 # llmMemoryModel: gpt-6-astra
+# The world as tools (2.74.0, OpenAI backend only): WorldMCP at the *public* ingress - the
+# model provider calls it, not this host. With it set, a question from April may be answered
+# after a look-up (who someone is, what happened on a day, why a fact is what it is); house
+# remarks never get tools. Unset, the mind knows only what the world hands it.
+# worldMcpUrl: https://server.prod.chirpchirp.dev/world/mcp
 # characterEntityId: character:beaky
 # personEntityId: person:april
 # regionEntityId: region:home

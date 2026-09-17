@@ -11,7 +11,7 @@ struct CharacterMindTests {
 
     @Test("The transcript is the canonical conversation in order, newest last, bounded")
     func transcriptFollowsCanonicalHistory() throws {
-        let mind = makeMind(maximumContextTurns: 3) { _ in "unused" }
+        let mind = makeMind(maximumContextTurns: 3) { _, _ in "unused" }
         let percept = try makePercept(
             text: "What do you think?",
             prior: [
@@ -32,7 +32,7 @@ struct CharacterMindTests {
 
     @Test("Consecutive messages from one author become one turn so chat templates accept them")
     func consecutiveTurnsAreCoalesced() throws {
-        let mind = makeMind { _ in "unused" }
+        let mind = makeMind { _, _ in "unused" }
         let percept = try makePercept(
             text: "Hi",
             prior: [
@@ -54,7 +54,7 @@ struct CharacterMindTests {
     func windowOpensWithApril() throws {
         // Found live on fuzzball: once the bounded window began with a character turn, Mistral's
         // template rejected the transcript ("roles must alternate") and Beaky fell silent.
-        let mind = makeMind(maximumContextTurns: 3) { _ in "unused" }
+        let mind = makeMind(maximumContextTurns: 3) { _, _ in "unused" }
         let percept = try makePercept(
             text: "Still there?",
             prior: [
@@ -72,7 +72,7 @@ struct CharacterMindTests {
 
     @Test("A reply becomes a turn addressed to April with a stable response identity")
     func replyBecomesIntent() async throws {
-        let mind = makeMind { transcript in
+        let mind = makeMind { transcript, _ in
             #expect(transcript.last?.content == "Are you there?")
             return "<think>hmm</think> \"Always, April! 🦜 Where else would I be?\""
         }
@@ -115,17 +115,49 @@ struct CharacterMindTests {
     func modelOutputThatIsNotATurn(raw: String, reason: CharacterDecision.SilenceReason)
         async throws
     {
-        let mind = makeMind { _ in raw }
+        let mind = makeMind { _, _ in raw }
 
         let decision = try await mind.consider(try makeConsideration(text: "Hi"), now: now)
 
         #expect(decision == .silence(reason: reason))
     }
 
+    @Test("A question from April carries the world's tools and their contract; a scene turn never")
+    func toolsGoWithQuestionsOnly() async throws {
+        let tools = ModelTools(
+            serverLabel: "world", serverURL: URL(string: "https://example.test/world/mcp")!,
+            allowedTools: ModelTools.defaultAllowedTools, onCall: { _ in })
+        let handed = Handed()
+        var configuration = makeMind { _, _ in "unused" }.configuration
+        configuration.tools = tools
+        let mind = CharacterMind(
+            configuration: configuration,
+            respond: { transcript, tools in
+                await handed.note(tools?.serverLabel, contract: transcript.first?.content ?? "")
+                return "Jesse is your contractor."
+            },
+            logger: Logger(label: "character-mind-tests"))
+
+        _ = try await mind.consider(try makeConsideration(text: "Who is Jesse?"), now: now)
+        #expect(await handed.labels == ["world"])
+        #expect(
+            await handed.contracts.first?.contains("You have tools that look things up") == true)
+
+        // The same mind without tools hands the model nothing to reach for, and says nothing
+        // about tools.
+        let plain = makeMind { transcript, tools in
+            await handed.note(tools?.serverLabel, contract: transcript.first?.content ?? "")
+            return "unused"
+        }
+        _ = try await plain.consider(try makeConsideration(text: "Who is Jesse?"), now: now)
+        #expect(await handed.labels == ["world", nil])
+        #expect(await handed.contracts.last?.contains("You have tools") == false)
+    }
+
     @Test("Old messages and other people's messages are recorded silences, not model calls")
     func guardrailsRunBeforeTheModel() async throws {
         let calls = CallCounter()
-        let mind = makeMind { _ in
+        let mind = makeMind { _, _ in
             await calls.increment()
             return "should not be asked"
         }
@@ -142,7 +174,7 @@ struct CharacterMindTests {
 
     @Test("A model that does not answer in time is a recorded silence")
     func modelTimeoutIsSilence() async throws {
-        let mind = makeMind(modelTimeout: .milliseconds(50)) { _ in
+        let mind = makeMind(modelTimeout: .milliseconds(50)) { _, _ in
             try await Task.sleep(for: .seconds(5))
             return "too late"
         }
@@ -213,14 +245,14 @@ struct CharacterMindTests {
         let mind = makeMind(
             stage: CharacterMind.Stage(
                 stager: stager, room: room,
-                respondStreaming: { _ in
+                respondStreaming: { _, _ in
                     AsyncStream { continuation in
                         continuation.yield("Beaky: \"Bawk, hello April!")
                         continuation.yield("The servos look great 🎉.")
                         continuation.finish()
                     }
                 })
-        ) { _ in "unused" }
+        ) { _, _ in "unused" }
 
         let decision = try await mind.consider(try makeConsideration(text: "Look!"), now: now)
 
@@ -244,13 +276,13 @@ struct CharacterMindTests {
         let mind = makeMind(
             stage: CharacterMind.Stage(
                 stager: FakeStager(route: .physicalSpeech), room: room,
-                respondStreaming: { _ in
+                respondStreaming: { _, _ in
                     AsyncStream { continuation in
                         continuation.yield("[silence]")
                         continuation.finish()
                     }
                 })
-        ) { _ in "unused" }
+        ) { _, _ in "unused" }
 
         let decision = try await mind.consider(try makeConsideration(text: "meh"), now: now)
 
@@ -265,13 +297,13 @@ struct CharacterMindTests {
         let mind = makeMind(
             stage: CharacterMind.Stage(
                 stager: FakeStager(route: .physicalSpeech), room: room,
-                respondStreaming: { _ in
+                respondStreaming: { _, _ in
                     AsyncStream { continuation in
                         continuation.yield("I would have said this.")
                         continuation.finish()
                     }
                 })
-        ) { _ in "unused" }
+        ) { _, _ in "unused" }
 
         let decision = try await mind.consider(try makeConsideration(text: "Hi"), now: now)
 
@@ -290,8 +322,8 @@ struct CharacterMindTests {
         let mind = makeMind(
             stage: CharacterMind.Stage(
                 stager: FakeStager(route: .communicator), room: room,
-                respondStreaming: { _ in AsyncStream { $0.finish() } })
-        ) { transcript in
+                respondStreaming: { _, _ in AsyncStream { $0.finish() } })
+        ) { transcript, _ in
             #expect(transcript.first?.content.contains("Flock Communicator app") == true)
             return "Text me back when you are home."
         }
@@ -313,8 +345,8 @@ struct CharacterMindTests {
         let mind = makeMind(
             stage: CharacterMind.Stage(
                 stager: stager, room: room,
-                respondStreaming: { _ in AsyncStream { $0.finish() } })
-        ) { _ in "unused" }
+                respondStreaming: { _, _ in AsyncStream { $0.finish() } })
+        ) { _, _ in "unused" }
 
         let decision = try await mind.consider(try makeConsideration(text: "Hi"), now: now)
 
@@ -327,7 +359,7 @@ struct CharacterMindTests {
 
     @Test("The room's contract tells Beaky April can hear her")
     func roomContractSaysAprilIsPresent() throws {
-        let mind = makeMind { _ in "unused" }
+        let mind = makeMind { _, _ in "unused" }
         let percept = try makePercept(text: "Hi")
 
         let room = mind.makeTranscript(for: percept, route: .physicalSpeech)
@@ -475,5 +507,14 @@ private actor FakeStager: WorldStaging {
         )
         return CharacterStageResult(
             disposition: alreadyDelivered ? .alreadyDelivered : .decided, decision: decision)
+    }
+}
+
+private actor Handed {
+    var labels: [String?] = []
+    var contracts: [String] = []
+    func note(_ label: String?, contract: String) {
+        labels.append(label)
+        contracts.append(contract)
     }
 }

@@ -127,7 +127,7 @@ struct PersonaTests {
                 persona: .structured(persona), characterID: mango, personID: april,
                 maximumReplyAge: 3_600, maximumContextTurns: 20, modelTimeout: .seconds(5),
                 modelName: "test"),
-            respond: { _ in "" }, logger: Logger(label: "persona-tests"))
+            respond: { _, _ in "" }, logger: Logger(label: "persona-tests"))
         let now = Date(timeIntervalSince1970: 1_789_600_000)
         let utterance = try PersonUtterance(
             conversationID: ConversationID(validating: "conversation:april-house"),
@@ -176,7 +176,7 @@ struct PersonaTests {
                 persona: .structured(persona), characterID: beaky, personID: april,
                 maximumReplyAge: 3_600, maximumContextTurns: 20, modelTimeout: .seconds(5),
                 modelName: "test"),
-            respond: { _ in "" }, logger: Logger(label: "persona-tests"))
+            respond: { _, _ in "" }, logger: Logger(label: "persona-tests"))
         let now = Date(timeIntervalSince1970: 1_789_600_000)
         let away = try Fact(
             subjectID: april, predicate: WorldFacts.personState, value: .string("away"),

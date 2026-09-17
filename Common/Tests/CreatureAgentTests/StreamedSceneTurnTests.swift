@@ -77,7 +77,7 @@ struct StreamedSceneTurnTests {
     @Test("Without a streaming model the turn is composed whole, as before")
     func wholeLineWithoutStreaming() async throws {
         let mind = CharacterMind(
-            configuration: configuration, respond: { _ in "April, all at once." },
+            configuration: configuration, respond: { _, _ in "April, all at once." },
             logger: Logger(label: "streamed-scene-tests"))
         guard
             case .turn(let turn) = try await mind.consider(
@@ -100,8 +100,8 @@ struct StreamedSceneTurnTests {
     private func makeMind(sentences: [String]) -> CharacterMind {
         CharacterMind(
             configuration: configuration,
-            respond: { _ in sentences.joined(separator: " ") },
-            respondStreaming: { _ in
+            respond: { _, _ in sentences.joined(separator: " ") },
+            respondStreaming: { _, _ in
                 AsyncStream { continuation in
                     for sentence in sentences { continuation.yield(sentence) }
                     continuation.finish()

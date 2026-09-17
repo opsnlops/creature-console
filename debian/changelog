@@ -1,3 +1,17 @@
+creature-cli (2.74.0+world0.31.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.74.0: the world as tools. With worldMcpUrl set
+    (OpenAI backend), a question from April carries WorldMCP as a remote
+    MCP tool on the Responses API - read only, no approvals, the query
+    tools and explain_fact - and the contract says when to look things
+    up: a question that needs more than the envelope, never a passing
+    remark. House remarks and scene turns never get tools. Every call is
+    cast back as mind.tool_called on the character. The first step past
+    "burning input tokens like they were free": the envelope can shrink
+    once she can fetch.
+
+ -- April White <april@creature.engineering>  Wed, 16 Sep 2026 23:55:00 -0700
+
 creature-cli (2.73.0+world0.31.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * Phase 9, first slice: beliefs (docs/memory-consolidation-plan.md).

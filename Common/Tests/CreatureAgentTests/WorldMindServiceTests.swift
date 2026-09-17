@@ -59,7 +59,7 @@ struct WorldMindServiceTests {
         try await Harness.run(
             stub: stub,
             logger: logger,
-            respond: { transcript in
+            respond: { transcript, _ in
                 #expect(transcript.last?.content == "Beaky, are you awake?")
                 return "Wide awake, April!"
             }
@@ -94,7 +94,7 @@ struct WorldMindServiceTests {
         try await Harness.run(
             stub: stub,
             logger: logger,
-            respond: { _ in
+            respond: { _, _ in
                 """
                 Tuesday it is; I will keep an eye on the driveway for him.
                 [learned: Jesse | visitor.expected | Tuesday afternoon, to finish the deck | tomorrow]
@@ -145,7 +145,7 @@ struct WorldMindServiceTests {
             stub: stub,
             logger: logger,
             room: room,
-            respondStreaming: { transcript in
+            respondStreaming: { transcript, _ in
                 AsyncStream { continuation in
                     #expect(transcript.first?.content.contains("in the room with you") == true)
                     continuation.yield("Loud and clear, April.")
@@ -153,7 +153,7 @@ struct WorldMindServiceTests {
                     continuation.finish()
                 }
             },
-            respond: { _ in
+            respond: { _, _ in
                 Issue.record("the full-text path must not run for a turn in the room")
                 return "unused"
             }
@@ -192,14 +192,14 @@ struct WorldMindServiceTests {
             stub: stub,
             logger: logger,
             room: room,
-            respondStreaming: { _ in
+            respondStreaming: { _, _ in
                 AsyncStream { continuation in
                     continuation.yield("Logged in and listening.")
                     continuation.finish()
                 }
             },
             logsIn: true,
-            respond: { _ in "unused" }
+            respond: { _, _ in "unused" }
         ) { harness in
             try await harness.runUntil {
                 let performed = await stub.performances.count == 1
@@ -224,7 +224,7 @@ struct WorldMindServiceTests {
         await stub.script(connection: 0) { _ in [.snapshot(latestSequence: 40)] }
         await stub.script(connection: 1) { _ in [] }
         try await Harness.run(
-            stub: stub, logger: logger, logsIn: true, respond: { _ in "unused" }
+            stub: stub, logger: logger, logsIn: true, respond: { _, _ in "unused" }
         ) { harness in
             let run = Task { try await harness.service.run() }
             try await Task.sleep(for: .milliseconds(250))
@@ -259,7 +259,7 @@ struct WorldMindServiceTests {
             stub: stub,
             logger: logger,
             logsIn: true,
-            respond: { transcript in
+            respond: { transcript, _ in
                 let script = transcript.last?.content ?? ""
                 #expect(
                     transcript.first?.content.contains("In the room with you and April: Mango")
@@ -297,7 +297,7 @@ struct WorldMindServiceTests {
         try await Harness.run(
             stub: stub,
             logger: logger,
-            respondStreaming: { _ in
+            respondStreaming: { _, _ in
                 AsyncStream { continuation in
                     continuation.yield("Servos, I hope!")
                     continuation.yield("Or heat sinks again.")
@@ -305,7 +305,7 @@ struct WorldMindServiceTests {
                 }
             },
             logsIn: true,
-            respond: { _ in "unused" }
+            respond: { _, _ in "unused" }
         ) { harness in
             try await harness.runUntil {
                 let done = await stub.sceneTurns.count == 3
@@ -337,7 +337,7 @@ struct WorldMindServiceTests {
         await stub.script(connection: 1) { _ in [] }
         try await Harness.run(
             stub: stub, logger: logger,
-            respond: { _ in
+            respond: { _, _ in
                 Issue.record("the mind must not answer solo inside a scene")
                 return "unused"
             }
@@ -368,7 +368,7 @@ struct WorldMindServiceTests {
             stub: stub,
             logger: logger,
             failFirstCursorWrite: true,
-            respond: { _ in "Once, phrased attempt \(await phrasing.next())" }
+            respond: { _, _ in "Once, phrased attempt \(await phrasing.next())" }
         ) { harness in
             try await harness.runUntil { await harness.cursorAt() == 21 }
         }
@@ -392,7 +392,7 @@ struct WorldMindServiceTests {
         }
         await stub.script(connection: 2) { _ in [] }
         await stub.failNextResponse(status: .serviceUnavailable)
-        try await Harness.run(stub: stub, logger: logger, respond: { _ in "Right here." }) {
+        try await Harness.run(stub: stub, logger: logger, respond: { _, _ in "Right here." }) {
             harness in
             try await harness.runUntil { await harness.cursorAt() == 31 }
         }
@@ -412,7 +412,7 @@ struct WorldMindServiceTests {
             ]
         }
         await stub.script(connection: 1) { _ in [] }
-        try await Harness.run(stub: stub, logger: logger, respond: { _ in "[silence]" }) {
+        try await Harness.run(stub: stub, logger: logger, respond: { _, _ in "[silence]" }) {
             harness in
             try await harness.runUntil { await harness.cursorAt() == 41 }
         }
@@ -451,7 +451,7 @@ struct WorldMindServiceTests {
                     modelTimeout: .seconds(5),
                     modelName: "test-model"
                 ),
-                respond: { _ in "Yes, together." },
+                respond: { _, _ in "Yes, together." },
                 logger: logger
             ),
             responder: responder,
@@ -556,7 +556,7 @@ private struct Harness {
                 CharacterMind.Stage(
                     stager: responder,
                     room: room,
-                    respondStreaming: respondStreaming ?? { _ in AsyncStream { $0.finish() } },
+                    respondStreaming: respondStreaming ?? { _, _ in AsyncStream { $0.finish() } },
                     session: { await session?.sessionID }
                 )
             }

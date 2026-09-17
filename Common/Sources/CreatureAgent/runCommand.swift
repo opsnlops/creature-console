@@ -372,8 +372,11 @@ private func runWorldMode(
             logger: logger,
             traceResponses: traceResponses
         )
-        respond = { try await localLLM.respond(messages: $0) }
-        respondStreaming = { localLLM.respondStreaming(messages: $0, recordingHistoryFor: nil) }
+        // A local model has no tools; a question is answered from the envelope alone.
+        respond = { messages, _ in try await localLLM.respond(messages: messages) }
+        respondStreaming = { messages, _ in
+            localLLM.respondStreaming(messages: messages, recordingHistoryFor: nil)
+        }
     case .openai:
         // The key comes from the environment (`/etc/default/creature-agent-<instance>`) or
         // the config file; never from the persona.
@@ -393,8 +396,8 @@ private func runWorldMode(
             logger: logger,
             traceResponses: traceResponses
         )
-        respond = { try await openAI.respond(messages: $0) }
-        respondStreaming = { openAI.respondStreaming(messages: $0) }
+        respond = { try await openAI.respond(messages: $0, tools: $1) }
+        respondStreaming = { openAI.respondStreaming(messages: $0, tools: $1) }
         if let memoryModel = config.llmMemoryModel {
             let memoryClient = OpenAIClient(
                 apiKey: ProcessInfo.processInfo.environment["OPENAI_MEMORY_API_KEY"] ?? apiKey,
@@ -460,6 +463,43 @@ private func runWorldMode(
         case .communicatorOnly:
             nil
         }
+    // The world as tools (`worldMcpUrl`): every look-up the model makes is cast back into
+    // the world as `mind.tool_called`, so the Viewer and Why? show what she checked.
+    let tools: ModelTools? = world.worldMCPURL.map { url in
+        ModelTools(
+            serverLabel: "world", serverURL: url, allowedTools: ModelTools.defaultAllowedTools,
+            onCall: { call in
+                do {
+                    try await responder.cast(
+                        try WorldEventEnvelope(
+                            type: WorldEventType(validating: "mind.tool_called"),
+                            occurredAt: Date(),
+                            source: EventSource(
+                                id: SourceID(
+                                    validating:
+                                        "mind:\(FactPhrasing.name(of: characterID).lowercased())"),
+                                kind: "mind"),
+                            subjectIDs: [characterID],
+                            epistemic: EpistemicState(type: .observed, confidence: 1),
+                            payload: [
+                                "tool": .string(call.name),
+                                "server": .string(call.server),
+                                "arguments": .string(String(call.arguments.prefix(500))),
+                                "output_characters": .number(Double(call.output?.count ?? 0)),
+                                "error": call.error.map { .string(String($0.prefix(200))) }
+                                    ?? .null,
+                            ]))
+                } catch {
+                    logger.warning(
+                        "Could not record a look-up", metadata: ["error": "\(error)"])
+                }
+            })
+    }
+    if let tools {
+        logger.info(
+            "The world is at hand as tools",
+            metadata: ["mcp.url": "\(tools.serverURL.absoluteString)"])
+    }
     let mind = CharacterMind(
         configuration: CharacterMind.Configuration(
             persona: persona,
@@ -471,7 +511,8 @@ private func runWorldMode(
             modelName: config.llmModel,
             timeZone: world.timeZone,
             modelLabel: "\(config.llmBackend.rawValue)/\(config.llmModel)",
-            houseID: world.houseID
+            houseID: world.houseID,
+            tools: tools
         ),
         respond: respond,
         respondStreaming: respondStreaming,

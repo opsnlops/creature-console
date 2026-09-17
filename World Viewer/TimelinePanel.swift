@@ -107,6 +107,20 @@ struct TimelineRow: View {
                     .foregroundStyle(.indigo)
                     .textSelection(.enabled)
                 }
+                if event.type.rawValue == "mind.tool_called",
+                    case .string(let tool)? = event.payload["tool"]
+                {
+                    // She looked it up rather than guessed: the world as tools, on the record.
+                    let failed: String? =
+                        if case .string(let error)? = event.payload["error"] { error } else { nil }
+                    Label(
+                        "looked it up: \(tool)" + (failed.map { " - failed: \($0)" } ?? ""),
+                        systemImage: "magnifyingglass"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(failed == nil ? .teal : .orange)
+                    .textSelection(.enabled)
+                }
                 if event.type == SceneService.remarkDeclinedEventType,
                     case .string(let reason)? = event.payload["reason"]
                 {

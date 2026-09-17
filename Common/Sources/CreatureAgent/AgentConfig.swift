@@ -75,6 +75,9 @@ struct AgentConfig: Decodable {
         /// The house entity a learned fact about "the house" is cast on.
         let houseID: EntityID
         let timeZone: TimeZone
+        /// WorldMCP as the model's tools (`worldMcpUrl`): the public ingress, since the model
+        /// provider calls it, not this process. Unset, the mind has no tools.
+        let worldMCPURL: URL?
 
         /// Whether the mind may perform in the room. `physical` asks the world for the stage
         /// before each turn and streams to Creature Server when the answer is the room;
@@ -154,6 +157,7 @@ struct AgentConfig: Decodable {
         case maximumReplyAge
         case maximumContextTurns
         case llmTimeoutSeconds
+        case worldMcpUrl
     }
 
     private static let cooldownRegex = try? NSRegularExpression(
@@ -226,6 +230,18 @@ struct AgentConfig: Decodable {
                 debugDescription: "worldUrl must be an absolute URL"
             )
         }
+        let rawMCPURL = try container.decodeIfPresent(String.self, forKey: .worldMcpUrl)
+        let worldMCPURL: URL?
+        if let rawMCPURL {
+            guard let url = URL(string: rawMCPURL), url.scheme?.hasPrefix("http") == true else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .worldMcpUrl, in: container,
+                    debugDescription: "worldMcpUrl must be an absolute http(s) URL")
+            }
+            worldMCPURL = url
+        } else {
+            worldMCPURL = nil
+        }
         world = WorldModeConfig(
             worldURL: worldURL,
             characterEntityID: try container.decodeIfPresent(
@@ -262,7 +278,8 @@ struct AgentConfig: Decodable {
                     )
                 }
                 return zone
-            } ?? TimeZone.current
+            } ?? TimeZone.current,
+            worldMCPURL: worldMCPURL
         )
     }
 
