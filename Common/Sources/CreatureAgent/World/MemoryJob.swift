@@ -58,6 +58,31 @@ struct MemoryJob: Sendable {
     static let beliefDays = 30
     static let reflectionDays = 7
 
+    /// What memory never keeps, whatever the record said: a phone number, an email address.
+    /// Those are the world's alone (`audience: world`), and the first night of beliefs kept
+    /// Polly's mobile number because Beaky had once read it aloud. The prompts say so; this
+    /// makes sure.
+    static let unkeepable: [NSRegularExpression] = [
+        // Phone numbers: 7+ digits with the usual separators, an optional country code -
+        // and not a run of digits inside something longer, such as an Amazon order number,
+        // which April wants kept.
+        try! NSRegularExpression(
+            pattern:
+                #"(?<![\d-])(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}(?![\d-])"#
+        ),
+        try! NSRegularExpression(pattern: #"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"#),
+    ]
+
+    static func scrubbed(_ text: String) -> String {
+        var result = text
+        for pattern in unkeepable {
+            result = pattern.stringByReplacingMatches(
+                in: result, range: NSRange(result.startIndex..., in: result),
+                withTemplate: "[not kept]")
+        }
+        return result
+    }
+
     /// Remember `day` (`2026-09-13`, in the house's zone). `run` is the id of the
     /// `memory.consolidate` event asking: every cast is keyed by it, so a retry of the same
     /// night is idempotent while a day asked for again - by hand, or after a Forget - is new.
@@ -127,7 +152,7 @@ struct MemoryJob: Sendable {
                         "episodes": .number(Double(episodes.count)),
                         "facts": .number(Double(cast)),
                         "beliefs": .number(Double(beliefs)),
-                        "reflection": .string(String(reflection.prefix(500))),
+                        "reflection": .string(String(Self.scrubbed(reflection).prefix(500))),
                         "model": .string(modelName),
                     ]))
             logger.info(
@@ -217,7 +242,8 @@ struct MemoryJob: Sendable {
                 package is on the porch", "salience": 0.8, "since": "September 2026", "from": \
                 ["2026-09-13", "2026-09-15"]}]}.
 
-                Rules. A belief is something settled, not something that happened: a habit or \
+                Rules. Never keep a phone number, an email address, or a street address - those are \
+                the house's alone. A belief is something settled, not something that happened: a habit or \
                 preference of theirs; what someone is to you ("Jesse is April's contractor; he \
                 texts when he is on his way"); or, on a bird - yourself included - what it tends \
                 to do and whether it has worn thin ("Mango's database joke has been made three \
@@ -292,7 +318,7 @@ struct MemoryJob: Sendable {
                 "predicate": .string("\(WorldFacts.memoryBelief).\(index + 1)"),
                 "value": .object([
                     "kind": .string(belief.kind),
-                    "what": .string(String(belief.what.prefix(400))),
+                    "what": .string(String(Self.scrubbed(belief.what).prefix(400))),
                     "salience": .number(min(1, max(0, belief.salience))),
                     "since": .string(String(belief.since.prefix(40))),
                     "from": .array(belief.from.prefix(12).map { .string(String($0.prefix(10))) }),
@@ -317,7 +343,8 @@ struct MemoryJob: Sendable {
                 "when": "Sunday afternoon", "what": "Jesse came by and put the boards on the deck; \
                 April was pleased", "salience": 0.7}], "reflection": "…"}.
 
-                Rules. An episode is one thing that happened, in a sentence or two, about the people, \
+                Rules. Never keep a phone number, an email address, or a street address - those are \
+                the house's alone. An episode is one thing that happened, in a sentence or two, about the people, \
                 places, or the house it concerns ("about" names them as they appear in the record: a \
                 person's first name, "the front door", "the house", a bird's name, or for a named \
                 thing such as a car or a printer, "thing: Hopper"). "when" is \
@@ -396,7 +423,7 @@ struct MemoryJob: Sendable {
                 "value": .object([
                     "day": .string(day),
                     "when": .string(String(episode.when.prefix(80))),
-                    "what": .string(String(episode.what.prefix(400))),
+                    "what": .string(String(Self.scrubbed(episode.what).prefix(400))),
                     "salience": .number(min(1, max(0, episode.salience))),
                 ]),
             ])
@@ -434,7 +461,7 @@ struct MemoryJob: Sendable {
                 "subject_id": .string(characterID.rawValue),
                 "predicate": .string("\(WorldFacts.memoryReflection).\(day)"),
                 "value": .object([
-                    "day": .string(day), "text": .string(String(text.prefix(1_000))),
+                    "day": .string(day), "text": .string(String(Self.scrubbed(text).prefix(1_000))),
                 ]),
             ])
     }

@@ -288,6 +288,20 @@ else — persona, facts, the clock, streaming to the room — is identical.
   runs on its own so the stream keeps flowing; one night at a time. April: "She'll know 'Jesse was
   here on Monday' and not 'Jesse was here at 4:39:29 PM on Monday'." `OPENAI_MEMORY_API_KEY`
   in the instance's defaults file puts the night's spend on its own key.
+- **Memory never keeps a phone number or an email address** (`2.75.5`). The first night of
+  beliefs kept Polly's mobile number because the day's record had it; a memory is handed to
+  the minds, so what is the world's alone must not get in by that door either. Episodes,
+  reflections, and beliefs are scrubbed of phone numbers and emails before they are cast
+  (an order number, which April wants kept, is not a phone number), and the prompts say so.
+- **The presence sensor wins, and a chorus does not repeat the lead** (`2.75.5`, #193). The
+  first live departure had all three birds say the same sentence, twice over, and an hour
+  later they "could not tell who" came through the door six minutes after Home Assistant had
+  said April was home. The house-remark contract now names the presence sensor as the
+  authority: came home within twenty minutes, a person at the door or inside *is* April,
+  said plainly ("April came home 6 minutes ago"); home for hours, it is her unless a visitor
+  is expected; away, it is somebody else; a guess sounds like a guess only when it is one.
+  The departure line belongs to the first bird; the chorus is told another bird has already
+  told her and to react - a send-off, a wish, a joke - or stay silent.
 - **She looks things up** (`2.74.1`; `worldMcpUrl`). April: "As the knowledge in the world
   grows we're quickly going to hit the limit of what we can pre-emptively send in the context
   to the agent." With `worldMcpUrl` set and the OpenAI backend, the mind asks WorldMCP for

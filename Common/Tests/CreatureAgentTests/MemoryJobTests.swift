@@ -221,6 +221,25 @@ struct MemoryJobTests {
         )
     }
 
+    @Test("Memory never keeps a phone number or an email, whatever the record said")
+    func scrubsWhatIsTheWorldsAlone() {
+        #expect(
+            MemoryJob.scrubbed("Polly is April's sister. Her mobile number is 937-304-6482.")
+                == "Polly is April's sister. Her mobile number is [not kept].")
+        #expect(
+            MemoryJob.scrubbed(
+                "Jesse's phone number is 1 937 304 6482 and he is at jesse@example.com")
+                == "Jesse's phone number is [not kept] and he is at [not kept]")
+        #expect(MemoryJob.scrubbed("Call (360) 555-0100 by 3 PM") == "Call [not kept] by 3 PM")
+        // Years, times, counts, money, and an order number are not phone numbers.
+        #expect(
+            MemoryJob.scrubbed("The 2023 ID.4 charges 11 PM to 7 AM; 82 kWh, $21.69, order 111")
+                == "The 2023 ID.4 charges 11 PM to 7 AM; 82 kWh, $21.69, order 111")
+        #expect(
+            MemoryJob.scrubbed("Amazon order 111-0746960-3342613 for toothpaste")
+                == "Amazon order 111-0746960-3342613 for toothpaste")
+    }
+
     @Test("The birds are whoever spoke as a character that day, plus the one remembering")
     func subjects() throws {
         let names = MemoryJob.names(in: try digest(), houseID: house, including: beaky)

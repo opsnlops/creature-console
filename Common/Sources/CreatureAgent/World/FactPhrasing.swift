@@ -6,14 +6,21 @@ import WorldCore
 enum FactPhrasing {
     /// Whether the world says `person` is home: true, false, or nil when it has no idea.
     static func isHome(_ person: EntityID, in facts: [Fact]) -> Bool? {
+        presence(of: person, in: facts)?.home
+    }
+
+    /// The world's word on where `person` is, and since when - so a mind can tell "home for
+    /// hours" from "came home six minutes ago", which is the moment a person at the door is
+    /// her.
+    static func presence(of person: EntityID, in facts: [Fact]) -> (home: Bool, since: Date)? {
         guard
             let fact = facts.first(where: {
                 $0.subjectID == person && $0.predicate == WorldFacts.personState
             }), case .string(let state) = fact.value
         else { return nil }
         switch state {
-        case "home": return true
-        case "away": return false
+        case "home": return (true, fact.validFrom)
+        case "away": return (false, fact.validFrom)
         default: return nil
         }
     }

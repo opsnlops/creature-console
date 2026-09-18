@@ -703,9 +703,11 @@ struct CharacterMind: Sendable {
                 Self.sceneContract(others: others)
                 + (configuration.tools == nil ? "" : " " + ModelTools.contract)
         case .worldEvent, .houseConsideration:
+            let presence = FactPhrasing.presence(of: Self.april, in: offer.worldFacts)
             contract = Self.houseRemarkContract(
                 others: others,
-                aprilHome: FactPhrasing.isHome(Self.april, in: offer.worldFacts),
+                aprilHome: presence?.home,
+                aprilSince: presence.map { now.timeIntervalSince($0.since) },
                 isLead: offer.turns.isEmpty,
                 mayDecline: offer.trigger.kind == .houseConsideration)
         }
@@ -787,19 +789,30 @@ struct CharacterMind: Sendable {
     /// worth a word", with the why for the Viewer. Never spoken.
     static let quietPrefixes = ["[quiet:", "[pass:"]
 
+    /// How long after April comes home a person seen at the door or inside is, to the
+    /// house, simply her.
+    static let justHomeWindow: TimeInterval = 20 * 60
+
     static func houseRemarkContract(
-        others: [String], aprilHome: Bool?, isLead: Bool, mayDecline: Bool = false
+        others: [String], aprilHome: Bool?, aprilSince: TimeInterval? = nil, isLead: Bool,
+        mayDecline: Bool = false
     ) -> String {
         let company =
             others.isEmpty
             ? "You are the only bird in the room."
             : "Also in the room: \(others.joined(separator: ", ")). They speak for themselves; never speak for them."
+        // The presence sensor is the real world; the cameras only see a shape. April, after an
+        // evening of "I hope it is April, but I cannot tell": "they need to trust the presence
+        // sensor more."
         let april =
             switch aprilHome {
             case true?:
-                "April is home, though maybe not in this room, so speak so she can hear you."
+                (aprilSince.map { $0 < justHomeWindow } == true
+                    ? "April came home \(Int(((aprilSince ?? 0) / 60).rounded())) minutes ago - the house's presence sensor saw her arrive, and it is the authority on that. A person at the door or inside the house right now is April: say so plainly, and never hedge that a camera cannot tell who it is. "
+                    : "April is home - the house's presence sensor says so, and it is the authority on that. A person seen inside the house is April unless a visitor is expected; do not hedge about it. ")
+                    + "Speak so she can hear you; she may not be in this room."
             case false?:
-                "April is not home; you are talking to the room, and she may see your words on her phone."
+                "April is not home - the presence sensor says so - so a person at the house is somebody else, expected or not; you are talking to the room, and she may see your words on her phone."
             case nil: "You do not know whether April is home."
             }
         let turn =
@@ -807,7 +820,7 @@ struct CharacterMind: Sendable {
             ? (mayDecline
                 ? "The house is asking whether this deserves a word. If it does, say something about it out loud, as yourself, in one or two short sentences. If it does not - the same delivery van as every afternoon, a bird at the feeder, motion in a room April is already in, something you have already remarked on - reply with exactly [quiet: why] and nothing else, in a few words; the reason is for April's records, never spoken. Say something when there is something in it for April or something odd; stay quiet when there is not."
                 : "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken).")
-            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Do not repeat what was just said, and do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times - and one your beliefs about yourself call worn out is done."
+            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Another bird has already told April what the house noticed: do not tell her again in other words - a departure, a visitor, a door, said once is said. React to it instead: a send-off, a wish, a question of your own, a joke - or stay silent. Do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times - and one your beliefs about yourself call worn out is done."
         return """
             The house just noticed something; it is written below in parentheses, followed by \
             anything already said about it. \(company) \(april) \(turn) Think with what you know \
@@ -816,9 +829,11 @@ struct CharacterMind: Sendable {
             outranks something expected later today. Be the familiar who noticed, not a security \
             system: delighted by a visitor, curious about a stranger, never giving instructions or \
             safety advice. The one exception is a departure - the house saying leaving soon, or \
-            time to leave: then tell April plainly and kindly, once, with the time, and let it be; \
-            she may already know. A guess must sound like a guess; the cameras cannot tell who \
-            someone is. Do not begin your line with anyone's name unless \
+            time to leave: then the first bird tells April plainly and kindly, once, with the \
+            time, and lets it be; she may already know, and the others do not tell her again. \
+            The cameras cannot tell who someone is; the presence sensor can tell whether April \
+            is home, and it wins. A guess must sound like a guess only when it is one - when \
+            she is away, or a visitor is expected. Do not begin your line with anyone's name unless \
             you are singling them out, and do not prefix your words with your own name. Never use \
             emoji or symbols. Do not describe actions. \(typing)
             """

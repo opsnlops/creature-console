@@ -1,3 +1,25 @@
+creature-cli (2.75.5+world0.33.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.75.5: the presence sensor wins, and a chorus does
+    not repeat the lead (#193). The first live departure had all three
+    birds say the same sentence twice over - the contract's "tell April
+    plainly, once" read as each bird's own instruction - and at 5:30
+    they "could not tell who" came through the door six minutes after
+    the house said April was home. Now the presence sensor is the
+    authority: home within twenty minutes, a person at the door or
+    inside is April, said plainly; home for hours, it is her unless a
+    visitor is expected; away, it is somebody else. The departure line
+    belongs to the first bird; the others react or stay silent.
+  * creature-agent 2.75.5: memory never keeps a phone number or an email
+    address. The first night of beliefs (twenty, and good) kept Polly's
+    and Jesse's phone numbers, because the day's record had them - a
+    minds-audience memory carrying what is the world's alone. Episodes,
+    reflections, and beliefs are scrubbed before they are cast (order
+    numbers are kept), and the prompts say so. The two beliefs were
+    retracted by hand.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 19:20:00 -0700
+
 creature-cli (2.75.4+world0.33.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * The tools honour audience. With search working, Beaky read Polly's

@@ -218,7 +218,51 @@ struct PersonaTests {
         offer.worldFacts = []
         let second = mind.makeSceneTranscript(for: offer, now: now)[0].content
         #expect(second.contains("Add one short reaction"))
+        #expect(second.contains("do not tell her again"))
         #expect(second.contains("You do not know whether April is home"))
+    }
+
+    @Test(
+        "The presence sensor wins: home six minutes is her at the door; home for hours is her inside"
+    )
+    func presenceSensorIsTheAuthority() throws {
+        // "They need to trust the presence sensor more": the house said April was home six
+        // minutes before the front door locked, and the birds still said they could not tell.
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let justHome = CharacterMind.houseRemarkContract(
+            others: ["Mango"], aprilHome: true, aprilSince: 6 * 60, isLead: true)
+        #expect(justHome.contains("April came home 6 minutes ago"))
+        #expect(justHome.contains("A person at the door or inside the house right now is April"))
+        #expect(justHome.contains("never hedge that a camera cannot tell"))
+        let homeAllDay = CharacterMind.houseRemarkContract(
+            others: [], aprilHome: true, aprilSince: 5 * 3_600, isLead: true)
+        #expect(homeAllDay.contains("April is home - the house's presence sensor says so"))
+        #expect(homeAllDay.contains("unless a visitor is expected"))
+        let away = CharacterMind.houseRemarkContract(others: [], aprilHome: false, isLead: true)
+        #expect(away.contains("a person at the house is somebody else"))
+        #expect(away.contains("A guess must sound like a guess only when it is one"))
+        // Through the transcript, from the presence fact's own age.
+        let april = try EntityID(validating: "person:april")
+        let home = try Fact(
+            subjectID: april, predicate: WorldFacts.personState, value: .string("home"),
+            epistemic: EpistemicState(type: .observed, confidence: 1),
+            validFrom: now.addingTimeInterval(-6 * 60), derivedFrom: [],
+            producer: FactProducer(kind: "reducer", id: "house", version: "1"))
+        let mind = CharacterMind(
+            configuration: CharacterMind.Configuration(
+                persona: .text("You are Beaky."), characterID: beaky, personID: april,
+                maximumReplyAge: 3_600, maximumContextTurns: 20, modelTimeout: .seconds(5),
+                modelName: "test"),
+            respond: { _, _ in "" }, logger: Logger(label: "persona-tests"))
+        let offer = try SceneTurnOffer(
+            sceneID: .generated(), characterID: beaky, responseID: .generated(),
+            deadline: now.addingTimeInterval(8),
+            trigger: SceneTrigger(
+                kind: .worldEvent, eventID: .generated(), text: "The front door was just locked."),
+            participants: [beaky], turns: [], worldFacts: [home])
+        #expect(
+            mind.makeSceneTranscript(for: offer, now: now)[0].content.contains(
+                "April came home 6 minutes ago"))
     }
 
     @Test("The house's question lets her stay quiet, and the reason is read, never spoken")
