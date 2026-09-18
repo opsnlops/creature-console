@@ -86,6 +86,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Regions → stages | `regions.<region_id>.stage_id` | — | — | None (streaming falls back to the complete render) |
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `6`, `3`, `90` |
 | House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
+| Reminders | `reminders.all_day_hour`, `reminders.nudge_window_minutes` | — | — | `9`, `120` |
 | Calendar rule | `calendar.at_home` (words that make a location the house) | — | — | `["home","house"]` |
 | Audience | `fact_kinds.audience` per kind (`PUT /v1/fact-kinds/{p}` with `"audience": "world"`) | — | — | `minds` |
 | Memory | `memory.hour`, `minute`, `time_zone`, `episode_days`, `episodes_in_prompt`, `reflections_in_prompt` | — | — | `3`, `30`, `America/Los_Angeles`, `30`, `10`, `2` |
@@ -216,6 +217,17 @@ arrival, so Why? on the old fact shows what ended it. Observed and assumed prese
 where I am." Under the hood a reducer sees one event and never the store, so it asks for a
 retraction by subject and predicate prefix (`WorldReduction.retractions`) and the world
 resolves it against the current facts when it applies the reduction.
+
+**The reminders' rule** (`0.34.0`, #192): the Bridge casts April's reminders as `reminder:*`
+entities (`reminder.title`, `reminder.due` in words, `reminder.due_at`, `reminder.all_day`,
+`reminder.list`, `reminder.priority`, `reminder.completed`, `reminder.for`). A mind is handed
+only the day's reminders unasked — the week's when the question is about time, six at most;
+the rest are there for the tools. `ReminderRule` sweeps every minute with the other rules: a
+reminder that falls due while April is home — one due on a day rather than a time at
+`reminders.all_day_hour` (9) — opens a house consideration, `reminder.due` ("A reminder of
+April's is due: Call the vet, due at 4:00 PM. April is home."), once, and only within
+`reminders.nudge_window_minutes` (120) of falling due, so a world restarted a day later says
+nothing about yesterday. Done reminders and those due later are never an occasion.
 
 **The departures' rule** (`0.30.0`, plan Phase 6): an event on the calendar that is *away*
 (location not among `calendar.at_home`, not all-day, within `departures.horizon_hours`) has a

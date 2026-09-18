@@ -28,6 +28,12 @@ actor CalendarSource {
     private(set) var status = SourceStatus(state: .on)
     private var observers: [UUID: AsyncStream<SourceStatus>.Continuation] = [:]
     private var worker: Task<Void, Never>?
+    /// EventKit says the store changed - an event added, moved, or deleted, on any device
+    /// once iCloud brings it here - and the calendars are read again at once. April deleted
+    /// tomorrow's bloodwork and Beaky still announced it: the hourly poll was the only reader.
+    private let store = EKEventStore()
+    private var changeObserver: (any NSObjectProtocol)?
+    private var rereadSoon: Task<Void, Never>?
 
     init(
         directory: URL, zone: TimeZone, allowed: Set<String>?,
@@ -50,11 +56,32 @@ actor CalendarSource {
                 try? await Pace.sleep(for: Self.interval)
             }
         }
+        changeObserver = NotificationCenter.default.addObserver(
+            forName: .EKEventStoreChanged, object: store, queue: nil
+        ) { _ in
+            Task { await self.storeChanged() }
+        }
+    }
+
+    /// A change lands as a burst of notifications; one re-read a moment after the last.
+    private func storeChanged() {
+        rereadSoon?.cancel()
+        rereadSoon = Task {
+            try? await Pace.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await self.poll()
+        }
     }
 
     func stop() {
         worker?.cancel()
         worker = nil
+        rereadSoon?.cancel()
+        rereadSoon = nil
+        if let changeObserver {
+            NotificationCenter.default.removeObserver(changeObserver)
+            self.changeObserver = nil
+        }
         status.state = .off
         publish()
     }

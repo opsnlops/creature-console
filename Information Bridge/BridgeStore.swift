@@ -7,7 +7,7 @@ import WorldCore
 /// The sources the Bridge will read, in the order the plan builds them. All off until their
 /// step ships; the window shows them so April can see what is coming and what is on.
 enum BridgeSource: String, CaseIterable, Identifiable, Sendable {
-    case weather, addressBook, calendar, mail, messages
+    case weather, addressBook, calendar, reminders, mail, messages
 
     var id: String { rawValue }
 
@@ -16,6 +16,7 @@ enum BridgeSource: String, CaseIterable, Identifiable, Sendable {
         case .weather: "Weather"
         case .addressBook: "Address Book"
         case .calendar: "Calendar"
+        case .reminders: "Reminders"
         case .mail: "Mail"
         case .messages: "Messages"
         }
@@ -26,6 +27,7 @@ enum BridgeSource: String, CaseIterable, Identifiable, Sendable {
         case .weather: "cloud.sun"
         case .addressBook: "person.crop.rectangle.stack"
         case .calendar: "calendar"
+        case .reminders: "checklist"
         case .mail: "envelope"
         case .messages: "message"
         }
@@ -37,6 +39,7 @@ enum BridgeSource: String, CaseIterable, Identifiable, Sendable {
         case .weather: 2
         case .addressBook: 3
         case .calendar: 4
+        case .reminders: 4
         case .mail: 5
         case .messages: 6
         }
@@ -91,6 +94,8 @@ final class BridgeStore {
     @ObservationIgnored private var contactsTask: Task<Void, Never>?
     @ObservationIgnored private var calendarSource: CalendarSource?
     @ObservationIgnored private var calendarTask: Task<Void, Never>?
+    @ObservationIgnored private var remindersSource: RemindersSource?
+    @ObservationIgnored private var remindersTask: Task<Void, Never>?
     @ObservationIgnored private var mailSource: MailSource?
     @ObservationIgnored private var mailTask: Task<Void, Never>?
     /// One IDLE watch per account, on its inbox.
@@ -117,6 +122,7 @@ final class BridgeStore {
         var weather: String
         var contacts: Bool
         var calendar: Bool
+        var reminders: Bool
         var mail: String
         var messages: String
     }
@@ -128,6 +134,7 @@ final class BridgeStore {
                 ? "\(connection.usesMacLocation)|\(sky)|\(connection.outsideID.rawValue)" : "",
             contacts: connection.isContactsOn,
             calendar: connection.isCalendarOn,
+            reminders: connection.isRemindersOn,
             mail: connection.isMailOn
                 ? (connection.mailSenders.carriers + connection.mailSenders.merchants
                     + connection.mailAccounts.map(\.id) + mappedEmails.sorted()).joined(
@@ -287,6 +294,14 @@ final class BridgeStore {
                 sources[.calendar] = SourceStatus()
             }
         }
+        if before?.reminders != now.reminders {
+            stopReminders()
+            if connection.isRemindersOn {
+                startReminders(directory: directory, box: box, client: client)
+            } else {
+                sources[.reminders] = SourceStatus()
+            }
+        }
         if before?.mail != now.mail || before?.contacts != now.contacts {
             stopMail()
             if connection.isMailOn {
@@ -317,6 +332,12 @@ final class BridgeStore {
         contactsSource = nil
     }
 
+    private func stopReminders() {
+        remindersTask?.cancel()
+        if let remindersSource { Task { await remindersSource.stop() } }
+        remindersSource = nil
+    }
+
     private func stopCalendar() {
         calendarTask?.cancel()
         if let calendarSource { Task { await calendarSource.stop() } }
@@ -344,6 +365,7 @@ final class BridgeStore {
         statusTask?.cancel()
         stopWeather()
         stopContacts()
+        stopReminders()
         stopCalendar()
         stopMail()
         stopMessages()
@@ -413,6 +435,31 @@ final class BridgeStore {
             for await status in await source.updates() {
                 guard let self else { return }
                 self.sources[.calendar] = status
+            }
+        }
+    }
+
+    /// The reminders: what April means to do, by when, and whether she has. Every list; the
+    /// world decides which ride in an envelope.
+    private func startReminders(directory: URL, box: Outbox, client: WorldViewerClient) {
+        let source = RemindersSource(directory: directory, zone: .current) { event in
+            try await box.enqueue(event)
+        }
+        remindersSource = source
+        remindersTask = Task { [weak self] in
+            do {
+                try await GlossarySeeder(client: client, source: RemindersSource.sourceName)
+                    .seed(ReminderFacts.meanings, worldOnly: ReminderFacts.worldOnly)
+            } catch {
+                await MainActor.run {
+                    self?.sources[.reminders] = SourceStatus(
+                        state: .degraded("could not seed the glossary: \(error)"))
+                }
+            }
+            await source.start()
+            for await status in await source.updates() {
+                guard let self else { return }
+                self.sources[.reminders] = status
             }
         }
     }

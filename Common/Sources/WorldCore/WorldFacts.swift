@@ -174,6 +174,8 @@ public enum HouseEvents {
     /// (`departure.soon`, the heads-up) or here (`departure.now`), and April is still home.
     public static let departureSoon = WorldEventType(rawValue: "departure.soon")!
     public static let departureNow = WorldEventType(rawValue: "departure.now")!
+    /// A reminder fell due while April was home: "call the vet, due at 4:00 PM".
+    public static let reminderDue = WorldEventType(rawValue: "reminder.due")!
     public static let personArrived = WorldEventType(rawValue: "person.arrived")!
     public static let personLeft = WorldEventType(rawValue: "person.left")!
     public static let measurementChanged = WorldEventType(

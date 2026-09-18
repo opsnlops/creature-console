@@ -1,3 +1,18 @@
+creature-cli (2.77.0+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.34.0: reminders (#192). The Bridge (0.11.0) casts
+    April's reminders as reminder:* entities - title, list, due (human
+    and timestamp), all_day, priority, completed, for. The world hands a
+    mind only the day's reminders (the week's when the question is about
+    time; six at most - "we should only send her that day's reminders,
+    to save on tokens"); the rest are for the tools. A ReminderRule
+    sweeps every minute: a reminder falling due while April is home
+    (a day-only one at reminders.all_day_hour, 9) opens a house
+    consideration, reminder.due, once, within nudge_window_minutes (120).
+    "reminder." events are story.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 22:30:00 -0700
+
 creature-cli (2.77.0+world0.33.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.77.0: a prompt that actually caches. "We're only at

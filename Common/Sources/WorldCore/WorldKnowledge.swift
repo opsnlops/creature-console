@@ -62,8 +62,10 @@ public struct Happening: Codable, Hashable, Sendable {
     public static func isStoryworthy(_ type: WorldEventType) -> Bool {
         let raw = type.rawValue
         if raw == "camera.watching" || raw == "environment.measurement_changed" { return false }
-        return ["door.", "camera.", "motion.", "person.", "house.", "facts.", "departure."]
-            .contains { raw.hasPrefix($0) }
+        return [
+            "door.", "camera.", "motion.", "person.", "house.", "facts.", "departure.", "reminder.",
+        ]
+        .contains { raw.hasPrefix($0) }
     }
 
     /// Whether this event is a story, kind and source together: telemetry is not. A bird's
@@ -194,6 +196,10 @@ public enum WorldKnowledgeLimits {
     public static let maximumHappenings = 30
     /// The calendar rides along: this many upcoming events at most, soonest first.
     public static let maximumUpcomingEvents = 8
+    /// And the day's reminders: this many at most. Only the day's - April: "we should only
+    /// send her that day's reminders, to save on tokens" - the week's when the words are
+    /// about time; the rest are for the tools.
+    public static let maximumReminders = 6
     /// Words that make a question about time, widening the calendar window to a fortnight.
     /// Words that make the newest orders relevant even when nothing in them is named: "did I
     /// just order toothpaste?" when the mail called it "1 Personal Care item".

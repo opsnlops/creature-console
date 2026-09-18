@@ -67,6 +67,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     let calendar: CalendarRuleConfiguration
     /// The departures rule: travel times by the words in a location, and the heads-up.
     let departures: DepartureRuleConfiguration
+    /// The reminders rule: when a reminder due on a day is due, and how long a nudge is worth.
+    let reminders: ReminderRuleConfiguration
     /// The house itself, the subject of what the world works out about deliveries.
     let house: EntityID
 
@@ -87,6 +89,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         memory: MemoryConfiguration = MemoryConfiguration(),
         calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
         departures: DepartureRuleConfiguration = DepartureRuleConfiguration(),
+        reminders: ReminderRuleConfiguration = ReminderRuleConfiguration(),
         house: EntityID = defaultHouse
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -127,6 +130,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.memory = memory
         self.calendar = calendar
         self.departures = departures
+        self.reminders = reminders
         self.house = house
     }
 
@@ -162,6 +166,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                 memory: raw.memory ?? MemoryConfiguration(),
                 calendar: raw.calendar ?? CalendarRuleConfiguration(),
                 departures: raw.departures ?? DepartureRuleConfiguration(),
+                reminders: raw.reminders ?? ReminderRuleConfiguration(),
                 house: try raw.house.map(EntityID.init(validating:)) ?? defaultHouse
             )
         } else {
@@ -213,6 +218,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             memory: memory,
             calendar: calendar,
             departures: departures,
+            reminders: reminders,
             house: house
         )
     }
@@ -234,6 +240,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let memory: MemoryConfiguration?
         let calendar: CalendarRuleConfiguration?
         let departures: DepartureRuleConfiguration?
+        let reminders: ReminderRuleConfiguration?
         let house: String?
 
         private enum CodingKeys: String, CodingKey {
@@ -253,6 +260,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case memory
             case calendar
             case departures
+            case reminders
             case house
         }
     }

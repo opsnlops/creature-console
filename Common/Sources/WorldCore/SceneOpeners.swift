@@ -155,7 +155,9 @@ public actor SceneOpeningPolicy {
             }
         // A departure is always the house asking, with no line of configuration: the rule
         // that made it already decided April is home and the time is near.
-        if event.type == HouseEvents.departureSoon || event.type == HouseEvents.departureNow {
+        if event.type == HouseEvents.departureSoon || event.type == HouseEvents.departureNow
+            || event.type == HouseEvents.reminderDue
+        {
             let key =
                 "\(SceneTrigger.Kind.houseConsideration.rawValue)|\(event.type.rawValue)|\(place.rawValue)"
             if let last = lastOpened[key], now.timeIntervalSince(last) < 300 { return nil }
@@ -218,6 +220,10 @@ public actor SceneOpeningPolicy {
             return event.type == HouseEvents.departureNow
                 ? "It is time to leave: \(value). April is still home."
                 : "Leaving soon: \(value). April is home."
+        case HouseEvents.reminderDue:
+            let value: String
+            if case .string(let text)? = event.payload["value"] { value = text } else { value = "" }
+            return "A reminder of April's is due: \(value). April is home."
         case HouseEvents.personGone:
             return "A person who had been at \(name)\(stay(event)) is no longer seen there."
         case HouseEvents.vehicleGone:

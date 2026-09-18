@@ -117,9 +117,29 @@ email or name matches a mapped card, or a mapped person's first name is in the t
 word wins:** a line `Beaky: person:jesse` in the event's notes says who it is with whatever the
 guess was, and `Beaky: nobody` says there is no one — edit the event in Calendar on any device.
 The rest of the notes never leave the Mac. Each event's facts hold until 90 days after it ends, so "when was Jesse last here?"
-has an answer. Re-read hourly; a moved event re-casts, a cancelled one is taken back. The world's
+has an answer. Re-read hourly and, since `0.10.6`, the moment EventKit says the store changed
+(a couple of seconds after iCloud brings the change to this Mac) — April deleted tomorrow's
+bloodwork and Beaky still announced it, because the hourly poll was the only reader; a moved
+event re-casts, a cancelled one is taken back. The world's
 own rule turns an event at the house with a person into `visitor.expected` — that is the world's,
 not the Bridge's.
+
+## Reminders (`0.11.0`)
+
+Settings → Reminders → *Read your reminders from EventKit* (macOS asks for Reminders access
+the first time). Every list: what is not done, and what was done in the last two days, as
+`reminder:<id>` entities — `reminder.title`, `reminder.list`, `reminder.due` in words
+("Friday, September 18 at 4:00 PM", or the day), `reminder.due_at` (world only),
+`reminder.all_day` when it has a day but no time, `reminder.priority` (high / medium / low),
+`reminder.completed`, `reminder.completed_at` (world only), and `reminder.for` when a line
+`Beaky: person:jesse` in the notes says who it concerns. The notes themselves never leave the
+Mac. An undone reminder stays a fortnight past its due date, then the world lets it go as
+abandoned; a done one stays two days ("did I call the vet?"). Re-read hourly and the moment
+EventKit reports a change; a reminder deleted is taken back.
+
+What the birds do with them is the world's: only the day's reminders ride in a mind's envelope
+unasked (April: "we should only send her that day's reminders, to save on tokens"), and the
+world's reminders' rule nudges her once when one falls due while she is home.
 
 ## Address Book (`0.3.0`, plan step 3; the card keeps its own word since `0.7.0`)
 

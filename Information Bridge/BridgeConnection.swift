@@ -23,6 +23,7 @@ final class BridgeConnection: Sendable {
         static let outsideID = "informationBridgeOutsideID"
         static let contactsOn = "informationBridgeContactsOn"
         static let calendarOn = "informationBridgeCalendarOn"
+        static let remindersOn = "informationBridgeRemindersOn"
         static let calendarsAllowed = "informationBridgeCalendarsAllowed"
         static let mailOn = "informationBridgeMailOn"
         static let mailSenders = "informationBridgeMailSenders"
@@ -70,6 +71,7 @@ final class BridgeConnection: Sendable {
     var isWeatherOn: Bool { defaults.bool(forKey: Keys.weatherOn) }
     var isContactsOn: Bool { defaults.bool(forKey: Keys.contactsOn) }
     var isCalendarOn: Bool { defaults.bool(forKey: Keys.calendarOn) }
+    var isRemindersOn: Bool { defaults.bool(forKey: Keys.remindersOn) }
     var isMailOn: Bool { defaults.bool(forKey: Keys.mailOn) }
     var isMessagesOn: Bool { defaults.bool(forKey: Keys.messagesOn) }
     var readsGroupChats: Bool { defaults.bool(forKey: Keys.messagesGroupChats) }

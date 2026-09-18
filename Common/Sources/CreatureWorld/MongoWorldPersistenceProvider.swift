@@ -62,6 +62,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         memory: MemoryConfiguration = MemoryConfiguration(),
         calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
         departures: DepartureRuleConfiguration = DepartureRuleConfiguration(),
+        reminders: ReminderRuleConfiguration = ReminderRuleConfiguration(),
         house: EntityID = CreatureWorldConfiguration.defaultHouse,
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
@@ -215,12 +216,18 @@ struct MongoWorldPersistenceConnection: Sendable {
             configuration: departures, atHome: calendar.atHome, house: house, zone: memory.zone,
             facts: persistence.facts
         ) { _ = try await world.accept($0) }
+        // And the reminders' rule: one of April's reminders falling due while she is home is
+        // the house's occasion, once.
+        let reminderRule = ReminderRule(
+            configuration: reminders, house: house, zone: memory.zone, facts: persistence.facts
+        ) { _ = try await world.accept($0) }
         let visitorSweeper = Task {
             while !Task.isCancelled {
                 do {
                     try await visitorRule.sweep(now: await clock.now)
                     try await deliveryRule.sweep(now: await clock.now)
                     try await departureRule.sweep(now: await clock.now)
+                    try await reminderRule.sweep(now: await clock.now)
                 } catch {
                     logger.warning(
                         "Could not read the calendar or the orders",
@@ -742,6 +749,7 @@ actor MongoWorldPersistenceProvider {
         memory: MemoryConfiguration = MemoryConfiguration(),
         calendar: CalendarRuleConfiguration = CalendarRuleConfiguration(),
         departures: DepartureRuleConfiguration = DepartureRuleConfiguration(),
+        reminders: ReminderRuleConfiguration = ReminderRuleConfiguration(),
         house: EntityID = CreatureWorldConfiguration.defaultHouse,
         logger: Logger,
         connector: Connector? = nil
@@ -767,6 +775,7 @@ actor MongoWorldPersistenceProvider {
                         memory: memory,
                         calendar: calendar,
                         departures: departures,
+                        reminders: reminders,
                         house: house,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
@@ -1115,13 +1124,15 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             ? []
             : try await facts.currentFacts(
                 about: upcoming, family: .notMemories, excluding: worldOnly,
-                limit: WorldKnowledgeLimits.maximumUpcomingEvents * 4, at: now)
+                limit: (WorldKnowledgeLimits.maximumUpcomingEvents
+                    + WorldKnowledgeLimits.maximumReminders) * 4, at: now)
         return present + coming + Self.withMemoriesTrimmed(remembered, memory: memory, now: now)
     }
 
     /// The events starting in the next three days - a fortnight when the question is about
-    /// time - soonest first, at most eight. The calendar is the one source whose facts matter
-    /// before anyone names them.
+    /// time - soonest first, at most eight; and the day's reminders - the week's when the
+    /// question is about time - at most six. The calendar and the reminders are the sources
+    /// whose facts matter before anyone names them.
     private func upcomingEvents(mentionedIn text: String?, now: Date) async throws -> [EntityID] {
         let words = Set(
             (text ?? "").lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
@@ -1130,7 +1141,14 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         let soon = try await facts.subjects(
             withPredicate: "calendar.starts_at", between: now.addingTimeInterval(-3 * 3_600),
             and: now.addingTimeInterval(days * 86_400), at: now)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = memory.zone
+        let dayStart = calendar.startOfDay(for: now)
+        let dayEnd = calendar.date(byAdding: .day, value: aboutTime ? 7 : 1, to: dayStart)!
+        let reminders = try await facts.subjects(
+            withPredicate: "reminder.due_at", between: dayStart, and: dayEnd, at: now)
         return Array(soon.prefix(WorldKnowledgeLimits.maximumUpcomingEvents))
+            + Array(reminders.prefix(WorldKnowledgeLimits.maximumReminders))
     }
 
     /// One entity, whole, for the Viewer's page and a mind's question: every current fact

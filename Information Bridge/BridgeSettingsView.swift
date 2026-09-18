@@ -14,6 +14,7 @@ struct BridgeSettingsView: View {
         BridgeConnection.defaultHouseID.rawValue
     @AppStorage(BridgeConnection.Keys.contactsOn) private var contactsOn = false
     @AppStorage(BridgeConnection.Keys.calendarOn) private var calendarOn = false
+    @AppStorage(BridgeConnection.Keys.remindersOn) private var remindersOn = false
     @AppStorage(BridgeConnection.Keys.mailOn) private var mailOn = false
     @AppStorage(BridgeConnection.Keys.mailSenders) private var mailSenders = ""
     @AppStorage(BridgeConnection.Keys.messagesOn) private var messagesOn = false
@@ -80,6 +81,15 @@ struct BridgeSettingsView: View {
                 Toggle("Read the calendars from EventKit", isOn: $calendarOn)
                 Text(
                     "Everything ahead and the last 90 days, from the calendars you allow in the main window. People in events are found through the address book map."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Section("Reminders") {
+                Toggle("Read your reminders from EventKit", isOn: $remindersOn)
+                Text(
+                    "Every list: what is not done, and what was done in the last two days. Only what is due soon reaches the birds unasked; a line \"Beaky: person:jesse\" in a reminder's notes says who it concerns."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
