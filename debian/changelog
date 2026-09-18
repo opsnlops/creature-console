@@ -1,3 +1,12 @@
+creature-cli (2.77.4+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.77.4: probe-cache gains --tools N, --reasoning
+    <effort>, --text-format, and --stream - the four ways a mind's
+    request differs from the plain one that caches perfectly (3,017 of
+    3,055 tokens read back on round 2). One of them defeats the cache.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 21:35:00 -0700
+
 creature-cli (2.77.3+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.77.3: `creature-agent probe-cache`. Every live call

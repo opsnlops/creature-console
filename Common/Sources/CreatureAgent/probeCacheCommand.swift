@@ -31,6 +31,11 @@ struct ProbeCache: AsyncParsableCommand {
     )
     var breakpoint: String?
     @Option(help: "Seconds between the three calls") var pause = 2
+    @Option(help: "Send this many function tools with nested schemas, as a mind does")
+    var tools = 0
+    @Option(help: "Send reasoning: {effort: <this>}") var reasoning: String?
+    @Flag(help: "Send text: {format: {type: text}}") var textFormat = false
+    @Flag(help: "Stream, and read usage from response.completed, as a mind does") var stream = false
     @Option(help: "The endpoint") var endpoint = OpenAIClient.defaultEndpoint.absoluteString
 
     func run() async throws {
@@ -54,7 +59,7 @@ struct ProbeCache: AsyncParsableCommand {
             extra = object
         }
         print(
-            "prefix ≈ \(prefixTokens) tokens; model \(model); tier \(tier ?? "default"); key \(key ?? "none"); store \(store); retention \(retention ?? "none"); breakpoint \(breakpoint ?? "none")"
+            "prefix ≈ \(prefixTokens) tokens; model \(model); tier \(tier ?? "default"); key \(key ?? "none"); store \(store); retention \(retention ?? "none"); breakpoint \(breakpoint ?? "none"); tools \(tools); reasoning \(reasoning ?? "none"); text format \(textFormat); stream \(stream)"
         )
         for round in 1...3 {
             let moment = "It is now \(Date()). Answer in five words: what does the house keep?"
@@ -75,13 +80,42 @@ struct ProbeCache: AsyncParsableCommand {
             if let tier { body["service_tier"] = tier }
             if let key { body["prompt_cache_key"] = key }
             if let retention { body["prompt_cache_retention"] = retention }
+            if let reasoning { body["reasoning"] = ["effort": reasoning] }
+            if textFormat { body["text"] = ["format": ["type": "text"]] }
+            if tools > 0 {
+                body["tools"] = (0..<tools).map { index -> [String: Any] in
+                    [
+                        "type": "function", "name": "look_up_\(index)", "strict": false,
+                        "description": "Looks up thing number \(index) in the world.",
+                        "parameters": [
+                            "type": "object",
+                            "properties": [
+                                "subject_id": ["type": "string", "description": "An entity id."],
+                                "limit": ["type": "integer", "description": "At most this many."],
+                            ],
+                            "required": [],
+                        ],
+                    ]
+                }
+            }
+            if stream { body["stream"] = true }
             var request = URLRequest(url: URL(string: endpoint)!)
             request.httpMethod = "POST"
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (raw, response) = try await URLSession.shared.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            // Streamed: the usage is on the response.completed event, the last data: line.
+            var data = raw
+            if stream, status == 200 {
+                let text = String(decoding: raw, as: UTF8.self)
+                if let completed = text.split(separator: "\n").last(where: {
+                    $0.hasPrefix("data: ") && $0.contains("response.completed")
+                }) {
+                    data = Data(completed.dropFirst(6).utf8)
+                }
+            }
             guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 print("round \(round): HTTP \(status), unreadable body")
                 continue
@@ -92,8 +126,9 @@ struct ProbeCache: AsyncParsableCommand {
                 )
                 continue
             }
+            let usageObject = object["usage"] ?? (object["response"] as? [String: Any])?["usage"]
             let usage =
-                object["usage"].flatMap { try? JSONSerialization.data(withJSONObject: $0) }
+                usageObject.flatMap { try? JSONSerialization.data(withJSONObject: $0) }
                 .map { String(decoding: $0, as: UTF8.self) } ?? "no usage"
             print("round \(round): \(usage)")
             if round < 3 { try await Task.sleep(for: .seconds(pause)) }
