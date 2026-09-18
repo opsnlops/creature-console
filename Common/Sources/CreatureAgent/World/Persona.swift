@@ -122,7 +122,18 @@ struct Persona: Decodable, Equatable, Sendable {
     /// actually here: a relationship with someone absent is noise the model would act on.
     /// Deterministic — the same persona and company always render the same text — so a
     /// persona edit reviews as a diff of what the model sees.
-    func rendered(present: [EntityID], pronouns known: [EntityID: String] = [:]) -> String {
+    /// The persona with everyone it has a feeling about, sorted, whoever is here: the same
+    /// text every call, for the provider's prompt cache. Who is actually here is said apart.
+    func renderedForEveryone() -> String {
+        rendered(
+            present: relationships.keys.sorted().compactMap { EntityID(rawValue: $0) },
+            heading: "The ones you know, and how you feel about them:")
+    }
+
+    func rendered(
+        present: [EntityID], pronouns known: [EntityID: String] = [:],
+        heading: String = "The ones here, and how you feel about them:"
+    ) -> String {
         var sections: [String] = []
         var who = "You are \(name)"
         if let pronouns { who += " (\(pronouns))" }
@@ -143,8 +154,7 @@ struct Persona: Decodable, Equatable, Sendable {
             return "- \(FactPhrasing.name(of: id, pronouns: pronouns)): \(relationship.feeling)"
         }
         if !company.isEmpty {
-            sections.append(
-                "The ones here, and how you feel about them:\n" + company.joined(separator: "\n"))
+            sections.append(heading + "\n" + company.joined(separator: "\n"))
         }
         if !runningJokes.isEmpty {
             sections.append("Running jokes: " + Self.list(runningJokes) + ".")
@@ -186,6 +196,14 @@ enum CharacterPersona: Equatable, Sendable {
     func rendered(present: [EntityID], pronouns: [EntityID: String] = [:]) -> String {
         switch self {
         case .structured(let persona): persona.rendered(present: present, pronouns: pronouns)
+        case .text(let text): text
+        }
+    }
+
+    /// The same text every call: everyone the persona knows, sorted.
+    func renderedForEveryone() -> String {
+        switch self {
+        case .structured(let persona): persona.renderedForEveryone()
         case .text(let text): text
         }
     }

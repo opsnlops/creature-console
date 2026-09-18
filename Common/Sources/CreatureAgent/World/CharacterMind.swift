@@ -101,6 +101,9 @@ struct CharacterMind: Sendable {
         /// `.withinSystem` keeps everything in the one system message a local chat template
         /// insists on. April: "We are not using token caching well at all."
         var knowledgePlacement: KnowledgePlacement = .withinSystem
+        /// The world's whole glossary, for the stable item of a `.beforeNewest` prompt; nil,
+        /// or empty, and the meanings of the kinds in the envelope are used instead.
+        var glossary: (@Sendable () -> [String: String])? = nil
 
         enum KnowledgePlacement: Sendable {
             case withinSystem
@@ -714,25 +717,27 @@ struct CharacterMind: Sendable {
         if let speaker = offer.trigger.speakerID {
             present.append(speaker)
         }
-        let contract: String
+        let pronouns = FactPhrasing.pronouns(in: offer.worldFacts)
+        let core: String
+        let situation: String
         switch offer.trigger.kind {
         case .personUtterance:
-            contract =
-                Self.sceneContract(others: others)
+            core =
+                Self.sceneContractCore
                 + (configuration.tools == nil ? "" : " " + ModelTools.contract)
+            situation = Self.sceneCompany(others: others)
         case .worldEvent, .houseConsideration:
             let presence = FactPhrasing.presence(of: Self.april, in: offer.worldFacts)
-            contract = Self.houseRemarkContract(
+            core = Self.houseRemarkCore
+            situation = Self.houseSituation(
                 others: others,
                 aprilHome: presence?.home,
                 aprilSince: presence.map { now.timeIntervalSince($0.since) },
                 isLead: offer.turns.isEmpty,
                 mayDecline: offer.trigger.kind == .houseConsideration)
         }
-        let opening =
-            configuration.persona.rendered(
-                present: present, pronouns: FactPhrasing.pronouns(in: offer.worldFacts))
-            + "\n\n" + contract
+        let stable = configuration.persona.renderedForEveryone() + "\n\n" + core
+        let moment = Self.hereNow(present, pronouns: pronouns) + " " + situation
         var script = ""
         switch offer.trigger.kind {
         case .personUtterance:
@@ -747,8 +752,8 @@ struct CharacterMind: Sendable {
         }
         script += "\(configuration.characterName.capitalized):"
         return layered(
-            opening: opening, facts: offer.worldFacts, happenings: offer.recentHappenings,
-            meanings: offer.factMeanings, now: now,
+            stable: stable, moment: moment, facts: offer.worldFacts,
+            happenings: offer.recentHappenings, meanings: offer.factMeanings, now: now,
             turns: [LocalLLMClient.Message(role: .user, content: script)])
     }
 
@@ -811,7 +816,20 @@ struct CharacterMind: Sendable {
     /// house, simply her.
     static let justHomeWindow: TimeInterval = 20 * 60
 
+    /// The whole house-remark contract, situation and all, in one string - for a single
+    /// system message. The cacheable prompt keeps the two apart.
     static func houseRemarkContract(
+        others: [String], aprilHome: Bool?, aprilSince: TimeInterval? = nil, isLead: Bool,
+        mayDecline: Bool = false
+    ) -> String {
+        houseRemarkCore + " "
+            + houseSituation(
+                others: others, aprilHome: aprilHome, aprilSince: aprilSince, isLead: isLead,
+                mayDecline: mayDecline)
+    }
+
+    /// What is true of this moment: who else is here, where April is, whose turn it is.
+    static func houseSituation(
         others: [String], aprilHome: Bool?, aprilSince: TimeInterval? = nil, isLead: Bool,
         mayDecline: Bool = false
     ) -> String {
@@ -839,23 +857,27 @@ struct CharacterMind: Sendable {
                 ? "The house is asking whether this deserves a word. If it does, say something about it out loud, as yourself, in one or two short sentences. If it does not - the same delivery van as every afternoon, a bird at the feeder, motion in a room April is already in, something you have already remarked on - reply with exactly [quiet: why] and nothing else, in a few words; the reason is for April's records, never spoken. Say something when there is something in it for April or something odd; stay quiet when there is not."
                 : "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken).")
             : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Another bird has already told April what the house noticed: do not tell her again in other words - a departure, a visitor, a door, said once is said. React to it instead: a send-off, a wish, a question of your own, a joke - or stay silent. Do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times - and one your beliefs about yourself call worn out is done."
-        return """
-            The house just noticed something; it is written below in parentheses, followed by \
-            anything already said about it. \(company) \(april) \(turn) Think with what you know \
-            below: who is home, who is expected, what just happened at the doors and cameras. Weigh \
-            each fact by how it is known and how fresh it is: something observed a minute ago \
-            outranks something expected later today. Be the familiar who noticed, not a security \
-            system: delighted by a visitor, curious about a stranger, never giving instructions or \
-            safety advice. The one exception is a departure - the house saying leaving soon, or \
-            time to leave: then the first bird tells April plainly and kindly, once, with the \
-            time, and lets it be; she may already know, and the others do not tell her again. \
-            The cameras cannot tell who someone is; the presence sensor can tell whether April \
-            is home, and it wins. A guess must sound like a guess only when it is one - when \
-            she is away, or a visitor is expected. Do not begin your line with anyone's name unless \
-            you are singling them out, and do not prefix your words with your own name. Never use \
-            emoji or symbols. Do not describe actions. \(typing)
-            """
+        return "\(company) \(april) \(turn)"
     }
+
+    /// The part of the house-remark contract that never changes: who she is when the house
+    /// notices something.
+    static let houseRemarkCore = """
+        The house just noticed something; it is written below in parentheses, followed by \
+        anything already said about it. Think with what you know \
+        below: who is home, who is expected, what just happened at the doors and cameras. Weigh \
+        each fact by how it is known and how fresh it is: something observed a minute ago \
+        outranks something expected later today. Be the familiar who noticed, not a security \
+        system: delighted by a visitor, curious about a stranger, never giving instructions or \
+        safety advice. The one exception is a departure - the house saying leaving soon, or \
+        time to leave: then the first bird tells April plainly and kindly, once, with the \
+        time, and lets it be; she may already know, and the others do not tell her again. \
+        The cameras cannot tell who someone is; the presence sensor can tell whether April \
+        is home, and it wins. A guess must sound like a guess only when it is one - when \
+        she is away, or a visitor is expected. Do not begin your line with anyone's name unless \
+        you are singling them out, and do not prefix your words with your own name. Never use \
+        emoji or symbols. Do not describe actions. \(typing)
+        """
 
     /// April types fast. Three birds remarking on her spelling is not charm, it is a chorus of
     /// pedants: "we're gonna have to figure out how to make them less willing to chatter on
@@ -863,21 +885,26 @@ struct CharacterMind: Sendable {
     static let typing =
         "April types quickly and does not proofread: read what she meant, and never remark on her spelling, typos, or punctuation."
 
+    /// The whole scene contract, company and all - for a single system message.
     static func sceneContract(others: [String]) -> String {
-        let company =
-            others.isEmpty
+        sceneCompany(others: others) + " " + sceneContractCore
+    }
+
+    static func sceneCompany(others: [String]) -> String {
+        others.isEmpty
             ? "You are alone with April in the room."
             : "In the room with you and April: \(others.joined(separator: ", ")). They speak for themselves; never speak for them."
-        return """
-            \(company) A scene is unfolding and it is your turn. The exchange so far is written \
-            below as a script; continue it with only your own next line, in your own voice, in one \
-            or two short sentences, spoken aloud. Speak to whoever you are answering, a bird or \
-            April, and do not begin your line with anyone's name unless you are singling them out. \
-            Do not write anyone else's line and do not prefix your words with your name. \
-            \(newInformation) \(noHands) Never use emoji or symbols. Do not describe actions. \(typing) \
-            \(LearnedFact.contract)
-            """
     }
+
+    static let sceneContractCore = """
+        A scene is unfolding and it is your turn. The exchange so far is written \
+        below as a script; continue it with only your own next line, in your own voice, in one \
+        or two short sentences, spoken aloud. Speak to whoever you are answering, a bird or \
+        April, and do not begin your line with anyone's name unless you are singling them out. \
+        Do not write anyone else's line and do not prefix your words with your name. \
+        \(newInformation) \(noHands) Never use emoji or symbols. Do not describe actions. \(typing) \
+        \(LearnedFact.contract)
+        """
 
     /// April, after a morning of "do you want the door locked now?": "It was kinda annoying that
     /// they were insisting on a thing I'd told them I didn't want to do." A bird has no hands,
@@ -964,11 +991,12 @@ struct CharacterMind: Sendable {
         let present =
             [percept.utterance.speakerID]
             + FactPhrasing.presentCharacters(in: percept.worldFacts)
-        let opening =
-            configuration.persona.rendered(
-                present: present, pronouns: FactPhrasing.pronouns(in: percept.worldFacts))
+        let pronouns = FactPhrasing.pronouns(in: percept.worldFacts)
+        let stable =
+            configuration.persona.renderedForEveryone()
             + "\n\n" + Self.contract(for: route)
             + (configuration.tools == nil ? "" : " " + ModelTools.contract)
+        let moment = Self.hereNow(present, pronouns: pronouns)
         let prior = percept.priorConversationItems
             .sorted { ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue) }
             .suffix(configuration.maximumContextTurns)
@@ -981,37 +1009,55 @@ struct CharacterMind: Sendable {
         turns.append(LocalLLMClient.Message(role: .user, content: percept.utterance.text))
         turns = Self.openingWithTheUser(Self.coalescingConsecutiveTurns(turns))
         return layered(
-            opening: opening, facts: percept.worldFacts, happenings: percept.recentHappenings,
-            meanings: percept.factMeanings, now: now, turns: turns)
+            stable: stable, moment: moment, facts: percept.worldFacts,
+            happenings: percept.recentHappenings, meanings: percept.factMeanings, now: now,
+            turns: turns)
     }
 
-    /// The prompt in the shape the backend caches best (`knowledgePlacement`): the opening
-    /// and, in one system message or two, the glossary and the facts of the moment; then
-    /// the turns, the newest last. With `.beforeNewest` the facts sit in their own system
-    /// item just before the newest turn, so everything before it - persona, contract,
-    /// glossary, the conversation so far - is the same text call after call.
+    /// Who is actually here, for the moment: the persona's feelings about everyone it knows
+    /// sit in the stable item, and this says which of them are in the room.
+    static func hereNow(_ present: [EntityID], pronouns: [EntityID: String]) -> String {
+        let names = present.map { FactPhrasing.name(of: $0, pronouns: pronouns[$0]) }
+        var seen: Set<String> = []
+        let unique = names.filter { seen.insert($0).inserted }
+        return unique.isEmpty ? "" : "Here now: " + unique.joined(separator: ", ") + "."
+    }
+
+    /// The prompt in the shape the backend caches best (`knowledgePlacement`). `stable` is
+    /// the same text every call for this bird - persona for everyone it knows, the constant
+    /// contract - and `moment` is what is true now: who is here, the situation, then the
+    /// facts and the time. With `.beforeNewest` the stable item also carries the world's
+    /// whole glossary, sorted, and the moment sits in its own system item just before the
+    /// newest turn, so everything before it - persona, contract, glossary, the conversation
+    /// so far - is byte for byte what the provider cached last time.
     func layered(
-        opening: String, facts: [Fact], happenings: [Happening], meanings: [String: String],
-        now: Date, turns: [LocalLLMClient.Message]
+        stable: String, moment: String, facts: [Fact], happenings: [Happening],
+        meanings: [String: String], now: Date, turns: [LocalLLMClient.Message]
     ) -> [LocalLLMClient.Message] {
         switch configuration.knowledgePlacement {
         case .withinSystem:
             return [
                 LocalLLMClient.Message(
                     role: .system,
-                    content: opening
+                    content: stable + (moment.isEmpty ? "" : "\n\n" + moment)
                         + knowledgeBlock(
                             facts, happenings: happenings, meanings: meanings, now: now))
             ] + turns
         case .beforeNewest:
-            let stable = LocalLLMClient.Message(
-                role: .system, content: opening + Self.meaningsBlock(meanings))
-            let moment = LocalLLMClient.Message(
+            let glossary = configuration.glossary?() ?? [:]
+            // The whole glossary when the mind holds one; the kinds it does not know yet ride
+            // in the moment until the next refresh.
+            let known = glossary.isEmpty ? meanings : glossary
+            let extra = glossary.isEmpty ? [:] : meanings.filter { glossary[$0.key] == nil }
+            let stableItem = LocalLLMClient.Message(
+                role: .system, content: stable + Self.meaningsBlock(known))
+            let momentItem = LocalLLMClient.Message(
                 role: .system,
-                content: String(
-                    knowledgeBlock(facts, happenings: happenings, meanings: [:], now: now)
-                        .drop(while: \.isNewline)))
-            return [stable] + turns.dropLast() + [moment] + turns.suffix(1)
+                content: (moment.isEmpty ? "" : moment + "\n")
+                    + String(
+                        knowledgeBlock(facts, happenings: happenings, meanings: extra, now: now)
+                            .drop(while: \.isNewline)))
+            return [stableItem] + turns.dropLast() + [momentItem] + turns.suffix(1)
         }
     }
 

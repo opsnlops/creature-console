@@ -140,7 +140,8 @@ struct CharacterMindTests {
         #expect(transcript[0].content.hasPrefix("You are Beaky."))
         #expect(transcript[0].content.contains("The conversation so far is shown above"))
         #expect(!transcript[0].content.contains("What you know right now"))
-        #expect(transcript[3].content.hasPrefix("What you know right now"))
+        #expect(transcript[3].content.hasPrefix("Here now: April."))
+        #expect(transcript[3].content.contains("What you know right now"))
         #expect(transcript[3].content.contains("It is "))
         #expect(transcript[4].content == "Who is here?")
         // Asked a minute later, the prefix is the same text; only the moment moved.
@@ -152,6 +153,101 @@ struct CharacterMindTests {
         let plain = makeMind { _, _ in "unused" }.makeTranscript(for: percept, now: now)
         #expect(plain.map(\.role) == [.system, .user, .assistant, .user])
         #expect(plain[0].content.contains("What you know right now"))
+    }
+
+    @Test(
+        "The stable item is byte for byte the same across scenes: participants shuffled, facts changed, a minute later, lead or chorus"
+    )
+    func stableItemIsStable() throws {
+        let beaky = try EntityID(validating: "character:beaky")
+        let mango = try EntityID(validating: "character:mango")
+        let kenny = try EntityID(validating: "character:kenny")
+        let april = try EntityID(validating: "person:april")
+        var configuration = makeMind { _, _ in "unused" }.configuration
+        configuration.knowledgePlacement = .beforeNewest
+        configuration.glossary = {
+            ["presence.state": "whether a person is home", "door.lock": "a door's lock"]
+        }
+        let mind = CharacterMind(
+            configuration: configuration, respond: { _, _ in "unused" },
+            logger: Logger(label: "character-mind-tests"))
+        func fact(_ predicate: String, _ value: String, at: Date) throws -> Fact {
+            try Fact(
+                subjectID: april, predicate: predicate, value: .string(value),
+                epistemic: EpistemicState(type: .observed, confidence: 1), validFrom: at,
+                derivedFrom: [], producer: FactProducer(kind: "reducer", id: "house", version: "1"))
+        }
+        func offer(
+            participants: [EntityID], turns: [SceneTurn], facts: [Fact], meanings: [String: String],
+            kind: SceneTrigger.Kind
+        ) throws -> SceneTurnOffer {
+            try SceneTurnOffer(
+                sceneID: .generated(), characterID: beaky, responseID: .generated(),
+                deadline: now.addingTimeInterval(8),
+                trigger: SceneTrigger(
+                    kind: kind, eventID: .generated(),
+                    speakerID: kind == .personUtterance ? april : nil,
+                    text: kind == .personUtterance
+                        ? "Who is here?" : "The front door was just locked."),
+                participants: participants, turns: turns, worldFacts: facts, factMeanings: meanings)
+        }
+        let first = try mind.makeSceneTranscript(
+            for: offer(
+                participants: [beaky, mango, kenny], turns: [],
+                facts: [try fact("presence.state", "home", at: now.addingTimeInterval(-300))],
+                meanings: ["presence.state": "whether a person is home"], kind: .worldEvent),
+            now: now)
+        let second = try mind.makeSceneTranscript(
+            for: offer(
+                participants: [beaky, kenny, mango],
+                turns: [
+                    SceneTurn(
+                        characterID: mango, responseID: .generated(), text: "A door!",
+                        offeredAt: now, answeredAt: now)
+                ],
+                facts: [
+                    try fact("presence.state", "away", at: now.addingTimeInterval(-60)),
+                    try fact("door.lock", "locked", at: now),
+                ],
+                meanings: [
+                    "presence.state": "whether a person is home", "door.lock": "a door's lock",
+                ],
+                kind: .worldEvent),
+            now: now.addingTimeInterval(61))
+        #expect(first.map(\.role) == [.system, .system, .user])
+        #expect(first[0].content == second[0].content)
+        #expect(
+            first[0].content.contains(
+                "What those kinds of fact mean:\n- door.lock: a door's lock\n- presence.state: whether a person is home"
+            ))
+        #expect(!first[0].content.contains("Here now"))
+        #expect(first[1].content != second[1].content)
+        #expect(first[1].content.contains("Here now: Beaky, Mango, Kenny."))
+        #expect(second[1].content.contains("Here now: Beaky, Kenny, Mango."))
+        #expect(first[1].content.contains("never reply with [silence]"))
+        #expect(second[1].content.contains("Add one short reaction"))
+        // A question from April is a different core (tools, the scene contract) but stable too.
+        let asked = try mind.makeSceneTranscript(
+            for: offer(
+                participants: [beaky, mango], turns: [], facts: [], meanings: [:],
+                kind: .personUtterance),
+            now: now)
+        let askedAgain = try mind.makeSceneTranscript(
+            for: offer(
+                participants: [mango, beaky], turns: [], facts: [], meanings: [:],
+                kind: .personUtterance),
+            now: now.addingTimeInterval(3_600))
+        #expect(asked[0].content == askedAgain[0].content)
+        #expect(asked[0].content != first[0].content)
+        // A kind the glossary does not know yet rides in the moment, not the stable item.
+        let novel = try mind.makeSceneTranscript(
+            for: offer(
+                participants: [beaky], turns: [],
+                facts: [try fact("weather.alert", "wind", at: now)],
+                meanings: ["weather.alert": "a warning"], kind: .worldEvent),
+            now: now)
+        #expect(novel[0].content == first[0].content)
+        #expect(novel[1].content.contains("- weather.alert: a warning"))
     }
 
     @Test("A question from April carries the world's tools and their contract; a scene turn never")

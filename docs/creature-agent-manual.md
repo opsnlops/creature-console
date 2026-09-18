@@ -192,7 +192,15 @@ else — persona, facts, the clock, streaming to the room — is identical.
   Everything before that second message is the same text as the last call — a bird's
   scene turns and answers share it — and `prompt_cache_key` (the character id) keeps one
   bird's requests on one cache. The local backend keeps the single system message its chat
-  template needs.
+  template needs. **Byte for byte** (`2.77.0`): the first cut hit the cache 2% of the time,
+  because the "stable" item still carried who was present (in scene order), the situation
+  (lead or chorus, where April is), and only the meanings of the kinds in that envelope. Now
+  the stable item is the persona rendered for *everyone* it knows (sorted), the contract's
+  constant core, and the world's **whole glossary** — held by the mind (`Glossary`, refreshed
+  every ten minutes from `GET /v1/fact-kinds`), bigger but cached at a fraction — and the
+  moment item begins "Here now: Beaky, Mango (he/him)." followed by the situation, the
+  facts, the story, and the time. A kind the glossary does not know yet rides in the moment
+  until the next refresh. `llm.usage.cached_tokens` is how you know it is working.
 - **It is who its persona says** (`2.60.0`). With `personaPath`, the system prompt is the
   persona rendered in sections — who you are, how you talk, what you care about and steer away
   from, *the ones here and how you feel about them* (only the characters the world's presence

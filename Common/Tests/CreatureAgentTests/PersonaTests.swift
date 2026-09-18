@@ -149,10 +149,15 @@ struct PersonaTests {
 
         let system = mind.makeTranscript(for: percept, now: now)[0].content
 
-        // Kenny is logged in, Beaky logged out, April is speaking.
-        #expect(system.contains("- Kenny (he/him): Protective; Kenny is the youngest."))
+        // Everyone the persona knows, sorted, the same text every call - and who is here now
+        // said apart: Kenny is logged in, Beaky logged out, April is speaking.
+        #expect(system.contains("The ones you know, and how you feel about them:"))
+        // The world's pronoun fact rides with "here now", not the stable persona text.
+        #expect(system.contains("- Kenny: Protective; Kenny is the youngest."))
         #expect(system.contains("- April: Fond"))
-        #expect(!system.contains("- Beaky:"))
+        #expect(system.contains("- Beaky:"))
+        #expect(system.contains("Here now: April, Kenny (he/him)."))
+        #expect(!system.contains("Here now: April, Kenny (he/him), Beaky"))
         #expect(system.contains("Never: speak for another bird"))
         #expect(system.contains("What you know right now"))
 
@@ -165,7 +170,8 @@ struct PersonaTests {
             participants: [beaky, mango], turns: [], worldFacts: [])
         let sceneSystem = mind.makeSceneTranscript(for: offer, now: now)[0].content
         #expect(sceneSystem.contains("- Beaky: Affectionate rivalry"))
-        #expect(!sceneSystem.contains("- Kenny:"))
+        #expect(sceneSystem.contains("Here now: Beaky, Mango"))
+        #expect(!sceneSystem.contains("Here now: Beaky, Mango, Kenny"))
     }
 
     @Test("A scene the house opened gets the familiar's contract, not the security guard's")

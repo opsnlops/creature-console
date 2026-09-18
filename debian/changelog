@@ -1,3 +1,19 @@
+creature-cli (2.77.0+world0.33.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.77.0: a prompt that actually caches. "We're only at
+    a 2% cache rate and I know the envelope is mostly the same between
+    prompts." The stable item was not stable: the persona listed who was
+    present in scene order, the contract carried the situation (lead or
+    chorus, "April came home 6 minutes ago", who else was here), and the
+    glossary block held only the kinds in that envelope. Now the stable
+    item is the persona for everyone it knows (sorted), the contract's
+    constant core, and the world's whole glossary (held by the mind,
+    refreshed every ten minutes) - byte for byte the same call after
+    call - and everything of the moment (who is here now, the situation,
+    the facts, the story, the time) sits in the second item.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 21:00:00 -0700
+
 creature-cli (2.76.0+world0.33.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.76.0: what a call costs is on the record. Every

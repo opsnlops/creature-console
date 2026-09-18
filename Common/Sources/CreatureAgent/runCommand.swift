@@ -506,6 +506,9 @@ private func runWorldMode(
         // at the first question.
         _ = await catalogue.definitions()
     }
+    // The world's whole glossary, held by the mind and refreshed every ten minutes, so the
+    // prompt's stable item is the same text call after call and the provider's cache serves it.
+    let glossary = Glossary(worldURL: world.worldURL, client: client, logger: logger)
     let mind = CharacterMind(
         configuration: CharacterMind.Configuration(
             persona: persona,
@@ -521,7 +524,8 @@ private func runWorldMode(
             tools: tools,
             // A frontier backend caches the prompt's unchanged prefix; a local chat template
             // wants one system message.
-            knowledgePlacement: config.llmBackend == .openai ? .beforeNewest : .withinSystem
+            knowledgePlacement: config.llmBackend == .openai ? .beforeNewest : .withinSystem,
+            glossary: { glossary.current() }
         ),
         respond: respond,
         respondStreaming: respondStreaming,
@@ -550,7 +554,7 @@ private func runWorldMode(
     )
     // The local model's health is only worth watching when a local model is the mind; on a
     // frontier backend the check would poke a machine that no longer runs one.
-    var services: [any Service] = observabilityServices + [mindService]
+    var services: [any Service] = observabilityServices + [mindService, glossary]
     if config.llmBackend == .local {
         services.append(
             LocalLLMHealthCheck(
