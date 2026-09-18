@@ -135,12 +135,14 @@ struct CharacterMindTests {
 
         let transcript = mind.makeTranscript(for: percept, now: now)
 
-        // Persona and contract, then the turns, then the moment, then the newest.
-        #expect(transcript.map(\.role) == [.system, .user, .assistant, .system, .user])
+        // Persona and contract, then the turns, then the moment - a user item, since a second
+        // developer item would be folded into the instructions and hashed with them - then
+        // the newest.
+        #expect(transcript.map(\.role) == [.system, .user, .assistant, .user, .user])
         #expect(transcript[0].content.hasPrefix("You are Beaky."))
         #expect(transcript[0].content.contains("The conversation so far is shown above"))
         #expect(!transcript[0].content.contains("What you know right now"))
-        #expect(transcript[3].content.hasPrefix("Here now: April."))
+        #expect(transcript[3].content.hasPrefix(CharacterMind.momentPreface + "\nHere now: April."))
         #expect(transcript[3].content.contains("What you know right now"))
         #expect(transcript[3].content.contains("It is "))
         #expect(transcript[4].content == "Who is here?")
@@ -214,7 +216,7 @@ struct CharacterMindTests {
                 ],
                 kind: .worldEvent),
             now: now.addingTimeInterval(61))
-        #expect(first.map(\.role) == [.system, .system, .user])
+        #expect(first.map(\.role) == [.system, .user, .user])
         #expect(first[0].content == second[0].content)
         #expect(
             first[0].content.contains(

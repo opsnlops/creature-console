@@ -241,6 +241,38 @@ struct OpenAIClientTests {
         #expect(LLMUsage(inputTokens: 10, cachedTokens: 30, outputTokens: 1).uncachedTokens == 0)
     }
 
+    @Test("The same request is the same bytes, tools and all - the cached prefix depends on it")
+    func requestBytesAreStable() throws {
+        let tools = (0..<10).map { index in
+            WorldMCPClient.ToolDefinition(
+                name: "look_up_\(index)", description: "Looks up \(index).",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object([
+                        "subject_id": .object(["type": .string("string")]),
+                        "limit": .object(["type": .string("integer")]),
+                        "predicate_prefix": .object(["type": .string("string")]),
+                    ]),
+                    "required": .array([]),
+                ]))
+        }
+        let client = OpenAIClient(
+            apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "unused", temperature: 0.9,
+            reasoningEffort: "low", serviceTier: "fast", cacheKey: "character:beaky",
+            logger: Logger(label: "openai-tests"), traceResponses: false)
+        let bodies = try (0..<20).map { _ in
+            try #require(client.makeRequest(for: transcript, stream: true, tools: tools).httpBody)
+        }
+        #expect(Set(bodies).count == 1)
+        // And sorted, so a dictionary's order can never leak into the bytes.
+        let text = String(decoding: bodies[0], as: UTF8.self)
+        let limit = try #require(text.range(of: "\"limit\""))
+        let predicate = try #require(text.range(of: "\"predicate_prefix\""))
+        let subject = try #require(text.range(of: "\"subject_id\""))
+        #expect(
+            limit.lowerBound < predicate.lowerBound && predicate.lowerBound < subject.lowerBound)
+    }
+
     @Test("Only output_text deltas carry words; lifecycle events and [DONE] are ignored")
     func streamedDeltas() {
         #expect(

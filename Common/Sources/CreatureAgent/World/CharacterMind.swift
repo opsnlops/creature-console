@@ -1014,6 +1014,10 @@ struct CharacterMind: Sendable {
             turns: turns)
     }
 
+    /// The first line of the moment item, so a user-role item is never read as April's words.
+    static let momentPreface =
+        "(The world's note to you - not a message from April; her newest message follows it.)"
+
     /// Who is actually here, for the moment: the persona's feelings about everyone it knows
     /// sit in the stable item, and this says which of them are in the room.
     static func hereNow(_ present: [EntityID], pronouns: [EntityID: String]) -> String {
@@ -1027,9 +1031,13 @@ struct CharacterMind: Sendable {
     /// the same text every call for this bird - persona for everyone it knows, the constant
     /// contract - and `moment` is what is true now: who is here, the situation, then the
     /// facts and the time. With `.beforeNewest` the stable item also carries the world's
-    /// whole glossary, sorted, and the moment sits in its own system item just before the
-    /// newest turn, so everything before it - persona, contract, glossary, the conversation
-    /// so far - is byte for byte what the provider cached last time.
+    /// whole glossary, sorted, and the moment sits in its own item just before the newest
+    /// turn, so everything before it - persona, contract, glossary, the conversation so far
+    /// - is byte for byte what the provider cached last time. The moment is a *user* item:
+    /// the provider folds every developer message into one instructions block and hashes
+    /// it whole, so a moment sent as developer text - changing every minute - emptied the
+    /// cache on every call (found with `probe-cache`, 2026-09-17: 0 of 3,847 tokens cached as
+    /// developer, 3,798 as user). It says it is the world's note, not April's message.
     func layered(
         stable: String, moment: String, facts: [Fact], happenings: [Happening],
         meanings: [String: String], now: Date, turns: [LocalLLMClient.Message]
@@ -1052,8 +1060,8 @@ struct CharacterMind: Sendable {
             let stableItem = LocalLLMClient.Message(
                 role: .system, content: stable + Self.meaningsBlock(known))
             let momentItem = LocalLLMClient.Message(
-                role: .system,
-                content: (moment.isEmpty ? "" : moment + "\n")
+                role: .user,
+                content: Self.momentPreface + "\n" + (moment.isEmpty ? "" : moment + "\n")
                     + String(
                         knowledgeBlock(facts, happenings: happenings, meanings: extra, now: now)
                             .drop(while: \.isNewline)))

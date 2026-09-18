@@ -265,7 +265,12 @@ struct OpenAIClient: Sendable {
         request.timeoutInterval = 30
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONEncoder().encode(
+        // The same request must be the same bytes: the provider folds the tools' definitions
+        // into the cached prefix as serialized, and an object's keys in a different order
+        // is a different prefix. Ten tools cached on round two and missed on round three.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        request.httpBody = try? encoder.encode(
             ResponseRequest(
                 model: model, transcript: transcript, temperature: temperature,
                 reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream,

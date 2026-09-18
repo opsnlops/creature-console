@@ -1,3 +1,22 @@
+creature-cli (2.77.5+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.77.5: the cache, found. probe-cache showed a plain
+    prefix caching 3/3 on every tier, key, reasoning effort, and text
+    format, while a request built exactly as a mind builds it cached
+    nothing - with byte-identical prefixes across rounds. The difference
+    was structure: the moment (who is here, the facts, the time) went
+    out as a second developer item, and the provider folds every
+    developer message into one instructions block and hashes it whole,
+    so a moment that changes every minute emptied the cache on every
+    call. The moment is now a user item that says it is the world's
+    note, not April's message: 3,798 of 3,847 tokens cached from round
+    two in the probe. Also: every request body is encoded with sorted
+    keys (ten tools with unsorted keys hit on round two and missed on
+    round three), the streamed probe reads its usage, and --like-mind
+    sends the client's own request with the world's own tools.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 22:30:00 -0700
+
 creature-cli (2.77.4+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.77.4: probe-cache gains --tools N, --reasoning

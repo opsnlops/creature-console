@@ -201,7 +201,16 @@ else — persona, facts, the clock, streaming to the room — is identical.
   every ten minutes from `GET /v1/fact-kinds`), bigger but cached at a fraction — and the
   moment item begins "Here now: Beaky, Mango (he/him)." followed by the situation, the
   facts, the story, and the time. A kind the glossary does not know yet rides in the moment
-  until the next refresh. `llm.usage.cached_tokens` is how you know it is working.
+  until the next refresh. `llm.usage.cached_tokens` is how you know it is working. **The moment is a user item**
+  (`2.77.5`): `probe-cache` showed a plain prefix caching 3/3 on every tier, key, effort, and
+  format, while the client's own request with the world's own tools cached nothing across
+  byte-identical rounds - the provider folds every developer message into one instructions
+  block and hashes it whole, so a moment sent as a second developer item, changing every
+  minute, emptied the cache on every call. It now goes out as a user item that opens with
+  "(The world's note to you - not a message from April; her newest message follows it.)":
+  3,798 of 3,847 tokens cached from round two. And every request body is encoded with sorted
+  keys - ten tools with unsorted keys hit on round two and missed on round three - with a
+  test holding twenty encodings of one request to one byte string.
 - **It is who its persona says** (`2.60.0`). With `personaPath`, the system prompt is the
   persona rendered in sections — who you are, how you talk, what you care about and steer away
   from, *the ones here and how you feel about them* (only the characters the world's presence
