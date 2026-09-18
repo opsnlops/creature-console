@@ -205,8 +205,19 @@ Settings → **Messages** → turn it on. The Bridge reads Messages' own databas
 add Information Bridge (the Xcode build's `Information Bridge.app`), then turn the source off and
 on. Without it the row says so. Every minute, whatever is new is read; the first run starts from
 the last day only, never the archive. **Only texts from people mapped in the address book are
-looked at** (and the carriers' numbers listed in Settings — short codes that text "left at the
-front door"); April's own texts, strangers, and group chats (unless ticked) are skipped unread.
+looked at**, and the **senders** April allows by number; April's own texts, strangers, and group
+chats (unless ticked) are skipped unread.
+
+**Senders** (`0.12.0`) — the Sources card's **Senders…** button (also Settings → Messages). The
+top list is the numbers read without a card: the carriers that text a delivery come built in
+(FedEx Delivery Manager 1-800-463-3339, UPS My Choice 69877, USPS 28777, Amazon 262966) and can
+be removed; below it, **texted lately, not read** — every number that texted in the last two
+weeks and was skipped, with how many texts and how lately, never the words — so allowing one is
+a name ("Instacart") and **Read**, not a number copied off the phone. The name is what the birds
+hear: `house · delivery.arrived = "FedEx: package left at the front door (texted 2:10 PM)"`. An
+allowed sender's texts are read for a delivery only; a person is mapped in People, not allowed
+here. (A FedEx package came on 2026-09-18 and the birds never knew: nothing was listed, and
+nothing meant nobody.)
 
 Each such text is read by **Apple Intelligence on this Mac** into a kind and a few words —
 *visit* ("on the way", "running late, there by 6"), *request* ("asked April to grab milk"),

@@ -30,7 +30,9 @@ final class BridgeConnection: Sendable {
         static let mailAccounts = "informationBridgeMailAccounts"
         static let messagesOn = "informationBridgeMessagesOn"
         static let messagesGroupChats = "informationBridgeMessagesGroupChats"
+        /// The old free-text list of numbers, read once into `messagesSenders` and left.
         static let messagesExtraHandles = "informationBridgeMessagesExtraHandles"
+        static let messagesSenders = "informationBridgeMessagesSenders"
         static let messagesLookbackDays = "informationBridgeMessagesLookbackDays"
     }
 
@@ -81,11 +83,30 @@ final class BridgeConnection: Sendable {
         let days = defaults.integer(forKey: Keys.messagesLookbackDays)
         return days > 0 ? days : 1
     }
-    /// Numbers texts are read from even when no card is mapped to them: the carriers.
-    var messagesExtraHandles: [String] {
-        (defaults.string(forKey: Keys.messagesExtraHandles) ?? "")
+    /// Senders texts are read from even when no card is mapped to them: the carriers, and
+    /// whatever April allows from the Senders window. Until she has saved a list, the
+    /// built-in carriers, plus any numbers the old free-text field held (as "the carrier").
+    var messagesSenders: [TextSender] {
+        if let text = defaults.string(forKey: Keys.messagesSenders),
+            let saved = try? JSONDecoder().decode([TextSender].self, from: Data(text.utf8))
+        {
+            return saved
+        }
+        let listed = (defaults.string(forKey: Keys.messagesExtraHandles) ?? "")
             .split(whereSeparator: { $0 == "\n" || $0 == "," })
             .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let known = Set(TextSender.defaults.map(\.id))
+        return TextSender.defaults
+            + listed.map { TextSender(handle: $0, name: "the carrier") }
+            .filter { !known.contains($0.id) }
+    }
+
+    /// The whole list, as the window leaves it - a removed carrier stays removed.
+    func setMessagesSenders(_ senders: [TextSender]) {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(senders) else { return }
+        defaults.set(String(decoding: data, as: UTF8.self), forKey: Keys.messagesSenders)
     }
 
     /// The IMAP accounts the Bridge reads; passwords are in the Keychain, not here.

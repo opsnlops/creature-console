@@ -3,8 +3,8 @@ import WorldCore
 import os
 
 /// Step 6 of the plan: what people tell April by text. Every minute, whatever is new in
-/// Messages' database is read; only texts from people April has mapped (and, if she lists
-/// them, a carrier's numbers) are looked at, and only by the on-device model, which says what
+/// Messages' database is read; only texts from people April has mapped (and the senders she
+/// allows by number - the carriers) are looked at, and only by the on-device model, which says what
 /// kind of thing each is - on the way, a request, news, a delivery - in a few words. The world
 /// gets those words on the person, for as long as they matter; the text itself is never
 /// written down and never leaves the Mac. April's own texts are skipped. Group chats are off
@@ -40,8 +40,9 @@ actor MessagesSource {
     private let stateFile: URL
     private let logFile: URL
     private var readGroupChats: Bool
-    /// Handles read even when unmapped: the carriers' short codes.
-    private var extraHandles: Set<String>
+    /// Senders read even when no card is mapped to them, by phone key: the carriers, and
+    /// whatever April allows from the Senders window.
+    private var senders: [String: TextSender]
     private var state = State()
     /// The last few lines of each thread, both sides, kept only in memory - the model reads a
     /// reply in the light of what came before, and nothing of it is ever written down.
@@ -56,11 +57,14 @@ actor MessagesSource {
     private struct State: Codable {
         var lastRowID: Int64?
         var told: [MessageTold] = []
+        /// Who texted and was skipped unread, by phone key, so April can allow them from the
+        /// window without typing a number from her phone. Never the words.
+        var skipped: [String: SkippedSender] = [:]
     }
 
     init(
         directory: URL, house: EntityID, zone: TimeZone = .current, readGroupChats: Bool,
-        extraHandles: [String], lookbackDays: Int = 1,
+        senders: [TextSender], lookbackDays: Int = 1,
         fetch: @escaping Fetch,
         distill: @escaping Distill = { await MessageDistiller().read($0, sender: $1, context: $2) },
         modelCheck: @escaping ModelCheck = { MessageDistiller.unavailableReason() },
@@ -71,7 +75,10 @@ actor MessagesSource {
         self.zone = zone
         self.readGroupChats = readGroupChats
         firstRunLookback = TimeInterval(max(1, lookbackDays)) * 86_400
-        self.extraHandles = Set(extraHandles.map(PersonResolver.phoneKey).filter { !$0.isEmpty })
+        self.senders = Dictionary(
+            senders.map { (PersonResolver.phoneKey($0.handle), $0) },
+            uniquingKeysWith: { a, _ in a }
+        ).filter { !$0.key.isEmpty }
         self.fetch = fetch
         self.distill = distill
         self.resolver = resolver
@@ -88,6 +95,12 @@ actor MessagesSource {
 
     /// What the texts have told the Bridge lately, newest first - for the window.
     var told: [MessageTold] { state.told.sorted { $0.said > $1.said } }
+
+    /// Who texted lately and was not read, latest first - for the window, where April can
+    /// allow one.
+    var skippedSenders: [SkippedSender] {
+        state.skipped.values.sorted { $0.lastAt > $1.lastAt }
+    }
 
     func start() {
         guard worker == nil else { return }
@@ -162,12 +175,13 @@ actor MessagesSource {
                     continue
                 }
                 let person = resolver.person(handle: message.handle)
-                let carrier = extraHandles.contains(PersonResolver.phoneKey(message.handle))
-                let sender = message.isFromMe ? "April" : Self.name(of: person, carrier: carrier)
+                let allowed = senders[PersonResolver.phoneKey(message.handle)]
+                let sender =
+                    message.isFromMe ? "April" : Self.name(of: person, allowed: allowed)
                 // The thread so far, for the model: April's own lines included, so a reply
                 // reads as a reply. Only threads with someone April knows are kept at all.
                 let context = threads[message.chatIdentifier] ?? []
-                if person != nil || carrier {
+                if person != nil || allowed != nil {
                     threads[message.chatIdentifier] =
                         Array(
                             (context + ["\(sender): \(message.text)"]).suffix(
@@ -177,10 +191,20 @@ actor MessagesSource {
                     Self.log.debug("Messages: row \(message.rowID) skipped (from April)")
                     continue
                 }
-                guard person != nil || carrier else {
+                guard person != nil || allowed != nil else {
                     Self.log.notice(
                         "Messages: row \(message.rowID) from \(message.handle, privacy: .private) - nobody April has mapped, skipped unread"
                     )
+                    // Group chats have no one sender to allow; an email handle is someone
+                    // with a card to map, not a number to allow.
+                    let key = PersonResolver.phoneKey(message.handle)
+                    if !message.isGroupChat, !key.isEmpty {
+                        state.skipped[
+                            key,
+                            default: SkippedSender(
+                                handle: message.handle, count: 0, lastAt: message.date)
+                        ].note(message.date)
+                    }
                     continue
                 }
                 read += 1
@@ -212,11 +236,16 @@ actor MessagesSource {
                 }
                 let told = MessageTold(
                     rowID: message.rowID, person: person ?? house, kind: kind,
+                    sender: person == nil ? allowed?.name : nil,
                     what: reading.what, when: reading.when, said: message.date,
                     until: MessageFacts.until(
                         kind, when: reading.when, said: message.date, zone: zone))
                 state.told.append(told)
                 log(message, became: "\(kind.rawValue): \(told.what)", now: now)
+            }
+            // A number that has not texted in two weeks is no longer worth offering.
+            state.skipped = state.skipped.filter {
+                $0.value.lastAt > now.addingTimeInterval(-SkippedSender.remembered)
             }
             // What has run out is let go quietly: the world expired it already.
             let expired = state.told.filter { $0.until <= now }
@@ -247,9 +276,9 @@ actor MessagesSource {
         publish()
     }
 
-    /// "Jesse", from `person:jesse`; "the carrier" for a listed number.
-    private static func name(of person: EntityID?, carrier: Bool) -> String {
-        guard let person else { return carrier ? "the carrier" : "someone" }
+    /// "Jesse", from `person:jesse`; the sender's own name ("FedEx") for an allowed number.
+    private static func name(of person: EntityID?, allowed: TextSender?) -> String {
+        guard let person else { return allowed?.name ?? "someone" }
         return person.rawValue.split(separator: ":").last.map { String($0).capitalized }
             ?? "someone"
     }

@@ -15,6 +15,46 @@ struct TextMessage: Equatable, Sendable {
     var isGroupChat: Bool
 }
 
+/// A number April lets the Bridge read without a card mapped to it - a carrier, or anything
+/// she allows from the Senders window - and what the birds call it.
+struct TextSender: Equatable, Sendable, Codable, Identifiable {
+    /// The number as Messages shows it; matched by its digits, so "1 (800) 463-3339" and
+    /// "+18004633339" are the same sender.
+    var handle: String
+    /// What the sender is called in the fact: "FedEx".
+    var name: String
+
+    var id: String { PersonResolver.phoneKey(handle) }
+
+    /// The carriers that text a delivery, read unless April removes them: FedEx Delivery
+    /// Manager (1-800-GO-FEDEX), UPS My Choice, USPS, and Amazon. A FedEx package came on
+    /// 2026-09-18 and the birds never heard - nothing was listed, and nothing meant nobody.
+    static let defaults = [
+        TextSender(handle: "1-800-463-3339", name: "FedEx"),
+        TextSender(handle: "69877", name: "UPS"),
+        TextSender(handle: "28777", name: "USPS"),
+        TextSender(handle: "262966", name: "Amazon"),
+    ]
+}
+
+/// A number that texted April and was skipped unread - nobody mapped, nothing allowed - with
+/// how often and how lately, so she can allow it with a click. Never the words.
+struct SkippedSender: Equatable, Sendable, Codable, Identifiable {
+    var handle: String
+    var count: Int
+    var lastAt: Date
+
+    var id: String { PersonResolver.phoneKey(handle) }
+
+    /// Two weeks without a text, and the number is dropped from the window.
+    static let remembered: TimeInterval = 14 * 86_400
+
+    mutating func note(_ at: Date) {
+        count += 1
+        lastAt = max(lastAt, at)
+    }
+}
+
 /// What a message from someone April knows turned out to be, in the Bridge's words - the
 /// value is the fact, the row is the provenance, the words of the text stay on the Mac.
 struct MessageTold: Equatable, Sendable, Codable {
@@ -32,6 +72,8 @@ struct MessageTold: Equatable, Sendable, Codable {
     var rowID: Int64
     var person: EntityID
     var kind: Kind
+    /// Who said it, when it was not a person: the allowed sender's name, in the fact.
+    var sender: String?
     var what: String
     var when: String
     var said: Date
@@ -142,9 +184,10 @@ enum MessageFacts {
                 facts: ["person.news": .string("\(told.what) (\(said))")],
                 validUntil: told.until)
         case .delivery:
+            let who = told.sender.map { "\($0): " } ?? ""
             return FactLedger.Wanted(
                 entityID: house,
-                facts: ["delivery.arrived": .string("\(told.what) (\(said))")],
+                facts: ["delivery.arrived": .string("\(who)\(told.what) (\(said))")],
                 validUntil: told.until)
         }
     }

@@ -19,7 +19,6 @@ struct BridgeSettingsView: View {
     @AppStorage(BridgeConnection.Keys.mailSenders) private var mailSenders = ""
     @AppStorage(BridgeConnection.Keys.messagesOn) private var messagesOn = false
     @AppStorage(BridgeConnection.Keys.messagesGroupChats) private var messagesGroupChats = false
-    @AppStorage(BridgeConnection.Keys.messagesExtraHandles) private var messagesExtraHandles = ""
     @AppStorage(BridgeConnection.Keys.messagesLookbackDays) private var messagesLookbackDays = 1
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
@@ -29,6 +28,7 @@ struct BridgeSettingsView: View {
         BridgeConnection.defaultOutsideID.rawValue
 
     @State private var keepRunning = KeepRunning.isOn
+    @Environment(\.openWindow) private var openWindow
     @State private var keepRunningStatus = KeepRunning.statusText
     @State private var stayAwake = KeepRunning.isAwakeOn
     @State private var stayAwakeStatus = KeepRunning.awakeStatusText
@@ -182,16 +182,16 @@ struct BridgeSettingsView: View {
                     value: $messagesLookbackDays, in: 1...90
                 )
                 .disabled(!messagesOn)
-                LabeledContent("Carriers' numbers") {
-                    TextField(
-                        "Carriers' numbers", text: $messagesExtraHandles,
-                        prompt: Text(
-                            "short codes or numbers that text delivery notices, one per line"),
-                        axis: .vertical
-                    )
-                    .labelsHidden()
-                    .lineLimit(2...6)
-                    .font(.system(.body, design: .monospaced))
+                LabeledContent("Senders") {
+                    HStack {
+                        Button("Senders…", systemImage: "phone.badge.checkmark") {
+                            openWindow(id: "senders")
+                        }
+                        .buttonStyle(.glass)
+                        Text("numbers read without a card: the carriers, and whoever April allows")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .disabled(!messagesOn)
                 Text(

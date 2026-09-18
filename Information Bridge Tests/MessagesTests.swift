@@ -94,6 +94,27 @@ struct MessagesTests {
                 .facts["person.news"] == .string("got the job (texted Tuesday at 1:40 PM)"))
     }
 
+    @Test("Senders are matched by their digits; the built-in carriers give way to a saved list")
+    @MainActor func sendersAreAllowedByNumber() {
+        #expect(TextSender(handle: "1 (800) 463-3339", name: "FedEx").id == "8004633339")
+        #expect(TextSender(handle: "+18004633339", name: "FedEx").id == "8004633339")
+        #expect(TextSender(handle: "28777", name: "USPS").id == "28777")
+        let defaults = UserDefaults(suiteName: "messages-tests-\(UUID().uuidString)")!
+        let connection = BridgeConnection(defaults: defaults, keyStore: nil)
+        // Nothing saved: the carriers, plus what the old free-text field held.
+        #expect(connection.messagesSenders == TextSender.defaults)
+        defaults.set("555-0100, 69877", forKey: BridgeConnection.Keys.messagesExtraHandles)
+        #expect(
+            connection.messagesSenders
+                == TextSender.defaults + [TextSender(handle: "555-0100", name: "the carrier")])
+        // Saved: the list is the whole truth, a removed carrier included.
+        let kept = [TextSender(handle: "1-800-463-3339", name: "FedEx")]
+        connection.setMessagesSenders(kept)
+        #expect(connection.messagesSenders == kept)
+        connection.setMessagesSenders([])
+        #expect(connection.messagesSenders.isEmpty)
+    }
+
     @Test("Only texts from people April knows are read; April's own, groups, and chat are not")
     func sourceReadsOnlyWhatMatters() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(
@@ -110,11 +131,13 @@ struct MessagesTests {
             text(5, "lol", now: now),
             text(6, from: "28777", "Your package was left at the front door", now: now),
             text(7, "can you grab milk", minutesAgo: 3 * 24 * 60, now: now),  // days old
+            // FedEx Delivery Manager, as Messages writes the number: a built-in carrier.
+            text(8, from: "+1 (800) 463-3339", "Your package was delivered", now: now),
         ]
         let resolver = resolver
         let source = MessagesSource(
             directory: directory, house: house, zone: pacific, readGroupChats: false,
-            extraHandles: ["28777"], lookbackDays: 1,
+            senders: TextSender.defaults, lookbackDays: 1,
             fetch: { after, since in messages.filter { $0.rowID > (after ?? 0) && $0.date > since }
             },
             distill: { message, sender, context in
@@ -135,27 +158,40 @@ struct MessagesTests {
             resolver: { resolver }
         ) { await casts.note($0) }
         await source.poll(now: now)
-        #expect(await looked.rows == [1, 5, 6])
+        #expect(await looked.rows == [1, 5, 6, 8])
         // The model sees the thread so far - April's own line included - and who is talking.
-        #expect(await looked.senders == ["Jesse", "Jesse", "the carrier"])
+        #expect(await looked.senders == ["Jesse", "Jesse", "USPS", "FedEx"])
         #expect(await looked.contexts[1] == ["Jesse: on my way!", "April: see you soon"])
         let events = await casts.events
-        #expect(events.count == 2)
+        #expect(events.count == 3)
         let jesseVisit = events.first { $0.subjectIDs.first == jesse }
         #expect(jesseVisit?.payload["predicate"] == .string("visitor.expected"))
         #expect(jesseVisit?.payload["value"] == .string("on the way (texted 1:40 PM)"))
         #expect(jesseVisit?.source.id.rawValue == "bridge:messages")
-        let delivery = events.first { $0.subjectIDs.first == house }
-        #expect(delivery?.payload["predicate"] == .string("delivery.arrived"))
-        #expect(await source.told.count == 2)
+        let deliveries = events.filter { $0.subjectIDs.first == house }
+        #expect(deliveries.count == 2)
+        #expect(deliveries.allSatisfy { $0.payload["predicate"] == .string("delivery.arrived") })
+        // The carrier's name is in the fact, so a bird can say who came.
+        #expect(
+            deliveries.contains {
+                $0.payload["value"]
+                    == .string("FedEx: package left at the front door (texted 1:40 PM)")
+            })
+        #expect(await source.told.count == 3)
+        // The stranger is offered in the window - the number, how often, how lately - so
+        // April can allow it; the group chat is not.
+        let skipped = await source.skippedSenders
+        #expect(skipped.map(\.handle) == ["+13605550199"])
+        #expect(skipped.first?.count == 1)
+        #expect(skipped.first?.lastAt == now)
 
         // Nothing new: nothing said again. Two hours on, the visit has run out and is let go
         // without a retraction - the world expired it.
         await source.poll(now: now + 60)
-        #expect(await casts.events.count == 2)
+        #expect(await casts.events.count == 3)
         await source.poll(now: now + 3 * 3_600)
-        #expect(await casts.events.count == 2)
-        #expect(await source.told.count == 1)
+        #expect(await casts.events.count == 3)
+        #expect(await source.told.count == 2)
         #expect(await source.status.state == .on)
     }
 
@@ -195,7 +231,7 @@ struct MessagesTests {
             path: "messages-tests-\(UUID().uuidString.lowercased())")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let source = MessagesSource(
-            directory: directory, house: house, readGroupChats: false, extraHandles: [],
+            directory: directory, house: house, readGroupChats: false, senders: [],
             fetch: { _, _ in [] }, distill: { _, _, _ in nil },
             modelCheck: { "no Apple Intelligence" },
             resolver: { PersonResolver(cards: [], map: [:]) }

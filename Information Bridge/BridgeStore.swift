@@ -71,6 +71,10 @@ final class BridgeStore {
     private(set) var appointments: [Appointment] = []
     /// What the texts have told the Bridge lately, newest first.
     private(set) var told: [MessageTold] = []
+    /// Who texted lately and was skipped unread, latest first - offered in the Senders window.
+    private(set) var skippedSenders: [SkippedSender] = []
+    /// The senders read without a card: the carriers, and whatever April allows.
+    var messagesSenders: [TextSender] { connection.messagesSenders }
     var lastError: ErrorAlert?
 
     /// "0.10.0 (756)": the marketing version and the build number, which is the commit count.
@@ -141,7 +145,7 @@ final class BridgeStore {
                         separator: ",")
                 : "",
             messages: connection.isMessagesOn
-                ? "\(connection.readsGroupChats)|\(connection.messagesLookbackDays)|\(connection.messagesExtraHandles.joined(separator: ","))"
+                ? "\(connection.readsGroupChats)|\(connection.messagesLookbackDays)|\(connection.messagesSenders.map { "\($0.id)=\($0.name)" }.joined(separator: ","))"
                 : "")
     }
 
@@ -559,7 +563,7 @@ final class BridgeStore {
         let source = MessagesSource(
             directory: directory, house: connection.houseID,
             readGroupChats: connection.readsGroupChats,
-            extraHandles: connection.messagesExtraHandles,
+            senders: connection.messagesSenders,
             lookbackDays: connection.messagesLookbackDays,
             fetch: { after, since in try intake.read(after: after, since: since) },
             resolver: {
@@ -583,6 +587,7 @@ final class BridgeStore {
                 guard let self else { return }
                 self.sources[.messages] = status
                 self.told = await source.told
+                self.skippedSenders = await source.skippedSenders
             }
         }
     }
@@ -594,6 +599,30 @@ final class BridgeStore {
     /// Reads the look-back window again from the start, as on a first run.
     func startMessagesOver() async {
         await messagesSource?.startOver()
+    }
+
+    /// Allows a sender's texts to be read, by number, under a name; the source restarts
+    /// with the new list when Settings change. An empty name is the number itself.
+    func allowSender(handle: String, name: String) {
+        let handle = handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !PersonResolver.phoneKey(handle).isEmpty else {
+            lastError = ErrorAlert(
+                title: "Not a number", message: "A sender is a phone number or a short code.")
+            return
+        }
+        var senders = connection.messagesSenders.filter {
+            $0.id != PersonResolver.phoneKey(handle)
+        }
+        senders.append(TextSender(handle: handle, name: name.isEmpty ? handle : name))
+        connection.setMessagesSenders(senders)
+        start()
+    }
+
+    /// Stops reading a sender's texts. A built-in carrier removed stays removed.
+    func disallowSender(_ sender: TextSender) {
+        connection.setMessagesSenders(connection.messagesSenders.filter { $0.id != sender.id })
+        start()
     }
 
     /// The account's mailboxes, for choosing which to read.

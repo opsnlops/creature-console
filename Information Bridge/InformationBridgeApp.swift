@@ -39,6 +39,12 @@ struct InformationBridgeApp: App {
         }
         .defaultSize(width: 760, height: 520)
 
+        // The numbers whose texts are read without a card: carriers, and whoever April allows.
+        Window("Senders", id: "senders") {
+            SendersView(store: store)
+        }
+        .defaultSize(width: 640, height: 520)
+
         // The Bridge keeps working with the window closed; the menu bar is where it shows.
         MenuBarExtra {
             BridgeMenu(store: store)

@@ -22,7 +22,7 @@ struct BridgeRootView: View {
     @AppStorage(BridgeConnection.Keys.mailAccounts) private var mailAccounts = Data()
     @AppStorage(BridgeConnection.Keys.messagesOn) private var messagesOn = false
     @AppStorage(BridgeConnection.Keys.messagesGroupChats) private var messagesGroupChats = false
-    @AppStorage(BridgeConnection.Keys.messagesExtraHandles) private var messagesExtraHandles = ""
+    @AppStorage(BridgeConnection.Keys.messagesSenders) private var messagesSenders = ""
     @AppStorage(BridgeConnection.Keys.messagesLookbackDays) private var messagesLookbackDays = 1
     @AppStorage(BridgeConnection.Keys.weatherOn) private var weatherOn = false
     @AppStorage(BridgeConnection.Keys.useMacLocation) private var useMacLocation = true
@@ -62,7 +62,7 @@ struct BridgeRootView: View {
             String(weatherOn), String(useMacLocation), String(latitude), String(longitude),
             outsideID, String(contactsOn), String(calendarOn), String(mailOn), mailSenders,
             String(mailAccounts.count), String(messagesOn), String(messagesGroupChats),
-            messagesExtraHandles, String(messagesLookbackDays),
+            messagesSenders, String(messagesLookbackDays),
         ]) {
             store.start()
         }
@@ -165,6 +165,16 @@ struct BridgeRootView: View {
                         }
                         .buttonStyle(.glass)
                         .controlSize(.small)
+                    }
+                    if source == .messages, status.state != .off {
+                        Button("Senders…", systemImage: "phone.badge.checkmark") {
+                            openWindow(id: "senders")
+                        }
+                        .buttonStyle(.glass)
+                        .controlSize(.small)
+                        .help(
+                            "Which numbers are read without a card: carriers, and whoever April allows"
+                        )
                     }
                     if source == .addressBook, status.state != .off {
                         Button("People…", systemImage: "person.crop.rectangle.stack") {
