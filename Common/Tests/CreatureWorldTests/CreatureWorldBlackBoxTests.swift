@@ -211,7 +211,14 @@ struct CreatureWorldBlackBoxTests {
         #expect(sceneIngress.status == .accepted)
         let sceneID = try #require(sceneIngress.body.percept.sceneID)
         let known = sceneIngress.body.percept.worldFacts
-        #expect(known.count <= WorldKnowledgeLimits.maximumFacts)
+        // The day's facts and one hop of links are each a page of `maximumFacts`; the
+        // calendar, the reminders, and the memories ride on pages of their own.
+        let dayFacts = known.filter {
+            WorldFacts.memoryFamily(of: $0.predicate) == nil
+                && !$0.subjectID.rawValue.hasPrefix("event:")
+                && !$0.subjectID.rawValue.hasPrefix("reminder:")
+        }
+        #expect(dayFacts.count <= WorldKnowledgeLimits.maximumFacts * 2)
         #expect(
             Set(known.map { "\($0.subjectID.rawValue) \($0.predicate)" }).isSuperset(of: [
                 "\(beaky.rawValue) \(WorldFacts.characterRegion)",
@@ -245,11 +252,14 @@ struct CreatureWorldBlackBoxTests {
                 sessionID: nil, text: "It is me, Mango."))
         #expect(impostor == .conflict)
 
+        // Mango's question keeps the scene past its first round (a plain line would close it
+        // round_done); then both pass, and it ends everyone_passed.
         let mangoTurn = try await api.submitTurn(
             to: sceneID,
             SceneTurnSubmission(
                 characterID: mango, responseID: mangoFloor.responseID,
-                sessionID: mangoSession.session.sessionID, text: "It is always heat sinks."))
+                sessionID: mangoSession.session.sessionID,
+                text: "It is always heat sinks. Beaky, care to bet?"))
         scene = mangoTurn.body.scene
         for _ in 0..<2 {
             let floor = try await api.waitForFloor(in: sceneID)
@@ -270,7 +280,10 @@ struct CreatureWorldBlackBoxTests {
             $0.responseID.map(spokenResponses.contains) ?? false
         }
         #expect(sceneItems.map(\.authorID) == [beaky, mango])
-        #expect(sceneItems.map(\.text) == ["Servos, I hope!", "It is always heat sinks."])
+        #expect(
+            sceneItems.map(\.text) == [
+                "Servos, I hope!", "It is always heat sinks. Beaky, care to bet?",
+            ])
         let sceneEvents = try await api.events(
             after: thirdSequence, from: SourceID(validating: "world:scenes")
         ).filter { $0.payload["scene_id"] == .string(sceneID.rawValue) }
@@ -374,7 +387,7 @@ struct CreatureWorldBlackBoxTests {
         #expect(
             Set(conversation.map(\.text)).isSuperset(of: [
                 utterance.text, intent.text, stagedIntent.text, sceneUtterance.text,
-                "Servos, I hope!", "It is always heat sinks.",
+                "Servos, I hope!", "It is always heat sinks. Beaky, care to bet?",
             ]))
 
         let afterRestart = try await api.events(after: firstSequence - 1, from: sourceID)
