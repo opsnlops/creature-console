@@ -1,3 +1,14 @@
+creature-cli (2.77.1+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.77.1: the LLM usage line carries the provider's
+    usage object verbatim (llm.usage.raw). Every call read cached_tokens
+    0 - including a tool round whose prefix is byte for byte the round
+    before it, twenty seconds earlier - so either the provider is not
+    caching these requests or it reports the count under another key;
+    the raw object says which.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 23:00:00 -0700
+
 creature-cli (2.77.0+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.34.0: reminders (#192). The Bridge (0.11.0) casts

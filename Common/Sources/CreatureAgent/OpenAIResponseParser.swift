@@ -36,16 +36,33 @@ struct OpenAIResponseParser {
 
     /// What a whole response cost, from its `usage`.
     static func usage(from data: Data) -> LLMUsage? {
-        (try? JSONDecoder().decode(ResponseEnvelope.self, from: data))?.usage?.value
+        guard
+            var usage = (try? JSONDecoder().decode(ResponseEnvelope.self, from: data))?.usage?.value
+        else { return nil }
+        usage.raw = rawUsage(in: data)
+        return usage
     }
 
     /// What a streamed response cost: the `usage` on `response.completed`.
     static func streamedUsage(fromData json: String) -> LLMUsage? {
         guard json != "[DONE]", let data = json.data(using: .utf8),
             let event = try? JSONDecoder().decode(StreamEvent.self, from: data),
-            event.type == "response.completed"
+            event.type == "response.completed", var usage = event.response?.usage?.value
         else { return nil }
-        return event.response?.usage?.value
+        usage.raw = rawUsage(in: data)
+        return usage
+    }
+
+    /// The `usage` object's own text, wherever it sits, compact.
+    private static func rawUsage(in data: Data) -> String {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return ""
+        }
+        let usage = object["usage"] ?? (object["response"] as? [String: Any])?["usage"]
+        guard let usage, let bytes = try? JSONSerialization.data(withJSONObject: usage) else {
+            return ""
+        }
+        return String(decoding: bytes, as: UTF8.self)
     }
 
     /// The function calls a whole (non-streamed) response asks for, in order.

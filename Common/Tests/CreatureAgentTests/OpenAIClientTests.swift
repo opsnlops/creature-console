@@ -208,15 +208,18 @@ struct OpenAIClientTests {
     func usageIsParsed() throws {
         let whole =
             #"{"output":[{"type":"message","content":[{"type":"output_text","text":"Hi"}]}],"usage":{"input_tokens":4812,"input_tokens_details":{"cached_tokens":3072},"output_tokens":41,"total_tokens":4853}}"#
-        #expect(
-            OpenAIResponseParser.usage(from: Data(whole.utf8))
-                == LLMUsage(inputTokens: 4812, cachedTokens: 3072, outputTokens: 41))
+        let parsed = try #require(OpenAIResponseParser.usage(from: Data(whole.utf8)))
+        #expect(parsed.inputTokens == 4812)
+        #expect(parsed.cachedTokens == 3072)
+        #expect(parsed.outputTokens == 41)
+        #expect(parsed.raw.contains("\"cached_tokens\":3072"))
         #expect(OpenAIResponseParser.usage(from: Data(#"{"output":[]}"#.utf8)) == nil)
         let completed =
             #"{"type":"response.completed","response":{"id":"r1","usage":{"input_tokens":900,"input_tokens_details":{"cached_tokens":0},"output_tokens":12}}}"#
         let usage = try #require(OpenAIResponseParser.streamedUsage(fromData: completed))
-        #expect(usage == LLMUsage(inputTokens: 900, cachedTokens: 0, outputTokens: 12))
+        #expect((usage.inputTokens, usage.cachedTokens, usage.outputTokens) == (900, 0, 12))
         #expect(usage.uncachedTokens == 900)
+        #expect(usage.raw.contains("\"input_tokens\":900"))
         #expect(
             OpenAIResponseParser.streamedUsage(
                 fromData: #"{"type":"response.output_text.delta","delta":"Hi"}"#) == nil)

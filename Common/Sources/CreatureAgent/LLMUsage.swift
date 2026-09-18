@@ -13,6 +13,9 @@ struct LLMUsage: Sendable, Equatable {
     /// `inputTokens`; billed at a fraction).
     var cachedTokens: Int
     var outputTokens: Int
+    /// The provider's `usage` object as it came, for the record: when the cached count reads
+    /// zero on a prefix that cannot have missed, this says whether the field was there.
+    var raw: String = ""
 
     var uncachedTokens: Int { max(0, inputTokens - cachedTokens) }
 }
@@ -63,6 +66,7 @@ enum LLMUsageRecord {
                 "llm.usage.input_tokens": "\(usage.inputTokens)",
                 "llm.usage.cached_tokens": "\(usage.cachedTokens)",
                 "llm.usage.output_tokens": "\(usage.outputTokens)", "llm.round": "\(round)",
+                "llm.usage.raw": "\(usage.raw)",
             ])
     }
 }
