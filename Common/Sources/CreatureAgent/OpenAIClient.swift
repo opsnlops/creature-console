@@ -31,6 +31,7 @@ struct OpenAIClient: Sendable {
     private let minSentenceChars: Int
     /// Routes every request of this mind to the same cache: one bird, one prefix.
     private let cacheKey: String?
+    private let cache: LLMCacheSettings
     /// Streaming goes through AsyncHTTPClient: on Linux, a per-request `URLSession` torn down
     /// as an HTTPS stream completes trips swift-corelibs-foundation's `_MultiHandle` retain
     /// check and aborts the process — Beaky died mid-sentence four times on 2026-09-12.
@@ -45,12 +46,14 @@ struct OpenAIClient: Sendable {
         serviceTier: String? = nil,
         minSentenceChars: Int = 0,
         cacheKey: String? = nil,
+        cache: LLMCacheSettings = LLMCacheSettings(),
         endpoint: URL = OpenAIClient.defaultEndpoint,
         streamingClient: HTTPClient? = nil,
         logger: Logger,
         traceResponses: Bool
     ) {
         self.cacheKey = cacheKey
+        self.cache = cache
         self.endpoint = endpoint
         self.streamingClient = streamingClient
         self.apiKey = apiKey
@@ -266,7 +269,7 @@ struct OpenAIClient: Sendable {
             ResponseRequest(
                 model: model, transcript: transcript, temperature: temperature,
                 reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream,
-                json: json, tools: tools, extra: extra, cacheKey: cacheKey))
+                json: json, tools: tools, extra: extra, cacheKey: cacheKey, cache: cache))
         return request
     }
 
@@ -394,22 +397,31 @@ struct ResponseRequest: Encodable {
     let text: Text
     let serviceTier: String?
     let stream: Bool
-    let store = false
+    /// Whether the provider keeps the response. Off by default - nothing of the house need
+    /// live on their side - but the cache that reports `cache_write_tokens` on every call
+    /// and `cached_tokens` on none may live with the stored response; `llmCache.store`
+    /// says whether to try.
+    let store: Bool
     let tools: [Tool]?
     /// The provider caches a prompt's unchanged prefix; the key keeps one bird's requests
-    /// together so hers is the prefix it finds.
+    /// together so hers is the prefix it finds - or, if the routing hashes differently
+    /// from the automatic prefix match, defeats it; `llmCache.key` says whether to send it.
     let promptCacheKey: String?
+    /// How long the provider keeps the cached prefix (`prompt_cache_retention`), when set.
+    let promptCacheRetention: String?
 
     private enum CodingKeys: String, CodingKey {
         case model, input, temperature, reasoning, text, stream, store, tools
         case serviceTier = "service_tier"
         case promptCacheKey = "prompt_cache_key"
+        case promptCacheRetention = "prompt_cache_retention"
     }
 
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
         reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false,
-        tools: [WorldMCPClient.ToolDefinition] = [], extra: [Item] = [], cacheKey: String? = nil
+        tools: [WorldMCPClient.ToolDefinition] = [], extra: [Item] = [], cacheKey: String? = nil,
+        cache: LLMCacheSettings = LLMCacheSettings()
     ) {
         self.model = model
         self.input = transcript.map(Item.init) + extra
@@ -420,8 +432,18 @@ struct ResponseRequest: Encodable {
         self.serviceTier = serviceTier
         self.stream = stream
         self.tools = tools.isEmpty ? nil : tools.map(Tool.init)
-        self.promptCacheKey = cacheKey
+        self.store = cache.store
+        self.promptCacheKey = cache.key ? cacheKey : nil
+        self.promptCacheRetention = cache.retention
     }
+}
+
+/// The knobs the provider's prompt cache might turn on: found by experiment, one at a time,
+/// from the `LLM usage` line's raw object.
+struct LLMCacheSettings: Sendable, Equatable {
+    var store = false
+    var key = true
+    var retention: String? = nil
 }
 
 enum OpenAIClientError: Error, LocalizedError {

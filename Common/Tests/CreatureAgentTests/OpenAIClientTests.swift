@@ -46,6 +46,20 @@ struct OpenAIClientTests {
         let keyedBody = try #require(
             JSONSerialization.jsonObject(with: keyedData) as? [String: Any])
         #expect(keyedBody["prompt_cache_key"] as? String == "character:beaky")
+        #expect(keyedBody["store"] as? Bool == false)
+        #expect(keyedBody["prompt_cache_retention"] == nil)
+        // The cache knobs, by experiment: stored responses, no key, a retention.
+        let knobbed = OpenAIClient(
+            apiKey: "sk-test", model: "gpt-6-astra", systemPrompt: "unused", temperature: 0.9,
+            cacheKey: "character:beaky",
+            cache: LLMCacheSettings(store: true, key: false, retention: "24h"),
+            logger: Logger(label: "openai-tests"), traceResponses: false)
+        let knobbedData = try #require(knobbed.makeRequest(for: transcript, stream: true).httpBody)
+        let knobbedBody = try #require(
+            JSONSerialization.jsonObject(with: knobbedData) as? [String: Any])
+        #expect(knobbedBody["store"] as? Bool == true)
+        #expect(knobbedBody["prompt_cache_key"] == nil)
+        #expect(knobbedBody["prompt_cache_retention"] as? String == "24h")
 
         let reasoning = try body(reasoningEffort: "low")
         #expect((reasoning["reasoning"] as? [String: String])?["effort"] == "low")

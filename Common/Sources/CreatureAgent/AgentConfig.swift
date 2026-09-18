@@ -29,6 +29,10 @@ struct AgentConfig: Decodable {
     /// OpenAI's `service_tier`: `fast` buys lower latency for a per-token premium. Unset means
     /// the default tier.
     let llmServiceTier: String?
+    /// The provider's prompt cache, by experiment: `store` keeps responses on their side,
+    /// `key` sends `prompt_cache_key`, `retention` sets `prompt_cache_retention`. Flip one,
+    /// read the `LLM usage` line's raw object, keep what works.
+    let llmCache: LLMCacheSettings
     /// The model for the nightly memory job (episodes and the day's reflection), where
     /// latency is irrelevant and quality compounds; unset means the speaking model.
     let llmMemoryModel: String?
@@ -133,6 +137,7 @@ struct AgentConfig: Decodable {
         case llmTemperature
         case llmReasoningEffort
         case llmServiceTier
+        case llmCache
         case llmMemoryModel
         case localLlmHost
         case localLlmPort
@@ -185,6 +190,9 @@ struct AgentConfig: Decodable {
                 debugDescription: "llmReasoningEffort must be low, medium, or high")
         }
         llmServiceTier = try container.decodeIfPresent(String.self, forKey: .llmServiceTier)
+        let cache = try container.decodeIfPresent(CacheKnobs.self, forKey: .llmCache)
+        llmCache = LLMCacheSettings(
+            store: cache?.store ?? false, key: cache?.key ?? true, retention: cache?.retention)
         llmMemoryModel = try container.decodeIfPresent(String.self, forKey: .llmMemoryModel)
         if let tier = llmServiceTier,
             !["auto", "default", "fast", "priority", "flex"].contains(tier)
@@ -320,4 +328,11 @@ struct AgentConfig: Decodable {
             return amount
         }
     }
+}
+
+/// `llmCache` in the config file: `store`, `key`, `retention`.
+private struct CacheKnobs: Decodable {
+    let store: Bool?
+    let key: Bool?
+    let retention: String?
 }

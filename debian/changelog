@@ -1,3 +1,15 @@
+creature-cli (2.77.2+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.77.2: the provider's cache, by experiment. The raw
+    usage says cache_write_tokens on every call and cached_tokens on
+    none - a byte-identical request 36 seconds later included - so the
+    prefix is written and never read. llmCache in agent.yaml: store
+    (keep responses on their side; default false), key (send
+    prompt_cache_key; default true), retention (prompt_cache_retention).
+    Flip one, restart, read the LLM usage line.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 20:45:00 -0700
+
 creature-cli (2.77.1+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.77.1: the LLM usage line carries the provider's

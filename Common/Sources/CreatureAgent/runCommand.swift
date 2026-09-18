@@ -393,6 +393,7 @@ private func runWorldMode(
             serviceTier: config.llmServiceTier,
             minSentenceChars: config.minSentenceChars,
             cacheKey: characterID.rawValue,
+            cache: config.llmCache,
             streamingClient: modelClient,
             logger: logger,
             traceResponses: traceResponses

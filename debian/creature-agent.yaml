@@ -46,6 +46,11 @@ areas:
 # mode: world
 # llmBackend: local          # or openai (OPENAI_API_KEY in /etc/default/creature-agent-<instance>)
 # llmReasoningEffort: low    # OpenAI reasoning models only
+# The provider's prompt cache, by experiment (2.77.2). The raw usage on every LLM usage log
+# line says whether the prefix was read (cached_tokens) or only written (cache_write_tokens).
+# store: keep responses on the provider's side (the cache may live with them); key: send
+# prompt_cache_key; retention: prompt_cache_retention, e.g. 24h.
+# llmCache: { store: false, key: true }
 # localLlmHost: 10.69.66.4
 # localLlmPort: 1234
 # llmModel: mistral-nemo
