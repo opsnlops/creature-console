@@ -49,14 +49,18 @@ struct ContactsTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let casts = Casts()
         let book = Book(cards: [card(), card("card-polly")])
+        // Every closure is injected: the real Contacts store would put up a privacy prompt
+        // no one on a CI runner can answer, and the test host would wait forever.
         let source = ContactsSource(
             directory: directory, read: { await book.cards },
-            write: { identifier, value in await book.link(identifier, to: value) }
+            write: { identifier, value in await book.link(identifier, to: value) },
+            readHome: { ["12 mulberry ln"] }
         ) {
             await casts.note($0)
         }
         await source.poll()
         #expect(await casts.events.isEmpty)  // nothing mapped, nothing said
+        #expect(await source.homeStreets == ["12 mulberry ln"])
 
         try await source.setMapping(ContactMapping(entityID: jesse), for: "card-jesse")
         // The word went onto the card, where Contacts on any device can see and change it.
@@ -115,7 +119,8 @@ struct ContactsTests {
         let casts = Casts()
         let source = ContactsSource(
             directory: directory, read: { await book.cards },
-            write: { identifier, value in await book.link(identifier, to: value) }
+            write: { identifier, value in await book.link(identifier, to: value) },
+            readHome: { [] }
         ) {
             await casts.note($0)
         }
