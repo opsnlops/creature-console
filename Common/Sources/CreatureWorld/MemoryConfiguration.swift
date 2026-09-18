@@ -22,8 +22,8 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
 
     init(
         hour: Int = 3, minute: Int = 30, timeZone: String = "America/Los_Angeles",
-        episodeDays: Int = 30, episodesInPrompt: Int = 10, reflectionsInPrompt: Int = 2,
-        beliefsInPrompt: Int = 12
+        episodeDays: Int = 30, episodesInPrompt: Int = 6, reflectionsInPrompt: Int = 2,
+        beliefsInPrompt: Int = 8
     ) {
         self.hour = hour
         self.minute = minute

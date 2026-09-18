@@ -456,6 +456,14 @@ public actor SceneService {
         {
             return .roundDone
         }
+        // The chorus only when invited: April asked, the lead answered, and nothing in the
+        // answer calls on the others - then the scene is done, and Mango and Kenny are not
+        // each handed the whole world to decide to pass. A house occasion keeps its chorus.
+        if limits.chorus == .whenInvited, !scene.trigger.isHouseOccasion, scene.turns.count == 1,
+            let lead = scene.turns.first, !lead.isPass, !Self.callsForMore(lead, in: scene)
+        {
+            return .roundDone
+        }
         let cap = scene.trigger.isHouseOccasion ? limits.houseMaximumTurns : limits.maximumTurns
         if scene.turns.count >= cap {
             return .maximumTurns

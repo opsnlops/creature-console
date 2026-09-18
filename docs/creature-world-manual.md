@@ -87,6 +87,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Scene cutoffs | `scenes.floor_seconds`, `scenes.maximum_turns`, `scenes.house_maximum_turns`, `scenes.maximum_spoken_seconds` | — | — | `8`, `6`, `3`, `90` |
 | House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
 | Reminders | `reminders.all_day_hour`, `reminders.nudge_window_minutes` | — | — | `9`, `120` |
+| Chorus | `scenes.chorus` | — | — | `always` (`when_invited`: after the lead answers April, the others get the floor only if her line asks for more) |
 | Calendar rule | `calendar.at_home` (words that make a location the house) | — | — | `["home","house"]` |
 | Audience | `fact_kinds.audience` per kind (`PUT /v1/fact-kinds/{p}` with `"audience": "world"`) | — | — | `minds` |
 | Memory | `memory.hour`, `minute`, `time_zone`, `episode_days`, `episodes_in_prompt`, `reflections_in_prompt` | — | — | `3`, `30`, `America/Los_Angeles`, `30`, `10`, `2` |
@@ -217,6 +218,15 @@ arrival, so Why? on the old fact shows what ended it. Observed and assumed prese
 where I am." Under the hood a reducer sees one event and never the store, so it asks for a
 retraction by subject and predicate prefix (`WorldReduction.retractions`) and the world
 resolves it against the current facts when it applies the reduction.
+
+**The envelope, by the numbers** (`0.35.0`): "what time is it" cost 8.7k input tokens, 4.5k
+of them the facts of the moment, three times over. A mind is now handed at most 30 facts,
+12 happenings, 6 episodes, and 8 beliefs (`memory.episodes_in_prompt`,
+`memory.beliefs_in_prompt`), and a bird's `body.*` facts only when the words ask about a
+body (board, power, servo, temperature, feet…) - the tools have the rest. And
+`scenes.chorus`: `always` (the default - April likes the banter) or `when_invited`, where
+the lead's plain answer to April ends the scene and Mango and Kenny are not each handed the
+whole world to decide to pass.
 
 **The reminders' rule** (`0.34.0`, #192): the Bridge casts April's reminders as `reminder:*`
 entities (`reminder.title`, `reminder.due` in words, `reminder.due_at`, `reminder.all_day`,

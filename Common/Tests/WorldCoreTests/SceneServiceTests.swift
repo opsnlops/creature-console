@@ -323,6 +323,55 @@ struct SceneServiceTests {
         #expect(named.turns.count == 2)
     }
 
+    @Test(
+        "Chorus when invited: April's question, the lead's plain answer, and the scene is done; a name or a question keeps the others; the house keeps its chorus"
+    )
+    func chorusWhenInvited() async throws {
+        let quiet = makeWorld(limits: SceneLimits(chorus: .whenInvited))
+        let plain = try await quiet.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let answered = try await quiet.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: try #require(plain.floor?.responseID),
+                text: "It is ten past ten, April."),
+            to: plain.sceneID)
+        #expect(answered.scene.closeReason == .roundDone)
+        #expect(answered.scene.turns.count == 1)
+
+        let invited = try await quiet.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let asked = try await quiet.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: try #require(invited.floor?.responseID),
+                text: "Mango will know the exact second."),
+            to: invited.sceneID)
+        #expect(asked.scene.state == .open)
+        #expect(asked.scene.floor?.characterID == mango)
+
+        // The lead passing hands the floor on; and by default the chorus always follows.
+        let passed = try await quiet.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let handedOn = try await quiet.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: try #require(passed.floor?.responseID), text: nil),
+            to: passed.sceneID)
+        #expect(handedOn.scene.state == .open)
+        let always = makeWorld()
+        let chatty = try await always.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let first = try await always.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: try #require(chatty.floor?.responseID),
+                text: "It is ten past ten, April."),
+            to: chatty.sceneID)
+        #expect(first.scene.state == .open)
+        #expect(first.scene.floor?.characterID == mango)
+    }
+
     @Test("The cutoffs end a scene that would otherwise run on")
     func cutoffsClose() async throws {
         let world = makeWorld(limits: SceneLimits(maximumTurns: 3))

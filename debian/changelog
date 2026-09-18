@@ -1,3 +1,17 @@
+creature-cli (2.77.5+world0.35.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.35.0: the envelope, trimmed by the numbers, and a
+    chorus switch. "What time is it" cost 8.7k input tokens, 4.5k of them
+    the moment, three times over. Facts 40 -> 30, happenings 30 -> 12,
+    episodes 10 -> 6, beliefs 12 -> 8; a bird's body.* facts ride only
+    when the words ask about bodies (board, power, servo, temperature,
+    ...) - the tools have the rest. scenes.chorus: always (the default;
+    April's choice) or when_invited - after the lead answers April, the
+    others get the floor only if her line calls for more, so a plain
+    question is one call, not three.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 22:40:00 -0700
+
 creature-cli (2.77.5+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.77.5: the cache, found. probe-cache showed a plain

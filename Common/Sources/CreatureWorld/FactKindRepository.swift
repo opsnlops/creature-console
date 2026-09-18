@@ -60,6 +60,16 @@ struct FactKindRepository: Sendable {
     }
 
     /// The predicates whose facts are the world's alone, never a mind's.
+    /// Every predicate the glossary knows under a prefix: the `body.*` kinds, to leave out of
+    /// an envelope that did not ask about bodies.
+    func predicates(withPrefix prefix: String) async throws -> Set<String> {
+        let documents = try await kinds.find([
+            "predicate": ["$regex": "^" + NSRegularExpression.escapedPattern(for: prefix)]
+                as Document
+        ]).drain()
+        return Set(try documents.map(decode).map(\.predicate))
+    }
+
     func worldOnlyPredicates() async throws -> Set<String> {
         let documents = try await kinds.find(["audience": FactAudience.world.rawValue]).drain()
         return Set(try documents.map(decode).map(\.predicate))

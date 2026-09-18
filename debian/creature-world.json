@@ -21,7 +21,7 @@
   },
   "scenes": {
     "floor_seconds": 8,
-    "maximum_turns": 6,
+    "maximum_turns": 6, "chorus": "always",
     "house_maximum_turns": 3,
     "maximum_spoken_seconds": 90,
     "voices": {
@@ -55,7 +55,7 @@
     ]
   },
   "reminders": { "all_day_hour": 9, "nudge_window_minutes": 120 },
-  "memory": { "hour": 3, "minute": 30, "time_zone": "America/Los_Angeles", "episode_days": 30, "episodes_in_prompt": 10, "reflections_in_prompt": 2, "beliefs_in_prompt": 12 },
+  "memory": { "hour": 3, "minute": 30, "time_zone": "America/Los_Angeles", "episode_days": 30, "episodes_in_prompt": 6, "reflections_in_prompt": 2, "beliefs_in_prompt": 8 },
   "retention": {
     "event_days": 90, "cheap_event_days": 7, "processing_days": 7, "timer_days": 7,
     "ingress_days": 30, "retired_fact_days": 90, "delivery_days": 90, "scene_days": 180

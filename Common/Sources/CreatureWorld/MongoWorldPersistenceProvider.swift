@@ -1096,7 +1096,15 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         // What is the world's alone stays with the world - and never takes a mind's place on
         // the capped page.
-        let worldOnly = try await kinds.worldOnlyPredicates()
+        var worldOnly = try await kinds.worldOnlyPredicates()
+        // And kinds that ride only on request: a bird's body is thirty lines a clock question
+        // does not need; the words "board", "power", "servo" bring them.
+        let wordsInText = Set(
+            (text ?? "").lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
+        for (prefix, words) in WorldKnowledgeLimits.onRequestPrefixes
+        where wordsInText.isDisjoint(with: words) {
+            worldOnly.formUnion(try await kinds.predicates(withPrefix: prefix))
+        }
         // The day's facts and the memories are capped separately: a night's episodes are many
         // and newer than everything else, and would otherwise push what April taught the birds
         // yesterday off the page.

@@ -189,11 +189,22 @@ public enum WorldMentions {
 
 public enum WorldKnowledgeLimits {
     /// The most facts a single percept carries.
-    public static let maximumFacts = 40
+    /// Trimmed by the numbers on 2026-09-17: "what time is it" cost 8.7k input tokens, 4.5k of
+    /// them the moment. The envelope is the likely, not the possible; the tools have the rest.
+    public static let maximumFacts = 30
+    /// Kinds that ride only when the words ask for them: a bird's body is a fact about a bird,
+    /// and thirty telemetry lines are not what a clock question needs.
+    public static let onRequestPrefixes: [String: Set<String>] = [
+        "body.": [
+            "body", "board", "temperature", "temp", "hot", "warm", "power", "volt", "volts",
+            "amps", "watts", "motor", "motors", "servo", "servos", "sensor", "sensors", "battery",
+            "feet", "foot", "wing", "wings", "beak", "load", "idle", "moving", "health",
+        ]
+    ]
 
     /// How far back the story a percept carries reaches, and how many happenings at most.
     public static let happeningsWindow: TimeInterval = 15 * 60
-    public static let maximumHappenings = 30
+    public static let maximumHappenings = 12
     /// The calendar rides along: this many upcoming events at most, soonest first.
     public static let maximumUpcomingEvents = 8
     /// And the day's reminders: this many at most. Only the day's - April: "we should only

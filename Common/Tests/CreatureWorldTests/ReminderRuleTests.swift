@@ -40,6 +40,19 @@ struct ReminderRuleTests {
                 derivedFrom: [],
                 producer: FactProducer(kind: "bridge", id: "reminders", version: "1"))
         }
+        // Earlier runs left reminders due at this same time of day in the shared database;
+        // they are ended first, or the rule counts them as this run's.
+        for leftover in try await persistence.facts.currentFacts(
+            about: [], predicate: "reminder.due_at", limit: 500, at: now)
+        {
+            try await persistence.facts.supersede(
+                by: try Fact(
+                    subjectID: leftover.subjectID, predicate: leftover.predicate, value: .null,
+                    epistemic: EpistemicState(type: .reported, confidence: 1),
+                    validFrom: now.addingTimeInterval(-2), validTo: now.addingTimeInterval(-1),
+                    derivedFrom: [],
+                    producer: FactProducer(kind: "test", id: "cleanup", version: "1")))
+        }
         let vetDue = now.addingTimeInterval(-10 * 60)
         for f in [
             try fact(vet, "reminder.title", .string("Call the vet \(suffix)")),

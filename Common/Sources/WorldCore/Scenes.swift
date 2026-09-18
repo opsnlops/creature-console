@@ -524,6 +524,15 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     /// Creature Server plays a scene's sentences in order — so the cost of a generous lead
     /// is only that April's interjection may land after the next line is already composed.
     public var turnLeadSeconds: TimeInterval
+    /// Whether the other birds get the floor after the lead answers April: always, or only
+    /// when her line calls for more (a question, a bird named). "What time is it" once cost
+    /// three full prompts for one answer and two passes.
+    public var chorus: ChorusPolicy
+
+    public enum ChorusPolicy: String, Hashable, Sendable, Codable {
+        case always
+        case whenInvited = "when_invited"
+    }
 
     public init(
         floorSeconds: TimeInterval = 8,
@@ -537,7 +546,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         considerOn: [SceneOpeningRule] = [],
         houseGapSeconds: TimeInterval = 0,
         quietHours: QuietHours? = nil,
-        turnLeadSeconds: TimeInterval = 2
+        turnLeadSeconds: TimeInterval = 2,
+        chorus: ChorusPolicy = .always
     ) {
         self.floorSeconds = floorSeconds
         self.maximumTurns = maximumTurns
@@ -551,6 +561,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         self.houseGapSeconds = houseGapSeconds
         self.quietHours = quietHours
         self.turnLeadSeconds = turnLeadSeconds
+        self.chorus = chorus
     }
 
     public init(from decoder: any Decoder) throws {
@@ -580,7 +591,9 @@ public struct SceneLimits: Hashable, Sendable, Codable {
             quietHours: try container.decodeIfPresent(QuietHours.self, forKey: .quietHours),
             turnLeadSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .turnLeadSeconds)
-                ?? defaults.turnLeadSeconds
+                ?? defaults.turnLeadSeconds,
+            chorus: try container.decodeIfPresent(ChorusPolicy.self, forKey: .chorus)
+                ?? defaults.chorus
         )
     }
 
@@ -614,5 +627,6 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case houseGapSeconds = "house_gap_seconds"
         case quietHours = "quiet_hours"
         case turnLeadSeconds = "turn_lead_seconds"
+        case chorus
     }
 }
