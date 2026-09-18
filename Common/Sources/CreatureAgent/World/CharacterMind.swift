@@ -245,8 +245,11 @@ struct CharacterMind: Sendable {
             raw = try await withSpan("llm.mistral.generate") { span in
                 span.attributes["llm.model"] = configuration.modelName
                 span.attributes["llm.transcript.turns"] = transcript.count
-                return try await withTimeout(configuration.modelTimeout) {
-                    try await respond(transcript, configuration.tools)
+                span.attributes["llm.call_kind"] = LLMCallKind.question.rawValue
+                return try await LLMCallKind.$current.withValue(.question) {
+                    try await withTimeout(configuration.modelTimeout) {
+                        try await respond(transcript, configuration.tools)
+                    }
                 }
             }
             await learning.note(raw)
@@ -310,12 +313,15 @@ struct CharacterMind: Sendable {
                 span.attributes["llm.model"] = configuration.modelName
                 span.attributes["llm.transcript.turns"] = transcript.count
                 span.attributes["llm.streaming"] = true
+                span.attributes["llm.call_kind"] = LLMCallKind.question.rawValue
                 // A timeout cancels the model loop; whatever was already offered to the room
                 // stays spoken and recorded.
-                try await withTimeout(configuration.modelTimeout) {
-                    for await raw in stage.respondStreaming(transcript, configuration.tools) {
-                        await learning.note(raw)
-                        guard await spoken.offer(raw, characterName: name) else { break }
+                try await LLMCallKind.$current.withValue(.question) {
+                    try await withTimeout(configuration.modelTimeout) {
+                        for await raw in stage.respondStreaming(transcript, configuration.tools) {
+                            await learning.note(raw)
+                            guard await spoken.offer(raw, characterName: name) else { break }
+                        }
                     }
                 }
                 span.attributes["speech.sentences"] = await spoken.sentences.count
@@ -490,6 +496,12 @@ struct CharacterMind: Sendable {
         }
     }
 
+    /// What kind of call a scene turn is, for the cost record: a scene April opened with her
+    /// words, or a remark the house asked for.
+    static func callKind(of offer: SceneTurnOffer) -> LLMCallKind {
+        offer.trigger.kind == .personUtterance ? .scene : .house
+    }
+
     /// The world as tools for a scene turn that answers a person - April's question in the
     /// room opens a scene, and that is where "who is Tamara?" is answered. A house remark or
     /// a world event never gets them: those must be quick.
@@ -522,17 +534,20 @@ struct CharacterMind: Sendable {
                 span.attributes["llm.model"] = configuration.modelName
                 span.attributes["llm.transcript.turns"] = transcript.count
                 span.attributes["llm.streaming"] = true
-                try await withTimeout(configuration.modelTimeout) {
-                    for await raw in respondStreaming(transcript, tools(for: offer)) {
-                        await learning.note(raw)
-                        switch await line.offer(raw) {
-                        case .speak(let index, let piece):
-                            try await speak(index, piece)
-                            await line.spoke(piece)
-                        case .skip:
-                            continue
-                        case .done:
-                            return
+                span.attributes["llm.call_kind"] = Self.callKind(of: offer).rawValue
+                try await LLMCallKind.$current.withValue(Self.callKind(of: offer)) {
+                    try await withTimeout(configuration.modelTimeout) {
+                        for await raw in respondStreaming(transcript, tools(for: offer)) {
+                            await learning.note(raw)
+                            switch await line.offer(raw) {
+                            case .speak(let index, let piece):
+                                try await speak(index, piece)
+                                await line.spoke(piece)
+                            case .skip:
+                                continue
+                            case .done:
+                                return
+                            }
                         }
                     }
                 }
@@ -653,8 +668,11 @@ struct CharacterMind: Sendable {
             raw = try await withSpan("llm.mistral.generate") { span in
                 span.attributes["llm.model"] = configuration.modelName
                 span.attributes["llm.transcript.turns"] = transcript.count
-                return try await withTimeout(configuration.modelTimeout) {
-                    try await respond(transcript, tools(for: offer))
+                span.attributes["llm.call_kind"] = Self.callKind(of: offer).rawValue
+                return try await LLMCallKind.$current.withValue(Self.callKind(of: offer)) {
+                    try await withTimeout(configuration.modelTimeout) {
+                        try await respond(transcript, tools(for: offer))
+                    }
                 }
             }
             await learning.note(raw)

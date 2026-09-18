@@ -34,6 +34,20 @@ struct OpenAIResponseParser {
         return item.functionCall
     }
 
+    /// What a whole response cost, from its `usage`.
+    static func usage(from data: Data) -> LLMUsage? {
+        (try? JSONDecoder().decode(ResponseEnvelope.self, from: data))?.usage?.value
+    }
+
+    /// What a streamed response cost: the `usage` on `response.completed`.
+    static func streamedUsage(fromData json: String) -> LLMUsage? {
+        guard json != "[DONE]", let data = json.data(using: .utf8),
+            let event = try? JSONDecoder().decode(StreamEvent.self, from: data),
+            event.type == "response.completed"
+        else { return nil }
+        return event.response?.usage?.value
+    }
+
     /// The function calls a whole (non-streamed) response asks for, in order.
     static func functionCalls(from data: Data) -> [FunctionCall] {
         guard let response = try? JSONDecoder().decode(ResponseEnvelope.self, from: data) else {
@@ -54,6 +68,7 @@ struct OpenAIResponseParser {
 
 private struct ResponseEnvelope: Decodable {
     let output: [ResponseOutputItem]?
+    let usage: ResponseUsage?
 
     var outputTextValue: String? {
         return output?.compactMap { $0.textValue }.first
@@ -99,4 +114,29 @@ private struct StreamEvent: Decodable {
     let type: String
     let delta: String?
     let item: ResponseOutputItem?
+    let response: ResponseEnvelope?
+}
+
+/// `usage` as the Responses API reports it: `input_tokens`, `output_tokens`, and the cached
+/// part of the input under `input_tokens_details`.
+private struct ResponseUsage: Decodable {
+    struct InputDetails: Decodable {
+        let cachedTokens: Int?
+        private enum CodingKeys: String, CodingKey { case cachedTokens = "cached_tokens" }
+    }
+    let inputTokens: Int?
+    let outputTokens: Int?
+    let inputTokensDetails: InputDetails?
+
+    private enum CodingKeys: String, CodingKey {
+        case inputTokens = "input_tokens"
+        case outputTokens = "output_tokens"
+        case inputTokensDetails = "input_tokens_details"
+    }
+
+    var value: LLMUsage {
+        LLMUsage(
+            inputTokens: inputTokens ?? 0, cachedTokens: inputTokensDetails?.cachedTokens ?? 0,
+            outputTokens: outputTokens ?? 0)
+    }
 }

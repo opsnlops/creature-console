@@ -2,6 +2,7 @@ import AsyncHTTPClient
 import Foundation
 import Logging
 import NIOCore
+import Tracing
 import WorldCore
 
 #if canImport(FoundationNetworking)
@@ -88,14 +89,25 @@ struct OpenAIClient: Sendable {
             var request = makeRequest(for: transcript, stream: false, tools: offered, extra: extra)
             request.timeoutInterval = tools == nil ? 60 : 90
 
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw OpenAIClientError.invalidResponse
-            }
-            guard 200..<300 ~= httpResponse.statusCode else {
-                let message = String(data: data, encoding: .utf8) ?? ""
-                logger.error("OpenAI request failed with status \(httpResponse.statusCode)")
-                throw OpenAIClientError.httpError(code: httpResponse.statusCode, body: message)
+            // One span per round: what it cost is on it.
+            let data = try await withSpan("llm.openai.responses") { span in
+                span.attributes["llm.model"] = model
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw OpenAIClientError.invalidResponse
+                }
+                guard 200..<300 ~= httpResponse.statusCode else {
+                    let message = String(data: data, encoding: .utf8) ?? ""
+                    logger.error("OpenAI request failed with status \(httpResponse.statusCode)")
+                    throw OpenAIClientError.httpError(
+                        code: httpResponse.statusCode, body: message)
+                }
+                if let usage = OpenAIResponseParser.usage(from: data) {
+                    LLMUsageRecord.record(
+                        usage, on: span, model: model, kind: LLMCallKind.current, round: round,
+                        toolsOffered: offered.count, logger: logger)
+                }
+                return data
             }
             if traceResponses, let bodyString = String(data: data, encoding: .utf8) {
                 logger.info("OpenAI raw response: \(bodyString)")
@@ -173,37 +185,54 @@ struct OpenAIClient: Sendable {
                             round < ModelTools.maximumRounds ? await tools?.catalogue() ?? [] : []
                         let request = makeRequest(
                             for: transcript, stream: true, tools: offered, extra: extra)
-                        var streamRequest = HTTPClientRequest(url: request.url!.absoluteString)
-                        streamRequest.method = .POST
-                        for (name, value) in request.allHTTPHeaderFields ?? [:] {
-                            streamRequest.headers.add(name: name, value: value)
-                        }
-                        streamRequest.body = .bytes(request.httpBody ?? Data())
-                        let response = try await client.execute(
-                            streamRequest, timeout: .seconds(60))
-                        guard response.status == .ok else {
-                            let body = try await response.body.collect(upTo: 65_536)
-                            throw OpenAIClientError.httpError(
-                                code: Int(response.status.code), body: String(buffer: body))
-                        }
-                        var parser = ServerSentEventParser()
-                        var calls: [OpenAIResponseParser.FunctionCall] = []
-                        for try await buffer in response.body {
-                            for frame in parser.feed(String(buffer: buffer)) {
-                                if let call = OpenAIResponseParser.streamedFunctionCall(
-                                    fromData: frame.data)
-                                {
-                                    calls.append(call)
-                                    continue
-                                }
-                                guard
-                                    let delta = OpenAIResponseParser.streamedDelta(
+                        // One span per round: what it cost is on it, from the stream's
+                        // closing event.
+                        let calls = try await withSpan("llm.openai.responses") { span in
+                            span.attributes["llm.model"] = model
+                            span.attributes["llm.streaming"] = true
+                            var streamRequest = HTTPClientRequest(url: request.url!.absoluteString)
+                            streamRequest.method = .POST
+                            for (name, value) in request.allHTTPHeaderFields ?? [:] {
+                                streamRequest.headers.add(name: name, value: value)
+                            }
+                            streamRequest.body = .bytes(request.httpBody ?? Data())
+                            let response = try await client.execute(
+                                streamRequest, timeout: .seconds(60))
+                            guard response.status == .ok else {
+                                let body = try await response.body.collect(upTo: 65_536)
+                                throw OpenAIClientError.httpError(
+                                    code: Int(response.status.code), body: String(buffer: body))
+                            }
+                            var parser = ServerSentEventParser()
+                            var calls: [OpenAIResponseParser.FunctionCall] = []
+                            for try await buffer in response.body {
+                                for frame in parser.feed(String(buffer: buffer)) {
+                                    if let call = OpenAIResponseParser.streamedFunctionCall(
                                         fromData: frame.data)
-                                else { continue }
-                                for sentence in assembler.feed(delta) {
-                                    emit(sentence, final: false)
+                                    {
+                                        calls.append(call)
+                                        continue
+                                    }
+                                    if let usage = OpenAIResponseParser.streamedUsage(
+                                        fromData: frame.data)
+                                    {
+                                        LLMUsageRecord.record(
+                                            usage, on: span, model: model,
+                                            kind: LLMCallKind.current, round: round,
+                                            toolsOffered: offered.count, logger: logger)
+                                        continue
+                                    }
+                                    guard
+                                        let delta = OpenAIResponseParser.streamedDelta(
+                                            fromData: frame.data)
+                                    else { continue }
+                                    for sentence in assembler.feed(delta) {
+                                        emit(sentence, final: false)
+                                    }
                                 }
                             }
+                            span.attributes["llm.tool_calls"] = calls.count
+                            return calls
                         }
                         guard let tools, !calls.isEmpty else { break }
                         extra += await run(calls, with: tools)
@@ -259,6 +288,16 @@ struct OpenAIClient: Sendable {
             let message = String(data: data, encoding: .utf8) ?? ""
             logger.error("OpenAI request failed with status \(httpResponse.statusCode)")
             throw OpenAIClientError.httpError(code: httpResponse.statusCode, body: message)
+        }
+        // The night's cost, on the memory job's own span.
+        if let usage = OpenAIResponseParser.usage(from: data) {
+            try await withSpan("llm.openai.responses") { span in
+                span.attributes["llm.model"] = model
+                span.attributes["llm.json"] = true
+                LLMUsageRecord.record(
+                    usage, on: span, model: model, kind: LLMCallKind.current, round: 0,
+                    toolsOffered: 0, logger: logger)
+            }
         }
         let output = try OpenAIResponseParser.outputText(from: data)
         return Data(output.utf8)

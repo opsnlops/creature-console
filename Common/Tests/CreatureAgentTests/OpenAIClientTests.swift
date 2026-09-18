@@ -204,6 +204,26 @@ struct OpenAIClientTests {
         #expect(recorded.first?.error == nil)
     }
 
+    @Test("What a call cost is read from usage: whole responses and the stream's closing event")
+    func usageIsParsed() throws {
+        let whole =
+            #"{"output":[{"type":"message","content":[{"type":"output_text","text":"Hi"}]}],"usage":{"input_tokens":4812,"input_tokens_details":{"cached_tokens":3072},"output_tokens":41,"total_tokens":4853}}"#
+        #expect(
+            OpenAIResponseParser.usage(from: Data(whole.utf8))
+                == LLMUsage(inputTokens: 4812, cachedTokens: 3072, outputTokens: 41))
+        #expect(OpenAIResponseParser.usage(from: Data(#"{"output":[]}"#.utf8)) == nil)
+        let completed =
+            #"{"type":"response.completed","response":{"id":"r1","usage":{"input_tokens":900,"input_tokens_details":{"cached_tokens":0},"output_tokens":12}}}"#
+        let usage = try #require(OpenAIResponseParser.streamedUsage(fromData: completed))
+        #expect(usage == LLMUsage(inputTokens: 900, cachedTokens: 0, outputTokens: 12))
+        #expect(usage.uncachedTokens == 900)
+        #expect(
+            OpenAIResponseParser.streamedUsage(
+                fromData: #"{"type":"response.output_text.delta","delta":"Hi"}"#) == nil)
+        #expect(OpenAIResponseParser.streamedDelta(fromData: completed) == nil)
+        #expect(LLMUsage(inputTokens: 10, cachedTokens: 30, outputTokens: 1).uncachedTokens == 0)
+    }
+
     @Test("Only output_text deltas carry words; lifecycle events and [DONE] are ignored")
     func streamedDeltas() {
         #expect(

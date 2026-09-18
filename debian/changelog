@@ -1,3 +1,17 @@
+creature-cli (2.76.0+world0.33.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.76.0: what a call costs is on the record. Every
+    OpenAI round is its own span, llm.openai.responses, carrying the
+    provider's usage - llm.usage.input_tokens, cached_tokens,
+    uncached_tokens, output_tokens - with llm.call_kind (question, scene,
+    house, memory), llm.round, and llm.tools.offered; the mind's own
+    llm.generate span carries llm.call_kind too. A counter,
+    creature_agent.llm.tokens, by token (input/cached/output), kind, and
+    model. One log line per call. Measured first, trimmed second: this
+    is what says whether the round rule and the cache layout paid off.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 20:10:00 -0700
+
 creature-cli (2.75.5+world0.33.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.75.5: the presence sensor wins, and a chorus does

@@ -109,7 +109,10 @@ struct MemoryJob: Sendable {
             let data = try await withSpan("llm.generate") { inner in
                 inner.attributes["llm.model"] = modelName
                 inner.attributes["llm.json"] = true
-                return try await respondJSON(transcript)
+                inner.attributes["llm.call_kind"] = LLMCallKind.memory.rawValue
+                return try await LLMCallKind.$current.withValue(.memory) {
+                    try await respondJSON(transcript)
+                }
             }
             let recollection = try JSONDecoder().decode(Recollection.self, from: data)
             let episodes = Array(recollection.episodes.prefix(Self.maximumEpisodes))
@@ -192,7 +195,10 @@ struct MemoryJob: Sendable {
             let data = try await withSpan("llm.generate") { inner in
                 inner.attributes["llm.model"] = modelName
                 inner.attributes["llm.json"] = true
-                return try await respondJSON(transcript)
+                inner.attributes["llm.call_kind"] = LLMCallKind.memory.rawValue
+                return try await LLMCallKind.$current.withValue(.memory) {
+                    try await respondJSON(transcript)
+                }
             }
             let consolidation = try JSONDecoder().decode(Consolidation.self, from: data)
             // The day's names, plus everyone with an episode or a belief; nobody new.

@@ -371,7 +371,15 @@ The executable uses the shared OpenTelemetry bootstrap; set `OTEL_EXPORTER_OTLP_
 `OTEL_EXPORTER_OTLP_HEADERS` in `/etc/default/creature-agent` (or the shell) exactly as for
 Creature World. In world mode each consideration is an `agent.consider` span under the trace the
 utterance arrived with (phone → gateway → World → mind), with `llm.mistral.generate` and the
-`creature.world.respond` POST as children. Span attributes carry IDs, the prompt version, the
+`creature.world.respond` POST as children. **What a call costs** (`2.76.0`): every OpenAI
+round is its own child span, `llm.openai.responses`, with the provider's `usage` on it -
+`llm.usage.input_tokens`, `llm.usage.cached_tokens` (served from the prompt cache),
+`llm.usage.uncached_tokens`, `llm.usage.output_tokens` - plus `llm.call_kind` (`question`,
+`scene`, `house`, `memory`), `llm.round`, and `llm.tools.offered`; the mind's `llm.generate`
+span carries `llm.call_kind` too. The counter `creature_agent.llm.tokens` (by `token`,
+`kind`, `model`) is the same thing as a metric, and each call logs one `LLM usage` line. In
+Honeycomb, `SUM(llm.usage.uncached_tokens)` grouped by `llm.call_kind` is the bill; the ratio
+of cached to input is whether the prompt layout is working. Span attributes carry IDs, the prompt version, the
 model name, the reaction, and the suppression reason — never the text of what anyone said.
 Metrics: `creature_agent.world.events.received`, `creature_agent.world.percepts.received`,
 `creature_agent.world.reconnects`, `creature_agent.considerations`,
