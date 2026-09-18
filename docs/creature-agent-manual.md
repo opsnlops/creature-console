@@ -374,6 +374,17 @@ else — persona, facts, the clock, streaming to the room — is identical.
   recording replays the consideration; the world answers `already_delivered` only if the record
   exists, so in that narrow window she may say it twice — visible in World Viewer as two attempts.
 
+## Probing the provider's cache (`2.77.3`)
+
+`creature-agent probe-cache --model gpt-5.6-sol` sends the same few-thousand-token prefix
+three times, a fresh moment line each time, and prints the raw `usage` of each answer. With
+`OPENAI_API_KEY` in the environment (`source /etc/default/creature-agent-beaky`). Try one
+thing at a time: `--tier fast`, `--key character:beaky`, `--store`, `--retention 24h`, and
+`--breakpoint '{"cache_control":{"type":"ephemeral"}}'` (a field added to the stable item -
+a guess at how the provider wants a block marked; a wrong one is a 400 here). A working
+cache shows `cached_tokens` in the thousands from round 2. On 2026-09-17 the live minds
+showed `cache_write_tokens` of the whole input on every call and `cached_tokens` 0.
+
 ## Observability
 
 The executable uses the shared OpenTelemetry bootstrap; set `OTEL_EXPORTER_OTLP_ENDPOINT` and

@@ -1,3 +1,17 @@
+creature-cli (2.77.3+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.77.3: `creature-agent probe-cache`. Every live call
+    wrote its whole input to the provider's cache and read nothing back
+    - store, key, and tier made no difference, even between rounds two
+    seconds apart - the shape of a cache that stores blocks and must be
+    told where the stable one ends. The probe sends the same prefix
+    three times with a fresh moment line and prints the raw usage, with
+    --key, --store, --retention, --tier, and --breakpoint <json field on
+    the item> to try one thing at a time; a wrong field is a 400 here,
+    never a silent Beaky.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 21:15:00 -0700
+
 creature-cli (2.77.2+world0.34.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.77.2: the provider's cache, by experiment. The raw
