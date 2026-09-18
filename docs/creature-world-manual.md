@@ -182,7 +182,8 @@ character at a time — the addressee first, then the others in a round — with
 `POST /world/v1/scenes/{scene_id}/turns`; a floor nobody answers by `floor_seconds` is a pass
 (the deadline is a world timer, `scene.floor_expired`). The scene closes when everyone passes in
 a row, **when the round is done** (`0.32.0`: once everyone has had a turn, it goes on only if
-the last spoken line asked for more — a question, or another bird named; `round_done`), at
+the last spoken line asked for more — a question, or another bird *addressed* ("Mango, …",
+"…, Kenny.", "Kenny?"; a mere mention is nothing since `0.35.1`); `round_done`), at
 `maximum_turns` (now 6), or when the composed speech would exceed `maximum_spoken_seconds`
 (estimated as below); a new scene in the region interrupts an open one. The round rule is the
 first cut at cost: "Beaky I still love you" once ran to twelve turns, five of them passes, and

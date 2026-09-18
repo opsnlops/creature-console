@@ -478,15 +478,39 @@ public actor SceneService {
     }
 
     /// Whether a spoken line leaves something for the others to answer: a question, or one
-    /// of the other participants named (a bird speaking of itself in the third person -
-    /// "Kenny loves you too" - is not calling on anyone).
+    /// of the other participants *addressed* - "Mango, …", "…, Kenny." or "Kenny?" - not
+    /// merely mentioned ("Kenny knows because Beaky said it" once bought a second round of
+    /// three passes). A bird speaking of itself in the third person is calling on no one.
     static func callsForMore(_ turn: SceneTurn, in scene: Scene) -> Bool {
         guard let text = turn.text?.lowercased() else { return false }
         if text.contains("?") { return true }
-        let words = Set(text.split(whereSeparator: { !$0.isLetter }).map(String.init))
         return scene.participants.contains { other in
-            other != turn.characterID && words.contains(Self.name(of: other))
+            other != turn.characterID && Self.addresses(text, Self.name(of: other))
         }
+    }
+
+    /// The name as a vocative: followed by a comma, question mark, or exclamation, or after
+    /// a comma at the end of a sentence.
+    public static func addresses(_ text: String, _ name: String) -> Bool {
+        var search = text.startIndex
+        while let range = text.range(of: name, range: search..<text.endIndex) {
+            let before =
+                range.lowerBound == text.startIndex
+                ? nil : text[text.index(before: range.lowerBound)]
+            let after = range.upperBound == text.endIndex ? nil : text[range.upperBound]
+            let wholeWord =
+                (before.map { !$0.isLetter } ?? true) && (after.map { !$0.isLetter } ?? true)
+            if wholeWord {
+                if let after, ",?!".contains(after) { return true }
+                if let before, before == " ",
+                    text[..<range.lowerBound].trimmingCharacters(in: .whitespaces).hasSuffix(",")
+                {
+                    return true
+                }
+            }
+            search = range.upperBound
+        }
+        return false
     }
 
     /// `character:kenny` → `kenny`.

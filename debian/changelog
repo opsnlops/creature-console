@@ -1,3 +1,12 @@
+creature-cli (2.77.5+world0.35.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.35.1: a name calls for more only as a vocative.
+    "Kenny knows because Beaky said it" bought a second round of three
+    passes; the round rule now reads "Mango, ...", "..., Kenny." and
+    "Kenny?" as an invitation and a mention as nothing.
+
+ -- April White <april@creature.engineering>  Thu, 17 Sep 2026 22:55:00 -0700
+
 creature-cli (2.77.5+world0.35.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.35.0: the envelope, trimmed by the numbers, and a

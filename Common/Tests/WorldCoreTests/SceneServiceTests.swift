@@ -345,7 +345,7 @@ struct SceneServiceTests {
         let asked = try await quiet.service.submit(
             SceneTurnSubmission(
                 characterID: beaky, responseID: try #require(invited.floor?.responseID),
-                text: "Mango will know the exact second."),
+                text: "Mango, you keep the exact second."),
             to: invited.sceneID)
         #expect(asked.scene.state == .open)
         #expect(asked.scene.floor?.characterID == mango)
@@ -370,6 +370,18 @@ struct SceneServiceTests {
             to: chatty.sceneID)
         #expect(first.scene.state == .open)
         #expect(first.scene.floor?.characterID == mango)
+    }
+
+    @Test("A name calls for more only as a vocative; a mention does not")
+    func vocativesInvite() {
+        #expect(SceneService.addresses("kenny, the beak part is attached.", "kenny"))
+        #expect(
+            SceneService.addresses("your remembering part is in the database, kenny.", "kenny"))
+        #expect(SceneService.addresses("well, mango? anything?", "mango"))
+        #expect(SceneService.addresses("mango! that is enough.", "mango"))
+        #expect(!SceneService.addresses("kenny knows because beaky said it.", "beaky"))
+        #expect(!SceneService.addresses("beaky exaggerates, as usual.", "beaky"))
+        #expect(!SceneService.addresses("the beakiest bird here", "beaky"))
     }
 
     @Test("The cutoffs end a scene that would otherwise run on")
