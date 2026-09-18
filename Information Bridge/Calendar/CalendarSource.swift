@@ -120,8 +120,11 @@ actor CalendarSource {
             }
             var cast = await ledger.reconcile(wanted, now: now, cast: cast)
             // And the world's side of it: an event the world still holds inside the window
-            // that the calendars no longer have is taken back, ledger or no ledger.
-            if let mirror {
+            // that the calendars no longer have is taken back, ledger or no ledger - but only
+            // by a source that can see. A read that found nothing at all (no calendar
+            // allowed by that name here, an account not on this Mac) says nothing about the
+            // world; on 2026-09-17 it said everything was a ghost and took the calendar down.
+            if let mirror, !items.isEmpty {
                 let from = now.addingTimeInterval(-Self.daysBack * 86_400)
                 let to = now.addingTimeInterval(Self.daysAhead * 86_400)
                 let ghosts = try await mirror.ghosts(
@@ -165,10 +168,12 @@ actor CalendarSource {
     {
         let store = EKEventStore()
         guard try await store.requestFullAccessToEvents() else { throw CalendarFailure.denied }
-        let chosen = store.calendars(for: .event).filter { calendar in
-            calendars?.contains(calendar.title) ?? true
+        let all = store.calendars(for: .event)
+        let chosen = all.filter { calendar in calendars?.contains(calendar.title) ?? true }
+        guard !chosen.isEmpty else {
+            throw CalendarFailure.noneAllowed(
+                wanted: calendars.map { $0.sorted() } ?? [], here: all.map(\.title).sorted())
         }
-        guard !chosen.isEmpty else { return [] }
         let predicate = store.predicateForEvents(withStart: from, end: to, calendars: chosen)
         return store.events(matching: predicate).map { event in
             CalendarItem(
@@ -188,7 +193,15 @@ actor CalendarSource {
 
 enum CalendarFailure: Error, CustomStringConvertible {
     case denied
+    /// The allowed calendars match none on this Mac: a settings list carried over from
+    /// another Mac, or an account not signed in here. Said out loud, never read as "no events".
+    case noneAllowed(wanted: [String], here: [String])
     var description: String {
-        "Information Bridge may not read Calendars (System Settings → Privacy & Security → Calendars)"
+        switch self {
+        case .denied:
+            "Information Bridge may not read Calendars (System Settings → Privacy & Security → Calendars)"
+        case .noneAllowed(let wanted, let here):
+            "none of the allowed calendars (\(wanted.joined(separator: ", "))) is on this Mac; here: \(here.joined(separator: ", "))"
+        }
     }
 }

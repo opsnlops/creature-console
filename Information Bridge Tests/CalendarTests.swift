@@ -75,6 +75,15 @@ struct CalendarTests {
                 $0.source.sourceEventID?.hasPrefix("ghost:event:deleted-20260911") == true
             })
         #expect(!events.contains { $0.payload["subject_id"] == .string("event:faraway-20280101") })
+        // A read that finds nothing takes nothing back: the world is not wrong because this
+        // Mac cannot see.
+        let blind = Casts()
+        let blindSource = CalendarSource(
+            directory: directory.appendingPathComponent("blind"), zone: pacific, allowed: nil,
+            read: { _, _, _ in [] }, resolver: { resolver }, mirror: mirror
+        ) { await blind.note($0) }
+        await blindSource.poll(now: now)
+        #expect(await blind.events.isEmpty)
         // The wanted event was cast, never retracted.
         #expect(
             !events.contains {

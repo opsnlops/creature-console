@@ -282,7 +282,13 @@ April deleted tomorrow's bloodwork; the laptop's ledger had never cast it (cotto
 Bridge had), and the world kept announcing it. So on every poll the calendar and reminders
 sources also read back what the world holds under their family (`calendar.*`, `reminder.*`)
 and retract any entity they no longer want - for the calendar, only inside its read window
-(90 days back, a year ahead). The retraction's `source_event_id` starts with `ghost:`.
+(90 days back, a year ahead). The retraction's `source_event_id` starts with `ghost:`. **Only a
+source that saw something takes anything back** (`0.11.2`): a read that found nothing says
+nothing about the world. On its first night the mirror ran on a laptop whose allowed-calendars
+list matched none of the calendars there - the read returned nothing, every event in the
+window looked like a ghost, and the calendar came down; that read now fails loudly instead
+("none of the allowed calendars (…) is on this Mac; here: …") and the poll retracts nothing.
+Check the Calendar source's line in the window after moving the Bridge to a new Mac.
 
 ## Every fact the Bridge sends
 

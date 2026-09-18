@@ -94,7 +94,8 @@ actor RemindersSource {
                 wanted[item.identifier] = ReminderFacts.facts(from: item, zone: zone)
             }
             var cast = await ledger.reconcile(wanted, now: now, cast: cast)
-            if let mirror {
+            // The world's ghosts, only from a source that saw something.
+            if let mirror, !items.isEmpty {
                 let ghosts = try await mirror.ghosts(
                     prefix: "reminder.", wanted: Set(wanted.values.map(\.entityID)))
                 cast += await ledger.retractGhosts(ghosts, now: now, cast: self.cast)
