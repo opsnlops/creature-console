@@ -21,6 +21,9 @@ actor CalendarSource {
     private let resolver: Resolver
     private let cast: Cast
     private let ledger: FactLedger
+    /// The world read back, to take back events it holds that the calendars no longer have,
+    /// whatever this Mac's ledger remembers. Nil in tests without a world.
+    private let mirror: WorldMirror?
     private let zone: TimeZone
     /// Calendar titles April allows; nil means all of them.
     private var allowed: Set<String>?
@@ -38,11 +41,12 @@ actor CalendarSource {
     init(
         directory: URL, zone: TimeZone, allowed: Set<String>?,
         read: @escaping Read = CalendarSource.readFromEventKit, resolver: @escaping Resolver,
-        cast: @escaping Cast
+        mirror: WorldMirror? = nil, cast: @escaping Cast
     ) {
         self.read = read
         self.resolver = resolver
         self.cast = cast
+        self.mirror = mirror
         self.zone = zone
         self.allowed = allowed
         ledger = FactLedger(source: Self.sourceName, directory: directory)
@@ -114,7 +118,24 @@ actor CalendarSource {
                 wanted[item.identifier] = CalendarFacts.facts(
                     from: item, resolver: resolver, zone: zone)
             }
-            let cast = await ledger.reconcile(wanted, now: now, cast: cast)
+            var cast = await ledger.reconcile(wanted, now: now, cast: cast)
+            // And the world's side of it: an event the world still holds inside the window
+            // that the calendars no longer have is taken back, ledger or no ledger.
+            if let mirror {
+                let from = now.addingTimeInterval(-Self.daysBack * 86_400)
+                let to = now.addingTimeInterval(Self.daysAhead * 86_400)
+                let ghosts = try await mirror.ghosts(
+                    prefix: "calendar.", wanted: Set(wanted.values.map(\.entityID))
+                ) { _, facts in
+                    guard
+                        case .string(let raw)? = facts.first(where: {
+                            $0.predicate == "calendar.starts_at"
+                        })?.value, let starts = WorldJSON.date(from: raw)
+                    else { return false }
+                    return starts >= from && starts <= to
+                }
+                cast += await ledger.retractGhosts(ghosts, now: now, cast: self.cast)
+            }
             let linked = wanted.values.filter { $0.facts["calendar.with"] != nil }.count
             status = SourceStatus(
                 state: .on, lastRunAt: now,

@@ -415,7 +415,8 @@ final class BridgeStore {
             resolver: {
                 guard let contacts else { return PersonResolver(cards: [], map: [:]) }
                 return await PersonResolver(cards: contacts.cards, map: contacts.map)
-            }
+            },
+            mirror: WorldMirror(client: client)
         ) { event in try await box.enqueue(event) }
         calendarSource = source
         calendarTask = Task { [weak self] in
@@ -442,9 +443,9 @@ final class BridgeStore {
     /// The reminders: what April means to do, by when, and whether she has. Every list; the
     /// world decides which ride in an envelope.
     private func startReminders(directory: URL, box: Outbox, client: WorldViewerClient) {
-        let source = RemindersSource(directory: directory, zone: .current) { event in
-            try await box.enqueue(event)
-        }
+        let source = RemindersSource(
+            directory: directory, zone: .current, mirror: WorldMirror(client: client)
+        ) { event in try await box.enqueue(event) }
         remindersSource = source
         remindersTask = Task { [weak self] in
             do {

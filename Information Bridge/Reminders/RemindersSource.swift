@@ -16,6 +16,7 @@ actor RemindersSource {
     private let read: Read
     private let cast: Cast
     private let ledger: FactLedger
+    private let mirror: WorldMirror?
     private let zone: TimeZone
     private(set) var items: [ReminderItem] = []
     private(set) var status = SourceStatus(state: .on)
@@ -27,10 +28,11 @@ actor RemindersSource {
 
     init(
         directory: URL, zone: TimeZone, read: @escaping Read = RemindersSource.readFromEventKit,
-        cast: @escaping Cast
+        mirror: WorldMirror? = nil, cast: @escaping Cast
     ) {
         self.read = read
         self.cast = cast
+        self.mirror = mirror
         self.zone = zone
         ledger = FactLedger(source: Self.sourceName, directory: directory)
     }
@@ -91,7 +93,12 @@ actor RemindersSource {
             for item in items {
                 wanted[item.identifier] = ReminderFacts.facts(from: item, zone: zone)
             }
-            let cast = await ledger.reconcile(wanted, now: now, cast: cast)
+            var cast = await ledger.reconcile(wanted, now: now, cast: cast)
+            if let mirror {
+                let ghosts = try await mirror.ghosts(
+                    prefix: "reminder.", wanted: Set(wanted.values.map(\.entityID)))
+                cast += await ledger.retractGhosts(ghosts, now: now, cast: self.cast)
+            }
             let open = items.filter { !$0.isCompleted }.count
             let due = items.filter { !$0.isCompleted && ($0.due.map { $0 <= now } ?? false) }.count
             status = SourceStatus(

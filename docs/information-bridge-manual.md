@@ -273,6 +273,17 @@ the hour.
 - **Sent to the world:** the last fifty facts, as `subject · predicate = value`. Never the
   sources.
 
+## The world, read back (`0.11.1`)
+
+A source's ledger is the Bridge's memory of what it cast; the world is the truth it must
+match. When the two part - a Bridge moved to another Mac whose ledger never cast what the old
+one did, a ledger lost - a deleted event would linger, because nothing knew to take it back.
+April deleted tomorrow's bloodwork; the laptop's ledger had never cast it (cottontail's
+Bridge had), and the world kept announcing it. So on every poll the calendar and reminders
+sources also read back what the world holds under their family (`calendar.*`, `reminder.*`)
+and retract any entity they no longer want - for the calendar, only inside its read window
+(90 days back, a year ahead). The retraction's `source_event_id` starts with `ghost:`.
+
 ## Every fact the Bridge sends
 
 A `facts.given` event: source `bridge:<source>` of kind `bridge`, `source_event_id` the item's own

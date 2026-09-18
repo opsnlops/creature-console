@@ -33,6 +33,56 @@ struct CalendarTests {
             ends: thursday.addingTimeInterval(7_200), isAllDay: allDay, attendees: attendees)
     }
 
+    @Test(
+        "A ghost the world still holds - cast by another Mac's Bridge - is taken back; outside the window it is left alone"
+    )
+    func ghostsAreRetracted() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("calendar-ghosts-\(UUID().uuidString)")
+        let casts = Casts()
+        let now = thursday.addingTimeInterval(-86_400)
+        func held(_ entity: String, starts: Date) throws -> [Fact] {
+            try ["calendar.title", "calendar.starts_at"].map { predicate in
+                try Fact(
+                    subjectID: EntityID(validating: entity), predicate: predicate,
+                    value: .string(
+                        predicate == "calendar.starts_at" ? WorldJSON.timestamp(starts) : "Ghost"),
+                    epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: now,
+                    derivedFrom: [],
+                    producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+            }
+        }
+        // The world holds: the event the calendar still has, a deleted one from last week
+        // (cast on cottontail; this ledger never knew it), and one two years out.
+        let wanted = item("Deck")
+        let worldFacts =
+            try held(CalendarFacts.entityID(for: wanted).rawValue, starts: thursday)
+            + held("event:deleted-20260911", starts: now.addingTimeInterval(-6 * 86_400))
+            + held("event:faraway-20280101", starts: now.addingTimeInterval(500 * 86_400))
+        let mirror = WorldMirror { prefix in worldFacts.filter { $0.predicate.hasPrefix(prefix) } }
+        let source = CalendarSource(
+            directory: directory, zone: pacific, allowed: nil,
+            read: { _, _, _ in [wanted] }, resolver: { resolver }, mirror: mirror
+        ) { await casts.note($0) }
+        await source.poll(now: now)
+        let events = await casts.events
+        let retracted = events.filter { $0.payload["value"] == .null }
+        #expect(
+            Set(retracted.map { $0.payload["subject_id"] }) == [.string("event:deleted-20260911")])
+        #expect(retracted.count == 2)
+        #expect(
+            retracted.allSatisfy {
+                $0.source.sourceEventID?.hasPrefix("ghost:event:deleted-20260911") == true
+            })
+        #expect(!events.contains { $0.payload["subject_id"] == .string("event:faraway-20280101") })
+        // The wanted event was cast, never retracted.
+        #expect(
+            !events.contains {
+                $0.payload["subject_id"] == .string(CalendarFacts.entityID(for: wanted).rawValue)
+                    && $0.payload["value"] == .null
+            })
+    }
+
     @Test("An event becomes facts in human words, with the person found by attendee or title")
     func eventBecomesFacts() {
         let byAttendee = CalendarFacts.facts(

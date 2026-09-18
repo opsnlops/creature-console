@@ -86,6 +86,23 @@ actor FactLedger {
         return count
     }
 
+    /// Takes back facts the world holds that no item of this source wants - ghosts from a
+    /// ledger that never knew them (another Mac's Bridge cast them). Returns how many facts
+    /// were retracted. Nothing is recorded: there was no entry, and there is none after.
+    func retractGhosts(_ ghosts: [EntityID: [String]], now: Date, cast: Cast) async -> Int {
+        var count = 0
+        for (entity, predicates) in ghosts {
+            for predicate in predicates {
+                if await retract(
+                    entity, predicate, item: "ghost:\(entity.rawValue)", now: now, cast: cast)
+                {
+                    count += 1
+                }
+            }
+        }
+        return count
+    }
+
     /// Lets items go without taking anything back: their facts carried a `valid_to` the world
     /// has already honoured, so there is nothing left to retract.
     func forget(_ items: Set<String>) {
