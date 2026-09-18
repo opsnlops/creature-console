@@ -75,6 +75,43 @@ struct CalendarTests {
                 $0.source.sourceEventID?.hasPrefix("ghost:event:deleted-20260911") == true
             })
         #expect(!events.contains { $0.payload["subject_id"] == .string("event:faraway-20280101") })
+        // And the other way: the world lacks the event this ledger remembers casting - it was
+        // taken down behind the ledger's back - so it is cast again.
+        let emptied = WorldMirror { _ in [] }
+        let healing = CalendarSource(
+            directory: directory, zone: pacific, allowed: nil,
+            read: { _, _, _ in [wanted] }, resolver: { resolver }, mirror: emptied
+        ) { await casts.note($0) }
+        let before = await casts.events.count
+        await healing.poll(now: now.addingTimeInterval(60))
+        let recast = await casts.events.dropFirst(before)
+        #expect(recast.count == 5)
+        #expect(
+            recast.allSatisfy {
+                $0.payload["subject_id"] == .string(CalendarFacts.entityID(for: wanted).rawValue)
+                    && $0.payload["value"] != .null
+            })
+        // Once the world has them, nothing more.
+        let whole = WorldMirror { prefix in
+            try [
+                "calendar.title", "calendar.when", "calendar.starts_at", "calendar.ends_at",
+                "calendar.calendar",
+            ]
+            .map { predicate in
+                try Fact(
+                    subjectID: CalendarFacts.entityID(for: wanted), predicate: predicate,
+                    value: .string("x"), epistemic: EpistemicState(type: .reported, confidence: 1),
+                    validFrom: now, derivedFrom: [],
+                    producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+            }.filter { $0.predicate.hasPrefix(prefix) }
+        }
+        let settled = CalendarSource(
+            directory: directory, zone: pacific, allowed: nil,
+            read: { _, _, _ in [wanted] }, resolver: { resolver }, mirror: whole
+        ) { await casts.note($0) }
+        let quiet = await casts.events.count
+        await settled.poll(now: now.addingTimeInterval(120))
+        #expect(await casts.events.count == quiet)
         // A read that finds nothing takes nothing back: the world is not wrong because this
         // Mac cannot see.
         let blind = Casts()

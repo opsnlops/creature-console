@@ -273,10 +273,13 @@ the hour.
 - **Sent to the world:** the last fifty facts, as `subject · predicate = value`. Never the
   sources.
 
-## The world, read back (`0.11.1`)
+## The world, read back (`0.11.1`; both ways since `0.11.3`)
 
 A source's ledger is the Bridge's memory of what it cast; the world is the truth it must
-match. When the two part - a Bridge moved to another Mac whose ledger never cast what the old
+match - in both directions. An event the calendars have whose facts the world lacks is cast
+again whatever the ledger remembers (`0.11.3`: the ghost sweep's first night took the
+calendar down, and the ledger, remembering it had cast everything, would never have put it
+back). When the two part - a Bridge moved to another Mac whose ledger never cast what the old
 one did, a ledger lost - a deleted event would linger, because nothing knew to take it back.
 April deleted tomorrow's bloodwork; the laptop's ledger had never cast it (cottontail's
 Bridge had), and the world kept announcing it. So on every poll the calendar and reminders

@@ -118,16 +118,19 @@ actor CalendarSource {
                 wanted[item.identifier] = CalendarFacts.facts(
                     from: item, resolver: resolver, zone: zone)
             }
-            var cast = await ledger.reconcile(wanted, now: now, cast: cast)
-            // And the world's side of it: an event the world still holds inside the window
-            // that the calendars no longer have is taken back, ledger or no ledger - but only
-            // by a source that can see. A read that found nothing at all (no calendar
-            // allowed by that name here, an account not on this Mac) says nothing about the
-            // world; on 2026-09-17 it said everything was a ghost and took the calendar down.
+            // The world's side of it, both ways: an event the world lacks is cast again
+            // whatever this ledger remembers, and an event the world still holds inside the
+            // window that the calendars no longer have is taken back, ledger or no ledger -
+            // but only by a source that can see. A read that found nothing at all (no
+            // calendar allowed by that name here, an account not on this Mac) says nothing
+            // about the world; on 2026-09-17 it said everything was a ghost and took the
+            // calendar down.
+            var held: [EntityID: Set<String>]?
+            var ghosts: [EntityID: [String]] = [:]
             if let mirror, !items.isEmpty {
                 let from = now.addingTimeInterval(-Self.daysBack * 86_400)
                 let to = now.addingTimeInterval(Self.daysAhead * 86_400)
-                let ghosts = try await mirror.ghosts(
+                let mirrored = try await mirror.heldAndGhosts(
                     prefix: "calendar.", wanted: Set(wanted.values.map(\.entityID))
                 ) { _, facts in
                     guard
@@ -137,8 +140,11 @@ actor CalendarSource {
                     else { return false }
                     return starts >= from && starts <= to
                 }
-                cast += await ledger.retractGhosts(ghosts, now: now, cast: self.cast)
+                held = mirrored.held
+                ghosts = mirrored.ghosts
             }
+            var cast = await ledger.reconcile(wanted, now: now, held: held, cast: cast)
+            cast += await ledger.retractGhosts(ghosts, now: now, cast: self.cast)
             let linked = wanted.values.filter { $0.facts["calendar.with"] != nil }.count
             status = SourceStatus(
                 state: .on, lastRunAt: now,

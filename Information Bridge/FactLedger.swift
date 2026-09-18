@@ -26,6 +26,8 @@ actor FactLedger {
 
     init(source: String, directory: URL) {
         self.source = source
+        // A ledger that cannot be written is a Bridge that says it all again next start.
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         file = directory.appending(path: "\(source)-ledger.json")
         if let data = try? Data(contentsOf: file),
             let saved = try? WorldJSON.makeDecoder().decode([String: Entry].self, from: data)
@@ -39,9 +41,10 @@ actor FactLedger {
     /// facts were cast. A cast that fails leaves the ledger as it was for that fact, so it is
     /// tried again next time. With `keepingMissing`, items not in `wanted` are left alone - a
     /// source part-way through reading everything again has not yet got to them.
-    func reconcile(_ wanted: [String: Wanted], now: Date, keepingMissing: Bool = false, cast: Cast)
-        async -> Int
-    {
+    func reconcile(
+        _ wanted: [String: Wanted], now: Date, keepingMissing: Bool = false,
+        held: [EntityID: Set<String>]? = nil, cast: Cast
+    ) async -> Int {
         var count = 0
         for (item, want) in wanted {
             if let had = entries[item], had.entityID != want.entityID {
@@ -54,7 +57,11 @@ actor FactLedger {
                 entries[item] = nil
             }
             let had = entries[item]?.facts ?? [:]
-            for (predicate, value) in want.facts where had[predicate] != value {
+            // A fact the world does not hold is cast again whatever this ledger remembers:
+            // the world is the truth the ledger must match, in both directions.
+            let missing = held.map { $0[want.entityID] ?? [] }
+            for (predicate, value) in want.facts
+            where had[predicate] != value || missing.map({ !$0.contains(predicate) }) == true {
                 if await send(
                     want.entityID, predicate, value, validUntil: want.validUntil, item: item,
                     now: now, cast: cast)

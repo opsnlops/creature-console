@@ -93,13 +93,17 @@ actor RemindersSource {
             for item in items {
                 wanted[item.identifier] = ReminderFacts.facts(from: item, zone: zone)
             }
-            var cast = await ledger.reconcile(wanted, now: now, cast: cast)
-            // The world's ghosts, only from a source that saw something.
+            // The world, both ways, only from a source that saw something.
+            var held: [EntityID: Set<String>]?
+            var ghosts: [EntityID: [String]] = [:]
             if let mirror, !items.isEmpty {
-                let ghosts = try await mirror.ghosts(
+                let mirrored = try await mirror.heldAndGhosts(
                     prefix: "reminder.", wanted: Set(wanted.values.map(\.entityID)))
-                cast += await ledger.retractGhosts(ghosts, now: now, cast: self.cast)
+                held = mirrored.held
+                ghosts = mirrored.ghosts
             }
+            var cast = await ledger.reconcile(wanted, now: now, held: held, cast: cast)
+            cast += await ledger.retractGhosts(ghosts, now: now, cast: self.cast)
             let open = items.filter { !$0.isCompleted }.count
             let due = items.filter { !$0.isCompleted && ($0.due.map { $0 <= now } ?? false) }.count
             status = SourceStatus(

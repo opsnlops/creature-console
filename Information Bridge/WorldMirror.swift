@@ -29,6 +29,32 @@ struct WorldMirror: Sendable {
         }
     }
 
+    /// What the world holds under `prefix`, by entity: the predicates each carries.
+    func held(prefix: String) async throws -> [EntityID: Set<String>] {
+        Dictionary(grouping: try await read(prefix), by: \.subjectID).mapValues {
+            Set($0.map(\.predicate))
+        }
+    }
+
+    /// The same, and the ghosts among them: entities the source does not want, keyed by
+    /// entity with the predicates each carries. `keep` says which entities are the source's
+    /// business at all (a calendar reads a window; an event outside it is not a ghost).
+    func heldAndGhosts(
+        prefix: String, wanted: Set<EntityID>, keep: (EntityID, [Fact]) -> Bool = { _, _ in true }
+    ) async throws -> (held: [EntityID: Set<String>], ghosts: [EntityID: [String]]) {
+        let facts = try await read(prefix)
+        var held: [EntityID: Set<String>] = [:]
+        var ghosts: [EntityID: [String]] = [:]
+        for (entity, entityFacts) in Dictionary(grouping: facts, by: \.subjectID) {
+            held[entity] = Set(entityFacts.map(\.predicate))
+            if !wanted.contains(entity) && keep(entity, entityFacts) {
+                ghosts[entity] = entityFacts.map(\.predicate).filter { $0.hasPrefix(prefix) }
+                    .sorted()
+            }
+        }
+        return (held, ghosts)
+    }
+
     /// The facts under `prefix` on entities the source does not want - ghosts - keyed by
     /// entity, with the predicates each carries. `keep` says which entities are the source's
     /// business at all (a calendar reads a window; an event outside it is not a ghost).
