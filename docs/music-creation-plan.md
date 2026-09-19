@@ -130,7 +130,7 @@ New folder `Sources/Creature Console/View/Music/`:
 Audition and playback code moves with the panel unchanged. Candidates stay
 session state; promotion remains the explicit commit point.
 
-### Keep-the-opening semantics
+### Keep-the-opening semantics (phase 1; superseded by the piece model in phase 2)
 
 Given the take's plan and a keep point `k` ms: chunks whose span ends at or
 before `k` are folded into one audio-reference chunk `[0, k)`; a chunk that
@@ -157,3 +157,98 @@ Console 2.55.0 → 2.56.0 (feature), CLI tools 2.77.5 → 2.78.0 in lockstep,
 
 - Dialog-free music generation (server feature).
 - Persisting candidates across launches (needs a server list endpoint).
+
+---
+
+# Phase 2–4: refine, don't re-roll; a library; pick an existing piece (console #199, server #202)
+
+April, 2026-09-18, on seeing the native ElevenLabs editor: "What the native one
+does is allow you to refine the music. It doesn't just re-generate it." And:
+"It would be nice if I could play around with a piece of music in the big
+editor, and then when I'm creating a dialog be able to select one that's
+already been created (in addition to making a new one)."
+
+## The finding that makes it possible
+
+An audio-reference chunk comes back **identical** to its source, up to MP3
+re-encoding. Measured on prod (candidate `8ae6ad84…` built from `22ae492b…`):
+the referenced 0–6.76 s had sample correlation 0.999 at 0 ms lag; the freshly
+composed tail, conditioned on the source with the same seed, 0.72. The "close,
+not sample-exact" caveat above is wrong for this path (server #200 told). So:
+
+- **Refine in place is real.** Edit one section; only that section is
+  composed; every other section is referenced and comes back the same.
+- **A library piece can be fitted to a dialog with no new server endpoint**:
+  a dialog-bound generation whose plan references the piece is a faithful
+  copy, promoted through the existing path, keeping the #136 provenance rule.
+
+## The model (Common, done)
+
+`MusicPiece` = `songId` + `durationMilliseconds` + `[MusicSection]`. A section
+holds its editable `content` (a generation chunk), the `committedContent` its
+audio was made from, and the `span` of that audio in the current song. A
+section is dirty when content ≠ committed (length counts) or it has no audio.
+
+- `refinementPlan(conditionStrength:)`: clean sections → audio references to
+  their span; dirty sections → generation chunks conditioned on the current
+  song (whole song, capped at one chunk's maximum), unless the section carries
+  its own conditioning. A piece with no audio composes everything.
+- `committed(songId:durationMilliseconds:)` after a successful refinement:
+  every section's audio now lives at its offset in the new song.
+- `reverted()`, `insertSection`, `removeSection`, `moveSection`,
+  `splitSection` (a clean section splits into two clean sections — the
+  reference is just trimmed), global styles (the styles every section shares;
+  add/remove propagates), names via the `[Name]` prefix.
+- `MusicPiece(songId:durationMilliseconds:plan:)` turns a generated take into
+  a piece. A plan chunk that was itself an audio reference has no content on
+  the server; it becomes "Kept from an earlier take" until renamed or
+  rewritten — which is why saved pieces carry their sections (phase 3).
+
+## Phase 2 — the big editor refines (console, this branch)
+
+`MusicCreationView` becomes an editor over a *current piece* rather than a
+generator of candidates:
+
+- **Starting a piece**: Describe (prompt → generate, or draft a plan) or start
+  from an empty plan. The first take becomes the current piece.
+- **Timeline**: sections as proportional blocks over the piece's waveform
+  (decoded locally from the candidate MP3 with AVAudioFile, peak bins), a
+  playhead, click-to-seek, play-from-section, the dialog's length as a marker
+  when the piece is dialog-bound. Dirty sections are marked. Global style
+  chips above; a section inspector below (name, directions, length, lean
+  into / avoid, adherence, sounds-like).
+- **Apply** builds `refinementPlan()`, validates, generates (plan mode, same
+  seed by default), and on completion commits the piece and adds the take to
+  **Versions** (what candidates were): play, make current, accept for render.
+  **Revert** discards edits. Nothing regenerates until Apply.
+- Playback with a position needs a small `MusicPiecePlayer`
+  (AVAudioPlayer + observed time) that borrows `AudioManager`'s session
+  handling; nothing in the app today exposes seek or position.
+- The dialog editor embeds the same view; the sidebar Music page shows it
+  per dialog until phase 4 gives it a library.
+
+## Phase 3 — the library (creature-server)
+
+Design in `creature-server/docs/music-library-plan.md`. In one line: dialog-free
+generation (`POST /api/v1/music/generate`, length from the request), saved
+pieces with versions (`POST …/music/generated/{id}/save`, `GET/PUT/DELETE
+/api/v1/music[/{id}]`), permanent WAVs under `music/`, a `music-piece-list`
+cache invalidation, and each version carrying the console's `sections` so a
+piece reopens editable.
+
+## Phase 4 — library in the console; pick an existing piece
+
+- Sidebar **Music**: *Library* (SwiftData mirror `MusicPieceModel`, importer,
+  `music-piece-list` invalidation, list with play/duration/versions) and *New
+  Piece* (the editor with an explicit length, no dialog). Opening a piece
+  loads its current version's sections and song into the editor; Apply saves
+  a new version; versions are the server's list.
+- Dialog editor's music step gains **Use an existing piece**: pick from the
+  library; if the piece covers the dialog, the plan is one audio reference of
+  its current song (music may run past the dialog); if shorter, a conditioned
+  generation chunk extends it. Generate, listen, accept — the existing path.
+  **Save to library** on any dialog take or accepted music (same save
+  endpoint; the cache is shared).
+- Risk: song ids live at ElevenLabs. If one is gone, references fail; the
+  fallback is composing the piece again from its saved sections (no
+  conditioning). The UI must say which happened.

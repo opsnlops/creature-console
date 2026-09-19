@@ -125,100 +125,13 @@ struct MusicCompositionPlanTests {
         #expect(problems.contains { $0.contains("the most the server allows is 600 s") })
     }
 
-    @Test("keeping the opening references the kept span and trims the straddling section")
-    func keepingOpening() throws {
-        let plan = MusicCompositionPlan(chunks: [
-            generation("Intro", 4_000, styles: ["strings"]),
-            generation("Verse", 10_000, styles: ["brass"]),
-            generation("Outro", 6_000),
-        ])
-        let kept = try #require(plan.keepingOpening(upTo: 9_000, of: "song-7"))
-        #expect(kept.totalDurationMilliseconds == plan.totalDurationMilliseconds)
-        #expect(kept.chunks.count == 3)
-        guard case .audioReference(let range) = kept.chunks[0] else {
-            Issue.record("expected an audio reference first")
-            return
-        }
-        #expect(
-            range == MusicAudioRange(songId: "song-7", startMilliseconds: 0, endMilliseconds: 9_000)
-        )
-        guard case .generation(let tail) = kept.chunks[1] else {
-            Issue.record("expected the trimmed verse second")
-            return
-        }
-        #expect(tail.text == "Verse")
-        #expect(tail.positiveStyles == ["brass"])
-        #expect(tail.durationMilliseconds == 5_000)
-        #expect(kept.chunks[2] == plan.chunks[2])
-    }
-
-    @Test("keeping the opening on a section boundary drops nothing and splits nothing")
-    func keepingOpeningOnBoundary() throws {
-        let plan = MusicCompositionPlan(chunks: [generation("A", 4_000), generation("B", 4_000)])
-        let kept = try #require(plan.keepingOpening(upTo: 4_000, of: "s"))
-        #expect(kept.chunks.count == 2)
-        #expect(kept.chunks[0].isAudioReference)
-        #expect(kept.chunks[1] == plan.chunks[1])
-    }
-
-    @Test("keeping the opening refuses keep points that leave a too-short piece")
-    func keepingOpeningLimits() {
-        let plan = MusicCompositionPlan(chunks: [generation("A", 4_000), generation("B", 4_000)])
-        #expect(plan.keepingOpening(upTo: 2_000, of: "s") == nil)  // reference too short
-        #expect(plan.keepingOpening(upTo: 6_000, of: "s") == nil)  // tail of B too short
-        #expect(plan.keepingOpening(upTo: 8_000, of: "s") == nil)  // nothing left to make
-    }
-
-    @Test("a long kept span is split into legal reference pieces")
-    func keepingOpeningSplitsLongSpans() throws {
-        let plan = MusicCompositionPlan(chunks: [
-            generation("A", 120_000), generation("B", 120_000), generation("C", 20_000),
-        ])
-        let kept = try #require(plan.keepingOpening(upTo: 240_000, of: "s"))
-        let references = kept.chunks.filter(\.isAudioReference)
-        #expect(references.count == 2)
-        #expect(references.allSatisfy { $0.durationMilliseconds == 120_000 })
-        #expect(kept.totalDurationMilliseconds == 260_000)
-        #expect(kept.validationProblems(dialogDurationMilliseconds: nil).isEmpty)
-    }
-
-    @Test("keeping the opening trims a referenced span from a prior take")
-    func keepingOpeningTrimsReferences() throws {
-        let plan = MusicCompositionPlan(chunks: [
-            .audioReference(
-                MusicAudioRange(songId: "old", startMilliseconds: 2_000, endMilliseconds: 12_000)),
-            generation("B", 5_000),
-        ])
-        let kept = try #require(plan.keepingOpening(upTo: 4_000, of: "new"))
-        #expect(kept.chunks.count == 3)
-        guard case .audioReference(let trimmed) = kept.chunks[1] else {
-            Issue.record("expected the old reference, trimmed")
-            return
-        }
-        #expect(
-            trimmed
-                == MusicAudioRange(songId: "old", startMilliseconds: 6_000, endMilliseconds: 12_000)
-        )
-    }
-
-    @Test("conditioning applies to generation sections only and can be cleared")
-    func conditioning() {
-        let plan = MusicCompositionPlan(chunks: [
-            .audioReference(
-                MusicAudioRange(songId: "s", startMilliseconds: 0, endMilliseconds: 4_000)),
-            generation("B", 5_000),
-        ])
+    @Test("a reference span is the whole take capped at one section's maximum")
+    func referenceSpan() {
         let reference = MusicAudioRange.referenceSpan(of: "s", durationMilliseconds: 500_000)
         #expect(reference.endMilliseconds == 120_000)
-        let conditioned = plan.conditioned(on: reference, strength: .medium)
-        #expect(conditioned.chunks[0] == plan.chunks[0])
-        guard case .generation(let chunk) = conditioned.chunks[1] else {
-            Issue.record("expected a generation chunk")
-            return
-        }
-        #expect(chunk.conditioningReference == reference)
-        #expect(chunk.conditionStrength == .medium)
-        #expect(conditioned.unconditioned() == plan)
+        #expect(
+            MusicAudioRange.referenceSpan(of: "s", durationMilliseconds: 9_000).endMilliseconds
+                == 9_000)
     }
 
     @Test("chunk start offsets accumulate")

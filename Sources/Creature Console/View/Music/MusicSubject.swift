@@ -35,19 +35,23 @@ struct MusicSubject: Equatable {
     var canCompose: Bool { unavailableReason == nil }
 }
 
-/// A generated take held in session state. Cheap to make, cheap to discard; promotion is the
-/// explicit commit point.
+/// A generated take held in session state — a *version* of the piece. Cheap to make, cheap to
+/// discard; promotion is the explicit commit point.
 struct DialogMusicCandidate: Identifiable, Equatable {
     let result: DialogMusicGenerationResult
     let sourceCacheKey: String
     let sourceDialogGenerationId: DialogGenerationIdentifier
-    /// Ordinal within this session, for "Take 3" labels that survive re-sorting.
+    /// Ordinal within this session, for "Version 3" labels that survive re-sorting.
     let ordinal: Int
+    /// The piece as it was when this version was made, with every section committed to it, so
+    /// making it current again restores the editable sections (the server's plan alone loses
+    /// the content of referenced sections).
+    let piece: MusicPiece?
     var isExpired = false
 
     var id: UUID { result.musicGenerationId }
 
-    var label: String { "Take \(ordinal)" }
+    var label: String { "Version \(ordinal)" }
 
     /// A candidate is current iff it was composed against the *accepted* voice. Comparing to the
     /// last-auditioned take made warnings flap during A/B listening, and comparing to the
@@ -59,28 +63,13 @@ struct DialogMusicCandidate: Identifiable, Equatable {
             && sourceDialogGenerationId == acceptedVoice.generationId
     }
 
-    /// The take as something a later plan can point at: only when ElevenLabs kept it.
-    var reference: MusicReferenceTake? {
-        guard let recipe = result.recipe, recipe.canBeReferenced else { return nil }
-        return MusicReferenceTake(
-            label: label, songId: recipe.songId,
-            durationMilliseconds: result.durationMilliseconds,
-            plan: recipe.compositionPlan)
-    }
-}
-
-/// A prior take a plan can build on: keep its opening, or sound like it.
-struct MusicReferenceTake: Equatable, Identifiable {
-    var id: String { songId }
-    var label: String
-    var songId: String
-    var durationMilliseconds: Int64
-    /// The plan ElevenLabs used for it, when the server recorded one. Keep-the-opening needs
-    /// it to know which sections to carry over.
-    var plan: MusicCompositionPlan?
-
-    /// The longest span a single section may sound like.
-    var conditioningSpan: MusicAudioRange {
-        MusicAudioRange.referenceSpan(of: songId, durationMilliseconds: durationMilliseconds)
+    /// The version as an editable piece: the session snapshot when there is one, else rebuilt
+    /// from the plan the server used.
+    var editablePiece: MusicPiece? {
+        if let piece { return piece }
+        guard let recipe = result.recipe, recipe.canBeReferenced, let plan = recipe.compositionPlan
+        else { return nil }
+        return MusicPiece(
+            songId: recipe.songId, durationMilliseconds: result.durationMilliseconds, plan: plan)
     }
 }

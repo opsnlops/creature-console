@@ -1,11 +1,12 @@
 import Common
 import SwiftUI
 
-/// One generated take: how it was made, and everything that can be done with it next —
-/// listen, accept, or use it as the starting point for the next take.
+/// One version of the piece: how it was made, and what can be done with it — listen against
+/// the dialog, accept it for the render, or make it the piece being edited.
 struct MusicCandidateCard: View {
     let candidate: DialogMusicCandidate
     let isCurrent: Bool
+    let isEditing: Bool
     let isAccepted: Bool
     let hasAcceptedMusic: Bool
     let canPromote: Bool
@@ -13,9 +14,7 @@ struct MusicCandidateCard: View {
 
     let onAudition: () -> Void
     let onPromote: () -> Void
-    let onEditPlan: (MusicReferenceTake, DialogMusicRecipe) -> Void
-    let onKeepOpening: (MusicReferenceTake) -> Void
-    let onSoundLike: (MusicReferenceTake) -> Void
+    let onMakeCurrent: () -> Void
 
     @State private var showsPlan = false
 
@@ -25,6 +24,13 @@ struct MusicCandidateCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text(candidate.label).font(.subheadline.bold())
+                if isEditing {
+                    Text("editing")
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .glassEffect(.regular.tint(.accentColor.opacity(0.3)), in: .capsule)
+                }
                 Text(headline)
                     .font(.subheadline)
                     .lineLimit(2)
@@ -46,7 +52,7 @@ struct MusicCandidateCard: View {
                     .foregroundStyle(.secondary)
                 if let plan = recipe.compositionPlan {
                     DisclosureGroup(isExpanded: $showsPlan) {
-                        MusicPlanSummary(plan: plan, reference: candidate.reference)
+                        MusicPlanSummary(plan: plan, songId: recipe.songId)
                             .padding(.top, 4)
                     } label: {
                         Text("Plan the server used • \(plan.chunks.count) section(s)")
@@ -58,14 +64,14 @@ struct MusicCandidateCard: View {
 
             if candidate.isExpired {
                 Label(
-                    "This temporary candidate expired. Generate it again.",
+                    "This temporary version expired on the server. Apply again to make a new one.",
                     systemImage: "clock.badge.exclamationmark"
                 )
                 .font(.caption)
                 .foregroundStyle(.orange)
             } else if !isCurrent {
                 Label(
-                    "Made for a different voice take than the accepted one — its timing won't match. Generate a new candidate.",
+                    "Made for a different voice take than the accepted one — its timing won't match.",
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(.caption)
@@ -87,17 +93,29 @@ struct MusicCandidateCard: View {
                     .disabled(candidate.isExpired || !isCurrent || !canPromote)
                 }
                 Spacer()
-                nextTakeMenu
+                if !isEditing {
+                    Button {
+                        onMakeCurrent()
+                    } label: {
+                        Label("Edit This Version", systemImage: "slider.horizontal.3")
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(candidate.isExpired || candidate.editablePiece == nil)
+                    .help(
+                        candidate.editablePiece == nil
+                            ? "This version wasn't kept at ElevenLabs, so it can't be refined."
+                            : "Make this version the piece being edited")
+                }
             }
         }
         .padding(12)
-        .panelCard(cornerRadius: 10, tint: isAccepted ? .green : nil)
+        .panelCard(cornerRadius: 10, tint: isAccepted ? .green : (isEditing ? .accentColor : nil))
     }
 
     private var headline: String {
         if let recipe, let title = recipe.songTitle { return title }
         if !candidate.result.prompt.isEmpty { return candidate.result.prompt }
-        return "Composed from a plan"
+        return "Composed from the piece's sections"
     }
 
     private func recipeLine(_ recipe: DialogMusicRecipe) -> String {
@@ -116,50 +134,13 @@ struct MusicCandidateCard: View {
         if !recipe.genres.isEmpty { parts.append(recipe.genres.joined(separator: ", ")) }
         return parts.joined(separator: " • ")
     }
-
-    /// Where iteration starts. Every action here builds on this take rather than re-rolling.
-    @ViewBuilder
-    private var nextTakeMenu: some View {
-        if let reference = candidate.reference, let recipe, !candidate.isExpired {
-            Menu {
-                if reference.plan != nil {
-                    Button {
-                        onEditPlan(reference, recipe)
-                    } label: {
-                        Label("Edit This Plan", systemImage: "slider.horizontal.3")
-                    }
-                    Button {
-                        onKeepOpening(reference)
-                    } label: {
-                        Label("Keep the Opening…", systemImage: "scissors")
-                    }
-                }
-                Button {
-                    onSoundLike(reference)
-                } label: {
-                    Label("Sound Like This Take", systemImage: "ear.badge.waveform")
-                }
-            } label: {
-                Label("Next Take", systemImage: "arrow.turn.down.right")
-            }
-            .menuStyle(.button)
-            .buttonStyle(.glass)
-            .fixedSize()
-        } else if recipe != nil {
-            Text("Not kept for reference")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .help(
-                    "This take was generated without store_for_inpainting, so later takes can't build on it."
-                )
-        }
-    }
 }
 
 /// Read-only rendering of a plan, section by section.
 struct MusicPlanSummary: View {
     let plan: MusicCompositionPlan
-    let reference: MusicReferenceTake?
+    /// The song this plan produced, so references into an earlier version are told apart.
+    let songId: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -174,7 +155,7 @@ struct MusicPlanSummary: View {
                     switch chunk {
                     case .audioReference(let range):
                         Label(
-                            "Re-rendered \(TimeHelper.formatDuration(Double(range.startMilliseconds) / 1_000))–\(TimeHelper.formatDuration(Double(range.endMilliseconds) / 1_000)) of \(reference?.songId == range.songId ? (reference?.label ?? "a prior take") : "a prior take")",
+                            "Kept \(TimeHelper.formatDuration(Double(range.startMilliseconds) / 1_000))–\(TimeHelper.formatDuration(Double(range.endMilliseconds) / 1_000)) of the previous version",
                             systemImage: "waveform.badge.magnifyingglass"
                         )
                         .font(.caption)
@@ -190,7 +171,7 @@ struct MusicPlanSummary: View {
                             }
                             if let conditioning = generation.conditioningReference {
                                 Text(
-                                    "sounds like \(conditioning.songId == reference?.songId ? (reference?.label ?? "a prior take") : "a prior take") (\(generation.conditionStrength?.displayName.lowercased() ?? "medium"))"
+                                    "sounds like \(conditioning.songId == songId ? "this version" : "the previous version") (\(generation.conditionStrength?.displayName.lowercased() ?? "medium"))"
                                 )
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)

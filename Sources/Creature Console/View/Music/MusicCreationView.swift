@@ -4,15 +4,14 @@ import Foundation
 import OSLog
 import SwiftUI
 
-/// The music composer. Describe a piece and let the server plan it, or own the plan section by
-/// section; generate takes, listen to them against the dialog, and build the next take on the
-/// last one — keep its opening, sound like it, edit its plan — until it's right. Then accept it
-/// for the final render.
+/// The music editor. Start a piece from a description (or an empty plan), then refine it in
+/// place: edit a section's name, directions, styles or length, add or split sections, and
+/// **Apply** — only the changed sections are composed, every other section comes back
+/// identical, and the result becomes the current piece. Every Apply is kept as a version;
+/// accepting one for the final render is the explicit commit point.
 ///
 /// Music is deliberately downstream of a saved, full-dialog voice take (see `MusicSubject`).
-/// Candidates live in session state so experimentation is cheap; promotion is the explicit
-/// commit point. The same view is embedded by the dialog editor and shown by the sidebar's
-/// Music workspace.
+/// The same view is embedded by the dialog editor and shown by the sidebar's Music workspace.
 struct MusicCreationView: View {
     let subject: MusicSubject
     /// Canonical script handed back by the server after promote / clear, for the owner to merge.
@@ -27,26 +26,27 @@ struct MusicCreationView: View {
     private let server = CreatureServerClient.shared
     private let audioManager = AudioManager.shared
 
-    private enum ComposerMode: String, CaseIterable, Identifiable {
-        case describe
-        case plan
-        var id: String { rawValue }
-    }
+    // The piece
+    @State private var piece = MusicPiece.blank()
+    @State private var waveform = MusicWaveform.empty
+    @State private var player = MusicPiecePlayer()
+    /// Which version the piece's audio came from, if any.
+    @State private var editingCandidateID: UUID?
+    /// The piece as it was when Apply was pressed; committed when the job completes.
+    @State private var pendingPiece: MusicPiece?
+    /// Learned from the first plan draft or version; the piece must cover it.
+    @State private var dialogDurationMilliseconds: Int64?
 
-    // Composer
-    @State private var composerMode: ComposerMode = .describe
+    // Starting a piece
     @State private var prompt = ""
     @State private var generationMode: DialogMusicGenerationMode = .track
     @State private var durationExtensionSeconds = 0.0
     @State private var allowVocals = false
+    @State private var isDrafting = false
+
+    // Shared knobs
     @State private var finetune: MusicFinetuneSelection?
     @State private var seedText = ""
-    @State private var plan = MusicCompositionPlan(chunks: [])
-    /// The take the current plan builds on, for section labels and "sound like" defaults.
-    @State private var referenceTake: MusicReferenceTake?
-    /// Learned from the first plan draft or candidate; the plan must cover it.
-    @State private var dialogDurationMilliseconds: Int64?
-    @State private var isDrafting = false
 
     // Generation
     @State private var candidates: [DialogMusicCandidate] = []
@@ -56,21 +56,17 @@ struct MusicCreationView: View {
     @State private var jobSourceVoice: DialogAcceptedVoice?
     @State private var isSubmitting = false
 
-    // Keep-the-opening sheet
-    @State private var keepSource: MusicReferenceTake?
-    @State private var keepSeconds = 0.0
-
-    // Listening
+    // Listening to a version against the dialog
     @State private var isAuditioning = false
     @State private var musicVolume = 0.35
     @State private var auditionToken = UUID()
-    @State private var musicPlaybackToken = UUID()
-    @State private var isPlayingAcceptedMusic = false
+    @State private var audioLoadToken = UUID()
 
     // Promotion / feedback
     @State private var candidateToPromote: DialogMusicCandidate?
     @State private var showReplacementConfirmation = false
     @State private var showClearConfirmation = false
+    @State private var showStartOverConfirmation = false
     @State private var soundToShare: String?
     @State private var statusMessage: String?
     @State private var errorAlert: ErrorAlert?
@@ -99,16 +95,16 @@ struct MusicCreationView: View {
         seedText.trimmingCharacters(in: .whitespaces).isEmpty || seed != nil
     }
 
-    private var planProblems: [String] {
-        plan.validationProblems(dialogDurationMilliseconds: dialogDurationMilliseconds)
+    private var hasPiece: Bool { !piece.sections.isEmpty }
+
+    private var applyProblems: [String] {
+        piece.refinementPlan().validationProblems(
+            dialogDurationMilliseconds: dialogDurationMilliseconds)
     }
 
-    private var canGenerate: Bool {
-        guard subject.canCompose, !isBusy else { return false }
-        switch composerMode {
-        case .describe: return promptIsValid
-        case .plan: return planProblems.isEmpty && seedIsValid
-        }
+    private var canApply: Bool {
+        subject.canCompose && !isBusy && hasPiece && applyProblems.isEmpty && seedIsValid
+            && (piece.isDirty || !piece.hasAudio)
     }
 
     var body: some View {
@@ -127,7 +123,11 @@ struct MusicCreationView: View {
                 acceptedMusicCard(backgroundMusic)
             }
 
-            composer
+            if hasPiece {
+                pieceEditor
+            } else {
+                starter
+            }
 
             if let reason = subject.unavailableReason {
                 Label(reason, systemImage: "info.circle")
@@ -135,38 +135,25 @@ struct MusicCreationView: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack {
-                Button {
-                    generate()
-                } label: {
-                    Label("Generate Take", systemImage: "music.note.list")
-                }
-                .buttonStyle(.glassProminent)
-                .disabled(!canGenerate)
-
-                if let statusMessage {
-                    Text(statusMessage).font(.caption).foregroundStyle(.secondary)
-                }
+            if let statusMessage {
+                Text(statusMessage).font(.caption).foregroundStyle(.secondary)
             }
 
             if !candidates.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Takes").font(.headline)
+                    Text("Versions").font(.headline)
                     ForEach(candidates) { candidate in
                         MusicCandidateCard(
                             candidate: candidate,
                             isCurrent: candidate.matches(subject.acceptedVoice),
+                            isEditing: candidate.id == editingCandidateID,
                             isAccepted: subject.backgroundMusic?.generationId == candidate.id,
                             hasAcceptedMusic: subject.backgroundMusic != nil,
                             canPromote: !subject.hasUnsavedChanges,
                             isAuditioning: isAuditioning,
                             onAudition: { audition(candidate) },
                             onPromote: { requestPromotion(candidate) },
-                            onEditPlan: { reference, recipe in
-                                load(recipe: recipe, from: reference)
-                            },
-                            onKeepOpening: { reference in beginKeepingOpening(of: reference) },
-                            onSoundLike: { reference in soundLike(reference) })
+                            onMakeCurrent: { makeCurrent(candidate) })
                     }
                 }
             }
@@ -191,7 +178,7 @@ struct MusicCreationView: View {
         .watchJob(activeJobId) { info in
             observedJob = info
             let percent = Int((info.progress ?? 0) * 100)
-            statusMessage = "Generating music… \(percent)%"
+            statusMessage = "Composing… \(percent)%"
         } onTerminal: { info in
             observedJob = info
             finishGeneration(info)
@@ -209,14 +196,11 @@ struct MusicCreationView: View {
         }
         .onDisappear {
             auditionToken = UUID()
-            musicPlaybackToken = UUID()
+            audioLoadToken = UUID()
             isAuditioning = false
-            isPlayingAcceptedMusic = false
             audioManager.stopDialogAudition()
             audioManager.stopURLPlayback()
-        }
-        .sheet(item: $keepSource) { source in
-            keepOpeningSheet(source)
+            player.unload()
         }
         .shareableSoundFlow(fileName: $soundToShare)
         .errorAlert($errorAlert)
@@ -229,7 +213,7 @@ struct MusicCreationView: View {
             }
             Button("Cancel", role: .cancel) { candidateToPromote = nil }
         } message: {
-            Text("The newly accepted candidate will be used by future final renders.")
+            Text("The newly accepted version will be used by future final renders.")
         }
         .confirmationDialog(
             "Remove accepted background music?", isPresented: $showClearConfirmation,
@@ -242,30 +226,22 @@ struct MusicCreationView: View {
                 "Future renders will contain dialog only. The generated sound file will be retained."
             )
         }
+        .confirmationDialog(
+            "Start a new piece?", isPresented: $showStartOverConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Start Over", role: .destructive) { startOver() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The sections being edited are discarded. Versions already made stay listed.")
+        }
     }
 
-    // MARK: - Composer
+    // MARK: - Starting a piece
 
     @ViewBuilder
-    private var composer: some View {
-        Picker("Compose by", selection: $composerMode) {
-            Text("Describe").tag(ComposerMode.describe)
-            Text("Plan").tag(ComposerMode.plan)
-        }
-        .pickerStyle(.segmented)
-
-        switch composerMode {
-        case .describe:
-            describeComposer
-        case .plan:
-            planComposer
-        }
-
-        commonControls
-    }
-
-    @ViewBuilder
-    private var describeComposer: some View {
+    private var starter: some View {
+        Text("Start a piece").font(.headline)
         TextField(
             "Describe the score, mood, instruments, and pacing…", text: $prompt,
             axis: .vertical
@@ -273,16 +249,6 @@ struct MusicCreationView: View {
         .textFieldStyle(.roundedBorder)
         .lineLimit(2...5)
         HStack {
-            Button {
-                draftPlan(from: nil)
-            } label: {
-                Label("Draft a Plan", systemImage: "list.bullet.rectangle")
-            }
-            .buttonStyle(.glass)
-            .disabled(!subject.canCompose || !promptIsValid || isBusy)
-            .help(
-                "Ask the server to turn this description into an editable, section-by-section plan sized to the dialog"
-            )
             Spacer()
             Text("\(trimmedPrompt.utf8.count)/\(DialogLimits.maxMusicPromptBytes) bytes")
                 .font(.caption2.monospacedDigit())
@@ -317,117 +283,102 @@ struct MusicCreationView: View {
         }
 
         Toggle("Let the birds sing (allow vocals)", isOn: $allowVocals)
+
+        MusicFinetunePicker(selection: $finetune)
+            .font(.callout)
+
+        HStack {
+            Button {
+                generateFirstTake()
+            } label: {
+                Label("Compose First Version", systemImage: "music.note.list")
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(!subject.canCompose || !promptIsValid || isBusy)
+            .help("Let the server plan and compose the whole piece from this description")
+
+            Button {
+                draftPlan()
+            } label: {
+                Label("Draft Sections First", systemImage: "list.bullet.rectangle")
+            }
+            .buttonStyle(.glass)
+            .disabled(!subject.canCompose || !promptIsValid || isBusy)
+            .help("Turn this description into sections you can edit before composing")
+
+            Button {
+                piece = MusicPiece.blank(sections: [
+                    MusicGenerationChunk(
+                        text: "[Intro]", durationMilliseconds: dialogDurationMilliseconds ?? 30_000)
+                ])
+                statusMessage = "Describe each section, then Compose."
+            } label: {
+                Label("Start Empty", systemImage: "plus")
+            }
+            .buttonStyle(.glass)
+            .disabled(isBusy)
+        }
     }
 
+    // MARK: - The piece
+
     @ViewBuilder
-    private var planComposer: some View {
-        if plan.chunks.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(
-                    "A plan is the piece section by section: what each part sounds like, how long it runs, and what it should lean into or avoid. Draft one from a description, start from a take's plan, or build it by hand."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                HStack {
-                    Button {
-                        composerMode = .describe
-                    } label: {
-                        Label("Describe It First", systemImage: "text.quote")
-                    }
-                    .buttonStyle(.glass)
-                    Button {
-                        plan = MusicCompositionPlan(chunks: [
-                            .generation(
-                                MusicGenerationChunk(
-                                    text: "",
-                                    durationMilliseconds: dialogDurationMilliseconds ?? 30_000))
-                        ])
-                    } label: {
-                        Label("Start Empty", systemImage: "plus")
-                    }
-                    .buttonStyle(.glass)
-                }
-            }
-        } else {
-            if let referenceTake {
-                HStack(spacing: 8) {
-                    Label(
-                        "Building on \(referenceTake.label)", systemImage: "arrow.turn.down.right"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    Spacer()
-                    if referenceTake.plan != nil {
-                        Button("Keep the Opening…") { beginKeepingOpening(of: referenceTake) }
-                            .buttonStyle(.borderless)
-                            .font(.caption)
-                    }
-                    Button("Sound Like It") { soundLike(referenceTake) }
-                        .buttonStyle(.borderless)
-                        .font(.caption)
-                    if plan.chunks.contains(where: {
-                        if case .generation(let chunk) = $0 {
-                            return chunk.conditioningReference != nil
-                        }
-                        return false
-                    }) {
-                        Button("Stop Sounding Like It") { plan = plan.unconditioned() }
-                            .buttonStyle(.borderless)
-                            .font(.caption)
-                    }
-                }
-            }
-            MusicPlanEditor(
-                plan: $plan, dialogDurationMilliseconds: dialogDurationMilliseconds,
-                referenceTake: referenceTake)
-            HStack {
-                TextField("Redraft this plan from a description…", text: $prompt, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(1...3)
-                Button {
-                    draftPlan(from: plan)
-                } label: {
-                    Label("Redraft", systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(.glass)
-                .disabled(!subject.canCompose || !promptIsValid || isBusy)
-                .help(
-                    "Ask the server for a fresh plan from this description, starting from the current one"
-                )
-            }
+    private var pieceEditor: some View {
+        MusicPieceEditor(
+            piece: $piece, waveform: waveform, player: player,
+            dialogDurationMilliseconds: dialogDurationMilliseconds)
+
+        HStack(alignment: .top, spacing: 16) {
+            MusicFinetunePicker(selection: $finetune)
             HStack {
                 Text("Seed")
                 TextField("random", text: $seedText)
                     .textFieldStyle(.roundedBorder)
-                    .frame(width: 120)
+                    .frame(width: 110)
                 if !seedIsValid {
-                    Text("0–\(DialogLimits.maxMusicSeed)")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                } else {
-                    Text("Reuse a seed to keep tweaks consistent between takes.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text("0–\(DialogLimits.maxMusicSeed)").foregroundStyle(.red)
                 }
-                Spacer()
-                Button("Clear Plan", role: .destructive) {
-                    plan = MusicCompositionPlan(chunks: [])
-                    referenceTake = nil
-                    seedText = ""
-                }
-                .buttonStyle(.borderless)
-                .font(.caption)
             }
             .font(.caption)
         }
+        .font(.callout)
+
+        HStack {
+            Button {
+                apply()
+            } label: {
+                Label(piece.hasAudio ? "Apply Changes" : "Compose", systemImage: "wand.and.stars")
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(!canApply)
+            .help(
+                piece.hasAudio
+                    ? "Compose only the changed sections; every other section stays exactly as it is"
+                    : "Compose every section")
+
+            Button("Revert") {
+                piece = piece.reverted()
+                statusMessage = "Edits discarded."
+            }
+            .buttonStyle(.glass)
+            .disabled(!piece.hasAudio || !piece.isDirty || isBusy)
+
+            Spacer()
+
+            Button("Start Over") { showStartOverConfirmation = true }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .disabled(isBusy)
+        }
     }
 
-    /// Always Music 2.5: there is no reason left to reach for Music 2. The recipe still names
-    /// the model an older take was made with.
-    @ViewBuilder
-    private var commonControls: some View {
-        MusicFinetunePicker(selection: $finetune)
-            .font(.callout)
+    private func startOver() {
+        player.unload()
+        waveform = .empty
+        piece = .blank()
+        editingCandidateID = nil
+        pendingPiece = nil
+        statusMessage = nil
     }
 
     // MARK: - Accepted music
@@ -441,12 +392,12 @@ struct MusicCreationView: View {
             Label("Accepted music", systemImage: "checkmark.seal.fill")
                 .foregroundStyle(.green)
                 .font(.headline)
-            Text(music.prompt.isEmpty ? "Composed from a plan" : music.prompt)
+            Text(music.prompt.isEmpty ? "Composed from sections" : music.prompt)
                 .font(.subheadline)
 
             if matchesVoice == false {
                 Label(
-                    "Composed against a different voice take than the accepted one — its timing may not match. Generate and accept a new candidate.",
+                    "Composed against a different voice take than the accepted one — its timing may not match. Compose and accept a new version.",
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(.caption)
@@ -473,21 +424,13 @@ struct MusicCreationView: View {
             HStack {
                 Button("Play with Dialog") { auditionAccepted(music) }
                     .disabled(subject.acceptedVoice == nil || isAuditioning)
-                Button(isPlayingAcceptedMusic ? "Stop Music" : "Play Music") {
-                    if isPlayingAcceptedMusic {
-                        stopAcceptedMusic()
-                    } else {
-                        playAcceptedMusic(music)
-                    }
-                }
-                .disabled(isAuditioning)
                 Button("Share MP3…") { soundToShare = music.soundFile }
                 Button {
-                    openRecipe(of: music)
+                    openAcceptedInEditor(music)
                 } label: {
-                    Label("Open Recipe", systemImage: "slider.horizontal.3")
+                    Label("Edit in Place", systemImage: "slider.horizontal.3")
                 }
-                .help("Load how this music was made into the composer, to iterate on it")
+                .help("Load the accepted music into the editor to refine it")
                 .disabled(isBusy)
             }
             Button("Remove Accepted Music", role: .destructive) {
@@ -501,117 +444,9 @@ struct MusicCreationView: View {
         .panelCard(cornerRadius: 10, tint: .green)
     }
 
-    // MARK: - Keep the opening
-
-    @ViewBuilder
-    private func keepOpeningSheet(_ source: MusicReferenceTake) -> some View {
-        let minimum = Double(DialogLimits.minMusicChunkMilliseconds) / 1_000
-        let maximum = max(minimum, Double(source.durationMilliseconds) / 1_000 - minimum)
-        let candidatePlan = source.plan?.keepingOpening(
-            upTo: Int64((keepSeconds * 1_000).rounded()), of: source.songId)
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Keep the opening of \(source.label)").font(.title3.bold())
-            Text(
-                "Everything up to this point is re-rendered from \(source.label); the rest is composed fresh from the same plan, which you can edit before generating. The kept part comes out close to the original, not sample-exact."
-            )
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            HStack {
-                Text("Keep the first")
-                Slider(value: $keepSeconds, in: minimum...maximum, step: 0.5)
-                Text(TimeHelper.formatDuration(keepSeconds))
-                    .monospacedDigit()
-                    .frame(width: 56, alignment: .trailing)
-            }
-            if candidatePlan == nil {
-                Label(
-                    "That point would leave a section shorter than \(Int(minimum)) seconds. Move it a little.",
-                    systemImage: "exclamationmark.triangle"
-                )
-                .font(.caption)
-                .foregroundStyle(.orange)
-            } else if let candidatePlan {
-                Text(
-                    "\(candidatePlan.chunks.filter(\.isAudioReference).count) reference section(s), \(candidatePlan.chunks.count - candidatePlan.chunks.filter(\.isAudioReference).count) to compose."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-            HStack {
-                Spacer()
-                Button("Cancel") { keepSource = nil }
-                    .keyboardShortcut(.cancelAction)
-                Button("Use This Plan") {
-                    if let candidatePlan {
-                        plan = candidatePlan
-                        referenceTake = source
-                        composerMode = .plan
-                        statusMessage =
-                            "Kept the first \(TimeHelper.formatDuration(keepSeconds)) of \(source.label). Edit the rest and generate."
-                    }
-                    keepSource = nil
-                }
-                .buttonStyle(.glassProminent)
-                .keyboardShortcut(.defaultAction)
-                .disabled(candidatePlan == nil)
-            }
-        }
-        .padding(24)
-        .frame(minWidth: 460)
-    }
-
-    private func beginKeepingOpening(of reference: MusicReferenceTake) {
-        guard reference.plan != nil else { return }
-        keepSeconds = min(
-            max(Double(DialogLimits.minMusicChunkMilliseconds) / 1_000, 8),
-            Double(reference.durationMilliseconds) / 1_000 / 2)
-        keepSource = reference
-    }
-
-    /// Put a conditioning reference to `reference` on every composed section. Without a plan
-    /// yet, drafts one from the description first, then conditions it.
-    private func soundLike(_ reference: MusicReferenceTake) {
-        referenceTake = reference
-        if plan.chunks.isEmpty {
-            if let sourcePlan = reference.plan {
-                plan = sourcePlan.conditioned(on: reference.conditioningSpan, strength: .medium)
-                composerMode = .plan
-                statusMessage = "Every section will sound like \(reference.label)."
-            } else if promptIsValid {
-                draftPlan(from: nil) { drafted in
-                    drafted.conditioned(on: reference.conditioningSpan, strength: .medium)
-                }
-            } else {
-                composerMode = .describe
-                statusMessage =
-                    "Describe the piece first, then it can sound like \(reference.label)."
-            }
-            return
-        }
-        plan = plan.conditioned(on: reference.conditioningSpan, strength: .medium)
-        composerMode = .plan
-        statusMessage = "Every section will sound like \(reference.label)."
-    }
-
-    /// Load a take's recipe into the composer so the next take starts where this one ended.
-    private func load(recipe: DialogMusicRecipe, from reference: MusicReferenceTake) {
-        finetune = recipe.finetune
-        if let seed = recipe.seed { seedText = String(seed) }
-        if let recipePrompt = recipe.prompt { prompt = recipePrompt }
-        if let mode = recipe.generationMode { generationMode = mode }
-        if let instrumental = recipe.forceInstrumental { allowVocals = !instrumental }
-        if let sourcePlan = recipe.compositionPlan {
-            plan = sourcePlan
-            referenceTake = reference
-            composerMode = .plan
-            statusMessage = "Loaded the plan from \(reference.label)."
-        } else {
-            composerMode = .describe
-            statusMessage = "Loaded the description from \(reference.label)."
-        }
-    }
-
-    private func openRecipe(of music: DialogBackgroundMusic) {
+    /// The accepted music as an editable piece: its recipe gives the song and the plan, its
+    /// permanent MP3 gives the audio.
+    private func openAcceptedInEditor(_ music: DialogBackgroundMusic) {
         isDrafting = true
         statusMessage = "Reading how the accepted music was made…"
         Task {
@@ -620,20 +455,43 @@ struct MusicCreationView: View {
                 isDrafting = false
                 switch result {
                 case .success(let recipe):
-                    let duration = recipe.compositionPlan?.totalDurationMilliseconds ?? 0
-                    let reference = MusicReferenceTake(
-                        label: "the accepted music", songId: recipe.songId,
-                        durationMilliseconds: duration, plan: recipe.compositionPlan)
-                    load(recipe: recipe, from: reference)
-                    // Only a take ElevenLabs kept can be referenced by the next one.
-                    if !recipe.canBeReferenced {
-                        referenceTake = nil
+                    guard recipe.canBeReferenced, let plan = recipe.compositionPlan else {
+                        errorAlert = ErrorAlert(
+                            title: "Can't Refine This Music",
+                            message:
+                                "The server has no referenceable song for it, so its sections can't be kept while others change. Start a new piece instead."
+                        )
+                        statusMessage = nil
+                        return
                     }
+                    if let session = candidates.first(where: { $0.id == music.generationId }),
+                        let snapshot = session.piece
+                    {
+                        piece = snapshot
+                        editingCandidateID = session.id
+                    } else {
+                        piece = MusicPiece(
+                            songId: recipe.songId,
+                            durationMilliseconds: plan.totalDurationMilliseconds, plan: plan)
+                        editingCandidateID = nil
+                    }
+                    finetune = recipe.finetune
+                    if let seed = recipe.seed { seedText = String(seed) }
+                    if case .success(let url) = server.getSoundRenditionURL(
+                        music.soundFile, as: .mp3)
+                    {
+                        loadAudio(
+                            from: url,
+                            cacheKey:
+                                "accepted-music-\(music.generationId.uuidString.lowercased())")
+                    }
+                    statusMessage =
+                        "Editing the accepted music. Change what you like, then Apply."
                 case .failure(.notFound):
                     errorAlert = ErrorAlert(
                         title: "Recipe Unavailable",
                         message:
-                            "The server no longer has this take's recipe: it aged out of the candidate cache. Compose a new take instead."
+                            "The server no longer has this music's recipe: it aged out of the candidate cache. Start a new piece instead."
                     )
                     statusMessage = nil
                 case .failure(let error):
@@ -643,23 +501,17 @@ struct MusicCreationView: View {
         }
     }
 
-    // MARK: - Drafting and generating
+    // MARK: - Drafting and composing
 
-    /// Ask the server for a plan from the description, sized to the accepted take. `source`
-    /// seeds the draft; `transform` adjusts the result before it lands in the editor.
-    private func draftPlan(
-        from source: MusicCompositionPlan?,
-        transform: @escaping @Sendable (MusicCompositionPlan) -> MusicCompositionPlan = { $0 }
-    ) {
+    private func draftPlan() {
         guard let voice = subject.acceptedVoice, subject.canCompose, promptIsValid else { return }
         isDrafting = true
-        statusMessage = "Drafting a plan…"
+        statusMessage = "Drafting sections…"
         let request = DialogMusicPlanRequest(
             dialogCacheKey: voice.dialogCacheKey,
             dialogGenerationId: voice.generationId,
             prompt: trimmedPrompt,
-            durationExtensionMilliseconds: Int64(durationExtensionSeconds * 1_000),
-            sourceCompositionPlan: source)
+            durationExtensionMilliseconds: Int64(durationExtensionSeconds * 1_000))
         Task {
             let result = await server.draftDialogMusicPlan(request)
             await MainActor.run {
@@ -667,42 +519,67 @@ struct MusicCreationView: View {
                 switch result {
                 case .success(let drafted):
                     dialogDurationMilliseconds = drafted.dialogDurationMilliseconds
-                    plan = transform(drafted.compositionPlan)
-                    if source == nil { referenceTake = nil }
-                    composerMode = .plan
+                    piece = MusicPiece.blank(
+                        sections: drafted.compositionPlan.chunks.compactMap { chunk in
+                            if case .generation(let generation) = chunk {
+                                return generation.unconditioned()
+                            }
+                            return nil
+                        })
+                    editingCandidateID = nil
                     statusMessage =
-                        "Drafted \(drafted.compositionPlan.chunks.count) section(s) over \(TimeHelper.formatDuration(Double(drafted.musicLengthMilliseconds) / 1_000)). Edit, then generate."
+                        "Drafted \(piece.sections.count) section(s) over \(TimeHelper.formatDuration(Double(drafted.musicLengthMilliseconds) / 1_000)). Edit, then Compose."
                 case .failure(let error):
-                    presentError("Could Not Draft a Plan", error)
+                    presentError("Could Not Draft Sections", error)
                 }
             }
         }
     }
 
-    private func generate() {
-        guard let scriptId = subject.scriptId, let voice = subject.acceptedVoice, canGenerate
+    private func generateFirstTake() {
+        guard let scriptId = subject.scriptId, let voice = subject.acceptedVoice,
+            subject.canCompose, promptIsValid, !isBusy
         else { return }
-        let composition: DialogMusicRequest.Composition
-        switch composerMode {
-        case .describe:
-            composition = .prompt(
-                DialogMusicRequest.Prompt(
-                    prompt: trimmedPrompt,
-                    durationExtensionMilliseconds: Int64(durationExtensionSeconds * 1_000),
-                    generationMode: generationMode,
-                    forceInstrumental: !allowVocals))
-        case .plan:
-            composition = .plan(plan, seed: seed)
-        }
-        let request = DialogMusicRequest(
-            scriptId: scriptId,
-            dialogCacheKey: voice.dialogCacheKey,
-            dialogGenerationId: voice.generationId,
-            composition: composition,
-            finetune: finetune)
+        pendingPiece = nil
+        submit(
+            DialogMusicRequest(
+                scriptId: scriptId,
+                dialogCacheKey: voice.dialogCacheKey,
+                dialogGenerationId: voice.generationId,
+                composition: .prompt(
+                    DialogMusicRequest.Prompt(
+                        prompt: trimmedPrompt,
+                        durationExtensionMilliseconds: Int64(durationExtensionSeconds * 1_000),
+                        generationMode: generationMode,
+                        forceInstrumental: !allowVocals)),
+                finetune: finetune),
+            voice: voice, message: "Composing the first version…")
+    }
+
+    private func apply() {
+        guard let scriptId = subject.scriptId, let voice = subject.acceptedVoice, canApply
+        else { return }
+        let plan = piece.refinementPlan()
+        pendingPiece = piece
+        let changed = piece.hasAudio ? piece.dirtySections.count : piece.sections.count
+        submit(
+            DialogMusicRequest(
+                scriptId: scriptId,
+                dialogCacheKey: voice.dialogCacheKey,
+                dialogGenerationId: voice.generationId,
+                composition: .plan(plan, seed: seed),
+                finetune: finetune),
+            voice: voice,
+            message: piece.hasAudio
+                ? "Composing \(changed) changed section(s); keeping the rest…"
+                : "Composing \(changed) section(s)…")
+    }
+
+    private func submit(_ request: DialogMusicRequest, voice: DialogAcceptedVoice, message: String)
+    {
         isSubmitting = true
         jobSourceVoice = voice
-        statusMessage = "Starting music generation…"
+        statusMessage = message
         Task {
             let result = await server.generateDialogMusic(request)
             await MainActor.run {
@@ -712,7 +589,8 @@ struct MusicCreationView: View {
                     Task { await JobStatusStore.shared.seedQueued(job) }
                     activeJobId = job.jobId
                 case .failure(let error):
-                    presentError("Music Generation Failed", error)
+                    pendingPiece = nil
+                    presentError("Composition Failed", error)
                 }
             }
         }
@@ -723,20 +601,102 @@ struct MusicCreationView: View {
         guard info.status == .completed, let result = info.dialogMusicResult,
             let sourceVoice = jobSourceVoice
         else {
+            pendingPiece = nil
             errorAlert = ErrorAlert(
-                title: "Music Generation Failed",
-                message: info.result ?? "The server did not return a music candidate.")
+                title: "Composition Failed",
+                message: info.result ?? "The server did not return a version.")
             statusMessage = nil
             return
         }
+        dialogDurationMilliseconds = result.dialogDurationMilliseconds
+
+        // The piece this version *is*: the pending edits committed onto the new song, or,
+        // for a first take from a description, the plan the server used.
+        var committed: MusicPiece?
+        if let recipe = result.recipe, recipe.canBeReferenced {
+            if let pendingPiece {
+                committed = pendingPiece.committed(
+                    songId: recipe.songId, durationMilliseconds: result.durationMilliseconds)
+            } else if let plan = recipe.compositionPlan {
+                committed = MusicPiece(
+                    songId: recipe.songId, durationMilliseconds: result.durationMilliseconds,
+                    plan: plan)
+            }
+        }
+        pendingPiece = nil
+
         let candidate = DialogMusicCandidate(
             result: result, sourceCacheKey: sourceVoice.dialogCacheKey,
-            sourceDialogGenerationId: sourceVoice.generationId, ordinal: nextOrdinal)
+            sourceDialogGenerationId: sourceVoice.generationId, ordinal: nextOrdinal,
+            piece: committed)
         nextOrdinal += 1
-        dialogDurationMilliseconds = result.dialogDurationMilliseconds
         candidates.insert(candidate, at: 0)
-        statusMessage = "\(candidate.label) ready"
-        audition(candidate)
+
+        if let committed {
+            piece = committed
+            editingCandidateID = candidate.id
+            statusMessage = "\(candidate.label) ready — every section now matches its audio."
+        } else {
+            statusMessage =
+                "\(candidate.label) ready, but the server kept no referenceable song for it, so it can't be refined."
+        }
+        if let url = server.makeAbsoluteURL(fromRelativePath: result.mp3Url) {
+            loadAudio(from: url, cacheKey: candidate.id.uuidString.lowercased())
+        }
+    }
+
+    /// Make an earlier version the piece being edited, with its audio under the timeline.
+    private func makeCurrent(_ candidate: DialogMusicCandidate) {
+        guard let editable = candidate.editablePiece else { return }
+        piece = editable
+        editingCandidateID = candidate.id
+        if let seed = candidate.result.recipe?.seed { seedText = String(seed) }
+        finetune = candidate.result.recipe?.finetune ?? finetune
+        statusMessage = "Editing \(candidate.label)."
+        if let url = server.makeAbsoluteURL(fromRelativePath: candidate.result.mp3Url) {
+            loadAudio(from: url, cacheKey: candidate.id.uuidString.lowercased())
+        }
+    }
+
+    /// Download the piece's audio, hand it to the player and draw its waveform.
+    private func loadAudio(from url: URL, cacheKey: String) {
+        let token = UUID()
+        audioLoadToken = token
+        waveform = .empty
+        player.unload()
+        Task {
+            let download = await server.downloadRawData(from: url)
+            guard token == audioLoadToken else { return }
+            switch download {
+            case .success(let data):
+                switch audioManager.cacheAudioData(data, cacheKey: cacheKey, fileExtension: "mp3")
+                {
+                case .success(let localURL):
+                    do {
+                        try player.load(url: localURL)
+                    } catch {
+                        errorAlert = ErrorAlert(
+                            title: "Could Not Load Audio", message: error.localizedDescription)
+                        return
+                    }
+                    let decoded = try? await MusicWaveform.decode(url: localURL)
+                    guard token == audioLoadToken else { return }
+                    waveform = decoded ?? .empty
+                case .failure(let error):
+                    errorAlert = ErrorAlert(
+                        title: "Could Not Load Audio", message: error.localizedDescription)
+                }
+            case .failure(.notFound):
+                if let index = candidates.firstIndex(where: {
+                    $0.id.uuidString.lowercased() == cacheKey
+                }) {
+                    candidates[index].isExpired = true
+                }
+                statusMessage = "That version's audio has expired on the server."
+            case .failure(let error):
+                presentError("Could Not Load Audio", error)
+            }
+        }
     }
 
     // MARK: - Promotion
@@ -856,7 +816,7 @@ struct MusicCreationView: View {
         }
     }
 
-    // MARK: - Listening
+    // MARK: - Listening against the dialog
 
     private func audition(_ candidate: DialogMusicCandidate) {
         guard let voice = subject.acceptedVoice,
@@ -872,55 +832,6 @@ struct MusicCreationView: View {
         audition(voice: voice, musicURL: musicURL, candidateId: nil)
     }
 
-    private func playAcceptedMusic(_ music: DialogBackgroundMusic) {
-        let renditionResult = server.getSoundRenditionURL(music.soundFile, as: .mp3)
-        guard case .success(let musicURL) = renditionResult else {
-            if case .failure(let error) = renditionResult {
-                presentError("Music Playback Failed", error)
-            }
-            return
-        }
-        let token = UUID()
-        musicPlaybackToken = token
-        statusMessage = "Preparing accepted music…"
-        Task {
-            let result = await server.downloadRawData(from: musicURL)
-            await MainActor.run {
-                guard token == musicPlaybackToken else { return }
-                switch result {
-                case .success(let data):
-                    switch audioManager.cacheAudioData(
-                        data,
-                        cacheKey: "accepted-music-\(music.generationId.uuidString.lowercased())",
-                        fileExtension: "mp3")
-                    {
-                    case .success(let localURL):
-                        if case .failure(let error) = audioManager.playURL(localURL) {
-                            errorAlert = ErrorAlert(
-                                title: "Music Playback Failed",
-                                message: error.localizedDescription)
-                        } else {
-                            isPlayingAcceptedMusic = true
-                            statusMessage = "Playing accepted music"
-                        }
-                    case .failure(let error):
-                        errorAlert = ErrorAlert(
-                            title: "Music Playback Failed", message: error.localizedDescription)
-                    }
-                case .failure(let error):
-                    presentError("Music Playback Failed", error)
-                }
-            }
-        }
-    }
-
-    private func stopAcceptedMusic() {
-        musicPlaybackToken = UUID()
-        isPlayingAcceptedMusic = false
-        audioManager.stopURLPlayback()
-        statusMessage = nil
-    }
-
     private func audition(voice: DialogAcceptedVoice, musicURL: URL, candidateId: UUID?) {
         guard
             case .success(let voiceURL) = server.dialogPreviewRenditionURL(
@@ -930,6 +841,7 @@ struct MusicCreationView: View {
                 title: "Audition Failed", message: "Could not build the dialog MP3 URL.")
             return
         }
+        player.pause()
         let token = UUID()
         auditionToken = token
         isAuditioning = true
