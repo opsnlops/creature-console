@@ -159,12 +159,14 @@ struct DialogScriptEditor: View {
                         script = updatedScript
                         persistLocalScript(updatedScript)
                     }
-                    DialogMusicPanel(
-                        scriptId: renderScriptId,
-                        acceptedVoice: original.acceptedVoice,
-                        acceptedVoiceIsFresh: hasFreshAcceptedVoice,
-                        backgroundMusic: original.backgroundMusic,
-                        hasUnsavedChanges: createNew || isDirty
+                    MusicCreationView(
+                        subject: MusicSubject(
+                            scriptId: renderScriptId,
+                            title: script.title,
+                            acceptedVoice: original.acceptedVoice,
+                            acceptedVoiceIsFresh: hasFreshAcceptedVoice,
+                            backgroundMusic: original.backgroundMusic,
+                            hasUnsavedChanges: createNew || isDirty)
                     ) { canonical in
                         // Music removal is a server-side field mutation. Merge only that
                         // field so a response that arrives after a local edit cannot erase

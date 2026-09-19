@@ -267,6 +267,12 @@
 		BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */; };
 		C1B849B58E8EAD7B9E0510B9 /* AudioFileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211450B80E5BBFE2141677F /* AudioFileDocument.swift */; };
 		D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */; };
+		5AF617EC86109C800FA18E2C /* MusicSubject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00250778112500D73AF87088 /* MusicSubject.swift */; };
+		8FFF286E621C1BDA79264CA3 /* MusicFinetunePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 570E2742BB8678BCF3D156A0 /* MusicFinetunePicker.swift */; };
+		2DF5376401AAF276F36A452F /* MusicPlanEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C311CF2C4C2EF63ECB61523D /* MusicPlanEditor.swift */; };
+		0C716F810C5B358EF4A4366B /* MusicCandidateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB51337430F0BA8FDB48AD7F /* MusicCandidateCard.swift */; };
+		06DC1555D31DC70BE9BB0F87 /* MusicCreationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035CE4209064302DAD5EC745 /* MusicCreationView.swift */; };
+		47BF5F9DD738C3816E76D677 /* MusicWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 211916A5B6D18C3949D1E0D1 /* MusicWorkspaceView.swift */; };
 		D2D44211BDB3B0F545B00C6E /* DialogScriptTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8E4EB4849F40F40C73B596 /* DialogScriptTable.swift */; };
 		DA17A0010000000000000002 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
 		DA17A0010000000000000003 /* DynamixelSensorReportProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */; };
@@ -612,6 +618,12 @@
 		DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamixelSensorReportProcessor.swift; sourceTree = "<group>"; };
 		E4FE4831905123F081DB0B90 /* StoryboardTileButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardTileButton.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardTileButton.swift"; sourceTree = SOURCE_ROOT; };
 		F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogRerenderButton.swift; path = "Sources/Creature Console/View/Dialog/DialogRerenderButton.swift"; sourceTree = SOURCE_ROOT; };
+		00250778112500D73AF87088 /* MusicSubject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicSubject.swift; path = "Sources/Creature Console/View/Music/MusicSubject.swift"; sourceTree = SOURCE_ROOT; };
+		570E2742BB8678BCF3D156A0 /* MusicFinetunePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicFinetunePicker.swift; path = "Sources/Creature Console/View/Music/MusicFinetunePicker.swift"; sourceTree = SOURCE_ROOT; };
+		C311CF2C4C2EF63ECB61523D /* MusicPlanEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicPlanEditor.swift; path = "Sources/Creature Console/View/Music/MusicPlanEditor.swift"; sourceTree = SOURCE_ROOT; };
+		CB51337430F0BA8FDB48AD7F /* MusicCandidateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicCandidateCard.swift; path = "Sources/Creature Console/View/Music/MusicCandidateCard.swift"; sourceTree = SOURCE_ROOT; };
+		035CE4209064302DAD5EC745 /* MusicCreationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicCreationView.swift; path = "Sources/Creature Console/View/Music/MusicCreationView.swift"; sourceTree = SOURCE_ROOT; };
+		211916A5B6D18C3949D1E0D1 /* MusicWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicWorkspaceView.swift; path = "Sources/Creature Console/View/Music/MusicWorkspaceView.swift"; sourceTree = SOURCE_ROOT; };
 		F8BA85E9BF3F9144D99554B6 /* BindingListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingListEditor.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000001 /* ErrorAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorAlert.swift; sourceTree = "<group>"; };
 		FEA1A1E70000000000000004 /* JobWatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobWatching.swift; sourceTree = "<group>"; };
@@ -1058,6 +1070,12 @@
 				6B58446690618A288BDE246C /* DialogScriptEditor.swift */,
 				7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */,
 				F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */,
+				00250778112500D73AF87088 /* MusicSubject.swift */,
+				570E2742BB8678BCF3D156A0 /* MusicFinetunePicker.swift */,
+				C311CF2C4C2EF63ECB61523D /* MusicPlanEditor.swift */,
+				CB51337430F0BA8FDB48AD7F /* MusicCandidateCard.swift */,
+				035CE4209064302DAD5EC745 /* MusicCreationView.swift */,
+				211916A5B6D18C3949D1E0D1 /* MusicWorkspaceView.swift */,
 				54614CD9A93C664522211643 /* StoryboardModel.swift */,
 				AC9846EE8D6BED478230F7C8 /* StoryboardImporter.swift */,
 				AA0100000000000000000A01 /* StageModel.swift */,
@@ -2368,6 +2386,12 @@
 				F539487A8A5CBD435D46567A /* DialogScriptEditor.swift in Sources */,
 				BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */,
 				D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */,
+				5AF617EC86109C800FA18E2C /* MusicSubject.swift in Sources */,
+				8FFF286E621C1BDA79264CA3 /* MusicFinetunePicker.swift in Sources */,
+				2DF5376401AAF276F36A452F /* MusicPlanEditor.swift in Sources */,
+				0C716F810C5B358EF4A4366B /* MusicCandidateCard.swift in Sources */,
+				06DC1555D31DC70BE9BB0F87 /* MusicCreationView.swift in Sources */,
+				47BF5F9DD738C3816E76D677 /* MusicWorkspaceView.swift in Sources */,
 				181C4F50BC868ABAF7DA7A7E /* StoryboardModel.swift in Sources */,
 				5E0C4F2484847E68F061B13F /* StoryboardImporter.swift in Sources */,
 				AA0100000000000000000B01 /* StageModel.swift in Sources */,
@@ -2759,7 +2783,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.55.0;
+				MARKETING_VERSION = 2.56.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -2814,7 +2838,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.55.0;
+				MARKETING_VERSION = 2.56.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Creature-Console";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

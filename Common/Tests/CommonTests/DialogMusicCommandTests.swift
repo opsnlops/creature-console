@@ -89,8 +89,66 @@ struct DialogMusicCommandTests {
             return .success(downloadedData)
         }
 
+        private(set) var planRequests: [DialogMusicPlanRequest] = []
+        var recipe: DialogMusicRecipe?
+
+        func draftDialogMusicPlan(_ request: DialogMusicPlanRequest) async -> Result<
+            DialogMusicPlanResult, ServerError
+        > {
+            planRequests.append(request)
+            return .success(
+                DialogMusicPlanResult(
+                    modelId: request.modelId.rawValue, musicLengthMilliseconds: 5_000,
+                    dialogDurationMilliseconds: 2_500,
+                    durationExtensionMilliseconds: request.durationExtensionMilliseconds,
+                    compositionPlan: MusicCompositionPlan(chunks: [
+                        .generation(
+                            MusicGenerationChunk(
+                                text: "[Intro] \(request.prompt)", durationMilliseconds: 5_000))
+                    ])))
+        }
+
+        func getDialogMusicRecipe(generationId: UUID) async -> Result<
+            DialogMusicRecipe, ServerError
+        > {
+            guard let recipe else { return .failure(.notFound("no such candidate")) }
+            return .success(recipe)
+        }
+
+        func listMusicFinetunes() async -> Result<MusicFinetuneList, ServerError> {
+            .success(MusicFinetuneList(count: 0, items: []))
+        }
+
+        func setRecipe(_ value: DialogMusicRecipe?) { recipe = value }
         func recordedRequests() -> [DialogMusicRequest] { requests }
+        func recordedPlanRequests() -> [DialogMusicPlanRequest] { planRequests }
         func recordedPromotions() -> [UUID] { promotedIds }
+    }
+
+    private func makeGenerate(scriptId: UUID) -> CreatureCLI.Dialog.Music.Generate {
+        var command = CreatureCLI.Dialog.Music.Generate()
+        command.scriptId = scriptId.uuidString
+        command.dialogGenerationId = nil
+        command.prompt = nil
+        command.durationExtensionMs = 0
+        command.mode = .track
+        command.allowVocals = false
+        command.plan = nil
+        command.seed = nil
+        command.finetune = nil
+        command.finetuneStrength = nil
+        command.storeForInpainting = true
+        command.output = nil
+        command.overwrite = false
+        command.globalOptions = GlobalOptions()
+        return command
+    }
+
+    private func writePlanFile(_ plan: MusicCompositionPlan) throws -> String {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("plan-\(UUID().uuidString).json")
+        try JSONEncoder().encode(plan).write(to: url)
+        return url.path
     }
 
     @Test("generate resolves a full voice take and forwards music options")
@@ -100,15 +158,13 @@ struct DialogMusicCommandTests {
 
         let script = stub.script
         let meta = stub.previewMeta
-        var command = CreatureCLI.Dialog.Music.Generate()
-        command.scriptId = script.id.uuidString
-        command.dialogGenerationId = nil
+        var command = makeGenerate(scriptId: script.id)
         command.prompt = "Warm strings"
         command.durationExtensionMs = 2_500
         command.mode = .ambience
-        command.output = nil
-        command.overwrite = false
-        command.globalOptions = GlobalOptions()
+        command.allowVocals = true
+        command.finetune = "ft-1"
+        command.finetuneStrength = 1.5
         try await command.run()
         await CreatureCLI.Dialog.Music.resetServerFactory()
 
@@ -117,6 +173,119 @@ struct DialogMusicCommandTests {
         #expect(request.dialogGenerationId == meta.generationId)
         #expect(request.durationExtensionMilliseconds == 2_500)
         #expect(request.generationMode == .ambience)
+        #expect(request.modelId == .v2_5)
+        #expect(request.finetune == MusicFinetuneSelection(finetuneId: "ft-1", strength: 1.5))
+        guard case .prompt(let prompt) = request.composition else {
+            Issue.record("expected a prompt-mode request")
+            return
+        }
+        #expect(prompt.forceInstrumental == false)
+    }
+
+    @Test("generate sends a plan file as a plan-mode request with its seed")
+    func generateForwardsPlan() async throws {
+        let stub = try StubServer()
+        await CreatureCLI.Dialog.Music.useServerFactory { _ in stub }
+
+        let plan = MusicCompositionPlan(chunks: [
+            .generation(MusicGenerationChunk(text: "[Intro]", durationMilliseconds: 5_000))
+        ])
+        var command = makeGenerate(scriptId: stub.script.id)
+        command.plan = try writePlanFile(plan)
+        command.seed = 77
+        try await command.run()
+        await CreatureCLI.Dialog.Music.resetServerFactory()
+
+        let request = try #require(await stub.recordedRequests().first)
+        #expect(request.compositionPlan == plan)
+        #expect(request.seed == 77)
+        #expect(request.prompt == nil)
+    }
+
+    @Test("generate refuses a plan the server would reject before sending it")
+    func generateRejectsShortPlan() async throws {
+        let stub = try StubServer()
+        await CreatureCLI.Dialog.Music.useServerFactory { _ in stub }
+
+        // A 2 s section is under the 3 s minimum: the client-side check must stop it here.
+        let plan = MusicCompositionPlan(chunks: [
+            .generation(MusicGenerationChunk(text: "x", durationMilliseconds: 2_000))
+        ])
+        var command = makeGenerate(scriptId: stub.script.id)
+        command.plan = try writePlanFile(plan)
+        let error = await #expect(throws: ExitCode.self) { try await command.run() }
+        #expect(error == .failure)
+        #expect(await stub.recordedRequests().isEmpty)
+
+        await CreatureCLI.Dialog.Music.resetServerFactory()
+    }
+
+    @Test("generate needs exactly one of --prompt and --plan, and --seed only with --plan")
+    func generateModeExclusivity() async throws {
+        let stub = try StubServer()
+        await CreatureCLI.Dialog.Music.useServerFactory { _ in stub }
+
+        var neither = makeGenerate(scriptId: stub.script.id)
+        neither.prompt = nil
+        #expect(await #expect(throws: ExitCode.self) { try await neither.run() } == .failure)
+
+        var both = makeGenerate(scriptId: stub.script.id)
+        both.prompt = "x"
+        both.plan = "/tmp/never-read.json"
+        #expect(await #expect(throws: ExitCode.self) { try await both.run() } == .failure)
+
+        var seededPrompt = makeGenerate(scriptId: stub.script.id)
+        seededPrompt.prompt = "x"
+        seededPrompt.seed = 1
+        #expect(await #expect(throws: ExitCode.self) { try await seededPrompt.run() } == .failure)
+
+        #expect(await stub.recordedRequests().isEmpty)
+        await CreatureCLI.Dialog.Music.resetServerFactory()
+    }
+
+    @Test("plan drafts against the resolved take and writes the plan JSON")
+    func planWritesDraft() async throws {
+        let stub = try StubServer()
+        await CreatureCLI.Dialog.Music.useServerFactory { _ in stub }
+
+        let output = FileManager.default.temporaryDirectory
+            .appendingPathComponent("draft-\(UUID().uuidString).json").path
+        var command = CreatureCLI.Dialog.Music.Plan()
+        command.scriptId = stub.script.id.uuidString
+        command.dialogGenerationId = nil
+        command.prompt = "Bright pizzicato"
+        command.durationExtensionMs = 1_000
+        command.sourcePlan = nil
+        command.output = output
+        command.overwrite = false
+        command.globalOptions = GlobalOptions()
+        try await command.run()
+        await CreatureCLI.Dialog.Music.resetServerFactory()
+
+        let request = try #require(await stub.recordedPlanRequests().first)
+        #expect(request.dialogGenerationId == stub.previewMeta.generationId)
+        #expect(request.prompt == "Bright pizzicato")
+        #expect(request.durationExtensionMilliseconds == 1_000)
+        let written = try JSONDecoder().decode(
+            MusicCompositionPlan.self, from: Data(contentsOf: URL(fileURLWithPath: output)))
+        #expect(written.chunks.count == 1)
+    }
+
+    @Test("recipe reports an expired candidate as a failure")
+    func recipeExpired() async throws {
+        let stub = try StubServer()
+        await stub.setRecipe(nil)
+        await CreatureCLI.Dialog.Music.useServerFactory { _ in stub }
+
+        var command = CreatureCLI.Dialog.Music.Recipe()
+        command.generationId = UUID().uuidString
+        command.output = nil
+        command.overwrite = false
+        command.globalOptions = GlobalOptions()
+        let error = await #expect(throws: ExitCode.self) { try await command.run() }
+        #expect(error == .failure)
+
+        await CreatureCLI.Dialog.Music.resetServerFactory()
     }
 
     @Test("download requires an MP3 destination before contacting the server")
