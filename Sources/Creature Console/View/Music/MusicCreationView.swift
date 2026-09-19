@@ -976,10 +976,17 @@ struct MusicCreationView: View {
     }
 
     private func audition(voice: DialogAcceptedVoice, musicURL: URL, candidateId: UUID?) {
-        guard
-            case .success(let voiceURL) = server.dialogPreviewRenditionURL(
+        // The accepted voice's promoted file is permanent; the audition-cache copy expires
+        // with the 24 h TTL and is gone for any script accepted a while ago. Prefer the one
+        // that always works, as the Voice Take panel does.
+        let voiceURLResult: Result<URL, ServerError>
+        if let soundFile = voice.soundFile, !soundFile.isEmpty {
+            voiceURLResult = server.getSoundRenditionURL(soundFile, as: .mp3)
+        } else {
+            voiceURLResult = server.dialogPreviewRenditionURL(
                 cacheKey: voice.dialogCacheKey, generationId: voice.generationId, as: .mp3)
-        else {
+        }
+        guard case .success(let voiceURL) = voiceURLResult else {
             errorAlert = ErrorAlert(
                 title: "Audition Failed", message: "Could not build the dialog MP3 URL.")
             return
