@@ -31,12 +31,12 @@ struct MusicWorkspaceView: View {
                     }
                 } else {
                     List(scripts) { script in
-                        NavigationLink(value: script.id) {
+                        // Destination-style, for the same reason as MusicLibraryView.
+                        NavigationLink {
+                            MusicForDialogView(scriptId: script.id)
+                        } label: {
                             row(for: script)
                         }
-                    }
-                    .navigationDestination(for: DialogScriptIdentifier.self) { scriptId in
-                        MusicForDialogView(scriptId: scriptId)
                     }
                 }
             }

@@ -39,7 +39,12 @@ struct MusicLibraryView: View {
                     }
                 } else {
                     List(pieces) { piece in
-                        NavigationLink(value: piece.id) {
+                        // Destination-style links: a value link needs a navigationDestination
+                        // the link can see, and one declared inside this conditional branch is
+                        // invisible on iOS ("no matching navigationDestination declaration").
+                        NavigationLink {
+                            MusicLibraryPieceView(pieceId: piece.id)
+                        } label: {
                             row(for: piece)
                         }
                         .contextMenu {
@@ -56,9 +61,6 @@ struct MusicLibraryView: View {
                                 Label("Delete Piece", systemImage: "trash")
                             }
                         }
-                    }
-                    .navigationDestination(for: UUID.self) { pieceId in
-                        MusicLibraryPieceView(pieceId: pieceId)
                     }
                 }
             }
