@@ -24,9 +24,17 @@ struct MusicTimelineView: View {
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            TimelineView(.animation(minimumInterval: 1 / 30, paused: !player.isPlaying)) { _ in
+            TimelineView(.animation(minimumInterval: 1 / 30, paused: !player.isPlaying)) {
+                timeline in
+                // The playhead is read here, on the tick, so the Canvas below depends on the
+                // schedule. Reading it inside the Canvas alone left the drawing stale: the
+                // player's position isn't an observed property, and a Canvas whose inputs
+                // look unchanged is not redrawn.
+                let playhead = player.isPlaying ? player.currentTime : player.pausedTime
+                let tick = timeline.date
                 Canvas { context, size in
-                    draw(in: &context, size: size)
+                    _ = tick
+                    draw(in: &context, size: size, playhead: playhead)
                 }
             }
             .contentShape(Rectangle())
@@ -62,7 +70,7 @@ struct MusicTimelineView: View {
         }
     }
 
-    private func draw(in context: inout GraphicsContext, size: CGSize) {
+    private func draw(in context: inout GraphicsContext, size: CGSize, playhead: Double) {
         let width = size.width
         let stripTop = rulerHeight
         let stripHeight = size.height - rulerHeight
@@ -148,7 +156,7 @@ struct MusicTimelineView: View {
 
         // Playhead
         if waveform.duration > 0 {
-            let xHead = x(forSeconds: min(player.currentTime, waveform.duration), width: width)
+            let xHead = x(forSeconds: min(playhead, waveform.duration), width: width)
             var head = Path()
             head.move(to: CGPoint(x: xHead, y: 0))
             head.addLine(to: CGPoint(x: xHead, y: size.height))

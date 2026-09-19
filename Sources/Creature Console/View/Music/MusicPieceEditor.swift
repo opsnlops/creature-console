@@ -91,9 +91,12 @@ struct MusicPieceEditor: View {
             }
             .buttonStyle(.glass)
             .disabled(!piece.hasAudio || player.loadedURL == nil)
-            TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+            TimelineView(.periodic(from: .now, by: 0.1)) { timeline in
+                // Read on the tick so the label depends on the schedule (see MusicTimelineView).
+                let position = player.isPlaying ? player.currentTime : player.pausedTime
+                let _ = timeline.date
                 Text(
-                    "\(TimeHelper.formatDuration(player.currentTime)) / \(TimeHelper.formatDuration(player.duration))"
+                    "\(TimeHelper.formatDuration(position)) / \(TimeHelper.formatDuration(player.duration))"
                 )
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)

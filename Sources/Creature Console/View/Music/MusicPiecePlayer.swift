@@ -78,6 +78,9 @@ final class MusicPiecePlayer {
         player.currentTime = start
         if player.play() {
             isPlaying = true
+            logger.info(
+                "playing \(self.loadedURL?.lastPathComponent ?? "") from \(start, format: .fixed(precision: 2)) s of \(self.duration, format: .fixed(precision: 2)) s"
+            )
         } else {
             logger.error("AVAudioPlayer refused to play \(self.loadedURL?.lastPathComponent ?? "")")
             AudioManager.shared.endExternalMusicPlayback()
