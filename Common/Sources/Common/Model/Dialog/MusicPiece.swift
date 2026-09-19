@@ -171,13 +171,19 @@ public struct MusicPiece: Equatable, Hashable, Sendable {
     /// to their span in the current song; dirty ones are composed, each conditioned on the
     /// current song at `strength` (when the piece has audio and the section doesn't already
     /// carry its own reference). A piece without audio is composed entirely from its content.
-    public func refinementPlan(conditionStrength strength: MusicConditionStrength = .high)
+    ///
+    /// `recomposeAll` composes every section, still conditioned on the current song: what a
+    /// change to a piece-level knob (finetune, seed) means, since a kept section can't take on
+    /// a new finetune.
+    public func refinementPlan(
+        conditionStrength strength: MusicConditionStrength = .high, recomposeAll: Bool = false
+    )
         -> MusicCompositionPlan
     {
         let conditioning = conditioningSpan
         return MusicCompositionPlan(
             chunks: sections.map { section in
-                if !section.isDirty, let span = section.span {
+                if !recomposeAll, !section.isDirty, let span = section.span {
                     return .audioReference(span)
                 }
                 var content = section.content

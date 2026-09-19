@@ -47,6 +47,9 @@ struct MusicCreationView: View {
     // Shared knobs
     @State private var finetune: MusicFinetuneSelection?
     @State private var seedText = ""
+    /// The finetune and seed the version being edited was made with (see MusicLibraryPieceView).
+    @State private var baseFinetune: MusicFinetuneSelection?
+    @State private var baseSeed: Int64?
 
     // Generation
     @State private var candidates: [DialogMusicCandidate] = []
@@ -113,9 +116,13 @@ struct MusicCreationView: View {
             dialogDurationMilliseconds: dialogDurationMilliseconds)
     }
 
+    private var knobsChanged: Bool {
+        piece.hasAudio && seedIsValid && (finetune != baseFinetune || seed != baseSeed)
+    }
+
     private var canApply: Bool {
         subject.canCompose && !isBusy && hasPiece && applyProblems.isEmpty && seedIsValid
-            && (piece.isDirty || !piece.hasAudio)
+            && (piece.isDirty || !piece.hasAudio || knobsChanged)
     }
 
     var body: some View {
@@ -399,10 +406,12 @@ struct MusicCreationView: View {
 
             Button("Revert") {
                 piece = piece.reverted()
+                finetune = baseFinetune
+                seedText = baseSeed.map(String.init) ?? ""
                 statusMessage = "Edits discarded."
             }
             .buttonStyle(.glass)
-            .disabled(!piece.hasAudio || !piece.isDirty || isBusy)
+            .disabled(!piece.hasAudio || !(piece.isDirty || knobsChanged) || isBusy)
 
             Spacer()
 
@@ -411,6 +420,22 @@ struct MusicCreationView: View {
                 .font(.caption)
                 .disabled(isBusy)
         }
+        if knobsChanged {
+            Label(
+                "Finetune or seed changed: Apply composes every section again, in character with the current version.",
+                systemImage: "info.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    /// The knobs a version was made with become the baseline the next Apply is judged against.
+    private func adoptKnobs(from recipe: DialogMusicRecipe?) {
+        baseFinetune = recipe?.finetune
+        baseSeed = recipe?.seed
+        finetune = baseFinetune
+        seedText = baseSeed.map(String.init) ?? ""
     }
 
     private func startOver() {
@@ -516,8 +541,7 @@ struct MusicCreationView: View {
                             durationMilliseconds: plan.totalDurationMilliseconds, plan: plan)
                         editingCandidateID = nil
                     }
-                    finetune = recipe.finetune
-                    if let seed = recipe.seed { seedText = String(seed) }
+                    adoptKnobs(from: recipe)
                     if case .success(let url) = server.getSoundRenditionURL(
                         music.soundFile, as: .mp3)
                     {
@@ -602,7 +626,7 @@ struct MusicCreationView: View {
     private func apply() {
         guard let scriptId = subject.scriptId, let voice = subject.acceptedVoice, canApply
         else { return }
-        let plan = piece.refinementPlan()
+        let plan = piece.refinementPlan(recomposeAll: knobsChanged)
         pendingPiece = piece
         let composed = plan.chunks.filter { !$0.isAudioReference }.count
         let kept = plan.chunks.count - composed
@@ -614,9 +638,11 @@ struct MusicCreationView: View {
                 composition: .plan(plan, seed: seed),
                 finetune: finetune),
             voice: voice,
-            message: piece.hasAudio
-                ? "Composing \(composed) section(s); keeping \(kept)…"
-                : "Composing \(composed) section(s)…")
+            message: !piece.hasAudio
+                ? "Composing \(composed) section(s)…"
+                : (knobsChanged
+                    ? "Composing every section again with the new finetune or seed, in character…"
+                    : "Composing \(composed) section(s); keeping \(kept)…"))
     }
 
     private func submit(_ request: DialogMusicRequest, voice: DialogAcceptedVoice, message: String)
@@ -679,6 +705,7 @@ struct MusicCreationView: View {
         if let committed {
             piece = committed
             editingCandidateID = candidate.id
+            adoptKnobs(from: result.recipe)
             statusMessage = "\(candidate.label) ready — every section now matches its audio."
         } else {
             statusMessage =
@@ -694,8 +721,7 @@ struct MusicCreationView: View {
         guard let editable = candidate.editablePiece else { return }
         piece = editable
         editingCandidateID = candidate.id
-        if let seed = candidate.result.recipe?.seed { seedText = String(seed) }
-        finetune = candidate.result.recipe?.finetune ?? finetune
+        adoptKnobs(from: candidate.result.recipe)
         statusMessage = "Editing \(candidate.label)."
         if let url = server.makeAbsoluteURL(fromRelativePath: candidate.result.mp3Url) {
             loadAudio(from: url, cacheKey: candidate.id.uuidString.lowercased())

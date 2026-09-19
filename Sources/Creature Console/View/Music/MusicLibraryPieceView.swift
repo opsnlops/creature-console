@@ -36,6 +36,11 @@ struct MusicLibraryPieceView: View {
     // Shared knobs
     @State private var finetune: MusicFinetuneSelection?
     @State private var seedText = ""
+    /// The finetune and seed the version being edited was made with. Changing either is a
+    /// change to the whole piece: kept sections can't take on a new finetune, so Apply
+    /// composes everything again, in character.
+    @State private var baseFinetune: MusicFinetuneSelection?
+    @State private var baseSeed: Int64?
 
     // The instruction box
     @State private var instruction = ""
@@ -92,9 +97,12 @@ struct MusicLibraryPieceView: View {
     private var applyProblems: [String] {
         piece.refinementPlan().validationProblems(dialogDurationMilliseconds: nil)
     }
+    private var knobsChanged: Bool {
+        piece.hasAudio && seedIsValid && (finetune != baseFinetune || seed != baseSeed)
+    }
     private var canApply: Bool {
         !isBusy && hasPiece && applyProblems.isEmpty && seedIsValid
-            && (piece.isDirty || !piece.hasAudio)
+            && (piece.isDirty || !piece.hasAudio || knobsChanged)
     }
     private var lengthMilliseconds: Int64 { Int64(lengthSeconds * 1_000) }
 
@@ -294,15 +302,25 @@ struct MusicLibraryPieceView: View {
                 }
                 Button("Revert") {
                     piece = piece.reverted()
+                    finetune = baseFinetune
+                    seedText = baseSeed.map(String.init) ?? ""
                     statusMessage = "Edits discarded."
                 }
                 .buttonStyle(.glass)
-                .disabled(!piece.hasAudio || !piece.isDirty || isBusy)
+                .disabled(!piece.hasAudio || !(piece.isDirty || knobsChanged) || isBusy)
                 Spacer()
                 Button("Start Over") { showStartOverConfirmation = true }
                     .buttonStyle(.borderless)
                     .font(.caption)
                     .disabled(isBusy)
+            }
+            if knobsChanged {
+                Label(
+                    "Finetune or seed changed: Apply composes every section again, in character with the current version.",
+                    systemImage: "info.circle"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
         .padding(16)
@@ -444,8 +462,7 @@ struct MusicLibraryPieceView: View {
     private func edit(version: SavedMusicVersion) {
         piece = MusicPiece(version: version)
         editingVersionId = version.id
-        if let seed = version.recipe?.seed { seedText = String(seed) }
-        finetune = version.recipe?.finetune ?? finetune
+        adoptKnobs(from: version.recipe)
         guard let url = server.makeAbsoluteURL(fromRelativePath: version.mp3Url) else { return }
         Task {
             waveform = .empty
@@ -458,6 +475,14 @@ struct MusicLibraryPieceView: View {
                 errorAlert = ErrorAlert(title: "Could Not Load Audio", message: error.message)
             }
         }
+    }
+
+    /// The knobs a version was made with become the baseline the next Apply is judged against.
+    private func adoptKnobs(from recipe: DialogMusicRecipe?) {
+        baseFinetune = recipe?.finetune
+        baseSeed = recipe?.seed
+        finetune = baseFinetune
+        seedText = baseSeed.map(String.init) ?? ""
     }
 
     private func startOver() {
@@ -579,7 +604,9 @@ struct MusicLibraryPieceView: View {
         guard canApply else { return }
         pendingPiece = piece
         let base = piece.hasAudio ? baseVersion : nil
-        let kept = base.map { piece.keptIndices(against: $0.sections) } ?? []
+        // A new finetune or seed can't be applied to a kept section, so nothing is kept; the
+        // base still conditions every section so the piece stays in character.
+        let kept = knobsChanged ? [] : (base.map { piece.keptIndices(against: $0.sections) } ?? [])
         let changed = piece.sections.count - kept.count
         submit(
             MusicGenerateRequest(
@@ -589,7 +616,9 @@ struct MusicLibraryPieceView: View {
                 pieceId: saved?.id, finetune: finetune),
             message: base == nil
                 ? "Composing \(piece.sections.count) section(s)…"
-                : "Composing \(changed) section(s); keeping \(kept.count)…")
+                : (knobsChanged
+                    ? "Composing every section again with the new finetune or seed, in character…"
+                    : "Composing \(changed) section(s); keeping \(kept.count)…"))
     }
 
     private func submit(_ request: MusicGenerateRequest, message: String) {
@@ -653,6 +682,7 @@ struct MusicLibraryPieceView: View {
                             piece = MusicPiece(version: version)
                         }
                         editingVersionId = version.id
+                        adoptKnobs(from: version.recipe)
                         statusMessage =
                             "Saved as a new version — every section now matches its audio."
                         loadAudio(of: version)
@@ -690,6 +720,7 @@ struct MusicLibraryPieceView: View {
                             piece = MusicPiece(version: version)
                         }
                         editingVersionId = version.id
+                        adoptKnobs(from: version.recipe)
                         loadAudio(of: version)
                     }
                     pendingPiece = nil
