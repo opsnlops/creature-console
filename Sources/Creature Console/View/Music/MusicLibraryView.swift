@@ -99,7 +99,7 @@ struct MusicLibraryView: View {
     private func row(for piece: MusicPieceModel) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "music.quarternote.3")
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
                 Text(piece.title.isEmpty ? "Untitled" : piece.title)

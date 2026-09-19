@@ -57,7 +57,10 @@ struct MusicWorkspaceView: View {
                 systemName: script.hasBackgroundMusic
                     ? "music.note" : (hasVoice ? "waveform" : "text.bubble")
             )
-            .foregroundStyle(script.hasBackgroundMusic ? .green : (hasVoice ? .accent : .secondary))
+            .foregroundStyle(
+                script.hasBackgroundMusic
+                    ? Color.green : (hasVoice ? Color.accentColor : Color.secondary)
+            )
             .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
                 Text(script.title.isEmpty ? "Untitled" : script.title)
