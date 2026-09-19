@@ -2,6 +2,7 @@ import Common
 import Foundation
 import OSLog
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The big editor: a piece of music that exists on its own. Start one from a description (or
 /// empty sections), then refine it — edit sections by hand or type an instruction and let the
@@ -60,6 +61,13 @@ struct MusicLibraryPieceView: View {
     @State private var showTitlePrompt = false
     @State private var draftTitle = ""
 
+    // Export (cross-platform via .fileExporter)
+    @State private var exportData: Data?
+    @State private var exportContentType: UTType = .mp3
+    @State private var exportFilename = ""
+    @State private var showExporter = false
+    @State private var isExporting = false
+
     // Feedback
     @State private var statusMessage: String?
     @State private var errorAlert: ErrorAlert?
@@ -73,7 +81,7 @@ struct MusicLibraryPieceView: View {
         instruction.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     private var isBusy: Bool {
-        isSubmitting || isDrafting || isRefining || isSaving || isLoading
+        isSubmitting || isDrafting || isRefining || isSaving || isLoading || isExporting
             || (observedJob.map { !$0.isTerminal } ?? false)
     }
     private var seed: Int64? {
@@ -159,6 +167,22 @@ struct MusicLibraryPieceView: View {
         }
         .onDisappear { player.unload() }
         .errorAlert($errorAlert)
+        .fileExporter(
+            isPresented: $showExporter,
+            document: AudioFileDocument(data: exportData ?? Data()),
+            contentType: exportContentType,
+            defaultFilename: exportFilename
+        ) { result in
+            switch result {
+            case .success(let url):
+                logger.info("exported \(url.lastPathComponent)")
+                statusMessage = "Exported \(url.lastPathComponent)"
+            case .failure(let error):
+                errorAlert = ErrorAlert(
+                    title: "Export Failed", message: error.localizedDescription)
+            }
+            exportData = nil
+        }
         .alert("Name this piece", isPresented: $showTitlePrompt) {
             TextField("Title", text: $draftTitle)
             Button("Save to Library") { saveNewPiece() }
@@ -405,6 +429,17 @@ struct MusicLibraryPieceView: View {
                                 .buttonStyle(.glass)
                                 .disabled(isBusy)
                         }
+                        Menu {
+                            Button("MP3…") { export(version, ordinal: ordinal, as: .mp3) }
+                            Button("WAV (48 kHz mono)…") {
+                                export(version, ordinal: ordinal, as: .wav)
+                            }
+                        } label: {
+                            Label("Export", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(.glass)
+                        .fixedSize()
+                        .disabled(isBusy)
                     }
                 }
                 .padding(12)
@@ -747,6 +782,45 @@ struct MusicLibraryPieceView: View {
         }
     }
 
+    // MARK: - Export
+
+    /// Save a version to disk: the permanent WAV as the server wrote it (with its provenance),
+    /// or the MP3 rendition — the same file the version plays from.
+    private func export(_ version: SavedMusicVersion, ordinal: Int, as type: UTType) {
+        let urlResult: Result<URL, ServerError> =
+            type == .wav
+            ? server.getSoundURL(version.soundFile)
+            : server.getSoundRenditionURL(version.soundFile, as: .mp3)
+        guard case .success(let url) = urlResult else {
+            if case .failure(let error) = urlResult { presentError("Export Failed", error) }
+            return
+        }
+        let base = (saved?.title ?? "piece").isEmpty ? "piece" : (saved?.title ?? "piece")
+        let slug = base.lowercased()
+            .map { $0.isLetter || $0.isNumber ? String($0) : "-" }.joined()
+            .split(separator: "-", omittingEmptySubsequences: true).joined(separator: "-")
+        let filename =
+            "\(slug.isEmpty ? "piece" : slug)-v\(ordinal).\(type == .wav ? "wav" : "mp3")"
+        isExporting = true
+        statusMessage = "Fetching \(type == .wav ? "WAV" : "MP3")…"
+        Task {
+            let result = await server.downloadRawData(from: url)
+            await MainActor.run {
+                isExporting = false
+                switch result {
+                case .success(let data):
+                    exportData = data
+                    exportContentType = type
+                    exportFilename = filename
+                    statusMessage = nil
+                    showExporter = true
+                case .failure(let error):
+                    presentError("Export Failed", error)
+                }
+            }
+        }
+    }
+
     private func presentError(_ title: String, _ error: ServerError) {
         errorAlert = ErrorAlert(title: title, message: ServerError.detailedMessage(from: error))
         statusMessage = nil
@@ -755,5 +829,6 @@ struct MusicLibraryPieceView: View {
         isDrafting = false
         isRefining = false
         isSaving = false
+        isExporting = false
     }
 }
