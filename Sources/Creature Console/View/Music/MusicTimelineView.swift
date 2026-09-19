@@ -3,9 +3,10 @@ import SwiftUI
 
 /// The piece as a strip of time: its waveform underneath, its sections as blocks over it, a
 /// playhead, and the dialog's end when the piece is bound to one. Click to select a section
-/// and move the playhead there.
+/// and move the playhead there; drag the border between two sections to move time from one to
+/// the other, or the end of the last section to change the piece's length.
 struct MusicTimelineView: View {
-    let piece: MusicPiece
+    @Binding var piece: MusicPiece
     let waveform: MusicWaveform
     let player: MusicPiecePlayer
     @Binding var selectedSectionID: MusicSection.ID?
@@ -13,6 +14,18 @@ struct MusicTimelineView: View {
 
     private let height: CGFloat = 132
     private let rulerHeight: CGFloat = 18
+    /// How close to a border a press must land to grab it, in points.
+    private let grabTolerance: CGFloat = 7
+
+    /// A border being dragged: the index of the section it ends, and the durations of that
+    /// section (and the next, when there is one) when the drag began.
+    private struct BorderDrag {
+        let index: Int
+        let leadingDuration: Int64
+        let trailingDuration: Int64?
+    }
+    @State private var borderDrag: BorderDrag?
+    @State private var hoveredBorder: Int?
 
     /// The strip covers the longest of: audio on file, the planned piece, the dialog.
     private var totalSeconds: Double {
@@ -40,14 +53,76 @@ struct MusicTimelineView: View {
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        if borderDrag == nil,
+                            let index = border(near: value.startLocation.x, width: width)
+                        {
+                            borderDrag = BorderDrag(
+                                index: index,
+                                leadingDuration: piece.sections[index].content.durationMilliseconds,
+                                trailingDuration: piece.sections.indices.contains(index + 1)
+                                    ? piece.sections[index + 1].content.durationMilliseconds : nil)
+                        }
+                        if let borderDrag {
+                            let delta = Int64(
+                                (Double(value.translation.width / width) * totalSeconds * 1_000)
+                                    .rounded())
+                            resize(borderDrag, by: delta)
+                        }
+                    }
                     .onEnded { value in
+                        if borderDrag != nil {
+                            borderDrag = nil
+                            return
+                        }
                         let seconds = Double(value.location.x / width) * totalSeconds
                         select(at: seconds)
                     }
             )
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let point):
+                    hoveredBorder = border(near: point.x, width: width)
+                case .ended:
+                    hoveredBorder = nil
+                }
+            }
         }
         .frame(height: height)
         .accessibilityLabel("Timeline")
+    }
+
+    /// The border under `x`, as the index of the section it ends, or nil. The end of the last
+    /// section counts; the start of the piece does not.
+    private func border(near x: CGFloat, width: CGFloat) -> Int? {
+        var cursor: Int64 = 0
+        for (index, section) in piece.sections.enumerated() {
+            cursor += section.content.durationMilliseconds
+            let borderX = self.x(forSeconds: Double(cursor) / 1_000, width: width)
+            if abs(borderX - x) <= grabTolerance { return index }
+        }
+        return nil
+    }
+
+    /// Move a border by `delta` ms from where the drag began: the section before it grows by
+    /// that much and the one after shrinks, both kept within a section's legal length. The
+    /// last border has nothing after it, so it just changes the piece's length. Snapped to
+    /// tenths of a second, which is what the length fields show.
+    private func resize(_ drag: BorderDrag, by delta: Int64) {
+        let minimum = DialogLimits.minMusicChunkMilliseconds
+        let maximum = DialogLimits.maxMusicChunkMilliseconds
+        var change = (delta / 100) * 100
+        change = max(change, minimum - drag.leadingDuration)
+        change = min(change, maximum - drag.leadingDuration)
+        if let trailing = drag.trailingDuration {
+            change = min(change, trailing - minimum)
+            change = max(change, trailing - maximum)
+        }
+        guard piece.sections.indices.contains(drag.index) else { return }
+        piece.sections[drag.index].content.durationMilliseconds = drag.leadingDuration + change
+        if let trailing = drag.trailingDuration, piece.sections.indices.contains(drag.index + 1) {
+            piece.sections[drag.index + 1].content.durationMilliseconds = trailing - change
+        }
     }
 
     private func x(forSeconds seconds: Double, width: CGFloat) -> CGFloat {
@@ -128,6 +203,16 @@ struct MusicTimelineView: View {
             let stroke: Color =
                 section.isDirty ? .orange : (isSelected ? .accentColor : .secondary.opacity(0.4))
             context.stroke(shape, with: .color(stroke), lineWidth: section.isDirty ? 1.5 : 1)
+
+            // The border after this section, brighter when it can be grabbed.
+            let borderIndex = piece.sections.firstIndex(where: { $0.id == section.id })
+            let isGrabbed = borderDrag?.index == borderIndex || hoveredBorder == borderIndex
+            var border = Path()
+            border.move(to: CGPoint(x: rect.maxX + 1, y: stripTop))
+            border.addLine(to: CGPoint(x: rect.maxX + 1, y: size.height))
+            context.stroke(
+                border, with: .color(isGrabbed ? .accentColor : .secondary.opacity(0.5)),
+                lineWidth: isGrabbed ? 3 : 1)
 
             let name = section.name.isEmpty ? "Section" : section.name
             let label = section.isDirty ? "\(name) •" : name

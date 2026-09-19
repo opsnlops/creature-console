@@ -23,7 +23,7 @@ struct MusicPieceEditor: View {
         VStack(alignment: .leading, spacing: 12) {
             transport
             MusicTimelineView(
-                piece: piece, waveform: waveform, player: player,
+                piece: $piece, waveform: waveform, player: player,
                 selectedSectionID: $selectedSectionID,
                 dialogDurationMilliseconds: dialogDurationMilliseconds)
 
