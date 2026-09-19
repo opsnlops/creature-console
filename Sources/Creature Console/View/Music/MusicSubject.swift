@@ -16,6 +16,9 @@ struct MusicSubject: Equatable {
     var acceptedVoiceIsFresh: Bool
     var backgroundMusic: DialogBackgroundMusic?
     var hasUnsavedChanges: Bool
+    /// The accepted take's length when the owner knows it (the editor does once the take has
+    /// been auditioned); the composer also learns it from drafts and versions.
+    var dialogDurationMilliseconds: Int64? = nil
 
     /// Why generation is unavailable right now, in the words the UI shows. Nil means go.
     var unavailableReason: String? {

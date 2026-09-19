@@ -248,6 +248,8 @@
 		7411DC28B6B15B5F13C2FF33 /* PatternValueEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1744631D5F43B8C1AAB60146 /* PatternValueEditor.swift */; };
 		745C4326AB6D80D744B547EE /* StoryboardTileInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A74517B38BEC26CE5A7D93 /* StoryboardTileInspector.swift */; };
 		786C4469BE761562C02CD8CA /* DialogScriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C645F79C1B9173BAF5DD6F /* DialogScriptModel.swift */; };
+		260C6FD4DC88121B0A6AE4A4 /* MusicPieceModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70A9D7E2D80A85881D855E5 /* MusicPieceModel.swift */; };
+		3066837F0961067F004CD361 /* MusicPieceImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C46CA536DCC8BEFE94703A5 /* MusicPieceImporter.swift */; };
 		7DB638E818B72A9D9F481B7F /* DmxFixtureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5062819DA1D86B5C8D09CC76 /* DmxFixtureModel.swift */; };
 		9DE68FE4120C11C5EC98D74C /* LiveControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1472AC15EED0E3FF7D3FD43 /* LiveControlPanel.swift */; };
 		A0D100000000000000000001 /* YbridOpus in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = A0D100000000000000000004 /* YbridOpus */; };
@@ -267,6 +269,11 @@
 		BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */; };
 		C1B849B58E8EAD7B9E0510B9 /* AudioFileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211450B80E5BBFE2141677F /* AudioFileDocument.swift */; };
 		D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */; };
+		D1B0050915349689AADC57D1 /* MusicPieceModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70A9D7E2D80A85881D855E5 /* MusicPieceModel.swift */; };
+		122468D376AF6B09CFFF3261 /* MusicPieceImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C46CA536DCC8BEFE94703A5 /* MusicPieceImporter.swift */; };
+		8151C5F878D76DDA6DCF11A3 /* MusicLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DB49F32DE96D34274EF2B4F /* MusicLibraryView.swift */; };
+		2DFE56246A605C374563A086 /* MusicLibraryPieceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92979FE41A7E166C7814654 /* MusicLibraryPieceView.swift */; };
+		7671B75769CACB4F32EFB069 /* MusicLibraryPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7583072103539A48354EC0F /* MusicLibraryPickerSheet.swift */; };
 		55C7A7E331E8AA517A040FC2 /* MusicWaveform.swift in Sources */ = {isa = PBXBuildFile; fileRef = A973B4D66B92EEC8119BCD78 /* MusicWaveform.swift */; };
 		151E80C7C54A2F45B1F79ECD /* MusicPiecePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD580332C5D15EAE2DE9447 /* MusicPiecePlayer.swift */; };
 		BF3D513026AC1C587C7B255D /* MusicPieceEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C827C71503DEA01F93FC25 /* MusicPieceEditor.swift */; };
@@ -622,6 +629,11 @@
 		DA17A0010000000000000001 /* DynamixelSensorReportProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamixelSensorReportProcessor.swift; sourceTree = "<group>"; };
 		E4FE4831905123F081DB0B90 /* StoryboardTileButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StoryboardTileButton.swift; path = "Sources/Creature Console/View/Storyboard/StoryboardTileButton.swift"; sourceTree = SOURCE_ROOT; };
 		F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialogRerenderButton.swift; path = "Sources/Creature Console/View/Dialog/DialogRerenderButton.swift"; sourceTree = SOURCE_ROOT; };
+		E70A9D7E2D80A85881D855E5 /* MusicPieceModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicPieceModel.swift; path = "Sources/Creature Console/Model/Music/MusicPieceModel.swift"; sourceTree = SOURCE_ROOT; };
+		8C46CA536DCC8BEFE94703A5 /* MusicPieceImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicPieceImporter.swift; path = "Sources/Creature Console/Model/Music/MusicPieceImporter.swift"; sourceTree = SOURCE_ROOT; };
+		8DB49F32DE96D34274EF2B4F /* MusicLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicLibraryView.swift; path = "Sources/Creature Console/View/Music/MusicLibraryView.swift"; sourceTree = SOURCE_ROOT; };
+		E92979FE41A7E166C7814654 /* MusicLibraryPieceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicLibraryPieceView.swift; path = "Sources/Creature Console/View/Music/MusicLibraryPieceView.swift"; sourceTree = SOURCE_ROOT; };
+		A7583072103539A48354EC0F /* MusicLibraryPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicLibraryPickerSheet.swift; path = "Sources/Creature Console/View/Music/MusicLibraryPickerSheet.swift"; sourceTree = SOURCE_ROOT; };
 		A973B4D66B92EEC8119BCD78 /* MusicWaveform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicWaveform.swift; path = "Sources/Creature Console/View/Music/MusicWaveform.swift"; sourceTree = SOURCE_ROOT; };
 		3AD580332C5D15EAE2DE9447 /* MusicPiecePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicPiecePlayer.swift; path = "Sources/Creature Console/View/Music/MusicPiecePlayer.swift"; sourceTree = SOURCE_ROOT; };
 		72C827C71503DEA01F93FC25 /* MusicPieceEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MusicPieceEditor.swift; path = "Sources/Creature Console/View/Music/MusicPieceEditor.swift"; sourceTree = SOURCE_ROOT; };
@@ -1078,6 +1090,11 @@
 				6B58446690618A288BDE246C /* DialogScriptEditor.swift */,
 				7880422A866AB187A31EEA11 /* AnimationDialogProvenanceView.swift */,
 				F20E4474A9B3B616BFC1C061 /* DialogRerenderButton.swift */,
+				E70A9D7E2D80A85881D855E5 /* MusicPieceModel.swift */,
+				8C46CA536DCC8BEFE94703A5 /* MusicPieceImporter.swift */,
+				8DB49F32DE96D34274EF2B4F /* MusicLibraryView.swift */,
+				E92979FE41A7E166C7814654 /* MusicLibraryPieceView.swift */,
+				A7583072103539A48354EC0F /* MusicLibraryPickerSheet.swift */,
 				A973B4D66B92EEC8119BCD78 /* MusicWaveform.swift */,
 				3AD580332C5D15EAE2DE9447 /* MusicPiecePlayer.swift */,
 				72C827C71503DEA01F93FC25 /* MusicPieceEditor.swift */,
@@ -2398,6 +2415,11 @@
 				F539487A8A5CBD435D46567A /* DialogScriptEditor.swift in Sources */,
 				BD6F4EF893A22AC54C04441F /* AnimationDialogProvenanceView.swift in Sources */,
 				D0494662A259615F1BBAF7B7 /* DialogRerenderButton.swift in Sources */,
+				D1B0050915349689AADC57D1 /* MusicPieceModel.swift in Sources */,
+				122468D376AF6B09CFFF3261 /* MusicPieceImporter.swift in Sources */,
+				8151C5F878D76DDA6DCF11A3 /* MusicLibraryView.swift in Sources */,
+				2DFE56246A605C374563A086 /* MusicLibraryPieceView.swift in Sources */,
+				7671B75769CACB4F32EFB069 /* MusicLibraryPickerSheet.swift in Sources */,
 				55C7A7E331E8AA517A040FC2 /* MusicWaveform.swift in Sources */,
 				151E80C7C54A2F45B1F79ECD /* MusicPiecePlayer.swift in Sources */,
 				BF3D513026AC1C587C7B255D /* MusicPieceEditor.swift in Sources */,
@@ -2546,6 +2568,8 @@
 				117C87382CA0CE9F007B5682 /* VirtualStatusLightsProcessor.swift in Sources */,
 				114B7E5E2E90CF5D00F5D1EC /* SensorDataLogic.swift in Sources */,
 				786C4469BE761562C02CD8CA /* DialogScriptModel.swift in Sources */,
+				260C6FD4DC88121B0A6AE4A4 /* MusicPieceModel.swift in Sources */,
+				3066837F0961067F004CD361 /* MusicPieceImporter.swift in Sources */,
 				6C9444419FD99EECE583E33B /* DialogScriptImporter.swift in Sources */,
 				B0EB4DDC9872D02FBC869667 /* StoryboardModel.swift in Sources */,
 				234E4D4BAA45573AFDDE3327 /* StoryboardImporter.swift in Sources */,

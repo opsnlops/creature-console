@@ -200,6 +200,19 @@ struct MusicPieceTests {
             ))
     }
 
+    @Test("instrumental keeps the header and directions and drops lyric lines")
+    func instrumental() {
+        let sung = MusicGenerationChunk(
+            text: "[Jingle] {bright}\nPretty bird, fly so high!\n(chirp chirp chirp)\n{slower}",
+            durationMilliseconds: 8_000)
+        #expect(sung.instrumental().text == "[Jingle] {bright}\n{slower}")
+        let headed = MusicGenerationChunk(
+            text: "[Jingle]\nPretty bird!", durationMilliseconds: 8_000)
+        #expect(headed.instrumental().text == "[Jingle]")
+        let plain = MusicGenerationChunk(text: "[Intro] soft", durationMilliseconds: 8_000)
+        #expect(plain.instrumental().text == "[Intro] soft")
+    }
+
     @Test("moving and removing sections")
     func moveAndRemove() {
         var piece = generatedPiece()

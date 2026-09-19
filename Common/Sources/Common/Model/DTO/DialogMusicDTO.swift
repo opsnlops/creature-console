@@ -10,6 +10,8 @@ public enum DialogMusicGenerationMode: String, Codable, CaseIterable, Sendable {
 public enum DialogMusicRequestKind: String, Codable, Sendable {
     case prompt
     case compositionPlan = "composition_plan"
+    /// The library's refinement builder (server #202): editable sections, kept ones referenced.
+    case sections
 }
 
 /// A finetune to compose with, and how strongly (0–2, default 1).
@@ -204,6 +206,12 @@ public struct DialogMusicRecipe: Codable, Equatable, Sendable {
     public let compositionPlan: MusicCompositionPlan?
     /// ElevenLabs' description of the song (title, genres, …), kept verbatim.
     public let songMetadata: [String: JSONValue]
+    /// The editable sections a library take was made from (server #202). Nil for takes made
+    /// from a prompt or a raw plan.
+    public let sections: [MusicGenerationChunk]?
+    /// The library piece this take refines, and the version it kept sections from.
+    public let pieceId: UUID?
+    public let baseVersionId: UUID?
 
     enum CodingKeys: String, CodingKey {
         case modelId = "model_id"
@@ -218,6 +226,9 @@ public struct DialogMusicRecipe: Codable, Equatable, Sendable {
         case storedForInpainting = "stored_for_inpainting"
         case compositionPlan = "composition_plan"
         case songMetadata = "song_metadata"
+        case sections
+        case pieceId = "piece_id"
+        case baseVersionId = "base_version_id"
     }
 
     private enum PlanKeys: String, CodingKey {
@@ -236,7 +247,10 @@ public struct DialogMusicRecipe: Codable, Equatable, Sendable {
         finetuneStrength: Double? = nil,
         storedForInpainting: Bool = true,
         compositionPlan: MusicCompositionPlan? = nil,
-        songMetadata: [String: JSONValue] = [:]
+        songMetadata: [String: JSONValue] = [:],
+        sections: [MusicGenerationChunk]? = nil,
+        pieceId: UUID? = nil,
+        baseVersionId: UUID? = nil
     ) {
         self.modelId = modelId
         self.songId = songId
@@ -250,6 +264,9 @@ public struct DialogMusicRecipe: Codable, Equatable, Sendable {
         self.storedForInpainting = storedForInpainting
         self.compositionPlan = compositionPlan
         self.songMetadata = songMetadata
+        self.sections = sections
+        self.pieceId = pieceId
+        self.baseVersionId = baseVersionId
     }
 
     public init(from decoder: Decoder) throws {
@@ -280,6 +297,11 @@ public struct DialogMusicRecipe: Codable, Equatable, Sendable {
         }
         songMetadata =
             try container.decodeIfPresent([String: JSONValue].self, forKey: .songMetadata) ?? [:]
+        sections = try container.decodeIfPresent([MusicGenerationChunk].self, forKey: .sections)
+        let rawPieceId = try container.decodeIfPresent(String.self, forKey: .pieceId)
+        pieceId = rawPieceId.flatMap { UUID(uuidString: $0) }
+        let rawBaseVersionId = try container.decodeIfPresent(String.self, forKey: .baseVersionId)
+        baseVersionId = rawBaseVersionId.flatMap { UUID(uuidString: $0) }
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -300,6 +322,10 @@ public struct DialogMusicRecipe: Codable, Equatable, Sendable {
             try container.encode([String: JSONValue](), forKey: .compositionPlan)
         }
         try container.encode(songMetadata, forKey: .songMetadata)
+        try container.encodeIfPresent(sections, forKey: .sections)
+        try container.encodeIfPresent(pieceId?.uuidString.lowercased(), forKey: .pieceId)
+        try container.encodeIfPresent(
+            baseVersionId?.uuidString.lowercased(), forKey: .baseVersionId)
     }
 
     public var model: DialogMusicModel? { DialogMusicModel(rawValue: modelId) }

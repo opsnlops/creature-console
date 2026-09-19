@@ -15,6 +15,7 @@ struct MusicCandidateCard: View {
     let onAudition: () -> Void
     let onPromote: () -> Void
     let onMakeCurrent: () -> Void
+    let onSaveToLibrary: () -> Void
 
     @State private var showsPlan = false
 
@@ -93,6 +94,14 @@ struct MusicCandidateCard: View {
                     .disabled(candidate.isExpired || !isCurrent || !canPromote)
                 }
                 Spacer()
+                Button {
+                    onSaveToLibrary()
+                } label: {
+                    Label("Save to Library", systemImage: "books.vertical")
+                }
+                .buttonStyle(.glass)
+                .disabled(candidate.isExpired)
+                .help("Keep this version as a piece in the music library, to reuse or refine")
                 if !isEditing {
                     Button {
                         onMakeCurrent()

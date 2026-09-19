@@ -252,3 +252,36 @@ piece reopens editable.
 - Risk: song ids live at ElevenLabs. If one is gone, references fail; the
   fallback is composing the piece again from its saved sections (no
   conditioning). The UI must say which happened.
+
+---
+
+# Status, 2026-09-19: the library is live and wired
+
+The server side shipped as creature-server 3.48.2 (PR #203, `docs/music-library-plan.md`
+there) with a richer contract than sketched above. What the console now does with it:
+
+- **Sections mode replaces the client-built refinement plan for library work.** Apply
+  in the library editor sends `sections` + `piece_id` + `base_version_id` + `keep`
+  (`MusicPiece.keptIndices(against:)`: clean sections that still sit at the same
+  index with the same content — a clean section that moved is composed again,
+  conditioned on the old audio, because the server matches `keep` by position). The
+  dialog editor keeps the client-side `refinementPlan()` because the dialog-bound
+  generate doesn't accept sections yet (server phase 3, a small change when wanted).
+- **The instruction box** (`POST /music/{id}/refine`) proposes new sections and says
+  which indices changed; `MusicPiece.applying(proposal:)` lays them over the piece so
+  the changed ones show dirty. Nothing is composed until Apply.
+- **New piece**: describe + length → `POST /music/plan` → sections (lyric lines
+  stripped unless vocals are allowed: `MusicGenerationChunk.instrumental()`), or
+  compose straight from the description; the first take is saved once titled.
+- **Versions** are the server's list; Apply auto-saves the take as a new version and
+  moves the piece onto it. Open / Make Current per version.
+- **Library mirror**: `MusicPieceModel` + `MusicPieceImporter`, `music-piece-list`
+  invalidation, bootstrap import, TV target shares the schema.
+- **Dialog editor**: *Use a Library Piece…* builds a dialog-bound plan that
+  audio-references the piece's current version section by section and adds a
+  conditioned `[Continuation]` when the dialog runs longer; *Save to Library* on any
+  version. The accepted take's length reaches the composer through
+  `MusicSubject.dialogDurationMilliseconds` when the editor has auditioned it.
+- **Fidelity wording**: the server team's five trials put referenced spans at sample
+  correlation 0.01–0.50 (envelope 0.88–0.96), against this branch's one measurement of
+  0.999. The UI says "kept" and never "identical"; nothing depends on byte fidelity.

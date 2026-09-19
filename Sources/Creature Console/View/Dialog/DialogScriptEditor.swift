@@ -166,7 +166,13 @@ struct DialogScriptEditor: View {
                             acceptedVoice: original.acceptedVoice,
                             acceptedVoiceIsFresh: hasFreshAcceptedVoice,
                             backgroundMusic: original.backgroundMusic,
-                            hasUnsavedChanges: createNew || isDirty)
+                            hasUnsavedChanges: createNew || isDirty,
+                            // Only the accepted take's length is the music's length; an
+                            // auditioned partial take must not size it.
+                            dialogDurationMilliseconds: fullDialogMeta.flatMap {
+                                $0.generationId == original.acceptedVoice?.generationId
+                                    ? Int64($0.durationSeconds * 1_000) : nil
+                            })
                     ) { canonical in
                         // Music removal is a server-side field mutation. Merge only that
                         // field so a response that arrives after a local edit cannot erase

@@ -71,6 +71,12 @@ struct MusicCreationView: View {
     @State private var statusMessage: String?
     @State private var errorAlert: ErrorAlert?
 
+    // The library
+    @State private var showLibraryPicker = false
+    @State private var candidateToSave: DialogMusicCandidate?
+    @State private var libraryTitle = ""
+    @State private var isSavingToLibrary = false
+
     private var trimmedPrompt: String {
         prompt.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -80,7 +86,12 @@ struct MusicCreationView: View {
     }
 
     private var isBusy: Bool {
-        isSubmitting || isDrafting || (observedJob.map { !$0.isTerminal } ?? false)
+        isSubmitting || isDrafting || isSavingToLibrary
+            || (observedJob.map { !$0.isTerminal } ?? false)
+    }
+
+    private var knownDialogDurationMilliseconds: Int64? {
+        dialogDurationMilliseconds ?? subject.dialogDurationMilliseconds
     }
 
     private var seed: Int64? {
@@ -153,7 +164,8 @@ struct MusicCreationView: View {
                             isAuditioning: isAuditioning,
                             onAudition: { audition(candidate) },
                             onPromote: { requestPromotion(candidate) },
-                            onMakeCurrent: { makeCurrent(candidate) })
+                            onMakeCurrent: { makeCurrent(candidate) },
+                            onSaveToLibrary: { beginSavingToLibrary(candidate) })
                     }
                 }
             }
@@ -204,6 +216,26 @@ struct MusicCreationView: View {
         }
         .shareableSoundFlow(fileName: $soundToShare)
         .errorAlert($errorAlert)
+        .sheet(isPresented: $showLibraryPicker) {
+            MusicLibraryPickerSheet(dialogDurationMilliseconds: knownDialogDurationMilliseconds) {
+                piece, version in
+                useLibraryPiece(piece, version: version)
+            }
+        }
+        .alert(
+            "Save to the library",
+            isPresented: Binding(
+                get: { candidateToSave != nil }, set: { if !$0 { candidateToSave = nil } })
+        ) {
+            TextField("Title", text: $libraryTitle)
+            Button("Save") { saveToLibrary() }
+                .disabled(libraryTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button("Cancel", role: .cancel) { candidateToSave = nil }
+        } message: {
+            Text(
+                "The version becomes a piece in the music library, to reuse under other dialogs or refine on its own."
+            )
+        }
         .confirmationDialog(
             "Replace accepted background music?", isPresented: $showReplacementConfirmation,
             titleVisibility: .visible
@@ -318,6 +350,15 @@ struct MusicCreationView: View {
             .buttonStyle(.glass)
             .disabled(isBusy)
         }
+
+        Button {
+            showLibraryPicker = true
+        } label: {
+            Label("Use a Library Piece…", systemImage: "books.vertical")
+        }
+        .buttonStyle(.glass)
+        .disabled(!subject.canCompose || isBusy)
+        .help("Compose this dialog's music from a piece already in the library")
     }
 
     // MARK: - The piece
@@ -522,7 +563,9 @@ struct MusicCreationView: View {
                     piece = MusicPiece.blank(
                         sections: drafted.compositionPlan.chunks.compactMap { chunk in
                             if case .generation(let generation) = chunk {
-                                return generation.unconditioned()
+                                return allowVocals
+                                    ? generation.unconditioned()
+                                    : generation.unconditioned().instrumental()
                             }
                             return nil
                         })
@@ -663,38 +706,107 @@ struct MusicCreationView: View {
         let token = UUID()
         audioLoadToken = token
         waveform = .empty
-        player.unload()
         Task {
-            let download = await server.downloadRawData(from: url)
+            let outcome = await player.loadRemote(url: url, cacheKey: cacheKey)
             guard token == audioLoadToken else { return }
-            switch download {
-            case .success(let data):
-                switch audioManager.cacheAudioData(data, cacheKey: cacheKey, fileExtension: "mp3")
-                {
-                case .success(let localURL):
-                    do {
-                        try player.load(url: localURL)
-                    } catch {
-                        errorAlert = ErrorAlert(
-                            title: "Could Not Load Audio", message: error.localizedDescription)
-                        return
-                    }
-                    let decoded = try? await MusicWaveform.decode(url: localURL)
-                    guard token == audioLoadToken else { return }
-                    waveform = decoded ?? .empty
-                case .failure(let error):
-                    errorAlert = ErrorAlert(
-                        title: "Could Not Load Audio", message: error.localizedDescription)
-                }
-            case .failure(.notFound):
-                if let index = candidates.firstIndex(where: {
-                    $0.id.uuidString.lowercased() == cacheKey
-                }) {
-                    candidates[index].isExpired = true
-                }
-                statusMessage = "That version's audio has expired on the server."
+            switch outcome {
+            case .success(let decoded):
+                waveform = decoded
             case .failure(let error):
-                presentError("Could Not Load Audio", error)
+                if error.isExpired,
+                    let index = candidates.firstIndex(where: {
+                        $0.id.uuidString.lowercased() == cacheKey
+                    })
+                {
+                    candidates[index].isExpired = true
+                    statusMessage = "That version's audio has expired on the server."
+                } else {
+                    errorAlert = ErrorAlert(title: "Could Not Load Audio", message: error.message)
+                }
+            }
+        }
+    }
+
+    // MARK: - The library
+
+    /// Compose this dialog's music from a saved piece: its current version is referenced
+    /// section by section, and when the dialog runs longer a matching tail is composed.
+    private func useLibraryPiece(_ saved: SavedMusicPiece, version: SavedMusicVersion) {
+        guard let scriptId = subject.scriptId, let voice = subject.acceptedVoice,
+            subject.canCompose, !isBusy
+        else { return }
+        var chunks: [MusicPlanChunk] = []
+        var offset: Int64 = 0
+        for section in version.sections {
+            let end = offset + section.durationMilliseconds
+            chunks.append(
+                .audioReference(
+                    MusicAudioRange(
+                        songId: version.songId, startMilliseconds: offset, endMilliseconds: end)))
+            offset = end
+        }
+        if chunks.isEmpty {
+            chunks.append(
+                .audioReference(
+                    MusicAudioRange(
+                        songId: version.songId, startMilliseconds: 0,
+                        endMilliseconds: min(
+                            version.durationMilliseconds, DialogLimits.maxMusicChunkMilliseconds))))
+        }
+        if let dialog = knownDialogDurationMilliseconds, dialog > version.durationMilliseconds {
+            let tail = max(
+                dialog - version.durationMilliseconds, DialogLimits.minMusicChunkMilliseconds)
+            let last = version.sections.last
+            chunks.append(
+                .generation(
+                    MusicGenerationChunk(
+                        text: "[Continuation] carries the piece on to the end of the dialog",
+                        durationMilliseconds: tail,
+                        positiveStyles: last?.positiveStyles ?? [],
+                        negativeStyles: last?.negativeStyles ?? [],
+                        contextAdherence: .high,
+                        conditioningReference: MusicAudioRange.referenceSpan(
+                            of: version.songId, durationMilliseconds: version.durationMilliseconds),
+                        conditionStrength: .high)))
+        }
+        let plan = MusicCompositionPlan(chunks: chunks)
+        // The piece as it will be after this take: its sections, moved onto the new song.
+        pendingPiece = MusicPiece.blank(sections: version.sections.map { $0.unconditioned() })
+        submit(
+            DialogMusicRequest(
+                scriptId: scriptId,
+                dialogCacheKey: voice.dialogCacheKey,
+                dialogGenerationId: voice.generationId,
+                composition: .plan(plan, seed: version.recipe?.seed),
+                finetune: version.recipe?.finetune),
+            voice: voice,
+            message: "Composing this dialog's music from “\(saved.title)”…")
+    }
+
+    private func beginSavingToLibrary(_ candidate: DialogMusicCandidate) {
+        libraryTitle = subject.title
+        candidateToSave = candidate
+    }
+
+    private func saveToLibrary() {
+        guard let candidate = candidateToSave else { return }
+        let title = libraryTitle.trimmingCharacters(in: .whitespaces)
+        guard !title.isEmpty else { return }
+        candidateToSave = nil
+        isSavingToLibrary = true
+        statusMessage = "Saving “\(title)” to the library…"
+        let sections = candidate.piece?.serverSections ?? candidate.result.recipe?.sections
+        Task {
+            let outcome = await server.saveMusicCandidate(
+                generationId: candidate.id, MusicSaveRequest(title: title, sections: sections))
+            await MainActor.run {
+                isSavingToLibrary = false
+                switch outcome {
+                case .success(let saved):
+                    statusMessage = "“\(saved.title)” is in the library."
+                case .failure(let error):
+                    presentError("Could Not Save to the Library", error)
+                }
             }
         }
     }

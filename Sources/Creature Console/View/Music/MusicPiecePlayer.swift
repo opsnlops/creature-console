@@ -1,6 +1,19 @@
 import AVFoundation
+import Common
 import Foundation
 import OSLog
+
+/// Why a piece's audio could not be loaded, in the words to show.
+struct MusicAudioLoadError: Error, Equatable {
+    let message: String
+    /// The server no longer has the audio (a swept candidate).
+    let isExpired: Bool
+
+    init(_ message: String, isExpired: Bool = false) {
+        self.message = message
+        self.isExpired = isExpired
+    }
+}
 
 /// Plays one local audio file with a position the timeline can show and move. Nothing else in
 /// the app exposes seek or playback time, so this is the piece editor's own player; it borrows
@@ -100,6 +113,40 @@ final class MusicPiecePlayer {
         pausedTime = clamped
         if let player, isPlaying {
             player.currentTime = clamped
+        }
+    }
+
+    /// Download a piece's audio, hand it to this player and decode its waveform. The failure
+    /// is the message to show; a 404 means the server swept the audio.
+    func loadRemote(url: URL, cacheKey: String) async -> Result<
+        MusicWaveform, MusicAudioLoadError
+    > {
+        unload()
+        switch await CreatureServerClient.shared.downloadRawData(from: url) {
+        case .success(let data):
+            switch AudioManager.shared.cacheAudioData(
+                data, cacheKey: cacheKey, fileExtension: "mp3")
+            {
+            case .success(let localURL):
+                do {
+                    try load(url: localURL)
+                } catch {
+                    return .failure(MusicAudioLoadError(error.localizedDescription))
+                }
+                do {
+                    return .success(try await MusicWaveform.decode(url: localURL))
+                } catch {
+                    logger.warning("waveform decode failed: \(error.localizedDescription)")
+                    return .success(.empty)
+                }
+            case .failure(let error):
+                return .failure(MusicAudioLoadError(error.localizedDescription))
+            }
+        case .failure(.notFound):
+            return .failure(
+                MusicAudioLoadError("That audio has expired on the server.", isExpired: true))
+        case .failure(let error):
+            return .failure(MusicAudioLoadError(ServerError.detailedMessage(from: error)))
         }
     }
 

@@ -288,4 +288,19 @@ extension MusicGenerationChunk {
         chunk.conditionStrength = nil
         return chunk
     }
+
+    /// The same chunk without lyric lines. In plan and sections modes "instrumental" is nothing
+    /// more than leaving lyrics out of the text — the planner writes them if you let it — so this
+    /// keeps the `[Section]` header and any `{direction}` lines and drops the rest.
+    public func instrumental() -> MusicGenerationChunk {
+        var chunk = self
+        let kept = text.split(separator: "\n", omittingEmptySubsequences: true)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { line in
+                (line.hasPrefix("[") && line.contains("]"))
+                    || (line.hasPrefix("{") && line.hasSuffix("}"))
+            }
+        chunk.text = kept.joined(separator: "\n")
+        return chunk
+    }
 }
