@@ -26,6 +26,7 @@ actor CacheInvalidationProcessor {
         case dialogScript
         case storyboard
         case stage
+        case musicPiece
 
         var noun: String {
             switch self {
@@ -37,6 +38,7 @@ actor CacheInvalidationProcessor {
             case .dialogScript: return "dialog script"
             case .storyboard: return "storyboard"
             case .stage: return "stage"
+            case .musicPiece: return "music library"
             }
         }
     }
@@ -94,6 +96,8 @@ actor CacheInvalidationProcessor {
             rebuild(.storyboard, deleteStaleEntries: true)
         case .stageList:
             rebuild(.stage, deleteStaleEntries: true)
+        case .musicPieceList:
+            rebuild(.musicPiece, deleteStaleEntries: true)
         case .adHocAnimationList:
             logger.info("ad-hoc animation cache invalidation received - refresh handler pending")
         case .adHocSoundList:
@@ -260,6 +264,12 @@ actor CacheInvalidationProcessor {
             let importer = StageImporter(modelContainer: container)
             await sync(
                 cache, deleteStaleEntries, fetch: { await server.listStages() },
+                ids: { Set($0.map(\.id)) },
+                deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
+        case .musicPiece:
+            let importer = MusicPieceImporter(modelContainer: container)
+            await sync(
+                cache, deleteStaleEntries, fetch: { await server.listMusicPieces() },
                 ids: { Set($0.map(\.id)) },
                 deleteAllExcept: importer.deleteAllExcept, upsert: importer.upsertBatch)
         }

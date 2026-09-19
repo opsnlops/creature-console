@@ -53,6 +53,10 @@ extension CreatureServerClient {
         return await invalidateCache(for: .storyboardList)
     }
 
+    public func invalidateMusicPieceCache() async -> Result<StatusDTO, ServerError> {
+        return await invalidateCache(for: .musicPieceList)
+    }
+
     public func testPlaylistUpdates() async -> Result<StatusDTO, ServerError> {
 
         logger.debug("telling the server to send a fake playlist update command")

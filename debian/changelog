@@ -1,3 +1,17 @@
+creature-cli (2.78.0+world0.35.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-cli 2.78.0: dialog music adopts the ElevenLabs Music 2.5
+    controls in creature-server 3.47 (console #197, server #200).
+    `dialog music generate` gains --model, --allow-vocals, --finetune,
+    --finetune-strength, --plan (a composition-plan file) and --seed;
+    new `dialog music plan` drafts a plan sized to the voice take,
+    `dialog music recipe` shows how a take was made and can write its
+    plan out, and `dialog music finetunes` lists the account's finetunes.
+    Plans are validated client-side with the server's limits before
+    anything is sent.
+
+ -- April White <april@creature.engineering>  Fri, 18 Sep 2026 15:00:00 -0700
+
 creature-cli (2.77.5+world0.35.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.35.1: a name calls for more only as a vocative.

@@ -15,6 +15,13 @@ protocol DialogMusicCommandClient: JobPolling {
     >
     func musicCandidateURL(generationId: UUID) async -> Result<URL, ServerError>
     func downloadRawData(from url: URL) async -> Result<Data, ServerError>
+    func draftDialogMusicPlan(_ request: DialogMusicPlanRequest) async -> Result<
+        DialogMusicPlanResult, ServerError
+    >
+    func getDialogMusicRecipe(generationId: UUID) async -> Result<
+        DialogMusicRecipe, ServerError
+    >
+    func listMusicFinetunes() async -> Result<MusicFinetuneList, ServerError>
 }
 
 extension CreatureServerClient: DialogMusicCommandClient {
@@ -69,7 +76,12 @@ extension CreatureCLI {
         struct Music: AsyncParsableCommand {
             static let configuration = CommandConfiguration(
                 abstract: "Generate, download, and accept dialog background music",
-                subcommands: [Generate.self, Download.self, Promote.self]
+                discussion:
+                    "Music is composed against a saved script's full-dialog voice take. Describe it with --prompt, or hand the server a composition plan (--plan) drafted by `plan` or copied from a prior take's `recipe`.",
+                subcommands: [
+                    Generate.self, Plan.self, Recipe.self, Finetunes.self, Download.self,
+                    Promote.self,
+                ]
             )
 
             @OptionGroup()
@@ -107,14 +119,44 @@ extension CreatureCLI {
                 )
                 var dialogGenerationId: String?
 
-                @Option(help: "Music prompt describing mood, instruments, and pacing")
-                var prompt: String
+                @Option(
+                    help:
+                        "Music prompt describing mood, instruments, and pacing (prompt mode; omit with --plan)"
+                )
+                var prompt: String?
 
-                @Option(help: "Music-only tail after the dialog, in milliseconds (0...60000)")
+                @Option(
+                    help:
+                        "Music-only tail after the dialog, in milliseconds (0...60000; prompt mode)"
+                )
                 var durationExtensionMs: Int64 = 0
 
-                @Option(help: "Generation style: track, loop, or ambience")
+                @Option(help: "Generation style: track, loop, or ambience (prompt mode)")
                 var mode: DialogMusicGenerationMode = .track
+
+                @Flag(
+                    help: "Let the model write and sing lyrics (prompt mode; default instrumental)")
+                var allowVocals = false
+
+                @Option(
+                    help:
+                        "Composition plan JSON file ({\"chunks\": [...]}) — plan mode, instead of --prompt"
+                )
+                var plan: String?
+
+                @Option(help: "Seed for consistency across tweaks (plan mode only)")
+                var seed: Int64?
+
+                @Option(help: "Finetune ID (see `finetunes`)")
+                var finetune: String?
+
+                @Option(help: "Finetune strength, 0...2 (default 1.0; requires --finetune)")
+                var finetuneStrength: Double?
+
+                @Flag(
+                    inversion: .prefixedNo,
+                    help: "Keep the take at ElevenLabs so later requests can reference it")
+                var storeForInpainting = true
 
                 @Option(name: .shortAndLong, help: "Optional MP3 output path")
                 var output: String?
@@ -130,54 +172,68 @@ extension CreatureCLI {
                     let requestedGeneration = try dialogGenerationId.map {
                         try parseUUIDArgument($0, label: "dialog generation ID")
                     }
-                    let cleanPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !cleanPrompt.isEmpty else {
-                        throw failWithMessage("Music prompt cannot be empty.")
-                    }
-                    guard cleanPrompt.utf8.count <= DialogLimits.maxMusicPromptBytes else {
+                    let finetuneSelection = try musicFinetuneSelection(
+                        finetune: finetune, strength: finetuneStrength)
+
+                    // Exactly one composition shape, checked before any network traffic.
+                    let composition: DialogMusicRequest.Composition
+                    switch (prompt, plan) {
+                    case (nil, nil):
                         throw failWithMessage(
-                            "Music prompt exceeds \(DialogLimits.maxMusicPromptBytes) UTF-8 bytes.")
-                    }
-                    guard (0...60_000).contains(durationExtensionMs) else {
-                        throw failWithMessage(
-                            "--duration-extension-ms must be between 0 and 60000.")
+                            "Provide --prompt (describe it) or --plan (a plan file).")
+                    case (.some, .some):
+                        throw failWithMessage("--prompt and --plan are mutually exclusive.")
+                    case (.some(let prompt), nil):
+                        if seed != nil {
+                            throw failWithMessage("--seed only applies with --plan.")
+                        }
+                        let cleanPrompt = try validatedMusicPrompt(prompt)
+                        guard
+                            (0...DialogLimits.maxMusicDurationExtensionMilliseconds).contains(
+                                durationExtensionMs)
+                        else {
+                            throw failWithMessage(
+                                "--duration-extension-ms must be between 0 and \(DialogLimits.maxMusicDurationExtensionMilliseconds)."
+                            )
+                        }
+                        composition = .prompt(
+                            DialogMusicRequest.Prompt(
+                                prompt: cleanPrompt,
+                                durationExtensionMilliseconds: durationExtensionMs,
+                                generationMode: mode,
+                                forceInstrumental: !allowVocals))
+                    case (nil, .some(let planPath)):
+                        let loaded = try loadMusicCompositionPlan(from: planPath)
+                        if let seed, !(0...DialogLimits.maxMusicSeed).contains(seed) {
+                            throw failWithMessage(
+                                "--seed must be between 0 and \(DialogLimits.maxMusicSeed).")
+                        }
+                        composition = .plan(loaded, seed: seed)
                     }
 
                     try await tracedRun("dialog.music.generate", config: globalOptions) {
                         let server = await Music.makeServer(for: globalOptions)
-                        let script: DialogScript
-                        switch await server.getDialogScript(id: scriptIdentifier) {
-                        case .success(let value): script = value
-                        case .failure(let error):
-                            throw failWithMessage(
-                                "Could not load dialog: \(ServerError.detailedMessage(from: error))"
-                            )
-                        }
+                        let (_, meta) = try await resolveFullDialogTake(
+                            server: server, scriptId: scriptIdentifier,
+                            requestedGeneration: requestedGeneration)
 
-                        let previewRequest = DialogPreviewRequest.fromTurns(
-                            script.turns, generationId: requestedGeneration, title: script.title)
-                        let meta: DialogPreviewMetaDTO
-                        switch await server.dialogPreviewMeta(previewRequest) {
-                        case .success(.meta(let value)):
-                            meta = value
-                        case .success(.queued(let job)):
-                            meta = try await waitForJobResult(
-                                server: server, jobId: job.jobId,
-                                label: "Generating full-dialog voice take",
-                                resultType: DialogPreviewMetaDTO.self)
-                        case .failure(let error):
-                            throw failWithMessage(
-                                "Could not resolve the full-dialog voice take: \(ServerError.detailedMessage(from: error))"
-                            )
+                        if case .plan(let plan, _) = composition {
+                            let problems = plan.validationProblems(
+                                dialogDurationMilliseconds: Int64(meta.durationSeconds * 1_000))
+                            if !problems.isEmpty {
+                                throw failWithMessage(
+                                    "The plan would be rejected:\n  "
+                                        + problems.joined(separator: "\n  "))
+                            }
                         }
 
                         let request = DialogMusicRequest(
                             scriptId: scriptIdentifier,
                             dialogCacheKey: meta.cacheKey,
                             dialogGenerationId: meta.generationId,
-                            prompt: cleanPrompt,
-                            durationExtensionMilliseconds: durationExtensionMs,
-                            generationMode: mode)
+                            composition: composition,
+                            finetune: finetuneSelection,
+                            storeForInpainting: storeForInpainting)
                         let job: JobCreatedResponse
                         switch await server.generateDialogMusic(request) {
                         case .success(let value): job = value
@@ -198,12 +254,195 @@ extension CreatureCLI {
                         print(
                             "   final show: \(TimeHelper.formatDuration(candidate.finalShowDurationSeconds))"
                         )
+                        if let recipe = candidate.recipe {
+                            print(musicRecipeSummary(recipe, indent: "   "))
+                        }
                         print("   Candidate audio is temporary until promoted.")
 
                         if let output {
                             try await downloadMusicCandidate(
                                 server: server, generationId: candidate.musicGenerationId,
                                 output: output, overwrite: overwrite)
+                        }
+                    }
+                }
+            }
+
+            struct Plan: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "Draft a composition plan from a prompt, sized to the voice take",
+                    discussion:
+                        "Prints the plan as JSON (or writes it with --output). Edit it, then hand it to `generate --plan`. A prior take's plan (from `recipe`) can seed the draft with --source-plan."
+                )
+
+                @Option(help: "Saved dialog script ID (UUID)")
+                var scriptId: String
+
+                @Option(
+                    help:
+                        "Specific cached full-dialog voice generation (UUID); defaults to the latest"
+                )
+                var dialogGenerationId: String?
+
+                @Option(help: "Music prompt describing mood, instruments, and pacing")
+                var prompt: String
+
+                @Option(help: "Music-only tail after the dialog, in milliseconds (0...60000)")
+                var durationExtensionMs: Int64 = 0
+
+                @Option(help: "Composition plan JSON file to start the draft from")
+                var sourcePlan: String?
+
+                @Option(name: .shortAndLong, help: "Write the plan JSON here instead of stdout")
+                var output: String?
+
+                @Flag(help: "Replace an existing output file")
+                var overwrite = false
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let scriptIdentifier = try parseUUIDArgument(scriptId, label: "script ID")
+                    let requestedGeneration = try dialogGenerationId.map {
+                        try parseUUIDArgument($0, label: "dialog generation ID")
+                    }
+                    let cleanPrompt = try validatedMusicPrompt(prompt)
+                    guard
+                        (0...DialogLimits.maxMusicDurationExtensionMilliseconds).contains(
+                            durationExtensionMs)
+                    else {
+                        throw failWithMessage(
+                            "--duration-extension-ms must be between 0 and \(DialogLimits.maxMusicDurationExtensionMilliseconds)."
+                        )
+                    }
+                    let source = try sourcePlan.map(loadMusicCompositionPlan(from:))
+                    if let output, FileManager.default.fileExists(atPath: output), !overwrite {
+                        throw failWithMessage(
+                            "Destination \(output) already exists. Use --overwrite to replace it.")
+                    }
+
+                    try await tracedRun("dialog.music.plan", config: globalOptions) {
+                        let server = await Music.makeServer(for: globalOptions)
+                        let (_, meta) = try await resolveFullDialogTake(
+                            server: server, scriptId: scriptIdentifier,
+                            requestedGeneration: requestedGeneration)
+                        let request = DialogMusicPlanRequest(
+                            dialogCacheKey: meta.cacheKey,
+                            dialogGenerationId: meta.generationId,
+                            prompt: cleanPrompt,
+                            durationExtensionMilliseconds: durationExtensionMs,
+                            sourceCompositionPlan: source)
+                        let result: DialogMusicPlanResult
+                        switch await server.draftDialogMusicPlan(request) {
+                        case .success(let value): result = value
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Could not draft a plan: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
+                        let encoder = JSONEncoder()
+                        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                        let json = try encoder.encode(result.compositionPlan)
+                        if let output {
+                            try json.write(to: URL(fileURLWithPath: output), options: .atomic)
+                            print(
+                                "✅ Wrote a \(result.compositionPlan.chunks.count)-section plan (\(TimeHelper.formatDuration(Double(result.musicLengthMilliseconds) / 1_000)) for a \(TimeHelper.formatDuration(Double(result.dialogDurationMilliseconds) / 1_000)) dialog) to \(output)"
+                            )
+                        } else {
+                            print(String(decoding: json, as: UTF8.self))
+                        }
+                    }
+                }
+            }
+
+            struct Recipe: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "Show how a cached candidate was made (model, song id, plan)",
+                    discussion:
+                        "With --output the plan is written as JSON, ready for `generate --plan` or `plan --source-plan`. Candidates age out of the server's cache; an expired one is a 404."
+                )
+
+                @Argument(help: "Music generation ID (UUID)")
+                var generationId: String
+
+                @Option(name: .shortAndLong, help: "Write the composition plan JSON here")
+                var output: String?
+
+                @Flag(help: "Replace an existing output file")
+                var overwrite = false
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    let id = try parseUUIDArgument(generationId, label: "music generation ID")
+                    if let output, FileManager.default.fileExists(atPath: output), !overwrite {
+                        throw failWithMessage(
+                            "Destination \(output) already exists. Use --overwrite to replace it.")
+                    }
+                    try await tracedRun("dialog.music.recipe", config: globalOptions) {
+                        let server = await Music.makeServer(for: globalOptions)
+                        let recipe: DialogMusicRecipe
+                        switch await server.getDialogMusicRecipe(generationId: id) {
+                        case .success(let value): recipe = value
+                        case .failure(.notFound):
+                            throw failWithMessage(
+                                "That candidate has aged out of the server's cache; its recipe is gone with it."
+                            )
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Could not read the recipe: \(ServerError.detailedMessage(from: error))"
+                            )
+                        }
+                        print(musicRecipeSummary(recipe, indent: ""))
+                        if let output {
+                            guard let plan = recipe.compositionPlan else {
+                                throw failWithMessage("The server recorded no plan for this take.")
+                            }
+                            let encoder = JSONEncoder()
+                            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                            try encoder.encode(plan).write(
+                                to: URL(fileURLWithPath: output), options: .atomic)
+                            print("✅ Wrote the plan to \(output)")
+                        }
+                    }
+                }
+            }
+
+            struct Finetunes: AsyncParsableCommand {
+                static let configuration = CommandConfiguration(
+                    abstract: "List the ElevenLabs Music finetunes available to the server"
+                )
+
+                @OptionGroup()
+                var globalOptions: GlobalOptions
+
+                func run() async throws {
+                    try await tracedRun("dialog.music.finetunes", config: globalOptions) {
+                        let server = await Music.makeServer(for: globalOptions)
+                        switch await server.listMusicFinetunes() {
+                        case .success(let list):
+                            if list.items.isEmpty {
+                                print("No finetunes available.")
+                                return
+                            }
+                            printTable(
+                                list.items,
+                                columns: [
+                                    TableColumn(
+                                        title: "Finetune ID", valueProvider: { $0.finetuneId }),
+                                    TableColumn(title: "Name", valueProvider: { $0.name }),
+                                    TableColumn(title: "Model", valueProvider: { $0.modelId }),
+                                    TableColumn(
+                                        title: "Genre", valueProvider: { $0.primaryGenre ?? "" }),
+                                    TableColumn(title: "Status", valueProvider: { $0.status }),
+                                ])
+                            print("\n\(list.count) finetune(s)")
+                        case .failure(let error):
+                            throw failWithMessage(
+                                "Could not list finetunes: \(ServerError.detailedMessage(from: error))"
+                            )
                         }
                     }
                 }
@@ -770,6 +1009,132 @@ private func writeWav(_ data: Data, to path: String) throws {
     }
 }
 
+/// Loads the saved script and resolves (or generates) its full-dialog voice take — the thing
+/// every music request is composed against.
+private func resolveFullDialogTake(
+    server: any DialogMusicCommandClient, scriptId: DialogScriptIdentifier,
+    requestedGeneration: DialogGenerationIdentifier?
+) async throws -> (DialogScript, DialogPreviewMetaDTO) {
+    let script: DialogScript
+    switch await server.getDialogScript(id: scriptId) {
+    case .success(let value): script = value
+    case .failure(let error):
+        throw failWithMessage("Could not load dialog: \(ServerError.detailedMessage(from: error))")
+    }
+
+    let previewRequest = DialogPreviewRequest.fromTurns(
+        script.turns, generationId: requestedGeneration, title: script.title)
+    switch await server.dialogPreviewMeta(previewRequest) {
+    case .success(.meta(let value)):
+        return (script, value)
+    case .success(.queued(let job)):
+        let meta = try await waitForJobResult(
+            server: server, jobId: job.jobId,
+            label: "Generating full-dialog voice take",
+            resultType: DialogPreviewMetaDTO.self)
+        return (script, meta)
+    case .failure(let error):
+        throw failWithMessage(
+            "Could not resolve the full-dialog voice take: \(ServerError.detailedMessage(from: error))"
+        )
+    }
+}
+
+private func validatedMusicPrompt(_ prompt: String) throws -> String {
+    let cleanPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !cleanPrompt.isEmpty else {
+        throw failWithMessage("Music prompt cannot be empty.")
+    }
+    guard cleanPrompt.utf8.count <= DialogLimits.maxMusicPromptBytes else {
+        throw failWithMessage(
+            "Music prompt exceeds \(DialogLimits.maxMusicPromptBytes) UTF-8 bytes.")
+    }
+    return cleanPrompt
+}
+
+private func musicFinetuneSelection(finetune: String?, strength: Double?) throws
+    -> MusicFinetuneSelection?
+{
+    guard let finetune else {
+        if strength != nil {
+            throw failWithMessage("--finetune-strength requires --finetune.")
+        }
+        return nil
+    }
+    let strength = strength ?? 1.0
+    guard
+        (DialogLimits.minMusicFinetuneStrength...DialogLimits.maxMusicFinetuneStrength).contains(
+            strength)
+    else {
+        throw failWithMessage(
+            "--finetune-strength must be between \(DialogLimits.minMusicFinetuneStrength) and \(DialogLimits.maxMusicFinetuneStrength)."
+        )
+    }
+    return MusicFinetuneSelection(finetuneId: finetune, strength: strength)
+}
+
+/// Reads a `{"chunks": [...]}` plan file, the shape `plan` and `recipe --output` write.
+private func loadMusicCompositionPlan(from path: String) throws -> MusicCompositionPlan {
+    let data: Data
+    do {
+        data = try Data(contentsOf: URL(fileURLWithPath: path))
+    } catch {
+        throw failWithMessage("Could not read plan file \(path): \(error.localizedDescription)")
+    }
+    do {
+        return try JSONDecoder().decode(MusicCompositionPlan.self, from: data)
+    } catch {
+        throw failWithMessage("Plan file \(path) is not a composition plan: \(error)")
+    }
+}
+
+private func musicRecipeSummary(_ recipe: DialogMusicRecipe, indent: String) -> String {
+    var lines: [String] = []
+    lines.append("\(indent)model: \(recipe.modelId)")
+    lines.append("\(indent)song_id: \(recipe.songId.isEmpty ? "(none)" : recipe.songId)")
+    lines.append(
+        "\(indent)made from: \(recipe.requestKind == .prompt ? "prompt" : "composition plan")")
+    if let prompt = recipe.prompt {
+        lines.append("\(indent)prompt: \(prompt)")
+    }
+    if let mode = recipe.generationMode {
+        lines.append("\(indent)style: \(mode.rawValue)")
+    }
+    if let instrumental = recipe.forceInstrumental {
+        lines.append("\(indent)vocals: \(instrumental ? "no" : "allowed")")
+    }
+    if let seed = recipe.seed {
+        lines.append("\(indent)seed: \(seed)")
+    }
+    if let finetune = recipe.finetune {
+        lines.append("\(indent)finetune: \(finetune.finetuneId) @ \(finetune.strength)")
+    }
+    lines.append("\(indent)referenceable: \(recipe.canBeReferenced ? "yes" : "no")")
+    if let title = recipe.songTitle {
+        lines.append("\(indent)title: \(title)")
+    }
+    if let plan = recipe.compositionPlan {
+        lines.append(
+            "\(indent)plan: \(plan.chunks.count) section(s), \(TimeHelper.formatDuration(Double(plan.totalDurationMilliseconds) / 1_000))"
+        )
+        for (index, chunk) in plan.chunks.enumerated() {
+            let length = TimeHelper.formatDuration(Double(chunk.durationMilliseconds) / 1_000)
+            switch chunk {
+            case .audioReference(let range):
+                lines.append(
+                    "\(indent)  [\(index + 1)] \(length) — reference \(range.songId) \(range.startMilliseconds)–\(range.endMilliseconds) ms"
+                )
+            case .generation(let generation):
+                let styles =
+                    generation.positiveStyles.isEmpty
+                    ? "" : " (\(generation.positiveStyles.joined(separator: ", ")))"
+                lines.append("\(indent)  [\(index + 1)] \(length) — \(generation.text)\(styles)")
+            }
+        }
+    }
+    return lines.joined(separator: "\n")
+}
+
 private func downloadMusicCandidate(
     server: any DialogMusicCommandClient, generationId: UUID, output: String, overwrite: Bool
 ) async throws {
@@ -817,7 +1182,9 @@ private func dialogScriptDetails(_ script: DialogScript) -> String {
     lines.append("Turns:    \(script.turns.count)")
     if let music = script.backgroundMusic {
         lines.append("Music:    \(music.soundFile)")
-        lines.append("Prompt:   \(music.prompt)")
+        lines.append(
+            "Prompt:   \(music.prompt.isEmpty ? "(composed from a plan — see `music recipe`)" : music.prompt)"
+        )
     }
     lines.append("")
     for (index, turn) in script.turns.enumerated() {

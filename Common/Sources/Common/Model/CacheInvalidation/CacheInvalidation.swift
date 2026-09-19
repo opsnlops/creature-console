@@ -10,6 +10,7 @@ public enum CacheType: String, CustomStringConvertible, Codable, Sendable {
     case storyboardList = "storyboard-list"
     case stageList = "stage-list"
     case adHocExchangeList = "ad-hoc-exchange-list"
+    case musicPieceList = "music-piece-list"
     case unknown = "unknown"
 
     public var description: String {

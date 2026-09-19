@@ -273,6 +273,33 @@ extension CreatureServerClient {
             method: "POST", returnType: DialogMusicPromotionResult.self)
     }
 
+    /// Ask the server to draft a composition plan sized to the accepted take (server #200).
+    /// Synchronous: the result drops straight into a plan-mode `DialogMusicRequest`.
+    public func draftDialogMusicPlan(_ request: DialogMusicPlanRequest) async -> Result<
+        DialogMusicPlanResult, ServerError
+    > {
+        await sendData(
+            path: "/animation/dialog/music/plan", method: "POST", body: request,
+            returnType: DialogMusicPlanResult.self)
+    }
+
+    /// The knobs a cached candidate was made with, so a take can be reopened and tweaked after
+    /// a restart. 404 once the candidate has aged out of the cache.
+    public func getDialogMusicRecipe(generationId: UUID) async -> Result<
+        DialogMusicRecipe, ServerError
+    > {
+        await fetchData(
+            path:
+                "/animation/dialog/music/generated/\(generationId.uuidString.lowercased())/recipe",
+            returnType: DialogMusicRecipe.self)
+    }
+
+    /// The account's ElevenLabs Music finetunes, for a picker.
+    public func listMusicFinetunes() async -> Result<MusicFinetuneList, ServerError> {
+        await fetchData(
+            path: "/animation/dialog/music/finetunes", returnType: MusicFinetuneList.self)
+    }
+
     public func dialogMusicGenerationURL(generationId: UUID) -> URL? {
         makeAbsoluteURL(
             fromRelativePath:

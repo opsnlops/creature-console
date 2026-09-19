@@ -10,6 +10,8 @@ public enum JobType: String, Codable, Sendable {
     case dialogPreview = "dialog-preview"
     case dialogPreviewExport = "dialog-preview-export"
     case dialogMusic = "dialog-music"
+    /// Dialog-free music for the library (server #202); same result shape as dialog music.
+    case music = "music"
     case stageRerender = "stage-rerender"
     case voiceFile = "voice-file"
     case unknown
