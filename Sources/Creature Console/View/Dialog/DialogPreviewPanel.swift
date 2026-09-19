@@ -363,23 +363,38 @@ struct DialogPreviewPanel: View {
     @ViewBuilder
     private var acceptedVoiceCard: some View {
         if let acceptedVoice {
-            let fresh = acceptedVoice.isFresh(forCacheKey: currentCacheKey)
+            // Three verdicts, never two: with no cached takes the cache key is unknown, and
+            // unknown must not read as stale (server #204 will hand the key back regardless).
+            let freshness = acceptedVoice.freshness(forCacheKey: currentCacheKey)
+            let fresh = freshness == .fresh
             HStack(spacing: 8) {
-                Image(systemName: fresh ? "checkmark.seal.fill" : "clock.badge.exclamationmark")
-                    .foregroundStyle(fresh ? .green : .orange)
+                Image(
+                    systemName: fresh
+                        ? "checkmark.seal.fill"
+                        : (freshness == .stale ? "clock.badge.exclamationmark" : "checkmark.seal")
+                )
+                .foregroundStyle(fresh ? .green : (freshness == .stale ? .orange : .secondary))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(fresh ? "Accepted voice take" : "Accepted voice take is stale")
-                        .font(.subheadline.bold())
+                    Text(
+                        fresh
+                            ? "Accepted voice take"
+                            : (freshness == .stale
+                                ? "Accepted voice take is stale"
+                                : "Accepted voice take (not checked against these turns)")
+                    )
+                    .font(.subheadline.bold())
                     Text(
                         fresh
                             ? "Accepted \(acceptedVoice.acceptedAtDate.formatted(date: .abbreviated, time: .shortened)) — this is the voice the render uses."
-                            : "The turns changed since this take was accepted; its audio is of the old text. Generate, audition, and accept a new take."
+                            : (freshness == .stale
+                                ? "The turns changed since this take was accepted; its audio is of the old text. Generate, audition, and accept a new take."
+                                : "Accepted \(acceptedVoice.acceptedAtDate.formatted(date: .abbreviated, time: .shortened)). No takes are cached for these turns, so the app can't confirm it still matches them; the server checks on render and composition.")
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if fresh {
+                if freshness.mayProceed {
                     Button("Play") {
                         // The promoted file is permanent; the preview-cache copy expires with
                         // the 24 h ad-hoc TTL. Prefer the one that always works.
@@ -400,7 +415,9 @@ struct DialogPreviewPanel: View {
                 }
             }
             .padding(10)
-            .panelCard(cornerRadius: 10, tint: fresh ? .green : .orange)
+            .panelCard(
+                cornerRadius: 10, tint: fresh ? .green : (freshness == .stale ? .orange : nil)
+            )
             .contextMenu {
                 Button(role: .destructive) {
                     clearAcceptance()
