@@ -102,8 +102,14 @@ struct DialogScriptEditor: View {
 
     /// Whether the saved script's accepted voice matches the current turns — the render
     /// precondition. Freshness resolves from the takes lookup's cache key.
+    private var acceptedVoiceFreshness: DialogVoiceFreshness {
+        original.acceptedVoice?.freshness(forCacheKey: currentCacheKey) ?? .stale
+    }
+
+    /// Whether a render or composition may go ahead on the accepted voice: fresh, or unknown
+    /// (no cached takes to learn the key from — the server judges). Never stale.
     private var hasFreshAcceptedVoice: Bool {
-        original.acceptedVoice?.isFresh(forCacheKey: currentCacheKey) ?? false
+        original.acceptedVoice != nil && acceptedVoiceFreshness.mayProceed
     }
 
     /// Whether any rendered animation points back at this script — drives the takes panel's
@@ -164,7 +170,7 @@ struct DialogScriptEditor: View {
                             scriptId: renderScriptId,
                             title: script.title,
                             acceptedVoice: original.acceptedVoice,
-                            acceptedVoiceIsFresh: hasFreshAcceptedVoice,
+                            voiceFreshness: acceptedVoiceFreshness,
                             backgroundMusic: original.backgroundMusic,
                             hasUnsavedChanges: createNew || isDirty,
                             // Only the accepted take's length is the music's length; an

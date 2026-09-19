@@ -12,8 +12,9 @@ struct MusicSubject: Equatable {
     /// Music is composed against the *accepted* voice — the audio that will actually render —
     /// never against whatever take happens to be auditioning.
     var acceptedVoice: DialogAcceptedVoice?
-    /// Whether the acceptance still matches the current turns.
-    var acceptedVoiceIsFresh: Bool
+    /// Whether the acceptance still matches the current turns. Unknown (no cached takes, so no
+    /// key to compare) may compose: the server checks the real thing.
+    var voiceFreshness: DialogVoiceFreshness
     var backgroundMusic: DialogBackgroundMusic?
     var hasUnsavedChanges: Bool
     /// The accepted take's length when the owner knows it (the editor does once the take has
@@ -28,11 +29,18 @@ struct MusicSubject: Equatable {
         if acceptedVoice == nil {
             return "Accept a voice take first — music is composed against the accepted voice."
         }
-        if !acceptedVoiceIsFresh {
+        if voiceFreshness == .stale {
             return
                 "The accepted voice take predates the current turns. Re-accept a take before composing music."
         }
         return nil
+    }
+
+    /// A caveat shown when composing is allowed but the console couldn't confirm freshness.
+    var freshnessNote: String? {
+        guard canCompose, voiceFreshness == .unknown else { return nil }
+        return
+            "No takes are cached for these turns, so the app can't confirm the accepted take still matches them. The server will refuse if it doesn't."
     }
 
     var canCompose: Bool { unavailableReason == nil }

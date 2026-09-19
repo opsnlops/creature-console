@@ -151,6 +151,10 @@ struct MusicCreationView: View {
                 Label(reason, systemImage: "info.circle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } else if let note = subject.freshnessNote {
+                Label(note, systemImage: "questionmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if let statusMessage {

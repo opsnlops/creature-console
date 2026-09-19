@@ -109,8 +109,8 @@ struct MusicForDialogView: View {
             scriptId: script.id,
             title: script.title,
             acceptedVoice: script.acceptedVoice,
-            acceptedVoiceIsFresh: script.acceptedVoice?.isFresh(forCacheKey: currentCacheKey)
-                ?? false,
+            voiceFreshness: script.acceptedVoice?.freshness(forCacheKey: currentCacheKey)
+                ?? .stale,
             backgroundMusic: script.backgroundMusic,
             hasUnsavedChanges: false)
     }
@@ -174,7 +174,7 @@ struct MusicForDialogView: View {
                     Label(
                         "Voice accepted \(voice.acceptedAtDate.formatted(date: .abbreviated, time: .shortened))",
                         systemImage: "waveform")
-                    if currentCacheKey != nil, !voice.isFresh(forCacheKey: currentCacheKey) {
+                    if voice.freshness(forCacheKey: currentCacheKey) == .stale {
                         Label("predates the current turns", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
