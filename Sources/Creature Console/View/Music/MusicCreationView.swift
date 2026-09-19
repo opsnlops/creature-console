@@ -604,7 +604,8 @@ struct MusicCreationView: View {
         else { return }
         let plan = piece.refinementPlan()
         pendingPiece = piece
-        let changed = piece.hasAudio ? piece.dirtySections.count : piece.sections.count
+        let composed = plan.chunks.filter { !$0.isAudioReference }.count
+        let kept = plan.chunks.count - composed
         submit(
             DialogMusicRequest(
                 scriptId: scriptId,
@@ -614,8 +615,8 @@ struct MusicCreationView: View {
                 finetune: finetune),
             voice: voice,
             message: piece.hasAudio
-                ? "Composing \(changed) changed section(s); keeping the rest…"
-                : "Composing \(changed) section(s)…")
+                ? "Composing \(composed) section(s); keeping \(kept)…"
+                : "Composing \(composed) section(s)…")
     }
 
     private func submit(_ request: DialogMusicRequest, voice: DialogAcceptedVoice, message: String)

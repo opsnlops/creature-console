@@ -200,6 +200,32 @@ struct MusicPieceTests {
             ))
     }
 
+    @Test("removing or moving a section dirties the piece, and revert brings the layout back")
+    func layoutChanges() {
+        var piece = generatedPiece()
+        let verse = piece.sections[1].id
+        piece.removeSection(id: verse)
+        #expect(piece.dirtySections.isEmpty)
+        #expect(piece.hasLayoutChanges)
+        #expect(piece.isDirty)
+        #expect(piece.refinementPlan().chunks.count == 2)
+        #expect(piece.refinementPlan().chunks.allSatisfy { $0.isAudioReference })
+
+        let restored = piece.reverted()
+        #expect(restored.sections.map(\.name) == ["Intro", "Verse", "Outro"])
+        #expect(!restored.isDirty)
+
+        var moved = generatedPiece()
+        moved.moveSection(id: moved.sections[2].id, by: -1)
+        #expect(moved.isDirty)
+        #expect(!moved.reverted().isDirty)
+
+        // After a refinement the new layout is the committed one.
+        let next = piece.committed(songId: "song-B", durationMilliseconds: 10_000)
+        #expect(!next.isDirty)
+        #expect(next.committedSections.count == 2)
+    }
+
     @Test("instrumental keeps the header and directions and drops lyric lines")
     func instrumental() {
         let sung = MusicGenerationChunk(

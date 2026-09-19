@@ -78,11 +78,16 @@ public struct MusicPiece: Equatable, Hashable, Sendable {
     public var songId: String
     public var durationMilliseconds: Int64
     public var sections: [MusicSection]
+    /// The layout the current audio was made from: the sections, in order, as committed. A
+    /// removed or reordered section leaves every survivor clean, so the piece compares its
+    /// order against this to know it changed — and `reverted()` restores it from here.
+    public private(set) var committedSections: [MusicSection]
 
     public init(songId: String, durationMilliseconds: Int64, sections: [MusicSection]) {
         self.songId = songId
         self.durationMilliseconds = durationMilliseconds
         self.sections = sections
+        self.committedSections = sections.filter { !$0.isDirty }
     }
 
     /// An empty piece with nothing generated yet.
@@ -125,7 +130,24 @@ public struct MusicPiece: Equatable, Hashable, Sendable {
 
     public var dirtySections: [MusicSection] { sections.filter(\.isDirty) }
 
-    public var isDirty: Bool { sections.contains(where: \.isDirty) }
+    /// Whether sections were removed, added or reordered since the audio was made: the
+    /// sections' spans no longer tile the current song from start to end, in order. A split
+    /// keeps tiling it (two halves of one span) and so is not a change by itself.
+    public var hasLayoutChanges: Bool {
+        guard hasAudio else { return false }
+        var cursor: Int64 = 0
+        for section in sections {
+            guard let span = section.span, span.songId == songId,
+                span.startMilliseconds == cursor
+            else { return true }
+            cursor = span.endMilliseconds
+        }
+        return cursor != durationMilliseconds
+    }
+
+    /// Whether the audio on file no longer describes the piece: a section changed, or the
+    /// layout did.
+    public var isDirty: Bool { hasLayoutChanges || sections.contains(where: \.isDirty) }
 
     /// Start offset of each section in the *planned* piece, in order.
     public var sectionStartOffsets: [Int64] {
@@ -186,14 +208,15 @@ public struct MusicPiece: Equatable, Hashable, Sendable {
             songId: newSongId, durationMilliseconds: newDuration, sections: committedSections)
     }
 
-    /// Discards edits, restoring every section to what its audio was made from. Sections with
-    /// no audio are dropped.
+    /// Discards edits: the committed layout comes back, removed sections and all, with every
+    /// section's content as its audio was made from. Sections added since are dropped.
     public func reverted() -> MusicPiece {
         var piece = self
-        piece.sections = sections.compactMap { section in
-            guard let committed = section.committedContent, section.span != nil else { return nil }
+        piece.sections = committedSections.map { section in
             var restored = section
-            restored.content = committed
+            if let committed = section.committedContent {
+                restored.content = committed
+            }
             return restored
         }
         return piece

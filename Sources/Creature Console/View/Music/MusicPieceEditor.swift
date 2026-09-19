@@ -118,16 +118,23 @@ struct MusicPieceEditor: View {
             }
             Spacer()
             if piece.isDirty {
-                Label(
-                    "\(piece.dirtySections.count) section(s) changed", systemImage: "circle.fill"
-                )
-                .font(.caption)
-                .foregroundStyle(.orange)
+                Label(dirtySummary, systemImage: "circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
             } else if piece.hasAudio {
                 Label("Audio matches every section", systemImage: "checkmark.circle")
                     .font(.caption)
                     .foregroundStyle(.green)
             }
+        }
+    }
+
+    private var dirtySummary: String {
+        let changed = piece.dirtySections.count
+        switch (changed, piece.hasLayoutChanges) {
+        case (0, true): return "sections removed or reordered"
+        case (_, true): return "\(changed) section(s) changed, layout changed"
+        default: return "\(changed) section(s) changed"
         }
     }
 
