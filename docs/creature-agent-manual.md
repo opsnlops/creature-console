@@ -320,6 +320,15 @@ else — persona, facts, the clock, streaming to the room — is identical.
   is expected; away, it is somebody else; a guess sounds like a guess only when it is one.
   The departure line belongs to the first bird; the chorus is told another bird has already
   told her and to react - a send-off, a wish, a joke - or stay silent.
+- **April lives alone** (`2.78.0`, #200). The rule above covered "at the door or inside", and
+  April comes home by the driveway and the carport: three birds made her arrival a "mystery
+  visitor", and two hours later Beaky was still "guessing it's April, but the camera can't
+  tell". One household rule now sits in *both* contracts, the house remark and the scene:
+  when the house says she is home, a person on any camera, inside or out, is April unless
+  a visitor is expected; call her April, never "someone" or "a visitor", and never say a
+  camera cannot tell who it is. The world's stage note says the same in its own words
+  (world `0.36.0`: "April is home and lives alone, so it is her"), so the mind is agreeing
+  with the house, not arguing with a shape.
 - **She looks things up** (`2.74.1`; `worldMcpUrl`). April: "As the knowledge in the world
   grows we're quickly going to hit the limit of what we can pre-emptively send in the context
   to the agent." With `worldMcpUrl` set and the OpenAI backend, the mind asks WorldMCP for

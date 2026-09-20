@@ -205,14 +205,22 @@ public actor SceneOpeningPolicy {
         return " for \(hours == 1 ? "an hour" : "\(hours) hours") and \(rest) minutes"
     }
 
-    /// The stage note the birds read: "(A person was seen at the driveway.)"
-    public static func triggerText(for event: WorldEventEnvelope, place: EntityID) -> String {
+    /// The stage note the birds read: "(A person was just seen at the driveway. April is home
+    /// and lives alone, so it is her.)" The house decides who a camera saw - it knows whether
+    /// April is home and whether anyone is expected - so the minds never guess. April, after
+    /// an afternoon of "mystery visitor" that was her coming home: "when I'm home, it's me on
+    /// the cameras. I'm the only one that lives here."
+    public static func triggerText(
+        for event: WorldEventEnvelope, place: EntityID, household: HouseholdSituation = .unknown
+    ) -> String {
         let name = placeName(place)
         switch event.type {
-        case HouseEvents.personSeen: return "A person was just seen at \(name)."
+        case HouseEvents.personSeen:
+            return "A person was just seen at \(name)." + household.whoThatIs(seen: true)
         // "Seen", never "arrived": the camera cannot tell coming from going, and a trigger
         // that asserts a direction steers the mind before it has read the story.
-        case HouseEvents.vehicleSeen: return "A vehicle was just seen at \(name)."
+        case HouseEvents.vehicleSeen:
+            return "A vehicle was just seen at \(name)." + household.whereAprilIs
         case HouseEvents.animalSeen: return "An animal was just seen at \(name)."
         case HouseEvents.departureSoon, HouseEvents.departureNow:
             let value: String
@@ -226,15 +234,18 @@ public actor SceneOpeningPolicy {
             return "A reminder of April's is due: \(value). April is home."
         case HouseEvents.personGone:
             return "A person who had been at \(name)\(stay(event)) is no longer seen there."
+                + household.whoThatIs(seen: false)
         case HouseEvents.vehicleGone:
             return "A vehicle that had been at \(name)\(stay(event)) has gone."
+                + household.whereAprilIs
         case HouseEvents.doorUnlocked:
             return "\(name.prefix(1).uppercased() + name.dropFirst()) was just unlocked."
         case HouseEvents.doorLocked:
             return "\(name.prefix(1).uppercased() + name.dropFirst()) was just locked."
         case HouseEvents.doorOpened:
             return "\(name.prefix(1).uppercased() + name.dropFirst()) just opened."
-        case HouseEvents.motionDetected: return "Something just moved in \(name)."
+        case HouseEvents.motionDetected:
+            return "Something just moved in \(name)." + household.whoThatIs(seen: true)
         case HouseEvents.personArrived:
             return
                 "\(placeName(place).prefix(1).uppercased() + placeName(place).dropFirst()) just came home."
@@ -247,7 +258,7 @@ public actor SceneOpeningPolicy {
     }
 
     /// `place:front-door` → "the front door"; `person:april` → "April".
-    static func placeName(_ id: EntityID) -> String {
+    public static func placeName(_ id: EntityID) -> String {
         let raw = id.rawValue
         guard let colon = raw.firstIndex(of: ":") else { return raw }
         let local = String(raw[raw.index(after: colon)...])
@@ -255,5 +266,58 @@ public actor SceneOpeningPolicy {
         if raw.hasPrefix("person:") { return words.map(\.capitalized).joined(separator: " ") }
         let name = words.joined(separator: " ")
         return ["outside", "outdoors"].contains(name) ? name : "the " + name
+    }
+}
+
+/// What the house knows about who is about, at the moment a camera sees someone: whether
+/// April is home, and whether a visitor is expected. April lives alone, so when she is home
+/// and nobody is expected, a person on any camera - the driveway, the workshop - is her, and
+/// the stage note says so; the minds are never left to guess from a shape.
+public struct HouseholdSituation: Sendable, Equatable {
+    /// Whether April is home, as the presence sensor has it; nil when the house cannot say.
+    public var aprilHome: Bool?
+    /// The house's `visitor.expected`, if anyone is: "Tamara for cleaning, Wednesday".
+    public var visitorExpected: String?
+
+    public init(aprilHome: Bool?, visitorExpected: String? = nil) {
+        self.aprilHome = aprilHome
+        self.visitorExpected = visitorExpected
+    }
+
+    public static let unknown = HouseholdSituation(aprilHome: nil)
+
+    /// " April is home and lives alone, so it is her." - the clause after a person is seen
+    /// (`seen`) or no longer seen; nothing when the house does not know where she is.
+    func whoThatIs(seen: Bool) -> String {
+        let pronoun = seen ? "it is" : "it was"
+        switch aprilHome {
+        case true?:
+            if let visitorExpected {
+                return
+                    " April is home, and a visitor is expected - \(visitorExpected) - so \(pronoun) either her or them."
+            }
+            return " April is home and lives alone, so \(pronoun) her."
+        case false?:
+            if let visitorExpected {
+                return
+                    " April is away; a visitor is expected - \(visitorExpected) - so \(pronoun) probably them."
+            }
+            return " April is away, so \(pronoun) somebody else."
+        case nil:
+            return ""
+        }
+    }
+
+    /// " April is home." - beside a vehicle, which could be hers or a delivery's.
+    var whereAprilIs: String {
+        switch aprilHome {
+        case true?:
+            return visitorExpected.map { " April is home; a visitor is expected - \($0)." }
+                ?? " April is home."
+        case false?:
+            return visitorExpected.map { " April is away; a visitor is expected - \($0)." }
+                ?? " April is away."
+        case nil: return ""
+        }
     }
 }
