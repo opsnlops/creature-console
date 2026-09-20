@@ -357,7 +357,7 @@ private func runWorldMode(
     let respondStreaming: CharacterMind.RespondStreaming
     /// The nightly memory's model, when this mind has one (`llmMemoryModel`); the same key,
     /// a JSON answer, and its own effort - latency is irrelevant at 3:30 AM.
-    var respondJSON: MemoryJob.RespondJSON?
+    var memoryModel: MemoryModel?
     switch config.llmBackend {
     case .local:
         let localLLM = LocalLLMClient(
@@ -400,17 +400,42 @@ private func runWorldMode(
         )
         respond = { try await openAI.respond(messages: $0, tools: $1) }
         respondStreaming = { openAI.respondStreaming(messages: $0, tools: $1) }
-        if let memoryModel = config.llmMemoryModel {
+        if let memoryModelName = config.llmMemoryModel {
+            let memoryKey = ProcessInfo.processInfo.environment["OPENAI_MEMORY_API_KEY"] ?? apiKey
             let memoryClient = OpenAIClient(
-                apiKey: ProcessInfo.processInfo.environment["OPENAI_MEMORY_API_KEY"] ?? apiKey,
-                model: memoryModel,
+                apiKey: memoryKey,
+                model: memoryModelName,
                 systemPrompt: config.llmSystemPrompt,
                 temperature: config.llmTemperature,
                 reasoningEffort: config.llmReasoningEffort == nil ? nil : "medium",
                 logger: logger,
                 traceResponses: traceResponses
             )
-            respondJSON = { try await memoryClient.respondJSON(messages: $0) }
+            // The Batch API, when allowed: the same request as one line of a batch, the
+            // answer read back from the output file, half the price (#201).
+            var batch: MemoryModel.Batch?
+            if config.llmMemoryBatch {
+                let batches = OpenAIBatchClient(apiKey: memoryKey, logger: logger)
+                let wait = config.llmMemoryBatchWaitHours * 3_600
+                batch = MemoryModel.Batch(
+                    submit: { transcript, customID in
+                        try await batches.submit(
+                            lines: [
+                                try memoryClient.batchLine(for: transcript, customID: customID)
+                            ],
+                            metadata: ["creature": "memory", "custom_id": customID])
+                    },
+                    answer: { batchID, customID in
+                        let output = try await batches.output(
+                            of: batchID, deadline: Date().addingTimeInterval(wait))
+                        return try await memoryClient.jsonAnswer(
+                            fromBatch: try OpenAIBatchClient.result(for: customID, in: output),
+                            batchID: batchID)
+                    })
+            }
+            memoryModel = MemoryModel(
+                modelName: memoryModelName,
+                ask: { try await memoryClient.respondJSON(messages: $0) }, batch: batch)
         }
     }
     logger.info(
@@ -545,12 +570,13 @@ private func runWorldMode(
         session: session,
         client: client,
         logger: logger,
-        memory: respondJSON.map { respondJSON in
+        memory: memoryModel.map { model in
             MemoryJob(
                 worldURL: world.worldURL, characterID: characterID, persona: persona,
-                houseID: world.houseID, modelName: config.llmMemoryModel ?? config.llmModel,
-                respondJSON: respondJSON, cast: { try await responder.cast($0) }, client: client,
-                logger: logger)
+                houseID: world.houseID, model: model, cast: { try await responder.cast($0) },
+                client: client, logger: logger,
+                pendingFile: URL(fileURLWithPath: world.stateDirectory, isDirectory: true)
+                    .appending(path: "memory-pending.json"))
         }
     )
     // The local model's health is only worth watching when a local model is the mind; on a

@@ -240,6 +240,204 @@ struct MemoryJobTests {
                 == "Amazon order 111-0746960-3342613 for toothpaste")
     }
 
+    /// A tiny world serving the digest and one memory an earlier run left, for the batch
+    /// tests: what a night makes through the queue must be exactly what it makes now.
+    private func tinyWorld() throws -> Application<RouterResponder<BasicRequestContext>> {
+        let digest = try digest()
+        let stale = try Fact(
+            subjectID: try EntityID(validating: "person:april"),
+            predicate: "memory.episode.2026-09-13.4", value: .string("an earlier telling"),
+            epistemic: EpistemicState(type: .remembered, confidence: 0.5), validFrom: now,
+            derivedFrom: [], producer: FactProducer(kind: "mind", id: "beaky", version: "1"))
+        let router = Router(context: BasicRequestContext.self)
+        router.get("world/v1/days/:day") { _, _ in
+            Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(digest))))
+        }
+        router.get("world/v1/facts") { request, _ in
+            let prefix = request.uri.queryParameters["predicate_prefix"].map(String.init) ?? ""
+            let page = WorldFactPage(
+                facts: [stale].filter { $0.predicate.hasPrefix(prefix) }, nextFactID: nil,
+                hasMore: false)
+            return Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(page))))
+        }
+        return Application(
+            router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
+    }
+
+    private static let recollection = """
+        {"episodes": [{"about": ["Jesse", "the deck"], "when": "Sunday around noon",
+          "what": "Jesse came and finished the deck", "salience": 0.8}],
+         "reflection": "The deck is done."}
+        """
+    private static let consolidation = """
+        {"beliefs": [{"about": "April", "kind": "habit", "what": "April shows the birds her projects",
+          "salience": 0.7, "since": "September 2026", "from": ["2026-09-13"]}]}
+        """
+
+    @Test(
+        "Through the batch: submitted, written down, waited for, cast the same; nothing left pending"
+    )
+    func remembersThroughABatch() async throws {
+        let client = HTTPClient(eventLoopGroupProvider: .singleton)
+        defer { Task { try? await client.shutdown() } }
+        let casts = Casts()
+        let queue = BatchQueue()
+        let pendingFile = FileManager.default.temporaryDirectory.appending(
+            path: "memory-tests-\(UUID().uuidString.lowercased())/memory-pending.json")
+        let now = self.now
+        let beaky = self.beaky
+        let house = self.house
+        try await tinyWorld().test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let job = MemoryJob(
+                worldURL: URL(string: "http://localhost:\(port)/world/v1")!,
+                characterID: beaky, persona: .text("You are Beaky."), houseID: house,
+                model: MemoryModel(
+                    modelName: "gpt-6-astra",
+                    ask: { _ in
+                        Issue.record("asked now, not through the batch")
+                        return Data()
+                    },
+                    batch: MemoryModel.Batch(
+                        submit: { transcript, customID in
+                            await queue.submitted(customID, pending: pendingFile)
+                        },
+                        answer: { batchID, customID in
+                            await queue.answered(batchID, customID)
+                            return Data(
+                                (customID.hasSuffix(":beliefs")
+                                    ? Self.consolidation : Self.recollection).utf8)
+                        })),
+                cast: { await casts.note($0) }, client: client,
+                logger: Logger(label: "memory-tests"), pendingFile: pendingFile)
+            try await job.remember(
+                day: "2026-09-13",
+                run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000002"), now: now)
+        }
+        // Two batches, one per stage, each written down before it was waited for.
+        let key = "memory:2026-09-13:5a8b0c8e-0000-4000-8000-000000000002"
+        #expect(await queue.submissions == ["\(key):episodes", "\(key):beliefs"])
+        #expect(await queue.answers == ["batch-1/\(key):episodes", "batch-2/\(key):beliefs"])
+        #expect(await queue.pendingSeen.map(\.stage) == [.episodes, .beliefs])
+        #expect(await queue.pendingSeen.map(\.batchID) == ["batch-1", "batch-2"])
+        #expect(await queue.pendingSeen.last?.episodes == 1)
+        let events = await casts.events
+        // The stale memory taken back, two subjects, the reflection, the belief, the summary.
+        #expect(events.count == 6)
+        #expect(events.last?.type.rawValue == "memory.consolidated")
+        #expect(events.last?.payload["beliefs"] == .number(1))
+        #expect(!FileManager.default.fileExists(atPath: pendingFile.path))
+    }
+
+    @Test("A night the provider was still thinking about is resumed from what was written down")
+    func resumesAPendingNight() async throws {
+        let client = HTTPClient(eventLoopGroupProvider: .singleton)
+        defer { Task { try? await client.shutdown() } }
+        let casts = Casts()
+        let queue = BatchQueue()
+        let pendingFile = FileManager.default.temporaryDirectory.appending(
+            path: "memory-tests-\(UUID().uuidString.lowercased())/memory-pending.json")
+        try FileManager.default.createDirectory(
+            at: pendingFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        // The process stopped while batch-7 - the episodes - was out.
+        let key = "memory:2026-09-13:5a8b0c8e-0000-4000-8000-000000000003"
+        try WorldJSON.makeEncoder().encode(
+            PendingMemory(
+                day: "2026-09-13", run: "5a8b0c8e-0000-4000-8000-000000000003", stage: .episodes,
+                batchID: "batch-7", customID: "\(key):episodes", startedAt: now)
+        ).write(to: pendingFile)
+        let now = self.now
+        let beaky = self.beaky
+        let house = self.house
+        try await tinyWorld().test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let job = MemoryJob(
+                worldURL: URL(string: "http://localhost:\(port)/world/v1")!,
+                characterID: beaky, persona: .text("You are Beaky."), houseID: house,
+                model: MemoryModel(
+                    modelName: "gpt-6-astra", ask: { _ in Data() },
+                    batch: MemoryModel.Batch(
+                        submit: { _, customID in
+                            await queue.submitted(customID, pending: pendingFile)
+                        },
+                        answer: { batchID, customID in
+                            await queue.answered(batchID, customID)
+                            return Data(
+                                (customID.hasSuffix(":beliefs")
+                                    ? Self.consolidation : Self.recollection).utf8)
+                        })),
+                cast: { await casts.note($0) }, client: client,
+                logger: Logger(label: "memory-tests"), pendingFile: pendingFile)
+            try await job.resume(now: now)
+            // Nothing pending afterwards: a second resume does nothing.
+            try await job.resume(now: now)
+        }
+        // The episodes were collected from batch-7, not submitted again; only the beliefs were.
+        #expect(await queue.answers.first == "batch-7/\(key):episodes")
+        #expect(await queue.submissions == ["\(key):beliefs"])
+        let events = await casts.events
+        #expect(events.count == 6)
+        #expect(events.last?.type.rawValue == "memory.consolidated")
+        #expect(events.last?.payload["episodes"] == .number(1))
+        #expect(
+            events.last?.source.sourceEventID == "\(key):done")
+        #expect(!FileManager.default.fileExists(atPath: pendingFile.path))
+    }
+
+    @Test("A batch that will not finish is asked the ordinary way, and the night still lands")
+    func fallsBackWhenTheBatchFails() async throws {
+        let client = HTTPClient(eventLoopGroupProvider: .singleton)
+        defer { Task { try? await client.shutdown() } }
+        let casts = Casts()
+        let queue = BatchQueue()
+        let asked = Casts()
+        let now = self.now
+        let beaky = self.beaky
+        let house = self.house
+        try await tinyWorld().test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let job = MemoryJob(
+                worldURL: URL(string: "http://localhost:\(port)/world/v1")!,
+                characterID: beaky, persona: .text("You are Beaky."), houseID: house,
+                model: MemoryModel(
+                    modelName: "gpt-6-astra",
+                    ask: { transcript in
+                        await asked.note(
+                            try WorldEventEnvelope(
+                                type: WorldEventType(validating: "test.asked"), occurredAt: now,
+                                source: EventSource(
+                                    id: try SourceID(validating: "test:asked"), kind: "test",
+                                    sourceEventID: UUID().uuidString),
+                                subjectIDs: [],
+                                epistemic: EpistemicState(type: .observed, confidence: 1),
+                                payload: ["words": .string(transcript.last?.content ?? "")]))
+                        let beliefs =
+                            transcript.first?.content.contains("Write what you believe now") == true
+                        return Data((beliefs ? Self.consolidation : Self.recollection).utf8)
+                    },
+                    batch: MemoryModel.Batch(
+                        submit: { _, customID in await queue.submitted(customID, pending: nil) },
+                        answer: { _, _ in throw OpenAIBatchError.unfinished("expired") })),
+                cast: { await casts.note($0) }, client: client,
+                logger: Logger(label: "memory-tests"))
+            try await job.remember(
+                day: "2026-09-13",
+                run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000004"), now: now)
+        }
+        // Both stages were submitted, both fell back, both landed.
+        #expect(await queue.submissions.count == 2)
+        #expect(await asked.events.count == 2)
+        let events = await casts.events
+        #expect(events.count == 6)
+        #expect(events.last?.type.rawValue == "memory.consolidated")
+    }
+
     @Test("The birds are whoever spoke as a character that day, plus the one remembering")
     func subjects() throws {
         let names = MemoryJob.names(in: try digest(), houseID: house, including: beaky)
@@ -253,6 +451,32 @@ struct MemoryJobTests {
 private actor Casts {
     private(set) var events: [WorldEventEnvelope] = []
     func note(_ event: WorldEventEnvelope) { events.append(event) }
+}
+
+/// A stand-in for the provider's queue: numbers the batches, and reads what the job wrote
+/// down at each submission, as a restart would find it.
+private actor BatchQueue {
+    private(set) var submissions: [String] = []
+    private(set) var answers: [String] = []
+    private(set) var pendingSeen: [PendingMemory] = []
+
+    func submitted(_ customID: String, pending: URL?) -> String {
+        submissions.append(customID)
+        if let pending { pendingFileHint = pending }
+        return "batch-\(submissions.count)"
+    }
+
+    func answered(_ batchID: String, _ customID: String) {
+        answers.append("\(batchID)/\(customID)")
+        // The pending file, as the job left it once the batch was submitted.
+        if let file = pendingFileHint, let data = try? Data(contentsOf: file),
+            let pending = try? WorldJSON.makeDecoder().decode(PendingMemory.self, from: data)
+        {
+            pendingSeen.append(pending)
+        }
+    }
+
+    private var pendingFileHint: URL?
 }
 
 extension WorldJSONValue {

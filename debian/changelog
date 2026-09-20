@@ -1,3 +1,17 @@
+creature-cli (2.79.0+world0.36.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.79.0: the nightly memory goes through OpenAI's Batch
+    API - half the price for a job nobody is waiting on. Each stage (the
+    day's episodes, the month's beliefs) is one line of a batch; the night
+    in progress is written to <stateDirectory>/memory-pending.json and
+    resumed after a restart; a batch that does not finish within
+    llmMemoryBatchWaitHours (20) falls back to asking at once. Off with
+    llmMemoryBatch: false. New `probe-batch` subcommand (console #201).
+  * creature-agent: every night after the first was skipped until a
+    restart - the "still remembering" guard held a finished Task (#203).
+
+ -- April White <april@creature.engineering>  Sun, 20 Sep 2026 16:30:00 -0700
+
 creature-cli (2.78.0+world0.36.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.36.1: the day's record for the nightly memory no

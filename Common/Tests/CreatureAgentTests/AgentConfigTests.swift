@@ -106,6 +106,26 @@ struct AgentConfigTests {
         #expect(throws: DecodingError.self) { try load("llmReasoningEffort: max") }
     }
 
+    @Test("The nightly memory goes through the Batch API unless told not to, with a bounded wait")
+    func parsesMemoryBatch() throws {
+        func load(_ extra: String) throws -> AgentConfig {
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmSystemPrompt: system
+                        llmModel: gpt-6
+                        areas: []
+                        \(extra)
+                        """))
+        }
+        #expect(try load("").llmMemoryBatch == true)
+        #expect(try load("").llmMemoryBatchWaitHours == 20)
+        #expect(try load("llmMemoryBatch: false").llmMemoryBatch == false)
+        #expect(try load("llmMemoryBatchWaitHours: 6").llmMemoryBatchWaitHours == 6)
+        #expect(throws: DecodingError.self) { try load("llmMemoryBatchWaitHours: 48") }
+    }
+
     @Test("Uses default values for optional local LLM fields")
     func usesDefaultsForOptionalFields() throws {
         let yaml = """
