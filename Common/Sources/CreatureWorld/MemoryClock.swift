@@ -63,8 +63,7 @@ struct DayDigestBuilder {
         guard let bounds = MemoryConfiguration.bounds(ofDay: day, in: memory.zone) else {
             return nil
         }
-        let events = try await persistence.events.events(
-            from: bounds.from, to: bounds.to, limit: 5_000)
+        let events = try await persistence.events.allEvents(from: bounds.from, to: bounds.to)
         let happenings = events.filter { Happening.isStoryworthy($0) }.map { event in
             let subject =
                 event.subjectIDs.first { !$0.rawValue.hasPrefix("character:") }
@@ -73,20 +72,16 @@ struct DayDigestBuilder {
                 occurredAt: event.occurredAt, type: event.type, subjectID: subject,
                 summary: PresentWorldKnowledge.summary(of: event, subject: subject))
         }
-        let learned = events.filter { $0.type == GivenFactAnnouncement.eventType }.compactMap {
+        // What the world was told that a memory could be about: never a body's readings (four
+        // thousand a day, 370k tokens of a night's prompt) and never a heartbeat.
+        let learned = events.filter { Self.isMemorable($0) }.compactMap {
             event -> DayDigest.Line? in
             guard case .string(let subject)? = event.payload["subject_id"],
                 case .string(let predicate)? = event.payload["predicate"]
             else { return nil }
-            let value: String =
-                switch event.payload["value"] {
-                case .string(let text)?: text
-                case .null?, nil: "(retracted)"
-                case .some(let other): String(describing: other)
-                }
             return DayDigest.Line(
                 at: event.occurredAt, who: event.source.id.rawValue,
-                text: "\(subject) \(predicate) = \(value)")
+                text: "\(subject) \(predicate) = \(Self.rendered(event.payload["value"]))")
         }
         let items = try await persistence.conversations.conversationItems(
             in: houseConversation, from: bounds.from, to: bounds.to, limit: 2_000)
@@ -110,5 +105,30 @@ struct DayDigestBuilder {
 
     private var houseConversationEntity: EntityID {
         (try? EntityID(validating: "house:aprils-nest")) ?? EntityID(rawValue: "house:aprils-nest")!
+    }
+
+    /// Facts a source casts to say it is alive, every few minutes: state, never a memory.
+    static let heartbeatPredicates: Set<String> = ["bridge.online"]
+
+    /// A given fact worth a line in the day's record: not telemetry, not a heartbeat.
+    static func isMemorable(_ event: WorldEventEnvelope) -> Bool {
+        guard event.type == GivenFactAnnouncement.eventType,
+            !Happening.telemetrySourceKinds.contains(event.source.kind),
+            case .string(let predicate)? = event.payload["predicate"]
+        else { return false }
+        return !heartbeatPredicates.contains(predicate)
+    }
+
+    /// A value as the record shows it: text as itself, nothing as "(retracted)", anything
+    /// else as JSON - not Swift's description of the enum, which spelled a counter object
+    /// out as `object(["websocket_messages_sent": WorldCore.WorldJSONValue.number(…`.
+    static func rendered(_ value: WorldJSONValue?) -> String {
+        switch value {
+        case .string(let text)?: return text
+        case .null?, nil: return "(retracted)"
+        case .some(let other):
+            guard let data = try? WorldJSON.makeEncoder().encode(other) else { return "?" }
+            return String(decoding: data, as: UTF8.self)
+        }
     }
 }

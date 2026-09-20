@@ -1,3 +1,15 @@
+creature-cli (2.78.0+world0.36.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.36.1: the day's record for the nightly memory no
+    longer carries a body's readings (3,972 of the 4,247 "learned" lines
+    of a day - 370k tokens a night) or the Bridge's heartbeats, renders
+    values as JSON rather than Swift's description of them, and reads the
+    day's events to the end in pages: the old single read stopped at
+    5,000 events, which was 6:35 PM, and the evening never reached the
+    memory (console #202).
+
+ -- April White <april@creature.engineering>  Sun, 20 Sep 2026 15:30:00 -0700
+
 creature-cli (2.78.0+world0.36.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.36.0: the house says who a camera saw. The stage

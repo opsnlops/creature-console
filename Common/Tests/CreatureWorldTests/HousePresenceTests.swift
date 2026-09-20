@@ -243,6 +243,106 @@ struct RecentHappeningsTests {
         #expect(try await builder.digest(of: "not-a-day") == nil)
     }
 
+    @Test(
+        "The day's learned facts are what a memory could be about: no body readings, no heartbeats, values as JSON"
+    )
+    func dayDigestLearned() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "digest-learned-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let conversation = try ConversationID(validating: "conversation:digest-\(suffix)")
+        let zone = TimeZone(identifier: "America/Los_Angeles")!
+        // 2026-08-30 12:00 PDT: a day of its own, so other runs' facts are not in it.
+        let noon = Date(timeIntervalSince1970: 1_788_116_400)
+        let memory = MemoryConfiguration(timeZone: zone.identifier)
+        func given(
+            _ subject: String, _ predicate: String, _ value: WorldJSONValue, source: String,
+            kind: String, at: Date
+        ) throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: GivenFactAnnouncement.eventType, occurredAt: at,
+                source: EventSource(
+                    id: try SourceID(validating: source), kind: kind,
+                    sourceEventID: UUID().uuidString),
+                subjectIDs: [try EntityID(validating: subject)],
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: [
+                    "subject_id": .string(subject), "predicate": .string(predicate),
+                    "value": value,
+                ])
+        }
+        let order = try EntityID(validating: "order:amazon-\(suffix)")
+        for event in [
+            // A body's reading, every thirty seconds all day: state, never a memory.
+            try given(
+                "character:beaky", "body.power_w", .number(4.2), source: "body:sensors-\(suffix)",
+                kind: "body", at: noon),
+            try given(
+                "thing:creature-server", "server.counters",
+                .object(["websocket_messages_sent": .number(12)]),
+                source: "body:sensors-\(suffix)", kind: "body", at: noon + 30),
+            // The Bridge saying it is alive.
+            try given(
+                "thing:information-bridge", "bridge.online", .bool(true),
+                source: "bridge:app-\(suffix)", kind: "bridge", at: noon + 60),
+            // The mail: a memory could be about this.
+            try given(
+                order.rawValue, "order.items", .string("toothpaste"),
+                source: "bridge:mail-\(suffix)", kind: "bridge", at: noon + 120),
+            // A mind's own word, with a value that is not text.
+            try given(
+                "person:april", "person.tools", .array([.string("soldering iron")]),
+                source: "mind:beaky-\(suffix)", kind: "mind", at: noon + 180),
+        ] {
+            _ = try await persistence.events.append(event, receivedAt: event.occurredAt)
+        }
+        let builder = DayDigestBuilder(
+            persistence: persistence, houseConversation: conversation, memory: memory)
+        let digest = try #require(try await builder.digest(of: "2026-08-30"))
+        let mine = digest.learned.filter { $0.who.hasSuffix(suffix) }
+        #expect(
+            mine.map(\.text) == [
+                "\(order.rawValue) order.items = toothpaste",
+                "person:april person.tools = [\"soldering iron\"]",
+            ])
+        // And a body's reading is not a happening either.
+        #expect(!digest.happenings.contains { $0.subjectID.rawValue == "thing:creature-server" })
+    }
+
+    @Test("A day bigger than one page is read to its end, in order")
+    func dayEventsArePaged() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "digest-paging-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let place = try EntityID(validating: "place:paged-\(suffix)")
+        // 2026-08-23, a day nothing else writes to.
+        let start = Date(timeIntervalSince1970: 1_787_511_600)
+        for index in 0..<7 {
+            _ = try await persistence.events.append(
+                try WorldEventEnvelope(
+                    type: HouseEvents.motionDetected, occurredAt: start + Double(index * 60),
+                    source: EventSource(
+                        id: try SourceID(validating: "home-assistant:\(suffix)"),
+                        kind: HouseEvents.sourceKind, sourceEventID: UUID().uuidString),
+                    subjectIDs: [place], placeID: place,
+                    epistemic: EpistemicState(type: .observed, confidence: 1), payload: [:]),
+                receivedAt: start + Double(index * 60))
+        }
+        let all = try await persistence.events.allEvents(
+            from: start, to: start + 3_600, pageSize: 3)
+        let mine = all.filter { $0.placeID == place }
+        #expect(mine.count == 7)
+        #expect(mine.map(\.occurredAt) == mine.map(\.occurredAt).sorted())
+        // The capped read that lost the evening would have stopped at three.
+        #expect(
+            try await persistence.events.events(from: start, to: start + 3_600, limit: 3).count
+                == 3)
+    }
+
     @Test("Meanings come from the store, seeded from the catalogue, and a Wizard's word wins")
     func meaningsAreStoredAndEditable() async throws {
         let uri = try #require(mongoTestURI)

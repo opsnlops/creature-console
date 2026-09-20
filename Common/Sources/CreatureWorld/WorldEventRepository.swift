@@ -105,6 +105,32 @@ struct WorldEventRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// Every event in the window, oldest first, read in pages by sequence until there are no
+    /// more - a day of the house is thousands of events, and one capped read of it ended at
+    /// 6:35 PM and lost the evening. `ceiling` is the sanity limit, not a page size.
+    func allEvents(from start: Date, to end: Date, pageSize: Int = 2_000, ceiling: Int = 100_000)
+        async throws -> [WorldEventEnvelope]
+    {
+        precondition(pageSize > 0)
+        let window: Document = ["$gte": start, "$lt": end]
+        var all: [WorldEventEnvelope] = []
+        var after: Int64 = -1
+        while all.count < ceiling {
+            let greaterThan: Document = ["$gt": Int(after)]
+            let documents =
+                try await events
+                .find(["occurred_at": window, "world_sequence": greaterThan])
+                .sort(["world_sequence": 1])
+                .limit(pageSize)
+                .drain()
+            let page = try documents.map(decode)
+            all += page
+            guard page.count == pageSize, let last = page.last?.worldSequence else { break }
+            after = last
+        }
+        return all.sorted { $0.occurredAt < $1.occurredAt }
+    }
+
     func latestSequence() async throws -> Int64 {
         let document = try await events.find([:])
             .sort(["world_sequence": -1])
