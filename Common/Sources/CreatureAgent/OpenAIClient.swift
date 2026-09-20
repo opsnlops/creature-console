@@ -310,6 +310,31 @@ struct OpenAIClient: Sendable {
         let output = try OpenAIResponseParser.outputText(from: data)
         return Data(output.utf8)
     }
+
+    /// The same JSON request as `respondJSON` would post, as one line of a batch file - the
+    /// nightly memory goes through the Batch API at half the price (#201).
+    func batchLine(for transcript: [LocalLLMClient.Message], customID: String) throws -> Data {
+        let request = makeRequest(for: transcript, stream: false, json: true)
+        return try OpenAIBatchClient.line(
+            customID: customID, endpoint: "/v1/responses", body: request.httpBody ?? Data())
+    }
+
+    /// The answer to a batched `respondJSON`, read from the batch's output: the same parsing,
+    /// the night's cost on its own span with the batch named.
+    func jsonAnswer(fromBatch body: Data, batchID: String) async throws -> Data {
+        if let usage = OpenAIResponseParser.usage(from: body) {
+            try await withSpan("llm.openai.responses") { span in
+                span.attributes["llm.model"] = model
+                span.attributes["llm.json"] = true
+                span.attributes["llm.batch"] = true
+                span.attributes["llm.batch.id"] = batchID
+                LLMUsageRecord.record(
+                    usage, on: span, model: model, kind: LLMCallKind.current, round: 0,
+                    toolsOffered: 0, logger: logger)
+            }
+        }
+        return Data(try OpenAIResponseParser.outputText(from: body).utf8)
+    }
 }
 
 /// The Responses API body, in the shape April pasted from the OpenAI console (2026-09-12):

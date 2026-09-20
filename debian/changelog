@@ -1,8 +1,8 @@
-creature-cli (2.78.0+world0.35.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+creature-cli (2.80.0+world0.36.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
-  * creature-cli 2.78.0: dialog music adopts the ElevenLabs Music 2.5
+  * creature-cli 2.80.0: dialog music adopts the ElevenLabs Music 2.5
     controls in creature-server 3.47 (console #197, server #200).
-    `dialog music generate` gains --model, --allow-vocals, --finetune,
+    `dialog music generate` gains --allow-vocals, --finetune,
     --finetune-strength, --plan (a composition-plan file) and --seed;
     new `dialog music plan` drafts a plan sized to the voice take,
     `dialog music recipe` shows how a take was made and can write its
@@ -10,7 +10,50 @@ creature-cli (2.78.0+world0.35.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; ur
     Plans are validated client-side with the server's limits before
     anything is sent.
 
- -- April White <april@creature.engineering>  Fri, 18 Sep 2026 15:00:00 -0700
+ -- April White <april@creature.engineering>  Sat, 20 Sep 2026 10:00:00 -0700
+
+creature-cli (2.79.0+world0.36.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.79.0: the nightly memory goes through OpenAI's Batch
+    API - half the price for a job nobody is waiting on. Each stage (the
+    day's episodes, the month's beliefs) is one line of a batch; the night
+    in progress is written to <stateDirectory>/memory-pending.json and
+    resumed after a restart; a batch that does not finish within
+    llmMemoryBatchWaitHours (20) falls back to asking at once. Off with
+    llmMemoryBatch: false. New `probe-batch` subcommand (console #201).
+  * creature-agent: every night after the first was skipped until a
+    restart - the "still remembering" guard held a finished Task (#203).
+
+ -- April White <april@creature.engineering>  Sun, 20 Sep 2026 16:30:00 -0700
+
+creature-cli (2.78.0+world0.36.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.36.1: the day's record for the nightly memory no
+    longer carries a body's readings (3,972 of the 4,247 "learned" lines
+    of a day - 370k tokens a night) or the Bridge's heartbeats, renders
+    values as JSON rather than Swift's description of them, and reads the
+    day's events to the end in pages: the old single read stopped at
+    5,000 events, which was 6:35 PM, and the evening never reached the
+    memory (console #202).
+
+ -- April White <april@creature.engineering>  Sun, 20 Sep 2026 15:30:00 -0700
+
+creature-cli (2.78.0+world0.36.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.36.0: the house says who a camera saw. The stage
+    note for a person seen, gone, or moving carries what the house knows -
+    "April is home and lives alone, so it is her" / "April is away, so it
+    is somebody else" / "a visitor is expected - Tamara, for cleaning - so
+    it is either her or them" - read from April's presence and every
+    visitor.expected at that moment (console #200).
+  * creature-agent 2.78.0: one household rule in both the house-remark
+    and scene contracts - April lives alone; when the house says she is
+    home, a person on any camera, inside or out, is April unless a visitor
+    is expected; never "someone", "a visitor", or "the camera cannot tell".
+    The just-home line now covers the driveway and carport, where she
+    actually arrives.
+
+ -- April White <april@creature.engineering>  Sat, 19 Sep 2026 19:30:00 -0700
 
 creature-cli (2.77.5+world0.35.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 

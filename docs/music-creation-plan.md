@@ -142,7 +142,7 @@ says "close to the original", never "identical".
 
 ## Versions
 
-Console 2.55.0 → 2.56.0 (feature), CLI tools 2.77.5 → 2.78.0 in lockstep,
+Console 2.55.0 → 2.56.0 (feature), CLI tools 2.79.0 → 2.80.0 (main took 2.78.0 and 2.79.0 meanwhile) in lockstep,
 `debian/changelog` entry, tag `v2.56.0`.
 
 ## Verification

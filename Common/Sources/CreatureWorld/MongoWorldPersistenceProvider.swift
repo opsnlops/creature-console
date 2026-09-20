@@ -274,7 +274,10 @@ struct MongoWorldPersistenceConnection: Sendable {
                         conversationID: houseConversation,
                         trigger: SceneTrigger(
                             kind: occasion.kind, eventID: event.eventID,
-                            text: SceneOpeningPolicy.triggerText(for: event, place: place)),
+                            text: SceneOpeningPolicy.triggerText(
+                                for: event, place: place,
+                                household: try await Household.situation(
+                                    facts: persistence.facts, at: await clock.now))),
                         participants: participants,
                         trace: event.trace)
                     logger.info(

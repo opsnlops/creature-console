@@ -59,6 +59,12 @@ areas:
 # episodes and reflection. Only the bird that should remember sets it - Beaky - on the same
 # key (or OPENAI_MEMORY_API_KEY in /etc/default/creature-agent-<instance> for its own project).
 # llmMemoryModel: gpt-6-astra
+# The nightly memory goes through OpenAI's Batch API by default (2.79.0): half the price, an
+# answer within the day, the night written down in the state directory and resumed after a
+# restart; a batch that does not finish within llmMemoryBatchWaitHours (20) is cancelled and
+# the night is remembered the ordinary way. Set false to always ask at once.
+# llmMemoryBatch: true
+# llmMemoryBatchWaitHours: 20
 # The world as tools (2.74.1, OpenAI backend only): WorldMCP, reached by this mind - the
 # model asks for a look-up, the mind runs it against the world on the LAN and hands the
 # answer back; the world is never exposed to the model provider. With it set, a question

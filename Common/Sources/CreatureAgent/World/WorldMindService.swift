@@ -22,15 +22,23 @@ struct WorldMindService: Service {
     /// One night's work at a time.
     private let remembering = Remembering()
 
-    private actor Remembering {
-        private var task: Task<Void, Never>?
+    actor Remembering {
+        /// Busy while a night's work runs, free when it returns. It used to hold the Task and
+        /// ask `isCancelled` - which a finished task never is, so every night after the first
+        /// was "still remembering the last day; skipping" until a restart (#203).
+        private var busy = false
         /// Starts `work` unless a night is still being remembered; true when started.
         func start(_ work: @escaping @Sendable () async -> Void) -> Bool {
-            if let task, !task.isCancelled { return false }
-            let started = Task { await work() }
-            task = started
+            if busy { return false }
+            busy = true
+            Task {
+                await work()
+                await self.finished()
+            }
             return true
         }
+
+        private func finished() { busy = false }
     }
 
     /// Without a `session` the mind follows the world unconditionally (no login desk — the
@@ -117,6 +125,19 @@ struct WorldMindService: Service {
     }
 
     private func follow() async throws {
+        // A night the provider was still thinking about when this process last stopped.
+        if let memory {
+            let clock = self.clock
+            let logger = self.logger
+            _ = await remembering.start {
+                do {
+                    try await memory.resume(now: await clock.now)
+                } catch {
+                    logger.error(
+                        "Could not resume the night's memory", metadata: ["error": "\(error)"])
+                }
+            }
+        }
         try await subscriber.run(
             handlers: WorldPerceptSubscriber.Handlers(
                 utterance: { consideration in try await handle(consideration) },

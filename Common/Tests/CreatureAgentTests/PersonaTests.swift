@@ -238,12 +238,22 @@ struct PersonaTests {
         let justHome = CharacterMind.houseRemarkContract(
             others: ["Mango"], aprilHome: true, aprilSince: 6 * 60, isLead: true)
         #expect(justHome.contains("April came home 6 minutes ago"))
-        #expect(justHome.contains("A person at the door or inside the house right now is April"))
+        #expect(
+            justHome.contains(
+                "A car in the driveway, a person in the carport, at the door, or inside right now is April coming in"
+            ))
         #expect(justHome.contains("never hedge that a camera cannot tell"))
         let homeAllDay = CharacterMind.houseRemarkContract(
             others: [], aprilHome: true, aprilSince: 5 * 3_600, isLead: true)
         #expect(homeAllDay.contains("April is home - the house's presence sensor says so"))
-        #expect(homeAllDay.contains("unless a visitor is expected"))
+        #expect(
+            homeAllDay.contains(
+                "anywhere on the cameras, inside or out, is April unless a visitor is expected"))
+        // "I'm the only one that lives here, it's me": the household rule is in both contracts,
+        // so a scene (April's own question) never calls her a workshop visitor either.
+        #expect(homeAllDay.contains("April lives alone."))
+        #expect(CharacterMind.sceneContractCore.contains("April lives alone."))
+        #expect(CharacterMind.household.contains("never say that a camera cannot tell who it is"))
         let away = CharacterMind.houseRemarkContract(others: [], aprilHome: false, isLead: true)
         #expect(away.contains("a person at the house is somebody else"))
         #expect(away.contains("A guess must sound like a guess only when it is one"))

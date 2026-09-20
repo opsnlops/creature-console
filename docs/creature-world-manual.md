@@ -210,6 +210,26 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**The day's record is a day** (`0.36.1`, #202). Sizing the nightly memory for the Batch API
+found the episodes call reading 370k tokens a night: `GET /v1/days/{day}`'s "learned" section
+carried every `facts.given` of the day - 3,972 of 4,247 lines were a body's readings, 222 the
+Bridge's heartbeat, and a counter object was spelled out as Swift's description of the enum -
+and the events behind it were one read capped at 5,000, which on a full day was 6:35 PM: the
+evening never reached the memory. Now the day's events are read in pages to the end, "learned"
+keeps only what a memory could be about (never a telemetry source, never `bridge.online`), and
+values render as JSON. A night's episodes prompt is ~25-35k tokens.
+
+**The house says who it saw** (`0.36.0`, #200). April lives alone, and an afternoon of "mystery
+visitor" — her car in the driveway and her at the front door, thirty seconds after the presence
+sensor saw her come home — was the minds guessing at a shape. Now the stage note for a person
+seen, gone, or moving carries what the house knows at that moment: "A person was just seen at
+the driveway. April is home and lives alone, so it is her." / "April is away, so it is somebody
+else." / "April is home, and a visitor is expected - Tamara, for cleaning - so it is either her
+or them." — read from April's `presence.state` and every `visitor.expected` in force (on the
+house from the mail's appointments, on a person from the calendar). A vehicle gets only where
+she is ("April is home."), since a van could be a delivery. No presence fact, no claim. April:
+"when I'm home, it's me on the cameras. I'm the only one that lives here, it's me."
+
 **The real world knows where April is** (`0.30.2`): when the house observes a person arriving
 or leaving (`person.arrived` / `person.left` from Home Assistant), every *reported* `presence.*`
 fact about them is retracted — Kenny's learned `presence.location = "at the doctor"` good

@@ -320,6 +320,31 @@ else — persona, facts, the clock, streaming to the room — is identical.
   is expected; away, it is somebody else; a guess sounds like a guess only when it is one.
   The departure line belongs to the first bird; the chorus is told another bird has already
   told her and to react - a send-off, a wish, a joke - or stay silent.
+- **The night goes through the Batch API** (`2.79.0`, #201). April: "let's look at using the
+  batch API to reduce the cost of the nightly memory processor." gpt-6-astra is $10 per
+  million in and $50 out; the Batch API is half of both, with an answer within the day - and
+  nobody is waiting at 3:30 AM. With `llmMemoryBatch` on (the default), each stage of the
+  night - the day's episodes, then the month's beliefs - is one line of a batch file
+  (`OpenAIBatchClient`: upload, batch, poll, output file), the same request `respondJSON`
+  would have posted, parsed the same way, its usage on the same `llm.openai.responses` span
+  with `llm.batch = true` and the batch id. The night in progress is written to
+  `<stateDirectory>/memory-pending.json` (day, run, stage, batch id) the moment a batch is
+  submitted, and `MemoryJob.resume` picks it up on the next start - a deploy while the
+  provider is still thinking loses nothing. A batch that fails, expires, or is still pending
+  after `llmMemoryBatchWaitHours` (20) is cancelled and that stage is asked the ordinary way;
+  the night always lands. `creature-agent probe-batch --model gpt-6-astra` proves the road
+  end to end with a day key. Found on the way (#203): every night after the first was being
+  skipped until a restart - the "still remembering" guard held a finished Task and asked
+  `isCancelled`, which a finished task never is. It tracks completion now.
+- **April lives alone** (`2.78.0`, #200). The rule above covered "at the door or inside", and
+  April comes home by the driveway and the carport: three birds made her arrival a "mystery
+  visitor", and two hours later Beaky was still "guessing it's April, but the camera can't
+  tell". One household rule now sits in *both* contracts, the house remark and the scene:
+  when the house says she is home, a person on any camera, inside or out, is April unless
+  a visitor is expected; call her April, never "someone" or "a visitor", and never say a
+  camera cannot tell who it is. The world's stage note says the same in its own words
+  (world `0.36.0`: "April is home and lives alone, so it is her"), so the mind is agreeing
+  with the house, not arguing with a shape.
 - **She looks things up** (`2.74.1`; `worldMcpUrl`). April: "As the knowledge in the world
   grows we're quickly going to hit the limit of what we can pre-emptively send in the context
   to the agent." With `worldMcpUrl` set and the OpenAI backend, the mind asks WorldMCP for

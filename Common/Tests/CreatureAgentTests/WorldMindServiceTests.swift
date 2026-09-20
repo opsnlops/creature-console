@@ -1085,4 +1085,23 @@ private actor RecordingRoom: PhysicalSpeechStaging {
         }
         return spoken.isEmpty ? nil : "animation:room"
     }
+
+    @Test("A night is remembered once at a time, and the next night is not skipped (#203)")
+    func remembersEveryNight() async throws {
+        let remembering = WorldMindService.Remembering()
+        let gate = AsyncStream<Void>.makeStream()
+        // The first night is still running: the second is refused.
+        #expect(await remembering.start { for await _ in gate.stream { break } })
+        #expect(await remembering.start {} == false)
+        gate.continuation.yield()
+        gate.continuation.finish()
+        // Once it returns, the next night starts - a finished task used to block forever.
+        var started = false
+        for _ in 0..<50 where !started {
+            started = await remembering.start {}
+            if !started { try await Task.sleep(for: .milliseconds(10)) }
+        }
+        #expect(started)
+    }
+
 }

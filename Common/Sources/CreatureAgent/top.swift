@@ -32,8 +32,8 @@ struct CreatureAgent: AsyncParsableCommand {
         abstract: "Beaky's mind: answer April in Creature World, or react to MQTT events",
         discussion:
             "In world mode (mode: world), follows Creature World's conversation and answers April through the world's delivery router using the local model. In MQTT mode, consumes MQTT topics and uses an LLM backend (OpenAI or local) to generate ad-hoc speech animations on the Creature server.",
-        version: "2.78.0",
-        subcommands: [Run.self, ProbeCache.self],
+        version: "2.80.0",
+        subcommands: [Run.self, ProbeCache.self, ProbeBatch.self],
         defaultSubcommand: Run.self,
         helpNames: .shortAndLong
     )

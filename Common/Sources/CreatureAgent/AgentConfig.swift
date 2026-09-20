@@ -36,6 +36,12 @@ struct AgentConfig: Decodable {
     /// The model for the nightly memory job (episodes and the day's reflection), where
     /// latency is irrelevant and quality compounds; unset means the speaking model.
     let llmMemoryModel: String?
+    /// Whether the nightly memory goes through the provider's Batch API - half the price,
+    /// an answer within the day, the night written down and resumed across a restart. On
+    /// by default; nobody is waiting at 3:30 AM.
+    let llmMemoryBatch: Bool
+    /// How long to wait for a batch before giving up on it and asking the ordinary way.
+    let llmMemoryBatchWaitHours: Double
     let localLlmHost: String
     let localLlmPort: Int
     let localLlmMaxTokens: Int
@@ -139,6 +145,8 @@ struct AgentConfig: Decodable {
         case llmServiceTier
         case llmCache
         case llmMemoryModel
+        case llmMemoryBatch
+        case llmMemoryBatchWaitHours
         case localLlmHost
         case localLlmPort
         case localLlmMaxTokens
@@ -194,6 +202,14 @@ struct AgentConfig: Decodable {
         llmCache = LLMCacheSettings(
             store: cache?.store ?? false, key: cache?.key ?? true, retention: cache?.retention)
         llmMemoryModel = try container.decodeIfPresent(String.self, forKey: .llmMemoryModel)
+        llmMemoryBatch = try container.decodeIfPresent(Bool.self, forKey: .llmMemoryBatch) ?? true
+        llmMemoryBatchWaitHours =
+            try container.decodeIfPresent(Double.self, forKey: .llmMemoryBatchWaitHours) ?? 20
+        guard llmMemoryBatchWaitHours > 0, llmMemoryBatchWaitHours <= 24 else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .llmMemoryBatchWaitHours, in: container,
+                debugDescription: "llmMemoryBatchWaitHours must be between 0 and 24")
+        }
         if let tier = llmServiceTier,
             !["auto", "default", "fast", "priority", "flex"].contains(tier)
         {

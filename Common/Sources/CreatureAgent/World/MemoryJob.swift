@@ -44,11 +44,45 @@ struct MemoryJob: Sendable {
     let characterID: EntityID
     let persona: CharacterPersona
     let houseID: EntityID
-    let modelName: String
-    let respondJSON: RespondJSON
+    let model: MemoryModel
     let cast: @Sendable (WorldEventEnvelope) async throws -> Void
     let client: HTTPClient
     let logger: Logger
+    /// Where a night in progress is written down, when the model answers through a batch -
+    /// so a restart while the provider is still thinking resumes the night instead of losing
+    /// it. Nil: nothing is written and nothing resumes.
+    var pendingFile: URL? = nil
+
+    var modelName: String { model.modelName }
+
+    /// The old shape: a model that answers now, nothing written down.
+    init(
+        worldURL: URL, characterID: EntityID, persona: CharacterPersona, houseID: EntityID,
+        modelName: String, respondJSON: @escaping RespondJSON,
+        cast: @escaping @Sendable (WorldEventEnvelope) async throws -> Void, client: HTTPClient,
+        logger: Logger
+    ) {
+        self.init(
+            worldURL: worldURL, characterID: characterID, persona: persona, houseID: houseID,
+            model: MemoryModel(modelName: modelName, ask: respondJSON), cast: cast,
+            client: client, logger: logger)
+    }
+
+    init(
+        worldURL: URL, characterID: EntityID, persona: CharacterPersona, houseID: EntityID,
+        model: MemoryModel, cast: @escaping @Sendable (WorldEventEnvelope) async throws -> Void,
+        client: HTTPClient, logger: Logger, pendingFile: URL? = nil
+    ) {
+        self.worldURL = worldURL
+        self.characterID = characterID
+        self.persona = persona
+        self.houseID = houseID
+        self.model = model
+        self.cast = cast
+        self.client = client
+        self.logger = logger
+        self.pendingFile = pendingFile
+    }
 
     static let maximumEpisodes = 12
     /// Beliefs are few by design: the settled view, not a second diary.
@@ -91,80 +125,222 @@ struct MemoryJob: Sendable {
             span.attributes["agent.character_id"] = characterID.rawValue
             span.attributes["memory.day"] = day
             span.attributes["memory.run"] = run.rawValue
-            let key = "memory:\(day):\(run.rawValue)"
+            let key = Self.key(day: day, run: run)
             span.attributes["llm.model"] = modelName
             let digest = try await fetchDigest(day: day)
             span.attributes["memory.happenings"] = digest.happenings.count
             span.attributes["memory.conversation_lines"] = digest.conversation.count
             span.attributes["memory.scenes"] = digest.scenes.count
-            guard
-                !digest.happenings.isEmpty || !digest.conversation.isEmpty
-                    || !digest.scenes.isEmpty
-            else {
+            guard Self.isWorthRemembering(digest) else {
                 logger.info("Nothing to remember", metadata: ["memory.day": "\(day)"])
                 return
             }
             let transcript = Self.transcript(
                 for: digest, persona: persona, characterID: characterID)
-            let data = try await withSpan("llm.generate") { inner in
-                inner.attributes["llm.model"] = modelName
-                inner.attributes["llm.json"] = true
-                inner.attributes["llm.call_kind"] = LLMCallKind.memory.rawValue
-                return try await LLMCallKind.$current.withValue(.memory) {
-                    try await respondJSON(transcript)
-                }
-            }
-            let recollection = try JSONDecoder().decode(Recollection.self, from: data)
-            let episodes = Array(recollection.episodes.prefix(Self.maximumEpisodes))
-            span.attributes["memory.episodes"] = episodes.count
-            // Remembering a day again replaces that day's memory: what an earlier run kept -
-            // on every subject, in every slot - is taken back before the new memory is cast.
-            let earlier = try await fetchMemories(of: day)
-            span.attributes["memory.replaced"] = earlier.count
-            for fact in earlier {
-                try await self.cast(retractionEvent(fact, key: key, now: now))
-            }
-            var cast = 0
-            let names = Self.names(in: digest, houseID: houseID, including: characterID)
-            for (index, episode) in episodes.enumerated() {
-                for about in episode.about.prefix(4) {
-                    guard let subject = names.entity(named: about) else { continue }
-                    try await self.cast(
-                        episodeEvent(
-                            episode, subject: subject, day: day, index: index, key: key,
-                            now: now))
-                    cast += 1
-                }
-            }
-            let reflection = recollection.reflection.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !reflection.isEmpty {
-                try await self.cast(reflectionEvent(reflection, day: day, key: key, now: now))
-            }
-            // Then the month: what all those days have settled into.
-            let beliefs = try await consolidate(day: day, key: key, names: names, now: now)
-            span.attributes["memory.beliefs"] = beliefs
-            try await self.cast(
-                try WorldEventEnvelope(
-                    type: WorldEventType(validating: "memory.consolidated"),
-                    occurredAt: now,
-                    source: source(sourceEventID: "\(key):done"),
-                    subjectIDs: [characterID],
-                    epistemic: EpistemicState(type: .remembered, confidence: 1),
-                    payload: [
-                        "day": .string(day),
-                        "episodes": .number(Double(episodes.count)),
-                        "facts": .number(Double(cast)),
-                        "beliefs": .number(Double(beliefs)),
-                        "reflection": .string(String(Self.scrubbed(reflection).prefix(500))),
-                        "model": .string(modelName),
-                    ]))
-            logger.info(
-                "Remembered the day",
-                metadata: [
-                    "memory.day": "\(day)", "memory.episodes": "\(episodes.count)",
-                    "memory.facts": "\(cast)", "memory.beliefs": "\(beliefs)",
-                ])
+            let pending = PendingMemory(
+                day: day, run: run.rawValue, stage: .episodes, startedAt: now)
+            let data = try await answer(transcript, pending: pending)
+            try await finishEpisodes(data, digest: digest, pending: pending, now: now, span: span)
         }
+    }
+
+    /// A night written down and not finished - the provider was still thinking when the
+    /// process stopped - picked up where it was. Nothing pending, nothing done.
+    func resume(now: Date) async throws {
+        guard let pending = loadPending() else { return }
+        let run = try EventID(validating: pending.run)
+        logger.info(
+            "Resuming a night's memory",
+            metadata: [
+                "memory.day": "\(pending.day)", "memory.stage": "\(pending.stage.rawValue)",
+                "llm.batch.id": "\(pending.batchID ?? "none")",
+            ])
+        try await withSpan("agent.memory.resume") { span in
+            span.attributes["agent.character_id"] = characterID.rawValue
+            span.attributes["memory.day"] = pending.day
+            span.attributes["memory.run"] = pending.run
+            span.attributes["memory.stage"] = pending.stage.rawValue
+            span.attributes["llm.model"] = modelName
+            let digest = try await fetchDigest(day: pending.day)
+            guard Self.isWorthRemembering(digest) else {
+                clearPending()
+                return
+            }
+            switch pending.stage {
+            case .episodes:
+                let transcript = Self.transcript(
+                    for: digest, persona: persona, characterID: characterID)
+                let data = try await collect(transcript, pending: pending)
+                try await finishEpisodes(
+                    data, digest: digest, pending: pending, now: now, span: span)
+            case .beliefs:
+                let names = Self.names(in: digest, houseID: houseID, including: characterID)
+                let beliefs = try await consolidate(
+                    day: pending.day, key: Self.key(day: pending.day, run: run), names: names,
+                    pending: pending, now: now)
+                try await finish(
+                    day: pending.day, key: Self.key(day: pending.day, run: run),
+                    episodes: pending.episodes ?? 0, facts: pending.facts ?? 0, beliefs: beliefs,
+                    reflection: pending.reflection ?? "", now: now)
+            }
+        }
+    }
+
+    static func key(day: String, run: EventID) -> String { "memory:\(day):\(run.rawValue)" }
+
+    static func isWorthRemembering(_ digest: DayDigest) -> Bool {
+        !digest.happenings.isEmpty || !digest.conversation.isEmpty || !digest.scenes.isEmpty
+    }
+
+    /// The day's answer, cast: the earlier telling taken back, the episodes on their subjects,
+    /// the reflection on the bird; then the month.
+    private func finishEpisodes(
+        _ data: Data, digest: DayDigest, pending: PendingMemory, now: Date, span: any Span
+    ) async throws {
+        let day = pending.day
+        let key = Self.key(day: day, run: try EventID(validating: pending.run))
+        let recollection = try JSONDecoder().decode(Recollection.self, from: data)
+        let episodes = Array(recollection.episodes.prefix(Self.maximumEpisodes))
+        span.attributes["memory.episodes"] = episodes.count
+        // Remembering a day again replaces that day's memory: what an earlier run kept -
+        // on every subject, in every slot - is taken back before the new memory is cast.
+        let earlier = try await fetchMemories(of: day)
+        span.attributes["memory.replaced"] = earlier.count
+        for fact in earlier {
+            try await self.cast(retractionEvent(fact, key: key, now: now))
+        }
+        var cast = 0
+        let names = Self.names(in: digest, houseID: houseID, including: characterID)
+        for (index, episode) in episodes.enumerated() {
+            for about in episode.about.prefix(4) {
+                guard let subject = names.entity(named: about) else { continue }
+                try await self.cast(
+                    episodeEvent(
+                        episode, subject: subject, day: day, index: index, key: key,
+                        now: now))
+                cast += 1
+            }
+        }
+        let reflection = recollection.reflection.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !reflection.isEmpty {
+            try await self.cast(reflectionEvent(reflection, day: day, key: key, now: now))
+        }
+        // Then the month: what all those days have settled into.
+        var next = pending
+        next.stage = .beliefs
+        next.batchID = nil
+        next.episodes = episodes.count
+        next.facts = cast
+        next.reflection = String(Self.scrubbed(reflection).prefix(500))
+        let beliefs = try await consolidate(
+            day: day, key: key, names: names, pending: next, now: now)
+        span.attributes["memory.beliefs"] = beliefs
+        try await finish(
+            day: day, key: key, episodes: episodes.count, facts: cast, beliefs: beliefs,
+            reflection: next.reflection ?? "", now: now)
+    }
+
+    private func finish(
+        day: String, key: String, episodes: Int, facts: Int, beliefs: Int, reflection: String,
+        now: Date
+    ) async throws {
+        try await self.cast(
+            try WorldEventEnvelope(
+                type: WorldEventType(validating: "memory.consolidated"),
+                occurredAt: now,
+                source: source(sourceEventID: "\(key):done"),
+                subjectIDs: [characterID],
+                epistemic: EpistemicState(type: .remembered, confidence: 1),
+                payload: [
+                    "day": .string(day),
+                    "episodes": .number(Double(episodes)),
+                    "facts": .number(Double(facts)),
+                    "beliefs": .number(Double(beliefs)),
+                    "reflection": .string(reflection),
+                    "model": .string(modelName),
+                ]))
+        clearPending()
+        logger.info(
+            "Remembered the day",
+            metadata: [
+                "memory.day": "\(day)", "memory.episodes": "\(episodes)",
+                "memory.facts": "\(facts)", "memory.beliefs": "\(beliefs)",
+            ])
+    }
+
+    // MARK: - Asking the model
+
+    /// One question to the model, for a stage of the night. With a batch: submitted, written
+    /// down as pending, and waited for; a batch that will not finish falls back to asking now.
+    private func answer(_ transcript: [LocalLLMClient.Message], pending: PendingMemory)
+        async throws -> Data
+    {
+        try await withSpan("llm.generate") { inner in
+            inner.attributes["llm.model"] = modelName
+            inner.attributes["llm.json"] = true
+            inner.attributes["llm.call_kind"] = LLMCallKind.memory.rawValue
+            return try await LLMCallKind.$current.withValue(.memory) {
+                guard let batch = model.batch else { return try await model.ask(transcript) }
+                var pending = pending
+                pending.customID =
+                    "\(Self.key(day: pending.day, run: try EventID(validating: pending.run))):\(pending.stage.rawValue)"
+                do {
+                    pending.batchID = try await batch.submit(transcript, pending.customID ?? "")
+                } catch {
+                    logger.warning(
+                        "Could not submit the batch; asking now",
+                        metadata: [
+                            "error": "\(error)", "memory.stage": "\(pending.stage.rawValue)",
+                        ])
+                    return try await model.ask(transcript)
+                }
+                inner.attributes["llm.batch.id"] = pending.batchID ?? ""
+                savePending(pending)
+                return try await collect(transcript, pending: pending)
+            }
+        }
+    }
+
+    /// The answer to a batch already submitted; asked now if the batch will not finish.
+    private func collect(_ transcript: [LocalLLMClient.Message], pending: PendingMemory)
+        async throws -> Data
+    {
+        guard let batch = model.batch, let batchID = pending.batchID,
+            let customID = pending.customID
+        else { return try await model.ask(transcript) }
+        do {
+            return try await LLMCallKind.$current.withValue(.memory) {
+                try await batch.answer(batchID, customID)
+            }
+        } catch let error as OpenAIBatchError {
+            logger.warning(
+                "The batch did not answer; asking now",
+                metadata: ["llm.batch.id": "\(batchID)", "error": "\(error)"])
+            return try await LLMCallKind.$current.withValue(.memory) {
+                try await model.ask(transcript)
+            }
+        }
+    }
+
+    private func savePending(_ pending: PendingMemory) {
+        guard let pendingFile else { return }
+        do {
+            try FileManager.default.createDirectory(
+                at: pendingFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try WorldJSON.makeEncoder().encode(pending).write(to: pendingFile, options: .atomic)
+        } catch {
+            logger.warning("Could not write the pending memory", metadata: ["error": "\(error)"])
+        }
+    }
+
+    private func loadPending() -> PendingMemory? {
+        guard let pendingFile, let data = try? Data(contentsOf: pendingFile) else { return nil }
+        return try? WorldJSON.makeDecoder().decode(PendingMemory.self, from: data)
+    }
+
+    private func clearPending() {
+        guard let pendingFile else { return }
+        try? FileManager.default.removeItem(at: pendingFile)
     }
 
     // MARK: - Beliefs
@@ -173,7 +349,9 @@ struct MemoryJob: Sendable {
     /// flock holds, revised against the last month of episodes. The whole set is rewritten
     /// each night - kept, revised, dropped, added - and replaces the old one, keyed by the
     /// run like the day's episodes. Returns how many beliefs were cast.
-    func consolidate(day: String, key: String, names: EntityNames, now: Date) async throws -> Int {
+    func consolidate(
+        day: String, key: String, names: EntityNames, pending: PendingMemory, now: Date
+    ) async throws -> Int {
         try await withSpan("agent.memory.consolidate") { span in
             let cutoff = Self.dayString(daysBefore: Self.beliefDays, of: day)
             let episodes = try await fetchFacts(prefix: WorldFacts.memoryEpisode + ".")
@@ -192,14 +370,11 @@ struct MemoryJob: Sendable {
             let transcript = Self.beliefTranscript(
                 held: held, episodes: episodes, reflections: reflections, persona: persona,
                 characterID: characterID)
-            let data = try await withSpan("llm.generate") { inner in
-                inner.attributes["llm.model"] = modelName
-                inner.attributes["llm.json"] = true
-                inner.attributes["llm.call_kind"] = LLMCallKind.memory.rawValue
-                return try await LLMCallKind.$current.withValue(.memory) {
-                    try await respondJSON(transcript)
-                }
-            }
+            // Resumed with a batch already out: its answer; otherwise ask afresh.
+            let data =
+                pending.batchID == nil
+                ? try await answer(transcript, pending: pending)
+                : try await collect(transcript, pending: pending)
             let consolidation = try JSONDecoder().decode(Consolidation.self, from: data)
             // The day's names, plus everyone with an episode or a belief; nobody new.
             var names = names
@@ -547,5 +722,53 @@ struct MemoryJob: Sendable {
             } while after != nil
         }
         return memories
+    }
+}
+
+/// How the memory job asks its model. `ask` answers now. `batch`, when the model has one,
+/// hands the question to the provider's queue - the Batch API, half the price, an answer within
+/// the day - and waits; a batch that will not finish falls back to `ask`.
+struct MemoryModel: Sendable {
+    typealias Ask = @Sendable ([LocalLLMClient.Message]) async throws -> Data
+
+    struct Batch: Sendable {
+        /// Submits one question under `customID`; returns the batch's id.
+        let submit:
+            @Sendable (_ transcript: [LocalLLMClient.Message], _ customID: String)
+                async throws -> String
+        /// Waits for the batch and returns the answer to `customID`; throws an
+        /// `OpenAIBatchError` when it is not coming.
+        let answer: @Sendable (_ batchID: String, _ customID: String) async throws -> Data
+    }
+
+    let modelName: String
+    let ask: Ask
+    var batch: Batch? = nil
+}
+
+/// A night in progress, written down so a restart can finish it: which day, which asking,
+/// which stage the provider is thinking about, and - from the episodes stage onward - what the
+/// day made, for the record at the end.
+struct PendingMemory: Codable, Equatable, Sendable {
+    enum Stage: String, Codable, Sendable {
+        case episodes
+        case beliefs
+    }
+
+    var day: String
+    var run: String
+    var stage: Stage
+    var batchID: String? = nil
+    var customID: String? = nil
+    var startedAt: Date
+    var episodes: Int? = nil
+    var facts: Int? = nil
+    var reflection: String? = nil
+
+    private enum CodingKeys: String, CodingKey {
+        case day, run, stage, episodes, facts, reflection
+        case batchID = "batch_id"
+        case customID = "custom_id"
+        case startedAt = "started_at"
     }
 }
