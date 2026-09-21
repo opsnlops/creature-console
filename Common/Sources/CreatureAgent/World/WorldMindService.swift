@@ -33,7 +33,7 @@ struct WorldMindService: Service {
             busy = true
             Task {
                 await work()
-                await self.finished()
+                self.finished()
             }
             return true
         }

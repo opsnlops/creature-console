@@ -299,7 +299,7 @@ struct OpenAIClient: Sendable {
         }
         // The night's cost, on the memory job's own span.
         if let usage = OpenAIResponseParser.usage(from: data) {
-            try await withSpan("llm.openai.responses") { span in
+            withSpan("llm.openai.responses") { span in
                 span.attributes["llm.model"] = model
                 span.attributes["llm.json"] = true
                 LLMUsageRecord.record(
@@ -321,9 +321,9 @@ struct OpenAIClient: Sendable {
 
     /// The answer to a batched `respondJSON`, read from the batch's output: the same parsing,
     /// the night's cost on its own span with the batch named.
-    func jsonAnswer(fromBatch body: Data, batchID: String) async throws -> Data {
+    func jsonAnswer(fromBatch body: Data, batchID: String) throws -> Data {
         if let usage = OpenAIResponseParser.usage(from: body) {
-            try await withSpan("llm.openai.responses") { span in
+            withSpan("llm.openai.responses") { span in
                 span.attributes["llm.model"] = model
                 span.attributes["llm.json"] = true
                 span.attributes["llm.batch"] = true

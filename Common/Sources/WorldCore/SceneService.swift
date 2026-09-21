@@ -419,7 +419,7 @@ public actor SceneService {
     /// streamed line still arriving) replaces the earlier one; an early firing is ignored by
     /// `floorExpired` because the floor's deadline has moved.
     static func floorTimer(for scene: Scene, floor: SceneFloor) throws -> WorldTimer {
-        try WorldTimer(
+        WorldTimer(
             timerID: Self.floorTimerID(for: floor.responseID),
             purpose: Self.floorExpiredEventType,
             dueAt: floor.deadline,
