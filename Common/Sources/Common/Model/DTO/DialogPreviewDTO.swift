@@ -142,7 +142,8 @@ public struct DialogPreviewMetaDTO: Decodable, Sendable, Equatable {
 public struct DialogPreviewLookupDTO: Decodable, Sendable, Equatable {
 
     public var cacheKey: String
-    public var latestGenerationId: DialogGenerationIdentifier
+    /// Nil when nothing is cached for these turns (server #204: the key still comes back).
+    public var latestGenerationId: DialogGenerationIdentifier?
     public var generations: [Generation]
 
     /// One cached ElevenLabs take. `createdAt` is kept as the raw ISO-8601 string because the
@@ -177,8 +178,8 @@ public struct DialogPreviewLookupDTO: Decodable, Sendable, Equatable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         cacheKey = try container.decode(String.self, forKey: .cacheKey)
-        latestGenerationId = try container.decode(
-            DialogGenerationIdentifier.self, forKey: .latestGenerationId)
+        let latest = try container.decodeIfPresent(String.self, forKey: .latestGenerationId)
+        latestGenerationId = latest.flatMap { $0.isEmpty ? nil : UUID(uuidString: $0) }
         generations = try container.decodeIfPresent([Generation].self, forKey: .generations) ?? []
     }
 }

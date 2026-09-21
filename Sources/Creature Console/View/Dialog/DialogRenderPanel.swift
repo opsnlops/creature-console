@@ -67,8 +67,14 @@ struct DialogRenderPanel: View {
         isSubmitting || (observedJob.map { !$0.isTerminal } ?? false)
     }
 
+    private var voiceFreshness: DialogVoiceFreshness {
+        acceptedVoice?.freshness(forCacheKey: currentCacheKey) ?? .stale
+    }
+
+    /// Fresh or unknown may render (the server enforces freshness itself, server#131);
+    /// only a known-stale acceptance is blocked here.
     private var voiceIsReady: Bool {
-        acceptedVoice?.isFresh(forCacheKey: currentCacheKey) ?? false
+        acceptedVoice != nil && voiceFreshness.mayProceed
     }
 
     var body: some View {

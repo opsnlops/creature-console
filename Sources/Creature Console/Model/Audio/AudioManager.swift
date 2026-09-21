@@ -41,6 +41,11 @@ class AudioManager {
     /// Keep a strong reference to the armed preview file so it remains valid during playback.
     @ObservationIgnored private var previewFile: AVAudioFile?
 
+    /// Whether a `MusicPiecePlayer` (the piece editor's scrubbable player) is playing. It owns
+    /// its own AVAudioPlayer; this only keeps the session active for it and stops the other
+    /// paths when it starts, so two things never play at once.
+    @ObservationIgnored private var externalMusicPlaybackActive = false
+
     /// Report an error by logging it and publishing to the UI via `lastError`.
     private func reportError(
         _ error: AudioError, file: StaticString = #fileID, function: StaticString = #function,
@@ -101,9 +106,24 @@ class AudioManager {
     private func releaseAudioSessionIfIdle() {
         let bundledSoundPlaying = audioPlayer?.isPlaying ?? false
         guard player == nil, !bundledSoundPlaying, previewPlayer == nil,
-            dialogAuditionEngine == nil
+            dialogAuditionEngine == nil, !externalMusicPlaybackActive
         else { return }
         deactivateAudioSession()
+    }
+
+    /// A `MusicPiecePlayer` is about to play: silence the URL and audition paths and hold the
+    /// session open for it.
+    func beginExternalMusicPlayback() {
+        externalMusicPlaybackActive = true
+        stopURLPlayback()
+        stopDialogAudition()
+        activateAudioSession()
+    }
+
+    /// The `MusicPiecePlayer` paused, stopped or finished.
+    func endExternalMusicPlayback() {
+        externalMusicPlaybackActive = false
+        releaseAudioSessionIfIdle()
     }
 
     /// Deactivate the audio session once playback is done, letting whatever we interrupted

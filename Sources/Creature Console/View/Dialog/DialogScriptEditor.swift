@@ -102,8 +102,14 @@ struct DialogScriptEditor: View {
 
     /// Whether the saved script's accepted voice matches the current turns — the render
     /// precondition. Freshness resolves from the takes lookup's cache key.
+    private var acceptedVoiceFreshness: DialogVoiceFreshness {
+        original.acceptedVoice?.freshness(forCacheKey: currentCacheKey) ?? .stale
+    }
+
+    /// Whether a render or composition may go ahead on the accepted voice: fresh, or unknown
+    /// (no cached takes to learn the key from — the server judges). Never stale.
     private var hasFreshAcceptedVoice: Bool {
-        original.acceptedVoice?.isFresh(forCacheKey: currentCacheKey) ?? false
+        original.acceptedVoice != nil && acceptedVoiceFreshness.mayProceed
     }
 
     /// Whether any rendered animation points back at this script — drives the takes panel's
@@ -159,12 +165,20 @@ struct DialogScriptEditor: View {
                         script = updatedScript
                         persistLocalScript(updatedScript)
                     }
-                    DialogMusicPanel(
-                        scriptId: renderScriptId,
-                        acceptedVoice: original.acceptedVoice,
-                        acceptedVoiceIsFresh: hasFreshAcceptedVoice,
-                        backgroundMusic: original.backgroundMusic,
-                        hasUnsavedChanges: createNew || isDirty
+                    MusicCreationView(
+                        subject: MusicSubject(
+                            scriptId: renderScriptId,
+                            title: script.title,
+                            acceptedVoice: original.acceptedVoice,
+                            voiceFreshness: acceptedVoiceFreshness,
+                            backgroundMusic: original.backgroundMusic,
+                            hasUnsavedChanges: createNew || isDirty,
+                            // Only the accepted take's length is the music's length; an
+                            // auditioned partial take must not size it.
+                            dialogDurationMilliseconds: fullDialogMeta.flatMap {
+                                $0.generationId == original.acceptedVoice?.generationId
+                                    ? Int64($0.durationSeconds * 1_000) : nil
+                            })
                     ) { canonical in
                         // Music removal is a server-side field mutation. Merge only that
                         // field so a response that arrives after a local edit cannot erase

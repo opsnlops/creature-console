@@ -137,6 +137,14 @@ struct DialogAcceptedVoiceTests {
         #expect(!voice.isFresh(forCacheKey: String(repeating: "ef", count: 32)))
         #expect(!voice.isFresh(forCacheKey: nil))
         #expect(!voice.isFresh(forCacheKey: ""))
+
+        // No key is "don't know", never "stale": the server judges, the console must not lie.
+        #expect(voice.freshness(forCacheKey: key) == .fresh)
+        #expect(voice.freshness(forCacheKey: String(repeating: "ef", count: 32)) == .stale)
+        #expect(voice.freshness(forCacheKey: nil) == .unknown)
+        #expect(voice.freshness(forCacheKey: "") == .unknown)
+        #expect(DialogVoiceFreshness.unknown.mayProceed)
+        #expect(!DialogVoiceFreshness.stale.mayProceed)
     }
 
     @Test("decodes from the server's wire shape, with or without the promoted file")

@@ -141,6 +141,26 @@ struct TopContentView: View {
                 #endif
 
                 #if os(iOS) || os(macOS)
+                    Section("Music") {
+                        NavigationLink {
+                            MusicLibraryView()
+                        } label: {
+                            Label("Library", systemImage: "music.note.list")
+                        }
+                        NavigationLink {
+                            MusicLibraryPieceView(pieceId: nil)
+                        } label: {
+                            Label("New Piece", systemImage: "plus.circle")
+                        }
+                        NavigationLink {
+                            MusicWorkspaceView()
+                        } label: {
+                            Label("Score a Dialog", systemImage: "text.bubble")
+                        }
+                    }
+                #endif
+
+                #if os(iOS) || os(macOS)
                     Section("Storyboards") {
                         NavigationLink {
                             StoryboardTable()
