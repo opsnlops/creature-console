@@ -428,7 +428,7 @@ private func runWorldMode(
                     answer: { batchID, customID in
                         let output = try await batches.output(
                             of: batchID, deadline: Date().addingTimeInterval(wait))
-                        return try await memoryClient.jsonAnswer(
+                        return try memoryClient.jsonAnswer(
                             fromBatch: try OpenAIBatchClient.result(for: customID, in: output),
                             batchID: batchID)
                     })

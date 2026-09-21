@@ -15,9 +15,9 @@ struct ProbeBatch: AsyncParsableCommand {
     @Option(help: "Seconds between looks") var every = 20
     @Option(
         help:
-            "reasoning.effort, as the memory client sends it (medium); a reasoning model refuses a temperature"
+            "reasoning.effort, as the memory client sends it; \"none\" sends a temperature instead, which a reasoning model refuses"
     )
-    var reasoning: String? = "medium"
+    var reasoning = "medium"
 
     func run() async throws {
         guard let apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !apiKey.isEmpty
@@ -27,7 +27,8 @@ struct ProbeBatch: AsyncParsableCommand {
         let logger = Logger(label: "probe-batch")
         let client = OpenAIClient(
             apiKey: apiKey, model: model, systemPrompt: "unused", temperature: 0.7,
-            reasoningEffort: reasoning, logger: logger, traceResponses: false)
+            reasoningEffort: reasoning == "none" ? nil : reasoning, logger: logger,
+            traceResponses: false)
         let batches = OpenAIBatchClient(apiKey: apiKey, logger: logger)
         let customID = "probe:\(UUID().uuidString.lowercased())"
         let transcript = [
@@ -45,7 +46,7 @@ struct ProbeBatch: AsyncParsableCommand {
         let output = try await batches.output(
             of: batchID, every: .seconds(every),
             deadline: started.addingTimeInterval(Double(waitMinutes) * 60))
-        let answer = try await client.jsonAnswer(
+        let answer = try client.jsonAnswer(
             fromBatch: try OpenAIBatchClient.result(for: customID, in: output), batchID: batchID)
         print(
             "answer after \(Int(Date().timeIntervalSince(started))) s: \(String(decoding: answer, as: UTF8.self))"

@@ -125,7 +125,6 @@ struct MemoryJob: Sendable {
             span.attributes["agent.character_id"] = characterID.rawValue
             span.attributes["memory.day"] = day
             span.attributes["memory.run"] = run.rawValue
-            let key = Self.key(day: day, run: run)
             span.attributes["llm.model"] = modelName
             let digest = try await fetchDigest(day: day)
             span.attributes["memory.happenings"] = digest.happenings.count
