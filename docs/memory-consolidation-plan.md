@@ -85,3 +85,52 @@ call and keeps the run idempotent by day).
   episodes; they show in the Viewer under **Come to believe**.
 - A mind's perspective (`query_character_perspective`) carries the beliefs.
 - `memory.consolidated` shows `beliefs: n`.
+
+## Slice two: each bird's own memory (2026-09-21)
+
+April, on reading the night's report: "What was Kenny's reflection?" There is none - one mind
+(Beaky's) has a memory model, and it remembers the day *for the flock*: the episodes it writes
+on Kenny say "I told her I loved her too", and the "I" is Beaky. This slice gives every bird
+its own night: Kenny remembers the day as Kenny, in Kenny's voice, and what Kenny is handed
+when he speaks is what Kenny remembers.
+
+### The shape
+
+A memory belongs to the bird that wrote it, and the predicate says so:
+
+```
+memory.episode.<bird>.<day>.<n>      memory.episode.kenny.2026-09-20.3
+memory.reflection.<bird>.<day>       memory.reflection.kenny.2026-09-20
+memory.belief.<bird>.<n>             memory.belief.kenny.1
+```
+
+The subject is still what the memory is about (`person:april`, `place:deck`, the bird itself),
+so the Viewer's entity page still gathers everything known about April - now with "Beaky
+remembered" and "Kenny remembered" apart. Two birds' beliefs about April sit side by side
+instead of superseding each other, which is what the predicate slot is for.
+
+- **World** (`0.37.0`): `WorldFacts.memoryOwner(of:)`; the facts a mind is handed include only
+  *its own* memories (`FactRepository.Family.memories(of:)`, the mind being the first
+  `character:` among the subjects asked for - every caller puts it first); the
+  `characters/{id}/memories` resource is what that bird remembers, on any subject; a one-time
+  migration renames Beaky's existing memories into the owned form (they were all hers).
+  Meanings are still by family. Retention still never touches a memory.
+- **Agent** (`2.80.0`): `MemoryJob` writes and reads under its own bird; the beliefs prompt is
+  "what you have come to believe", never "the flock". Every bird with `llmMemoryModel` set
+  remembers the night; the world's one `memory.consolidate` event fans out to each, in
+  parallel, each through its own batch (~20¢ a bird a night on astra at batch rates).
+- **Viewer**: Come to believe / Remembered grouped by the bird.
+
+### Not in this slice
+
+Birds sharing memories on purpose ("Beaky, tell Kenny what happened"); a bird remembering
+what another bird said about it; per-bird persona/interest definitions (the personalities
+phase proper). A bird with no memory model still speaks from the day's facts and story alone.
+
+### Done means
+
+- Three `memory.consolidated` events the night after deploy, one per bird, each with its own
+  reflection; `query_character_perspective` for Kenny carries `memory.*.kenny.*` and nothing
+  of Beaky's.
+- The Viewer's entity page for April shows each bird's beliefs under its own name.
+- Beaky's memories from before the change are still hers, still handed to her.

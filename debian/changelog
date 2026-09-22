@@ -1,3 +1,15 @@
+creature-cli (2.81.0+world0.37.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.37.0: each bird's own memory. A memory belongs to the
+    bird that wrote it and its predicate says so (memory.episode.kenny.<day>.<n>,
+    memory.reflection.kenny.<day>, memory.belief.kenny.<n>); a mind is handed
+    only its own; GET /v1/characters/{id}/memories is what a bird remembers;
+    a migration renames the memories from before into Beaky's (console #204).
+  * creature-agent 2.81.0: every bird with llmMemoryModel remembers the
+    night under its own name, in its own voice, through its own batch.
+
+ -- April White <april@creature.engineering>  Mon, 21 Sep 2026 20:00:00 -0700
+
 creature-cli (2.80.0+world0.36.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-cli 2.80.0: dialog music adopts the ElevenLabs Music 2.5

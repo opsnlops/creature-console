@@ -113,6 +113,8 @@ protocol WorldApplicationService: Sendable {
     /// Anything by a word: entities ranked by how well their current facts match, each with
     /// the facts that matched.
     func search(_ query: String, limit: Int) async throws -> WorldSearchPage
+    /// What one bird remembers, on any subject - its own memories, newest first.
+    func memories(of characterID: EntityID, limit: Int) async throws -> [Fact]
 }
 
 extension WorldApplicationService {
@@ -139,6 +141,9 @@ extension WorldApplicationService {
     }
     func entity(named name: String) async throws -> EntityID? { nil }
     func search(_ query: String, limit: Int) async throws -> WorldSearchPage {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func memories(of characterID: EntityID, limit: Int) async throws -> [Fact] {
         throw WorldAPIError.databaseUnavailable
     }
 }

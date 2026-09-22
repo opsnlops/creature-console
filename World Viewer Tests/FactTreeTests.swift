@@ -23,7 +23,8 @@ struct FactTreeTests {
             try fact("person:april", "presence.physically_audible", .bool(true)),
             try fact("person:april", "person.relationship", .string("the one who feeds us")),
             try fact("place:driveway", "seen.vehicle", .bool(true)),
-            try fact("character:mango", "memory.belief.1", .object(["what": .string("jokes")])),
+            try fact(
+                "character:mango", "memory.belief.beaky.1", .object(["what": .string("jokes")])),
         ]
         let tree = FactTree.build(facts)
         #expect(tree.map(\.title) == ["character", "person", "place"])

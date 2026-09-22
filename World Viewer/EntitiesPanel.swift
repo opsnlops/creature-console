@@ -95,9 +95,19 @@ struct EntityPageView: View {
             return family != nil && family != WorldFacts.memoryBelief
         }
     }
-    /// What the flock has settled on about this entity - the month's episodes consolidated.
+    /// What a bird has settled on about this entity - its month's episodes consolidated.
     private var beliefs: [Fact] {
         page.facts.filter { WorldFacts.memoryFamily(of: $0.predicate) == WorldFacts.memoryBelief }
+    }
+
+    /// Each bird's memories apart: "Beaky came to believe", "Kenny remembered". A memory
+    /// belongs to the bird that wrote it (the owner in its predicate); one without an owner
+    /// is from before memories were owned.
+    private static func byBird(_ facts: [Fact]) -> [(bird: String, facts: [Fact])] {
+        let grouped = Dictionary(grouping: facts) {
+            WorldFacts.memoryOwner(of: $0.predicate)?.capitalized ?? "The flock"
+        }
+        return grouped.keys.sorted().map { (bird: $0, facts: grouped[$0]!) }
     }
     private var present: [Fact] {
         page.facts.filter { WorldFacts.memoryFamily(of: $0.predicate) == nil }
@@ -130,16 +140,16 @@ struct EntityPageView: View {
                     }
                 }
             }
-            if !beliefs.isEmpty {
-                Section("Come to believe") {
-                    ForEach(beliefs, id: \.factID) { fact in
+            ForEach(Self.byBird(beliefs), id: \.bird) { group in
+                Section("\(group.bird) came to believe") {
+                    ForEach(group.facts, id: \.factID) { fact in
                         factRow(fact)
                     }
                 }
             }
-            if !memories.isEmpty {
-                Section("Remembered") {
-                    ForEach(memories, id: \.factID) { fact in
+            ForEach(Self.byBird(memories), id: \.bird) { group in
+                Section("\(group.bird) remembered") {
+                    ForEach(group.facts, id: \.factID) { fact in
                         factRow(fact)
                     }
                 }

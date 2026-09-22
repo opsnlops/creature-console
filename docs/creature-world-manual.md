@@ -395,7 +395,16 @@ newest reflections — fetched apart from the day's facts (`0.24.0`), so a night
 push what April taught the birds yesterday off the 40-fact page. **Beliefs** (`0.31.0`, plan Phase 9): a third family, `memory.belief.<n>` on the subject — `{kind, what, salience, since, from}`, what the month's episodes settled into, cast by the mind's consolidation step after the day's episodes (`docs/memory-consolidation-plan.md`). Beliefs never age out of a prompt: a mind is handed the `beliefs_in_prompt` (12) most salient, apart from the episodes, and the set is rewritten each night. `memory.consolidated` carries `beliefs`. To remember a day by hand — the first night, or a day whose memory you want redone —
 `POST /v1/days/{day}/remember` (`0.23.0`): the world records the same `memory.consolidate` event
 the clock would, `202 Accepted` with the event, and the job runs on it. Each request is its own
-event; asking twice remembers twice.
+event; asking twice remembers twice. **Each bird's own** (`0.37.0`, #204): April: "What was
+Kenny's reflection?" — there was none; one mind remembered for the flock. A memory now belongs
+to the bird that wrote it and its predicate says so — `memory.episode.<bird>.<day>.<n>`,
+`memory.reflection.<bird>.<day>`, `memory.belief.<bird>.<n>` — on the same subjects as before,
+so two birds' beliefs about April stand side by side instead of superseding each other. A mind
+is handed only its own memories (the first `character:` among the subjects a caller asks for
+is the mind; every caller puts it first), the `memory.consolidate` timer fans out to every mind
+with a memory model, and `GET /v1/characters/{id}/memories` (the `world://characters/{id}/memories`
+resource) is what that bird remembers, on any subject. A migration renames the memories from
+before into Beaky's (`producer.id`), once, superseded ones included.
 
 ```
 curl -X POST https://server.prod.chirpchirp.dev/world/v1/days/2026-09-13/remember

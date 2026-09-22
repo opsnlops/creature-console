@@ -55,9 +55,10 @@ areas:
 # localLlmPort: 1234
 # llmModel: mistral-nemo
 # worldUrl: http://127.0.0.1:8001/world/v1
-# The nightly memory (the world says "remember the day" at 3:30): the model that writes her
-# episodes and reflection. Only the bird that should remember sets it - Beaky - on the same
-# key (or OPENAI_MEMORY_API_KEY in /etc/default/creature-agent-<instance> for its own project).
+# The nightly memory (the world says "remember the day" at 3:30): the model that writes this
+# bird's episodes, reflection, and beliefs - its own, under its own name (2.81.0). Set it on
+# every bird that should remember; each remembers the night in its own voice. On the same
+# key, or OPENAI_MEMORY_API_KEY in /etc/default/creature-agent-<instance> for its own project.
 # llmMemoryModel: gpt-6-astra
 # The nightly memory goes through OpenAI's Batch API by default (2.79.0): half the price, an
 # answer within the day, the night written down in the state directory and resumed after a

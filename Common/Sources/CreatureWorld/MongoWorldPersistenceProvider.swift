@@ -47,6 +47,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let explain: @Sendable (FactID) async throws -> FactExplanation?
     let entityNamed: @Sendable (String) async throws -> EntityID?
     let search: @Sendable (String, Int) async throws -> WorldSearchPage
+    let memories: @Sendable (EntityID, Int) async throws -> [Fact]
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -534,6 +535,11 @@ struct MongoWorldPersistenceConnection: Sendable {
                 hits: order.prefix(limit).compactMap { hits[$0] }.sorted { $0.score > $1.score })
         }
         self.search = search
+        // What one bird remembers, on any subject: its own memories, newest first.
+        memories = { bird, limit in
+            try await persistence.facts.currentFacts(
+                rememberedBy: bird, limit: max(limit, 1), at: await clock.now)
+        }
         // A name the world knows, as an entity: "Tamara" or "my mom" by the people the world
         // can describe (relationship words and their synonyms count); anything else by the
         // text index. A mind asking a tool guesses at ids; the world knows.
@@ -685,6 +691,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         search: @escaping @Sendable (String, Int) async throws -> WorldSearchPage = { _, _ in
             throw WorldAPIError.databaseUnavailable
         },
+        memories: @escaping @Sendable (EntityID, Int) async throws -> [Fact] = { _, _ in
+            throw WorldAPIError.databaseUnavailable
+        },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -723,6 +732,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.explain = explain
         self.entityNamed = entityNamed
         self.search = search
+        self.memories = memories
         self.shutdown = shutdown
     }
 }
@@ -1031,6 +1041,11 @@ actor MongoWorldPersistenceProvider {
         return try await connection.search(query, limit)
     }
 
+    func memories(of characterID: EntityID, limit: Int) async throws -> [Fact] {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.memories(characterID, limit)
+    }
+
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
@@ -1123,8 +1138,16 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             present += try await facts.currentFacts(
                 about: linked, family: .notMemories, excluding: worldOnly, limit: limit, at: now)
         }
-        let remembered = try await facts.currentFacts(
-            about: about + linked, family: .memories, limit: limit, at: now)
+        // Memories are the mind's own: the first character among the subjects is the mind
+        // being handed this (every caller puts it first), and what Beaky remembers of April is
+        // not what Kenny is told.
+        let remembered: [Fact]
+        if let mind = subjects.first(where: { $0.rawValue.hasPrefix("character:") }) {
+            remembered = try await facts.currentFacts(
+                about: about + linked, family: .own(mind), limit: limit, at: now)
+        } else {
+            remembered = []
+        }
         // What is coming: the next few days of the calendar ride along with every question, a
         // fortnight when the words are about time - on a page of their own, so a busy week
         // never crowds the people and places out of theirs.

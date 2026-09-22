@@ -4,7 +4,8 @@ import Foundation
 /// stays a window, never a dump.
 public protocol WorldKnowledgeProviding: Sendable {
     /// Facts about `subjects`, and about anyone the world knows who is named in `text` — so a
-    /// question about Polly carries what the world knows of Polly.
+    /// question about Polly carries what the world knows of Polly. The first `character:` among
+    /// the subjects is the mind being handed them, and the memories that ride along are its own.
     func currentFacts(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
         async throws -> [Fact]
 

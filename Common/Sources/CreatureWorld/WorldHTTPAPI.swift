@@ -190,6 +190,21 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // What one bird remembers, on any subject - its own, newest first.
+        router.get("v1/characters/:characterID/memories") { request, context in
+            await respond {
+                let characterID = try characterID(from: context)
+                let limit = min(
+                    max(request.uri.queryParameters["limit"].flatMap { Int($0) } ?? 200, 1), 500)
+                return try await execute {
+                    try jsonResponse(
+                        WorldFactPage(
+                            facts: try await service.memories(of: characterID, limit: limit),
+                            nextFactID: nil, hasMore: false))
+                }
+            }
+        }
+
         router.get("v1/characters") { _, _ in
             await respond {
                 try await execute {

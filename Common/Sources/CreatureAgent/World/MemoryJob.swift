@@ -25,7 +25,7 @@ struct MemoryJob: Sendable {
         var reflection: String
     }
 
-    /// What the model gives back for the month: the flock's beliefs, whole.
+    /// What the model gives back for the month: this bird's beliefs, whole.
     struct Consolidation: Decodable, Equatable, Sendable {
         struct Belief: Decodable, Equatable, Sendable {
             var about: String
@@ -54,6 +54,14 @@ struct MemoryJob: Sendable {
     var pendingFile: URL? = nil
 
     var modelName: String { model.modelName }
+
+    /// Where this bird's memories live: `memory.episode.kenny.` and so on. April: "What was
+    /// Kenny's reflection?" - each bird remembers its own night now, and reads back its own.
+    var episodePrefix: String { WorldFacts.memoryPrefix(WorldFacts.memoryEpisode, of: characterID) }
+    var reflectionPrefix: String {
+        WorldFacts.memoryPrefix(WorldFacts.memoryReflection, of: characterID)
+    }
+    var beliefPrefix: String { WorldFacts.memoryPrefix(WorldFacts.memoryBelief, of: characterID) }
 
     /// The old shape: a model that answers now, nothing written down.
     init(
@@ -353,10 +361,10 @@ struct MemoryJob: Sendable {
     ) async throws -> Int {
         try await withSpan("agent.memory.consolidate") { span in
             let cutoff = Self.dayString(daysBefore: Self.beliefDays, of: day)
-            let episodes = try await fetchFacts(prefix: WorldFacts.memoryEpisode + ".")
+            let episodes = try await fetchFacts(prefix: episodePrefix)
                 .filter { Self.day(of: $0.predicate).map { $0 >= cutoff } ?? false }
-            let held = try await fetchFacts(prefix: WorldFacts.memoryBelief + ".")
-            let reflections = try await fetchFacts(prefix: WorldFacts.memoryReflection + ".")
+            let held = try await fetchFacts(prefix: beliefPrefix)
+            let reflections = try await fetchFacts(prefix: reflectionPrefix)
                 .filter {
                     $0.subjectID == characterID
                         && (Self.day(of: $0.predicate).map {
@@ -461,12 +469,13 @@ struct MemoryJob: Sendable {
         ]
     }
 
-    /// The day a memory predicate carries: `memory.episode.2026-09-13.2` → `2026-09-13`.
+    /// The day a memory predicate carries: `memory.episode.kenny.2026-09-13.2` → `2026-09-13`.
     static func day(of predicate: String) -> String? {
         guard let family = WorldFacts.memoryFamily(of: predicate) else { return nil }
-        let rest = predicate.dropFirst(family.count + 1)
-        let day = rest.split(separator: ".").first.map(String.init) ?? ""
-        return day.count == 10 ? day : nil
+        let segments = predicate.dropFirst(family.count + 1).split(separator: ".")
+        // The owner first, then the day; a day where the owner should be is the old form.
+        let day = segments.first { $0.count == 10 && $0.contains("-") }.map(String.init)
+        return day
     }
 
     /// `days` before `day`, as a day string; ISO days compare as strings.
@@ -495,7 +504,7 @@ struct MemoryJob: Sendable {
                 type: .remembered, confidence: min(1, max(0, belief.salience))),
             payload: [
                 "subject_id": .string(subject.rawValue),
-                "predicate": .string("\(WorldFacts.memoryBelief).\(index + 1)"),
+                "predicate": .string("\(beliefPrefix)\(index + 1)"),
                 "value": .object([
                     "kind": .string(belief.kind),
                     "what": .string(String(Self.scrubbed(belief.what).prefix(400))),
@@ -599,7 +608,7 @@ struct MemoryJob: Sendable {
                 // day and the episode's place in it: every day's memory of a subject stands
                 // beside the last, and a day's episodes beside each other. Remembering a day
                 // again fills the same places.
-                "predicate": .string("\(WorldFacts.memoryEpisode).\(day).\(index + 1)"),
+                "predicate": .string("\(episodePrefix)\(day).\(index + 1)"),
                 "value": .object([
                     "day": .string(day),
                     "when": .string(String(episode.when.prefix(80))),
@@ -639,7 +648,7 @@ struct MemoryJob: Sendable {
             epistemic: EpistemicState(type: .remembered, confidence: 1),
             payload: [
                 "subject_id": .string(characterID.rawValue),
-                "predicate": .string("\(WorldFacts.memoryReflection).\(day)"),
+                "predicate": .string("\(reflectionPrefix)\(day)"),
                 "value": .object([
                     "day": .string(day), "text": .string(String(Self.scrubbed(text).prefix(1_000))),
                 ]),
@@ -688,8 +697,8 @@ struct MemoryJob: Sendable {
     /// Every memory of `day` the world currently holds, on every subject: the episodes
     /// (`memory.episode.<day>.`) and the reflection (`memory.reflection.<day>`).
     private func fetchMemories(of day: String) async throws -> [Fact] {
-        try await fetchFacts(prefix: "\(WorldFacts.memoryEpisode).\(day).")
-            + fetchFacts(prefix: "\(WorldFacts.memoryReflection).\(day)")
+        try await fetchFacts(prefix: "\(episodePrefix)\(day).")
+            + fetchFacts(prefix: "\(reflectionPrefix)\(day)")
     }
 
     /// Every current fact whose predicate starts with `prefix`, on every subject, paged.

@@ -90,6 +90,8 @@ struct FactRepository: Sendable {
     /// worth of episodes never crowds the facts of the day out of a capped page.
     enum Family: Sendable {
         case all, memories, notMemories
+        /// Only what one bird remembers - its own memories, never another's.
+        case own(EntityID)
     }
 
     func currentFacts(
@@ -104,6 +106,8 @@ struct FactRepository: Sendable {
         switch family {
         case .all: break
         case .memories: predicate["$regex"] = "^memory\\."
+        case .own(let bird):
+            predicate["$regex"] = Self.ownMemoriesPattern(of: bird)
         case .notMemories: predicate["$not"] = ["$regex": "^memory\\."] as Document
         }
         // The world's own facts never take a mind's place on the page.
@@ -118,8 +122,29 @@ struct FactRepository: Sendable {
         return try documents.map(decode)
     }
 
-    /// `predicatePrefix` narrows to a family - `memory.episode.2026-09-13.` is one day's
-    /// episodes on every subject.
+    /// `^memory\.[a-z]+\.kenny\.`: every family of memory, Kenny's own.
+    static func ownMemoriesPattern(of bird: EntityID) -> String {
+        let owner = WorldFacts.memoryOwner(for: bird)
+        let escaped = owner.replacingOccurrences(of: "-", with: "\\-")
+        return "^memory\\.[a-z]+\\.\(escaped)\\."
+    }
+
+    /// Everything one bird remembers, on any subject, newest first: the memories resource.
+    func currentFacts(rememberedBy bird: EntityID, limit: Int, at now: Date) async throws
+        -> [Fact]
+    {
+        precondition(limit > 0)
+        var query = currentQuery(at: now)
+        query["predicate"] = ["$regex": Self.ownMemoriesPattern(of: bird)] as Document
+        let documents = try await facts.find(query)
+            .sort(["valid_from": -1, "_id": -1])
+            .limit(limit)
+            .drain()
+        return try documents.map(decode)
+    }
+
+    /// `predicatePrefix` narrows to a family - `memory.episode.kenny.2026-09-13.` is one day's
+    /// episodes of one bird on every subject.
     func currentFacts(
         subjectID: EntityID?, predicatePrefix: String? = nil, after: FactID?, limit: Int,
         at now: Date

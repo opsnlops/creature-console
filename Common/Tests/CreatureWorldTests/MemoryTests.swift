@@ -40,14 +40,14 @@ struct MemoryConfigurationTests {
         let now = Date(timeIntervalSince1970: 1_789_354_800)
         func episode(_ day: Int, salience: Double) throws -> Fact {
             try Fact(
-                subjectID: jesse, predicate: "memory.episode.2026-09-\(day)",
+                subjectID: jesse, predicate: "memory.episode.beaky.2026-09-\(day)",
                 value: .object(["what": .string("day \(day)"), "salience": .number(salience)]),
                 epistemic: EpistemicState(type: .remembered, confidence: 1),
                 validFrom: now.addingTimeInterval(-TimeInterval(13 - day) * 86_400),
                 derivedFrom: [], producer: FactProducer(kind: "test", id: "t", version: "1"))
         }
         let old = try Fact(
-            subjectID: jesse, predicate: "memory.episode.2026-07-01",
+            subjectID: jesse, predicate: "memory.episode.beaky.2026-07-01",
             value: .object(["what": .string("long ago"), "salience": .number(1)]),
             epistemic: EpistemicState(type: .remembered, confidence: 1),
             validFrom: now.addingTimeInterval(-74 * 86_400), derivedFrom: [],
@@ -61,7 +61,7 @@ struct MemoryConfigurationTests {
         for day in 10...13 {
             reflections.append(
                 try Fact(
-                    subjectID: beaky, predicate: "memory.reflection.2026-09-\(day)",
+                    subjectID: beaky, predicate: "memory.reflection.beaky.2026-09-\(day)",
                     value: .object(["text": .string("day \(day)")]),
                     epistemic: EpistemicState(type: .remembered, confidence: 1),
                     validFrom: now.addingTimeInterval(-TimeInterval(13 - day) * 86_400),
@@ -71,7 +71,7 @@ struct MemoryConfigurationTests {
         // trivial one, and the ancient one is still there.
         func belief(_ slot: Int, salience: Double, age: TimeInterval) throws -> Fact {
             try Fact(
-                subjectID: jesse, predicate: "memory.belief.\(slot)",
+                subjectID: jesse, predicate: "memory.belief.beaky.\(slot)",
                 value: .object([
                     "kind": .string("relationship"), "what": .string("belief \(slot)"),
                     "salience": .number(salience),
@@ -93,26 +93,27 @@ struct MemoryConfigurationTests {
         let trimmed = PresentWorldKnowledge.withMemoriesTrimmed(facts, memory: memory, now: now)
 
         #expect(trimmed.contains { $0.predicate == WorldFacts.personDescription })
-        #expect(!trimmed.contains { $0.predicate == "memory.episode.2026-07-01" })
-        let episodes = trimmed.filter { $0.predicate.hasPrefix("memory.episode.") }
+        #expect(!trimmed.contains { $0.predicate == "memory.episode.beaky.2026-07-01" })
+        let episodes = trimmed.filter { $0.predicate.hasPrefix("memory.episode.beaky.") }
         // The salient one from the 7th, then the two newest.
         #expect(
             episodes.map(\.predicate).sorted()
                 == [
-                    "memory.episode.2026-09-12", "memory.episode.2026-09-13",
-                    "memory.episode.2026-09-7",
+                    "memory.episode.beaky.2026-09-12", "memory.episode.beaky.2026-09-13",
+                    "memory.episode.beaky.2026-09-7",
                 ])
-        let kept = trimmed.filter { $0.predicate.hasPrefix("memory.reflection.") }
+        let kept = trimmed.filter { $0.predicate.hasPrefix("memory.reflection.beaky.") }
         #expect(
             kept.map(\.predicate).sorted() == [
-                "memory.reflection.2026-09-12", "memory.reflection.2026-09-13",
+                "memory.reflection.beaky.2026-09-12", "memory.reflection.beaky.2026-09-13",
             ])
         #expect(
-            trimmed.filter { $0.predicate.hasPrefix("memory.belief.") }.map(\.predicate)
-                == ["memory.belief.1", "memory.belief.3"])
-        #expect(WorldFacts.memoryFamily(of: "memory.belief.1") == WorldFacts.memoryBelief)
+            trimmed.filter { $0.predicate.hasPrefix("memory.belief.beaky.") }.map(\.predicate)
+                == ["memory.belief.beaky.1", "memory.belief.beaky.3"])
+        #expect(WorldFacts.memoryFamily(of: "memory.belief.beaky.1") == WorldFacts.memoryBelief)
         #expect(
-            WorldFacts.memoryFamily(of: "memory.episode.2026-09-13") == WorldFacts.memoryEpisode)
+            WorldFacts.memoryFamily(of: "memory.episode.beaky.2026-09-13")
+                == WorldFacts.memoryEpisode)
         #expect(WorldFacts.memoryFamily(of: "door.lock") == nil)
     }
 }
@@ -147,7 +148,7 @@ struct MemoriesBesideFactsTests {
         for slot in 1...(WorldKnowledgeLimits.maximumFacts + 5) {
             try await persistence.facts.save(
                 try fact(
-                    "memory.episode.2026-09-13.\(slot)",
+                    "memory.episode.beaky.2026-09-13.\(slot)",
                     .object(["what": .string("episode \(slot)"), "salience": .number(0.5)]),
                     at: 3_600 + Double(slot)))
         }
@@ -160,9 +161,116 @@ struct MemoriesBesideFactsTests {
             regions: [:], clock: clock)
         knowledge.memory = memory
 
+        let beaky = try EntityID(validating: "character:beaky")
         let handed = try await knowledge.currentFacts(
-            about: [april], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)
+            about: [beaky, april], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)
         #expect(handed.contains { $0.predicate == "vehicle.model" })
-        #expect(handed.filter { $0.predicate.hasPrefix("memory.episode.") }.count == 3)
+        #expect(handed.filter { $0.predicate.hasPrefix("memory.episode.beaky.") }.count == 3)
+    }
+
+    @Test("A mind is handed its own memories, never another bird's; nobody's without a mind")
+    func memoriesAreTheMindsOwn() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "memory-owner-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let april = try EntityID(validating: "person:april-\(suffix)")
+        let beaky = try EntityID(validating: "character:beaky")
+        let kenny = try EntityID(validating: "character:kenny")
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: start.addingTimeInterval(7_200))
+        func fact(_ predicate: String, by bird: String) throws -> Fact {
+            try Fact(
+                subjectID: april, predicate: predicate,
+                value: .object(["what": .string("by \(bird)"), "salience": .number(0.5)]),
+                epistemic: EpistemicState(type: .remembered, confidence: 1),
+                validFrom: start.addingTimeInterval(3_600), derivedFrom: [],
+                producer: FactProducer(kind: "mind", id: bird, version: "1"))
+        }
+        try await persistence.facts.save(try fact("memory.episode.beaky.2026-09-13.1", by: "beaky"))
+        try await persistence.facts.save(try fact("memory.belief.beaky.1", by: "beaky"))
+        try await persistence.facts.save(try fact("memory.episode.kenny.2026-09-13.1", by: "kenny"))
+        try await persistence.facts.save(try fact("memory.belief.kenny.1", by: "kenny"))
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: CharacterSessionService(
+                repository: persistence.characterSessions, clock: clock, announce: { _ in }),
+            regions: [:], clock: clock)
+        let kennys = try await knowledge.currentFacts(
+            about: [kenny, april], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(
+            Set(kennys.filter { $0.subjectID == april }.map(\.predicate)) == [
+                "memory.episode.kenny.2026-09-13.1", "memory.belief.kenny.1",
+            ])
+        let beakys = try await knowledge.currentFacts(
+            about: [beaky, april], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(
+            Set(beakys.filter { $0.subjectID == april }.map(\.predicate)) == [
+                "memory.episode.beaky.2026-09-13.1", "memory.belief.beaky.1",
+            ])
+        // No mind among the subjects: no memories at all.
+        let nobodys = try await knowledge.currentFacts(
+            about: [april], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(!nobodys.contains { WorldFacts.memoryFamily(of: $0.predicate) != nil })
+        // What Kenny remembers, on any subject: the memories resource.
+        let remembered = try await persistence.facts.currentFacts(
+            rememberedBy: kenny, limit: 50, at: await clock.now)
+        #expect(remembered.contains { $0.predicate == "memory.belief.kenny.1" })
+        #expect(!remembered.contains { $0.predicate.contains(".beaky.") })
+    }
+
+    @Test("Memories from before they were owned are renamed to their bird's, once")
+    func migrationOwnsMemories() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "memory-migration-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let april = try EntityID(validating: "person:april-\(suffix)")
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        func fact(_ predicate: String, by bird: String) throws -> Fact {
+            try Fact(
+                subjectID: april, predicate: predicate, value: .string("old"),
+                epistemic: EpistemicState(type: .remembered, confidence: 1),
+                validFrom: start, derivedFrom: [],
+                producer: FactProducer(kind: "mind", id: bird, version: "1"))
+        }
+        let episode = try fact("memory.episode.2026-09-13.2", by: "beaky")
+        let reflection = try fact("memory.reflection.2026-09-13", by: "beaky")
+        let belief = try fact("memory.belief.4", by: "beaky")
+        let owned = try fact("memory.belief.kenny.1", by: "kenny")
+        for f in [episode, reflection, belief, owned] { try await persistence.facts.save(f) }
+        let migrator = MongoWorldMigrator(
+            database: persistence.database, logger: .init(label: "memory-migration-tests"))
+        try await migrator.ownMemories()
+        try await migrator.ownMemories()  // idempotent
+        let after = try await persistence.facts.currentFacts(subjectID: april, at: start + 60)
+        #expect(
+            Set(after.map(\.predicate)) == [
+                "memory.episode.beaky.2026-09-13.2", "memory.reflection.beaky.2026-09-13",
+                "memory.belief.beaky.4", "memory.belief.kenny.1",
+            ])
+        #expect(
+            after.first { $0.factID == episode.factID }?.predicate
+                == "memory.episode.beaky.2026-09-13.2")
+    }
+}
+
+@Suite("Whose memory a predicate is")
+struct MemoryOwnerTests {
+    @Test("The owner is the segment after the family; the old form has none")
+    func owner() throws {
+        #expect(WorldFacts.memoryOwner(of: "memory.episode.kenny.2026-09-13.2") == "kenny")
+        #expect(WorldFacts.memoryOwner(of: "memory.reflection.beaky.2026-09-13") == "beaky")
+        #expect(WorldFacts.memoryOwner(of: "memory.belief.mango.1") == "mango")
+        #expect(WorldFacts.memoryOwner(of: "memory.episode.2026-09-13.2") == nil)
+        #expect(WorldFacts.memoryOwner(of: "memory.belief.1") == nil)
+        #expect(WorldFacts.memoryOwner(of: "door.lock") == nil)
+        let kenny = try EntityID(validating: "character:kenny")
+        #expect(
+            WorldFacts.memoryPrefix(WorldFacts.memoryEpisode, of: kenny) == "memory.episode.kenny.")
+        #expect(WorldFacts.memoryFamily(of: "memory.belief.kenny.1") == WorldFacts.memoryBelief)
+        #expect(FactRepository.ownMemoriesPattern(of: kenny) == "^memory\\.[a-z]+\\.kenny\\.")
     }
 }

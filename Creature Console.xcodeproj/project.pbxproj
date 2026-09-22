@@ -3373,7 +3373,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.9.1;
+				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3405,7 +3405,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.9.1;
+				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

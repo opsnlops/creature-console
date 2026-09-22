@@ -320,6 +320,15 @@ else — persona, facts, the clock, streaming to the room — is identical.
   is expected; away, it is somebody else; a guess sounds like a guess only when it is one.
   The departure line belongs to the first bird; the chorus is told another bird has already
   told her and to react - a send-off, a wish, a joke - or stay silent.
+- **Each bird remembers its own night** (`2.81.0`, #204). April: "What was Kenny's reflection?"
+  — there was none; Beaky remembered for the flock, and the "I" in the episodes on Kenny was
+  hers. Now every bird with `llmMemoryModel` set hears the world's `memory.consolidate` and
+  writes its own memory under its own name — `memory.episode.kenny.<day>.<n>`,
+  `memory.reflection.kenny.<day>`, `memory.belief.kenny.<n>` — reads back only its own when
+  it consolidates, and is handed only its own when it speaks. Three birds, three batches a
+  night, in parallel, each with its own `memory-pending.json` in its own state directory. To
+  turn it on for the chorus: `llmMemoryModel: gpt-6-astra` in Mango's and Kenny's yaml (and
+  `OPENAI_MEMORY_API_KEY` in their defaults files if the night has its own key).
 - **The night goes through the Batch API** (`2.79.0`, #201). April: "let's look at using the
   batch API to reduce the cost of the nightly memory processor." gpt-6-astra is $10 per
   million in and $50 out; the Batch API is half of both, with an answer within the day - and

@@ -89,12 +89,12 @@ struct MemoryJobTests {
         let digest = try digest()
         let stale = try Fact(
             subjectID: try EntityID(validating: "person:april"),
-            predicate: "memory.episode.2026-09-13.4", value: .string("an earlier telling"),
+            predicate: "memory.episode.beaky.2026-09-13.4", value: .string("an earlier telling"),
             epistemic: EpistemicState(type: .remembered, confidence: 0.5), validFrom: now,
             derivedFrom: [], producer: FactProducer(kind: "mind", id: "beaky", version: "1"))
         let held = try Fact(
             subjectID: try EntityID(validating: "person:april"),
-            predicate: "memory.belief.1", value: .string("an earlier belief"),
+            predicate: "memory.belief.beaky.1", value: .string("an earlier belief"),
             epistemic: EpistemicState(type: .remembered, confidence: 0.5), validFrom: now,
             derivedFrom: [], producer: FactProducer(kind: "mind", id: "beaky", version: "1"))
         let router = Router(context: BasicRequestContext.self)
@@ -146,7 +146,7 @@ struct MemoryJobTests {
         // spoke that day), two for the fourth (Hopper is a thing), the reflection; then the
         // old belief taken back and three cast; then the summary.
         #expect(events.count == 15)
-        #expect(events[0].payload["predicate"] == .string("memory.episode.2026-09-13.4"))
+        #expect(events[0].payload["predicate"] == .string("memory.episode.beaky.2026-09-13.4"))
         #expect(events[0].payload["value"] == .null)
         #expect(events[0].payload["subject_id"] == .string("person:april"))
         #expect(events.contains { $0.payload["subject_id"] == .string("character:mango") })
@@ -155,16 +155,17 @@ struct MemoryJobTests {
         let jesse = try #require(
             events.first { $0.payload["subject_id"] == .string("person:jesse") })
         #expect(jesse.type.rawValue == "facts.given")
-        #expect(jesse.payload["predicate"] == .string("memory.episode.2026-09-13.1"))
+        #expect(jesse.payload["predicate"] == .string("memory.episode.beaky.2026-09-13.1"))
         // Two episodes on one subject are two facts, not one superseding the other.
         let april = events.filter {
             $0.payload["subject_id"] == .string("person:april") && $0.payload["value"] != .null
-                && ($0.payload["predicate"]?.stringValue ?? "").hasPrefix("memory.episode.")
+                && ($0.payload["predicate"]?.stringValue ?? "").hasPrefix("memory.episode.beaky.")
         }
         #expect(
             april.map { $0.payload["predicate"] } == [
-                .string("memory.episode.2026-09-13.1"), .string("memory.episode.2026-09-13.3"),
-                .string("memory.episode.2026-09-13.4"),
+                .string("memory.episode.beaky.2026-09-13.1"),
+                .string("memory.episode.beaky.2026-09-13.3"),
+                .string("memory.episode.beaky.2026-09-13.4"),
             ])
         #expect(jesse.epistemic.type == .remembered)
         #expect(jesse.source.kind == "mind")
@@ -176,7 +177,9 @@ struct MemoryJobTests {
         #expect(value["salience"] == .number(0.8))
         #expect(events.contains { $0.payload["subject_id"] == .string("place:deck") })
         let reflection = try #require(
-            events.first { $0.payload["predicate"] == .string("memory.reflection.2026-09-13") })
+            events.first {
+                $0.payload["predicate"] == .string("memory.reflection.beaky.2026-09-13")
+            })
         #expect(reflection.subjectIDs == [beaky])
         let done = try #require(events.first { $0.type.rawValue == "memory.consolidated" })
         #expect(done.payload["episodes"] == .number(4))
@@ -185,18 +188,18 @@ struct MemoryJobTests {
         // Beliefs: the held one ended, April's two in slots by salience, Mango's own on him.
         let unbelieved = try #require(
             events.first {
-                $0.payload["predicate"] == .string("memory.belief.1")
+                $0.payload["predicate"] == .string("memory.belief.beaky.1")
                     && $0.payload["value"] == .null
             })
         #expect(unbelieved.source.sourceEventID?.contains(":unbelieve:") == true)
         let aprilBeliefs = events.filter {
             $0.payload["subject_id"] == .string("person:april")
-                && ($0.payload["predicate"]?.stringValue ?? "").hasPrefix("memory.belief.")
+                && ($0.payload["predicate"]?.stringValue ?? "").hasPrefix("memory.belief.beaky.")
                 && $0.payload["value"] != .null
         }
         #expect(
             aprilBeliefs.map { $0.payload["predicate"] } == [
-                .string("memory.belief.1"), .string("memory.belief.2"),
+                .string("memory.belief.beaky.1"), .string("memory.belief.beaky.2"),
             ])
         guard case .object(let first)? = aprilBeliefs.first?.payload["value"] else {
             Issue.record("belief value")
@@ -208,7 +211,7 @@ struct MemoryJobTests {
         let mangoBelief = try #require(
             events.first {
                 $0.payload["subject_id"] == .string("character:mango")
-                    && $0.payload["predicate"] == .string("memory.belief.1")
+                    && $0.payload["predicate"] == .string("memory.belief.beaky.1")
             })
         #expect(mangoBelief.source.sourceEventID?.hasSuffix(":belief:character:mango:1") == true)
         #expect(!events.contains { $0.payload["subject_id"] == .string("person:zed") })
@@ -246,7 +249,7 @@ struct MemoryJobTests {
         let digest = try digest()
         let stale = try Fact(
             subjectID: try EntityID(validating: "person:april"),
-            predicate: "memory.episode.2026-09-13.4", value: .string("an earlier telling"),
+            predicate: "memory.episode.beaky.2026-09-13.4", value: .string("an earlier telling"),
             epistemic: EpistemicState(type: .remembered, confidence: 0.5), validFrom: now,
             derivedFrom: [], producer: FactProducer(kind: "mind", id: "beaky", version: "1"))
         let router = Router(context: BasicRequestContext.self)

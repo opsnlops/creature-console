@@ -59,15 +59,45 @@ public enum WorldFacts {
         return id
     }
 
-    /// A memory's predicate carries its day — `memory.episode.2026-09-13` — so every day's
-    /// memory of a subject stands beside the last instead of superseding it. The family is the
-    /// predicate without the day.
+    /// A memory's predicate carries whose it is and its day — `memory.episode.kenny.2026-09-13.2`
+    /// — so every bird's memory of every day stands beside the others instead of superseding
+    /// them. The family is the predicate without either.
     public static func memoryFamily(of predicate: String) -> String? {
         for family in [memoryEpisode, memoryReflection, memoryBelief]
         where predicate == family || predicate.hasPrefix(family + ".") {
             return family
         }
         return nil
+    }
+
+    public static let memoryFamilies = [memoryEpisode, memoryReflection, memoryBelief]
+
+    /// The bird a memory belongs to, from its predicate: `memory.belief.kenny.1` → "kenny".
+    /// April: "What was Kenny's reflection?" - there was none; one mind remembered for the
+    /// flock. Each bird remembers its own night now, and what it is handed is its own.
+    public static func memoryOwner(of predicate: String) -> String? {
+        guard let family = memoryFamily(of: predicate) else { return nil }
+        let rest = predicate.dropFirst(family.count + 1)
+        guard let owner = rest.split(separator: ".").first, !owner.isEmpty,
+            !isDayOrSlot(owner)
+        else { return nil }
+        return String(owner)
+    }
+
+    /// `character:kenny` → "kenny": the segment a bird's memories carry.
+    public static func memoryOwner(for characterID: EntityID) -> String {
+        String(characterID.rawValue.split(separator: ":").last ?? "")
+    }
+
+    /// The prefix of everything `characterID` remembers in `family`: `memory.episode.kenny.`
+    public static func memoryPrefix(_ family: String, of characterID: EntityID) -> String {
+        "\(family).\(memoryOwner(for: characterID))."
+    }
+
+    /// A day (`2026-09-13`) or a slot number: the segment that follows the owner, and what
+    /// stood where the owner now is before memories were owned.
+    private static func isDayOrSlot(_ segment: Substring) -> Bool {
+        segment.allSatisfy { $0.isNumber || $0 == "-" }
     }
 
     // The house, through the Home Assistant adapter (creature-house).
