@@ -4,7 +4,7 @@ import MongoKitten
 import WorldCore
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 11
+    static let currentVersion = 12
 
     let database: MongoDatabase
     let logger: Logger
@@ -45,6 +45,7 @@ struct MongoWorldMigrator: Sendable {
         logger.debug("Owning the memories")
         try await ownMemories()
         try await recordMigration(version: 11, name: "owned_memories")
+        try await recordMigration(version: 12, name: "owned_memories_are_beakys")
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -53,26 +54,31 @@ struct MongoWorldMigrator: Sendable {
 
     // MARK: - Owned memories
 
-    /// Before 0.37.0 one mind remembered for the flock and a memory's predicate carried no
-    /// owner (`memory.episode.2026-09-13.2`). Every such memory belongs to the bird whose
-    /// mind produced it - `producer.id`, "beaky" - and is renamed into the owned form
-    /// (`memory.episode.beaky.2026-09-13.2`), superseded ones too, so the record reads the
-    /// same before and after. Idempotent: an owned predicate does not match.
+    /// Before 0.37.0 one mind remembered for the flock - Beaky's - and a memory's predicate
+    /// carried no owner (`memory.episode.2026-09-13.2`). Every such memory is hers and is
+    /// renamed into the owned form (`memory.episode.beaky.2026-09-13.2`), superseded ones too,
+    /// so the record reads the same before and after. The first cut of this (0.37.0) took the
+    /// owner from the fact's `producer.id`, which is the world's `given-facts` reducer, not the
+    /// mind - the mind is on the event - and named them all `given-facts`; those are renamed
+    /// too. Idempotent: a predicate owned by a bird does not match.
+    static let firstRememberer = "beaky"
+
     func ownMemories() async throws {
         let facts = database[MongoWorldCollection.facts]
-        let unowned: Document = [
-            "predicate": ["$regex": "^memory\\.(episode|reflection|belief)\\.[0-9]"] as Document
+        let misowned: Document = [
+            "predicate": [
+                "$regex": "^memory\\.(episode|reflection|belief)\\.([0-9]|given-facts\\.)"
+            ] as Document
         ]
         var renamed = 0
-        for try await document in facts.find(unowned) {
+        for try await document in facts.find(misowned) {
             guard let id = document["_id"] as? String,
                 let predicate = document["predicate"] as? String,
                 let family = WorldFacts.memoryFamily(of: predicate)
             else { continue }
-            let producer = document["producer"] as? Document
-            let owner = (producer?["id"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "beaky"
-            let rest = predicate.dropFirst(family.count + 1)
-            let owned = "\(family).\(owner).\(rest)"
+            var rest = predicate.dropFirst(family.count + 1)
+            if rest.hasPrefix("given-facts.") { rest = rest.dropFirst("given-facts.".count) }
+            let owned = "\(family).\(Self.firstRememberer).\(rest)"
             _ = try await facts.updateOne(
                 where: ["_id": id], to: ["$set": ["predicate": owned] as Document])
             renamed += 1

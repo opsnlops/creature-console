@@ -229,18 +229,24 @@ struct MemoriesBesideFactsTests {
         let suffix = UUID().uuidString.lowercased()
         let april = try EntityID(validating: "person:april-\(suffix)")
         let start = Date(timeIntervalSince1970: 1_789_600_000)
-        func fact(_ predicate: String, by bird: String) throws -> Fact {
+        // As the world really stores them: the producer is the given-facts reducer, whoever
+        // told it (the mind is on the event, not the fact).
+        func fact(_ predicate: String) throws -> Fact {
             try Fact(
                 subjectID: april, predicate: predicate, value: .string("old"),
                 epistemic: EpistemicState(type: .remembered, confidence: 1),
                 validFrom: start, derivedFrom: [],
-                producer: FactProducer(kind: "mind", id: bird, version: "1"))
+                producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
         }
-        let episode = try fact("memory.episode.2026-09-13.2", by: "beaky")
-        let reflection = try fact("memory.reflection.2026-09-13", by: "beaky")
-        let belief = try fact("memory.belief.4", by: "beaky")
-        let owned = try fact("memory.belief.kenny.1", by: "kenny")
-        for f in [episode, reflection, belief, owned] { try await persistence.facts.save(f) }
+        let episode = try fact("memory.episode.2026-09-13.2")
+        let reflection = try fact("memory.reflection.2026-09-13")
+        let belief = try fact("memory.belief.4")
+        let owned = try fact("memory.belief.kenny.1")
+        // And one the first cut of the migration misnamed after the reducer.
+        let misowned = try fact("memory.episode.given-facts.2026-09-12.1")
+        for f in [episode, reflection, belief, owned, misowned] {
+            try await persistence.facts.save(f)
+        }
         let migrator = MongoWorldMigrator(
             database: persistence.database, logger: .init(label: "memory-migration-tests"))
         try await migrator.ownMemories()
@@ -250,6 +256,7 @@ struct MemoriesBesideFactsTests {
             Set(after.map(\.predicate)) == [
                 "memory.episode.beaky.2026-09-13.2", "memory.reflection.beaky.2026-09-13",
                 "memory.belief.beaky.4", "memory.belief.kenny.1",
+                "memory.episode.beaky.2026-09-12.1",
             ])
         #expect(
             after.first { $0.factID == episode.factID }?.predicate

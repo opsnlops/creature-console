@@ -1,3 +1,12 @@
+creature-cli (2.82.0+world0.38.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.38.1: the owned-memories migration named every old
+    memory after the world's given-facts reducer (the fact's producer)
+    instead of Beaky, whose they all were; they are renamed to hers, and
+    the migration names her directly.
+
+ -- April White <april@creature.engineering>  Mon, 21 Sep 2026 22:15:00 -0700
+
 creature-cli (2.82.0+world0.38.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.38.0: Phase 9's last slice (console #205). The words
