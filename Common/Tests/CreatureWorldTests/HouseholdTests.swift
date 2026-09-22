@@ -43,3 +43,50 @@ struct HouseholdTests {
         )
     }
 }
+
+@Suite("The house's word on a sighting")
+struct HouseholdIdentificationTests {
+    @Test("Home and nobody expected: a person seen is April, as a fact on the place, for a while")
+    func identifiesApril() throws {
+        let kitchen = try EntityID(validating: "place:kitchen")
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let seen = try WorldEventEnvelope(
+            type: HouseEvents.personSeen, occurredAt: now,
+            source: EventSource(
+                id: try SourceID(validating: "home-assistant:kitchen"),
+                kind: HouseEvents.sourceKind,
+                sourceEventID: "ctx"),
+            subjectIDs: [kitchen], placeID: kitchen,
+            epistemic: EpistemicState(type: .observed, confidence: 1), payload: [:])
+        let identified = try #require(
+            try Household.identification(
+                of: seen, place: kitchen, situation: HouseholdSituation(aprilHome: true), now: now))
+        #expect(identified.type == GivenFactAnnouncement.eventType)
+        #expect(identified.payload["subject_id"] == .string("place:kitchen"))
+        #expect(identified.payload["predicate"] == .string(WorldFacts.sightingIdentified))
+        #expect(identified.payload["value"] == .string("April"))
+        #expect(identified.payload["valid_for_seconds"] == .number(1_800))
+        #expect(identified.epistemic.type == .assumed)
+        #expect(identified.causedBy == [.event(seen.eventID)])
+        #expect(identified.source.id.rawValue == "world:household")
+        // Away, a visitor expected, or not a person: the house says nothing.
+        #expect(
+            try Household.identification(
+                of: seen, place: kitchen, situation: HouseholdSituation(aprilHome: false), now: now)
+                == nil)
+        #expect(
+            try Household.identification(
+                of: seen, place: kitchen,
+                situation: HouseholdSituation(aprilHome: true, visitorExpected: "Tamara"), now: now)
+                == nil)
+        #expect(
+            try Household.identification(
+                of: seen, place: kitchen, situation: .unknown, now: now) == nil)
+        var vehicle = seen
+        vehicle.type = HouseEvents.vehicleSeen
+        #expect(
+            try Household.identification(
+                of: vehicle, place: kitchen, situation: HouseholdSituation(aprilHome: true),
+                now: now) == nil)
+    }
+}

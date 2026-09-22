@@ -225,9 +225,14 @@ public actor SceneOpeningPolicy {
         case HouseEvents.departureSoon, HouseEvents.departureNow:
             let value: String
             if case .string(let text)? = event.payload["value"] { value = text } else { value = "" }
+            // The sky, when the world has it: "leave ten early, it's pouring".
+            var weather = ""
+            if case .string(let sky)? = event.payload["weather"], !sky.isEmpty {
+                weather = " \(sky)"
+            }
             return event.type == HouseEvents.departureNow
-                ? "It is time to leave: \(value). April is still home."
-                : "Leaving soon: \(value). April is home."
+                ? "It is time to leave: \(value). April is still home.\(weather)"
+                : "Leaving soon: \(value). April is home.\(weather)"
         case HouseEvents.reminderDue:
             let value: String
             if case .string(let text)? = event.payload["value"] { value = text } else { value = "" }

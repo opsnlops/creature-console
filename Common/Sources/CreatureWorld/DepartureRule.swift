@@ -17,15 +17,19 @@ struct DepartureRuleConfiguration: Codable, Equatable, Sendable {
     var travel: [Travel] = []
     /// Departures are only worth a word for events this far ahead.
     var horizonHours: Int = 18
+    /// Where the sky's facts are - the Bridge casts the forecast on `place:outside` - so a
+    /// departure carries the weather: "leave ten early, it's pouring".
+    var outside: String = "place:outside"
 
     init(
         headsUpMinutes: Int = 20, defaultTravelMinutes: Int = 30, travel: [Travel] = [],
-        horizonHours: Int = 18
+        horizonHours: Int = 18, outside: String = "place:outside"
     ) {
         self.headsUpMinutes = headsUpMinutes
         self.defaultTravelMinutes = defaultTravelMinutes
         self.travel = travel
         self.horizonHours = horizonHours
+        self.outside = outside
     }
 
     init(from decoder: any Decoder) throws {
@@ -35,6 +39,7 @@ struct DepartureRuleConfiguration: Codable, Equatable, Sendable {
             try container.decodeIfPresent(Int.self, forKey: .defaultTravelMinutes) ?? 30
         travel = try container.decodeIfPresent([Travel].self, forKey: .travel) ?? []
         horizonHours = try container.decodeIfPresent(Int.self, forKey: .horizonHours) ?? 18
+        outside = try container.decodeIfPresent(String.self, forKey: .outside) ?? "place:outside"
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -42,6 +47,7 @@ struct DepartureRuleConfiguration: Codable, Equatable, Sendable {
         case defaultTravelMinutes = "default_travel_minutes"
         case travel
         case horizonHours = "horizon_hours"
+        case outside
     }
 
     /// Minutes of travel to a location, by its words.
@@ -164,7 +170,7 @@ actor DepartureRule {
             guard let stage, !(said[event]?.contains(stage) ?? false) else { continue }
             said[event, default: []].insert(stage)
             guard try await aprilIsHome(now: now) else { continue }
-            try await accept(try occasion(departure, stage: stage, now: now))
+            try await accept(try await occasion(departure, stage: stage, now: now))
         }
         return wanted
     }
@@ -225,10 +231,21 @@ actor DepartureRule {
 
     /// The occasion the house gives the birds: `departure.soon` at the heads-up,
     /// `departure.now` at leave-by. The scene openers make it a house consideration.
-    private func occasion(_ departure: Departure, stage: String, now: Date) throws
+    private func occasion(_ departure: Departure, stage: String, now: Date) async throws
         -> WorldEventEnvelope
     {
-        try WorldEventEnvelope(
+        var payload: [String: WorldJSONValue] = [
+            "event_id": .string(departure.event.rawValue),
+            "title": .string(departure.title),
+            "location": .string(departure.location),
+            "starts_at": .string(WorldJSON.timestamp(departure.startsAt)),
+            "leave_by": .string(WorldJSON.timestamp(departure.leaveBy)),
+            "value": .string(departure.value),
+        ]
+        if let weather = try await weather(now: now) {
+            payload["weather"] = .string(weather)
+        }
+        return try WorldEventEnvelope(
             type: stage == "now" ? HouseEvents.departureNow : HouseEvents.departureSoon,
             occurredAt: now,
             source: EventSource(
@@ -239,14 +256,25 @@ actor DepartureRule {
             subjectIDs: [house, departure.event],
             placeID: house,
             epistemic: EpistemicState(type: .scheduled, confidence: 1),
-            payload: [
-                "event_id": .string(departure.event.rawValue),
-                "title": .string(departure.title),
-                "location": .string(departure.location),
-                "starts_at": .string(WorldJSON.timestamp(departure.startsAt)),
-                "leave_by": .string(WorldJSON.timestamp(departure.leaveBy)),
-                "value": .string(departure.value),
-            ])
+            payload: payload)
+    }
+
+    /// The sky as April steps out: today's forecast and when rain is next likely, from the
+    /// Bridge's facts on the outside. Nil when the world has no forecast.
+    private func weather(now: Date) async throws -> String? {
+        guard let outside = EntityID(rawValue: configuration.outside) else { return nil }
+        let sky = try await facts.currentFacts(subjectID: outside, at: now)
+        var parts: [String] = []
+        if case .string(let today)? = sky.first(where: { $0.predicate == "forecast.today" })?.value
+        {
+            parts.append("Today: \(today).")
+        }
+        if case .string(let rain)? = sky.first(where: { $0.predicate == "forecast.next_rain" })?
+            .value
+        {
+            parts.append("Rain: \(rain).")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     static let meanings: [String: String] = [

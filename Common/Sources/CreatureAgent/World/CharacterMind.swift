@@ -29,6 +29,20 @@ enum CharacterDecision: Equatable, Sendable {
         case modelUnavailable = "model_unavailable"
         /// The world opened a scene for this utterance; the floor comes separately.
         case inScene = "in_scene"
+
+        /// The reason as the world records it on a turn with no words and no `[pass:]` of the
+        /// model's own - so the Viewer never shows a silent turn with nothing beside it (Mango,
+        /// 2026-09-19 7:10 PM, a back-door scene: answered, no text, no reason).
+        var asQuietReason: String {
+            switch self {
+            case .stale: "too late to answer"
+            case .notAddressed: "not spoken to"
+            case .choseSilence: "chose silence"
+            case .emptyResponse: "the model gave no usable words"
+            case .modelUnavailable: "the model did not answer in time"
+            case .inScene: "answering in the scene instead"
+            }
+        }
     }
 }
 
@@ -524,7 +538,7 @@ struct CharacterMind: Sendable {
             .pass(
                 try! SceneTurnSubmission(
                     characterID: configuration.characterID, responseID: offer.responseID,
-                    sessionID: nil, text: nil, quietReason: quiet),
+                    sessionID: nil, text: nil, quietReason: quiet ?? reason.asQuietReason),
                 reason: reason)
         }
         guard now <= offer.deadline else { return pass(.stale) }
@@ -661,7 +675,7 @@ struct CharacterMind: Sendable {
             .pass(
                 try! SceneTurnSubmission(
                     characterID: configuration.characterID, responseID: offer.responseID,
-                    sessionID: nil, text: nil, quietReason: quiet),
+                    sessionID: nil, text: nil, quietReason: quiet ?? reason.asQuietReason),
                 reason: reason)
         }
         guard now <= offer.deadline else { return pass(.stale) }

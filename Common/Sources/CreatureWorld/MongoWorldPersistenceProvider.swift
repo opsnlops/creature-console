@@ -247,6 +247,18 @@ struct MongoWorldPersistenceConnection: Sendable {
             do {
                 for try await delta in try await world.subscribe() {
                     let event = delta.event
+                    // The house's word on who a camera saw, into the record - whether or not
+                    // the sighting opens a scene.
+                    if event.type == HouseEvents.personSeen,
+                        let seenAt = event.placeID ?? event.subjectIDs.first,
+                        let identified = try Household.identification(
+                            of: event, place: seenAt,
+                            situation: try await Household.situation(
+                                facts: persistence.facts, at: await clock.now),
+                            now: await clock.now)
+                    {
+                        _ = try await world.accept(identified)
+                    }
                     guard
                         let occasion = await openingPolicy.occasion(for: event, at: await clock.now)
                     else { continue }

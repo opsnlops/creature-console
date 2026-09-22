@@ -151,7 +151,7 @@ public enum WorldFacts {
         "delivery.arrived":
             "a package the carrier says it delivered to the house, in the last few hours",
         sightingIdentified:
-            "who the person a camera saw there turned out to be, in April's words - a correction to hold onto",
+            "who the person a camera saw there is: April's own word, or the house's - she is home and lives alone, so it is her",
         doorLock:
             "whether the door's deadbolt is thrown, from the smart lock; says nothing about whether the door is open",
         doorState: "whether the door stands open or closed, from its contact sensor",

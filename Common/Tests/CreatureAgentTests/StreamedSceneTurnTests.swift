@@ -46,22 +46,25 @@ struct StreamedSceneTurnTests {
         let decision = try await quiet.consider(try makeOffer(), now: now) { index, text in
             await spoken.record(index, text)
         }
-        guard case .pass(_, let reason) = decision else {
+        guard case .pass(let submission, let reason) = decision else {
             Issue.record("expected a pass")
             return
         }
         #expect(reason == .choseSilence)
         #expect(await spoken.pieces.isEmpty)
+        // A silent turn always says why to the world - never a turn with nothing beside it.
+        #expect(submission.quietReason == "chose silence")
 
         let onlyDirection = makeMind(sentences: ["*preens*"])
         guard
-            case .pass(_, let empty) = try await onlyDirection.consider(
+            case .pass(let emptySubmission, let empty) = try await onlyDirection.consider(
                 try makeOffer(), now: now, speak: { _, _ in })
         else {
             Issue.record("expected a pass")
             return
         }
         #expect(empty == .emptyResponse)
+        #expect(emptySubmission.quietReason == "the model gave no usable words")
     }
 
     @Test("When the world cannot take a piece, the turn is retried from the cursor")

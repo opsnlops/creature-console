@@ -320,6 +320,10 @@ else — persona, facts, the clock, streaming to the room — is identical.
   is expected; away, it is somebody else; a guess sounds like a guess only when it is one.
   The departure line belongs to the first bird; the chorus is told another bird has already
   told her and to react - a send-off, a wish, a joke - or stay silent.
+- **Every silent turn says why** (`2.82.1`). A pass with no `[pass: why]` of the model's own —
+  too late, the model gave nothing usable, the model did not answer in time — now carries that
+  as its quiet reason to the world, so the Viewer never shows a silent turn with nothing beside
+  it (Mango, 2026-09-19 7:10 PM).
 - **A bird knows what it just said** (`2.82.0`, #205). The moment now ends with "What you
   yourself said lately, oldest first (do not say any of it again, in these words or others)" —
   the world's record of the bird's own last lines, across scenes — and both contracts point at

@@ -1,3 +1,15 @@
+creature-cli (2.82.1+world0.39.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.39.0: the house's word on a sighting is a fact
+    (sighting.identified = April on the place, assumed, half an hour, while
+    she is home and nobody is expected); a departure's occasion and stage
+    note carry the sky from departures.outside (default place:outside).
+  * creature-agent 2.82.1: every silent turn tells the world why - too
+    late, nothing usable, no answer in time - never a turn with nothing
+    beside it.
+
+ -- April White <april@creature.engineering>  Mon, 21 Sep 2026 23:15:00 -0700
+
 creature-cli (2.82.0+world0.38.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.38.1: the owned-memories migration named every old

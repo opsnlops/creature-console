@@ -404,7 +404,14 @@ is handed only its own memories (the first `character:` among the subjects a cal
 is the mind; every caller puts it first), the `memory.consolidate` timer fans out to every mind
 with a memory model, and `GET /v1/characters/{id}/memories` (the `world://characters/{id}/memories`
 resource) is what that bird remembers, on any subject. A migration renames the memories from
-before into Beaky's (`producer.id`), once, superseded ones included. **Retrieval, and what a
+before into Beaky's (`producer.id`), once, superseded ones included. **Loose threads** (`0.39.0`): the house's word on a sighting is a fact, not only a stage
+note — a `camera.person_seen` while April is home and nobody is expected casts
+`sighting.identified = April` on the place (`assumed`, 0.95, half an hour, source
+`world:household`, caused by the sighting), so the record, the Viewer, and a question an hour
+later agree with what the birds were told; and a departure carries the sky — `departure.soon` /
+`departure.now` gain `weather` ("Today: Drizzle, high 63°… Rain: this afternoon, 46% chance")
+from the forecast facts on `departures.outside` (default `place:outside`), and the stage note
+says it, so "leave ten early, it's pouring" is the bird's to say. **Retrieval, and what a
 bird said lately** (`0.38.0`, #205 — Phase 9's last slice). The words of the moment (April's
 question, the house's stage note) are searched against the mind's *own* memories through the
 facts text index, and the `memory.retrieved_in_prompt` (4) best matches ride along beside the

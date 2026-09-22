@@ -38,4 +38,37 @@ enum Household {
             aprilHome: home,
             visitorExpected: visitors.isEmpty ? nil : visitors.joined(separator: "; "))
     }
+
+    static let sourceID = try! SourceID(validating: "world:household")
+    /// How long the house's word on a sighting stands: long enough to cover the visit to the
+    /// kitchen, short enough that a real visitor an hour later is not called April.
+    static let identificationLifetime: TimeInterval = 30 * 60
+
+    /// The house's own word on who a camera saw, as a fact: `sighting.identified = April` on
+    /// the place, when she is home and nobody is expected. The stage note says it to the
+    /// birds in the moment (#200); this writes it into the record, so the day's story, the
+    /// Viewer, and a question an hour later agree with what was said. Nil when the house
+    /// cannot say.
+    static func identification(
+        of event: WorldEventEnvelope, place: EntityID, situation: HouseholdSituation, now: Date
+    ) throws -> WorldEventEnvelope? {
+        guard event.type == HouseEvents.personSeen, situation.aprilHome == true,
+            situation.visitorExpected == nil
+        else { return nil }
+        return try WorldEventEnvelope(
+            type: GivenFactAnnouncement.eventType,
+            occurredAt: now,
+            source: EventSource(
+                id: sourceID, kind: "world", sourceEventID: "identified:\(event.eventID.rawValue)"),
+            subjectIDs: [place, april],
+            placeID: place,
+            epistemic: EpistemicState(type: .assumed, confidence: 0.95),
+            payload: [
+                "subject_id": .string(place.rawValue),
+                "predicate": .string(WorldFacts.sightingIdentified),
+                "value": .string("April"),
+                "valid_for_seconds": .number(identificationLifetime),
+            ],
+            causedBy: [.event(event.eventID)])
+    }
 }

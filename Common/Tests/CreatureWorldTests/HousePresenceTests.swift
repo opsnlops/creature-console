@@ -491,11 +491,19 @@ struct RecentHappeningsTests {
                 epistemic: EpistemicState(type: .observed, confidence: 1), validFrom: now,
                 validTo: now.addingTimeInterval(3 * 3_600), derivedFrom: [],
                 producer: FactProducer(kind: "house", id: "test-\(suffix)", version: "1")))
+        // The sky, as the Bridge casts it - on an outside of this test's own.
+        let outside = try EntityID(validating: "place:outside-\(suffix)")
+        try await persistence.facts.save(
+            try fact(
+                outside, "forecast.today", .string("Drizzle, high 63°, low 52°, 46% chance of rain")
+            ))
+        try await persistence.facts.save(
+            try fact(outside, "forecast.next_rain", .string("this afternoon, 46% chance")))
         let accepted = Accepted()
         let rule = DepartureRule(
             configuration: DepartureRuleConfiguration(
                 headsUpMinutes: 20, defaultTravelMinutes: 30,
-                travel: [.init(words: ["freeland"], minutes: 20)]),
+                travel: [.init(words: ["freeland"], minutes: 20)], outside: outside.rawValue),
             atHome: ["home"], house: house, zone: zone, facts: persistence.facts
         ) { await accepted.note($0) }
 
@@ -538,10 +546,19 @@ struct RecentHappeningsTests {
         #expect(events[2].type == HouseEvents.departureNow)
         _ = try await rule.sweep(now: now + 30 * 60)
         #expect(await mine().count == 3)
-        // The words the birds read, and the occasion the house makes of them.
+        // The words the birds read - the sky included, "leave ten early, it's pouring" - and
+        // the occasion the house makes of them.
+        let note = SceneOpeningPolicy.triggerText(for: events[2], place: house)
+        #expect(note.hasPrefix("It is time to leave: Training \(suffix) in Freeland at "))
         #expect(
-            SceneOpeningPolicy.triggerText(for: events[2], place: house).hasPrefix(
-                "It is time to leave: Training \(suffix) in Freeland at "))
+            note.hasSuffix(
+                "April is still home. Today: Drizzle, high 63°, low 52°, 46% chance of rain. Rain: this afternoon, 46% chance."
+            ))
+        #expect(
+            events[1].payload["weather"]
+                == .string(
+                    "Today: Drizzle, high 63°, low 52°, 46% chance of rain. Rain: this afternoon, 46% chance."
+                ))
         let policy = SceneOpeningPolicy(rules: [])
         #expect(
             await policy.occasion(for: events[1], at: now + 6 * 60)
@@ -663,11 +680,15 @@ struct RecentHappeningsTests {
             by: "bridge:contacts", at: start)
 
         // "What's on this weekend?" is handed the visit without naming it: the next days of the
-        // calendar ride along with every question (the shared database holds other runs'
-        // events, so this one starts soonest). And the world-only timestamps never take a
-        // mind's place on the page.
+        // calendar ride along with every question. The page holds the eight soonest, and the
+        // window reaches three hours back for what is under way - the shared database holds
+        // other tests' events, some running beside this one - so this visit began just inside
+        // that window and sorts first. And the world-only timestamps never take a mind's
+        // place on the page.
         try await persistence.facts.save(
-            try fact(visit, "calendar.starts_at", .string(WorldJSON.timestamp(start + 600))))
+            try fact(
+                visit, "calendar.starts_at",
+                .string(WorldJSON.timestamp(start.addingTimeInterval(-3 * 3_600 + 30)))))
         _ = try await persistence.factKinds.set(
             "calendar.starts_at", meaning: "when it starts", audience: .world,
             by: "bridge:calendar", at: start)
