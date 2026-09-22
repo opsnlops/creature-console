@@ -200,12 +200,18 @@ struct PersonaTests {
                     occurredAt: now.addingTimeInterval(-30), type: HouseEvents.doorUnlocked,
                     subjectID: try EntityID(validating: "place:front-door"),
                     summary: "The front door was just unlocked.")
+            ],
+            recentLines: [
+                SpokenLine(at: now.addingTimeInterval(-90), text: "Someone is in the driveway.")
             ])
         let lead = mind.makeSceneTranscript(for: offer, now: now)
         let system = lead[0].content
         #expect(system.contains("The house just noticed something"))
         #expect(system.contains("What just happened around you"))
         #expect(system.contains("(just now): The front door was just unlocked."))
+        // What the bird itself said lately, so it never says it again (#205).
+        #expect(system.contains("What you yourself said lately"))
+        #expect(system.contains(": Someone is in the driveway."))
         #expect(system.contains("never reply with [silence]"))
         #expect(system.contains("April is not home"))
         #expect(system.contains("not a security system"))

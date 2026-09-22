@@ -223,7 +223,9 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                     sceneID: sceneID,
                     worldFacts: worldFacts,
                     recentHappenings: happenings,
-                    factMeanings: meanings
+                    factMeanings: meanings,
+                    recentLines: try await knowledge.recentLines(
+                        of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines)
                 ),
                 conversationItem: ConversationItem(
                     itemID: makeConversationItemID(),

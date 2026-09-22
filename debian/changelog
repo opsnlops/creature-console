@@ -1,3 +1,15 @@
+creature-cli (2.82.0+world0.38.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.38.0: Phase 9's last slice (console #205). The words
+    of the moment search the mind's own memories through the text index and
+    the memory.retrieved_in_prompt (4) best ride along whatever their age;
+    every percept carries recent_lines, the bird's own last 8 spoken lines
+    across scenes, so it never says the same thing twice.
+  * creature-agent 2.82.0: the moment ends with "What you yourself said
+    lately"; both contracts point at it.
+
+ -- April White <april@creature.engineering>  Mon, 21 Sep 2026 21:30:00 -0700
+
 creature-cli (2.81.0+world0.37.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.37.0: each bird's own memory. A memory belongs to the

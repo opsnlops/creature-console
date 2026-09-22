@@ -320,6 +320,12 @@ else — persona, facts, the clock, streaming to the room — is identical.
   is expected; away, it is somebody else; a guess sounds like a guess only when it is one.
   The departure line belongs to the first bird; the chorus is told another bird has already
   told her and to react - a send-off, a wish, a joke - or stay silent.
+- **A bird knows what it just said** (`2.82.0`, #205). The moment now ends with "What you
+  yourself said lately, oldest first (do not say any of it again, in these words or others)" —
+  the world's record of the bird's own last lines, across scenes — and both contracts point at
+  it; the chorus rule that used to say "from the last scene" says "from what you said lately".
+  With the world's retrieval (`0.38.0`), the memories the words call up arrive as facts among
+  the rest, so nothing here changes for them.
 - **Each bird remembers its own night** (`2.81.0`, #204). April: "What was Kenny's reflection?"
   — there was none; Beaky remembered for the flock, and the "I" in the episodes on Kenny was
   hers. Now every bird with `llmMemoryModel` set hears the world's `memory.consolidate` and

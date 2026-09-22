@@ -506,7 +506,9 @@ struct MongoWorldPersistenceConnection: Sendable {
                 recentHappenings: try await knowledge.recentHappenings(
                     about: subjects,
                     since: now.addingTimeInterval(-WorldKnowledgeLimits.happeningsWindow),
-                    limit: WorldKnowledgeLimits.maximumHappenings))
+                    limit: WorldKnowledgeLimits.maximumHappenings),
+                recentLines: try await knowledge.recentLines(
+                    of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines))
         }
         // Search: MongoDB's text index over every fact, grouped by entity, best first, with
         // the facts that matched. One query answers "who is Tamara?", "the cleaner", or
@@ -1140,13 +1142,22 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         // Memories are the mind's own: the first character among the subjects is the mind
         // being handed this (every caller puts it first), and what Beaky remembers of April is
-        // not what Kenny is told.
-        let remembered: [Fact]
+        // not what Kenny is told. Recent and salient ones ride along, trimmed; and the ones
+        // the words of the moment call up, whatever their age - "how did the deck go?" three
+        // weeks on finds the episode by its words, not its date (plan Phase 9, retrieval).
+        var remembered: [Fact] = []
+        var retrieved: [Fact] = []
         if let mind = subjects.first(where: { $0.rawValue.hasPrefix("character:") }) {
-            remembered = try await facts.currentFacts(
-                about: about + linked, family: .own(mind), limit: limit, at: now)
-        } else {
-            remembered = []
+            remembered = Self.withMemoriesTrimmed(
+                try await facts.currentFacts(
+                    about: about + linked, family: .own(mind), limit: limit, at: now),
+                memory: memory, now: now)
+            if memory.retrievedInPrompt > 0, let text, !text.isEmpty {
+                let known = Set(remembered.map(\.factID))
+                retrieved = try await facts.search(
+                    text, own: mind, limit: memory.retrievedInPrompt, at: now
+                ).map(\.0).filter { !known.contains($0.factID) }
+            }
         }
         // What is coming: the next few days of the calendar ride along with every question, a
         // fortnight when the words are about time - on a page of their own, so a busy week
@@ -1160,7 +1171,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                 about: upcoming, family: .notMemories, excluding: worldOnly,
                 limit: (WorldKnowledgeLimits.maximumUpcomingEvents
                     + WorldKnowledgeLimits.maximumReminders) * 4, at: now)
-        return present + coming + Self.withMemoriesTrimmed(remembered, memory: memory, now: now)
+        return present + coming + retrieved + remembered
     }
 
     /// The events starting in the next three days - a fortnight when the question is about
@@ -1245,6 +1256,10 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
 
     /// The story around `subjects`: storyworthy events for them and their surroundings, oldest
     /// first, each with the world's own sentence for it where the scene openers have one.
+    func recentLines(of characterID: EntityID, limit: Int) async throws -> [SpokenLine] {
+        try await events.spokenLines(of: characterID, limit: limit).reversed()
+    }
+
     func recentHappenings(about subjects: [EntityID], since: Date, limit: Int) async throws
         -> [Happening]
     {

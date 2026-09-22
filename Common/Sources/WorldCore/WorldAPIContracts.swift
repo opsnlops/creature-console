@@ -181,15 +181,29 @@ public struct CharacterPerspective: Codable, Hashable, Sendable {
     public var facts: [Fact]
     public var factMeanings: [String: String]
     public var recentHappenings: [Happening]
+    /// What the character itself said lately, newest last - so it does not say it again.
+    public var recentLines: [SpokenLine]
 
     public init(
         characterID: EntityID, facts: [Fact], factMeanings: [String: String],
-        recentHappenings: [Happening]
+        recentHappenings: [Happening], recentLines: [SpokenLine] = []
     ) {
         self.characterID = characterID
         self.facts = facts
         self.factMeanings = factMeanings
         self.recentHappenings = recentHappenings
+        self.recentLines = recentLines
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            characterID: try container.decode(EntityID.self, forKey: .characterID),
+            facts: try container.decode([Fact].self, forKey: .facts),
+            factMeanings: try container.decode([String: String].self, forKey: .factMeanings),
+            recentHappenings: try container.decode([Happening].self, forKey: .recentHappenings),
+            recentLines: try container.decodeIfPresent([SpokenLine].self, forKey: .recentLines)
+                ?? [])
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -197,6 +211,7 @@ public struct CharacterPerspective: Codable, Hashable, Sendable {
         case facts
         case factMeanings = "fact_meanings"
         case recentHappenings = "recent_happenings"
+        case recentLines = "recent_lines"
     }
 }
 

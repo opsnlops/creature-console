@@ -134,3 +134,41 @@ phase proper). A bird with no memory model still speaks from the day's facts and
   of Beaky's.
 - The Viewer's entity page for April shows each bird's beliefs under its own name.
 - Beaky's memories from before the change are still hers, still handed to her.
+
+## Slice three: retrieval and not repeating oneself (2026-09-21)
+
+Phase 9's exit: "characters coherently refer to prior shared experiences and their own
+previous actions." Two things stand between here and there.
+
+### Retrieval: a memory when it matters
+
+Today a mind is handed its `episodes_in_prompt` most salient recent episodes, whatever the
+moment is about. Ask Beaky about the deck three weeks after Jesse finished it and the
+episode is gone from the prompt - not from the world, just from the page. Now the words of
+the moment (April's question, the house's stage note) are searched against the mind's *own*
+memories through the facts text index, and the `retrieved_in_prompt` (4) best matches ride
+along beside the recent ones, whatever their age. No new contract: they are facts, and they
+arrive as facts. `memory.retrieved_in_prompt` in `world.json`; 0 turns it off.
+
+### Not repeating oneself: what you said lately
+
+`scene.last` tells a bird what the *room* said in the last scene, for an hour. It says nothing
+about what the bird itself said in the scene before that, and the next scene sometimes opens
+before the last one has been reduced into it - which is how Kenny said the same line in two
+back-to-back scenes. Now every percept carries the mind's own last `recent_lines` (8) spoken
+lines from the world's own record (`scene.turn` events with words), across scenes, however
+they happened; the contracts say "do not say any of these again in other words". The plan's
+autobiographical memory, at its smallest: a bird knows what it just said.
+
+- **World** (`0.38.0`): `FactRepository.search(_:limit:at:)` gains an `own` filter;
+  `PresentWorldKnowledge` retrieves; `WorldKnowledgeProviding.recentLines(of:limit:)`;
+  `SceneTurnOffer`, the utterance percept, and `CharacterPerspective` carry `recent_lines`
+  (absent decodes as empty, so an older agent is unbothered).
+- **Agent** (`2.82.0`): the moment renders "What you said lately" and the contracts point at it.
+- **Viewer** (`0.11.0`): a character's perspective shows what it said lately.
+
+### Done means
+
+- "Beaky, how did the deck go?" weeks later answers from the episode, not "I don't know".
+- Two scenes a minute apart never carry the same line from the same bird.
+- `query_character_perspective` shows `recent_lines` and the retrieved episodes.

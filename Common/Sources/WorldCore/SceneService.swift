@@ -397,7 +397,9 @@ public actor SceneService {
                 about: subjects,
                 since: now.addingTimeInterval(-WorldKnowledgeLimits.happeningsWindow),
                 limit: WorldKnowledgeLimits.maximumHappenings),
-            factMeanings: try await knowledge.meanings(of: Set(worldFacts.map(\.predicate)))
+            factMeanings: try await knowledge.meanings(of: Set(worldFacts.map(\.predicate))),
+            recentLines: try await knowledge.recentLines(
+                of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines)
         )
         try await announce(
             WorldEventEnvelope(

@@ -753,7 +753,8 @@ struct CharacterMind: Sendable {
         script += "\(configuration.characterName.capitalized):"
         return layered(
             stable: stable, moment: moment, facts: offer.worldFacts,
-            happenings: offer.recentHappenings, meanings: offer.factMeanings, now: now,
+            happenings: offer.recentHappenings, meanings: offer.factMeanings,
+            recentLines: offer.recentLines, now: now,
             turns: [LocalLLMClient.Message(role: .user, content: script)])
     }
 
@@ -766,7 +767,7 @@ struct CharacterMind: Sendable {
     /// facts follow when the world has any.
     func knowledgeBlock(
         _ facts: [Fact], happenings: [Happening] = [], meanings: [String: String] = [:],
-        now: Date
+        recentLines: [SpokenLine] = [], now: Date
     ) -> String {
         var lines = [FactPhrasing.timeSentence(now, in: configuration.timeZone)]
         if let model = configuration.modelLabel {
@@ -789,6 +790,16 @@ struct CharacterMind: Sendable {
             block +=
                 "\n\nWhat just happened around you, oldest first (work out what it means yourself; say what you conclude as your own thought, not as fact):\n"
                 + story.map { "- " + $0 }.joined(separator: "\n")
+        }
+        // What the bird itself said lately, across scenes: Kenny said the same line in two
+        // scenes a minute apart, because the second opened before the first was in
+        // `scene.last`. The world's own record of its words, so it never says them again.
+        if !recentLines.isEmpty {
+            block +=
+                "\n\nWhat you yourself said lately, oldest first (do not say any of it again, in these words or others; a joke is funny once):\n"
+                + recentLines.map { line in
+                    "- \(FactPhrasing.clock(line.at, in: configuration.timeZone)): \(line.text)"
+                }.joined(separator: "\n")
         }
         return block
     }
@@ -856,7 +867,7 @@ struct CharacterMind: Sendable {
             ? (mayDecline
                 ? "The house is asking whether this deserves a word. If it does, say something about it out loud, as yourself, in one or two short sentences. If it does not - the same delivery van as every afternoon, a bird at the feeder, motion in a room April is already in, something you have already remarked on - reply with exactly [quiet: why] and nothing else, in a few words; the reason is for April's records, never spoken. Say something when there is something in it for April or something odd; stay quiet when there is not."
                 : "Say something about it out loud, as yourself, in one or two short sentences. You always speak up when the house notices something; never reply with \(silenceToken).")
-            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Another bird has already told April what the house noticed: do not tell her again in other words - a departure, a visitor, a door, said once is said. React to it instead: a send-off, a wish, a question of your own, a joke - or stay silent. Do not reuse a joke or phrase of your own from the last scene (it is in what you know below); a running joke is funny twice, not four times - and one your beliefs about yourself call worn out is done."
+            : "Add one short reaction in your own voice, or reply with exactly \(silenceToken) and nothing else if you have nothing to add. Another bird has already told April what the house noticed: do not tell her again in other words - a departure, a visitor, a door, said once is said. React to it instead: a send-off, a wish, a question of your own, a joke - or stay silent. Do not reuse a joke or phrase of your own from what you said lately (it is in what you know below); a running joke is funny twice, not four times - and one your beliefs about yourself call worn out is done."
         return "\(company) \(april) \(turn)"
     }
 
@@ -936,7 +947,9 @@ struct CharacterMind: Sendable {
         a question she actually needs to answer, a joke that lands once. Agreeing, restating what \
         was said, riffing on your own favourite subject again, or answering a question someone \
         already answered in this scene is not new. What was said in an earlier scene is a record, \
-        not an answer: a question asked again gets a fresh answer from what you know now. If you have nothing new, reply with exactly [pass: why] and \
+        not an answer: a question asked again gets a fresh answer from what you know now. Never \
+        say again what you yourself said lately (it is in what you know below), in those words \
+        or others. If you have nothing new, reply with exactly [pass: why] and \
         nothing else, in a few words; the reason is for April's records, never spoken. Expect to \
         pass most turns - a scene that ends after one good line is a good scene.
         """
@@ -1022,8 +1035,8 @@ struct CharacterMind: Sendable {
         turns = Self.openingWithTheUser(Self.coalescingConsecutiveTurns(turns))
         return layered(
             stable: stable, moment: moment, facts: percept.worldFacts,
-            happenings: percept.recentHappenings, meanings: percept.factMeanings, now: now,
-            turns: turns)
+            happenings: percept.recentHappenings, meanings: percept.factMeanings,
+            recentLines: percept.recentLines, now: now, turns: turns)
     }
 
     /// The first line of the moment item, so a user-role item is never read as April's words.
@@ -1052,7 +1065,8 @@ struct CharacterMind: Sendable {
     /// developer, 3,798 as user). It says it is the world's note, not April's message.
     func layered(
         stable: String, moment: String, facts: [Fact], happenings: [Happening],
-        meanings: [String: String], now: Date, turns: [LocalLLMClient.Message]
+        meanings: [String: String], recentLines: [SpokenLine] = [], now: Date,
+        turns: [LocalLLMClient.Message]
     ) -> [LocalLLMClient.Message] {
         switch configuration.knowledgePlacement {
         case .withinSystem:
@@ -1061,7 +1075,8 @@ struct CharacterMind: Sendable {
                     role: .system,
                     content: stable + (moment.isEmpty ? "" : "\n\n" + moment)
                         + knowledgeBlock(
-                            facts, happenings: happenings, meanings: meanings, now: now))
+                            facts, happenings: happenings, meanings: meanings,
+                            recentLines: recentLines, now: now))
             ] + turns
         case .beforeNewest:
             let glossary = configuration.glossary?() ?? [:]
@@ -1075,8 +1090,10 @@ struct CharacterMind: Sendable {
                 role: .user,
                 content: Self.momentPreface + "\n" + (moment.isEmpty ? "" : moment + "\n")
                     + String(
-                        knowledgeBlock(facts, happenings: happenings, meanings: extra, now: now)
-                            .drop(while: \.isNewline)))
+                        knowledgeBlock(
+                            facts, happenings: happenings, meanings: extra,
+                            recentLines: recentLines, now: now
+                        ).drop(while: \.isNewline)))
             return [stableItem] + turns.dropLast() + [momentItem] + turns.suffix(1)
         }
     }

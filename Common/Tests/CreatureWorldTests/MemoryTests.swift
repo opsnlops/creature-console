@@ -274,3 +274,120 @@ struct MemoryOwnerTests {
         #expect(FactRepository.ownMemoriesPattern(of: kenny) == "^memory\\.[a-z]+\\.kenny\\.")
     }
 }
+
+@Suite(
+    "Phase 9's last slice: retrieval, and what a bird said lately",
+    .enabled(if: mongoTestURI != nil, "Set MONGODB_TEST_URI to run MongoDB integration tests"))
+struct RetrievalTests {
+    @Test("The words of the moment call up an old memory of the mind's own; not another bird's")
+    func retrievesByWords() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "retrieval-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let april = try EntityID(validating: "person:april-\(suffix)")
+        let beaky = try EntityID(validating: "character:beaky")
+        let kenny = try EntityID(validating: "character:kenny")
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: now)
+        // A word nobody else's facts carry, so the text index finds only these.
+        let word = "zebrawood\(suffix.prefix(6))"
+        func memory(_ predicate: String, what: String, daysAgo: Int, by bird: String) throws
+            -> Fact
+        {
+            try Fact(
+                subjectID: april, predicate: predicate,
+                value: .object(["what": .string(what), "salience": .number(0.3)]),
+                epistemic: EpistemicState(type: .remembered, confidence: 1),
+                validFrom: now.addingTimeInterval(-Double(daysAgo) * 86_400), derivedFrom: [],
+                producer: FactProducer(kind: "mind", id: bird, version: "1"))
+        }
+        // Beaky's, sixty days old - far past episode_days; Kenny's, the same words.
+        try await persistence.facts.save(
+            try memory(
+                "memory.episode.beaky.2026-07-15.1", what: "April finished the \(word) shelf",
+                daysAgo: 60, by: "beaky"))
+        try await persistence.facts.save(
+            try memory(
+                "memory.episode.kenny.2026-07-15.1", what: "Kenny watched the \(word) shelf",
+                daysAgo: 60, by: "kenny"))
+        var memory = MemoryConfiguration()
+        memory.retrievedInPrompt = 4
+        var knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: CharacterSessionService(
+                repository: persistence.characterSessions, clock: clock, announce: { _ in }),
+            regions: [:], clock: clock)
+        knowledge.memory = memory
+        let asked = try await knowledge.currentFacts(
+            about: [beaky, april], mentionedIn: "how did the \(word) shelf turn out?",
+            limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(asked.contains { $0.predicate == "memory.episode.beaky.2026-07-15.1" })
+        #expect(!asked.contains { $0.predicate == "memory.episode.kenny.2026-07-15.1" })
+        // Without the words, the old episode is past its days and stays on the shelf.
+        let unasked = try await knowledge.currentFacts(
+            about: [beaky, april], mentionedIn: "what time is it?",
+            limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(!unasked.contains { $0.predicate == "memory.episode.beaky.2026-07-15.1" })
+        // Turned off, nothing is called up.
+        knowledge.memory.retrievedInPrompt = 0
+        let off = try await knowledge.currentFacts(
+            about: [beaky, april], mentionedIn: "how did the \(word) shelf turn out?",
+            limit: WorldKnowledgeLimits.maximumFacts)
+        #expect(!off.contains { $0.predicate == "memory.episode.beaky.2026-07-15.1" })
+    }
+
+    @Test("What a bird said lately comes from its own turns, across scenes, oldest first")
+    func recentLinesAreTheBirdsOwn() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "recent-lines-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let kenny = try EntityID(validating: "character:kenny-\(suffix)")
+        let mango = try EntityID(validating: "character:mango-\(suffix)")
+        let region = try EntityID(validating: "region:home-\(suffix)")
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        func turn(_ speaker: EntityID, _ text: String?, at: Date) throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: SceneService.turnEventType, occurredAt: at,
+                source: EventSource(
+                    id: try SourceID(validating: "world:scenes"), kind: "world",
+                    sourceEventID: UUID().uuidString),
+                subjectIDs: [speaker, kenny, mango], placeID: region,
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                payload: [
+                    "character_id": .string(speaker.rawValue),
+                    "text": text.map { .string($0) } ?? .null,
+                    "pass": .bool(text == nil),
+                ])
+        }
+        for event in [
+            try turn(kenny, "Kenny likes shiny.", at: now - 300),
+            try turn(mango, "Debian would have finished by now.", at: now - 240),
+            try turn(kenny, nil, at: now - 180),  // a pass says nothing
+            try turn(kenny, "Maybe it is a robot feather.", at: now - 120),
+        ] {
+            _ = try await persistence.events.append(event, receivedAt: event.occurredAt)
+        }
+        let lines = try await persistence.events.spokenLines(of: kenny, limit: 8)
+        #expect(lines.map(\.text) == ["Maybe it is a robot feather.", "Kenny likes shiny."])
+        let clock = ManualWorldClock(now: now)
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: CharacterSessionService(
+                repository: persistence.characterSessions, clock: clock, announce: { _ in }),
+            regions: [:], clock: clock)
+        // Oldest first for the prompt; only one at a time when asked for one.
+        #expect(
+            try await knowledge.recentLines(of: kenny, limit: 8).map(\.text) == [
+                "Kenny likes shiny.", "Maybe it is a robot feather.",
+            ])
+        #expect(
+            try await knowledge.recentLines(of: kenny, limit: 1).map(\.text) == [
+                "Maybe it is a robot feather."
+            ])
+        #expect(try await knowledge.recentLines(of: mango, limit: 8).count == 1)
+    }
+}

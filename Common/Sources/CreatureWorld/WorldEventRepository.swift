@@ -92,6 +92,30 @@ struct WorldEventRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// The last things a character said aloud - `scene.turn` events with words, subject the
+    /// character - newest first. What a bird said lately, so it does not say it again.
+    func spokenLines(of characterID: EntityID, limit: Int) async throws -> [SpokenLine] {
+        precondition(limit > 0)
+        let documents =
+            try await events
+            // A turn's subjects are every participant; the speaker is in the payload.
+            .find([
+                "subject_ids": characterID.rawValue,
+                "type": SceneService.turnEventType.rawValue,
+                "payload.character_id": characterID.rawValue,
+                "payload.text": ["$type": "string"] as Document,
+            ])
+            .sort(["occurred_at": -1])
+            .limit(limit)
+            .drain()
+        return try documents.map(decode).compactMap { event in
+            guard case .string(let text)? = event.payload["text"], !text.isEmpty else {
+                return nil
+            }
+            return SpokenLine(at: event.occurredAt, text: text)
+        }
+    }
+
     /// Everything that happened in a window, oldest first — a day, for the memory job.
     func events(from start: Date, to end: Date, limit: Int) async throws -> [WorldEventEnvelope] {
         precondition(limit > 0)

@@ -58,9 +58,15 @@ struct FactRepository: Sendable {
     /// Current facts matching `query` by MongoDB text search over the whole fact - subject,
     /// predicate, and every string in the value - best first, with each fact's text score.
     /// English stemming and case-folding are the index's: "cleaner" finds "the cleaners".
-    func search(_ query: String, limit: Int, at now: Date) async throws -> [(Fact, Double)] {
+    func search(_ query: String, own bird: EntityID? = nil, limit: Int, at now: Date)
+        async throws -> [(Fact, Double)]
+    {
         var filter = currentQuery(at: now)
         filter["$text"] = ["$search": query] as Document
+        // Only one bird's own memories, when retrieving for a mind.
+        if let bird {
+            filter["predicate"] = ["$regex": Self.ownMemoriesPattern(of: bird)] as Document
+        }
         let documents = try await facts.find(filter)
             .project(["score": ["$meta": "textScore"] as Document] as Document)
             .sort(["score": .textScore])

@@ -15,6 +15,9 @@ public protocol WorldKnowledgeProviding: Sendable {
     func recentHappenings(about subjects: [EntityID], since: Date, limit: Int)
         async throws -> [Happening]
 
+    /// The last things `characterID` said aloud, newest last, across scenes.
+    func recentLines(of characterID: EntityID, limit: Int) async throws -> [SpokenLine]
+
     /// What the given predicates mean, for the glossary a mind is handed beside the facts.
     func meanings(of predicates: Set<String>) async throws -> [String: String]
 }
@@ -22,6 +25,11 @@ public protocol WorldKnowledgeProviding: Sendable {
 extension WorldKnowledgeProviding {
     public func currentFacts(about subjects: [EntityID], limit: Int) async throws -> [Fact] {
         try await currentFacts(about: subjects, mentionedIn: nil, limit: limit)
+    }
+
+    /// Without a record of speech, nothing said lately.
+    public func recentLines(of characterID: EntityID, limit: Int) async throws -> [SpokenLine] {
+        []
     }
 
     public func recentHappenings(about subjects: [EntityID], since: Date, limit: Int)
@@ -39,6 +47,21 @@ extension WorldKnowledgeProviding {
             }
         }
         return meanings
+    }
+}
+
+/// A line a character spoke, as the world recorded it: for the mind's own "what I said
+/// lately", so a bird never says the same thing twice in other words - the plan's
+/// autobiographical memory at its smallest (§4.10: "Character actions must feed back... This
+/// prevents repetition"). Kenny once said the same line in two scenes a minute apart: the
+/// second opened before `scene.last` had the first.
+public struct SpokenLine: Codable, Hashable, Sendable {
+    public var at: Date
+    public var text: String
+
+    public init(at: Date, text: String) {
+        self.at = at
+        self.text = text
     }
 }
 
@@ -206,6 +229,9 @@ public enum WorldKnowledgeLimits {
     /// How far back the story a percept carries reaches, and how many happenings at most.
     public static let happeningsWindow: TimeInterval = 15 * 60
     public static let maximumHappenings = 12
+    /// The most of a bird's own recent lines a percept carries - what it said lately, across
+    /// scenes, so it does not say it again.
+    public static let maximumRecentLines = 8
     /// The calendar rides along: this many upcoming events at most, soonest first.
     public static let maximumUpcomingEvents = 8
     /// And the day's reminders: this many at most. Only the day's - April: "we should only

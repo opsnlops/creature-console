@@ -404,7 +404,17 @@ is handed only its own memories (the first `character:` among the subjects a cal
 is the mind; every caller puts it first), the `memory.consolidate` timer fans out to every mind
 with a memory model, and `GET /v1/characters/{id}/memories` (the `world://characters/{id}/memories`
 resource) is what that bird remembers, on any subject. A migration renames the memories from
-before into Beaky's (`producer.id`), once, superseded ones included.
+before into Beaky's (`producer.id`), once, superseded ones included. **Retrieval, and what a
+bird said lately** (`0.38.0`, #205 — Phase 9's last slice). The words of the moment (April's
+question, the house's stage note) are searched against the mind's *own* memories through the
+facts text index, and the `memory.retrieved_in_prompt` (4) best matches ride along beside the
+recent ones, whatever their age — "how did the deck go?" three weeks on finds the episode by
+its words (0 turns it off). And every percept — a scene offer, a question, a perspective —
+carries `recent_lines`: the mind's own last 8 spoken lines from the world's record (`scene.turn`
+events with words, the speaker in the payload), across scenes, oldest first, so a bird never
+says the same thing twice in other words. `scene.last` said what the *room* said in the last
+scene, for an hour; Kenny once said one line in two scenes a minute apart because the second
+opened before the first was reduced into it. An older agent ignores the field.
 
 ```
 curl -X POST https://server.prod.chirpchirp.dev/world/v1/days/2026-09-13/remember
