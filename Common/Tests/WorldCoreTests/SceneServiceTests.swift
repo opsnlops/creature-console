@@ -501,6 +501,9 @@ struct SceneServiceTests {
             await world.announced.events.last { $0.type == SceneService.turnEventType })
         #expect(turn.payload["fallback"] == .bool(true))
         #expect(turn.payload["pass"] == .bool(false))
+        // The speaker first, then the room - each once ("Why is Beaky twice").
+        #expect(turn.subjectIDs.first == beaky)
+        #expect(Set(turn.subjectIDs).count == turn.subjectIDs.count)
 
         // Mango's reaction is the second and last turn; Kenny never gets the floor.
         let mangoFloor = try #require(scene.floor)

@@ -1,3 +1,11 @@
+creature-cli (2.82.1+world0.39.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.39.1: a scene event's subjects name the speaker once -
+    the speaker is a participant too and appeared twice ("Why is Beaky
+    twice").
+
+ -- April White <april@creature.engineering>  Mon, 21 Sep 2026 23:40:00 -0700
+
 creature-cli (2.82.1+world0.39.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.39.0: the house's word on a sighting is a fact

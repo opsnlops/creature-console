@@ -609,7 +609,11 @@ public actor SceneService {
             source: EventSource(
                 id: Self.sourceID, kind: "world",
                 sourceEventID: "\(scene.sceneID.rawValue):\(type.rawValue):\(scene.turns.count)"),
-            subjectIDs: [subject ?? scene.regionID] + scene.participants,
+            // The speaker (or the room) first, then everyone in the scene - each once: the
+            // speaker is a participant too, and used to appear twice.
+            subjectIDs: ([subject ?? scene.regionID] + scene.participants).reduce(into: []) {
+                if !$0.contains($1) { $0.append($1) }
+            },
             placeID: scene.regionID,
             epistemic: EpistemicState(type: .observed, confidence: 1),
             payload: payload,
