@@ -1,3 +1,13 @@
+creature-cli (2.82.1+world0.40.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.40.1: 0.40.0's one-instance-per-series ranking never
+    ran live - a search hit carries only the facts that matched the words,
+    and a start time never matches a name. The ranking now looks up each
+    event's title and start itself; the test searches real facts in Mongo
+    (console #206).
+
+ -- April White <april@creature.engineering>  Tue, 22 Sep 2026 19:10:00 -0700
+
 creature-cli (2.82.1+world0.40.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.40.0: a search answers with one instance per
