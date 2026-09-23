@@ -1,3 +1,23 @@
+creature-cli (2.82.1+world0.40.2+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.40.2: a recurring event answers a search with its
+    next session. 0.40.1 chose among the few instances the text search
+    returned and answered "training" with August 27; each series is now
+    looked up whole by title (console #206).
+
+ -- April White <april@creature.engineering>  Tue, 22 Sep 2026 19:45:00 -0700
+
+creature-cli (2.82.1+world0.40.2+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.40.2: a recurring event answers a search with its
+    next instance. 0.40.1 chose the nearest among the instances the text
+    search returned - a random handful of a year's worth, all scoring the
+    same - and answered "training" with August 27. Each series the words
+    find is now looked up whole by title and answers with the next
+    session (one under way counts), else its most recent (console #206).
+
+ -- April White <april@creature.engineering>  Tue, 22 Sep 2026 19:45:00 -0700
+
 creature-cli (2.82.1+world0.40.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.40.1: 0.40.0's one-instance-per-series ranking never

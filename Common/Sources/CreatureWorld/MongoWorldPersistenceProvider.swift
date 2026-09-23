@@ -1214,83 +1214,67 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         // A hit carries only the facts that matched the words, so an event's start is
         // looked up here, for ranking only (it is world-only; it never joins the hit).
-        let events = order.filter { $0.rawValue.hasPrefix("event:") }
-        var series: [EntityID: PresentWorldKnowledge.Instance] = [:]
-        if !events.isEmpty {
-            var titles: [EntityID: String] = [:]
-            for fact in try await facts.currentFacts(
-                about: events, predicate: WorldFacts.calendarTitle, limit: events.count,
-                at: now)
-            {
-                if case .string(let title) = fact.value { titles[fact.subjectID] = title }
-            }
-            for fact in try await facts.currentFacts(
-                about: events, predicate: WorldFacts.calendarStartsAt, limit: events.count,
-                at: now)
-            {
-                if case .string(let raw) = fact.value, let date = WorldJSON.date(from: raw),
-                    let title = titles[fact.subjectID]
-                {
-                    series[fact.subjectID] = .init(title: title, startsAt: date)
-                }
+        // A recurring event is a year of instances scoring the same, and the text search
+        // returns only its top few: the next one is often not among them. So each series the
+        // words found is looked up whole, by title, and answers once with its next instance
+        // (#206). The start is used to choose, never added to the hit.
+        // Every event hit's title - from what it matched, or looked up when the words
+        // matched something else (its location, say).
+        var titles: [EntityID: Fact] = [:]
+        var untitled: [EntityID] = []
+        for id in order where id.rawValue.hasPrefix("event:") {
+            if let title = hits[id]?.facts.first(where: {
+                $0.predicate == WorldFacts.calendarTitle
+            }) {
+                titles[id] = title
+            } else {
+                untitled.append(id)
             }
         }
-        let ranked = PresentWorldKnowledge.oneInstancePerSeries(
-            order.compactMap { hits[$0] }, series: series, now: now
-        ).sorted {
-            $0.score != $1.score
-                ? $0.score > $1.score
-                : PresentWorldKnowledge.distance(of: $0, series: series, from: now)
-                    < PresentWorldKnowledge.distance(of: $1, series: series, from: now)
+        if !untitled.isEmpty {
+            for fact in try await facts.currentFacts(
+                about: untitled, predicate: WorldFacts.calendarTitle, limit: untitled.count,
+                at: now)
+            {
+                titles[fact.subjectID] = fact
+            }
         }
-        return WorldSearchPage(query: query, hits: Array(ranked.prefix(limit)))
-    }
-
-    /// One instance of a calendar event, as ranking needs it: its series and its start.
-    struct Instance: Sendable, Equatable {
-        var title: String
-        var startsAt: Date
-    }
-
-    /// A recurring calendar event is a year of identical instances - "Personal Training
-    /// (Adlai Erickson)" every Tuesday into 2027 - and a text search scores them all the same,
-    /// so "when's my training?" got whichever one Mongo listed first. Beaky was handed the
-    /// 2027 one and could not tell it from tomorrow (#206). One instance per title survives:
-    /// the one nearest now. `series` is looked up apart for the event hits: a hit carries only
-    /// the facts that matched the words, and a start time never matches a name.
-    static func oneInstancePerSeries(
-        _ hits: [WorldSearchHit], series: [EntityID: Instance], now: Date
-    ) -> [WorldSearchHit] {
-        var slots: [String: Int] = [:]
-        var kept: [WorldSearchHit] = []
-        for hit in hits {
-            guard let instance = series[hit.entityID] else {
-                kept.append(hit)
+        var answered: Set<String> = []
+        var ranked: [WorldSearchHit] = []
+        for id in order {
+            guard let hit = hits[id] else { continue }
+            guard let titleFact = titles[id], case .string(let title) = titleFact.value else {
+                ranked.append(hit)
                 continue
             }
-            if let slot = slots[instance.title] {
-                if distance(of: hit, series: series, from: now)
-                    < distance(of: kept[slot], series: series, from: now)
-                {
-                    kept[slot] = hit
-                }
-            } else {
-                slots[instance.title] = kept.count
-                kept.append(hit)
+            guard answered.insert(title).inserted else { continue }
+            let instances = try await facts.currentFacts(
+                withPredicate: WorldFacts.calendarTitle, equalTo: title, at: now)
+            let starts = try await facts.currentFacts(
+                about: instances.map(\.subjectID), predicate: WorldFacts.calendarStartsAt,
+                limit: max(instances.count, 1), at: now)
+            // The next one - "when's my training?" means the coming session, counting one
+            // under way (started in the last three hours, as the envelope's window does); only
+            // a series with nothing left answers with its most recent.
+            let dated = starts.compactMap { fact -> (EntityID, Date)? in
+                guard case .string(let raw) = fact.value, let date = WorldJSON.date(from: raw)
+                else { return nil }
+                return (fact.subjectID, date)
             }
+            let underWay = now.addingTimeInterval(-3 * 3_600)
+            let nearest =
+                dated.filter { $0.1 >= underWay }.min { $0.1 < $1.1 }?.0
+                ?? dated.max { $0.1 < $1.1 }?.0
+            var answer = hit
+            if let nearest, nearest != id,
+                let nearestTitle = instances.first(where: { $0.subjectID == nearest })
+            {
+                answer = WorldSearchHit(entityID: nearest, score: hit.score, facts: [nearestTitle])
+            }
+            ranked.append(answer)
         }
-        return kept
-    }
-
-    /// How far a hit is from now, for tie-breaking: a calendar event by when it starts,
-    /// anything else by its newest fact.
-    static func distance(of hit: WorldSearchHit, series: [EntityID: Instance], from now: Date)
-        -> TimeInterval
-    {
-        if let instance = series[hit.entityID] {
-            return abs(instance.startsAt.timeIntervalSince(now))
-        }
-        return hit.facts.map { abs($0.validFrom.timeIntervalSince(now)) }.min() ?? .infinity
+        ranked.sort { $0.score > $1.score }
+        return WorldSearchPage(query: query, hits: Array(ranked.prefix(limit)))
     }
 
     /// One entity, whole, for the Viewer's page and a mind's question: every current fact

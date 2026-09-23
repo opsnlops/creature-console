@@ -192,6 +192,18 @@ struct FactRepository: Sendable {
         }
     }
 
+    /// The current facts whose predicate is `predicate` and whose value is exactly `value` -
+    /// every instance of one recurring calendar series, by its title.
+    func currentFacts(withPredicate predicate: String, equalTo value: String, at now: Date)
+        async throws -> [Fact]
+    {
+        var query = currentQuery(at: now)
+        query["predicate"] = predicate
+        query["value"] = value
+        let documents = try await facts.find(query).limit(1_000).drain()
+        return try documents.map(decode)
+    }
+
     /// Current facts anywhere whose value is `entityID`: the links into it.
     func currentFacts(pointingAt entityID: EntityID, at now: Date) async throws -> [Fact] {
         var query = currentQuery(at: now)

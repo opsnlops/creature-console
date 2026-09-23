@@ -62,10 +62,10 @@ struct WorldSearchTests {
 }
 
 @Suite(
-    "A recurring event answers once, with the instance nearest now",
+    "A recurring event answers once, with its next instance",
     .enabled(if: mongoTestURI != nil, "Set MONGODB_TEST_URI to run MongoDB integration tests"))
 struct SearchRankingTests {
-    @Test("A real search over a year of instances returns the one nearest now (#206)")
+    @Test("A real search over a year of instances returns the next one, not yesterday's (#206)")
     func collapsesRecurringInstances() async throws {
         let uri = try #require(mongoTestURI)
         let persistence = try await MongoWorldPersistence.connect(
@@ -95,19 +95,35 @@ struct SearchRankingTests {
             }
             return event
         }
-        let lastJuly = try await instance(daysFromNow: -63)
-        let nextMarch = try await instance(daysFromNow: 168)
+        // Twice a week for a year, as the Bridge casts it: more instances than a text search
+        // returns, all scoring the same - so the nearest is usually not among the ones the
+        // words found. Thursday's must answer anyway.
+        var others: [EntityID] = []
+        for days in stride(from: -91, through: 365, by: 3) where days != 2 {
+            others.append(try await instance(daysFromNow: days))
+        }
+        // Yesterday's session (-1) is closer in time; Thursday's is the next one.
         let thursday = try await instance(daysFromNow: 2)
-        let nextAugust = try await instance(daysFromNow: 320)
         let page = try await PresentWorldKnowledge.search(
             trainer, limit: 10, facts: persistence.facts, now: now)
         let mine = page.hits.filter { $0.entityID.rawValue.hasPrefix("event:\(series)") }
-        // One training, Thursday's - not July's, next March's, or next August's.
+        // One training, Thursday's - not a past one or one next year.
         #expect(mine.map(\.entityID) == [thursday])
-        #expect(
-            ![lastJuly, nextMarch, nextAugust].contains { id in
-                page.hits.contains { $0.entityID == id }
-            })
+        #expect(!others.contains { id in page.hits.contains { $0.entityID == id } })
+        #expect(mine.first?.facts.first?.value == .string(title))
+        // A year of instances left behind would crowd other tests' calendars (the departure
+        // rule reads the next 500 starts): every fact this test made is ended.
+        for event in others + [thursday] {
+            for predicate in [WorldFacts.calendarTitle, WorldFacts.calendarStartsAt] {
+                try await persistence.facts.supersede(
+                    by: try Fact(
+                        subjectID: event, predicate: predicate, value: .null,
+                        epistemic: EpistemicState(type: .reported, confidence: 1),
+                        validFrom: now.addingTimeInterval(-86_400 - 2),
+                        validTo: now.addingTimeInterval(-86_400 - 1), derivedFrom: [],
+                        producer: FactProducer(kind: "test", id: "cleanup", version: "1")))
+            }
+        }
         // The start was used to rank, never added to what a mind is handed.
         #expect(!mine[0].facts.contains { $0.predicate == WorldFacts.calendarStartsAt })
     }

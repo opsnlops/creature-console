@@ -407,9 +407,10 @@ resource) is what that bird remembers, on any subject. A migration renames the m
 before into Beaky's (`producer.id`), once, superseded ones included. **One instance per series** (`0.40.0`, #206): a recurring calendar event fills a year of
 identical instances, and a text search scores them all the same — `?q=Adlai Erickson` answered
 with six trainings (July's, next March's, next April's…) in no particular order, and a mind
-that looked one up read a yearless date and announced it as tomorrow's. A search now returns
-**one instance per title, the one nearest now**, and hits of equal score are ordered by how
-close they are (a calendar event by `calendar.starts_at`, anything else by its newest fact).
+that looked one up read a yearless date and announced it as tomorrow's. A search now answers
+**each series once, with its next session** (one under way counts; a series with nothing left
+answers with its most recent) - the series the words found is looked up whole by title, since
+the text search returns only a handful of a year of identical instances (`0.40.2`).
 **Loose threads** (`0.39.0`): the house's word on a sighting is a fact, not only a stage
 note — a `camera.person_seen` while April is home and nobody is expected casts
 `sighting.identified = April` on the place (`assumed`, 0.95, half an hour, source
