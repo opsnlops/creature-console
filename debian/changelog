@@ -1,3 +1,14 @@
+creature-cli (2.83.0+world0.42.0+house0.3.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.3.1: a measurement is never hours stale. minimum_change
+    kept small moves from being told at all, and the power meter sat at
+    1,647 W for an evening because the draw never moved a whole kilowatt
+    from it. A smaller move is now told once the world's value is fifteen
+    minutes old (maximum_age_seconds, default 900); big swings still go at
+    once.
+
+ -- April White <april@creature.engineering>  Tue, 22 Sep 2026 22:10:00 -0700
+
 creature-cli (2.83.0+world0.42.0+house0.3.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.83.0: spells, and nothing unfamiliar is a person by

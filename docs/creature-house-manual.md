@@ -158,3 +158,12 @@ region the birds are in (`place:family-room` in `region:home`, packaged world.js
 This is also the fact the microphones will read: in a room where media is playing, an
 utterance will need to begin with a bird's name.
 
+## Never stale (`0.3.1`)
+
+`minimum_change` keeps a measurement's small wobbles from being news, measured from the last
+value the house told the world. On its own it can leave a fact hours old: the power meter sat
+at 1,647 W for an evening because the draw never moved a whole kilowatt away from it. Each
+measurement also has `maximum_age_seconds` (default 900): once the world's value is that old,
+the next change is told whatever its size. Big swings still go at once; an unchanging sensor is
+not re-told (its value is still right).
+

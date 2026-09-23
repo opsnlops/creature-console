@@ -104,6 +104,11 @@ struct EntityMapping: Equatable, Sendable {
     let predicate: String?
     /// For measurements: the least change worth an event; smaller moves are dropped.
     let minimumChange: Double
+    /// For measurements: how old the world's value may get. A smaller move is still told once
+    /// this long has passed since the last one, so a fact is never hours old. The power meter
+    /// sat at 1,647 W for an evening because the draw never moved a whole kilowatt from it.
+    let maximumAgeSeconds: TimeInterval
+    static let defaultMaximumAgeSeconds: TimeInterval = 900
     /// For detections: what the camera saw.
     let detects: Detects?
     /// For detections: how long a sighting must last before its end is news. Ten minutes: a
@@ -117,6 +122,7 @@ struct EntityMapping: Equatable, Sendable {
         let kind: Kind
         let predicate: String?
         let minimumChange: Double?
+        let maximumAgeSeconds: TimeInterval?
         let detects: Detects?
         let goneAfterSeconds: TimeInterval?
 
@@ -126,6 +132,7 @@ struct EntityMapping: Equatable, Sendable {
             case kind
             case predicate
             case minimumChange = "minimum_change"
+            case maximumAgeSeconds = "maximum_age_seconds"
             case detects
             case goneAfterSeconds = "gone_after_seconds"
         }
@@ -133,7 +140,9 @@ struct EntityMapping: Equatable, Sendable {
 
     init(
         entityID: String, subjectID: EntityID, kind: Kind, predicate: String? = nil,
-        minimumChange: Double = 0, detects: Detects? = nil,
+        minimumChange: Double = 0,
+        maximumAgeSeconds: TimeInterval = EntityMapping.defaultMaximumAgeSeconds,
+        detects: Detects? = nil,
         goneAfterSeconds: TimeInterval = EntityMapping.defaultGoneAfterSeconds
     ) {
         self.entityID = entityID
@@ -141,6 +150,7 @@ struct EntityMapping: Equatable, Sendable {
         self.kind = kind
         self.predicate = predicate
         self.minimumChange = minimumChange
+        self.maximumAgeSeconds = maximumAgeSeconds
         self.detects = detects
         self.goneAfterSeconds = goneAfterSeconds
     }
@@ -167,6 +177,7 @@ struct EntityMapping: Equatable, Sendable {
             kind: raw.kind,
             predicate: raw.predicate,
             minimumChange: raw.minimumChange ?? 0,
+            maximumAgeSeconds: raw.maximumAgeSeconds ?? Self.defaultMaximumAgeSeconds,
             detects: raw.detects,
             goneAfterSeconds: raw.goneAfterSeconds ?? Self.defaultGoneAfterSeconds
         )

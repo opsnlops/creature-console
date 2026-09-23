@@ -104,7 +104,10 @@ struct HouseTranslator: Sendable {
             if let old, let previous = Double(old.state),
                 abs(value - previous) < mapping.minimumChange
             {
-                return nil
+                // A small move is still told once the world's value has got old - a fact
+                // should never be hours stale because the change was never large.
+                let age = new.lastChanged.timeIntervalSince(old.lastChanged)
+                guard value != previous, age >= mapping.maximumAgeSeconds else { return nil }
             }
             return HouseEvents.measurementChanged
         case .media:

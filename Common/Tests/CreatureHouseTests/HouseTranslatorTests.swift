@@ -110,6 +110,33 @@ struct HouseTranslatorTests {
                 .isEmpty)
     }
 
+    @Test("A small move is still told once the world's value is fifteen minutes old")
+    func maximumAge() throws {
+        // As on 2026-09-22: power told at 1,647 W, then drifting under a kilowatt for hours.
+        let power = HouseTranslator(mappings: [
+            EntityMapping(
+                entityID: "sensor.power", subjectID: try EntityID(validating: "house:aprils-nest"),
+                kind: .measurement, predicate: "power_w", minimumChange: 1_000)
+        ])
+        let told = EntityState(
+            entityID: "sensor.power", state: "1647.3", attributes: [:], lastChanged: now,
+            contextID: "a")
+        func later(_ value: String, _ minutes: Double) -> EntityState {
+            EntityState(
+                entityID: "sensor.power", state: value, attributes: [:],
+                lastChanged: now.addingTimeInterval(minutes * 60), contextID: "b\(minutes)")
+        }
+        // Five minutes on, 400 W more: not yet.
+        #expect(try power.events(from: told, to: later("2047.3", 5)).isEmpty)
+        // Sixteen minutes on, still under a kilowatt of change: told, so the fact is current.
+        let refreshed = try #require(try power.events(from: told, to: later("2210.0", 16)).only)
+        #expect(refreshed.payload["value"] == .number(2210))
+        // A big swing goes at once, however recent.
+        #expect(try power.events(from: told, to: later("2900.0", 1)).count == 1)
+        // The same value an hour later is not news: nothing changed.
+        #expect(try power.events(from: told, to: later("1647.3", 60)).isEmpty)
+    }
+
     @Test("A creeping thermometer crosses minimum_change cumulatively, measured from what was told")
     func minimumChangeIsCumulative() async throws {
         let announcer = HouseAnnouncer(translator: translator)
