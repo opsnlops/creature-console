@@ -375,11 +375,16 @@ enum AppointmentFacts {
     }
 
     /// "Thursday, September 18, 8:00–10:00 AM" or "Thursday, September 18 (time not given)".
-    static func when(_ appointment: Appointment, zone: TimeZone) -> String {
+    /// "Wednesday, September 16, 8–10 AM", with the year when it is not this one (#206).
+    static func when(_ appointment: Appointment, zone: TimeZone, now: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = zone
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "EEEE, MMMM d"
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        formatter.dateFormat =
+            calendar.component(.year, from: appointment.day)
+                == calendar.component(.year, from: now) ? "EEEE, MMMM d" : "EEEE, MMMM d, yyyy"
         let day = formatter.string(from: appointment.day)
         guard let window = appointment.window else { return "\(day) (time not given)" }
         return "\(day), \(clock(window.start))–\(clock(window.end))"

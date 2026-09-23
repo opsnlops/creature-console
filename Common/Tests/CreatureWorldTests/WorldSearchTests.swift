@@ -60,3 +60,57 @@ struct WorldSearchTests {
         #expect(paste.first?.0.predicate == "order.items")
     }
 }
+
+@Suite("A recurring event answers once, with the instance nearest now")
+struct SearchRankingTests {
+    private let now = Date(timeIntervalSince1970: 1_790_103_600)  // 2026-09-22 12:00 PDT
+
+    private func hit(_ id: String, title: String?, startsAt: Date?, score: Double)
+        throws -> WorldSearchHit
+    {
+        let entity = try EntityID(validating: id)
+        func fact(_ predicate: String, _ value: WorldJSONValue) throws -> Fact {
+            try Fact(
+                subjectID: entity, predicate: predicate, value: value,
+                epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: now,
+                derivedFrom: [],
+                producer: FactProducer(kind: "test", id: "search", version: "1"))
+        }
+        var facts: [Fact] = []
+        if let title { facts.append(try fact(WorldFacts.calendarTitle, .string(title))) }
+        if let startsAt {
+            facts.append(
+                try fact(WorldFacts.calendarStartsAt, .string(WorldJSON.timestamp(startsAt))))
+        }
+        if facts.isEmpty { facts = [try fact("person.relationship", .string("the trainer"))] }
+        return WorldSearchHit(entityID: entity, score: score, facts: facts)
+    }
+
+    @Test("Instances of one series collapse to the nearest; ties break by proximity")
+    func collapsesRecurringInstances() throws {
+        let title = "Personal Training - 60 Minutes(Adlai Erickson - Accepted)"
+        // As the world really holds them: a year of identical instances, all scored the same.
+        let hits = [
+            try hit(
+                "event:training-20270309", title: title, startsAt: now + 168 * 86_400, score: 1.14),
+            try hit(
+                "event:training-20260721", title: title, startsAt: now - 63 * 86_400, score: 1.14),
+            try hit(
+                "event:training-20260924", title: title, startsAt: now + 2 * 86_400, score: 1.14),
+            try hit("person:adlai", title: nil, startsAt: nil, score: 1.14),
+            try hit("event:therapy-20260923", title: "Therapy", startsAt: now + 86_400, score: 0.9),
+        ]
+        let ranked = PresentWorldKnowledge.oneInstancePerSeries(hits, now: now)
+        // One training, the one two days out - not July's and not next March's.
+        let training = ranked.filter { $0.entityID.rawValue.hasPrefix("event:training-") }
+        #expect(training.map { $0.entityID.rawValue } == ["event:training-20260924"])
+        // Everything else is untouched: the trainer himself, and a different series.
+        #expect(ranked.count == 3)
+        #expect(ranked.contains { $0.entityID.rawValue == "person:adlai" })
+        #expect(ranked.contains { $0.entityID.rawValue == "event:therapy-20260923" })
+        // Proximity, for the tie-break: two days beats a hundred and sixty-eight.
+        #expect(
+            PresentWorldKnowledge.distance(of: training[0], from: now)
+                < PresentWorldKnowledge.distance(of: hits[0], from: now))
+    }
+}

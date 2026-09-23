@@ -208,6 +208,12 @@ the last day only, never the archive. **Only texts from people mapped in the add
 looked at**, and the **senders** April allows by number; April's own texts, strangers, and group
 chats (unless ticked) are skipped unread.
 
+**A date in another year says so** (`0.13.0`, #206). `calendar.when`, `reminder.due`, and a
+mail appointment's `calendar.when` name the year when it is not the current one — "Tuesday,
+September 21, 2027 at 3:45 PM" — so a date far off is never read as this week. A date with no
+year is this year, and the glossary says so. The birds worked this out themselves: all three
+reflections on 2026-09-21 said *"check calendar years before offering departure advice"*.
+
 **Senders** (`0.12.0`) — the Sources card's **Senders…** button (also Settings → Messages). The
 top list is the numbers read without a card: the carriers that text a delivery come built in
 (FedEx Delivery Manager 1-800-463-3339, UPS My Choice 69877, USPS 28777, Amazon 262966) and can

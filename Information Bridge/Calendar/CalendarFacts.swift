@@ -96,7 +96,7 @@ enum CalendarFacts {
     static let meanings: [String: String] = [
         "calendar.title": "what the calendar event is called",
         "calendar.when":
-            "when the event is, in human terms (\"Thursday, September 18 at 2:00 PM\")",
+            "when the event is, in human terms (\"Thursday, September 18 at 2:00 PM\"); a date in another year says so (\"Tuesday, September 21, 2027\"), so one without a year is this year",
         "calendar.starts_at": "when the event starts, as a timestamp - for the world's rules",
         "calendar.ends_at": "when the event ends, as a timestamp - for the world's rules",
         "calendar.location": "where the event is, as the calendar has it",
@@ -108,12 +108,12 @@ enum CalendarFacts {
 
     /// Facts for one event, valid until 90 days after it ends so "when was Jesse last here?"
     /// has an answer, then gone.
-    static func facts(from item: CalendarItem, resolver: PersonResolver, zone: TimeZone)
-        -> FactLedger.Wanted
-    {
+    static func facts(
+        from item: CalendarItem, resolver: PersonResolver, zone: TimeZone, now: Date = Date()
+    ) -> FactLedger.Wanted {
         var facts: [String: WorldJSONValue] = [
             "calendar.title": .string(item.title),
-            "calendar.when": .string(when(item, zone: zone)),
+            "calendar.when": .string(when(item, zone: zone, now: now)),
             "calendar.starts_at": .string(WorldJSON.timestamp(item.starts)),
             "calendar.ends_at": .string(WorldJSON.timestamp(item.ends)),
             "calendar.calendar": .string(item.calendar),
@@ -146,16 +146,24 @@ enum CalendarFacts {
         return EntityID(rawValue: "event:\(slug.isEmpty ? "unnamed" : slug)-\(day)")!
     }
 
-    /// "Thursday, September 18 at 2:00 PM" or "Thursday, September 18 (all day)".
-    static func when(_ item: CalendarItem, zone: TimeZone) -> String {
+    /// "Thursday, September 18 at 2:00 PM", "Thursday, September 18 (all day)" - and the year
+    /// when it is not this one: "Tuesday, September 21, 2027 at 3:45 PM". A recurring event
+    /// fills a year of instances, and a yearless date left Beaky unable to tell the 2027
+    /// training from tomorrow's (#206).
+    static func when(_ item: CalendarItem, zone: TimeZone, now: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = zone
         formatter.locale = Locale(identifier: "en_US_POSIX")
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let year =
+            calendar.component(.year, from: item.starts) == calendar.component(.year, from: now)
+            ? "" : ", yyyy"
         if item.isAllDay {
-            formatter.dateFormat = "EEEE, MMMM d"
+            formatter.dateFormat = "EEEE, MMMM d\(year)"
             return "\(formatter.string(from: item.starts)) (all day)"
         }
-        formatter.dateFormat = "EEEE, MMMM d 'at' h:mm a"
+        formatter.dateFormat = "EEEE, MMMM d\(year) 'at' h:mm a"
         return formatter.string(from: item.starts)
     }
 }

@@ -544,9 +544,15 @@ struct MongoWorldPersistenceConnection: Sendable {
                         entityID: fact.subjectID, score: score, facts: [fact])
                 }
             }
-            return WorldSearchPage(
-                query: query,
-                hits: order.prefix(limit).compactMap { hits[$0] }.sorted { $0.score > $1.score })
+            let ranked = PresentWorldKnowledge.oneInstancePerSeries(
+                order.compactMap { hits[$0] }, now: now
+            ).sorted {
+                $0.score != $1.score
+                    ? $0.score > $1.score
+                    : PresentWorldKnowledge.distance(of: $0, from: now)
+                        < PresentWorldKnowledge.distance(of: $1, from: now)
+            }
+            return WorldSearchPage(query: query, hits: Array(ranked.prefix(limit)))
         }
         self.search = search
         // What one bird remembers, on any subject: its own memories, newest first.
@@ -1206,6 +1212,57 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             withPredicate: "reminder.due_at", between: dayStart, and: dayEnd, at: now)
         return Array(soon.prefix(WorldKnowledgeLimits.maximumUpcomingEvents))
             + Array(reminders.prefix(WorldKnowledgeLimits.maximumReminders))
+    }
+
+    /// A recurring calendar event is a year of identical instances - "Personal Training
+    /// (Adlai Erickson)" every Tuesday into 2027 - and a text search scores them all the same,
+    /// so "when's my training?" got whichever one Mongo listed first. Beaky was handed the
+    /// 2027 one and could not tell it from tomorrow (#206). One instance per title survives:
+    /// the one nearest now.
+    static func oneInstancePerSeries(_ hits: [WorldSearchHit], now: Date) -> [WorldSearchHit] {
+        var nearest: [String: WorldSearchHit] = [:]
+        var kept: [WorldSearchHit] = []
+        var slots: [String: Int] = [:]
+        for hit in hits {
+            guard let title = seriesTitle(of: hit) else {
+                kept.append(hit)
+                continue
+            }
+            if let already = nearest[title] {
+                if distance(of: hit, from: now) < distance(of: already, from: now) {
+                    nearest[title] = hit
+                    kept[slots[title]!] = hit
+                }
+            } else {
+                nearest[title] = hit
+                slots[title] = kept.count
+                kept.append(hit)
+            }
+        }
+        return kept
+    }
+
+    /// The title of the series a hit belongs to, when it is one instance of a repeating
+    /// calendar event; nil for anything else.
+    private static func seriesTitle(of hit: WorldSearchHit) -> String? {
+        guard hit.entityID.rawValue.hasPrefix("event:"),
+            hit.facts.contains(where: { $0.predicate == WorldFacts.calendarStartsAt }),
+            case .string(let title)? = hit.facts.first(where: {
+                $0.predicate == WorldFacts.calendarTitle
+            })?.value
+        else { return nil }
+        return title
+    }
+
+    /// How far a hit is from now, for tie-breaking: a calendar event by when it starts,
+    /// anything else by its newest fact.
+    static func distance(of hit: WorldSearchHit, from now: Date) -> TimeInterval {
+        if case .string(let starts)? = hit.facts.first(where: {
+            $0.predicate == WorldFacts.calendarStartsAt
+        })?.value, let date = WorldJSON.date(from: starts) {
+            return abs(date.timeIntervalSince(now))
+        }
+        return hit.facts.map { abs($0.validFrom.timeIntervalSince(now)) }.min() ?? .infinity
     }
 
     /// One entity, whole, for the Viewer's page and a mind's question: every current fact

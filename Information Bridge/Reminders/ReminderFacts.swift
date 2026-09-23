@@ -25,7 +25,7 @@ enum ReminderFacts {
     static let meanings: [String: String] = [
         "reminder.title": "what April means to do, as she wrote it in Reminders",
         "reminder.due":
-            "when it is due, in human terms (\"Friday, September 18 at 9:00 AM\", or a day); a due date already past is overdue, not done",
+            "when it is due, in human terms (\"Friday, September 18 at 9:00 AM\", or a day); a date in another year says so, so one without a year is this year; a due date already past is overdue, not done",
         "reminder.due_at": "when it is due, as a timestamp - for the world's rules",
         "reminder.list": "which of April's reminder lists it is on",
         "reminder.priority": "how important April marked it: high, medium, or low",
@@ -42,14 +42,17 @@ enum ReminderFacts {
     /// abandoned, not overdue, and the world lets it go.
     static let overdueLingers: TimeInterval = 14 * 86_400
 
-    static func facts(from item: ReminderItem, zone: TimeZone) -> FactLedger.Wanted {
+    static func facts(from item: ReminderItem, zone: TimeZone, now: Date = Date())
+        -> FactLedger.Wanted
+    {
         var facts: [String: WorldJSONValue] = [
             "reminder.title": .string(item.title),
             "reminder.list": .string(item.list),
             "reminder.completed": .bool(item.isCompleted),
         ]
         if let due = item.due {
-            facts["reminder.due"] = .string(when(due, hasTime: item.dueHasTime, zone: zone))
+            facts["reminder.due"] = .string(
+                when(due, hasTime: item.dueHasTime, zone: zone, now: now))
             facts["reminder.due_at"] = .string(WorldJSON.timestamp(due))
             if !item.dueHasTime { facts["reminder.all_day"] = .bool(true) }
         }
@@ -89,12 +92,19 @@ enum ReminderFacts {
         }
     }
 
-    /// "Friday, September 18 at 9:00 AM" or "Friday, September 18".
-    static func when(_ due: Date, hasTime: Bool, zone: TimeZone) -> String {
+    /// "Friday, September 18 at 9:00 AM" or "Friday, September 18" - and the year when it is
+    /// not this one, so a date far off is never read as this week (#206).
+    static func when(_ due: Date, hasTime: Bool, zone: TimeZone, now: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = zone
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = hasTime ? "EEEE, MMMM d 'at' h:mm a" : "EEEE, MMMM d"
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let year =
+            calendar.component(.year, from: due) == calendar.component(.year, from: now)
+            ? "" : ", yyyy"
+        formatter.dateFormat =
+            hasTime ? "EEEE, MMMM d\(year) 'at' h:mm a" : "EEEE, MMMM d\(year)"
         return formatter.string(from: due)
     }
 }

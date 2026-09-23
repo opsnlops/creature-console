@@ -44,6 +44,12 @@ public enum WorldFacts {
     public static let memoryBelief = "memory.belief"
     public static let beliefKinds: Set<String> = ["habit", "preference", "relationship", "self"]
 
+    // The calendar, through the Information Bridge: an `event:*` entity per instance.
+    /// When an event starts, as a timestamp - the world's own, for its rules and its ranking.
+    public static let calendarStartsAt = "calendar.starts_at"
+    /// What the event is called, as the calendar has it.
+    public static let calendarTitle = "calendar.title"
+
     /// The kinds of entity a fact's value may point at. A fact whose value is such an id is a
     /// link - `calendar.with = person:jesse` - and the world follows links one hop when it
     /// gathers what a mind is handed.

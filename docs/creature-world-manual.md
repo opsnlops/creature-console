@@ -404,7 +404,13 @@ is handed only its own memories (the first `character:` among the subjects a cal
 is the mind; every caller puts it first), the `memory.consolidate` timer fans out to every mind
 with a memory model, and `GET /v1/characters/{id}/memories` (the `world://characters/{id}/memories`
 resource) is what that bird remembers, on any subject. A migration renames the memories from
-before into Beaky's (`producer.id`), once, superseded ones included. **Loose threads** (`0.39.0`): the house's word on a sighting is a fact, not only a stage
+before into Beaky's (`producer.id`), once, superseded ones included. **One instance per series** (`0.40.0`, #206): a recurring calendar event fills a year of
+identical instances, and a text search scores them all the same — `?q=Adlai Erickson` answered
+with six trainings (July's, next March's, next April's…) in no particular order, and a mind
+that looked one up read a yearless date and announced it as tomorrow's. A search now returns
+**one instance per title, the one nearest now**, and hits of equal score are ordered by how
+close they are (a calendar event by `calendar.starts_at`, anything else by its newest fact).
+**Loose threads** (`0.39.0`): the house's word on a sighting is a fact, not only a stage
 note — a `camera.person_seen` while April is home and nobody is expected casts
 `sighting.identified = April` on the place (`assumed`, 0.95, half an hour, source
 `world:household`, caused by the sighting), so the record, the Viewer, and a question an hour

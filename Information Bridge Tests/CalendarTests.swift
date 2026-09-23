@@ -223,3 +223,41 @@ private actor Agenda {
     init(items: [CalendarItem]) { self.items = items }
     func replace(_ items: [CalendarItem]) { self.items = items }
 }
+
+@Suite("A date in another year says so")
+struct CalendarYearTests {
+    private let pacific = TimeZone(identifier: "America/Los_Angeles")!
+    // 2026-09-22 12:00 PDT.
+    private let now = Date(timeIntervalSince1970: 1_790_103_600)
+
+    private func item(starts: Date, allDay: Bool = false) -> CalendarItem {
+        CalendarItem(
+            identifier: "event:training", calendar: "Home", title: "Personal Training",
+            location: "Freeland", notes: "", starts: starts,
+            ends: starts.addingTimeInterval(3_600), isAllDay: allDay, attendees: [])
+    }
+
+    @Test("This year is bare; another year names itself - a recurring event runs into next year")
+    func namesTheYearWhenItIsNotThisOne() {
+        // Tomorrow, this year.
+        let tomorrow = item(starts: now.addingTimeInterval(28 * 3_600))
+        #expect(
+            CalendarFacts.when(tomorrow, zone: pacific, now: now)
+                == "Wednesday, September 23 at 4:00 PM")
+        // The same weekday a year on: the instance that left Beaky unable to tell it from
+        // tomorrow (#206).
+        let nextYear = item(starts: now.addingTimeInterval(364 * 86_400))
+        #expect(CalendarFacts.when(nextYear, zone: pacific, now: now).contains("2027"))
+        let allDay = item(starts: now.addingTimeInterval(364 * 86_400), allDay: true)
+        #expect(CalendarFacts.when(allDay, zone: pacific, now: now).hasSuffix("2027 (all day)"))
+        // A reminder, the same rule.
+        #expect(
+            !ReminderFacts.when(
+                now.addingTimeInterval(3 * 86_400), hasTime: true, zone: pacific, now: now
+            ).contains("202"))
+        #expect(
+            ReminderFacts.when(
+                now.addingTimeInterval(400 * 86_400), hasTime: false, zone: pacific, now: now
+            ).contains("2027"))
+    }
+}

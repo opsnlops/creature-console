@@ -1,3 +1,12 @@
+creature-cli (2.82.1+world0.40.0+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.40.0: a search answers with one instance per
+    recurring calendar series - the one nearest now - and ties break by
+    proximity, so a look-up for "training" no longer returns a coin-flip
+    instance from next year (console #206).
+
+ -- April White <april@creature.engineering>  Tue, 22 Sep 2026 18:10:00 -0700
+
 creature-cli (2.82.1+world0.39.1+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.39.1: a scene event's subjects name the speaker once -
