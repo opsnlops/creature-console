@@ -1,3 +1,16 @@
+creature-cli (2.83.1+world0.42.0+house0.3.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.83.1: the night after the spells fix, the memory run
+    re-filed its memories on person:creature-server, person:creature-world,
+    and person:mac-studio - the day's record still held those names, the
+    model copied them back with the person label, and a name the world
+    holds was trusted over the new rule. A slug held under both person:
+    and another kind is the other kind; a person:-labelled name with a
+    thing word in it is a thing; a misfiled person the record holds is
+    never the answer.
+
+ -- April White <april@creature.engineering>  Wed, 23 Sep 2026 16:40:00 -0700
+
 creature-cli (2.83.0+world0.42.0+house0.3.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.3.1: a measurement is never hours stale. minimum_change

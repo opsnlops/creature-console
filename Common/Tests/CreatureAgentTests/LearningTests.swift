@@ -78,6 +78,21 @@ struct LearningTests {
         #expect(names.entity(named: "Tamara")?.rawValue == "person:tamara")
         #expect(names.entity(named: "Adlai Erickson")?.rawValue == "person:adlai-erickson")
         #expect(names.entity(named: "Susan")?.rawValue == "person:susan")
+        // The record of a day from before spells still says `person:mac-studio`; the memory
+        // model copies it back. It is a thing, whichever the record or the model says.
+        var stale = names
+        stale.add([
+            try! EntityID(validating: "person:mac-studio"),
+            try! EntityID(validating: "person:creature-server"),
+        ])
+        #expect(stale.entity(named: "person: Mac Studio")?.rawValue == "thing:mac-studio")
+        #expect(stale.entity(named: "Creature Server")?.rawValue == "thing:creature-server")
+        #expect(stale.knownEntity(named: "person:creature-server") == nil)
+        stale.add([try! EntityID(validating: "thing:mac-studio")])
+        #expect(stale.knownEntity(named: "person: Mac Studio")?.rawValue == "thing:mac-studio")
+        // A real person the record already holds stays a person.
+        stale.add([try! EntityID(validating: "person:tamara")])
+        #expect(stale.entity(named: "person: Tamara")?.rawValue == "person:tamara")
         // The contract offers every kind.
         #expect(LearnedFact.contract.contains("spell: the TV spell"))
         #expect(LearnedFact.contract.contains("thing: Mac Studio"))

@@ -147,7 +147,15 @@ struct EntityNames: Sendable {
             }
             if let colon = id.rawValue.firstIndex(of: ":") {
                 let slug = String(id.rawValue[id.rawValue.index(after: colon)...])
-                if known[slug] == nil { known[slug] = id }
+                // A slug the world holds under two kinds is the one that is not the old
+                // default: `person:mac-studio` was a guess, `thing:mac-studio` is what it is.
+                if let held = known[slug] {
+                    if held.rawValue.hasPrefix("person:"), !id.rawValue.hasPrefix("person:") {
+                        known[slug] = id
+                    }
+                } else {
+                    known[slug] = id
+                }
             }
         }
     }
@@ -182,7 +190,16 @@ struct EntityNames: Sendable {
             else { return nil }
             if kind == "house" { return houseID }
             // The world already holds this name under a kind: that one, not the mind's.
-            if let existing = known[slug] { return existing }
+            if let existing = known[slug], !Self.isMisfiledPerson(existing, name: trimmed) {
+                return existing
+            }
+            // "person: Creature Server" - a record from before spells, copied back - is not
+            // a person because it says so; a person's name has to look like one.
+            if kind == "person",
+                slug.split(separator: "-").contains(where: { Self.thingWords.contains(String($0)) })
+            {
+                return EntityID(rawValue: "thing:\(slug)")
+            }
             return EntityID(rawValue: "\(kind):\(slug)")
         }
         if let character = characters[Self.key(trimmed)] { return character }
@@ -193,7 +210,9 @@ struct EntityNames: Sendable {
         }
         guard let slug = Self.slug(trimmed) else { return nil }
         if slug == "house" { return houseID }
-        if let existing = known[slug] { return existing }
+        if let existing = known[slug], !Self.isMisfiledPerson(existing, name: trimmed) {
+            return existing
+        }
         let words = slug.split(separator: "-").map(String.init)
         let placeWords: Set<String> = [
             "door", "driveway", "carport", "kitchen", "workshop", "orchard", "porch", "garage",
@@ -203,6 +222,14 @@ struct EntityNames: Sendable {
             return EntityID(rawValue: "place:\(slug)")
         }
         return EntityID(rawValue: "\(Self.looksLikeAPerson(trimmed) ? "person" : "thing"):\(slug)")
+    }
+
+    /// A `person:` the world holds that is really a thing - filed before spells, when anything
+    /// unfamiliar became a person: its slug carries a word that names things.
+    static func isMisfiledPerson(_ id: EntityID, name: String) -> Bool {
+        guard id.rawValue.hasPrefix("person:") else { return false }
+        let slugWords = id.rawValue.dropFirst("person:".count).split(separator: "-")
+        return slugWords.contains { thingWords.contains(String($0)) }
     }
 
     /// A name a person could have: one or two capitalized words, no "the", no possessive, no
