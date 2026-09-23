@@ -87,6 +87,10 @@ struct EntityMapping: Equatable, Sendable {
         /// `on` → `camera.<detects>_seen`; `off` after a long enough `on` →
         /// `camera.<detects>_gone` (never for animals).
         case detection
+        /// `media_player.*`: what it is doing, in words, → `media.changed` with `predicate`
+        /// (`tv`, `source`, `playing`) - "on", "Apple TV, volume 40%", "YouTube: <title>" - and
+        /// `null` when it goes off. The TV, for the birds and, later, for the microphones.
+        case media
     }
 
     enum Detects: String, Decodable, Sendable {
@@ -146,7 +150,7 @@ struct EntityMapping: Equatable, Sendable {
         guard entityID.contains("."), !entityID.hasPrefix("."), !entityID.hasSuffix(".") else {
             throw HouseConfigurationError.invalidEntity(raw.entityID)
         }
-        if raw.kind == .measurement {
+        if raw.kind == .measurement || raw.kind == .media {
             guard let predicate = raw.predicate?.trimmingCharacters(in: .whitespacesAndNewlines),
                 !predicate.isEmpty
             else { throw HouseConfigurationError.measurementNeedsPredicate(entityID) }

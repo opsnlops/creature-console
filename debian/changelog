@@ -1,3 +1,18 @@
+creature-cli (2.82.1+world0.41.0+house0.3.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.3.0: the TV. A new mapping kind, `media`, turns a Home
+    Assistant media player into words on its room - "on", "Apple TV,
+    volume 40%", "YouTube: <title> (paused)" - sent when the words change
+    and ended when the device goes off, standby, or unavailable. The
+    package maps the family room's Samsung TV (media.tv) and receiver
+    (media.source); an Apple TV entity, once the integration is added, is
+    one more line (media.playing).
+  * creature-world 0.41.0: media.changed becomes media.<predicate> on the
+    room; state, never a story or a scene. place:family-room joins
+    region:home in the packaged world.json.
+
+ -- April White <april@creature.engineering>  Tue, 22 Sep 2026 21:30:00 -0700
+
 creature-cli (2.82.1+world0.40.2+house0.2.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.40.2: a recurring event answers a search with its

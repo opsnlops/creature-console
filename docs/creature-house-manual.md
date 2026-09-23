@@ -131,3 +131,30 @@ REST snapshot / scene list / `scene.turn_on`, and delivery with the world away (
 survives a restart and drains in order). World side: `HouseReducerTests`, `HouseCommandTests`
 (the rule and the ingress hook), and `HousePresenceTests` (evidence over assumption; an ask
 becomes a request event and the fact the mind is told).
+
+## The TV (`0.3.0`)
+
+A mapping of kind `media` turns a Home Assistant `media_player.*` into words on its room, with
+a `predicate` like measurements have:
+
+```json
+{ "entity_id": "media_player.family_room_tv_samsung", "subject_id": "place:family-room", "kind": "media", "predicate": "tv" },
+{ "entity_id": "media_player.family_room_receiver", "subject_id": "place:family-room", "kind": "media", "predicate": "source" }
+```
+
+The words: a device that is only on is `"on"`; a receiver says its source and volume in tens
+(`"Apple TV, volume 40%"`); a player with something on it says the app and title
+(`"YouTube: <title>"`, `"Music: <title> by <artist>"`, `"(paused)"`). Idle with a title left
+over from last time is not playing. The house sends `media.changed` when the words change (a
+new video under the same `playing` state counts; a nudge of the volume knob inside ten percent
+does not), and `null` when the device goes off, standby, or unavailable, so the world's
+`media.<predicate>` fact is never stale; at startup every media player says its state once,
+off included. It is state, not story: never a happening, never a scene.
+
+Home Assistant had no Apple TV entity on 2026-09-22, so the title of what is playing needs its
+Apple TV integration (Settings → Devices & services → Apple TV, pair with the PIN on screen);
+then one more line maps it with `"predicate": "playing"`. The family room must be a place in a
+region the birds are in (`place:family-room` in `region:home`, packaged world.json `0.41.0`).
+This is also the fact the microphones will read: in a room where media is playing, an
+utterance will need to begin with a bird's name.
+

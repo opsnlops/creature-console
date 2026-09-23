@@ -209,3 +209,111 @@ struct HouseTranslatorTests {
 extension Array {
     fileprivate var only: Element? { count == 1 ? self[0] : nil }
 }
+
+@Suite("The TV, translated")
+struct HouseMediaTests {
+    private let now = Date(timeIntervalSince1970: 1_790_130_000)
+    private let familyRoom = try! EntityID(validating: "place:family-room")
+
+    private func state(
+        _ entity: String, _ value: String, _ attributes: [String: WorldJSONValue] = [:],
+        at offset: TimeInterval = 0
+    ) -> EntityState {
+        EntityState(
+            entityID: entity, state: value, attributes: attributes,
+            lastChanged: now.addingTimeInterval(offset), contextID: "ctx-\(entity)-\(offset)")
+    }
+
+    @Test("What April's players said on 2026-09-22, in words the birds can use")
+    func realShapes() {
+        // As Home Assistant reported them, YouTube on the Apple TV through the receiver.
+        #expect(
+            HouseTranslator.mediaWords(
+                state(
+                    "media_player.family_room_tv_samsung", "on",
+                    [
+                        "friendly_name": .string("Family Room TV Samsung"),
+                        "device_class": .string("tv"),
+                        "is_volume_muted": .bool(false),
+                    ])) == "on")
+        #expect(
+            HouseTranslator.mediaWords(
+                state(
+                    "media_player.family_room_receiver", "on",
+                    [
+                        "device_class": .string("receiver"), "media_title": .string("Apple TV"),
+                        "media_content_type": .string("channel"), "volume_level": .number(0.4),
+                        "source": .string("Apple TV"),
+                    ])) == "Apple TV, volume 40%")
+        // Idle with a title left over from last time is not playing.
+        #expect(
+            HouseTranslator.mediaWords(
+                state(
+                    "media_player.bunnys_bathroom", "idle",
+                    [
+                        "app_name": .string("AirMusic"),
+                        "media_title": .string("The Valkyrie (UpOnly 634) [Mix Cut] {MIXED}"),
+                        "media_artist": .string("Focusing"),
+                    ])) == nil)
+        #expect(
+            HouseTranslator.mediaWords(state("media_player.family_room_tv_direct", "unavailable"))
+                == nil)
+        // The Apple TV, once April adds the integration: app, title, paused.
+        #expect(
+            HouseTranslator.mediaWords(
+                state(
+                    "media_player.family_room_apple_tv", "paused",
+                    [
+                        "app_name": .string("YouTube"),
+                        "media_title": .string("Building a Robot Parrot"),
+                    ]))
+                == "YouTube: Building a Robot Parrot (paused)")
+        #expect(
+            HouseTranslator.mediaWords(
+                state(
+                    "media_player.family_room_apple_tv", "playing",
+                    [
+                        "app_name": .string("Music"), "media_title": .string("Enchanted Tiki Room"),
+                        "media_artist": .string("Disneyland"),
+                    ]))
+                == "Music: Enchanted Tiki Room by Disneyland")
+    }
+
+    @Test("A change in the words is news; the same words are not; going off ends the fact")
+    func changes() throws {
+        let translator = HouseTranslator(mappings: [
+            EntityMapping(
+                entityID: "media_player.family_room_tv_samsung", subjectID: familyRoom,
+                kind: .media, predicate: "tv")
+        ])
+        // Startup, on: the fact.
+        let on = try #require(
+            try translator.events(from: nil, to: state("media_player.family_room_tv_samsung", "on"))
+                .only)
+        #expect(on.type == HouseEvents.mediaChanged)
+        #expect(on.subjectIDs == [familyRoom])
+        #expect(on.payload["predicate"] == .string("tv"))
+        #expect(on.payload["value"] == .string("on"))
+        // Startup, off: still said, so a stale "on" from before a restart is ended.
+        let startOff = try #require(
+            try translator.events(
+                from: nil, to: state("media_player.family_room_tv_samsung", "off")
+            ).only)
+        #expect(startOff.payload["value"] == .null)
+        // The same words: nothing.
+        #expect(
+            try translator.events(
+                from: state("media_player.family_room_tv_samsung", "on"),
+                to: state("media_player.family_room_tv_samsung", "on", at: 60)
+            ).isEmpty)
+        // Off, or gone: the fact ends.
+        for gone in ["off", "standby", "unavailable"] {
+            let event = try #require(
+                try translator.events(
+                    from: state("media_player.family_room_tv_samsung", "on"),
+                    to: state("media_player.family_room_tv_samsung", gone, at: 60)
+                ).only)
+            #expect(event.payload["value"] == .null)
+        }
+    }
+}

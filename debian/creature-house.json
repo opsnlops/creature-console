@@ -30,6 +30,8 @@
     { "entity_id": "binary_sensor.carport_vehicle_detected_2", "subject_id": "place:carport", "kind": "detection", "detects": "vehicle" },
     { "entity_id": "binary_sensor.workshop_person_detected", "subject_id": "place:workshop", "kind": "detection", "detects": "person" },
     { "entity_id": "binary_sensor.kitchen_camera_person_detected", "subject_id": "place:kitchen", "kind": "detection", "detects": "person" },
-    { "entity_id": "binary_sensor.orchard_animal_detected", "subject_id": "place:orchard", "kind": "detection", "detects": "animal" }
+    { "entity_id": "binary_sensor.orchard_animal_detected", "subject_id": "place:orchard", "kind": "detection", "detects": "animal" },
+    { "entity_id": "media_player.family_room_tv_samsung", "subject_id": "place:family-room", "kind": "media", "predicate": "tv" },
+    { "entity_id": "media_player.family_room_receiver", "subject_id": "place:family-room", "kind": "media", "predicate": "source" }
   ]
 }

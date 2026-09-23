@@ -12,6 +12,7 @@ struct HouseReducer: WorldReducer {
         HouseEvents.personGone, HouseEvents.vehicleGone,
         HouseEvents.cameraWatching,
         HouseEvents.personArrived, HouseEvents.personLeft, HouseEvents.measurementChanged,
+        HouseEvents.mediaChanged,
         HouseEvents.scenesOffered, HouseEvents.sceneRequested, HouseEvents.sceneActivated,
     ]
 
@@ -86,6 +87,18 @@ struct HouseReducer: WorldReducer {
             else { return WorldReduction() }
             return WorldReduction(changedFacts: [
                 try fact(WorldFacts.environmentPrefix + predicate, value)
+            ])
+        case HouseEvents.mediaChanged:
+            // On: the words, until the next change. Off: gone - a `null` that ends the old
+            // value and is gone itself a second later.
+            guard case .string(let predicate)? = event.payload["predicate"] else {
+                return WorldReduction()
+            }
+            let value = event.payload["value"] ?? .null
+            return WorldReduction(changedFacts: [
+                try fact(
+                    WorldFacts.mediaPrefix + predicate, value,
+                    validFor: value == .null ? 1 : nil)
             ])
         case HouseEvents.scenesOffered:
             guard let scenes = event.payload["scenes"] else { return WorldReduction() }

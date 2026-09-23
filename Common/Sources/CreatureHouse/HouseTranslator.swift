@@ -34,6 +34,10 @@ struct HouseTranslator: Sendable {
             payload["after_seconds"] = .number(
                 new.lastChanged.timeIntervalSince(old.lastChanged).rounded())
         }
+        if mapping.kind == .media, let predicate = mapping.predicate {
+            payload["predicate"] = .string(predicate)
+            payload["value"] = Self.mediaWords(new).map { .string($0) } ?? .null
+        }
         if mapping.kind == .measurement, let predicate = mapping.predicate,
             let value = Double(new.state)
         {
@@ -66,6 +70,16 @@ struct HouseTranslator: Sendable {
     private func eventType(for mapping: EntityMapping, old: EntityState?, new: EntityState)
         -> WorldEventType?
     {
+        // A media player's words are what matter: a new title under the same `playing` state
+        // is news, a device going unavailable is the TV going off, and nothing else is.
+        if mapping.kind == .media {
+            let now = Self.mediaWords(new)
+            if let old {
+                return Self.mediaWords(old) == now ? nil : HouseEvents.mediaChanged
+            }
+            // At startup, always: an "on" the world kept from before a restart is ended.
+            return HouseEvents.mediaChanged
+        }
         // Home Assistant says `unknown` / `unavailable` when a device is gone; that is not news.
         let dead: Set<String> = ["unknown", "unavailable", ""]
         guard !dead.contains(new.state) else { return nil }
@@ -93,6 +107,8 @@ struct HouseTranslator: Sendable {
                 return nil
             }
             return HouseEvents.measurementChanged
+        case .media:
+            return nil  // decided above
         case .detection:
             // A detection is a moment; only the moment it happens is news, and at startup a
             // camera that happens to be seeing something is not "news" either. Its end is news
@@ -116,6 +132,42 @@ struct HouseTranslator: Sendable {
             case nil: return nil
             }
         }
+    }
+
+    /// What a media player is doing, in words the birds can say - or nil when it is off,
+    /// asleep, idle with nothing on it, or gone:
+    /// - a TV that is only on: "on"
+    /// - a receiver: "Apple TV, volume 40%"
+    /// - a player with something on it: "YouTube: <title>", "by <artist>", "(paused)".
+    /// Volume in tens, so a nudge of the knob is not news.
+    static func mediaWords(_ state: EntityState) -> String? {
+        let active: Set<String> = ["on", "playing", "paused", "buffering"]
+        guard active.contains(state.state) else { return nil }
+        func text(_ key: String) -> String? {
+            if case .string(let value)? = state.attributes[key], !value.isEmpty { return value }
+            return nil
+        }
+        var what: String
+        let app = text("app_name")
+        if let title = text("media_title"), title != text("source") {
+            what = app.map { "\($0): \(title)" } ?? title
+            if let series = text("media_series_title") {
+                what += " (\(series))"
+            } else if let artist = text("media_artist") {
+                what += " by \(artist)"
+            }
+        } else if let app {
+            what = app
+        } else if let source = text("source") {
+            what = source
+            if case .number(let volume)? = state.attributes["volume_level"] {
+                what += ", volume \(Int((volume * 10).rounded()) * 10)%"
+            }
+        } else {
+            what = "on"
+        }
+        if state.state == "paused" { what += " (paused)" }
+        return what
     }
 
     /// `lock.front_door` → `lock-front-door`: a source id is `kind:name`, one colon.

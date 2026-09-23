@@ -120,6 +120,10 @@ public enum WorldFacts {
     public static let cameraWatching = "camera.watching"
     /// A measurement of a place: `environment.<predicate>` (`environment.temperature_f`).
     public static let environmentPrefix = "environment."
+    /// What a room's screens and speakers are doing, from Home Assistant's media players:
+    /// `media.tv` ("on"), `media.source` ("Apple TV, volume 40%"), `media.playing` ("YouTube:
+    /// <title>"). State, not story; gone when the device is off.
+    public static let mediaPrefix = "media."
     /// The lighting scenes the house offers, on `house:<name>`: an array of names.
     public static let houseScenes = "house.scenes"
     /// The lighting scene the house is set to, on `house:<name>`: a name.
@@ -172,6 +176,11 @@ public enum WorldFacts {
         houseScene: "the lighting scene the house is currently set to",
         houseSceneRequested:
             "April just asked for these lights and the house is setting them right now",
+        "media.tv": "whether the TV in that room is on",
+        "media.source":
+            "what the room's receiver is switched to and how loud, when it is on (\"Apple TV, volume 40%\")",
+        "media.playing":
+            "what is playing in that room right now - the app and the title, and whether it is paused",
         "environment.temperature_f": "the temperature there, in degrees Fahrenheit",
         "environment.humidity_percent": "relative humidity there, percent",
         "environment.wind_mph": "average wind speed there, miles an hour",
@@ -216,6 +225,9 @@ public enum HouseEvents {
     public static let personLeft = WorldEventType(rawValue: "person.left")!
     public static let measurementChanged = WorldEventType(
         rawValue: "environment.measurement_changed")!
+    /// A media player changed what it is doing: `predicate` and the words for it, or `null`
+    /// when it went off. Not a story - never a happening, never a scene.
+    public static let mediaChanged = WorldEventType(rawValue: "media.changed")!
     /// The house says which scenes it offers (at startup, and when they change).
     public static let scenesOffered = WorldEventType(rawValue: "house.scenes_offered")!
     /// Someone asked for a scene ("Beaky, set the lights to normal evening"); the house acts.

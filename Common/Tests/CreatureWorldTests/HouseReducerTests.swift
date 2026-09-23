@@ -90,4 +90,34 @@ struct HouseReducerTests {
             epistemic: EpistemicState(type: .observed, confidence: 1),
             payload: payload)
     }
+
+    @Test("A media change is a fact on the room; going off ends it a second later")
+    func mediaFacts() throws {
+        let room = try EntityID(validating: "place:family-room")
+        let when = Date(timeIntervalSince1970: 1_790_130_000)
+        func changed(_ value: WorldJSONValue) throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: HouseEvents.mediaChanged, occurredAt: when,
+                source: EventSource(
+                    id: try SourceID(
+                        validating: "home-assistant:media-player-family-room-receiver"),
+                    kind: HouseEvents.sourceKind, sourceEventID: UUID().uuidString),
+                subjectIDs: [room], placeID: room,
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                payload: ["predicate": .string("source"), "value": value])
+        }
+        let reducer = HouseReducer()
+        let on = try #require(
+            try reducer.reduce(try changed(.string("Apple TV, volume 40%"))).changedFacts.first)
+        #expect(on.subjectID == room)
+        #expect(on.predicate == "media.source")
+        #expect(on.value == .string("Apple TV, volume 40%"))
+        #expect(on.validTo == nil)
+        let off = try #require(try reducer.reduce(try changed(.null)).changedFacts.first)
+        #expect(off.value == .null)
+        #expect(off.validTo == when.addingTimeInterval(1))
+        // State, not story: a media change is never a happening.
+        #expect(!Happening.isStoryworthy(HouseEvents.mediaChanged))
+    }
+
 }
