@@ -1,3 +1,18 @@
+creature-cli (2.83.0+world0.42.0+house0.3.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.83.0: spells, and nothing unfamiliar is a person by
+    default. A learned fact's subject used to fall through to person:
+    unless it had a place word, and fifty things became people - the
+    Creature Server, the Mac Studio, the ferry, "new spell". The contract
+    now names every kind ("Jesse", "the kitchen", "thing: Mac Studio",
+    "spell: the TV spell"); a bare name is a person only if it looks like
+    one; a group ("Kenny and Mango") is nobody. April: "Maybe we need to
+    classify things as spell: since Creature World is about a wizard
+    rabbit and her familiar."
+  * creature-world 0.42.0: spell: is a link kind.
+
+ -- April White <april@creature.engineering>  Tue, 22 Sep 2026 22:30:00 -0700
+
 creature-cli (2.82.1+world0.41.0+house0.3.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.3.0: the TV. A new mapping kind, `media`, turns a Home

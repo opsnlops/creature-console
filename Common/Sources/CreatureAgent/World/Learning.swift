@@ -105,10 +105,14 @@ struct LearnedFact: Equatable, Sendable {
     static let contract = """
         When April tells you something worth keeping - who someone is, that someone is expected \
         and when, that a sighting was her or the postman, a correction to something you said - \
-        end your reply with one line per thing, exactly [learned: who or where | predicate | value \
-        | expires], for example [learned: Jesse | visitor.expected | Tuesday afternoon, to finish \
-        the deck | tomorrow] or [learned: the front door | sighting.identified | the postman | \
-        today]. Predicates: a kind from "what those kinds of fact mean" when one fits, else one already on \
+        end your reply with one line per thing, exactly [learned: who, where, or what | predicate \
+        | value | expires], for example [learned: Jesse | visitor.expected | Tuesday afternoon, to \
+        finish the deck | tomorrow] or [learned: the front door | sighting.identified | the \
+        postman | today]. Name the subject by its kind: a person by name ("Jesse"), a place with \
+        "the" ("the kitchen"), a bird by name ("Kenny"), anything else as "thing: Mac Studio", \
+        and one of April's spells - what she builds to let you notice or do something - as \
+        "spell: the TV spell". One subject per line: never "Kenny and Mango" or "all three \
+        birds". Predicates: a kind from "what those kinds of fact mean" when one fits, else one already on \
         that subject, else a short dotted word of your own. If another bird has already kept the \
         same thing in this scene, do not keep it again. Expires: today, tomorrow, week, or never. \
         Only what April actually said, never your own guess; at most three; the tags are for the \
@@ -149,8 +153,22 @@ struct EntityNames: Sendable {
     }
 
     /// The kinds a mind may name outright: "thing: Hopper" is `thing:hopper`, a named car,
-    /// computer, or printer - not a person.
-    static let kinds: Set<String> = ["person", "place", "house", "character", "thing"]
+    /// computer, or printer - not a person; "spell: the TV spell" is `spell:tv-spell`, one of
+    /// April's spells (the world is a wizard rabbit's and her familiar's: what she builds for
+    /// the birds, they call spells).
+    static let kinds: Set<String> = ["person", "place", "house", "character", "thing", "spell"]
+
+    /// Words that never make a person's name: a bare "Mac Studio" or "Mukilteo Clinton Ferry"
+    /// is a thing, however capitalized. Anything unfamiliar used to fall through to `person:`,
+    /// and fifty things - servers, chargers, the ferry, "new spell" - became people.
+    static let thingWords: Set<String> = [
+        "server", "servers", "studio", "mac", "charger", "printer", "car", "truck", "van",
+        "ferry", "bridge", "viewer", "world", "order", "delivery", "package", "card", "cards",
+        "camera", "cameras", "motor", "motors", "pico", "picos", "screws", "board", "boards",
+        "animation", "animations", "animatronic", "animatronics", "event", "calendar", "labs",
+        "travel", "conversation", "spell", "spells", "tv", "speaker", "sound", "flock",
+        "birds", "system", "app", "network", "congregation", "church", "park",
+    ]
 
     /// "Jesse" → `person:jesse`; "the front door" → `place:front-door`; "the house" → the
     /// configured house; "Mango" → `character:mango` when Mango is known; "thing: Hopper" or
@@ -168,17 +186,37 @@ struct EntityNames: Sendable {
             return EntityID(rawValue: "\(kind):\(slug)")
         }
         if let character = characters[Self.key(trimmed)] { return character }
+        // A group is not an entity: "Kenny and Mango", "all three birds" - nobody to file it on.
+        let lowered = " " + trimmed.lowercased() + " "
+        if lowered.contains(" and ") || lowered.contains(" all ") || trimmed.contains(",") {
+            return nil
+        }
         guard let slug = Self.slug(trimmed) else { return nil }
         if slug == "house" { return houseID }
         if let existing = known[slug] { return existing }
+        let words = slug.split(separator: "-").map(String.init)
         let placeWords: Set<String> = [
             "door", "driveway", "carport", "kitchen", "workshop", "orchard", "porch", "garage",
-            "entryway", "room", "yard", "deck", "outside", "gate",
+            "entryway", "room", "yard", "deck", "outside", "gate", "bedroom", "bathroom", "office",
         ]
-        let kind =
-            slug.split(separator: "-").contains(where: { placeWords.contains(String($0)) })
-            ? "place" : "person"
-        return EntityID(rawValue: "\(kind):\(slug)")
+        if words.contains(where: { placeWords.contains($0) }) {
+            return EntityID(rawValue: "place:\(slug)")
+        }
+        return EntityID(rawValue: "\(Self.looksLikeAPerson(trimmed) ? "person" : "thing"):\(slug)")
+    }
+
+    /// A name a person could have: one or two capitalized words, no "the", no possessive, no
+    /// digits, and none of the words that name things. "Tamara", "Adlai Erickson" - yes;
+    /// "new spell", "Mac Studio", "April's bedroom" - no.
+    static func looksLikeAPerson(_ name: String) -> Bool {
+        let words = name.split(separator: " ").map(String.init)
+        guard (1...2).contains(words.count), words.first?.lowercased() != "the",
+            !name.contains("'"), !name.contains("’"), !name.contains(where: \.isNumber)
+        else { return false }
+        return words.allSatisfy { word in
+            guard let first = word.first, first.isUppercase else { return false }
+            return !thingWords.contains(word.lowercased())
+        }
     }
 
     /// The same, but only for an entity the world already holds - the house, a bird, or a

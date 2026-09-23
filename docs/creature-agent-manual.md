@@ -320,6 +320,15 @@ else — persona, facts, the clock, streaming to the room — is identical.
   is expected; away, it is somebody else; a guess sounds like a guess only when it is one.
   The departure line belongs to the first bird; the chorus is told another bird has already
   told her and to react - a send-off, a wish, a joke - or stay silent.
+- **Spells, and nothing is a person by default** (`2.83.0`). A learned fact's subject used to
+  fall through to `person:` whenever it had no place word in it, and the birds filed the
+  Creature Server, the Mac Studio, the ferry, and "new spell" as people. The contract now names
+  every kind — a person by name ("Jesse"), a place with "the" ("the kitchen"), a bird by name,
+  "thing: Mac Studio", and **"spell: the TV spell"**: one of April's spells, what she builds to
+  let the birds notice or do something (`spell:tv-spell`; world `0.42.0` knows `spell:` as a
+  link kind). A bare name is a person only if it looks like one — one or two capitalized words,
+  no possessive, no digits, none of the words that name things — and a group ("Kenny and
+  Mango", "all three birds") is nobody, so the fact is dropped rather than misfiled.
 - **Every silent turn says why** (`2.82.1`). A pass with no `[pass: why]` of the model's own —
   too late, the model gave nothing usable, the model did not answer in time — now carries that
   as its quiet reason to the world, so the Viewer never shows a silent turn with nothing beside

@@ -54,7 +54,7 @@ public enum WorldFacts {
     /// link - `calendar.with = person:jesse` - and the world follows links one hop when it
     /// gathers what a mind is handed.
     public static let linkKinds: Set<String> = [
-        "person", "place", "house", "character", "thing", "event", "order",
+        "person", "place", "house", "character", "thing", "event", "order", "spell",
     ]
 
     /// The entity a value points at, if it is a link.

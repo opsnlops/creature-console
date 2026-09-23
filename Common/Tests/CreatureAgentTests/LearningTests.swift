@@ -55,6 +55,35 @@ struct LearningTests {
         #expect(names.entity(named: "") == nil)
     }
 
+    @Test("Only a name that looks like a person's is a person; spells, things, and groups are not")
+    func thingsAreNotPeople() {
+        // What the birds really filed as people, 2026-09-13 to 09-22.
+        #expect(names.entity(named: "new spell")?.rawValue == "thing:new-spell")
+        #expect(names.entity(named: "spell: the TV spell")?.rawValue == "spell:tv-spell")
+        #expect(names.entity(named: "Mac Studio")?.rawValue == "thing:mac-studio")
+        #expect(names.entity(named: "Creature Server")?.rawValue == "thing:creature-server")
+        #expect(
+            names.entity(named: "Mukilteo Clinton Ferry")?.rawValue
+                == "thing:mukilteo-clinton-ferry")
+        #expect(names.entity(named: "car charger")?.rawValue == "thing:car-charger")
+        #expect(names.entity(named: "Pi Picos")?.rawValue == "thing:pi-picos")
+        #expect(names.entity(named: "church event")?.rawValue == "thing:church-event")
+        #expect(names.entity(named: "April's bedroom")?.rawValue == "place:april-s-bedroom")
+        #expect(names.entity(named: "Wednesday 8 AM labs")?.rawValue == "thing:wednesday-8-am-labs")
+        // Groups are nobody.
+        #expect(names.entity(named: "Kenny and Mango") == nil)
+        #expect(names.entity(named: "all three birds") == nil)
+        #expect(names.entity(named: "Beaky, Mango, and Kenny") == nil)
+        // People still are.
+        #expect(names.entity(named: "Tamara")?.rawValue == "person:tamara")
+        #expect(names.entity(named: "Adlai Erickson")?.rawValue == "person:adlai-erickson")
+        #expect(names.entity(named: "Susan")?.rawValue == "person:susan")
+        // The contract offers every kind.
+        #expect(LearnedFact.contract.contains("spell: the TV spell"))
+        #expect(LearnedFact.contract.contains("thing: Mac Studio"))
+        #expect(WorldFacts.linkKinds.contains("spell"))
+    }
+
     @Test("A name the world already holds is that entity, whatever kind the mind wrote")
     func knownEntitiesWin() throws {
         var known = names
