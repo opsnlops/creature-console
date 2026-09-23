@@ -227,15 +227,23 @@ actor MessagesSource {
                 case .request: kind = .request
                 case .news: kind = .news
                 case .delivery: kind = .delivery
+                case .notice: kind = .notice
                 case .nothing: continue
                 }
-                // A carrier's number only ever says a package came; a friend's never does.
-                guard (kind == .delivery) == (person == nil) else {
+                // An allowed sender - a carrier, a pharmacy - says a package came or tells her
+                // something to act on; a friend's text is a visit, a request, or news.
+                let fromABusiness: Set<MessageTold.Kind> = [.delivery, .notice]
+                guard fromABusiness.contains(kind) == (person == nil) else {
                     log(message, became: "\(kind.rawValue), ignored", now: now)
                     continue
                 }
+                let subject =
+                    person
+                    ?? (kind == .notice
+                        ? MessageFacts.senderEntity(named: allowed?.name ?? message.handle)
+                        : house)
                 let told = MessageTold(
-                    rowID: message.rowID, person: person ?? house, kind: kind,
+                    rowID: message.rowID, person: subject, kind: kind,
                     sender: person == nil ? allowed?.name : nil,
                     what: reading.what, when: reading.when, said: message.date,
                     until: MessageFacts.until(

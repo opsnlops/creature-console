@@ -208,6 +208,17 @@ the last day only, never the archive. **Only texts from people mapped in the add
 looked at**, and the **senders** April allows by number; April's own texts, strangers, and group
 chats (unless ticked) are skipped unread.
 
+**Notices from the businesses you allow** (`0.14.0`). An allowed sender used to mean a
+delivery or nothing, so the pharmacy's "your prescription is ready" was read and thrown away.
+Now a text from an allowed sender can be a *notice*: something a business or service tells
+you to know or act on (a prescription ready, an appointment confirmed or moved, a bill due).
+It's cast on the sender as a `thing:` (Walgreens → `thing:walgreens`, the name you gave it in
+Senders): `notice.latest = "Walgreens: prescription ready for pickup (texted 2:10 PM)"`, for a
+day. A carrier's "arriving tomorrow 10–2" is a notice on the carrier; "left at the front door"
+is still a delivery on the house. A person's text is never a notice, and a business's is never
+a person's visit, request, or news. One-time codes, sign-in links, marketing, and surveys are
+nothing, and a fact with four digits in a row is dropped, so a code never leaves the Mac.
+
 **A date in another year says so** (`0.13.0`, #206). `calendar.when`, `reminder.due`, and a
 mail appointment's `calendar.when` name the year when it is not the current one — "Tuesday,
 September 21, 2027 at 3:45 PM" — so a date far off is never read as this week. A date with no
@@ -221,7 +232,7 @@ be removed; below it, **texted lately, not read** — every number that texted i
 weeks and was skipped, with how many texts and how lately, never the words — so allowing one is
 a name ("Instacart") and **Read**, not a number copied off the phone. The name is what the birds
 hear: `house · delivery.arrived = "FedEx: package left at the front door (texted 2:10 PM)"`. An
-allowed sender's texts are read for a delivery only; a person is mapped in People, not allowed
+allowed sender's texts are read for a delivery or a **notice** (`0.14.0`) - see below; a person is mapped in People, not allowed
 here. (A FedEx package came on 2026-09-18 and the birds never knew: nothing was listed, and
 nothing meant nobody.)
 

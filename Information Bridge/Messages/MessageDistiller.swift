@@ -16,13 +16,16 @@ struct MessageReading: Equatable, Sendable {
         case news
         /// A carrier says a package was delivered or left somewhere at April's home.
         case delivery
+        /// A business or service tells April something she needs to know or act on: a
+        /// prescription ready, an appointment confirmed or moved, a bill due.
+        case notice
         /// Anything else.
         case nothing
     }
 
     @Guide(
         description:
-            "visit only when the sender is coming to April's home; request only when the sender asks April to do or bring something; news only when the sender reports something that happened to the sender; delivery only when a carrier reports a package at April's home; otherwise nothing. Chat, replies, offers, questions, plans for April to go somewhere, and talk about other people are nothing."
+            "visit only when the sender is coming to April's home; request only when the sender asks April to do or bring something; news only when the sender reports something that happened to the sender; delivery only when a carrier reports a package at April's home; notice only when a business or service tells April something she needs to know or act on, such as a prescription ready, an appointment confirmed or changed, or a bill due; otherwise nothing. Chat, replies, offers, questions, plans for April to go somewhere, talk about other people, one-time codes, sign-in links, marketing, sales, and surveys are nothing."
     )
     var kind: Kind
     @Guide(
@@ -74,7 +77,9 @@ struct MessageDistiller: Sendable {
         do {
             var reading = try await session.respond(to: prompt, generating: MessageReading.self)
                 .content
-            guard Self.isSupported(reading, by: last) else { return nil }
+            guard Self.isSupported(reading, by: last), !Self.carriesACode(reading) else {
+                return nil
+            }
             reading.what = Self.shortened(reading.what)
             reading.when = Self.shortened(reading.when)
             return reading
@@ -90,6 +95,12 @@ struct MessageDistiller: Sendable {
         let quote = squeeze(reading.quote)
         guard quote.count >= 3 else { return false }
         return squeeze(text).contains(quote)
+    }
+
+    /// A one-time code, an account or card number: four or more digits in a row in the fact.
+    /// A notice is "prescription ready", never "your code is 482913" - codes never leave the Mac.
+    static func carriesACode(_ reading: MessageReading) -> Bool {
+        reading.what.contains(/\d{4,}/)
     }
 
     /// Cut at a word, with an ellipsis, when the model gave back the message instead of a fact.

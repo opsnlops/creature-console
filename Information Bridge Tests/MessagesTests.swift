@@ -115,6 +115,79 @@ struct MessagesTests {
         #expect(connection.messagesSenders.isEmpty)
     }
 
+    @Test(
+        "An allowed business tells April something to act on: a notice on the business, never a person's"
+    )
+    func businessesSendNotices() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(
+            path: "messages-tests-\(UUID().uuidString.lowercased())")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let now = afternoon
+        let casts = Casts()
+        let messages = [
+            // The pharmacy, allowed from the Senders window.
+            text(1, from: "92748", "Your prescription is ready for pickup at 5th Ave", now: now),
+            // A friend's text the model calls a notice: a person is never a business.
+            text(2, "the dentist moved my appointment", now: now),
+            // A carrier saying when, not that it came: a notice on the carrier.
+            text(3, from: "1-800-463-3339", "Your package is arriving tomorrow 10am-2pm", now: now),
+        ]
+        let resolver = resolver
+        let source = MessagesSource(
+            directory: directory, house: house, zone: pacific, readGroupChats: false,
+            senders: TextSender.defaults + [TextSender(handle: "92748", name: "Walgreens")],
+            lookbackDays: 1,
+            fetch: { after, since in messages.filter { $0.rowID > (after ?? 0) && $0.date > since }
+            },
+            distill: { message, _, _ in
+                switch message.rowID {
+                case 1:
+                    MessageReading(
+                        kind: .notice, what: "prescription ready for pickup", when: "",
+                        quote: "prescription is ready for pickup")
+                case 2:
+                    MessageReading(
+                        kind: .notice, what: "dentist moved the appointment", when: "",
+                        quote: "moved my appointment")
+                default:
+                    MessageReading(
+                        kind: .notice, what: "package arriving", when: "tomorrow 10am-2pm",
+                        quote: "arriving tomorrow")
+                }
+            },
+            modelCheck: { nil },
+            resolver: { resolver }
+        ) { await casts.note($0) }
+        await source.poll(now: now)
+        let events = await casts.events
+        #expect(events.count == 2)
+        let walgreens = try #require(
+            events.first { $0.subjectIDs.first?.rawValue == "thing:walgreens" })
+        #expect(walgreens.payload["predicate"] == .string("notice.latest"))
+        #expect(
+            walgreens.payload["value"]
+                == .string("Walgreens: prescription ready for pickup (texted 1:40 PM)"))
+        let fedex = try #require(events.first { $0.subjectIDs.first?.rawValue == "thing:fedex" })
+        #expect(
+            fedex.payload["value"]
+                == .string("FedEx: package arriving, tomorrow 10am-2pm (texted 1:40 PM)"))
+        // Jesse's "notice" was not cast: a friend's words are visits, requests, and news.
+        #expect(!events.contains { $0.subjectIDs.first == jesse })
+        #expect(MessageFacts.senderEntity(named: "CVS Pharmacy").rawValue == "thing:cvs-pharmacy")
+        #expect(MessageFacts.meanings["notice.latest"] != nil)
+    }
+
+    @Test("A one-time code or an account number is never a fact")
+    func codesStayOnTheMac() {
+        func reading(_ what: String) -> MessageReading {
+            MessageReading(kind: .notice, what: what, when: "", quote: what)
+        }
+        #expect(MessageDistiller.carriesACode(reading("your code is 482913")))
+        #expect(MessageDistiller.carriesACode(reading("card ending 4417 was charged")))
+        #expect(!MessageDistiller.carriesACode(reading("prescription ready for pickup")))
+        #expect(!MessageDistiller.carriesACode(reading("appointment moved to 3 PM Friday")))
+    }
+
     @Test("Only texts from people April knows are read; April's own, groups, and chat are not")
     func sourceReadsOnlyWhatMatters() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(

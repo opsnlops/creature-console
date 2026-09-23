@@ -67,6 +67,9 @@ struct MessageTold: Equatable, Sendable, Codable {
         case news
         /// A carrier's "left at the front door": `delivery.arrived` on the house.
         case delivery
+        /// A business's "your prescription is ready": `notice.latest` on the sender, as a
+        /// `thing:` (Walgreens is not a person, and never a card to map).
+        case notice
     }
 
     var rowID: Int64
@@ -87,12 +90,15 @@ enum MessageFacts {
     static let requestFor: TimeInterval = 24 * 3_600
     static let newsFor: TimeInterval = 7 * 86_400
     static let deliveryFor: TimeInterval = 6 * 3_600
+    static let noticeFor: TimeInterval = 24 * 3_600
 
     static let meanings: [String: String] = [
         "person.asked_april":
             "something the person asked April for, by text, and when; a bird may remind her, or not",
         "person.news":
             "something the person told April about themselves, by text, and when they said it",
+        "notice.latest":
+            "what a business or service last told April by text - a prescription ready, an appointment confirmed or moved, a bill due - and when; hers to act on, a bird may mention it once",
     ]
 
     /// How long a reading holds. A visit holds two hours, or until three hours past the time
@@ -110,7 +116,15 @@ enum MessageFacts {
         case .request: return said.addingTimeInterval(requestFor)
         case .news: return said.addingTimeInterval(newsFor)
         case .delivery: return said.addingTimeInterval(deliveryFor)
+        case .notice: return said.addingTimeInterval(noticeFor)
         }
+    }
+
+    /// The entity an allowed sender's notices live on: "Walgreens" → `thing:walgreens`.
+    static func senderEntity(named name: String) -> EntityID {
+        let slug = name.lowercased().map { $0.isLetter || $0.isNumber ? String($0) : "-" }
+            .joined().split(separator: "-").joined(separator: "-")
+        return EntityID(rawValue: "thing:\(slug.isEmpty ? "sender" : slug)")!
     }
 
     /// "6", "6:30", "around 6pm", "at 18:00": the next such time after the text was sent.
@@ -188,6 +202,14 @@ enum MessageFacts {
             return FactLedger.Wanted(
                 entityID: house,
                 facts: ["delivery.arrived": .string("\(who)\(told.what) (\(said))")],
+                validUntil: told.until)
+        case .notice:
+            return FactLedger.Wanted(
+                entityID: told.person,
+                facts: [
+                    "notice.latest": .string(
+                        "\(told.sender.map { "\($0): " } ?? "")\(told.what)\(when) (\(said))")
+                ],
                 validUntil: told.until)
         }
     }

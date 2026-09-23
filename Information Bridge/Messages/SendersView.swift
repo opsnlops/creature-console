@@ -3,7 +3,8 @@ import SwiftUI
 /// The numbers whose texts are read without a card mapped to them: the carriers, and
 /// whatever April allows. Below them, who texted lately and was skipped unread - a number,
 /// how often, how lately, never the words - so allowing one is a name and a click, not a
-/// number copied off her phone. What an allowed sender says is read for a delivery only.
+/// number copied off her phone. What an allowed sender says is read for a delivery or a
+/// notice - a prescription ready, an appointment moved - never as a person's news.
 struct SendersView: View {
     @Bindable var store: BridgeStore
     @State private var newHandle = ""
@@ -12,7 +13,7 @@ struct SendersView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(
-                "Texts from these numbers are read - by the model on this Mac, for a delivery at the house - even with no card mapped. A person is mapped in People, not allowed here."
+                "Texts from these numbers are read - by the model on this Mac, for a delivery at the house or a notice to act on (a prescription ready, an appointment moved) - even with no card mapped. Codes and marketing are never read out. A person is mapped in People, not allowed here."
             )
             .font(.caption)
             .foregroundStyle(.secondary)
