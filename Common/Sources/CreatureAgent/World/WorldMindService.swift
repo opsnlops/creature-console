@@ -259,9 +259,14 @@ struct WorldMindService: Service {
                 var payload: [String: WorldJSONValue] = [
                     "subject_id": .string(fact.subjectID.rawValue),
                     "predicate": .string(fact.predicate),
-                    "value": .string(fact.value),
+                    "value": fact.ends ? .null : .string(fact.value),
                 ]
-                if let seconds = fact.expiry.seconds(from: now, in: mind.configuration.timeZone) {
+                if fact.ends {
+                    // Ended: a `null` that closes what was held, gone itself a second later.
+                    payload["valid_for_seconds"] = .number(1)
+                } else if let seconds = fact.expiry.seconds(
+                    from: now, in: mind.configuration.timeZone)
+                {
                     payload["valid_for_seconds"] = .number(seconds)
                 }
                 let event = try WorldEventEnvelope(

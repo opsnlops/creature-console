@@ -1,3 +1,14 @@
+creature-cli (2.84.0+world0.42.0+house0.3.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.84.0: a bird can take a fact back. A learned value of
+    none ends the fact ([learned: Jesse | visitor.expected | none | today]),
+    and the contract says to when April says something no longer holds.
+    On 2026-09-23 Jesse stayed "expected" all evening after April said he
+    was gone - there was no way to end it - so every camera sighting was
+    "either her or Jesse" and the birds kept asking about him.
+
+ -- April White <april@creature.engineering>  Thu, 24 Sep 2026 18:10:00 -0700
+
 creature-cli (2.83.1+world0.42.0+house0.3.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.83.1: the night after the spells fix, the memory run

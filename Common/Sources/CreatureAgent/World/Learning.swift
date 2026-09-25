@@ -33,6 +33,13 @@ struct LearnedFact: Equatable, Sendable {
     var value: String
     var expiry: Expiry
 
+    /// A value of `none` ends the fact instead of setting it: "he's gone now" is
+    /// `[learned: Jesse | visitor.expected | none | today]`. Before this there was no way to
+    /// take a fact back, and a visitor April had said was gone stayed "expected" all evening -
+    /// every camera sighting was "either her or Jesse", and the birds kept asking.
+    static let endingWords: Set<String> = ["none", "gone", "nothing", "no longer"]
+    var ends: Bool { Self.endingWords.contains(value.lowercased()) }
+
     static let tagPattern = #"\[learned:([^\]]*)\]"#
     static let maximumPerReply = 3
 
@@ -112,7 +119,9 @@ struct LearnedFact: Equatable, Sendable {
         "the" ("the kitchen"), a bird by name ("Kenny"), anything else as "thing: Mac Studio", \
         and one of April's spells - what she builds to let you notice or do something - as \
         "spell: the TV spell". One subject per line: never "Kenny and Mango" or "all three \
-        birds". Predicates: a kind from "what those kinds of fact mean" when one fits, else one already on \
+        birds". When April says something no longer holds - a visitor has left, a plan is off - \
+        end it with the value none: [learned: Jesse | visitor.expected | none | today]. \
+        Predicates: a kind from "what those kinds of fact mean" when one fits, else one already on \
         that subject, else a short dotted word of your own. If another bird has already kept the \
         same thing in this scene, do not keep it again. Expires: today, tomorrow, week, or never. \
         Only what April actually said, never your own guess; at most three; the tags are for the \

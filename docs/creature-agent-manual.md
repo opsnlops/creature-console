@@ -320,6 +320,13 @@ else — persona, facts, the clock, streaming to the room — is identical.
   is expected; away, it is somebody else; a guess sounds like a guess only when it is one.
   The departure line belongs to the first bird; the chorus is told another bird has already
   told her and to react - a send-off, a wish, a joke - or stay silent.
+- **A fact can be taken back** (`2.84.0`). A learned tag with the value `none` ends the fact
+  instead of setting it — `[learned: Jesse | visitor.expected | none | today]` — cast as a
+  `null` that closes what was held. The contract tells the birds to do it when April says
+  something no longer holds: a visitor has left, a plan is off. On 2026-09-23 Jesse stayed
+  "expected" all evening after April said he was gone; every camera sighting's stage note was
+  "either her or Jesse", and all three birds kept asking. All three wrote the lesson into their
+  memories that night ("being curious is not permission to keep asking the same question").
 - **Spells, and nothing is a person by default** (`2.83.0`). A learned fact's subject used to
   fall through to `person:` whenever it had no place word in it, and the birds filed the
   Creature Server, the Mac Studio, the ferry, and "new spell" as people. The contract now names

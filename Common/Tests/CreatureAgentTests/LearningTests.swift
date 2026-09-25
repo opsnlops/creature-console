@@ -169,4 +169,21 @@ struct LearningTests {
         #expect(LearnedFact.Expiry.week.seconds(from: now, in: pacific) == 7 * 86_400.0)
         #expect(LearnedFact.Expiry.never.seconds(from: now, in: pacific) == nil)
     }
+
+    @Test("A value of none ends a fact: a visitor April says has gone is no longer expected")
+    func noneEndsAFact() {
+        // 2026-09-23: "You can quit bugging me about Jesse, he's gone now."
+        let facts = LearnedFact.all(
+            in: "Sorry, April. [learned: Jesse | visitor.expected | none | today]", names: names)
+        #expect(facts.count == 1)
+        #expect(facts[0].subjectID.rawValue == "person:jesse")
+        #expect(facts[0].ends)
+        #expect(
+            !LearnedFact(
+                subjectID: facts[0].subjectID, predicate: "visitor.expected",
+                value: "later today", expiry: .today
+            ).ends)
+        #expect(LearnedFact.contract.contains("visitor.expected | none"))
+    }
+
 }
