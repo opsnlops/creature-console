@@ -1,3 +1,11 @@
+creature-cli (2.84.0+world0.42.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.3.2: the packaged house.json tells the rain gauge's
+    every hundredth of an inch (minimum_change 0.01, was 0.05), so a
+    drizzle reaches the birds as it falls.
+
+ -- April White <april@creature.engineering>  Thu, 24 Sep 2026 19:00:00 -0700
+
 creature-cli (2.84.0+world0.42.0+house0.3.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.84.0: a bird can take a fact back. A learned value of
