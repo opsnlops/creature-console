@@ -230,6 +230,15 @@ house from the mail's appointments, on a person from the calendar). A vehicle ge
 she is ("April is home."), since a van could be a delivery. No presence fact, no claim. April:
 "when I'm home, it's me on the cameras. I'm the only one that lives here, it's me."
 
+**A delivery is expected, too** (`0.43.0`). On 2026-09-25 the Amazon driver at the carport was
+"April is home and lives alone, so it is her" - the order went from shipped straight to
+delivered, with no out-for-delivery mail, and only invited visitors counted. Now any order not
+yet delivered whose `order.expected` is today (the Bridge words it "September 25, 2026"), or
+that went out for delivery today, is a delivery expected: "April is home, and a delivery is
+expected - Amazon: Hardware - so it is either her or the driver." / "April is away; a delivery
+is expected - Amazon: Hardware - so it is probably the driver." A vehicle's note names it too.
+While one is expected the house does not cast `sighting.identified = April`.
+
 **The real world knows where April is** (`0.30.2`): when the house observes a person arriving
 or leaving (`person.arrived` / `person.left` from Home Assistant), every *reported* `presence.*`
 fact about them is retracted — Kenny's learned `presence.location = "at the doctor"` good

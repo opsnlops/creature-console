@@ -25,6 +25,11 @@ public enum WorldFacts {
     /// (or the Bridge, from a text), usually with an expiry; a person at the door is then
     /// almost certainly them.
     public static let visitorExpected = "visitor.expected"
+    /// `order:*` `order.status`: placed, shipped, out_for_delivery, or delivered (the Bridge).
+    public static let orderStatus = "order.status"
+    /// `order:*` `order.expected`: the day the mail says it arrives, "September 25, 2026";
+    /// gone once it is delivered.
+    public static let orderExpected = "order.expected"
     /// Who a person a camera saw turned out to be, as April said: "no Beaky, that was just the
     /// postman". Cast by a mind from her words, on the place.
     public static let sightingIdentified = "sighting.identified"

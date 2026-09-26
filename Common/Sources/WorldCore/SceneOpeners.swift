@@ -283,13 +283,46 @@ public struct HouseholdSituation: Sendable, Equatable {
     public var aprilHome: Bool?
     /// The house's `visitor.expected`, if anyone is: "Tamara for cleaning, Wednesday".
     public var visitorExpected: String?
+    /// An order on its way today, if any: "Amazon: Hardware". The driver is a stranger at the
+    /// door April did not invite, and just as expected.
+    public var deliveryExpected: String?
 
-    public init(aprilHome: Bool?, visitorExpected: String? = nil) {
+    public init(aprilHome: Bool?, visitorExpected: String? = nil, deliveryExpected: String? = nil) {
         self.aprilHome = aprilHome
         self.visitorExpected = visitorExpected
+        self.deliveryExpected = deliveryExpected
     }
 
     public static let unknown = HouseholdSituation(aprilHome: nil)
+
+    /// Nobody but April could be about.
+    public var nobodyExpected: Bool { visitorExpected == nil && deliveryExpected == nil }
+
+    /// "a visitor is expected - Tamara - and a delivery - Amazon: Hardware"; nil when nobody is.
+    private var expectedWords: String? {
+        switch (visitorExpected, deliveryExpected) {
+        case (let visitor?, let delivery?):
+            return "a visitor is expected - \(visitor) - and a delivery - \(delivery) -"
+        case (let visitor?, nil): return "a visitor is expected - \(visitor) -"
+        case (nil, let delivery?): return "a delivery is expected - \(delivery) -"
+        case (nil, nil): return nil
+        }
+    }
+
+    /// Who else a person could be: "them", "the driver", or both.
+    private var others: String {
+        switch (visitorExpected != nil, deliveryExpected != nil) {
+        case (true, true): return "them or the driver"
+        case (false, true): return "the driver"
+        default: return "them"
+        }
+    }
+
+    /// Who a person at home could be: "either her or the driver", "her, them, or the driver".
+    private var herOrOthers: String {
+        visitorExpected != nil && deliveryExpected != nil
+            ? "her, them, or the driver" : "either her or \(others)"
+    }
 
     /// " April is home and lives alone, so it is her." - the clause after a person is seen
     /// (`seen`) or no longer seen; nothing when the house does not know where she is.
@@ -297,15 +330,13 @@ public struct HouseholdSituation: Sendable, Equatable {
         let pronoun = seen ? "it is" : "it was"
         switch aprilHome {
         case true?:
-            if let visitorExpected {
-                return
-                    " April is home, and a visitor is expected - \(visitorExpected) - so \(pronoun) either her or them."
+            if let expectedWords {
+                return " April is home, and \(expectedWords) so \(pronoun) \(herOrOthers)."
             }
             return " April is home and lives alone, so \(pronoun) her."
         case false?:
-            if let visitorExpected {
-                return
-                    " April is away; a visitor is expected - \(visitorExpected) - so \(pronoun) probably them."
+            if let expectedWords {
+                return " April is away; \(expectedWords) so \(pronoun) probably \(others)."
             }
             return " April is away, so \(pronoun) somebody else."
         case nil:
@@ -315,13 +346,13 @@ public struct HouseholdSituation: Sendable, Equatable {
 
     /// " April is home." - beside a vehicle, which could be hers or a delivery's.
     var whereAprilIs: String {
+        let expected = [
+            visitorExpected.map { "a visitor is expected - \($0)" },
+            deliveryExpected.map { "a delivery is expected - \($0)" },
+        ].compactMap { $0 }.map { "; \($0)" }.joined()
         switch aprilHome {
-        case true?:
-            return visitorExpected.map { " April is home; a visitor is expected - \($0)." }
-                ?? " April is home."
-        case false?:
-            return visitorExpected.map { " April is away; a visitor is expected - \($0)." }
-                ?? " April is away."
+        case true?: return " April is home\(expected)."
+        case false?: return " April is away\(expected)."
         case nil: return ""
         }
     }

@@ -254,7 +254,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                         let identified = try Household.identification(
                             of: event, place: seenAt,
                             situation: try await Household.situation(
-                                facts: persistence.facts, at: await clock.now),
+                                facts: persistence.facts, at: await clock.now,
+                                zone: memory.zone),
                             now: await clock.now)
                     {
                         _ = try await world.accept(identified)
@@ -290,7 +291,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                             text: SceneOpeningPolicy.triggerText(
                                 for: event, place: place,
                                 household: try await Household.situation(
-                                    facts: persistence.facts, at: await clock.now))),
+                                    facts: persistence.facts, at: await clock.now,
+                                    zone: memory.zone))),
                         participants: participants,
                         trace: event.trace)
                     logger.info(

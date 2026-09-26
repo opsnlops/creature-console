@@ -185,6 +185,30 @@ struct SceneOpeningTests {
             SceneOpeningPolicy.triggerText(for: seen, place: driveway, household: company)
                 == "A person was just seen at the driveway. April is home, and a visitor is expected - Tamara, for cleaning - so it is either her or them."
         )
+        // A delivery on its way today: the driver is the other person it could be.
+        let parcel = HouseholdSituation(aprilHome: true, deliveryExpected: "Amazon: Hardware")
+        #expect(
+            SceneOpeningPolicy.triggerText(for: seen, place: driveway, household: parcel)
+                == "A person was just seen at the driveway. April is home, and a delivery is expected - Amazon: Hardware - so it is either her or the driver."
+        )
+        let both = HouseholdSituation(
+            aprilHome: true, visitorExpected: "Tamara, for cleaning",
+            deliveryExpected: "Amazon: Hardware")
+        #expect(
+            SceneOpeningPolicy.triggerText(for: seen, place: driveway, household: both)
+                == "A person was just seen at the driveway. April is home, and a visitor is expected - Tamara, for cleaning - and a delivery - Amazon: Hardware - so it is her, them, or the driver."
+        )
+        let awayParcel = HouseholdSituation(aprilHome: false, deliveryExpected: "Amazon: Hardware")
+        #expect(
+            SceneOpeningPolicy.triggerText(for: seen, place: driveway, household: awayParcel)
+                == "A person was just seen at the driveway. April is away; a delivery is expected - Amazon: Hardware - so it is probably the driver."
+        )
+        #expect(
+            SceneOpeningPolicy.triggerText(
+                for: try event(HouseEvents.vehicleSeen, driveway), place: driveway,
+                household: parcel)
+                == "A vehicle was just seen at the driveway. April is home; a delivery is expected - Amazon: Hardware."
+        )
         let gone = try event(
             HouseEvents.personGone, driveway, payload: ["after_seconds": .number(1_500)])
         #expect(

@@ -1,3 +1,15 @@
+creature-cli (2.84.1+world0.43.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.43.0: a delivery is expected, too. On 2026-09-25 the
+    Amazon driver was "April is home and lives alone, so it is her" - the
+    order went shipped to delivered with no out-for-delivery mail, and the
+    house counted only invited visitors. An order not yet delivered whose
+    order.expected is today, or out for delivery today, now makes the stage
+    note "a delivery is expected - Amazon: Hardware - so it is either her
+    or the driver", and the house does not identify the person as April.
+
+ -- April White <april@creature.engineering>  Sat, 26 Sep 2026 09:30:00 -0700
+
 creature-cli (2.84.1+world0.42.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.84.1: April stays a person. 2.83.1 let a name held
