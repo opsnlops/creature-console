@@ -186,4 +186,26 @@ struct LearningTests {
         #expect(LearnedFact.contract.contains("visitor.expected | none"))
     }
 
+
+    @Test("April is always person:april - never a source that shares her name (2026-09-24)")
+    func aprilStaysAPerson() {
+        // The day's record carried `wizard:april` - the source of April's own corrections -
+        // and it took her slug: two nights of memories about her went to `wizard:april`.
+        var record = names
+        record.add([
+            try! EntityID(validating: "person:april"),
+            try! EntityID(validating: "wizard:april"),
+            try! EntityID(validating: "mind:beaky"),
+        ])
+        #expect(record.entity(named: "April")?.rawValue == "person:april")
+        #expect(record.knownEntity(named: "April")?.rawValue == "person:april")
+        #expect(record.entity(named: "wizard: April") == nil)
+        // A misfiled person still gives way to its thing.
+        record.add([
+            try! EntityID(validating: "person:mac-studio"),
+            try! EntityID(validating: "thing:mac-studio"),
+        ])
+        #expect(record.knownEntity(named: "Mac Studio")?.rawValue == "thing:mac-studio")
+    }
+
 }

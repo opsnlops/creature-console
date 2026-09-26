@@ -151,15 +151,24 @@ struct EntityNames: Sendable {
     /// for a slug stands; the birds and the house are added first.
     mutating func add(_ ids: [EntityID]) {
         for id in ids {
+            // Only the world's entities are names; a source - `wizard:april`, `mind:beaky`,
+            // `bridge:mail` - never is. The record of a day carries sources beside subjects,
+            // and `wizard:april` once took April's own slug: two nights of memories about her
+            // were filed where no mind is ever handed them.
+            guard let colon = id.rawValue.firstIndex(of: ":"),
+                Self.kinds.contains(String(id.rawValue[..<colon]))
+                    || WorldFacts.linkKinds.contains(String(id.rawValue[..<colon]))
+            else { continue }
             if id.rawValue.hasPrefix("character:") {
                 characters[Self.key(FactPhrasing.name(of: id))] = id
             }
             if let colon = id.rawValue.firstIndex(of: ":") {
                 let slug = String(id.rawValue[id.rawValue.index(after: colon)...])
-                // A slug the world holds under two kinds is the one that is not the old
-                // default: `person:mac-studio` was a guess, `thing:mac-studio` is what it is.
+                // A slug the world holds under two kinds is the one that is not a misfiled
+                // person: `person:mac-studio` was a guess, `thing:mac-studio` is what it is.
+                // A real person - April - always stays a person.
                 if let held = known[slug] {
-                    if held.rawValue.hasPrefix("person:"), !id.rawValue.hasPrefix("person:") {
+                    if Self.isMisfiledPerson(held, name: slug), !id.rawValue.hasPrefix("person:") {
                         known[slug] = id
                     }
                 } else {

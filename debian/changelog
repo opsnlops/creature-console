@@ -1,3 +1,15 @@
+creature-cli (2.84.1+world0.42.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.84.1: April stays a person. 2.83.1 let a name held
+    under another kind replace person:april, and the day's record holds
+    wizard:april (a source id), so since 2026-09-24 the nightly memory
+    filed 102 of April's memories on wizard:april (moved back by hand).
+    Only entity kinds are names now - source namespaces like wizard: and
+    mind: never are - and a held name is replaced only when it is a
+    misfiled person.
+
+ -- April White <april@creature.engineering>  Sat, 26 Sep 2026 09:00:00 -0700
+
 creature-cli (2.84.0+world0.42.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.3.2: the packaged house.json tells the rain gauge's
