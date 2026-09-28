@@ -75,7 +75,11 @@ struct WorldViewerRootView: View {
         }
         .inspector(isPresented: $showsMundaneView) {
             MundaneView(scried: scried)
-                .inspectorColumnWidth(min: 300, ideal: 380)
+                // A maximum of its own: without one the column takes its content's, which is
+                // unbounded (the JSON scrolls, the empty state fills), and dragging the divider
+                // past what the detail can give grows the window toward ten billion points -
+                // AppKit aborts.
+                .inspectorColumnWidth(min: 300, ideal: 380, max: 720)
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
