@@ -12,7 +12,10 @@ struct EntitiesPanel: View {
     @State private var loading = false
 
     var body: some View {
-        HSplitView {
+        // Plain SwiftUI, never HSplitView: AppKit's split view fed its own sizes back into the
+        // window's and, beside the Mundane view's column, looped on layout until AppKit gave
+        // up ("more Update Constraints in Window passes than there are views", #209).
+        HStack(spacing: 0) {
             VStack(spacing: 0) {
                 TextField("person:jesse", text: $typed)
                     .textFieldStyle(.roundedBorder)
@@ -29,7 +32,9 @@ struct EntitiesPanel: View {
                         .font(.system(.body, design: .monospaced))
                 }
             }
-            .frame(minWidth: 220, idealWidth: 260, maxWidth: 340)
+            .frame(width: 260)
+
+            Divider()
 
             Group {
                 if let page {
