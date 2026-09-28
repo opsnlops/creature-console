@@ -219,6 +219,13 @@ evening never reached the memory. Now the day's events are read in pages to the 
 keeps only what a memory could be about (never a telemetry source, never `bridge.online`), and
 values render as JSON. A night's episodes prompt is ~25-35k tokens.
 
+**Only this fortnight's calendar** (`0.43.1`, #208). The Bridge's calendar reaches a year ahead
+and moves a day further each day, so every recurring event gains its far-off instance daily.
+Those used to land in "learned" as if they were the day's news: on 2026-09-27 the only Flight
+School in the record was September 27, 2027, and the memory "corrected" the birds' right answer
+(tomorrow at four). An `event:*` whose `calendar.starts_at` cast that day is more than two weeks
+past the day is left out of the record entirely.
+
 **The house says who it saw** (`0.36.0`, #200). April lives alone, and an afternoon of "mystery
 visitor" — her car in the driveway and her at the front door, thirty seconds after the presence
 sensor saw her come home — was the minds guessing at a shape. Now the stage note for a person

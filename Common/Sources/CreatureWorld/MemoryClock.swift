@@ -74,10 +74,12 @@ struct DayDigestBuilder {
         }
         // What the world was told that a memory could be about: never a body's readings (four
         // thousand a day, 370k tokens of a night's prompt) and never a heartbeat.
+        let distant = Self.distantCalendarEntries(in: events, after: bounds.to)
         let learned = events.filter { Self.isMemorable($0) }.compactMap {
             event -> DayDigest.Line? in
             guard case .string(let subject)? = event.payload["subject_id"],
-                case .string(let predicate)? = event.payload["predicate"]
+                case .string(let predicate)? = event.payload["predicate"],
+                !distant.contains(subject)
             else { return nil }
             return DayDigest.Line(
                 at: event.occurredAt, who: event.source.id.rawValue,
@@ -117,6 +119,30 @@ struct DayDigestBuilder {
             case .string(let predicate)? = event.payload["predicate"]
         else { return false }
         return !heartbeatPredicates.contains(predicate)
+    }
+
+    /// How far past the day a calendar entry cast that day is still news about it.
+    static let calendarHorizon: TimeInterval = 14 * 86_400
+
+    /// Calendar entries cast this day that start well after it. The Bridge's calendar reaches
+    /// a year ahead, a day further each day, so every recurring event gains its far-off
+    /// instance daily: on 2026-09-27 the only Flight School in the record was September 27,
+    /// 2027, and the memory "corrected" the birds' right answer - tomorrow at four (#208).
+    static func distantCalendarEntries(in events: [WorldEventEnvelope], after end: Date)
+        -> Set<String>
+    {
+        var distant: Set<String> = []
+        for event in events where event.type == GivenFactAnnouncement.eventType {
+            guard case .string(let subject)? = event.payload["subject_id"],
+                subject.hasPrefix("event:"),
+                event.payload["predicate"] == .string(WorldFacts.calendarStartsAt),
+                case .string(let text)? = event.payload["value"],
+                let starts = WorldJSON.date(from: text),
+                starts > end.addingTimeInterval(calendarHorizon)
+            else { continue }
+            distant.insert(subject)
+        }
+        return distant
     }
 
     /// A value as the record shows it: text as itself, nothing as "(retracted)", anything

@@ -295,6 +295,19 @@ struct RecentHappeningsTests {
             try given(
                 "person:april", "person.tools", .array([.string("soldering iron")]),
                 source: "mind:beaky-\(suffix)", kind: "mind", at: noon + 180),
+            // The calendar's year-ahead window moving on a day: next year's lesson is not
+            // news about today (#208); next week's is.
+            try given(
+                "event:lessons-\(suffix)-20270830", WorldFacts.calendarStartsAt,
+                .string("2027-08-30T23:00:00.000Z"), source: "bridge:calendar-\(suffix)",
+                kind: "bridge", at: noon + 240),
+            try given(
+                "event:lessons-\(suffix)-20270830", "calendar.title", .string("Flight School"),
+                source: "bridge:calendar-\(suffix)", kind: "bridge", at: noon + 240),
+            try given(
+                "event:lessons-\(suffix)-20260906", WorldFacts.calendarStartsAt,
+                .string("2026-09-06T23:00:00.000Z"), source: "bridge:calendar-\(suffix)",
+                kind: "bridge", at: noon + 300),
         ] {
             _ = try await persistence.events.append(event, receivedAt: event.occurredAt)
         }
@@ -306,6 +319,7 @@ struct RecentHappeningsTests {
             mine.map(\.text) == [
                 "\(order.rawValue) order.items = toothpaste",
                 "person:april person.tools = [\"soldering iron\"]",
+                "event:lessons-\(suffix)-20260906 calendar.starts_at = 2026-09-06T23:00:00.000Z",
             ])
         // And a body's reading is not a happening either.
         #expect(!digest.happenings.contains { $0.subjectID.rawValue == "thing:creature-server" })

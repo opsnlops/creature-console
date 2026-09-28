@@ -1,3 +1,14 @@
+creature-cli (2.84.1+world0.43.1+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.43.1: the day's record leaves out calendar entries cast
+    that day that start more than two weeks later. The Bridge's calendar
+    reaches a year ahead, a day further each day, so every recurring event
+    gains its far-off instance daily; on 2026-09-27 the only Flight School
+    in the record was September 27, 2027, and the nightly memory
+    "corrected" the birds' right answer - tomorrow at four (#208).
+
+ -- April White <april@creature.engineering>  Mon, 28 Sep 2026 11:00:00 -0700
+
 creature-cli (2.84.1+world0.43.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.43.0: a delivery is expected, too. On 2026-09-25 the
