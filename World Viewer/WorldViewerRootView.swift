@@ -63,6 +63,10 @@ struct WorldViewerRootView: View {
                 case .timers: TimersPanel(store: store, scried: $scried)
                 }
             }
+            // The detail's width is declared, never derived: whatever a panel's content would
+            // like, the window may still shrink to fit a laptop's screen, and nothing inside can
+            // hold it wide (#210).
+            .frame(minWidth: 360, maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle((panel ?? .timeline).rawValue)
             .navigationSubtitle(store.worldURI)
         }
@@ -79,7 +83,7 @@ struct WorldViewerRootView: View {
                 // unbounded (the JSON scrolls, the empty state fills), and dragging the divider
                 // past what the detail can give grows the window toward ten billion points -
                 // AppKit aborts.
-                .inspectorColumnWidth(min: 300, ideal: 380, max: 720)
+                .inspectorColumnWidth(min: 300, ideal: 380, max: 560)
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -189,17 +193,14 @@ struct MundaneView: View {
     var body: some View {
         Group {
             if let scried {
-                ScrollView([.vertical, .horizontal]) {
-                    // Natural width, never `.infinity`: inside a horizontal scroll view an
-                    // infinite frame is a ten-billion-point ideal width, and AppKit aborts
-                    // when a split-divider drag asks the window to animate to it.
-                    Text(scried.mundaneJSON)
-                        .font(.system(.caption, design: .monospaced))
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .padding()
-                }
-                .navigationTitle(scried.title)
+                JSONLines(json: scried.mundaneJSON)
+                    .navigationTitle(scried.title)
+                    .contextMenu {
+                        Button("Copy JSON", systemImage: "doc.on.doc") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(scried.mundaneJSON, forType: .string)
+                        }
+                    }
             } else {
                 ContentUnavailableView(
                     "Mundane view",
@@ -208,5 +209,52 @@ struct MundaneView: View {
                 )
             }
         }
+    }
+}
+
+/// Raw JSON, drawn line by line and lazily: a big entity's JSON as one Text is taller than
+/// macOS will draw in one piece, and showed nothing (#210).
+private struct JSONLines: View {
+    let lines: [Substring]
+    /// The longest line, laid out unseen at no height: a lazy stack is only as wide as the
+    /// lines it has drawn, so without it the pane scrolled right only as far as the widest
+    /// line on screen. The font is monospaced, so the longest line is the widest.
+    let longest: Substring
+
+    init(json: String) {
+        lines = json.split(separator: "\n", omittingEmptySubsequences: false)
+        longest = lines.max { $0.count < $1.count } ?? ""
+    }
+
+    var body: some View {
+        ScrollView([.vertical, .horizontal]) {
+            // Each line keeps its natural width, never `.infinity`: inside a horizontal scroll
+            // view an infinite frame is a ten-billion-point ideal width, and AppKit aborts.
+            VStack(alignment: .leading, spacing: 0) {
+                line(longest)
+                    .frame(height: 0)
+                    .hidden()
+                    .accessibilityHidden(true)
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(lines.indices, id: \.self) { index in
+                        Text(JSONHighlighter.highlighted(lines[index]))
+                            .font(.system(.callout, design: .monospaced))
+                            .fixedSize(horizontal: true, vertical: false)
+                            .textSelection(.enabled)
+                    }
+                }
+            }
+            .padding()
+        }
+        // Night mode whatever the app's appearance: a dark page in the highlighter's palette,
+        // and dark scroll indicators.
+        .background(JSONHighlighter.Palette.page)
+        .environment(\.colorScheme, .dark)
+    }
+
+    private func line(_ text: Substring) -> some View {
+        Text(text)
+            .font(.system(.callout, design: .monospaced))
+            .fixedSize(horizontal: true, vertical: false)
     }
 }
