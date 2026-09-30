@@ -1,3 +1,16 @@
+creature-cli (2.85.4+world0.44.2+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * Linux builds move to Swift 6.4, floating on the minor version: CI
+    installs "6.4" with Swiftly, Dockerfile.debian resolves the newest
+    6.4.x from swift.org and now uses its Debian 13 toolchain (6.4.0 is the
+    first release with one), and the quick check uses swift:6.4-trixie.
+  * Two weak captures Swift 6.4 caught in Linux-only code did nothing - the
+    WebSocket upgrade kept its client alive through a shadowed strong
+    `owner`, and the sACN proxy's write callback held a strong outer
+    `self`. Both are weak from the outside in now; no warnings on 6.4.
+
+ -- April White <april@creature.engineering>  Wed, 30 Sep 2026 10:30:00 -0700
+
 creature-cli (2.85.3+world0.44.2+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * The birds look before they name April (#214). The household rule said

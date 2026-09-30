@@ -2,8 +2,10 @@ FROM debian:trixie-slim
 
 SHELL ["/bin/bash", "-lc"]
 
-# Keep in step with SWIFT_VERSION in .github/workflows/build-deb.yml.
-ARG SWIFT_VERSION=6.3.3
+# Keep in step with SWIFT_VERSION in .github/workflows/build-deb.yml. A minor version ("6.4")
+# floats to its newest patch release, resolved from swift.org at build time, as Swiftly does
+# in CI; a full version ("6.4.0") pins.
+ARG SWIFT_VERSION=6.4
 
 ENV DEBIAN_FRONTEND=noninteractive \
     SWIFT_VERSION=${SWIFT_VERSION} \
@@ -20,11 +22,13 @@ RUN set -eux; \
         debhelper devscripts fakeroot rsync; \
     rm -rf /var/lib/apt/lists/*
 
-# Install the Debian Swift toolchain directly from the swift.org release tarball. This is the
-# same toolchain Swiftly selects on Debian; swift.org publishes "debian12" builds (there is no
-# separate trixie build yet) and names x86_64 tarballs without an architecture suffix
-# ("swift-6.3.3-RELEASE-debian12.tar.gz") and aarch64 tarballs with one
-# ("debian12-aarch64", "swift-6.3.3-RELEASE-debian12-aarch64.tar.gz").
+# Install the Debian Swift toolchain directly from the swift.org release tarball, the same
+# toolchain Swiftly selects in CI. This image is trixie, and swift.org publishes "debian13" builds
+# from 6.4.0 on (6.3.x had only "debian12"). x86_64 tarballs carry no architecture suffix
+# ("swift-6.4.0-RELEASE-debian13.tar.gz"); aarch64 ones do ("debian13-aarch64",
+# "swift-6.4.0-RELEASE-debian13-aarch64.tar.gz"). Docker caches this layer, so a floating version
+# moves to a new patch release only when the image is rebuilt without the cache
+# (`docker build --no-cache`, or delete the build_debs.sh image).
 RUN set -eux; \
     ARCH="$(uname -m)"; \
     case "$ARCH" in \
@@ -32,8 +36,13 @@ RUN set -eux; \
       aarch64|arm64) ARCH_SUFFIX="-aarch64" ;; \
       *) echo "Unsupported arch: $ARCH" >&2; exit 1 ;; \
     esac; \
-    OS_TAG="debian12"; \
+    OS_TAG="debian13"; \
     PATH_SEG="${OS_TAG}${ARCH_SUFFIX}"; \
+    if [[ "${SWIFT_VERSION}" =~ ^[0-9]+\.[0-9]+$ ]]; then \
+      SWIFT_VERSION="$(curl -fsSL https://www.swift.org/api/v1/install/releases.json \
+        | python3 -c 'import json, sys; want = sys.argv[1] + "."; names = [r["name"] for r in json.load(sys.stdin) if r["name"].startswith(want)]; print(max(names, key=lambda n: [int(p) for p in n.split(".")]))' "${SWIFT_VERSION}")"; \
+    fi; \
+    echo "Installing Swift ${SWIFT_VERSION}"; \
     TARBALL="swift-${SWIFT_VERSION}-RELEASE-${OS_TAG}${ARCH_SUFFIX}.tar.gz"; \
     URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/${PATH_SEG}/swift-${SWIFT_VERSION}-RELEASE/${TARBALL}"; \
     curl -fL "$URL" -o "$TARBALL"; \

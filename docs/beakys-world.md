@@ -162,9 +162,9 @@ by-hand run's slots behind (re-remembering now replaces the day, via `predicate_
 Hopper was filed as `person:hopper` (`thing:` kind). A third, found when Mango said "that fact is not in my
 database" about the car: the 40-fact page is newest first and the night's 28 memories out-ranked
 the `vehicle.*` facts — memories are now fetched and trimmed apart from the day's facts. Also:
-the scene tests' fixed-date offer went stale on 09-14 16:33 UTC — made at run time now. April is on macOS 27 / Swift 6.4; Linux has
-no 6.4 release yet (swift.org tops out at 6.3.3; only `swiftlang/swift:nightly-6.4.x` images), so
-CI stays on 6.3.3 until 6.4.0 ships — check back.
+the scene tests' fixed-date offer went stale on 09-14 16:33 UTC — made at run time now. April is on macOS 27 / Swift 6.4; Linux moved
+to 6.4 on 2026-09-30 once 6.4.0 shipped (floating on `6.4` in CI, `Dockerfile.debian`, and the
+`swift:6.4` image).
 
 **To do, in order:**
 1. ~~Check the 3:30 clock run~~ done; re-run the 13th once 2.72.0 is deployed to clear the ghosts.

@@ -22,7 +22,8 @@ jobs:
             runner: ubuntu-24.04-arm
             container: debian:trixie-slim
     env:
-      SWIFT_VERSION: "6.3.3"
+      # A minor version floats: Swiftly installs its newest patch release.
+      SWIFT_VERSION: "6.4"
 
 
     steps:

@@ -122,11 +122,14 @@
             guard rawData.count <= UInt16.max else {
                 return
             }
-            client.channel.eventLoop.execute {
-                if !client.channel.isWritable || client.pendingWrites >= self.maxPendingWrites {
+            // Weak from the outside in: a strong outer capture made the write callback's
+            // `[weak self]` do nothing (Swift 6.4 warns).
+            client.channel.eventLoop.execute { [weak self] in
+                guard let proxy = self else { return }
+                if !client.channel.isWritable || client.pendingWrites >= proxy.maxPendingWrites {
                     print("Viewer disconnected: slow client (not writable).")
                     _ = client.channel.close()
-                    self.handleDisconnect(channel: client.channel)
+                    proxy.handleDisconnect(channel: client.channel)
                     return
                 }
                 client.pendingWrites += 1

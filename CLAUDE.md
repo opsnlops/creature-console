@@ -64,13 +64,13 @@ The CLI tools ship as Debian packages built **on Linux** by CI (`.github/workflo
 - **`#if os(Linux)` code never compiles on macOS** (e.g. the NIO websocket client in `Common/Sources/Common/Controller/Server/RESTful/WebSocketMethods+Linux.swift`), so a green macOS build proves nothing about the Linux branch. Linux-only API gaps are easy to hit: Combine doesn't exist there, and Foundation/NIO conveniences may live in different modules (e.g. `ByteBuffer.readData` is NIOFoundationCompat-only — use `readBytes` from NIOCore).
 - **IMPORTANT**: A version is not done until the Linux products build. Before tagging a release — and any time Linux-conditional code or the `Common` package changes — verify in a Linux container:
   ```bash
-  docker run --rm -v "$PWD/Common:/src" -w /src swift:6.3.3 bash -c \
+  docker run --rm -v "$PWD/Common:/src" -w /src swift:6.4-trixie bash -c \
     'swift build --scratch-path /tmp/b --product creature-cli && \
      swift build --scratch-path /tmp/b --product creature-mqtt && \
      swift build --scratch-path /tmp/b --product creature-agent && \
      swift build --scratch-path /tmp/b --product creature-world'
   ```
-  Keep the container's Swift version in step with `SWIFT_VERSION` in `build-deb.yml`. Don't pipe `swift build` through `tail`/`grep` when checking results — that masks the exit code.
+  Keep the container's Swift version in step with `SWIFT_VERSION` in `build-deb.yml` (both float on the minor version, `6.4`: the image tag and Swiftly each take the newest 6.4.x; the `-trixie` image matches the Debian 13 the packages are built on). Don't pipe `swift build` through `tail`/`grep` when checking results — that masks the exit code.
 - **To produce deployable `.deb` files without waiting for GitHub Actions**, run `./build_debs.sh` (both architectures) or `./build_debs.sh --arch arm64` (native only on Apple silicon). It runs the workflow's exact steps in `Dockerfile.debian` with a persistent per-architecture cache and leaves the packages in `artifacts/`.
 - A full `swift build` of every target does **not** work on Linux (e.g. `PlaylistRuntime` imports Combine); build the four packaged products, exactly as `debian/rules` does.
 - Each release needs a new `debian/changelog` entry (version must match the git tag).

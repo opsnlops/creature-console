@@ -201,12 +201,18 @@
                 maxFrameSize: 1 << 14,
                 automaticErrorHandling: true
             ) { [weak owner] channel, _ in
-                guard let owner else { return channel.eventLoop.makeSucceededFuture(()) }
+                // A name of its own for the strong reference: shadowing `owner` made the later
+                // closures capture it strongly, and their `[weak owner]` did nothing (Swift 6.4
+                // warns). The handler gets the live client; each later hop takes its own weak copy
+                // of that constant, as a closure running elsewhere must not read a captured var.
+                guard let liveOwner = owner else {
+                    return channel.eventLoop.makeSucceededFuture(())
+                }
                 return channel.pipeline.addHandler(
-                    WebSocketFrameHandler(owner: owner, ingest: ingest)
-                ).flatMap {
-                    channel.eventLoop.submit { [weak owner] in
-                        guard let owner else { return }
+                    WebSocketFrameHandler(owner: liveOwner, ingest: ingest)
+                ).flatMap { [weak liveOwner] in
+                    channel.eventLoop.submit { [weak liveOwner] in
+                        guard let owner = liveOwner else { return }
                         let local = channel.localAddress?.description ?? "<unknown>"
                         let remote = channel.remoteAddress?.description ?? "<unknown>"
                         Self.logger.debug(

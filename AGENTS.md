@@ -132,8 +132,9 @@ is explicitly changed. Firewalls and the external ingress proxy own access contr
 - Treat every deployable executable as an independent product with its own version and release
   lifecycle. Never inherit `creature-cli`'s version for another product merely because it shares
   the repository, Swift package, Debian source package, workflow, or build script.
-- Linux builds and package tests use the pinned Swift 6.3.3 release toolchain on every
-  architecture.
+- Linux builds and package tests use the Swift 6.4 release toolchain on every architecture,
+  floating on the minor version: CI (Swiftly), `Dockerfile.debian`, and the `swift:6.4` image
+  each take the newest 6.4.x.
 - A product's package artifact version must match the version reported by that executable's
   offline `--version` command. For example, Creature World `0.2.2` produces
   `creature-world_0.2.2_<architecture>.deb`.
