@@ -3264,7 +3264,7 @@
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Information Bridge reads your reminders here, on this Mac, and sends the world what is to do and by when - never the notes.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.16.0;
+				MARKETING_VERSION = 0.17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3302,7 +3302,7 @@
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Information Bridge reads your reminders here, on this Mac, and sends the world what is to do and by when - never the notes.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.16.0;
+				MARKETING_VERSION = 0.17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Information-Bridge";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

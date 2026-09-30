@@ -32,6 +32,10 @@ actor ContactsSource {
     private(set) var status = SourceStatus(state: .on)
     private var observers: [UUID: AsyncStream<SourceStatus>.Continuation] = [:]
     private var worker: Task<Void, Never>?
+    /// Contacts says when a card changes - on this Mac or by iCloud sync - so an edit made in
+    /// Contacts reaches the world in seconds, not at the next hourly read (#213).
+    private var changeObserver: (any NSObjectProtocol)?
+    private var rereadSoon: Task<Void, Never>?
 
     init(
         directory: URL, read: @escaping Read = ContactsSource.readFromContacts,
@@ -55,11 +59,33 @@ actor ContactsSource {
                 try? await Pace.sleep(for: Self.interval)
             }
         }
+        changeObserver = NotificationCenter.default.addObserver(
+            forName: .CNContactStoreDidChange, object: nil, queue: nil
+        ) { _ in
+            Task { await self.storeChanged() }
+        }
+    }
+
+    /// A change lands as a burst of notifications; one re-read a moment after the last, as
+    /// the calendar does.
+    private func storeChanged() {
+        rereadSoon?.cancel()
+        rereadSoon = Task {
+            try? await Pace.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await self.poll()
+        }
     }
 
     func stop() {
         worker?.cancel()
         worker = nil
+        rereadSoon?.cancel()
+        rereadSoon = nil
+        if let changeObserver {
+            NotificationCenter.default.removeObserver(changeObserver)
+            self.changeObserver = nil
+        }
         status.state = .off
         publish()
     }

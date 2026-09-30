@@ -649,7 +649,21 @@ final class BridgeStore {
         do {
             try await contactsSource.setMapping(mapping, for: identifier)
         } catch {
-            lastError = ErrorAlert(title: "The Card Was Not Changed", error: error)
+            Self.cardLog.error(
+                "Contacts refused a card change",
+                metadata: [
+                    "error": "\(error)",
+                    "error.underlying":
+                        "\((error as NSError).userInfo[NSUnderlyingErrorKey] ?? "none")",
+                ])
+            lastError =
+                Self.isProtectedCardRefusal(error)
+                ? ErrorAlert(
+                    title: "Contacts Would Not Let the Bridge Change This Card",
+                    message:
+                        "Contacts could not load part of this card for the Bridge, so it refused the change. That usually means the card has pronouns set in Contacts, which Contacts keeps locked away from other apps. Add the link in Contacts instead: a URL labeled Beaky reading \(mapping?.cardValue ?? "person:…"). The Bridge reads it within seconds."
+                )
+                : ErrorAlert(title: "The Card Was Not Changed", error: error)
         }
         contacts = await contactsSource.cards
         contactMap = await contactsSource.map
@@ -761,6 +775,16 @@ final class BridgeStore {
             health = nil
             healthError = "\(error)"
         }
+    }
+
+    private static let cardLog = Logger(label: "bridge.contacts")
+
+    /// Contacts' refusal to save a card it cannot fully load for this app: Core Data error
+    /// 134092 "during faulting" (2026-09-29, Natty's card - most likely the pronouns Contacts
+    /// keeps encrypted). Not a public code, so matched by number.
+    nonisolated static func isProtectedCardRefusal(_ error: any Error) -> Bool {
+        let error = error as NSError
+        return error.domain == NSCocoaErrorDomain && error.code == 134_092
     }
 
     /// The Bridge tells the world it is here, as a fact that expires if it stops.

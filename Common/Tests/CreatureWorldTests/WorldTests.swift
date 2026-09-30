@@ -549,6 +549,31 @@ struct WorldTests {
         #expect(processingSpan.attributes.get("world.event.type") == .string("test.observed"))
         #expect(!String(describing: acceptanceSpan.attributes).contains(privateValue))
         #expect(!String(describing: processingSpan.attributes).contains(privateValue))
+        // No trace carried, nothing to link.
+        #expect(acceptanceSpan.links.isEmpty)
+
+        // A fact the Bridge made in a poll, delivered in another request: the acceptance is
+        // linked to the poll's trace, and stays a child of the delivery (#213).
+        var carried = try makeEvent(
+            eventID: "00000000-0000-0000-0000-000000000071", sourceEventID: "telemetry-2")
+        carried.trace = try W3CTraceContext(
+            traceparent: "00-68e09f1d38623f1fb1c7e3f80754a346-9080318972528e6b-01")
+        try await withSpan("test.delivery") { _ in
+            _ = try await world.accept(carried)
+        }
+        let delivery = try #require(
+            tracer.finishedSpans.first { $0.operationName == "test.delivery" })
+        let linked = try #require(
+            tracer.finishedSpans.first {
+                $0.operationName == "world.event.accept"
+                    && $0.attributes.get("world.event.id")
+                        == .string("00000000-0000-0000-0000-000000000071")
+            })
+        #expect(linked.parentSpanID == delivery.spanID)
+        #expect(linked.links.count == 1)
+        #expect(
+            linked.links.first?.attributes.get("world.link.reason")
+                == .string("carried by the event"))
     }
 
     private static let receivedAt = Date(timeIntervalSince1970: 1_789_000_000)

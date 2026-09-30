@@ -1,5 +1,6 @@
 import Foundation
 import Metrics
+import Observability
 import Tracing
 import WorldCore
 
@@ -113,6 +114,7 @@ actor World {
     func accept(_ event: WorldEventEnvelope) async throws -> WorldEventAcceptance {
         return try await withSpan("world.event.accept") { span in
             Self.setEventAttributes(on: span, event: event)
+            Self.linkCarriedTrace(of: event, to: span)
             telemetry.receivedCounter.increment()
             try Task.checkCancellation()
             guard pendingEventCountStorage < limits.maximumPendingAcceptances else {
@@ -195,6 +197,25 @@ actor World {
             continuation.finish()
         }
         subscribers.removeAll()
+    }
+
+    /// An event may carry the trace it was made in - a Bridge poll, stamped as the fact left
+    /// for the outbox - and arrive in another: the HTTP request that delivered a batch. The
+    /// acceptance is linked to the carried trace, not parented under it, since one delivery
+    /// holds facts from many polls; Honeycomb then walks from a Bridge poll to the world's
+    /// handling of each fact it cast (#213). A trace the acceptance already belongs to - an
+    /// utterance, a bird's turn - needs no link.
+    static func linkCarriedTrace(of event: WorldEventEnvelope, to span: any Span) {
+        guard let carried = event.trace,
+            let carriedID = traceID(ofTraceparent: carried.traceparent)
+        else { return }
+        let current = currentTraceHeaders()["traceparent"].flatMap(traceID(ofTraceparent:))
+        guard carriedID != current else { return }
+        span.addLink(
+            SpanLink(
+                context: serviceContext(
+                    traceparent: carried.traceparent, tracestate: carried.tracestate),
+                attributes: ["world.link.reason": "carried by the event"]))
     }
 
     fileprivate static func setEventAttributes(on span: any Span, event: WorldEventEnvelope) {

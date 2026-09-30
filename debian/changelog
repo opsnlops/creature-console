@@ -1,3 +1,14 @@
+creature-cli (2.85.2+world0.44.1+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.44.1: accepting an event that carries a trace of its
+    own - a fact the Information Bridge made in a poll - adds a span link
+    to that trace, so Honeycomb walks from the poll to the world's handling
+    of each fact (#213).
+  * creature-agent 2.85.2: the trace extraction moved into the shared
+    Observability library (serviceContext); no change in behavior.
+
+ -- April White <april@creature.engineering>  Tue, 29 Sep 2026 20:30:00 -0700
+
 creature-cli (2.85.1+world0.44.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.85.1: the trace-header helper moved into the shared

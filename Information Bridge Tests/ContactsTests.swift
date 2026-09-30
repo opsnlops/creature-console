@@ -132,6 +132,16 @@ struct ContactsTests {
                 .contains { $0.predicate == WorldFacts.pronouns })
     }
 
+    @Test("Contacts' refusal of a protected card is told apart from any other failure")
+    func protectedCardRefusal() {
+        #expect(
+            BridgeStore.isProtectedCardRefusal(NSError(domain: NSCocoaErrorDomain, code: 134_092)))
+        #expect(
+            !BridgeStore.isProtectedCardRefusal(NSError(domain: NSCocoaErrorDomain, code: 134_030)))
+        #expect(
+            !BridgeStore.isProtectedCardRefusal(NSError(domain: "CNErrorDomain", code: 134_092)))
+    }
+
     @Test("The card's own word is the map; a map from before is carried onto the cards once")
     func cardCarriesTheWord() async throws {
         #expect(

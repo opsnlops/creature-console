@@ -24,4 +24,12 @@ struct OTLPExporterSettingsTests {
             headers: ["x-honeycomb-team": "key", "x-honeycomb-dataset": "bridge"])
         #expect(settings.headerPairs.map(\.0) == ["x-honeycomb-dataset", "x-honeycomb-team"])
     }
+
+    @Test("A traceparent's trace id, and nothing from a malformed one")
+    func traceIDs() {
+        #expect(
+            traceID(ofTraceparent: "00-68e09f1d38623f1fb1c7e3f80754a346-9080318972528e6b-01")
+                == "68e09f1d38623f1fb1c7e3f80754a346")
+        #expect(traceID(ofTraceparent: "not a traceparent") == nil)
+    }
 }

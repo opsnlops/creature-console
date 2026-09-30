@@ -60,8 +60,10 @@ The service is `information-bridge`. What it sends:
 - `bridge.outbox.send` - each send to the world: batch size, attempts, and how long the facts
   waited (`outbox.waited_seconds`).
 - `bridge.heartbeat` - each `bridge.online`; a sleeping laptop is a gap.
-- Every fact carries the trace it was made in, so the world's handling of it joins the same
-  trace.
+- Every fact carries the trace it was made in, and since world `0.44.1` the world's
+  `world.event.accept` for it carries a **span link** to that trace (a link, not a parent: one
+  delivery holds facts from many polls). From a Bridge poll in Honeycomb, follow the links to
+  the world's handling of each fact it cast.
 
 ## One voice (`0.10.3`)
 
@@ -188,6 +190,12 @@ relationship - and `pronouns: any pronouns` says anything a list cannot. They ar
 world's `identity.pronouns`, the predicate the birds' own pronouns use, and the minds see them
 beside the name: "Natty (they/them)". Contacts' own pronouns field cannot be used: Apple offers no
 API for it, leaves it out of vCards, and keeps it encrypted in the address book database.
+
+A card with pronouns set **in Contacts** cannot be changed by the Bridge (`0.17.0`, #213):
+Contacts cannot load the card's protected part for another app and refuses the save (Core Data
+error 134092 "during faulting"). The alert says so; add the Beaky link in Contacts itself and
+the Bridge reads it. Since `0.17.0` the address book is re-read a couple of seconds after any
+card changes - in Contacts on this Mac, or by iCloud sync - not only hourly.
 
 A mapped card's whole content is cast on the person, with no expiry: `contact.name`,
 `contact.nickname`, `contact.phone`, `contact.email`, `contact.address` (each by the card's own

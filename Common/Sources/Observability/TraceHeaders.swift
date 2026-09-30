@@ -12,6 +12,30 @@ public func currentTraceHeaders() -> [String: String] {
     return carrier
 }
 
+/// A trace carried inside a message - a world event's `traceparent` - as a context to continue
+/// or to link to. Top level when the fields do not parse.
+public func serviceContext(traceparent: String, tracestate: String? = nil) -> ServiceContext {
+    var carrier = ["traceparent": traceparent]
+    if let tracestate { carrier["tracestate"] = tracestate }
+    var context = ServiceContext.topLevel
+    InstrumentationSystem.instrument.extract(carrier, into: &context, using: HeaderExtractor())
+    return context
+}
+
+/// The trace id in a W3C `traceparent` ("00-<trace id>-<span id>-<flags>"), nil when malformed.
+public func traceID(ofTraceparent traceparent: String) -> Substring? {
+    let parts = traceparent.split(separator: "-")
+    return parts.count == 4 ? parts[1] : nil
+}
+
+private struct HeaderExtractor: Extractor {
+    typealias Carrier = [String: String]
+
+    func extract(key: String, from carrier: [String: String]) -> String? {
+        carrier[key]
+    }
+}
+
 private struct HeaderInjector: Injector {
     typealias Carrier = [String: String]
 

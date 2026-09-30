@@ -1007,15 +1007,8 @@ struct CharacterMind: Sendable {
     }
 
     private static func traceContext(from trace: W3CTraceContext?) -> ServiceContext {
-        var context = ServiceContext.topLevel
-        if let trace {
-            InstrumentationSystem.instrument.extract(
-                trace.carrier,
-                into: &context,
-                using: TraceContextExtractor()
-            )
-        }
-        return context
+        guard let trace else { return .topLevel }
+        return serviceContext(traceparent: trace.traceparent, tracestate: trace.tracestate)
     }
 
     // MARK: - Prompt
@@ -1342,21 +1335,4 @@ private func withTimeout<Value: Sendable>(
 
 enum CharacterMindError: Error, Equatable {
     case modelTimedOut
-}
-
-extension W3CTraceContext {
-    /// The context as HTTP-style header fields for instrument extraction.
-    var carrier: [String: String] {
-        var fields = ["traceparent": traceparent]
-        if let tracestate { fields["tracestate"] = tracestate }
-        return fields
-    }
-}
-
-struct TraceContextExtractor: Instrumentation.Extractor {
-    typealias Carrier = [String: String]
-
-    func extract(key: String, from carrier: [String: String]) -> String? {
-        carrier[key]
-    }
 }
