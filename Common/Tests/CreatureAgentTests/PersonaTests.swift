@@ -140,7 +140,7 @@ struct PersonaTests {
             worldFacts: [
                 try presence(kenny, "region:home"), try presence(beaky, .null),
                 try Fact(
-                    subjectID: kenny, predicate: WorldFacts.characterPronouns,
+                    subjectID: kenny, predicate: WorldFacts.pronouns,
                     value: .string("he/him"),
                     epistemic: EpistemicState(type: .observed, confidence: 1),
                     validFrom: now, derivedFrom: [],

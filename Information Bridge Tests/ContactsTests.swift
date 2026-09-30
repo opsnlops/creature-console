@@ -94,6 +94,44 @@ struct ContactsTests {
         #expect(await source.status.state == .on)
     }
 
+    @Test("Pronouns ride on the Beaky link, after the relationship or on their own")
+    func pronounsOnTheLink() {
+        #expect(
+            ContactMapping(cardValue: "person:jesse; general contractor; he/him")
+                == ContactMapping(
+                    entityID: jesse, relationship: "general contractor", pronouns: "he/him"))
+        #expect(
+            ContactMapping(cardValue: "person:jesse; They / Them")
+                == ContactMapping(entityID: jesse, pronouns: "they/them"))
+        #expect(
+            ContactMapping(cardValue: "person:jesse; she/they; my neighbor")
+                == ContactMapping(
+                    entityID: jesse, relationship: "my neighbor", pronouns: "she/they"))
+        // Anything a pronoun list cannot hold is said outright.
+        #expect(
+            ContactMapping(cardValue: "person:jesse; pronouns: any pronouns")
+                == ContactMapping(entityID: jesse, pronouns: "any pronouns"))
+        // Slashes alone do not make pronouns: "friend/neighbor" is what they are to April.
+        #expect(
+            ContactMapping(cardValue: "person:jesse; friend/neighbor")
+                == ContactMapping(entityID: jesse, relationship: "friend/neighbor"))
+        // And back onto the card, in order.
+        #expect(
+            ContactMapping(entityID: jesse, relationship: "general contractor", pronouns: "he/him")
+                .cardValue == "person:jesse; general contractor; he/him")
+        #expect(
+            ContactMapping(entityID: jesse, pronouns: "they/them").cardValue
+                == "person:jesse; they/them")
+
+        // Cast as the world's own pronouns predicate, beside the rest of the card.
+        let facts = ContactFacts.facts(
+            from: card(), mapping: ContactMapping(entityID: jesse, pronouns: "he/him"))
+        #expect(facts.first { $0.predicate == WorldFacts.pronouns }?.value == .string("he/him"))
+        #expect(
+            !ContactFacts.facts(from: card(), mapping: ContactMapping(entityID: jesse))
+                .contains { $0.predicate == WorldFacts.pronouns })
+    }
+
     @Test("The card's own word is the map; a map from before is carried onto the cards once")
     func cardCarriesTheWord() async throws {
         #expect(

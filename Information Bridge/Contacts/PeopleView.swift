@@ -61,6 +61,7 @@ private struct PersonRow: View {
     let store: BridgeStore
     @State private var entity = ""
     @State private var relationship = ""
+    @State private var pronouns = ""
     @FocusState private var editing: Bool
 
     private var mapping: ContactMapping? { store.contactMap[card.identifier] }
@@ -90,10 +91,18 @@ private struct PersonRow: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($editing)
                 .onSubmit(commit)
+            TextField("they/them", text: $pronouns)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
+                .focused($editing)
+                .onSubmit(commit)
+                .frame(width: 110)
+                .help("Their pronouns - Contacts keeps its own out of reach, so they go here")
             if mapping != nil {
                 Button("Unmap", systemImage: "xmark.circle") {
                     entity = ""
                     relationship = ""
+                    pronouns = ""
                     Task { await store.setContactMapping(nil, for: card.identifier) }
                 }
                 .buttonStyle(.glass)
@@ -111,6 +120,7 @@ private struct PersonRow: View {
         .onAppear {
             entity = mapping?.entityID.rawValue ?? ""
             relationship = mapping?.relationship ?? ""
+            pronouns = mapping?.pronouns ?? ""
         }
         .onChange(of: editing) { _, focused in
             if !focused { commit() }
@@ -126,7 +136,10 @@ private struct PersonRow: View {
                 title: "Not a person", message: "People look like person:jesse.")
             return
         }
-        let new = ContactMapping(entityID: id, relationship: rel.isEmpty ? nil : rel)
+        let said = pronouns.trimmingCharacters(in: .whitespacesAndNewlines)
+        let new = ContactMapping(
+            entityID: id, relationship: rel.isEmpty ? nil : rel,
+            pronouns: said.isEmpty ? nil : ContactMapping.pronouns(in: said) ?? said)
         guard new != mapping else { return }
         Task { await store.setContactMapping(new, for: card.identifier) }
     }

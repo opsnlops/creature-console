@@ -39,7 +39,7 @@ struct PresenceReducerTests {
         let facts = try CharacterPresenceReducer().reduce(login).changedFacts
 
         #expect(
-            facts.map(\.predicate) == [WorldFacts.characterRegion, WorldFacts.characterPronouns])
+            facts.map(\.predicate) == [WorldFacts.characterRegion, WorldFacts.pronouns])
         #expect(facts[1].subjectID == mango)
         #expect(facts[1].value == .string("he/him"))
         #expect(facts[1].validTo == nil)

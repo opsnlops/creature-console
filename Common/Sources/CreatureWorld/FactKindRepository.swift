@@ -13,7 +13,10 @@ struct FactKindRepository: Sendable {
 
     static let worldEditor = "world:catalogue"
 
-    /// Adds every catalogue entry that has no document yet; existing ones are left alone.
+    /// Adds every catalogue entry that has no document yet, and rewords the ones the catalogue
+    /// itself wrote when its words have changed; a Wizard's rewording is left alone. Without
+    /// the second, a meaning improved in code never reached a world that already held the old
+    /// one ("a bird's pronouns" stayed a bird's after people had pronouns too).
     func seed(_ meanings: [String: String], at now: Date) async throws {
         for (predicate, meaning) in meanings {
             let query: Document = ["_id": predicate]
@@ -23,6 +26,13 @@ struct FactKindRepository: Sendable {
             ]
             // An operator document as the upsert: inserted when absent, untouched when present.
             try await kinds.upsert(["$setOnInsert": insert], where: query)
+            let stale: Document = [
+                "_id": predicate, "updated_by": Self.worldEditor,
+                "meaning": ["$ne": meaning] as Document,
+            ]
+            _ = try await kinds.updateOne(
+                where: stale,
+                to: ["$set": ["meaning": meaning, "updated_at": now] as Document])
         }
     }
 

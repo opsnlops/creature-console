@@ -157,6 +157,14 @@ would have been nicer, but Apple gates it behind an entitlement the Bridge does 
 of the address book stays on the Mac. Where the world already knows a person by that first name
 and no other card is mapped to them, a **Use person:jesse** button pre-fills it.
 
+**Pronouns** (`0.15.0`, #211) go on the same link, after the relationship or on their own:
+`person:natty; friend; they/them` or `person:natty; they/them` (the People window has a field for
+them too). Pronoun words joined by slashes are read as pronouns - "friend/neighbor" stays the
+relationship - and `pronouns: any pronouns` says anything a list cannot. They are cast as the
+world's `identity.pronouns`, the predicate the birds' own pronouns use, and the minds see them
+beside the name: "Natty (they/them)". Contacts' own pronouns field cannot be used: Apple offers no
+API for it, leaves it out of vCards, and keeps it encrypted in the address book database.
+
 A mapped card's whole content is cast on the person, with no expiry: `contact.name`,
 `contact.nickname`, `contact.phone`, `contact.email`, `contact.address` (each by the card's own
 labels), `contact.organization`, `contact.job_title`, `contact.birthday` ("March 4"), and

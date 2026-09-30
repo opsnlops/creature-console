@@ -37,7 +37,7 @@ struct CharacterPresenceReducer: WorldReducer {
             facts.append(
                 try Fact(
                     subjectID: character,
-                    predicate: WorldFacts.characterPronouns,
+                    predicate: WorldFacts.pronouns,
                     value: .string(pronouns),
                     epistemic: EpistemicState(type: .observed, confidence: 1),
                     validFrom: event.occurredAt,

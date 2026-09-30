@@ -386,6 +386,14 @@ struct RecentHappeningsTests {
         #expect(reworded.audience == .minds)
         try await persistence.factKinds.seed([predicate: "from the catalogue"], at: start + 120)
         #expect(try await knowledge.meanings(of: [predicate]) == [predicate: "as April puts it"])
+        // The catalogue's own words, improved in code, reach a world that holds the old ones;
+        // a Wizard's never move.
+        let improved = "test.\(UUID().uuidString.lowercased())"
+        try await persistence.factKinds.seed([improved: "a bird's pronouns"], at: start)
+        try await persistence.factKinds.seed([improved: "anyone's pronouns"], at: start + 180)
+        #expect(try await knowledge.meanings(of: [improved]) == [improved: "anyone's pronouns"])
+        try await persistence.factKinds.seed([predicate: "catalogue, reworded"], at: start + 240)
+        #expect(try await knowledge.meanings(of: [predicate]) == [predicate: "as April puts it"])
         #expect(
             try await persistence.factKinds.all().contains {
                 $0.predicate == predicate && $0.meaning == "as April puts it"
@@ -719,6 +727,18 @@ struct RecentHappeningsTests {
         let handed = try await knowledge.currentFacts(
             about: [visit], mentionedIn: nil, limit: WorldKnowledgeLimits.maximumFacts)
         #expect(handed.contains { $0.subjectID == jesse && $0.predicate == "person.relationship" })
+
+        // His pronouns ride along whenever he is named, even when the capped page has room
+        // for only one of his facts - they are how the birds say his name. Saved older than
+        // his relationship, so the one place on the page goes to that.
+        var pronouns = try fact(jesse, WorldFacts.pronouns, .string("he/him"))
+        pronouns.validFrom = start - 60
+        try await persistence.facts.save(pronouns)
+        let tight = try await knowledge.currentFacts(about: [jesse], mentionedIn: nil, limit: 1)
+        let his = tight.filter { $0.subjectID == jesse }
+        #expect(his.contains { $0.predicate == "person.relationship" })
+        #expect(
+            his.filter { $0.predicate == WorldFacts.pronouns }.map(\.value) == [.string("he/him")])
         #expect(!handed.contains { $0.predicate == "contact.phone-\(suffix)" })
         #expect(handed.contains { $0.predicate == "calendar.with" })
 

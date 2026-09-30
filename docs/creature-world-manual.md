@@ -246,6 +246,12 @@ expected - Amazon: Hardware - so it is either her or the driver." / "April is aw
 is expected - Amazon: Hardware - so it is probably the driver." A vehicle's note names it too.
 While one is expected the house does not cast `sighting.identified = April`.
 
+**Pronouns ride with names** (`0.44.0`, #211). `identity.pronouns` is anyone's now - a bird's from
+its persona at login, a person's from the Bridge's address book link. Whatever a moment's capped
+page holds, the pronouns of everyone it names (as a subject or a link) are added, so they never
+fall off while the person's other facts stay on. And the glossary seed now rewords a meaning the
+catalogue itself wrote when the code's words change (a Wizard's rewording still never moves).
+
 **The real world knows where April is** (`0.30.2`): when the house observes a person arriving
 or leaving (`person.arrived` / `person.left` from Home Assistant), every *reported* `presence.*`
 fact about them is retracted — Kenny's learned `presence.location = "at the doctor"` good

@@ -1166,7 +1166,23 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                 about: upcoming, family: .notMemories, excluding: worldOnly,
                 limit: (WorldKnowledgeLimits.maximumUpcomingEvents
                     + WorldKnowledgeLimits.maximumReminders) * 4, at: now)
-        return present + coming + retrieved + remembered
+        let page = present + coming + retrieved + remembered
+        return page + (try await pronouns(of: page, at: now))
+    }
+
+    /// The pronouns of everyone the page names - as a subject or a link - that the page does
+    /// not already carry. They ride beside a name wherever it appears ("Natty (they/them)"),
+    /// so they may never fall off the capped page while the person's other facts stay on.
+    private func pronouns(of page: [Fact], at now: Date) async throws -> [Fact] {
+        let carried = Set(
+            page.filter { $0.predicate == WorldFacts.pronouns }.map(\.subjectID))
+        let named = unique(
+            page.map(\.subjectID) + page.compactMap { WorldFacts.link(in: $0.value) }
+        )
+        .filter { !carried.contains($0) }
+        guard !named.isEmpty else { return [] }
+        return try await facts.currentFacts(
+            about: named, predicate: WorldFacts.pronouns, limit: named.count, at: now)
     }
 
     /// The events starting in the next three days - a fortnight when the question is about

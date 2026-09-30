@@ -36,7 +36,10 @@ enum FactPhrasing {
         now: Date,
         in timeZone: TimeZone
     ) -> [String] {
-        var lines = facts.compactMap { line(for: $0, character: character, now: now, in: timeZone) }
+        let pronouns = Self.pronouns(in: facts)
+        var lines = facts.compactMap {
+            line(for: $0, character: character, pronouns: pronouns, now: now, in: timeZone)
+        }
         // Cameras that are watching and have seen nothing: silence is a fact, said once for
         // all of them, so "is something outside?" gets an answer instead of a shrug.
         let watched = facts.filter { $0.predicate == WorldFacts.cameraWatching }
@@ -66,7 +69,7 @@ enum FactPhrasing {
     /// Who uses which pronouns, from `identity.pronouns` facts.
     static func pronouns(in facts: [Fact]) -> [EntityID: String] {
         var pronouns: [EntityID: String] = [:]
-        for fact in facts where fact.predicate == WorldFacts.characterPronouns {
+        for fact in facts where fact.predicate == WorldFacts.pronouns {
             if case .string(let text) = fact.value { pronouns[fact.subjectID] = text }
         }
         return pronouns
@@ -75,19 +78,24 @@ enum FactPhrasing {
     /// A fact that is not for saying: pronouns ride with names, audibility is the router's,
     /// a watching camera is folded into the quiet-cameras line, and a bird knows where it is.
     private static func isUnspoken(_ fact: Fact, character: EntityID) -> Bool {
-        fact.predicate == WorldFacts.characterPronouns
+        fact.predicate == WorldFacts.pronouns
             || fact.predicate == WorldFacts.personAudible
             || fact.predicate == WorldFacts.cameraWatching
             || (fact.predicate == WorldFacts.characterRegion && fact.subjectID == character)
     }
 
-    private static func line(for fact: Fact, character: EntityID, now: Date, in timeZone: TimeZone)
-        -> String?
-    {
+    /// The subject is named with its pronouns when the world has them - "Natty (they/them)" -
+    /// so a mind talking about someone who is not in the room still gets them right.
+    private static func line(
+        for fact: Fact, character: EntityID, pronouns: [EntityID: String], now: Date,
+        in timeZone: TimeZone
+    ) -> String? {
         guard !isUnspoken(fact, character: character) else { return nil }
-        var parts = [
-            "\(subjectName(of: fact.subjectID)) · \(fact.predicate) = \(rendered(fact.value))"
-        ]
+        var subject = subjectName(of: fact.subjectID)
+        if let said = pronouns[fact.subjectID], !said.isEmpty {
+            subject += " (\(said))"
+        }
+        var parts = ["\(subject) · \(fact.predicate) = \(rendered(fact.value))"]
         var when =
             "since \(clock(fact.validFrom, in: timeZone)) (\(age(of: fact.validFrom, now: now).lowercased()))"
         if let until = fact.validTo {

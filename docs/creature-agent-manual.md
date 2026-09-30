@@ -371,6 +371,7 @@ else — persona, facts, the clock, streaming to the room — is identical.
   end to end with a day key. Found on the way (#203): every night after the first was being
   skipped until a restart - the "still remembering" guard held a finished Task and asked
   `isCancelled`, which a finished task never is. It tracks completion now.
+- **Pronouns beside every name** (`2.85.0`, #211). A fact line names its subject with the pronouns the world holds - `Natty (they/them) · person.relationship = …` - not only the "Here now" line, so a bird talking about someone who is not in the room still gets them right. A bird's pronouns still come from its persona config; a person's from April's address book, through the Bridge.
 - **April lives alone** (`2.78.0`, #200). The rule above covered "at the door or inside", and
   April comes home by the driveway and the carport: three birds made her arrival a "mystery
   visitor", and two hours later Beaky was still "guessing it's April, but the camera can't

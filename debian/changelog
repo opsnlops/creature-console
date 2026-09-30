@@ -1,3 +1,14 @@
+creature-cli (2.85.0+world0.44.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * People's pronouns reach the birds (#211). creature-world 0.44.0: the
+    pronouns of everyone a moment names ride along even when the page is
+    capped, and the glossary seed rewords meanings the catalogue itself
+    wrote. creature-agent 2.85.0: every fact line names its subject with
+    their pronouns ("Natty (they/them) · ..."). The Bridge (0.15.0) reads
+    them from the card's Beaky link; Contacts keeps its own encrypted.
+
+ -- April White <april@creature.engineering>  Tue, 29 Sep 2026 19:30:00 -0700
+
 creature-cli (2.84.1+world0.43.1+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.43.1: the day's record leaves out calendar entries cast

@@ -37,29 +37,68 @@ struct ContactMapping: Equatable, Sendable, Codable {
 
     var entityID: EntityID
     var relationship: String?
+    /// "she/her", "they/them" - Contacts keeps a card's own pronouns encrypted, out of reach
+    /// of any app, so April writes them here.
+    var pronouns: String?
 
-    init(entityID: EntityID, relationship: String? = nil) {
+    init(entityID: EntityID, relationship: String? = nil, pronouns: String? = nil) {
         self.entityID = entityID
         self.relationship = relationship
+        self.pronouns = pronouns
     }
 
-    /// From the card's field: "person:jesse" or "person:jesse; general contractor". Anything
-    /// that is not a person is no mapping.
+    /// From the card's field: "person:jesse", "person:jesse; general contractor", or with
+    /// pronouns after either - "person:natty; friend; they/them", "person:natty; they/them".
+    /// A part is pronouns when it is pronoun words joined by slashes, or starts
+    /// "pronouns:"; the other part is the relationship. Anything that is not a person is no
+    /// mapping.
     init?(cardValue: String) {
-        let parts = cardValue.split(separator: ";", maxSplits: 1).map {
+        let parts = cardValue.split(separator: ";").map {
             $0.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         guard let raw = parts.first?.lowercased(), raw.hasPrefix("person:"),
             let id = EntityID(rawValue: raw)
         else { return nil }
         entityID = id
-        let rest = parts.count > 1 ? parts[1] : ""
-        relationship = rest.isEmpty ? nil : rest
+        var relationship: [String] = []
+        for part in parts.dropFirst() where !part.isEmpty {
+            if pronouns == nil, let said = Self.pronouns(in: part) {
+                pronouns = said
+            } else {
+                relationship.append(part)
+            }
+        }
+        self.relationship = relationship.isEmpty ? nil : relationship.joined(separator: "; ")
     }
 
     /// What goes on the card.
     var cardValue: String {
-        relationship.map { "\(entityID.rawValue); \($0)" } ?? entityID.rawValue
+        ([entityID.rawValue] + [relationship, pronouns].compactMap { $0 }).joined(separator: "; ")
+    }
+
+    /// Words that are pronouns, so "they/them" is read as pronouns and "friend/neighbor" as
+    /// what someone is to April.
+    static let pronounWords: Set<String> = [
+        "she", "her", "hers", "herself", "he", "him", "his", "himself", "they", "them", "their",
+        "theirs", "themself", "themselves", "it", "its", "xe", "xem", "xyr", "xyrs", "ze", "zir",
+        "zirs", "hir", "hirs", "ey", "em", "eir", "eirs", "fae", "faer", "faers", "any", "all",
+    ]
+
+    /// "they/them" from "They / Them"; the words after "pronouns:" whatever they are; nil
+    /// when the part is not pronouns.
+    static func pronouns(in part: String) -> String? {
+        let lower = part.lowercased()
+        if lower.hasPrefix("pronouns:") {
+            let said = part.dropFirst("pronouns:".count).trimmingCharacters(in: .whitespaces)
+            return said.isEmpty ? nil : said
+        }
+        let words = lower.split(separator: "/").map {
+            $0.trimmingCharacters(in: .whitespaces)
+        }
+        guard words.count >= 2, words.allSatisfy({ pronounWords.contains($0) }) else {
+            return nil
+        }
+        return words.joined(separator: "/")
     }
 }
 
@@ -124,6 +163,12 @@ enum ContactFacts {
         if let relationship, !relationship.isEmpty {
             facts.append(
                 ContactFact(predicate: "person.relationship", value: .string(relationship)))
+        }
+        // The world's own word for them, shared with the birds' pronouns: the minds see it
+        // beside the name, never as a fact to say.
+        if let pronouns = mapping.pronouns, !pronouns.isEmpty {
+            facts.append(
+                ContactFact(predicate: WorldFacts.pronouns, value: .string(pronouns)))
         }
         return facts
     }

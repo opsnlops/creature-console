@@ -12,8 +12,10 @@ public enum WorldFacts {
     /// arrival or departure retracts the reported ones.
     public static let presencePrefix = "presence."
     public static let personAudible = "presence.physically_audible"
-    /// A character's pronouns, as its persona states them; told to the world at login.
-    public static let characterPronouns = "identity.pronouns"
+    /// Someone's pronouns: a bird's as its persona states them, told to the world at login; a
+    /// person's from April's address book, through the Bridge. Minds see them beside the name
+    /// ("Natty (they/them)"), never as a fact to say.
+    public static let pronouns = "identity.pronouns"
     /// What was last said in a region: the trigger and the lines, valid for an hour.
     public static let lastScene = "scene.last"
     /// Who a person is, in a phrase April would use: "April's sister". Stated in `world.json`
@@ -146,7 +148,8 @@ public enum WorldFacts {
         characterRegion:
             "which room a bird's mind is logged into; the region this scene is in is the room you are in",
         personState: "whether a person is home or away, as far as the house can tell",
-        characterPronouns: "a bird's pronouns, as it states them",
+        pronouns:
+            "the pronouns someone uses - a bird's as it states them, a person's from April's address book; always refer to them this way",
         personAudible:
             "whether a person can hear the room right now; the world uses it to choose between speaking aloud and the phone",
         lastScene:

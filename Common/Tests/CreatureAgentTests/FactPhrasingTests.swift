@@ -202,16 +202,34 @@ struct FactPhrasingTests {
     func pronounsRideWithTheName() throws {
         let facts = [
             try fact(mango, WorldFacts.characterRegion, .string("region:home"), .observed, 1),
-            try fact(mango, WorldFacts.characterPronouns, .string("he/him"), .observed, 1),
+            try fact(mango, WorldFacts.pronouns, .string("he/him"), .observed, 1),
             try fact(april, WorldFacts.personState, .string("home"), .assumed, 0.9),
         ]
 
         let lines = FactPhrasing.lines(for: facts, character: beaky, now: now, in: pacific)
 
-        // Pronouns ride with the name in the persona, not as a line of their own.
+        // Pronouns ride with the name, not as a line of their own.
         #expect(lines.count == 2)
-        #expect(lines[0].hasPrefix("Mango · presence.region = This room"))
+        #expect(lines[0].hasPrefix("Mango (he/him) · presence.region = This room"))
         #expect(FactPhrasing.pronouns(in: facts) == [mango: "he/him"])
+    }
+
+    @Test("A person's pronouns from the address book ride with their name in every line")
+    func personsPronounsRideWithTheirName() throws {
+        let rowan = try EntityID(validating: "person:rowan")
+        let facts = [
+            try fact(rowan, "person.relationship", .string("a friend"), .reported, 1),
+            try fact(rowan, WorldFacts.pronouns, .string("they/them"), .reported, 1),
+            try fact(april, WorldFacts.personState, .string("home"), .assumed, 0.9),
+        ]
+
+        let lines = FactPhrasing.lines(for: facts, character: beaky, now: now, in: pacific)
+
+        // Rowan is not in the room, and the birds still speak of them rightly.
+        #expect(lines.contains { $0.hasPrefix("Rowan (they/them) · person.relationship = ") })
+        #expect(!lines.contains { $0.contains("identity.pronouns") })
+        // Nobody else gains pronouns the world does not hold.
+        #expect(lines.contains { $0.hasPrefix("April · presence.state = ") })
     }
 
     @Test("The local time is spelled out in the house's zone, never the host's")
