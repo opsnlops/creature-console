@@ -1,3 +1,15 @@
+creature-cli (2.85.3+world0.44.2+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * The birds look before they name April (#214). The household rule said
+    a person on camera is April when she is home, and they stopped
+    thinking - the tree sprayer and the Amazon driver were April.
+    creature-world 0.44.2: the stage note says "most likely her", and the
+    house's sighting.identified is assumed at 0.8. creature-agent 2.85.3:
+    most likely her, but look first; her word outranks every sighting; no
+    drawn-out hedging when nothing points elsewhere.
+
+ -- April White <april@creature.engineering>  Wed, 30 Sep 2026 09:00:00 -0700
+
 creature-cli (2.85.2+world0.44.1+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.44.1: accepting an event that carries a trace of its

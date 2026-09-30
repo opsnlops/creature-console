@@ -174,7 +174,7 @@ struct SceneOpeningTests {
         let home = HouseholdSituation(aprilHome: true)
         #expect(
             SceneOpeningPolicy.triggerText(for: seen, place: driveway, household: home)
-                == "A person was just seen at the driveway. April is home and lives alone, so it is her."
+                == "A person was just seen at the driveway. April is home and lives alone, so it is most likely her."
         )
         let away = HouseholdSituation(aprilHome: false)
         #expect(
@@ -213,7 +213,7 @@ struct SceneOpeningTests {
             HouseEvents.personGone, driveway, payload: ["after_seconds": .number(1_500)])
         #expect(
             SceneOpeningPolicy.triggerText(for: gone, place: driveway, household: home)
-                == "A person who had been at the driveway for 25 minutes is no longer seen there. April is home and lives alone, so it was her."
+                == "A person who had been at the driveway for 25 minutes is no longer seen there. April is home and lives alone, so it was most likely her."
         )
         // A vehicle could be hers or a delivery's: only where she is.
         #expect(

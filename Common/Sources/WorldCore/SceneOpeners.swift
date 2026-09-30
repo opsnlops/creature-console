@@ -206,10 +206,11 @@ public actor SceneOpeningPolicy {
     }
 
     /// The stage note the birds read: "(A person was just seen at the driveway. April is home
-    /// and lives alone, so it is her.)" The house decides who a camera saw - it knows whether
-    /// April is home and whether anyone is expected - so the minds never guess. April, after
-    /// an afternoon of "mystery visitor" that was her coming home: "when I'm home, it's me on
-    /// the cameras. I'm the only one that lives here."
+    /// and lives alone, so it is most likely her.)" The house says who it most likely was - it
+    /// knows whether April is home and whether anyone is expected - so the minds start from
+    /// the right place; "most likely", because a camera sees a shape, and a certainty made
+    /// the birds stop looking (the tree sprayer, the delivery driver: "They always assume
+    /// it's me. They don't stop to think." - 2026-09-30, #214).
     public static func triggerText(
         for event: WorldEventEnvelope, place: EntityID, household: HouseholdSituation = .unknown
     ) -> String {
@@ -275,9 +276,9 @@ public actor SceneOpeningPolicy {
 }
 
 /// What the house knows about who is about, at the moment a camera sees someone: whether
-/// April is home, and whether a visitor is expected. April lives alone, so when she is home
-/// and nobody is expected, a person on any camera - the driveway, the workshop - is her, and
-/// the stage note says so; the minds are never left to guess from a shape.
+/// April is home, and whether a visitor or a delivery is expected. April lives alone, so when
+/// she is home and nobody is expected, a person on any camera is most likely her, and the
+/// stage note says so - a starting point for the minds, not the end of their thinking.
 public struct HouseholdSituation: Sendable, Equatable {
     /// Whether April is home, as the presence sensor has it; nil when the house cannot say.
     public var aprilHome: Bool?
@@ -324,7 +325,7 @@ public struct HouseholdSituation: Sendable, Equatable {
             ? "her, them, or the driver" : "either her or \(others)"
     }
 
-    /// " April is home and lives alone, so it is her." - the clause after a person is seen
+    /// " April is home and lives alone, so it is most likely her." - the clause after a person is seen
     /// (`seen`) or no longer seen; nothing when the house does not know where she is.
     func whoThatIs(seen: Bool) -> String {
         let pronoun = seen ? "it is" : "it was"
@@ -333,7 +334,7 @@ public struct HouseholdSituation: Sendable, Equatable {
             if let expectedWords {
                 return " April is home, and \(expectedWords) so \(pronoun) \(herOrOthers)."
             }
-            return " April is home and lives alone, so \(pronoun) her."
+            return " April is home and lives alone, so \(pronoun) most likely her."
         case false?:
             if let expectedWords {
                 return " April is away; \(expectedWords) so \(pronoun) probably \(others)."

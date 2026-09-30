@@ -237,6 +237,8 @@ house from the mail's appointments, on a person from the calendar). A vehicle ge
 she is ("April is home."), since a van could be a delivery. No presence fact, no claim. April:
 "when I'm home, it's me on the cameras. I'm the only one that lives here, it's me."
 
+**Most likely her** (`0.44.2`, #214). The stage note now says "April is home and lives alone, so it is most likely her", and `sighting.identified = April` is assumed at 0.8 (was 0.95): a certainty made the birds stop looking. The minds' contract says what to look for (see the agent manual).
+
 **A delivery is expected, too** (`0.43.0`). On 2026-09-25 the Amazon driver at the carport was
 "April is home and lives alone, so it is her" - the order went from shipped straight to
 delivered, with no out-for-delivery mail, and only invited visitors counted. Now any order not

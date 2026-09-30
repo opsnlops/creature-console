@@ -215,7 +215,7 @@ struct PersonaTests {
         #expect(system.contains("never reply with [silence]"))
         #expect(system.contains("April is not home"))
         #expect(system.contains("not a security system"))
-        #expect(system.contains("A guess must sound like a guess"))
+        #expect(system.contains("think before you name anyone"))
         #expect(system.contains("never remark on her spelling"))
         #expect(!system.contains("A scene is unfolding"))
         #expect(lead[1].content.hasPrefix("(A person was just seen at the carport.)\n"))
@@ -235,7 +235,7 @@ struct PersonaTests {
     }
 
     @Test(
-        "The presence sensor wins: home six minutes is her at the door; home for hours is her inside"
+        "The presence sensor wins: home six minutes is almost surely her at the door; home for hours is most likely her, after thinking"
     )
     func presenceSensorIsTheAuthority() throws {
         // "They need to trust the presence sensor more": the house said April was home six
@@ -246,23 +246,25 @@ struct PersonaTests {
         #expect(justHome.contains("April came home 6 minutes ago"))
         #expect(
             justHome.contains(
-                "A car in the driveway, a person in the carport, at the door, or inside right now is April coming in"
+                "A car in the driveway, a person in the carport, at the door, or inside right now is almost certainly April coming in"
             ))
-        #expect(justHome.contains("never hedge that a camera cannot tell"))
         let homeAllDay = CharacterMind.houseRemarkContract(
             others: [], aprilHome: true, aprilSince: 5 * 3_600, isLead: true)
         #expect(homeAllDay.contains("April is home - the house's presence sensor says so"))
-        #expect(
-            homeAllDay.contains(
-                "anywhere on the cameras, inside or out, is April unless a visitor is expected"))
+        // Most likely her - but the birds look first: the tree sprayer and the Amazon driver
+        // were "April" while the rule said so as a certainty (#214).
+        #expect(homeAllDay.contains("A person on the cameras is most likely April"))
+        #expect(homeAllDay.contains("look at what you know before you name anyone"))
         // "I'm the only one that lives here, it's me": the household rule is in both contracts,
         // so a scene (April's own question) never calls her a workshop visitor either.
         #expect(homeAllDay.contains("April lives alone."))
         #expect(CharacterMind.sceneContractCore.contains("April lives alone."))
-        #expect(CharacterMind.household.contains("never say that a camera cannot tell who it is"))
+        #expect(CharacterMind.household.contains("no drawn-out hedging"))
+        #expect(CharacterMind.household.contains("outranks every sighting"))
+        #expect(CharacterMind.household.contains("A delivery due, a visitor expected"))
         let away = CharacterMind.houseRemarkContract(others: [], aprilHome: false, isLead: true)
         #expect(away.contains("a person at the house is somebody else"))
-        #expect(away.contains("A guess must sound like a guess only when it is one"))
+        #expect(away.contains("When she is away, a person is somebody else"))
         // Through the transcript, from the presence fact's own age.
         let april = try EntityID(validating: "person:april")
         let home = try Fact(

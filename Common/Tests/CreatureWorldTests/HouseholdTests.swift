@@ -138,6 +138,8 @@ struct HouseholdIdentificationTests {
         #expect(identified.payload["value"] == .string("April"))
         #expect(identified.payload["valid_for_seconds"] == .number(1_800))
         #expect(identified.epistemic.type == .assumed)
+        // Likely, not certain: a camera sees a shape (#214).
+        #expect(identified.epistemic.confidence == 0.8)
         #expect(identified.causedBy == [.event(seen.eventID)])
         #expect(identified.source.id.rawValue == "world:household")
         // Away, a visitor expected, or not a person: the house says nothing.

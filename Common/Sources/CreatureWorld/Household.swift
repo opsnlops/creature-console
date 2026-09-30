@@ -131,7 +131,8 @@ enum Household {
                 id: sourceID, kind: "world", sourceEventID: "identified:\(event.eventID.rawValue)"),
             subjectIDs: [place, april],
             placeID: place,
-            epistemic: EpistemicState(type: .assumed, confidence: 0.95),
+            // Assumed, and said as likely: a camera sees a shape (#214).
+            epistemic: EpistemicState(type: .assumed, confidence: 0.8),
             payload: [
                 "subject_id": .string(place.rawValue),
                 "predicate": .string(WorldFacts.sightingIdentified),

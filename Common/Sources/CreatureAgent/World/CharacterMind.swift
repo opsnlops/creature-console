@@ -870,8 +870,8 @@ struct CharacterMind: Sendable {
             switch aprilHome {
             case true?:
                 (aprilSince.map { $0 < justHomeWindow } == true
-                    ? "April came home \(Int(((aprilSince ?? 0) / 60).rounded())) minutes ago - the house's presence sensor saw her arrive, and it is the authority on that. A car in the driveway, a person in the carport, at the door, or inside right now is April coming in: say so plainly, and never hedge that a camera cannot tell who it is. "
-                    : "April is home - the house's presence sensor says so, and it is the authority on that. A person seen anywhere on the cameras, inside or out, is April unless a visitor is expected; do not hedge about it. ")
+                    ? "April came home \(Int(((aprilSince ?? 0) / 60).rounded())) minutes ago - the house's presence sensor saw her arrive, and it is the authority on that. A car in the driveway, a person in the carport, at the door, or inside right now is almost certainly April coming in: say so plainly. "
+                    : "April is home - the house's presence sensor says so, and it is the authority on that. A person on the cameras is most likely April, but a camera sees a shape, not a face: look at what you know before you name anyone. ")
                     + "Speak so she can hear you; she may not be in this room."
             case false?:
                 "April is not home - the presence sensor says so - so a person at the house is somebody else, expected or not; you are talking to the room, and she may see your words on her phone."
@@ -898,8 +898,7 @@ struct CharacterMind: Sendable {
         safety advice. The one exception is a departure - the house saying leaving soon, or \
         time to leave: then the first bird tells April plainly and kindly, once, with the \
         time, and lets it be; she may already know, and the others do not tell her again. \
-        \(household) A guess must sound like a guess only when it is one - when \
-        she is away, or a visitor is expected. Do not begin your line with anyone's name unless \
+        \(household) Do not begin your line with anyone's name unless \
         you are singling them out, and do not prefix your words with your own name. Never use \
         emoji or symbols. Do not describe actions. \(typing)
         """
@@ -934,14 +933,20 @@ struct CharacterMind: Sendable {
     /// April lives alone. An afternoon of "mystery visitor" - her car in the driveway, her at
     /// the front door, thirty seconds after the presence sensor saw her come home - and two
     /// hours later "I'm guessing it's April, but the camera can't tell": "when I'm home, it's me
-    /// on the cameras. I'm the only one that lives here, it's me." The house says who it is in
-    /// the stage note; this is so a mind never argues with it.
+    /// on the cameras. I'm the only one that lives here, it's me." Then the rule said "is
+    /// April" as a certainty, and the birds stopped looking - the tree sprayer and the Amazon
+    /// driver were April: "They always assume it's me. They don't stop to think." (#214). So:
+    /// most likely her, think first, her word wins, and no hedging when nothing points
+    /// elsewhere.
     static let household = """
-        April lives alone. When the house says she is home, a person on any camera - the \
-        driveway, the carport, the workshop, the kitchen - is April, unless the house says a \
-        visitor is expected. Call her April: never "someone", "a visitor", or "whoever that \
-        is", and never say that a camera cannot tell who it is - the house already told you. \
-        Only when she is away is a person somebody else.
+        April lives alone. When the house says she is home, a person on the cameras is most \
+        likely her - but a camera sees a shape, not a face, so think before you name anyone. \
+        A delivery due, a visitor expected, a car that is not hers, someone working outside, \
+        or a person somewhere she would not be may make it somebody else - say so, or wonder \
+        aloud. When nothing points elsewhere, speak as if it is April, lightly: no drawn-out \
+        hedging, no "mystery visitor". What April tells you about who it was outranks every \
+        sighting and every guess, yours or the house's. When she is away, a person is \
+        somebody else.
         """
 
     /// April, after a morning of "do you want the door locked now?": "It was kinda annoying that
