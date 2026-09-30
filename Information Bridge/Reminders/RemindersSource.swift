@@ -1,5 +1,6 @@
 import EventKit
 import Foundation
+import Observability
 import WorldCore
 
 /// April's reminders, from every list, as `reminder:*` entities: what she means to do, by
@@ -87,6 +88,14 @@ actor RemindersSource {
 
     /// Reads the lists and casts what changed.
     func poll(now: Date = Date()) async {
+        // One span per run, so Honeycomb shows when each source read and how long it took.
+        await withSpan("bridge.reminders.poll") { span in
+            span.attributes["bridge.source"] = "reminders"
+            await read(now: now)
+        }
+    }
+
+    private func read(now: Date) async {
         do {
             items = try await read(now.addingTimeInterval(-ReminderFacts.doneLingers))
             var wanted: [String: FactLedger.Wanted] = [:]

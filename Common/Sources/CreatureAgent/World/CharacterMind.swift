@@ -2,6 +2,7 @@ import Foundation
 import Instrumentation
 import Logging
 import Metrics
+import Observability
 import ServiceContextModule
 import Tracing
 import WorldCore
@@ -1317,10 +1318,7 @@ struct CharacterMind: Sendable {
     }
 
     private func currentTraceContext() -> W3CTraceContext? {
-        guard let context = ServiceContext.current else { return nil }
-        var carrier: [String: String] = [:]
-        InstrumentationSystem.instrument.inject(
-            context, into: &carrier, using: TraceContextInjector())
+        let carrier = currentTraceHeaders()
         guard let traceparent = carrier["traceparent"] else { return nil }
         return try? W3CTraceContext(traceparent: traceparent, tracestate: carrier["tracestate"])
     }
@@ -1360,13 +1358,5 @@ struct TraceContextExtractor: Instrumentation.Extractor {
 
     func extract(key: String, from carrier: [String: String]) -> String? {
         carrier[key]
-    }
-}
-
-struct TraceContextInjector: Instrumentation.Injector {
-    typealias Carrier = [String: String]
-
-    func inject(_ value: String, forKey key: String, into carrier: inout [String: String]) {
-        carrier[key] = value
     }
 }

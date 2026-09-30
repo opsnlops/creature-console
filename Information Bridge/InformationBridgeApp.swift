@@ -25,6 +25,10 @@ struct InformationBridgeApp: App {
             NSApplication.shared.terminate(nil)
             exit(0)
         }
+        // Before any Logger: the unified log always, Honeycomb when Settings say so.
+        if !BridgeStore.isHostingTests {
+            BridgeTelemetry.start()
+        }
     }
 
     var body: some Scene {

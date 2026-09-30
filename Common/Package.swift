@@ -23,6 +23,9 @@ let package = Package(
         .library(
             name: "FlockCommunicatorCore",
             targets: ["FlockCommunicatorCore"]),
+        .library(
+            name: "Observability",
+            targets: ["Observability"]),
         .executable(
             name: "creature-communicator-gateway",
             targets: ["creature-communicator-gateway"]),
@@ -163,6 +166,7 @@ let package = Package(
                 .product(name: "OTel", package: "swift-otel"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+                .product(name: "Tracing", package: "swift-distributed-tracing"),
             ]),
 
         // MongoDB migration/back-fill building blocks (server-address parsing, connection

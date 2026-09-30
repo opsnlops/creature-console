@@ -1,5 +1,6 @@
 import CoreLocation
 import Foundation
+import Observability
 import WeatherKit
 import WorldCore
 
@@ -85,6 +86,14 @@ actor WeatherSource {
 
     /// One reading of the sky, turned into facts, the changed ones cast.
     func poll(now: Date = Date()) async {
+        // One span per run, so Honeycomb shows when each source read and how long it took.
+        await withSpan("bridge.weather.poll") { span in
+            span.attributes["bridge.source"] = "weather"
+            await read(now: now)
+        }
+    }
+
+    private func read(now: Date) async {
         do {
             let snapshot = try await fetch(location)
             let facts = WeatherFacts.facts(from: snapshot, now: now, zone: zone)

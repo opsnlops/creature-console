@@ -1,4 +1,5 @@
 import Foundation
+import Observability
 import WorldCore
 
 /// Step 5 of the plan: April's mail, straight from her IMAP accounts - her own server, iCloud
@@ -137,6 +138,14 @@ actor MailSource {
 
     /// Asks the accounts for what is new, folds it in, and reconciles the orders with the world.
     func poll(now: Date = Date()) async {
+        // One span per run, so Honeycomb shows when each source read and how long it took.
+        await withSpan("bridge.mail.poll") { span in
+            span.attributes["bridge.source"] = "mail"
+            await read(now: now)
+        }
+    }
+
+    private func read(now: Date) async {
         guard !polling else {
             pollAgain = true
             return

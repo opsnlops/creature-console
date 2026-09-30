@@ -1,4 +1,5 @@
 import Foundation
+import Observability
 import WorldCore
 import os
 
@@ -141,6 +142,14 @@ actor MessagesSource {
     }
 
     func poll(now: Date = Date()) async {
+        // One span per run, so Honeycomb shows when each source read and how long it took.
+        await withSpan("bridge.messages.poll") { span in
+            span.attributes["bridge.source"] = "messages"
+            await read(now: now, span: span)
+        }
+    }
+
+    private func read(now: Date, span: any Span) async {
         guard !polling else { return }
         polling = true
         defer { polling = false }
@@ -161,6 +170,7 @@ actor MessagesSource {
             let messages = try await fetch(
                 state.lastRowID, now.addingTimeInterval(-firstRunLookback))
             Self.log.notice("Messages: \(messages.count) new row\(messages.count == 1 ? "" : "s")")
+            span.attributes["messages.rows"] = messages.count
             let resolver = await resolver()
             var read = 0
             for message in messages {
@@ -208,6 +218,17 @@ actor MessagesSource {
                     continue
                 }
                 read += 1
+                // How long the text took to reach the Bridge: the poll's time less the time
+                // Messages stamped on it. A big lag with steady polls is Messages delivering
+                // late; a gap between polls is the Bridge (#212).
+                span.addEvent(
+                    SpanEvent(
+                        name: "message.read",
+                        attributes: [
+                            "message.row_id": .int64(message.rowID),
+                            "message.lag_seconds": .double(now.timeIntervalSince(message.date)),
+                            "message.from": .string(person?.rawValue ?? "an allowed sender"),
+                        ]))
                 Self.log.notice(
                     "Messages: row \(message.rowID) from \(person?.rawValue ?? "a carrier", privacy: .public) (\(message.handle, privacy: .private)): \"\(message.text, privacy: .private)\" - asking the model"
                 )
@@ -271,6 +292,9 @@ actor MessagesSource {
             Self.log.notice(
                 "Messages: done - \(read) read, \(self.state.told.count) in force, \(cast) fact\(cast == 1 ? "" : "s") cast"
             )
+            span.attributes["messages.read"] = read
+            span.attributes["messages.in_force"] = state.told.count
+            span.attributes["messages.cast"] = cast
             let note =
                 messages.isEmpty
                 ? "nothing new" : "\(messages.count) new, \(read) from people April knows"
@@ -278,6 +302,7 @@ actor MessagesSource {
                 state: .on, lastRunAt: now,
                 note: cast > 0 ? "\(note); \(cast) fact\(cast == 1 ? "" : "s") cast" : note)
         } catch {
+            span.recordError(error)
             Self.log.error("Messages: \("\(error)", privacy: .public)")
             status = SourceStatus(state: .degraded("\(error)"), lastRunAt: now)
         }

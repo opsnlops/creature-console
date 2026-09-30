@@ -1,3 +1,4 @@
+import AppKit
 import CreatureAppSupport
 import SwiftUI
 import WorldCore
@@ -33,6 +34,11 @@ struct BridgeSettingsView: View {
     @State private var stayAwake = KeepRunning.isAwakeOn
     @State private var stayAwakeStatus = KeepRunning.awakeStatusText
     @State private var proxyAPIKey = ""
+    @AppStorage(BridgeTelemetry.Keys.on) private var telemetryOn = false
+    @AppStorage(BridgeTelemetry.Keys.endpoint) private var telemetryEndpoint =
+        BridgeTelemetry.defaultEndpoint
+    @State private var telemetryKey = ""
+    @State private var hasLoadedTelemetryKey = false
     @State private var hasLoadedAPIKey = false
     @State private var errorAlert: ErrorAlert?
 
@@ -234,6 +240,48 @@ struct BridgeSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Telemetry") {
+                Toggle("Send traces and logs to Honeycomb", isOn: $telemetryOn)
+                TextField("Endpoint", text: $telemetryEndpoint)
+                    .textContentType(.URL)
+                    .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+                    .disabled(!telemetryOn)
+                SecureField("API Key", text: $telemetryKey)
+                    .textContentType(.password)
+                    .autocorrectionDisabled()
+                    .disabled(!telemetryOn)
+                    .onChange(of: telemetryKey) { _, newValue in
+                        guard hasLoadedTelemetryKey else { return }
+                        do {
+                            try BridgeTelemetry.setAPIKey(newValue)
+                        } catch {
+                            errorAlert = ErrorAlert(title: "Couldn’t Save API Key", error: error)
+                        }
+                    }
+                if telemetryOn && telemetryKey.isEmpty {
+                    Label(
+                        "Honeycomb needs an ingest key for the production environment.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                }
+                HStack {
+                    Text(
+                        "As \(BridgeTelemetry.serviceName). A GUI app never sees OTEL_* environment variables, so this is where it is set. Changes apply at the next launch."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    Spacer()
+                    if keepRunning {
+                        Button("Relaunch") { NSApplication.shared.terminate(nil) }
+                            .controlSize(.small)
+                            .help("Quit; the Keep Running agent brings the Bridge straight back")
+                    }
+                }
+            }
+
             Section("External Ingress Proxy") {
                 Toggle("Use Proxy", isOn: $useProxy)
 
@@ -275,7 +323,10 @@ struct BridgeSettingsView: View {
         }
         .formStyle(.grouped)
         .navigationTitle("Settings")
-        .task { loadAPIKey() }
+        .task {
+            loadAPIKey()
+            loadTelemetryKey()
+        }
         .errorAlert($errorAlert)
     }
 
@@ -314,6 +365,16 @@ struct BridgeSettingsView: View {
             proxyAPIKey = try proxyAPIKeyStore.apiKey() ?? ""
         } catch {
             errorAlert = ErrorAlert(title: "Couldn’t Read API Key", error: error)
+        }
+    }
+
+    private func loadTelemetryKey() {
+        guard !hasLoadedTelemetryKey else { return }
+        defer { hasLoadedTelemetryKey = true }
+        do {
+            telemetryKey = try BridgeTelemetry.apiKey() ?? ""
+        } catch {
+            errorAlert = ErrorAlert(title: "Couldn’t Read the Honeycomb Key", error: error)
         }
     }
 

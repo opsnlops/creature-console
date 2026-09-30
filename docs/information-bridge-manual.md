@@ -39,6 +39,30 @@ user-initiated activity assertion for its whole life (`0.10.2`): without it App 
 the five-minute heartbeat to ten once the window was closed, and it asks macOS not to idle-sleep
 while the Bridge runs.
 
+## Telemetry (`0.16.0`, #212)
+
+Settings → **Telemetry** sends the Bridge's traces and logs to Honeycomb, like every other part
+of Beaky's World: turn it on, leave the endpoint at `https://api.honeycomb.io` (or point it at a
+collector), and paste an ingest key for the production environment - it goes to the Keychain,
+beside the mail passwords, never to the defaults. A GUI app started by launchd never sees the
+`OTEL_EXPORTER_OTLP_*` variables the services use, which is why it lives here. OpenTelemetry
+starts once per launch, so a change applies at the next one; with Keep Running on, **Relaunch**
+quits and the launch agent brings the Bridge straight back. Off, the Bridge logs only to the
+Mac's unified log, as before; on, it logs there too, so Console.app still shows everything.
+
+The service is `information-bridge`. What it sends:
+
+- `bridge.<source>.poll` - one span per run of mail, messages, calendar, reminders, weather,
+  contacts. Messages' carries `messages.rows`, `messages.read`, `messages.cast`, and a
+  `message.read` event per text with **`message.lag_seconds`**: the poll's time less the time
+  Messages stamped on the text. A late text is one query - a big lag with steady polls means
+  Messages delivered it late; a gap between polls means the Bridge.
+- `bridge.outbox.send` - each send to the world: batch size, attempts, and how long the facts
+  waited (`outbox.waited_seconds`).
+- `bridge.heartbeat` - each `bridge.online`; a sleeping laptop is a gap.
+- Every fact carries the trace it was made in, so the world's handling of it joins the same
+  trace.
+
 ## One voice (`0.10.3`)
 
 The world must hear one Bridge: two, each with its own ledger, would take turns re-casting

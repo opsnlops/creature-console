@@ -1,3 +1,12 @@
+creature-cli (2.85.1+world0.44.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.85.1: the trace-header helper moved into the shared
+    Observability library (currentTraceHeaders), which the Information
+    Bridge now uses to put its traces on the facts it sends (#212). No
+    change in behavior.
+
+ -- April White <april@creature.engineering>  Tue, 29 Sep 2026 21:30:00 -0700
+
 creature-cli (2.85.0+world0.44.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * People's pronouns reach the birds (#211). creature-world 0.44.0: the

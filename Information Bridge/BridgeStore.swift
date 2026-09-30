@@ -1,5 +1,6 @@
 import CreatureAppSupport
 import Foundation
+import Observability
 import Observation
 import WeatherKit
 import WorldCore
@@ -764,7 +765,11 @@ final class BridgeStore {
 
     /// The Bridge tells the world it is here, as a fact that expires if it stops.
     func heartbeat() async {
-        await enqueue { try BridgeFacts.online(version: Self.version, host: Self.host) }
+        // A span each beat: a laptop that slept, or a Bridge that hung, is a gap in Honeycomb.
+        await withSpan("bridge.heartbeat") { span in
+            span.attributes["bridge.version"] = Self.version
+            await enqueue { try BridgeFacts.online(version: Self.version, host: Self.host) }
+        }
     }
 
     /// "Cast a test fact": a `bridge.hello` on the house, valid a minute.

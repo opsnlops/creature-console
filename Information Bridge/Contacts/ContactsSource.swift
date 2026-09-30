@@ -1,5 +1,6 @@
 import Contacts
 import Foundation
+import Observability
 import WorldCore
 
 /// Step 3 of the plan: April's address book. A card becomes a person in the world only when it
@@ -114,6 +115,14 @@ actor ContactsSource {
 
     /// Reads the address book and casts what changed.
     func poll(now: Date = Date()) async {
+        // One span per run, so Honeycomb shows when each source read and how long it took.
+        await withSpan("bridge.contacts.poll") { span in
+            span.attributes["bridge.source"] = "contacts"
+            await read(now: now)
+        }
+    }
+
+    private func read(now: Date) async {
         do {
             cards = try await read()
             homeStreets = await readHome()

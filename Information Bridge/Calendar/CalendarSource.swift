@@ -1,5 +1,6 @@
 import EventKit
 import Foundation
+import Observability
 import WorldCore
 
 /// Step 4 of the plan: April's calendars. Everything ahead and the last 90 days, from the
@@ -108,6 +109,14 @@ actor CalendarSource {
 
     /// Reads the calendars and casts what changed.
     func poll(now: Date = Date()) async {
+        // One span per run, so Honeycomb shows when each source read and how long it took.
+        await withSpan("bridge.calendar.poll") { span in
+            span.attributes["bridge.source"] = "calendar"
+            await read(now: now)
+        }
+    }
+
+    private func read(now: Date) async {
         do {
             items = try await read(
                 now.addingTimeInterval(-Self.daysBack * 86_400),

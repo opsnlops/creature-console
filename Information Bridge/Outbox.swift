@@ -1,4 +1,5 @@
 import Foundation
+import Observability
 import WorldCore
 
 /// The Bridge's durable outbox: every fact it learns is written here first, then delivered to
@@ -62,6 +63,16 @@ actor Outbox {
 
     /// Writes the fact down and wakes the deliverer.
     func enqueue(_ event: WorldEventEnvelope) throws {
+        // Carries the trace it was made in - a source's poll - so the world's handling of it
+        // joins the same trace in Honeycomb.
+        var event = event
+        if event.trace == nil {
+            let headers = currentTraceHeaders()
+            if let traceparent = headers["traceparent"] {
+                event.trace = try? W3CTraceContext(
+                    traceparent: traceparent, tracestate: headers["tracestate"])
+            }
+        }
         pending.append(Pending(event: event, enqueuedAt: Date(), attempts: 0))
         try save()
         status.pending = pending.count
@@ -113,10 +124,16 @@ actor Outbox {
             }
             let batch = Array(pending.prefix(castMany == nil ? 1 : Self.batchSize))
             do {
-                if batch.count > 1, let castMany {
-                    try await castMany(batch.map(\.event))
-                } else {
-                    try await cast(batch[0].event)
+                try await withSpan("bridge.outbox.send") { span in
+                    span.attributes["outbox.batch"] = batch.count
+                    span.attributes["outbox.attempts"] = batch[0].attempts + 1
+                    span.attributes["outbox.waited_seconds"] = Date().timeIntervalSince(
+                        batch[0].enqueuedAt)
+                    if batch.count > 1, let castMany {
+                        try await castMany(batch.map(\.event))
+                    } else {
+                        try await cast(batch[0].event)
+                    }
                 }
                 pending.removeFirst(batch.count)
                 let now = Date()
