@@ -1,5 +1,16 @@
 #!/usr/bin/make -f
 
+# Swift 6.4.0's default build system (swift-build) cannot link Foundation with
+# --static-swift-stdlib on Linux: it derives Foundation's autolink entries from the wrong
+# resource directory, so libCoreFoundation, lib_FoundationICU and friends are never linked
+# (swiftlang/swift-build#1764, fixed by swift-build#1770 for 6.4.x; creature-console#216).
+# Revert tracked in creature-console#217.
+# SwiftPM's previous build system links correctly. Every `swift build` below - builds and
+# --show-bin-path alike, since the two systems put binaries in different places - uses this.
+# Remove it (set it empty) once CI's floating 6.4 is 6.4.1 or later and a static build links.
+SWIFT_BUILD_SYSTEM ?= --build-system native
+export SWIFT_BUILD_SYSTEM
+
 # Allow SWIFT_BUILD_FLAGS to be overridden (e.g., CI adds --swift-sdk static-linux).
 SWIFT_BUILD_FLAGS ?= -c release --product creature-cli --static-swift-stdlib
 SWIFT_BUILD_FLAGS_MQTT ?= -c release --product creature-mqtt --static-swift-stdlib
@@ -22,17 +33,17 @@ override_dh_auto_configure:
 	command -v swift >/dev/null || (echo "Swift toolchain not found in PATH" >&2; exit 1)
 
 override_dh_auto_build:
-	cd Common && swift build $(SWIFT_BUILD_FLAGS)
-	cd Common && swift build $(SWIFT_BUILD_FLAGS_MQTT)
-	cd Common && swift build $(SWIFT_BUILD_FLAGS_AGENT)
-	cd Common && swift build $(SWIFT_BUILD_FLAGS_WORLD)
-	cd Common && swift build $(SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY)
-	cd Common && swift build $(SWIFT_BUILD_FLAGS_HOUSE)
-	cd Common && swift build $(SWIFT_BUILD_FLAGS_BODY)
+	cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS)
+	cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_MQTT)
+	cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_AGENT)
+	cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_WORLD)
+	cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY)
+	cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_HOUSE)
+	cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_BODY)
 
 override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-cli/usr/bin
-	BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS) --show-bin-path)/creature-cli; \
+	BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS) --show-bin-path)/creature-cli; \
 		install -m755 $$BIN_PATH $(CURDIR)/debian/creature-cli/usr/bin/creature-cli
 	BIN=$(CURDIR)/debian/creature-cli/usr/bin/creature-cli; \
 	install -d $(CURDIR)/debian/creature-cli/usr/share/bash-completion/completions; \
@@ -47,7 +58,7 @@ override_dh_auto_install:
 	install -m644 $(CURDIR)/debian/creature-relay.default $(CURDIR)/debian/creature-cli/etc/default/creature-relay
 
 	install -d $(CURDIR)/debian/creature-mqtt/usr/bin
-	MQTT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_MQTT) --show-bin-path)/creature-mqtt; \
+	MQTT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_MQTT) --show-bin-path)/creature-mqtt; \
 		install -m755 $$MQTT_BIN_PATH $(CURDIR)/debian/creature-mqtt/usr/bin/creature-mqtt
 	MQTT_BIN=$(CURDIR)/debian/creature-mqtt/usr/bin/creature-mqtt; \
 	install -d $(CURDIR)/debian/creature-mqtt/usr/share/bash-completion/completions; \
@@ -68,7 +79,7 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-agent/etc/creature/agent/personas
 	install -m644 $(CURDIR)/docs/personas/*.yaml $(CURDIR)/debian/creature-agent/etc/creature/agent/personas/
 	install -d $(CURDIR)/debian/creature-agent/usr/bin
-	AGENT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_AGENT) --show-bin-path)/creature-agent; \
+	AGENT_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_AGENT) --show-bin-path)/creature-agent; \
 		install -m755 $$AGENT_BIN_PATH $(CURDIR)/debian/creature-agent/usr/bin/creature-agent
 	AGENT_BIN=$(CURDIR)/debian/creature-agent/usr/bin/creature-agent; \
 	install -d $(CURDIR)/debian/creature-agent/usr/share/bash-completion/completions; \
@@ -81,7 +92,7 @@ override_dh_auto_install:
 	# Creature World follows the repository's merged-/usr convention. /bin is the
 	# canonical package and service path even though Debian resolves it through /usr.
 	install -d $(CURDIR)/debian/creature-world/bin
-	WORLD_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_WORLD) --show-bin-path)/creature-world; \
+	WORLD_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_WORLD) --show-bin-path)/creature-world; \
 		install -m755 $$WORLD_BIN_PATH $(CURDIR)/debian/creature-world/bin/creature-world
 	WORLD_BIN=$(CURDIR)/debian/creature-world/bin/creature-world; \
 	install -d $(CURDIR)/debian/creature-world/usr/share/bash-completion/completions; \
@@ -97,7 +108,7 @@ override_dh_auto_install:
 
 	# The Communicator Gateway is an independently versioned and deployed service.
 	install -d $(CURDIR)/debian/creature-communicator-gateway/bin
-	GATEWAY_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY) --show-bin-path)/creature-communicator-gateway; \
+	GATEWAY_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY) --show-bin-path)/creature-communicator-gateway; \
 		install -m755 $$GATEWAY_BIN_PATH $(CURDIR)/debian/creature-communicator-gateway/bin/creature-communicator-gateway
 	GATEWAY_BIN=$(CURDIR)/debian/creature-communicator-gateway/bin/creature-communicator-gateway; \
 	install -d $(CURDIR)/debian/creature-communicator-gateway/usr/share/bash-completion/completions; \
@@ -113,7 +124,7 @@ override_dh_auto_install:
 
 	# The house: Home Assistant into the world, and the lights back out. Independently versioned.
 	install -d $(CURDIR)/debian/creature-house/bin
-	HOUSE_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_HOUSE) --show-bin-path)/creature-house; \
+	HOUSE_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_HOUSE) --show-bin-path)/creature-house; \
 		install -m755 $$HOUSE_BIN_PATH $(CURDIR)/debian/creature-house/bin/creature-house
 	install -d $(CURDIR)/debian/creature-house/etc/creature
 	install -m644 $(CURDIR)/debian/creature-house.json $(CURDIR)/debian/creature-house/etc/creature/house.json
@@ -122,7 +133,7 @@ override_dh_auto_install:
 
 	# The body: the birds' sensors into the world. Independently versioned.
 	install -d $(CURDIR)/debian/creature-body/bin
-	BODY_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_BODY) --show-bin-path)/creature-body; \
+	BODY_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_SYSTEM) $(SWIFT_BUILD_FLAGS_BODY) --show-bin-path)/creature-body; \
 		install -m755 $$BODY_BIN_PATH $(CURDIR)/debian/creature-body/bin/creature-body
 	install -d $(CURDIR)/debian/creature-body/etc/creature
 	install -m644 $(CURDIR)/debian/creature-body.json $(CURDIR)/debian/creature-body/etc/creature/body.json
