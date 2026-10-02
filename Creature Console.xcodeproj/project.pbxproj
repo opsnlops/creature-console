@@ -329,11 +329,11 @@
 		FEA1B1E70000000000000091 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 		FEA1B1E70000000000000092 /* AdHocExchangeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA1B1E70000000000000090 /* AdHocExchangeViews.swift */; };
 		IBA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = IBA000000000000000000015 /* WorldCore */; };
-		IBO000000000000000000002 /* Observability in Frameworks */ = {isa = PBXBuildFile; productRef = IBO000000000000000000001 /* Observability */; };
-		IBO000000000000000000004 /* LoggingOSLog in Frameworks */ = {isa = PBXBuildFile; productRef = IBO000000000000000000003 /* LoggingOSLog */; };
 		IBA000000000000000000019 /* CreatureAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = IBA000000000000000000016 /* CreatureAppSupport */; };
 		IBA00000000000000000001B /* io.opsnlops.Information-Bridge.agent.plist in Launch Agent */ = {isa = PBXBuildFile; fileRef = IBA00000000000000000001A /* io.opsnlops.Information-Bridge.agent.plist */; };
 		IBA000000000000000000031 /* io.opsnlops.Information-Bridge.awake.plist in Launch Agent */ = {isa = PBXBuildFile; fileRef = IBA000000000000000000030 /* io.opsnlops.Information-Bridge.awake.plist */; };
+		IBO000000000000000000002 /* Observability in Frameworks */ = {isa = PBXBuildFile; productRef = IBO000000000000000000001 /* Observability */; };
+		IBO000000000000000000004 /* LoggingOSLog in Frameworks */ = {isa = PBXBuildFile; productRef = IBO000000000000000000003 /* LoggingOSLog */; };
 		IBS000000000000000000003 /* SwiftMail in Frameworks */ = {isa = PBXBuildFile; productRef = IBS000000000000000000002 /* SwiftMail */; };
 		IBT00000000000000000001C /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = IBT00000000000000000001B /* WorldCore */; };
 		WVA000000000000000000018 /* WorldCore in Frameworks */ = {isa = PBXBuildFile; productRef = WVA000000000000000000015 /* WorldCore */; };
@@ -3379,7 +3379,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.10.3;
+				MARKETING_VERSION = 0.11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3411,7 +3411,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.10.3;
+				MARKETING_VERSION = 0.11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3690,6 +3690,10 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = WorldCore;
 		};
+		IBA000000000000000000016 /* CreatureAppSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CreatureAppSupport;
+		};
 		IBO000000000000000000001 /* Observability */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Observability;
@@ -3698,10 +3702,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1199D6BB2BF5C463004E0D64 /* XCRemoteSwiftPackageReference "swift-log-oslog" */;
 			productName = LoggingOSLog;
-		};
-		IBA000000000000000000016 /* CreatureAppSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = CreatureAppSupport;
 		};
 		IBS000000000000000000002 /* SwiftMail */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -201,6 +201,44 @@ final class WorldStore {
         Array(Set(facts.map(\.subjectID))).sorted { $0.rawValue < $1.rawValue }
     }
 
+    /// Every current fact under a predicate prefix, paged to the end.
+    private func allFacts(withPrefix prefix: String) async throws -> [Fact] {
+        let scryer = try makeScryer()
+        var facts: [Fact] = []
+        var after: FactID?
+        repeat {
+            let page = try await scryer.facts(predicatePrefix: prefix, after: after, limit: 500)
+            facts += page.facts
+            after = page.hasMore ? page.facts.last?.factID : nil
+        } while after != nil
+        return facts
+    }
+
+    /// Every bird's reflections, every night: the nights list, and each night's letter (#218).
+    func nightlyReflections() async -> [Fact] {
+        do {
+            return try await allFacts(withPrefix: WorldFacts.memoryReflection + ".")
+        } catch {
+            lastError = ErrorAlert(title: "The World Could Not Show the Nights", error: error)
+            return []
+        }
+    }
+
+    /// What each of `birds` remembered of `day`: their episodes, on every subject they are on.
+    func nightlyEpisodes(day: String, birds: [String]) async -> [Fact] {
+        do {
+            var facts: [Fact] = []
+            for bird in birds {
+                facts += try await allFacts(
+                    withPrefix: "\(WorldFacts.memoryEpisode).\(bird).\(day).")
+            }
+            return facts
+        } catch {
+            lastError = ErrorAlert(title: "The World Could Not Show \(day)", error: error)
+            return []
+        }
+    }
+
     /// One entity, whole, from the world.
     func entity(_ entityID: EntityID) async -> EntityPage? {
         do {

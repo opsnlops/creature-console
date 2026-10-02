@@ -10,6 +10,9 @@ protocol WorldScrying: Sendable {
     func health() async throws -> WorldHealth
     func events(after sequence: Int64, limit: Int) async throws -> WorldEventPage
     func facts(limit: Int) async throws -> WorldFactPage
+    /// Current facts whose predicate starts with `prefix`, a page at a time.
+    func facts(predicatePrefix prefix: String, after factID: FactID?, limit: Int) async throws
+        -> WorldFactPage
     func timers(limit: Int) async throws -> WorldTimerPage
     func conversationItems(
         in conversationID: ConversationID, after itemID: ConversationItemID?, limit: Int
@@ -55,6 +58,12 @@ struct LiveWorldScryer: WorldScrying {
     }
 
     func facts(limit: Int) async throws -> WorldFactPage { try await viewer.facts(limit: limit) }
+
+    func facts(predicatePrefix prefix: String, after factID: FactID?, limit: Int) async throws
+        -> WorldFactPage
+    {
+        try await viewer.facts(predicatePrefix: prefix, after: factID, limit: limit)
+    }
 
     func timers(limit: Int) async throws -> WorldTimerPage { try await viewer.timers(limit: limit) }
 

@@ -360,6 +360,12 @@ struct ScriptedScryer: WorldScrying {
         WorldFactPage(facts: [], nextFactID: nil, hasMore: false)
     }
 
+    func facts(predicatePrefix prefix: String, after factID: FactID?, limit: Int) async throws
+        -> WorldFactPage
+    {
+        WorldFactPage(facts: [], nextFactID: nil, hasMore: false)
+    }
+
     func timers(limit: Int) async throws -> WorldTimerPage {
         WorldTimerPage(timers: [], nextTimerID: nil, hasMore: false)
     }

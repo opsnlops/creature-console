@@ -193,6 +193,18 @@ shows it under the scene. Every trace icon is a link into Honeycomb for that tra
 
 ### Mundane view
 
+### Nightly (`0.11.0`, #218)
+
+The nightly reports, by night. The left column lists every night some bird remembered, newest
+first, with the birds that wrote that night. Pick one and the right side shows each bird in turn:
+its **letter** to April (the reflection, in a tinted card), then the **episodes** it chose to
+remember of the day, most important first, each with its salience (0 to 1), when it happened,
+and the subjects it is filed on. An episode the memory filed on three subjects shows once. Click
+a letter or an episode for its JSON in the Mundane view; **Refresh** reads the nights again
+after a 3:30 AM run. It is built from the world's own memory facts
+(`memory.reflection.<bird>.<day>` and `memory.episode.<bird>.<day>.<n>`), read by predicate
+prefix, so the world needs nothing new to serve it.
+
 Select anything in any panel and the inspector shows it as the JSON the World actually carries
 (pretty-printed, keys sorted). Toggle it with the `{}` toolbar button. This is the mundane view
 of a spell: the record with the magic taken out, for when you need to see the wires.
