@@ -1,0 +1,17 @@
+# Backs up creature_server and creature_world to B2 (#219). Installed with the timer beside it;
+# see docs/backups.md.
+[Unit]
+Description=Back up the creature databases to Backblaze B2
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# The user whose b2 CLI is authorized (`b2 account authorize`) and who can run docker.
+User=april
+ExecStart=/usr/local/bin/creature-backup-databases
+# Every step has its own 30-minute limit; this caps the whole night's run.
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=idle

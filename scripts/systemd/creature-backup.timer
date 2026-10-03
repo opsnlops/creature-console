@@ -1,0 +1,11 @@
+# Nightly at 04:30, an hour after the birds' 03:30 memory run, so the backup holds it (#219).
+[Unit]
+Description=Nightly creature database backup
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+# A night the server was off is backed up when it comes back.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
