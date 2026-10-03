@@ -12,7 +12,7 @@ For each database:
 2. **Checked:** the archive is replayed with `mongorestore --dryRun`, which reads every
    collection and writes nothing. A truncated or corrupt archive fails the night, not the day
    you need it.
-3. Uploaded to `b2://creature-backups/databases/<db>/<db>-<UTC timestamp>.archive.gz`.
+3. Uploaded to `b2://creature-engineering/database/<db>/<db>-<UTC timestamp>.archive.gz`.
 4. The temporary copy is removed.
 
 Every dump and check runs under `timeout` *inside* the container (30 minutes, then killed 10
@@ -23,16 +23,17 @@ stop every backup after it. Any failure exits non-zero with the line that failed
 ## Retention: 15 days
 
 B2 has no per-file expiry. The 15 days is a **lifecycle rule** on the bucket for the
-`databases/` prefix: a file is hidden 15 days after upload and deleted a day later. Updating a
+`database/` prefix: a file is hidden 15 days after upload and deleted a day later. Updating a
 bucket's lifecycle rules replaces all of them, so `--setup` reads the existing rules, keeps
-every other one, and adds this one. Every nightly run checks the rule is still there and refuses
+every other one, and adds this one. The bucket holds other things too; the rule only ever
+covers files under `database/`. Every nightly run checks the rule is still there and refuses
 to back up (loudly) if it is not.
 
 ## Install (once, on the server)
 
 ```bash
 # 1. b2 authorized for the user the timer runs as (april):
-b2 account authorize            # key with read/write on creature-backups
+b2 account authorize            # key with read/write on creature-engineering
 
 # 2. The script, and the retention rule:
 sudo install -m 755 scripts/backup-databases.sh /usr/local/bin/creature-backup-databases
@@ -48,14 +49,14 @@ systemctl list-timers creature-backup.timer
 ```
 
 Settings come from the environment, with these defaults: `CONTAINER=mongodb`,
-`BUCKET=creature-backups`, `PREFIX=databases/`, `DATABASES="creature_server creature_world"`,
+`BUCKET=creature-engineering`, `PREFIX=database/`, `DATABASES="creature_server creature_world"`,
 `KEEP_DAYS=15`, `STEP_TIMEOUT=1800`.
 
 ## Restore
 
 ```bash
-b2 ls b2://creature-backups/databases/creature_world/          # pick one
-b2 file download b2://creature-backups/databases/creature_world/creature_world-<stamp>.archive.gz world.archive.gz
+b2 ls b2://creature-engineering/database/creature_world/          # pick one
+b2 file download b2://creature-engineering/database/creature_world/creature_world-<stamp>.archive.gz world.archive.gz
 
 # Into a scratch database first, to look before touching the real one:
 docker exec -i mongodb mongorestore --archive --gzip \

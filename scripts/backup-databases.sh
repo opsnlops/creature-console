@@ -10,10 +10,10 @@
 # nothing is installed on the host. Each database is dumped to a gzipped archive, replayed with
 # `mongorestore --dryRun` to prove the archive reads end to end, then uploaded to
 #
-#   b2://creature-backups/databases/<db>/<db>-<UTC timestamp>.archive.gz
+#   b2://creature-engineering/database/<db>/<db>-<UTC timestamp>.archive.gz
 #
 # Retention: B2 has no per-file TTL. Keeping 15 days is a lifecycle rule on the bucket, scoped
-# to the `databases/` prefix: a file is hidden 15 days after upload and deleted a day later.
+# to the `database/` prefix: a file is hidden 15 days after upload and deleted a day later.
 # `--setup` adds that rule and keeps any others (a bucket update replaces all of a bucket's
 # rules, so it is read, merged, and written back); every run checks the rule is still there and
 # fails before dumping anything if it is not.
@@ -27,8 +27,8 @@ set -Eeuo pipefail
 trap 'echo "backup: ERROR: line $LINENO: $BASH_COMMAND failed" >&2' ERR
 
 CONTAINER="${CONTAINER:-mongodb}"
-BUCKET="${BUCKET:-creature-backups}"
-PREFIX="${PREFIX:-databases/}"
+BUCKET="${BUCKET:-creature-engineering}"
+PREFIX="${PREFIX:-database/}"
 DATABASES="${DATABASES:-creature_server creature_world}"
 KEEP_DAYS="${KEEP_DAYS:-15}"
 MONGO_URI="${MONGO_URI:-mongodb://127.0.0.1:27017/?directConnection=true}"
