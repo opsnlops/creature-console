@@ -1,3 +1,13 @@
+creature-cli (2.87.0+world0.45.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.87.0: OpenAI's Decisions API in shadow (#221). With
+    llmDecisionsShadow: true, every scene turn also asks "would this bird
+    speak?" and records decisions.speak_probability on the turn's span,
+    to measure against the bird's real choice. It changes nothing the bird
+    does and never holds a turn up more than 3 s after it has decided.
+
+ -- April White <april@creature.engineering>  Wed, 07 Oct 2026 12:00:00 -0700
+
 creature-cli (2.86.0+world0.45.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * A quiet hour for the cameras (#220). On 2026-10-06 April said "ignore

@@ -106,6 +106,24 @@ struct AgentConfigTests {
         #expect(throws: DecodingError.self) { try load("llmReasoningEffort: max") }
     }
 
+    @Test("The Decisions shadow is off unless asked, on gpt-6-luna unless told otherwise (#221)")
+    func parsesDecisionsShadow() throws {
+        func load(_ extra: String) throws -> AgentConfig {
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmSystemPrompt: system
+                        llmModel: gpt-6-luna
+                        areas: []
+                        \(extra)
+                        """))
+        }
+        #expect(try load("").llmDecisionsShadow == false)
+        #expect(try load("").llmDecisionsModel == "gpt-6-luna")
+        #expect(try load("llmDecisionsShadow: true").llmDecisionsShadow == true)
+    }
+
     @Test("The nightly memory goes through the Batch API unless told not to, with a bounded wait")
     func parsesMemoryBatch() throws {
         func load(_ extra: String) throws -> AgentConfig {

@@ -42,6 +42,12 @@ struct AgentConfig: Decodable {
     let llmMemoryBatch: Bool
     /// How long to wait for a batch before giving up on it and asking the ordinary way.
     let llmMemoryBatchWaitHours: Double
+    /// Asks OpenAI's Decisions API, beside every scene turn, whether this bird would speak,
+    /// and records the answer on the turn's span - shadow only, never changing what the bird
+    /// does (#221, docs/decisions-shadow-plan.md). Off by default.
+    let llmDecisionsShadow: Bool
+    /// The Decisions API's model; in beta it offers only `gpt-6-luna`.
+    let llmDecisionsModel: String
     let localLlmHost: String
     let localLlmPort: Int
     let localLlmMaxTokens: Int
@@ -147,6 +153,8 @@ struct AgentConfig: Decodable {
         case llmMemoryModel
         case llmMemoryBatch
         case llmMemoryBatchWaitHours
+        case llmDecisionsShadow
+        case llmDecisionsModel
         case localLlmHost
         case localLlmPort
         case localLlmMaxTokens
@@ -205,6 +213,10 @@ struct AgentConfig: Decodable {
         llmMemoryBatch = try container.decodeIfPresent(Bool.self, forKey: .llmMemoryBatch) ?? true
         llmMemoryBatchWaitHours =
             try container.decodeIfPresent(Double.self, forKey: .llmMemoryBatchWaitHours) ?? 20
+        llmDecisionsShadow =
+            try container.decodeIfPresent(Bool.self, forKey: .llmDecisionsShadow) ?? false
+        llmDecisionsModel =
+            try container.decodeIfPresent(String.self, forKey: .llmDecisionsModel) ?? "gpt-6-luna"
         guard llmMemoryBatchWaitHours > 0, llmMemoryBatchWaitHours <= 24 else {
             throw DecodingError.dataCorruptedError(
                 forKey: .llmMemoryBatchWaitHours, in: container,

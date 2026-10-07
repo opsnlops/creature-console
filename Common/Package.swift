@@ -299,6 +299,7 @@ let package = Package(
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
                 .product(name: "MetricsTestKit", package: "swift-metrics"),
+                .product(name: "InMemoryTracing", package: "swift-distributed-tracing"),
             ]
         ),
         .testTarget(

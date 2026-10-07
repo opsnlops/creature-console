@@ -19,6 +19,9 @@ struct WorldMindService: Service {
     private let spectateDelay: Duration
     /// The nightly memory, when this mind has a memory model; nil for the chorus.
     private let memory: MemoryJob?
+    /// Asks, beside each scene turn, whether the bird would speak; records it, changes
+    /// nothing (#221). Nil unless `llmDecisionsShadow` is on.
+    private let decisionsShadow: DecisionsShadow?
     /// One night's work at a time.
     private let remembering = Remembering()
 
@@ -52,6 +55,7 @@ struct WorldMindService: Service {
         logger: Logger,
         clock: any WorldClock = SystemWorldClock(),
         spectateDelay: Duration = .seconds(15),
+        decisionsShadow: DecisionsShadow? = nil,
         memory: MemoryJob? = nil
     ) {
         self.subscriber = subscriber
@@ -63,6 +67,7 @@ struct WorldMindService: Service {
         self.clock = clock
         self.spectateDelay = spectateDelay
         self.memory = memory
+        self.decisionsShadow = decisionsShadow
     }
 
     func run() async throws {
@@ -176,6 +181,15 @@ struct WorldMindService: Service {
         ) { span in
             span.attributes["scene.id"] = offer.offer.sceneID.rawValue
             span.attributes["world.sequence"] = offer.worldSequence
+            span.attributes["scene.turn.lead"] = offer.offer.turns.isEmpty
+            span.attributes["scene.trigger.kind"] = offer.offer.trigger.kind.rawValue
+            // The shadow asks from the bird's own view of the scene, in parallel; the bird
+            // decides as it always does.
+            let shadow = decisionsShadow.map { shadow in
+                shadow.start(
+                    bird: mind.configuration.characterName.capitalized,
+                    messages: mind.makeSceneTranscript(for: offer.offer))
+            }
             var submission: SceneTurnSubmission
             let sessionID = await session?.sessionID
             let sceneID = offer.offer.sceneID
@@ -206,6 +220,9 @@ struct WorldMindService: Service {
                 span.attributes["agent.suppression_reason"] = reason.rawValue
             }
             submission.sessionID = sessionID
+            if let shadow, let decisionsShadow {
+                await decisionsShadow.record(shadow, on: span)
+            }
             let pieces = await streamed.count
             span.attributes["scene.turn.pieces"] = pieces
             let result = try await responder.submit(submission, to: offer.offer.sceneID)
