@@ -260,6 +260,17 @@ struct MongoWorldPersistenceConnection: Sendable {
                     {
                         _ = try await world.accept(identified)
                     }
+                    // April asked the birds to let the cameras be: the sighting is recorded
+                    // (above, and in the story), but no scene hands a bird the microphone (#220).
+                    if HouseEvents.cameraSightings.contains(event.type),
+                        try await Household.camerasQuiet(
+                            house: house, facts: persistence.facts, at: await clock.now)
+                    {
+                        logger.info(
+                            "The cameras are quiet; no scene",
+                            metadata: ["world.event.type": "\(event.type.rawValue)"])
+                        continue
+                    }
                     guard
                         let occasion = await openingPolicy.occasion(for: event, at: await clock.now)
                     else { continue }

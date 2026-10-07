@@ -7,8 +7,44 @@ import WorldCore
 /// a `facts.given` cast with April as the source and her words as provenance. Only what April
 /// said, never a guess: "the virtual world can guess, but the real world knows."
 struct LearnedFact: Equatable, Sendable {
-    enum Expiry: String, CaseIterable, Sendable {
+    enum Expiry: Equatable, Sendable {
         case today, tomorrow, week, never
+        /// A span from now: "1h", "30m" - "ignore the cameras for the next hour" (#220). At
+        /// most twelve hours, so a slip of the tongue cannot silence a house for days.
+        case span(TimeInterval)
+
+        static let longestSpan: TimeInterval = 12 * 3_600
+
+        /// "today", "1h", "30m"; nil for anything else.
+        init?(word: String) {
+            let word = word.lowercased().trimmingCharacters(in: .whitespaces)
+            switch word {
+            case "today": self = .today
+            case "tomorrow": self = .tomorrow
+            case "week": self = .week
+            case "never": self = .never
+            default:
+                guard let unit = word.last, "hm".contains(unit),
+                    let amount = Int(word.dropLast()), amount > 0
+                else { return nil }
+                let seconds = TimeInterval(amount) * (unit == "h" ? 3_600 : 60)
+                guard seconds <= Self.longestSpan else { return nil }
+                self = .span(seconds)
+            }
+        }
+
+        /// As the tag wrote it, for the logs.
+        var word: String {
+            switch self {
+            case .today: "today"
+            case .tomorrow: "tomorrow"
+            case .week: "week"
+            case .never: "never"
+            case .span(let seconds):
+                seconds.truncatingRemainder(dividingBy: 3_600) == 0
+                    ? "\(Int(seconds / 3_600))h" : "\(Int(seconds / 60))m"
+            }
+        }
 
         /// Seconds from `now` until the fact stops holding, in the house's zone.
         func seconds(from now: Date, in timeZone: TimeZone) -> TimeInterval? {
@@ -24,6 +60,7 @@ struct LearnedFact: Equatable, Sendable {
                     .timeIntervalSince(now)
             case .week: return 7 * 86_400
             case .never: return nil
+            case .span(let seconds): return seconds
             }
         }
     }
@@ -96,7 +133,7 @@ struct LearnedFact: Equatable, Sendable {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         guard parts.count == 4, let subject = names.entity(named: parts[0]),
             isPredicate(parts[1]), !parts[2].isEmpty, parts[2].count <= 200,
-            let expiry = Expiry(rawValue: parts[3].lowercased())
+            let expiry = Expiry(word: parts[3])
         else { return nil }
         return LearnedFact(
             subjectID: subject, predicate: parts[1].lowercased(), value: parts[2], expiry: expiry)
@@ -123,7 +160,11 @@ struct LearnedFact: Equatable, Sendable {
         end it with the value none: [learned: Jesse | visitor.expected | none | today]. \
         Predicates: a kind from "what those kinds of fact mean" when one fits, else one already on \
         that subject, else a short dotted word of your own. If another bird has already kept the \
-        same thing in this scene, do not keep it again. Expires: today, tomorrow, week, or never. \
+        same thing in this scene, do not keep it again. When April asks you to let the cameras \
+        be for a while, keep that too, so the house stops offering them: [learned: the house | \
+        house.cameras_quiet | the yard guy is working | 1h] - and end it with none when she says \
+        you may talk about them again. Expires: today, tomorrow, week, never, or a span such as \
+        1h or 30m (at most 12h). \
         Only what April actually said, never your own guess; at most three; the tags are for the \
         world's record and are never spoken.
         """

@@ -187,6 +187,42 @@ struct LearningTests {
     }
 
 
+    @Test("\"Ignore the cameras for the next hour\" keeps a quiet on the house, for an hour (#220)")
+    func camerasQuietForAnHour() throws {
+        // 2026-10-06, the yard guy: "Ignore the cameras for the next hour."
+        let quiet = try #require(
+            LearnedFact.all(
+                in:
+                    "I will, April. [learned: the house | house.cameras_quiet | the yard guy is working | 1h]",
+                names: names
+            ).first)
+        #expect(quiet.subjectID == house)
+        #expect(quiet.predicate == WorldFacts.camerasQuiet)
+        #expect(quiet.expiry == .span(3_600))
+        #expect(quiet.expiry.seconds(from: Date(), in: .current) == 3_600)
+        #expect(quiet.expiry.word == "1h")
+        // "You can talk about the cameras again" ends it.
+        let over = try #require(
+            LearnedFact.all(
+                in: "[learned: the house | house.cameras_quiet | none | 1h]", names: names
+            ).first)
+        #expect(over.ends)
+        #expect(LearnedFact.contract.contains("house.cameras_quiet"))
+    }
+
+    @Test("Spans: minutes and hours, at most twelve hours, never zero")
+    func spans() {
+        #expect(LearnedFact.Expiry(word: "30m") == .span(1_800))
+        #expect(LearnedFact.Expiry(word: "2H") == .span(7_200))
+        #expect(LearnedFact.Expiry(word: "12h") == .span(43_200))
+        #expect(LearnedFact.Expiry(word: "13h") == nil)
+        #expect(LearnedFact.Expiry(word: "0h") == nil)
+        #expect(LearnedFact.Expiry(word: "1d") == nil)
+        #expect(LearnedFact.Expiry(word: "h") == nil)
+        #expect(LearnedFact.Expiry(word: "today") == .today)
+        #expect(LearnedFact.Expiry.span(1_800).word == "30m")
+    }
+
     @Test("April is always person:april - never a source that shares her name (2026-09-24)")
     func aprilStaysAPerson() {
         // The day's record carried `wizard:april` - the source of April's own corrections -

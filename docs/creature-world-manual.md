@@ -237,6 +237,8 @@ house from the mail's appointments, on a person from the calendar). A vehicle ge
 she is ("April is home."), since a van could be a delivery. No presence fact, no claim. April:
 "when I'm home, it's me on the cameras. I'm the only one that lives here, it's me."
 
+**A quiet hour** (`0.45.0`, #220). `house · house.cameras_quiet`, cast by a bird from April's words with an expiry, silences the cameras' scenes while it holds: a person, vehicle, or animal seen or gone is still recorded - in the story, the Viewer, the nightly memory - but opens no scene, so no bird is handed the microphone. Doors and motion are unaffected. It ends at its expiry or when a bird ends it with `none`.
+
 **Most likely her** (`0.44.2`, #214). The stage note now says "April is home and lives alone, so it is most likely her", and `sighting.identified = April` is assumed at 0.8 (was 0.95): a certainty made the birds stop looking. The minds' contract says what to look for (see the agent manual).
 
 **A delivery is expected, too** (`0.43.0`). On 2026-09-25 the Amazon driver at the carport was

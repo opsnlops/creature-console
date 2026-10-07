@@ -285,7 +285,7 @@ struct WorldMindService: Service {
                     "Learned something from April",
                     metadata: [
                         "subject": "\(fact.subjectID.rawValue)", "predicate": "\(fact.predicate)",
-                        "value": "\(fact.value)", "expires": "\(fact.expiry.rawValue)",
+                        "value": "\(fact.value)", "expires": "\(fact.expiry.word)",
                     ])
             } catch {
                 logger.error(

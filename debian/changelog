@@ -1,3 +1,14 @@
+creature-cli (2.86.0+world0.45.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * A quiet hour for the cameras (#220). On 2026-10-06 April said "ignore
+    the cameras for the next hour" and the world opened 33 camera scenes
+    anyway. creature-agent 2.86.0: the birds keep it as
+    house.cameras_quiet on the house, and learned facts take spans (1h,
+    30m, at most 12h). creature-world 0.45.0: while it holds, a camera
+    sighting is recorded but opens no scene.
+
+ -- April White <april@creature.engineering>  Tue, 06 Oct 2026 19:00:00 -0700
+
 creature-cli (2.85.5+world0.44.2+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * Debian builds link again on Swift 6.4: 6.4.0's default build system

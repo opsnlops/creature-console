@@ -27,6 +27,12 @@ public enum WorldFacts {
     /// (or the Bridge, from a text), usually with an expiry; a person at the door is then
     /// almost certainly them.
     public static let visitorExpected = "visitor.expected"
+    /// `house · house.cameras_quiet` "the yard guy is working", valid an hour: April asked the
+    /// birds to let the cameras be for a while. While it holds the house opens no scene for a
+    /// camera sighting - the sightings are still recorded - and a bird ends it early with
+    /// `none` when she says they may talk about the cameras again. (#220: on 2026-10-06 she
+    /// said "ignore the cameras for the next hour" and the world opened 33 camera scenes.)
+    public static let camerasQuiet = "house.cameras_quiet"
     /// `order:*` `order.status`: placed, shipped, out_for_delivery, or delivered (the Bridge).
     public static let orderStatus = "order.status"
     /// `order:*` `order.expected`: the day the mail says it arrives, "September 25, 2026";
@@ -155,6 +161,8 @@ public enum WorldFacts {
         lastScene:
             "what was said aloud in this room last time, in order - a record of words, not of facts: a bird may have been mistaken, and what you know from the world may have changed since. If April asks something again, answer afresh from what you know now, never by repeating a line; a question answered in an earlier scene has not been answered in this one",
         personDescription: "who a person is, in April's words",
+        camerasQuiet:
+            "April asked the birds to let the cameras be until this ends, and why; the house opens no scene for a camera sighting while it holds, and the sightings are still recorded",
         visitorExpected:
             "someone April is expecting, and when; a person turning up then is almost certainly them",
         "departure.due":
@@ -221,6 +229,10 @@ public enum HouseEvents {
     /// payload says how long they were there. The moment the cleaners leave.
     public static let personGone = WorldEventType(rawValue: "camera.person_gone")!
     public static let vehicleGone = WorldEventType(rawValue: "camera.vehicle_gone")!
+    /// What the cameras report about who or what is about - what a quiet hour silences.
+    public static let cameraSightings: Set<WorldEventType> = [
+        personSeen, vehicleSeen, animalSeen, personGone, vehicleGone,
+    ]
     /// The house says a camera watches a place (at startup, per detection mapping).
     public static let cameraWatching = WorldEventType(rawValue: "camera.watching")!
     /// The house's own word on the calendar: an away event's leave-by time is near

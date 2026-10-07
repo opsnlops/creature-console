@@ -53,13 +53,18 @@ struct CreatureWorldBlackBoxTests {
         // The floor is long so the house scene's deadline never passes mid-test and the lead's
         // silence is never filled with the fallback line while the assertions are counting.
         let driveway = try EntityID(validating: "place:driveway-\(UUID().uuidString.lowercased())")
+        // And its own carport and house, for the quiet hour (#220): a quiet on this run's house
+        // never silences another test's.
+        let carport = try EntityID(validating: "place:carport-\(UUID().uuidString.lowercased())")
+        let house = try EntityID(validating: "house:blackbox-\(UUID().uuidString.lowercased())")
         try Data(
             """
             {"presence": {"assumed": {"\(april.rawValue)": {"state": "home", "physically_audible": true}}},
              "house_conversation": "\(conversationID.rawValue)",
+             "house": "\(house.rawValue)",
              "lead_character": "\(beaky.rawValue)",
-             "regions": {"\(region.rawValue)": {"stage_id": "stage:test", "places": ["\(driveway.rawValue)"]}},
-             "scenes": {"floor_seconds": 120, "open_on": [{"event": "camera.person_seen", "places": ["\(driveway.rawValue)"], "cooldown_seconds": 300}]}}
+             "regions": {"\(region.rawValue)": {"stage_id": "stage:test", "places": ["\(driveway.rawValue)", "\(carport.rawValue)"]}},
+             "scenes": {"floor_seconds": 120, "open_on": [{"event": "camera.person_seen", "places": ["\(driveway.rawValue)", "\(carport.rawValue)"], "cooldown_seconds": 300}]}}
             """.utf8
         ).write(to: configURL)
         defer { try? FileManager.default.removeItem(at: configURL) }
@@ -322,6 +327,48 @@ struct CreatureWorldBlackBoxTests {
             [sighting.eventID, again.eventID].contains($0.trigger.eventID)
         }
         #expect(scenesForDriveway.count == 1)
+
+        // April asks the birds to let the cameras be for an hour (#220): a person at the
+        // carport is recorded, and no scene opens; when the quiet ends, the next one does.
+        func given(_ value: WorldJSONValue, seconds: Double) throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: WorldEventType(validating: "facts.given"), occurredAt: Date(),
+                source: EventSource(
+                    id: SourceID(validating: "mind:beaky"), kind: "mind",
+                    sourceEventID: "quiet:\(UUID().uuidString)"),
+                subjectIDs: [house], epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: [
+                    "subject_id": .string(house.rawValue),
+                    "predicate": .string(WorldFacts.camerasQuiet), "value": value,
+                    "valid_for_seconds": .number(seconds),
+                ])
+        }
+        func carportSighting() throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: HouseEvents.personSeen, occurredAt: Date(),
+                source: EventSource(
+                    id: SourceID(validating: "home-assistant:test-camera"), kind: "home-assistant",
+                    sourceEventID: "context:\(UUID().uuidString)"),
+                subjectIDs: [carport], placeID: carport,
+                epistemic: EpistemicState(type: .observed, confidence: 1), payload: [:])
+        }
+        _ = try await api.post(try given(.string("the yard guy is working"), seconds: 3_600))
+        let quietSighting = try carportSighting()
+        let quietSequence = try #require(
+            try await api.post(quietSighting).body.event.worldSequence)
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(!(try await api.scenes()).contains { $0.trigger.eventID == quietSighting.eventID })
+        #expect(
+            try await api.events(
+                after: quietSequence - 1, from: SourceID(validating: "home-assistant:test-camera")
+            ).contains {
+                $0.eventID == quietSighting.eventID
+            })
+        _ = try await api.post(try given(.null, seconds: 1))
+        try await Task.sleep(for: .milliseconds(1_100))
+        let loudSighting = try carportSighting()
+        let loudSequence = try #require(try await api.post(loudSighting).body.event.worldSequence)
+        _ = try await api.waitForScene(triggeredBy: loudSighting.eventID, after: loudSequence)
 
         // The house-opened scene's offer carried the story and the glossary.
         let houseOffer = try #require(

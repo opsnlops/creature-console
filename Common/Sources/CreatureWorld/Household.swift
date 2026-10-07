@@ -108,6 +108,18 @@ enum Household {
         return calendar
     }
 
+    /// Whether April has asked the birds to let the cameras be: a `house.cameras_quiet` in force
+    /// on the house (#220). Its own expiry ends it; a bird's `none` ends it early.
+    static func camerasQuiet(in houseFacts: [Fact]) -> Bool {
+        houseFacts.contains { $0.predicate == WorldFacts.camerasQuiet && $0.value != .null }
+    }
+
+    static func camerasQuiet(house: EntityID, facts: FactRepository, at now: Date) async throws
+        -> Bool
+    {
+        camerasQuiet(in: try await facts.currentFacts(subjectID: house, at: now))
+    }
+
     static let sourceID = try! SourceID(validating: "world:household")
     /// How long the house's word on a sighting stands: long enough to cover the visit to the
     /// kitchen, short enough that a real visitor an hour later is not called April.
