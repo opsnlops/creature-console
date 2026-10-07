@@ -27,7 +27,7 @@ against what the birds actually did.
 - The answer is recorded on that turn's `agent.scene_turn` span:
   - `decisions.speak_probability` (0-1), `decisions.duration_ms`, `decisions.input_tokens` when
     reported, `decisions.error` when the call failed or refused;
-  - `scene.turn.lead` and the existing `agent.suppression_reason` (`chose_silence` or absent)
+  - `agent.character_id` (from 2.87.1), `scene.turn.lead` and the existing `agent.suppression_reason` (`chose_silence` or absent)
     are what it is measured against.
 - The decision call waits at most a few seconds after the bird has decided and is cancelled
   past that: shadow work never delays a turn or fails one.

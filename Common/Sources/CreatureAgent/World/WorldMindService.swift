@@ -181,6 +181,8 @@ struct WorldMindService: Service {
         ) { span in
             span.attributes["scene.id"] = offer.offer.sceneID.rawValue
             span.attributes["world.sequence"] = offer.worldSequence
+            // Which bird, as the mind's own spans say it: the shadow is read per bird (#221).
+            span.attributes["agent.character_id"] = mind.configuration.characterID.rawValue
             span.attributes["scene.turn.lead"] = offer.offer.turns.isEmpty
             span.attributes["scene.trigger.kind"] = offer.offer.trigger.kind.rawValue
             // The shadow asks from the bird's own view of the scene, in parallel; the bird
@@ -257,6 +259,7 @@ struct WorldMindService: Service {
             "agent.turn",
             context: CharacterMind.traceContext(for: consideration.percept)
         ) { span in
+            span.attributes["agent.character_id"] = mind.configuration.characterID.rawValue
             span.attributes["agent.consideration_id"] =
                 consideration.percept.considerationID.rawValue
             span.attributes["world.sequence"] = consideration.worldSequence

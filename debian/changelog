@@ -1,3 +1,11 @@
+creature-cli (2.87.1+world0.45.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.87.1: agent.scene_turn and agent.turn carry
+    agent.character_id, so the Decisions shadow can be read bird by bird
+    (#221).
+
+ -- April White <april@creature.engineering>  Wed, 07 Oct 2026 15:55:00 -0700
+
 creature-cli (2.87.0+world0.45.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.87.0: OpenAI's Decisions API in shadow (#221). With
