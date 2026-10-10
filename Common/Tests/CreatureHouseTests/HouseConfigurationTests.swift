@@ -17,15 +17,20 @@ struct HouseConfigurationTests {
                 { "entity_id": "sensor.outside_temperature", "subject_id": "place:outside",
                   "kind": "measurement", "predicate": "temperature_f", "minimum_change": 0.5 },
                 { "entity_id": "binary_sensor.front_door_person_detected", "subject_id": "place:front-door",
-                  "kind": "detection", "detects": "person" }
+                  "kind": "detection", "detects": "person" },
+                { "entity_id": "sensor.outside_light_level", "subject_id": "place:outside",
+                  "kind": "measurement", "predicate": "light_lux", "minimum_change": 10,
+                  "minimum_change_percent": 50 }
               ] }
             """)
         #expect(configuration.homeAssistantURL.absoluteString == "http://10.3.2.5:8123")
         #expect(configuration.worldURL == HouseConfiguration.defaultWorldURL)
         #expect(configuration.houseID.rawValue == "house:aprils-nest")
         #expect(configuration.offersScenes)
-        #expect(configuration.mappings.count == 3)
+        #expect(configuration.mappings.count == 4)
         #expect(configuration.mappings[1].minimumChange == 0.5)
+        #expect(configuration.mappings[1].minimumChangePercent == 0)
+        #expect(configuration.mappings[3].minimumChangePercent == 50)
         #expect(configuration.mappings[2].detects == .person)
     }
 
@@ -42,6 +47,11 @@ struct HouseConfigurationTests {
         #expect(throws: HouseConfigurationError.detectionNeedsDetects("binary_sensor.x")) {
             try load(
                 #"{ "home_assistant": { "url": "http://h" }, "mappings": [{ "entity_id": "binary_sensor.x", "subject_id": "place:x", "kind": "detection" }] }"#
+            )
+        }
+        #expect(throws: HouseConfigurationError.invalidMinimumChange("sensor.x")) {
+            try load(
+                #"{ "home_assistant": { "url": "http://h" }, "mappings": [{ "entity_id": "sensor.x", "subject_id": "place:x", "kind": "measurement", "predicate": "light_lux", "minimum_change_percent": -5 }] }"#
             )
         }
         #expect(throws: HouseConfigurationError.duplicateEntity) {

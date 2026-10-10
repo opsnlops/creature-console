@@ -137,6 +137,32 @@ struct HouseTranslatorTests {
         #expect(try power.events(from: told, to: later("1647.3", 60)).isEmpty)
     }
 
+    @Test("Daylight changes by proportion: dusk is news, a cloud at noon and night noise are not")
+    func proportionalChange() throws {
+        let light = HouseTranslator(mappings: [
+            EntityMapping(
+                entityID: "sensor.outside_light_level",
+                subjectID: try EntityID(validating: "place:outside"), kind: .measurement,
+                predicate: "light_lux", minimumChange: 10, minimumChangePercent: 50)
+        ])
+        func moves(_ from: String, _ to: String) throws -> Bool {
+            try !light.events(
+                from: state("sensor.outside_light_level", from),
+                to: state("sensor.outside_light_level", to)
+            ).isEmpty
+        }
+        // Dusk: a few hundred lux, halving - told.
+        #expect(try moves("400", "190"))
+        // Noon: a cloud takes 20,000 lux off 60,000 - a third, not news.
+        #expect(try !moves("60000", "40000"))
+        // A heavy cloud halves it: told.
+        #expect(try moves("60000", "25000"))
+        // Night: the sensor wobbling by a few lux off zero clears the percentage, not the floor.
+        #expect(try !moves("0", "4"))
+        // First light off zero: told.
+        #expect(try moves("0", "30"))
+    }
+
     @Test("A creeping thermometer crosses minimum_change cumulatively, measured from what was told")
     func minimumChangeIsCumulative() async throws {
         let announcer = HouseAnnouncer(translator: translator)

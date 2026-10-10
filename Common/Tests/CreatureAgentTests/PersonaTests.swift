@@ -365,7 +365,7 @@ struct PersonaTests {
             .deletingLastPathComponent().appendingPathComponent("docs/personas")
         let files = try FileManager.default.contentsOfDirectory(atPath: personas.path)
             .filter { $0.hasSuffix(".yaml") }.sorted()
-        #expect(files == ["beaky.yaml", "kenny.yaml", "mango.yaml"])
+        #expect(files == ["beaky.yaml", "caroll.yaml", "kenny.yaml", "mango.yaml"])
         for file in files {
             let persona = try Persona.load(from: personas.appendingPathComponent(file))
             #expect(persona.name.lowercased() + ".yaml" == file)

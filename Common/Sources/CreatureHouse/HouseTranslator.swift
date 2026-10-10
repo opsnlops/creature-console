@@ -103,6 +103,7 @@ struct HouseTranslator: Sendable {
             guard let value = Double(new.state) else { return nil }
             if let old, let previous = Double(old.state),
                 abs(value - previous) < mapping.minimumChange
+                    || abs(value - previous) < abs(previous) * mapping.minimumChangePercent / 100
             {
                 // A small move is still told once the world's value has got old - a fact
                 // should never be hours stale because the change was never large.

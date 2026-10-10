@@ -205,6 +205,8 @@ public enum WorldFacts {
             "barometric pressure, hectopascals; falling means weather coming",
         "environment.pm25_ugm3":
             "fine particulate air pollution, micrograms per cubic metre; above 35 is unhealthy",
+        "environment.light_lux":
+            "how bright the daylight is outside, lux: under 10 is dark, tens to a few hundred is dusk or dawn or a dark storm, a few thousand is an overcast day, tens of thousands is sunshine; it is the sky, not the house's lights",
         "environment.power_w": "the whole house's electricity draw right now, watts",
     ]
 }

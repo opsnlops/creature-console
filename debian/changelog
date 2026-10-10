@@ -1,3 +1,17 @@
+creature-cli (2.87.1+world0.46.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.4.0: the outside light level (#222). The packaged
+    house.json maps sensor.outside_light_level (lux) to
+    environment.light_lux on place:outside. Measurements take
+    minimum_change_percent: a move must clear it and minimum_change, so a
+    quantity spanning 0 to 100,000 is told at dusk without telling every
+    cloud at noon (light: 10 lux and 50%).
+  * creature-world 0.46.0: the glossary knows environment.light_lux, in
+    bands - dark, dusk or dawn, overcast, sunshine - and that it is the
+    sky, not the house's lights.
+
+ -- April White <april@creature.engineering>  Sat, 10 Oct 2026 14:20:00 -0700
+
 creature-cli (2.87.1+world0.45.0+house0.3.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.87.1: agent.scene_turn and agent.turn carry

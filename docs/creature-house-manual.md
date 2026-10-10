@@ -44,14 +44,17 @@ profile → Security) in `/etc/default/creature-house` as `HA_TOKEN=…` and kee
 | `door` | `binary_sensor.*` (door class) | `on` → `door.opened`; `off` → `door.closed` |
 | `motion` | `binary_sensor.*` (motion) | `on` → `motion.detected`; `off` → `motion.cleared` |
 | `person` | `person.*` / `device_tracker.*` | `home` → `person.arrived`; anything else → `person.left` (moving between two away zones is neither) |
-| `measurement` | `sensor.*` with a number | → `environment.measurement_changed` with `predicate` and `value`; a move smaller than `minimum_change` **from the last value the world was told** is dropped (so a thermometer creeping 0.2° at a time still gets announced once it has drifted a degree; `0.1.1`) |
+| `measurement` | `sensor.*` with a number | → `environment.measurement_changed` with `predicate` and `value`; a move smaller than `minimum_change` **from the last value the world was told** is dropped (so a thermometer creeping 0.2° at a time still gets announced once it has drifted a degree; `0.1.1`). `minimum_change_percent` adds a proportional bar - a move must clear both - for quantities spanning orders of magnitude: daylight is 0–100,000 lux, and no one step serves dusk and noon (`0.4.0`) |
 | `detection` | `binary_sensor.<camera>_person_detected` etc. | `on` → `camera.person_seen` / `vehicle_seen` / `animal_seen` (`detects`); `off` after an `on` that lasted at least `gone_after_seconds` (default 600) → `camera.person_gone` / `vehicle_gone` with `after_seconds` (`0.2.0`: the cleaners' car leaving after two hours is a moment; a car that passed is nothing twice; never for animals); a camera already seeing something at startup is not news. At startup the adapter also announces `camera.watching` for each such place (`0.1.2`), so a camera that has seen nothing is a fact the birds can state — "The cameras at the front door and the driveway have seen nobody and nothing in the last ten minutes" — rather than a shrug |
 
 The packaged `house.json` maps April's weather station and power monitor as measurements —
-`humidity_percent`, `wind_mph`, `rain_today_in`, `pressure_hpa`, `pm25_ugm3` on `place:outside`
-and `power_w` on the house — and the agent has words for each ("It is windy outside: about 18
+`humidity_percent`, `wind_mph`, `rain_today_in`, `pressure_hpa`, `pm25_ugm3`, `light_lux` on
+`place:outside` and `power_w` on the house — and the glossary has words for each ("It is windy outside: about 18
 miles per hour", "It has not rained today", "The air outside is clean", "The house is drawing
-about 2.2 kilowatts right now"). New predicates are just a mapping line plus a phrasing.
+about 2.2 kilowatts right now"). Daylight (`light_lux`, from `sensor.outside_light_level`) is told on a halving or doubling
+(`minimum_change` 10, `minimum_change_percent` 50) and is glossed with bands - under 10 dark, dusk
+and dawn in the tens to hundreds, an overcast day in the thousands, sunshine in the tens of
+thousands. New predicates are just a mapping line plus a meaning in `WorldFacts.meanings`.
 
 Every event is about the mapping's `subject_id` (a `place:` or `person:`), `observed` with
 confidence 1, `occurred_at` = Home Assistant's `last_changed`, `source` =

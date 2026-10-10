@@ -104,6 +104,11 @@ struct EntityMapping: Equatable, Sendable {
     let predicate: String?
     /// For measurements: the least change worth an event; smaller moves are dropped.
     let minimumChange: Double
+    /// For measurements: the least change worth an event as a percentage of the last value told,
+    /// on top of `minimumChange`; a move must clear both. For a quantity that spans orders of
+    /// magnitude - daylight runs from 0 to 100,000 lux - where no single step serves dusk and
+    /// noon: a few hundred lux is all of dusk, and a passing cloud at noon.
+    let minimumChangePercent: Double
     /// For measurements: how old the world's value may get. A smaller move is still told once
     /// this long has passed since the last one, so a fact is never hours old. The power meter
     /// sat at 1,647 W for an evening because the draw never moved a whole kilowatt from it.
@@ -122,6 +127,7 @@ struct EntityMapping: Equatable, Sendable {
         let kind: Kind
         let predicate: String?
         let minimumChange: Double?
+        let minimumChangePercent: Double?
         let maximumAgeSeconds: TimeInterval?
         let detects: Detects?
         let goneAfterSeconds: TimeInterval?
@@ -132,6 +138,7 @@ struct EntityMapping: Equatable, Sendable {
             case kind
             case predicate
             case minimumChange = "minimum_change"
+            case minimumChangePercent = "minimum_change_percent"
             case maximumAgeSeconds = "maximum_age_seconds"
             case detects
             case goneAfterSeconds = "gone_after_seconds"
@@ -141,6 +148,7 @@ struct EntityMapping: Equatable, Sendable {
     init(
         entityID: String, subjectID: EntityID, kind: Kind, predicate: String? = nil,
         minimumChange: Double = 0,
+        minimumChangePercent: Double = 0,
         maximumAgeSeconds: TimeInterval = EntityMapping.defaultMaximumAgeSeconds,
         detects: Detects? = nil,
         goneAfterSeconds: TimeInterval = EntityMapping.defaultGoneAfterSeconds
@@ -150,6 +158,7 @@ struct EntityMapping: Equatable, Sendable {
         self.kind = kind
         self.predicate = predicate
         self.minimumChange = minimumChange
+        self.minimumChangePercent = minimumChangePercent
         self.maximumAgeSeconds = maximumAgeSeconds
         self.detects = detects
         self.goneAfterSeconds = goneAfterSeconds
@@ -168,6 +177,9 @@ struct EntityMapping: Equatable, Sendable {
         if let change = raw.minimumChange, change < 0 || !change.isFinite {
             throw HouseConfigurationError.invalidMinimumChange(entityID)
         }
+        if let percent = raw.minimumChangePercent, percent < 0 || !percent.isFinite {
+            throw HouseConfigurationError.invalidMinimumChange(entityID)
+        }
         if raw.kind == .detection, raw.detects == nil {
             throw HouseConfigurationError.detectionNeedsDetects(entityID)
         }
@@ -177,6 +189,7 @@ struct EntityMapping: Equatable, Sendable {
             kind: raw.kind,
             predicate: raw.predicate,
             minimumChange: raw.minimumChange ?? 0,
+            minimumChangePercent: raw.minimumChangePercent ?? 0,
             maximumAgeSeconds: raw.maximumAgeSeconds ?? Self.defaultMaximumAgeSeconds,
             detects: raw.detects,
             goneAfterSeconds: raw.goneAfterSeconds ?? Self.defaultGoneAfterSeconds
@@ -201,7 +214,7 @@ enum HouseConfigurationError: Error, LocalizedError, Equatable {
         case .measurementNeedsPredicate(let entity):
             "measurement mapping \(entity) needs a predicate (temperature_f, humidity_percent, ...)"
         case .invalidMinimumChange(let entity):
-            "minimum_change for \(entity) must be a non-negative number"
+            "minimum_change and minimum_change_percent for \(entity) must be non-negative numbers"
         case .detectionNeedsDetects(let entity):
             "detection mapping \(entity) needs `detects`: person, vehicle, or animal"
         case .missingToken:
