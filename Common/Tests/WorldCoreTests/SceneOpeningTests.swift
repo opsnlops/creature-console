@@ -166,6 +166,18 @@ struct SceneOpeningTests {
             SceneOpeningPolicy.triggerText(
                 for: try event(HouseEvents.personArrived, april), place: april)
                 == "April just came home.")
+        let outside = try EntityID(validating: "place:outside")
+        #expect(
+            SceneOpeningPolicy.triggerText(
+                for: try event(HouseEvents.dusk, outside, payload: ["lux": .number(84.6)]),
+                place: outside, household: HouseholdSituation(aprilHome: true))
+                == "Dusk is falling outside. The daylight outside is down to about 85 lux. April is home."
+        )
+        #expect(
+            SceneOpeningPolicy.triggerText(
+                for: try event(HouseEvents.dawn, outside, payload: ["lux": .number(130)]),
+                place: outside)
+                == "Dawn is breaking outside. The daylight outside is up to about 130 lux.")
     }
 
     @Test("The house says who a camera saw: April lives alone, so at home it is her")

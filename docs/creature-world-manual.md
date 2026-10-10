@@ -638,7 +638,9 @@ run on the authoritative event loop, and tells the minds about them. The first r
 | `camera.person_seen` / `vehicle_seen` / `animal_seen` | `place:<camera>` `seen.person` / `seen.vehicle` / `seen.animal`, ten minutes | observed, 1 |
 | `camera.watching` (`0.8.2`) | `place:<camera>` `camera.watching` = true, so nothing seen is a fact | observed, 1 |
 | `person.arrived` / `person.left` | `person:<x>` `presence.state` = `home` / `away` — **supersedes the assumption; the router reads it first** | observed, 1 |
-| `environment.measurement_changed` | `place:<x>` `environment.<predicate>` = number | observed, 1 |
+| `environment.measurement_changed` | `place:<x>` `environment.<predicate>` = number; with `valid_for_seconds`, for that long | the event's own (the house's are observed, 1) |
+| `environment.measurement_changed` `light_trend` (the world's daylight rule, `0.47.0`) | `place:outside` `environment.light_trend` = `brightening` / `steady` / `dimming`, the newest light reading against the oldest of the last half hour, for 45 minutes - so it lapses overnight | inferred, 1 |
+| `daylight.dusk` / `daylight.dawn` (the daylight rule, `0.47.0`) | none - a happening: the light fell through 100 lux after noon / rose through it before, once a day each, `lux` in the payload. Dusk is in the packaged `consider_on` (hourly cooldown), so the lead may remark on nightfall; dawn opens nothing unless a `consider_on` line names it | inferred, 1 |
 | `house.scenes_offered`, `house.scene_requested`, `house.scene_activated` | `house:<x>` `house.scenes`, `house.scene_requested` (two minutes), `house.scene` | observed, 1 |
 
 `facts` in `world.json` is for things April simply states until a source can observe them —

@@ -88,6 +88,7 @@ public struct Happening: Codable, Hashable, Sendable {
         if raw == "camera.watching" || raw == "environment.measurement_changed" { return false }
         return [
             "door.", "camera.", "motion.", "person.", "house.", "facts.", "departure.", "reminder.",
+            "daylight.",
         ]
         .contains { raw.hasPrefix($0) }
     }

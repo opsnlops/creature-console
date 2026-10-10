@@ -39,7 +39,8 @@
       { "event": "motion.detected", "cooldown_seconds": 900 },
       { "event": "person.arrived", "cooldown_seconds": 60 },
       { "event": "person.left", "cooldown_seconds": 60 },
-      { "event": "house.scene_activated", "cooldown_seconds": 120 }
+      { "event": "house.scene_activated", "cooldown_seconds": 120 },
+      { "event": "daylight.dusk", "cooldown_seconds": 3600 }
     ]
   },
   "calendar": { "at_home": ["home", "house", "april's nest"] },

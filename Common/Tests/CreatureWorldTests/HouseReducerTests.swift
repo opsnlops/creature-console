@@ -59,6 +59,21 @@ struct HouseReducerTests {
                 ["predicate": .string("temperature_f"), "value": .number(68.3)]))
         #expect(temperature.predicate == "environment.temperature_f")
         #expect(temperature.value == .number(68.3))
+        #expect(temperature.validTo == nil)
+        // The daylight's trend is worked out by the world: it lasts as long as it says, and is
+        // known as an inference, not an observation.
+        let trendEvent = try WorldEventEnvelope(
+            type: HouseEvents.measurementChanged, occurredAt: now,
+            source: EventSource(id: SourceID(validating: "world:daylight"), kind: "world"),
+            subjectIDs: [driveway], epistemic: EpistemicState(type: .inferred, confidence: 1),
+            payload: [
+                "predicate": .string("light_trend"), "value": .string("dimming"),
+                "valid_for_seconds": .number(2_700),
+            ])
+        let trend = try #require(try reducer.reduce(trendEvent).changedFacts.first)
+        #expect(trend.predicate == "environment.light_trend")
+        #expect(trend.validTo == now.addingTimeInterval(2_700))
+        #expect(trend.epistemic.type == .inferred)
 
         let offered = try #require(
             try reduce(HouseEvents.scenesOffered, house, ["scenes": .array([.string("Bedtime")])]))

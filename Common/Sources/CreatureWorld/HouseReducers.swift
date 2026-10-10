@@ -19,14 +19,15 @@ struct HouseReducer: WorldReducer {
     func reduce(_ event: WorldEventEnvelope) throws -> WorldReduction {
         guard let subject = event.subjectIDs.first else { return WorldReduction() }
         let producer = FactProducer(kind: PresenceFacts.producerKind, id: "house", version: "1")
-        func fact(_ predicate: String, _ value: WorldJSONValue, validFor: TimeInterval? = nil)
-            throws -> Fact
-        {
+        func fact(
+            _ predicate: String, _ value: WorldJSONValue, validFor: TimeInterval? = nil,
+            epistemic: EpistemicState? = nil
+        ) throws -> Fact {
             try Fact(
                 subjectID: subject,
                 predicate: predicate,
                 value: value,
-                epistemic: EpistemicState(type: .observed, confidence: 1),
+                epistemic: try epistemic ?? EpistemicState(type: .observed, confidence: 1),
                 validFrom: event.occurredAt,
                 validTo: validFor.map { event.occurredAt.addingTimeInterval($0) },
                 derivedFrom: [.event(event.eventID)],
@@ -85,8 +86,16 @@ struct HouseReducer: WorldReducer {
             guard case .string(let predicate)? = event.payload["predicate"],
                 let value = event.payload["value"]
             else { return WorldReduction() }
+            // A measurement the world worked out - the daylight's trend - says how long it
+            // holds and how it is known; the house's readings hold until the next.
+            var lifetime: TimeInterval?
+            if case .number(let seconds)? = event.payload["valid_for_seconds"], seconds > 0 {
+                lifetime = seconds
+            }
             return WorldReduction(changedFacts: [
-                try fact(WorldFacts.environmentPrefix + predicate, value)
+                try fact(
+                    WorldFacts.environmentPrefix + predicate, value, validFor: lifetime,
+                    epistemic: event.epistemic)
             ])
         case HouseEvents.mediaChanged:
             // On: the words, until the next change. Off: gone - a `null` that ends the old

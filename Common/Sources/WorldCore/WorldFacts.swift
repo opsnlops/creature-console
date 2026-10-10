@@ -207,6 +207,8 @@ public enum WorldFacts {
             "fine particulate air pollution, micrograms per cubic metre; above 35 is unhealthy",
         "environment.light_lux":
             "how bright the daylight is outside, lux: under 10 is dark, tens to a few hundred is dusk or dawn or a dark storm, a few thousand is an overcast day, tens of thousands is sunshine; it is the sky, not the house's lights",
+        "environment.light_trend":
+            "which way the daylight outside has gone over the last half hour - brightening, steady, or dimming; dimming in the evening is nightfall, at midday a cloud; absent when there is nothing to compare, as all night",
         "environment.power_w": "the whole house's electricity draw right now, watts",
     ]
 }
@@ -243,6 +245,11 @@ public enum HouseEvents {
     public static let departureNow = WorldEventType(rawValue: "departure.now")!
     /// A reminder fell due while April was home: "call the vet, due at 4:00 PM".
     public static let reminderDue = WorldEventType(rawValue: "reminder.due")!
+    /// The world's own word on the sky: the light outside fell through the dusk line in the
+    /// afternoon or evening, or rose through it in the morning - once a day each (#223).
+    /// `lux` in the payload.
+    public static let dusk = WorldEventType(rawValue: "daylight.dusk")!
+    public static let dawn = WorldEventType(rawValue: "daylight.dawn")!
     public static let personArrived = WorldEventType(rawValue: "person.arrived")!
     public static let personLeft = WorldEventType(rawValue: "person.left")!
     public static let measurementChanged = WorldEventType(

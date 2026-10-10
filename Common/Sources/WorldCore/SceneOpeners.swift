@@ -238,6 +238,16 @@ public actor SceneOpeningPolicy {
             let value: String
             if case .string(let text)? = event.payload["value"] { value = text } else { value = "" }
             return "A reminder of April's is due: \(value). April is home."
+        case HouseEvents.dusk, HouseEvents.dawn:
+            var light = ""
+            if case .number(let lux)? = event.payload["lux"] {
+                light =
+                    " The daylight outside is \(event.type == HouseEvents.dusk ? "down" : "up") to about \(Int(lux.rounded())) lux."
+            }
+            return
+                (event.type == HouseEvents.dusk
+                ? "Dusk is falling outside." : "Dawn is breaking outside.") + light
+                + household.whereAprilIs
         case HouseEvents.personGone:
             return "A person who had been at \(name)\(stay(event)) is no longer seen there."
                 + household.whoThatIs(seen: false)

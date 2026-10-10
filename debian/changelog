@@ -1,3 +1,17 @@
+creature-cli (2.87.1+world0.47.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.47.0: daylight (#223). A world rule hears every
+    light_lux reading. It tells environment.light_trend on place:outside
+    (brightening, steady, or dimming against half an hour ago; 45
+    minutes, so it lapses overnight). When the light falls through 100
+    lux after noon, or rises through it before, it casts daylight.dusk or
+    daylight.dawn, once a day each. Both are happenings, and the packaged
+    world.json makes dusk a house consideration, so the lead may notice
+    nightfall. Measurements told with valid_for_seconds hold that long
+    and keep the event's epistemic state.
+
+ -- April White <april@creature.engineering>  Sat, 10 Oct 2026 15:10:00 -0700
+
 creature-cli (2.87.1+world0.46.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.4.0: the outside light level (#222). The packaged

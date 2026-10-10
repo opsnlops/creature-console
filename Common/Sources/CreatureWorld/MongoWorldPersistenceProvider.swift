@@ -237,6 +237,21 @@ struct MongoWorldPersistenceConnection: Sendable {
                 try? await Task.sleep(for: .seconds(60))
             }
         }
+        // And the daylight's rule: each light reading renews the trend, and the one that
+        // crosses the line is dusk or dawn - Mango's "a threshold plus a falling trend" (#223).
+        let daylightRule = DaylightRule(zone: memory.zone, facts: persistence.facts) {
+            _ = try await world.accept($0)
+        }
+        let daylightWatcher = Task {
+            do {
+                try await daylightRule.seed(now: await clock.now)
+                for try await delta in try await world.subscribe() {
+                    try await daylightRule.heard(delta.event)
+                }
+            } catch {
+                logger.warning("Stopped watching the daylight", metadata: ["error": "\(error)"])
+            }
+        }
         // The house starts scenes: a person at the driveway, a door unlocking. The rules are
         // `scenes.open_on`; the lead gets the floor first, then whoever else is in the region.
         let openingPolicy = SceneOpeningPolicy(
@@ -601,6 +616,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             sessionSweeper.cancel()
             floorWatcher.cancel()
             sceneOpener.cancel()
+            daylightWatcher.cancel()
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
             try? await sceneClient?.shutdown()
@@ -1491,7 +1507,9 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             return
                 "\(event.source.id.rawValue) told the world: \(subject.rawValue) \(predicate) = \(value)"
         }
-        if event.source.kind == HouseEvents.sourceKind {
+        if event.source.kind == HouseEvents.sourceKind || event.type == HouseEvents.dusk
+            || event.type == HouseEvents.dawn
+        {
             return SceneOpeningPolicy.triggerText(for: event, place: subject)
         }
         return nil
