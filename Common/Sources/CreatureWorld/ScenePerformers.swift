@@ -72,7 +72,7 @@ struct NotConnectedScenePerformer: ScenePerforming, Sendable {
     let clock: any WorldClock
 
     func sceneOpened(_ scene: Scene) async -> String? { nil }
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {}
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async -> String? { nil }
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         ScenePerformance(state: .failed, errorCode: Self.errorCode, occurredAt: await clock.now)
@@ -108,7 +108,7 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
     }
 
     func sceneOpened(_ scene: Scene) async -> String? { nil }
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {}
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async -> String? { nil }
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         try await withSpan("creature.server.dialog", ofKind: .client) { span in
@@ -197,12 +197,15 @@ extension CreatureServerConfiguration {
     }
 }
 
-/// Creature Server's `dialog-stream` (3.46.0): a session per scene, opened when the scene opens
-/// on the stage the region maps to; every spoken turn is sent the moment it is composed and
-/// plays ~2 s later while the scene is still being composed; `finish` waits for the last turn
-/// to play and stitches the exchange into one ad-hoc animation. When a session cannot be
-/// opened (a bird's controller offline, no stage for the region) the scene falls back to the
-/// complete-scene render at the end, so it is still heard.
+/// Creature Server's `dialog-stream` (3.46.0): a session per scene on the stage the region maps
+/// to, opened by the scene's first spoken sentence; every spoken turn is sent the moment it is
+/// composed and plays ~2 s later while the scene is still being composed; `finish` waits for the
+/// last turn to play and stitches the exchange into one ad-hoc animation. A scene in which
+/// nobody speaks - a house consideration the lead declines - opens no session: it would never
+/// be finished, and the server would list it as an exchange forever "streaming" (#224). Opening
+/// costs the first line about 60 ms. When a session cannot be opened (a bird's controller
+/// offline, no stage for the region) the scene falls back to the complete-scene render at the
+/// end, so it is still heard.
 actor StreamingScenePerformer: ScenePerforming {
     static let noStageCode = "region_has_no_stage"
 
@@ -213,7 +216,17 @@ actor StreamingScenePerformer: ScenePerforming {
     private let client: HTTPClient
     private let clock: any WorldClock
     private let logger: Logger
-    private var sessions: [SceneID: String] = [:]
+    /// What each scene's first words found in the room.
+    private enum Room {
+        /// The session they opened.
+        case open(sessionID: String)
+        /// It could not be readied; the scene will be rendered whole at the end.
+        case unready
+    }
+    private var rooms: [SceneID: Room] = [:]
+    /// Each scene's sends, one after another: a second sentence arriving while the first is
+    /// still opening the session neither opens another nor overtakes it.
+    private var sends: [SceneID: Task<String?, Never>] = [:]
 
     init(
         configuration: CreatureServerConfiguration,
@@ -233,33 +246,112 @@ actor StreamingScenePerformer: ScenePerforming {
         self.logger = logger
     }
 
+    /// Whether the room can be readied: a stage for the region and a creature for every bird.
+    /// Nothing is opened yet.
     func sceneOpened(_ scene: Scene) async -> String? {
+        switch await stage(for: scene) {
+        case .success: nil
+        case .failure(let problem): problem.message
+        }
+    }
+
+    /// A sentence of a line still being composed goes to the room the moment it lands; the
+    /// server queues turns per creature in arrival order (creature-server#192 will let it
+    /// keep the pose and prosody across them).
+    func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String)
+        async -> String?
+    {
+        await send(scene, character: character, text: text, piece: true)
+    }
+
+    /// A whole line - unless it was streamed, in which case the room has already heard it.
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async -> String? {
+        guard !streamed, let text = turn.text else { return nil }
+        return await send(scene, character: turn.characterID, text: text, piece: false)
+    }
+
+    /// Why the room could not be readied, in words for the timeline.
+    private struct StageProblem: Error {
+        let message: String
+    }
+
+    /// The region's stage and the participants' creatures, in participant order.
+    private func stage(for scene: Scene) async -> Result<
+        (stageID: String, creatureIDs: [String]), StageProblem
+    > {
+        guard let region = regions[scene.regionID] else {
+            logger.warning(
+                "No stage is mapped for this region; the scene will be rendered whole at the end",
+                metadata: ["world.region_id": "\(scene.regionID.rawValue)"])
+            return .failure(
+                StageProblem(
+                    message:
+                        "No stage is mapped for \(scene.regionID.rawValue); the scene will be rendered whole at the end."
+                ))
+        }
+        var creatureIDs: [String] = []
+        for participant in scene.participants {
+            guard let creatureID = try? await creatures.creatureID(for: participant) else {
+                logger.warning(
+                    "A participant has no creature; the scene will be rendered whole at the end",
+                    metadata: ["agent.character_id": "\(participant.rawValue)"])
+                return .failure(
+                    StageProblem(
+                        message:
+                            "\(participant.rawValue) has no creature to speak through; the scene will be rendered whole at the end."
+                    ))
+            }
+            creatureIDs.append(creatureID)
+        }
+        return .success((region.stageID, creatureIDs))
+    }
+
+    /// Sends one sentence after the scene's earlier ones, opening the session first if this is
+    /// the scene's first. Returns a problem only when this sentence was the one that found the
+    /// server would not open the session; a room `sceneOpened` already found unready is not
+    /// reported again.
+    private func send(_ scene: Scene, character: EntityID, text: String, piece: Bool) async
+        -> String?
+    {
+        let previous = sends[scene.sceneID]
+        let task = Task {
+            await previous?.value
+            return await self.deliver(scene, character: character, text: text, piece: piece)
+        }
+        sends[scene.sceneID] = task
+        return await task.value
+    }
+
+    private func deliver(_ scene: Scene, character: EntityID, text: String, piece: Bool) async
+        -> String?
+    {
+        var problem: String?
+        if rooms[scene.sceneID] == nil {
+            switch await stage(for: scene) {
+            case .failure:
+                rooms[scene.sceneID] = .unready
+            case .success(let stage):
+                let opened = await start(
+                    scene, stageID: stage.stageID, creatureIDs: stage.creatureIDs)
+                rooms[scene.sceneID] = opened.sessionID.map { .open(sessionID: $0) } ?? .unready
+                problem = opened.problem
+            }
+        }
+        guard case .open(let sessionID)? = rooms[scene.sceneID] else { return problem }
+        await speak(scene, sessionID: sessionID, character: character, text: text, piece: piece)
+        return problem
+    }
+
+    private func start(_ scene: Scene, stageID: String, creatureIDs: [String]) async -> (
+        sessionID: String?, problem: String?
+    ) {
         await withSpan("creature.server.dialog_stream.start", ofKind: .client) { span in
             span.attributes["scene.id"] = scene.sceneID.rawValue
-            guard let region = regions[scene.regionID] else {
-                logger.warning(
-                    "No stage is mapped for this region; the scene will be rendered whole at the end",
-                    metadata: ["world.region_id": "\(scene.regionID.rawValue)"])
-                span.attributes["error.type"] = Self.noStageCode
-                return
-                    "No stage is mapped for \(scene.regionID.rawValue); the scene will be rendered whole at the end."
-            }
-            var creatureIDs: [String] = []
-            for participant in scene.participants {
-                guard let creatureID = try? await creatures.creatureID(for: participant) else {
-                    logger.warning(
-                        "A participant has no creature; the scene will be rendered whole at the end",
-                        metadata: ["agent.character_id": "\(participant.rawValue)"])
-                    return
-                        "\(participant.rawValue) has no creature to speak through; the scene will be rendered whole at the end."
-                }
-                creatureIDs.append(creatureID)
-            }
             do {
                 let request = try configuration.request(
                     path: "api/v1/animation/dialog-stream/start",
                     body: [
-                        "creature_ids": creatureIDs, "stage_id": region.stageID,
+                        "creature_ids": creatureIDs, "stage_id": stageID,
                         "resume_playlist": true,
                     ])
                 let response = try await client.execute(
@@ -276,39 +368,27 @@ actor StreamingScenePerformer: ScenePerforming {
                             "http.status": "\(response.status.code)",
                             "body": "\(String(decoding: data.prefix(300), as: UTF8.self))",
                         ])
-                    return CreatureServerScenePerformer.serverMessage(
-                        status: response.status.code, body: data)
+                    return (
+                        nil,
+                        CreatureServerScenePerformer.serverMessage(
+                            status: response.status.code, body: data)
+                    )
                 }
-                sessions[scene.sceneID] = sessionID
                 span.attributes["streaming.session_id"] = sessionID
-                return nil
+                return (sessionID, nil)
             } catch {
                 span.recordError(error)
                 logger.warning(
                     "Creature Server could not be reached to open a dialog stream",
                     metadata: ["error": "\(error)"])
-                return "Creature Server could not be reached: \(error)"
+                return (nil, "Creature Server could not be reached: \(error)")
             }
         }
     }
 
-    /// A sentence of a line still being composed goes to the room the moment it lands; the
-    /// server queues turns per creature in arrival order (creature-server#192 will let it
-    /// keep the pose and prosody across them).
-    func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String)
-        async
-    {
-        await speak(scene, character: character, text: text, piece: true)
-    }
-
-    /// A whole line — unless it was streamed, in which case the room has already heard it.
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async {
-        guard !streamed, let text = turn.text else { return }
-        await speak(scene, character: turn.characterID, text: text, piece: false)
-    }
-
-    private func speak(_ scene: Scene, character: EntityID, text: String, piece: Bool) async {
-        guard let sessionID = sessions[scene.sceneID] else { return }
+    private func speak(
+        _ scene: Scene, sessionID: String, character: EntityID, text: String, piece: Bool
+    ) async {
         await withSpan("creature.server.dialog_stream.turn", ofKind: .client) { span in
             span.attributes["scene.id"] = scene.sceneID.rawValue
             span.attributes["streaming.session_id"] = sessionID
@@ -343,7 +423,9 @@ actor StreamingScenePerformer: ScenePerforming {
     }
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
-        guard let sessionID = sessions.removeValue(forKey: scene.sceneID) else {
+        // Every sentence sent before the session is finished.
+        await sends.removeValue(forKey: scene.sceneID)?.value
+        guard case .open(let sessionID)? = rooms.removeValue(forKey: scene.sceneID) else {
             return try await fallback.sceneClosed(scene)
         }
         return await withSpan("creature.server.dialog_stream.finish", ofKind: .client) { span in

@@ -27,17 +27,17 @@ struct StreamingScenePerformerTests {
             let performer = makePerformer(port: port, client: client)
             var scene = try makeScene()
 
-            await performer.sceneOpened(scene)
+            #expect(await performer.sceneOpened(scene) == nil)
             let first = SceneTurn(
                 characterID: beaky, responseID: .generated(), text: "Servos, I hope!",
                 offeredAt: scene.openedAt, answeredAt: scene.openedAt)
             scene.turns.append(first)
-            await performer.sceneTurn(scene, first, streamed: false)
+            _ = await performer.sceneTurn(scene, first, streamed: false)
             let second = SceneTurn(
                 characterID: mango, responseID: .generated(), text: "Heat sinks.",
                 offeredAt: scene.openedAt, answeredAt: scene.openedAt)
             scene.turns.append(second)
-            await performer.sceneTurn(scene, second, streamed: false)
+            _ = await performer.sceneTurn(scene, second, streamed: false)
             let performance = try await performer.sceneClosed(scene)
 
             #expect(performance.state == .performed)
@@ -52,7 +52,51 @@ struct StreamingScenePerformerTests {
         }
     }
 
-    @Test("When the server refuses the session, the scene falls back to the complete render")
+    @Test("A scene nobody speaks in opens no session, so it leaves no exchange streaming (#224)")
+    func silentSceneOpensNothing() async throws {
+        let server = StubCreatureServer(startStatus: .ok)
+        try await server.makeApplication().test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let client = HTTPClient(eventLoopGroupProvider: .singleton)
+            defer { Task { try? await client.shutdown() } }
+            let performer = makePerformer(port: port, client: client)
+            let scene = try makeScene()
+
+            // The room can be readied; nothing is opened until someone speaks.
+            #expect(await performer.sceneOpened(scene) == nil)
+            #expect(await server.calls.isEmpty)
+        }
+    }
+
+    @Test("Sentences arriving together open one session and are all sent")
+    func concurrentPiecesShareOneSession() async throws {
+        let server = StubCreatureServer(startStatus: .ok)
+        try await server.makeApplication().test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let client = HTTPClient(eventLoopGroupProvider: .singleton)
+            defer { Task { try? await client.shutdown() } }
+            let performer = makePerformer(port: port, client: client)
+            let scene = try makeScene()
+            let responseID = ResponseID.generated()
+
+            #expect(await performer.sceneOpened(scene) == nil)
+            async let first = performer.sceneTurnPiece(
+                scene, character: beaky, responseID: responseID, text: "Servos!")
+            async let second = performer.sceneTurnPiece(
+                scene, character: beaky, responseID: responseID, text: "Two of them.")
+            #expect(await [first, second] == [nil, nil])
+            _ = try await performer.sceneClosed(scene)
+
+            let calls = await server.calls
+            #expect(calls.map(\.path) == ["start", "turn", "turn", "finish"])
+            #expect(
+                Set(calls.compactMap { $0.strings["text"] }) == ["Servos!", "Two of them."])
+        }
+    }
+
+    @Test(
+        "When the server refuses the session, the first line says why and the scene falls back to the complete render"
+    )
     func fallsBackWhenStartIsRefused() async throws {
         let server = StubCreatureServer(startStatus: .conflict)
         try await server.makeApplication().test(.live) { liveClient in
@@ -62,12 +106,19 @@ struct StreamingScenePerformerTests {
             let performer = makePerformer(port: port, client: client)
             var scene = try makeScene()
 
-            await performer.sceneOpened(scene)
+            #expect(await performer.sceneOpened(scene) == nil)
             let turn = SceneTurn(
                 characterID: beaky, responseID: .generated(), text: "Anyone?",
                 offeredAt: scene.openedAt, answeredAt: scene.openedAt)
             scene.turns.append(turn)
-            await performer.sceneTurn(scene, turn, streamed: false)
+            let problem = await performer.sceneTurn(scene, turn, streamed: false)
+            #expect(problem?.contains("Creature X is not registered") == true)
+            // Found once: the next line does not try, or say it, again.
+            let again = SceneTurn(
+                characterID: mango, responseID: .generated(), text: "Hello?",
+                offeredAt: scene.openedAt, answeredAt: scene.openedAt)
+            scene.turns.append(again)
+            #expect(await performer.sceneTurn(scene, again, streamed: false) == nil)
             let performance = try await performer.sceneClosed(scene)
 
             #expect(performance.state == .queued)
@@ -85,12 +136,13 @@ struct StreamingScenePerformerTests {
             defer { Task { try? await client.shutdown() } }
             let performer = makePerformer(port: port, client: client, regions: [:])
             var scene = try makeScene()
-            await performer.sceneOpened(scene)
+            #expect(await performer.sceneOpened(scene)?.contains("No stage is mapped") == true)
             let turn = SceneTurn(
                 characterID: beaky, responseID: .generated(), text: "Hello.",
                 offeredAt: scene.openedAt, answeredAt: scene.openedAt)
             scene.turns.append(turn)
-            await performer.sceneTurn(scene, turn, streamed: false)
+            // Already said when the scene opened.
+            #expect(await performer.sceneTurn(scene, turn, streamed: false) == nil)
 
             _ = try await performer.sceneClosed(scene)
 

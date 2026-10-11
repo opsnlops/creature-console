@@ -553,6 +553,30 @@ struct SceneServiceTests {
         #expect(scene.floor?.characterID == beaky)
     }
 
+    @Test("A room found not ready when the first words reach it says why, then")
+    func lateStageProblemIsAnnounced() async throws {
+        let world = makeWorld()
+        await world.performer.setLateStageProblem("Streaming speech already has 32 active sessions")
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        #expect(
+            await world.announced.events.contains { $0.type == SceneService.stageProblemEventType }
+                == false)
+        let floor = try #require(scene.floor)
+        let after = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: floor.characterID, responseID: floor.responseID, text: "Hello."),
+            to: scene.sceneID
+        ).scene
+        let problem = try #require(
+            await world.announced.events.first { $0.type == SceneService.stageProblemEventType })
+        #expect(
+            problem.payload["message"] == .string("Streaming speech already has 32 active sessions")
+        )
+        #expect(after.turns.first?.text == "Hello.")
+    }
+
     @Test("The house asks; the lead may stay quiet, with a reason the world keeps")
     func houseConsiderationDeclined() async throws {
         let world = makeWorld(limits: SceneLimits(houseMaximumTurns: 3, turnLeadSeconds: 3_600))
@@ -758,12 +782,19 @@ private actor FakePerformer: ScenePerforming {
     }
 
     private(set) var pieces: [(ResponseID, String)] = []
-    func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String) {
+    func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String)
+        -> String?
+    {
         pieces.append((responseID, text))
+        return nil
     }
     private(set) var streamedTurns: [SceneTurn] = []
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) {
+    /// What the room says when the first words reach it and it cannot be readied.
+    var lateStageProblem: String?
+    func setLateStageProblem(_ problem: String?) { lateStageProblem = problem }
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) -> String? {
         if streamed { streamedTurns.append(turn) } else { spoken.append(turn) }
+        return lateStageProblem
     }
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {

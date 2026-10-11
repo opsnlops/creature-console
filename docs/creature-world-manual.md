@@ -462,7 +462,8 @@ curl -X POST https://server.prod.chirpchirp.dev/world/v1/days/2026-09-13/remembe
 
 **Failures say why** (`0.19.0`). Delivery outcomes and scene performances carry `error_message`
 beside `error_code` — Creature Server's own words. A room that cannot be readied for a scene is a
-`scene.stage_problem` event with the reason, announced when the scene opens.
+`scene.stage_problem` event with the reason, announced when the scene opens - or, when the
+server refuses the streaming session (`0.47.1`), with the first spoken line, which is what opens it.
 
 **Retention** (`0.18.0`, migration v10). The world keeps its raw material for a while and its
 memories for years. MongoDB TTL indexes expire: events at `expires_at` (stamped at append —
@@ -582,9 +583,10 @@ playing after its first sentence instead of its last.
 
 Two ways to the room, chosen by `scene_performance`:
 
-- **`streaming`** (default; Creature Server 3.46.0+, creature-server#186): when the scene opens
-  the world opens a `dialog-stream` session for the participants on the **stage the region maps
-  to** (`regions.<region>.stage_id`; the server needs placements so the birds look at each
+- **`streaming`** (default; Creature Server 3.46.0+, creature-server#186): with the scene's
+  first spoken sentence (`0.47.1`, #224 - a scene nobody speaks in opens nothing, so it leaves no
+  exchange stuck at "streaming"; opening costs that line ~60 ms) the world opens a
+  `dialog-stream` session for the participants on the **stage the region maps to** (`regions.<region>.stage_id`; the server needs placements so the birds look at each
   other), sends each spoken turn the moment it is composed — it plays ~2 s later while the next
   bird is still thinking — and on close calls `finish`, which waits for the last turn to play
   and stitches the exchange into one ad-hoc animation (recorded as the performance). Turns are

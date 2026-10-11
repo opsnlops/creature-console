@@ -16,16 +16,19 @@ public protocol SceneRepository: Sendable {
 public protocol ScenePerforming: Sendable {
     /// The scene has opened with these participants. Failure here must not stop the scene;
     /// a performer that could not ready the room says why, and the world records it so the
-    /// Viewer shows a scene that will play late (or not at all) the moment it opens.
+    /// Viewer shows a scene that will play late (or not at all) the moment it opens. A scene
+    /// in which nobody speaks is never closed to the performer, so it must hold nothing open
+    /// for one: the room is readied by the first words, not here.
     func sceneOpened(_ scene: Scene) async -> String?
     /// One sentence of a line a character is still composing: speak it now, in that
-    /// character's voice. Failure here must not stop the scene.
+    /// character's voice. Failure here must not stop the scene; a room that turned out not to
+    /// be ready when the first words reached it says why, as `sceneOpened` does.
     func sceneTurnPiece(_ scene: Scene, character: EntityID, responseID: ResponseID, text: String)
-        async
+        async -> String?
     /// A character spoke. `streamed` is true when the line already went out piece by piece,
     /// so a performer that speaks as it goes must not say it again. Failure here must not stop
-    /// the scene.
-    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async
+    /// the scene; a problem readying the room is returned, as for a piece.
+    func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async -> String?
     /// The scene has closed with at least one spoken turn; play or finish playing it.
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance
 }
@@ -34,7 +37,7 @@ extension ScenePerforming {
     /// A performer that renders whole lines has nothing to do with a piece.
     public func sceneTurnPiece(
         _ scene: Scene, character: EntityID, responseID: ResponseID, text: String
-    ) async {}
+    ) async -> String? { nil }
 }
 
 /// The world's stage manager: opens a scene when more than one character could answer, gives the
@@ -139,12 +142,7 @@ public actor SceneService {
                         "trigger": .string(trigger.text),
                         "participants": .array(ordered.map { .string($0.rawValue) }),
                     ]))
-            if let problem = await performer.sceneOpened(scene) {
-                try await announce(
-                    makeEvent(
-                        Self.stageProblemEventType, scene: scene, at: now,
-                        payload: ["message": .string(problem)]))
-            }
+            try await reportStageProblem(await performer.sceneOpened(scene), in: scene, at: now)
             try await offerFloor(&scene, to: ordered[0], at: now)
             return scene
         }
@@ -193,8 +191,11 @@ public actor SceneService {
                 Self.queueSpeech(
                     of: piece, by: floor.characterID, in: &scene, at: now, limits: limits)
                 try await repository.save(scene)
-                await performer.sceneTurnPiece(
-                    scene, character: floor.characterID, responseID: floor.responseID, text: piece)
+                try await reportStageProblem(
+                    await performer.sceneTurnPiece(
+                        scene, character: floor.characterID, responseID: floor.responseID,
+                        text: piece),
+                    in: scene, at: now)
                 try await announce(
                     makeEvent(
                         Self.turnPieceEventType, scene: scene, at: now,
@@ -287,7 +288,8 @@ public actor SceneService {
         // The floor was answered; its deadline must not fire as a phantom expiry.
         try await cancelDeadline(Self.floorTimerID(for: floor.responseID))
         if text != nil {
-            await performer.sceneTurn(scene, turn, streamed: streamed)
+            try await reportStageProblem(
+                await performer.sceneTurn(scene, turn, streamed: streamed), in: scene, at: now)
         }
         try await announce(
             makeEvent(
@@ -556,6 +558,18 @@ public actor SceneService {
                 ]))
         guard scene.state == .rendering else { return }
         try await perform(scene)
+    }
+
+    /// The room could not be readied: recorded, so the Viewer shows a scene that will play
+    /// late (or not at all).
+    private func reportStageProblem(_ problem: String?, in scene: Scene, at now: Date)
+        async throws
+    {
+        guard let problem else { return }
+        try await announce(
+            makeEvent(
+                Self.stageProblemEventType, scene: scene, at: now,
+                payload: ["message": .string(problem)]))
     }
 
     private func perform(_ rendering: Scene) async throws {

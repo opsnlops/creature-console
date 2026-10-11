@@ -1,3 +1,15 @@
+creature-cli (2.87.1+world0.47.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.47.1: a scene nobody speaks in no longer leaves an
+    exchange stuck at "streaming" (#224). The streaming performer opens
+    its dialog-stream on the scene's first spoken sentence instead of
+    when the scene opens, so a declined house consideration opens no
+    session. Sends for a scene are chained, so concurrent sentences share
+    one session in order; a refusal found at the first line is a
+    scene.stage_problem then. Server half: creature-server#222.
+
+ -- April White <april@creature.engineering>  Sat, 10 Oct 2026 19:30:00 -0700
+
 creature-cli (2.87.1+world0.47.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.47.0: daylight (#223). A world rule hears every
