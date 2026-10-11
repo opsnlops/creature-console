@@ -22,6 +22,21 @@ struct TextSanitizerTests {
         #expect(keycap.text == "Option 1 please")
     }
 
+    @Test("Keeps the symbols a voice says: C++, PoE+, money, degrees (#225)")
+    func keepsSpokenSymbols() {
+        let input = "C++ and PoE++ beat PoE+; $20 or €15 or £9, 72° outside, 3 × 4 = 12, a < b"
+        let result = TextSanitizer.sanitize(input)
+        #expect(result.text == input)
+        #expect(result.removedCharacters == 0)
+    }
+
+    @Test("Still drops pictographic symbols")
+    func dropsPictographicSymbols() {
+        let result = TextSanitizer.sanitize("Up → down ™ ☃")
+        #expect(result.text == "Up down")
+        #expect(result.removedCharacters == 3)
+    }
+
     @Test("Preserves common Unicode punctuation")
     func preservesUnicodePunctuation() {
         let input = "April’s here—really."

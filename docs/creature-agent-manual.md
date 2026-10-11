@@ -419,7 +419,9 @@ else — persona, facts, the clock, streaming to the room — is identical.
   is dropped, never a new person. The old set is taken back first, keyed by the run like the
   day's episodes. A `self` belief that a joke is worn out ends it: the scene contract says so.
 - **Her words are written to be spoken.** Replies are sanitized for speech at the source (no
-  emoji or symbols; digits are kept) so Communicator shows exactly what she would say aloud. A
+  emoji or pictographs; digits are kept, and so are the symbols a voice reads aloud - ASCII ones
+  like `+` and `$`, currency signs, `° ± × ÷`, so "C++" stays "C++", #225) so Communicator
+  shows exactly what she would say aloud. A
   reply the model writes as a script line (`Beaky: "…"`) is stored as her words alone, so the
   format never enters her context and teaches the next turn to copy it (#154).
 - **It never speaks twice.** The response identity is derived from the world's consideration ID,

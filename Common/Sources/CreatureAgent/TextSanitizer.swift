@@ -1,8 +1,9 @@
 import Foundation
 
 /// Makes text safe for Beaky's voice. Her words are written to be spoken by the ad-hoc speech
-/// pipeline, which drops emoji and symbols; Communicator shows the same text so what she says
-/// aloud and what she writes never differ.
+/// pipeline, which cannot say emoji or pictographs; Communicator shows the same text so what
+/// she says aloud and what she writes never differ. Symbols a voice reads aloud stay: "C++" is
+/// "C plus plus", "$20" twenty dollars (#225).
 struct TextSanitizer {
     private static let replacementSpace = " "
 
@@ -54,10 +55,19 @@ struct TextSanitizer {
             return true
         }
         if CharacterSet.symbols.contains(scalar) {
-            return true
+            return !isSpoken(scalar)
         }
         return false
     }
+
+    /// The symbols the voice says: printable ASCII (`+`, `$`, `=`, `<`...), every currency
+    /// sign, and a few from weather and arithmetic.
+    private static func isSpoken(_ scalar: UnicodeScalar) -> Bool {
+        scalar.isASCII || scalar.properties.generalCategory == .currencySymbol
+            || spokenSymbols.contains(scalar)
+    }
+
+    private static let spokenSymbols: Set<UnicodeScalar> = ["°", "±", "×", "÷"]
 }
 
 struct SanitizationResult {

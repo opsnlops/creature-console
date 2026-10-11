@@ -1,3 +1,13 @@
+creature-cli (2.87.2+world0.47.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.87.2: the birds keep the symbols a voice says
+    (#225). The speech sanitizer dropped all of Unicode's symbols, so
+    "C++" was spoken and shown as "C", "PoE++" as "PoE", "$20" as "20".
+    Printable ASCII symbols, currency signs, and degree/plus-minus/times/
+    divide now stay; emoji and pictographs are still dropped.
+
+ -- April White <april@creature.engineering>  Sun, 11 Oct 2026 09:00:00 -0700
+
 creature-cli (2.87.1+world0.47.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.47.1: a scene nobody speaks in no longer leaves an

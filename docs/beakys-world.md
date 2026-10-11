@@ -488,7 +488,7 @@ Stacked on `facts-f1`. Agent `2.60.0`, World `0.7.2`.
   the second identity and the mind treats that as "already answered".
 - `LocalLLMClient.respond(messages:)` takes an explicit transcript (MQTT mode's history untouched);
   the SSE delegate now surfaces non-2xx responses instead of reporting an empty answer.
-- **Beaky's words are speech-clean at the source** (no emoji/symbols; digits preserved — #140):
+- **Beaky's words are speech-clean at the source** (no emoji/pictographs; digits preserved — #140; spoken symbols like `+`, `$`, `°` kept since 2.87.2 — #225, "C++" was coming out "C"):
   most replies are spoken via the ad-hoc pipeline, Communicator shows the same text.
 - Tests: `CharacterMindTests`, `WorldMindServiceTests` (stub World on loopback: snapshot start,
   crash replay never posts twice, outage retries from cursor, silence advances), sanitizer tests.
