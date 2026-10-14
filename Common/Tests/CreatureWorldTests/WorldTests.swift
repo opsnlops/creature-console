@@ -179,6 +179,75 @@ struct WorldTests {
         #expect(ended.supersededBy == changed["presence.location"]?.factID)
     }
 
+    @Test("A visit that ends, ends: what it was for goes with who was expected (#228)")
+    func endingAVisitorEndsTheVisit() async throws {
+        // 2026-10-14: the birds kept the propane supplier as expected and as "to refill the
+        // big tank", until midnight; April said at 1:50 PM they were long gone.
+        let supplier = try EntityID(validating: "thing:propane-supplier")
+        let morning = Date(timeIntervalSince1970: 1_791_990_000)
+        let midnight = morning.addingTimeInterval(56_000)
+        func kept(_ predicate: String, _ value: String) throws -> Fact {
+            try Fact(
+                subjectID: supplier, predicate: predicate, value: .string(value),
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                validFrom: morning, validTo: midnight, derivedFrom: [],
+                producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        }
+        let expected = try kept(WorldFacts.visitorExpected, "today, refilling the big tank")
+        let purpose = try kept("visitor.purpose", "refill the big tank")
+        let description = try kept(WorldFacts.personDescription, "our propane supplier")
+
+        func cast(_ predicate: String, _ value: WorldJSONValue, id: Int) throws
+            -> WorldEventEnvelope
+        {
+            try WorldEventEnvelope(
+                eventID: EventID(
+                    validating: "00000000-0000-0000-0000-0000000000\(40 + id)"),
+                type: GivenFactAnnouncement.eventType,
+                occurredAt: morning.addingTimeInterval(19_800),
+                source: EventSource(
+                    id: SourceID(validating: "mind:beaky"), kind: "mind",
+                    sourceEventID: "learned:\(id)"),
+                subjectIDs: [supplier], epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: [
+                    "subject_id": .string(supplier.rawValue),
+                    "predicate": .string(predicate), "value": value,
+                    "valid_for_seconds": .number(1),
+                ])
+        }
+
+        // Ended with `none`, or said to be away: either way the visit is over.
+        for ending in [
+            try cast(WorldFacts.visitorExpected, .null, id: 0),
+            try cast(WorldFacts.personState, .string("away"), id: 1),
+        ] {
+            let store = TestWorldStore()
+            for fact in [expected, purpose, description] { try await store.save(fact) }
+            let world = World(
+                eventStore: store, factStore: store, reducers: [GivenFactReducer()],
+                clock: FixedWorldClock(now: Self.receivedAt))
+            _ = try await world.accept(ending)
+
+            let current = await store.currentFacts(
+                subjectID: supplier, at: ending.occurredAt.addingTimeInterval(5))
+            #expect(!current.contains { $0.predicate.hasPrefix("visitor.") && $0.value != .null })
+            // Who they are is not the visit.
+            #expect(current.contains { $0.predicate == WorldFacts.personDescription })
+        }
+
+        // A visitor who is still expected keeps what the visit is for.
+        let store = TestWorldStore()
+        for fact in [expected, purpose] { try await store.save(fact) }
+        let world = World(
+            eventStore: store, factStore: store, reducers: [GivenFactReducer()],
+            clock: FixedWorldClock(now: Self.receivedAt))
+        let later = try cast(WorldFacts.visitorExpected, .string("back at four"), id: 2)
+        _ = try await world.accept(later)
+        let current = await store.currentFacts(
+            subjectID: supplier, at: later.occurredAt.addingTimeInterval(5))
+        #expect(current.contains { $0.predicate == "visitor.purpose" })
+    }
+
     @Test("Duplicate source events are not reduced or published")
     func duplicateSourceEventsAreIdempotent() async throws {
         let store = TestWorldStore()

@@ -1,3 +1,14 @@
+creature-cli (2.87.3+world0.47.3+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.47.3, creature-agent 2.87.3: a visit that ends,
+    ends (#228). Ending a visitor's visitor.expected, or casting them
+    away, retracts every reported visitor.* fact on them; the stage note
+    names the visitor and says when it was said. The learning contract
+    keeps someone already here for a span, never the whole day, and
+    ends a visit on the visitor, not the place a camera saw.
+
+ -- April White <april@creature.engineering>  Wed, 14 Oct 2026 15:30:00 -0700
+
 creature-cli (2.87.2+world0.47.2+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.47.2: a scene no longer hangs on a slow request

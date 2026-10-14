@@ -237,6 +237,14 @@ house from the mail's appointments, on a person from the calendar). A vehicle ge
 she is ("April is home."), since a van could be a delivery. No presence fact, no claim. April:
 "when I'm home, it's me on the cameras. I'm the only one that lives here, it's me."
 
+**A visit that ends, ends** (`0.47.3`, #228). A `facts.given` that ends a subject's
+`visitor.expected` (a `null`) or says its `presence.state` is `away` also retracts every
+*reported* `visitor.*` fact on it - what the visit was for goes with who was expected. And the
+stage note names a visitor that is not on the house and says when it was said, if today: "a
+visitor is expected - the propane supplier, today, refilling the big tank (said at 8:22 AM) -".
+On 2026-10-14 that visit, said at 8:22 AM and kept until midnight, was offered for every car
+all afternoon.
+
 **A quiet hour** (`0.45.0`, #220). `house · house.cameras_quiet`, cast by a bird from April's words with an expiry, silences the cameras' scenes while it holds: a person, vehicle, or animal seen or gone is still recorded - in the story, the Viewer, the nightly memory - but opens no scene, so no bird is handed the microphone. Doors and motion are unaffected. It ends at its expiry or when a bird ends it with `none`.
 
 **Most likely her** (`0.44.2`, #214). The stage note now says "April is home and lives alone, so it is most likely her", and `sighting.identified = April` is assumed at 0.8 (was 0.95): a certainty made the birds stop looking. The minds' contract says what to look for (see the agent manual).

@@ -156,8 +156,11 @@ struct LearnedFact: Equatable, Sendable {
         "the" ("the kitchen"), a bird by name ("Kenny"), anything else as "thing: Mac Studio", \
         and one of April's spells - what she builds to let you notice or do something - as \
         "spell: the TV spell". One subject per line: never "Kenny and Mango" or "all three \
-        birds". When April says something no longer holds - a visitor has left, a plan is off - \
-        end it with the value none: [learned: Jesse | visitor.expected | none | today]. \
+        birds". Someone already here is kept for as long as a visit like theirs takes, never \
+        the whole day: [learned: thing: propane supplier | visitor.expected | here now, \
+        refilling the big tank | 2h]. When April says something no longer holds - a visitor has \
+        left, a plan is off - end it on them with the value none: [learned: Jesse | \
+        visitor.expected | none | today]; a note on the place a camera saw does not end a visit. \
         Predicates: a kind from "what those kinds of fact mean" when one fits, else one already on \
         that subject, else a short dotted word of your own. If another bird has already kept the \
         same thing in this scene, do not keep it again. When April asks you to let the cameras \

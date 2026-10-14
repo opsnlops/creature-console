@@ -6,13 +6,14 @@ import WorldCore
 
 @Suite("The household, as the house knows it")
 struct HouseholdTests {
-    private func fact(_ subject: String, _ predicate: String, _ value: WorldJSONValue) throws
-        -> Fact
-    {
+    private func fact(
+        _ subject: String, _ predicate: String, _ value: WorldJSONValue,
+        since: Date = Date().addingTimeInterval(-3 * 86_400)
+    ) throws -> Fact {
         try Fact(
             subjectID: try EntityID(validating: subject), predicate: predicate, value: value,
             epistemic: EpistemicState(type: .observed, confidence: 1),
-            validFrom: Date(), validTo: nil, derivedFrom: [],
+            validFrom: since, validTo: nil, derivedFrom: [],
             producer: FactProducer(kind: "test", id: "household", version: "1"))
     }
 
@@ -41,6 +42,25 @@ struct HouseholdTests {
             Household.situation(aprilFacts: [home], expected: [cleaners, jesse]).visitorExpected
                 == "Quality Cleaning for cleaning, Wednesday; Jesse, this afternoon, to look at the deck"
         )
+    }
+
+    @Test("A visitor said today is named and says when it was said (#228)")
+    func saysWhenAVisitorWasSaid() throws {
+        let zone = TimeZone(identifier: "America/Los_Angeles")!
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let morning = calendar.date(
+            from: DateComponents(year: 2026, month: 10, day: 14, hour: 8, minute: 22))!
+        let afternoon = calendar.date(
+            from: DateComponents(year: 2026, month: 10, day: 14, hour: 14, minute: 25))!
+        let supplier = try fact(
+            "thing:propane-supplier", WorldFacts.visitorExpected,
+            .string("today, refilling the big tank"), since: morning)
+        #expect(
+            Household.situation(
+                aprilFacts: [], expected: [supplier], now: afternoon, zone: zone
+            ).visitorExpected
+                == "the propane supplier, today, refilling the big tank (said at 8:22 AM)")
     }
 }
 

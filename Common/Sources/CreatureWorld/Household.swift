@@ -49,10 +49,18 @@ enum Household {
         }
         let visitors = expected.compactMap { fact -> String? in
             guard case .string(let words) = fact.value, !words.isEmpty else { return nil }
-            if fact.subjectID.rawValue.hasPrefix("person:") {
-                return "\(SceneOpeningPolicy.placeName(fact.subjectID)), \(words)"
+            var visitor = words
+            if fact.subjectID.rawValue.hasPrefix("person:")
+                || fact.subjectID.rawValue.hasPrefix("thing:")
+            {
+                visitor = "\(SceneOpeningPolicy.placeName(fact.subjectID)), \(words)"
             }
-            return words
+            // When it was said, if today: "today, refilling the big tank" said at 8:22 AM is not
+            // a visitor due now at 2:25 PM (#228).
+            if calendar(zone).isDate(fact.validFrom, inSameDayAs: now) {
+                visitor += " (said at \(clock(fact.validFrom, zone: zone)))"
+            }
+            return visitor
         }
         let deliveries = orders.compactMap { delivery(of: $0, now: now, zone: zone) }
         return HouseholdSituation(
@@ -100,6 +108,15 @@ enum Household {
         formatter.timeZone = zone
         formatter.dateFormat = "MMMM d, yyyy"
         return words.hasPrefix(formatter.string(from: now))
+    }
+
+    /// "8:22 AM", in the house's zone.
+    static func clock(_ date: Date, zone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = zone
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: date)
     }
 
     private static func calendar(_ zone: TimeZone) -> Calendar {

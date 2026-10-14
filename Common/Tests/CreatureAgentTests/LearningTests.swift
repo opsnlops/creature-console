@@ -186,6 +186,21 @@ struct LearningTests {
         #expect(LearnedFact.contract.contains("visitor.expected | none"))
     }
 
+    @Test("Someone already here is kept for the visit, not the day (#228)")
+    func visitorHereNowIsKeptForTheVisit() throws {
+        // 2026-10-14: the propane supplier, kept until midnight at 8:22 AM.
+        let names = EntityNames(houseID: try EntityID(validating: "house:aprils-nest"))
+        let facts = LearnedFact.all(
+            in: LearnedFact.contract
+                .components(separatedBy: "never the whole day: ").last ?? "",
+            names: names)
+        let kept = try #require(facts.first)
+        #expect(kept.subjectID.rawValue == "thing:propane-supplier")
+        #expect(kept.predicate == "visitor.expected")
+        #expect(kept.expiry == .span(2 * 3_600))
+        #expect(LearnedFact.contract.contains("does not end a visit"))
+    }
+
 
     @Test("\"Ignore the cameras for the next hour\" keeps a quiet on the house, for an hour (#220)")
     func camerasQuietForAnHour() throws {

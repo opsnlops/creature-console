@@ -192,18 +192,39 @@ struct GivenFactReducer: WorldReducer {
         } else if case .number(let seconds)? = event.payload["valid_for_seconds"] {
             validTo = event.occurredAt.addingTimeInterval(seconds)
         }
-        return WorldReduction(changedFacts: [
-            try Fact(
-                subjectID: subject,
-                predicate: predicate,
-                value: value,
-                epistemic: event.epistemic,
-                validFrom: event.occurredAt,
-                validTo: validTo,
-                derivedFrom: [.event(event.eventID)],
-                producer: FactProducer(
-                    kind: PresenceFacts.producerKind, id: "given-facts", version: "1")
-            )
-        ])
+        let producer = FactProducer(
+            kind: PresenceFacts.producerKind, id: "given-facts", version: "1")
+        return WorldReduction(
+            changedFacts: [
+                try Fact(
+                    subjectID: subject,
+                    predicate: predicate,
+                    value: value,
+                    epistemic: event.epistemic,
+                    validFrom: event.occurredAt,
+                    validTo: validTo,
+                    derivedFrom: [.event(event.eventID)],
+                    producer: producer
+                )
+            ],
+            retractions: Self.endsVisit(predicate: predicate, value: value)
+                ? [
+                    FactRetraction(
+                        subjectID: subject, predicatePrefix: Self.visitorPrefix,
+                        except: [predicate], producer: producer)
+                ] : [])
+    }
+
+    static let visitorPrefix = "visitor."
+
+    /// Whether this says a visitor's visit is over: their `visitor.expected` ended, or they are
+    /// away. Then everything reported about the visit goes with it - what it was for, when it
+    /// was due. On 2026-10-14 the propane supplier was kept as expected and as "to refill the
+    /// big tank" until midnight; April said at 1:50 PM they were long gone, and the birds
+    /// offered the tank visitor for every car until the cleaner came (#228).
+    static func endsVisit(predicate: String, value: WorldJSONValue) -> Bool {
+        (predicate == WorldFacts.visitorExpected && value == .null)
+            || (predicate == WorldFacts.personState
+                && value == .string(PersonPresenceState.away.rawValue))
     }
 }
