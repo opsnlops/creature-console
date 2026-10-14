@@ -20,7 +20,7 @@ struct WorldSearchTests {
         defer { Task { await persistence.cluster.disconnect() } }
         let now = Date(timeIntervalSince1970: 1_789_600_000)
         // A run-unique word, so other runs' facts in the shared database never answer.
-        let word = "zq\(UUID().uuidString.prefix(8).lowercased().filter(\.isLetter))"
+        let word = runUniqueWord()
         let tamara = try EntityID(validating: "person:tamara-\(word)")
         let order = try EntityID(validating: "order:amazon-\(word)")
         func fact(_ subject: EntityID, _ predicate: String, _ value: WorldJSONValue) throws
@@ -68,7 +68,7 @@ struct WorldSearchTests {
             to: uri, logger: .init(label: "search-tests"))
         defer { Task { await persistence.cluster.disconnect() } }
         let now = Date(timeIntervalSince1970: 1_789_600_000)
-        let word = "zq\(UUID().uuidString.prefix(8).lowercased().filter(\.isLetter))"
+        let word = runUniqueWord()
         let producer = "\(word)producer"
         let subject = try EntityID(validating: "thing:widget-\(word)")
         try await persistence.facts.save(
@@ -230,4 +230,16 @@ struct SearchRankingTests {
         // The start was used to rank, never added to what a mind is handed.
         #expect(!mine[0].facts.contains { $0.predicate == WorldFacts.calendarStartsAt })
     }
+}
+
+/// A word no other run's facts carry: twelve letters from a fresh UUID, digits mapped to letters
+/// (the hex letters alone were often three or four from a-f, and old runs' facts in a shared
+/// database answered).
+private func runUniqueWord() -> String {
+    let letters = Array("ghijklmnop")
+    return "zq"
+        + String(
+            UUID().uuidString.lowercased().filter { $0 != "-" }.prefix(12).map {
+                $0.wholeNumberValue.map { letters[$0] } ?? $0
+            })
 }

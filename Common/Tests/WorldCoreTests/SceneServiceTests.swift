@@ -269,6 +269,23 @@ struct SceneServiceTests {
         #expect(try await world.service.sweepLapsedFloors() == 0)
     }
 
+    @Test("A floor lapsed long ago closes its scene rather than offering a turn on old words")
+    func staleFloorClosesTheScene() async throws {
+        let world = makeWorld()
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+
+        try await world.clock.advance(
+            by: SceneLimits().floorSeconds + SceneService.staleFloorAge + 1)
+        #expect(try await world.service.sweepLapsedFloors() == 1)
+        let closed = try #require(try await world.service.scene(id: scene.sceneID))
+        #expect(closed.state == .abandoned)
+        #expect(closed.closeReason == .lapsed)
+        #expect(closed.floor == nil)
+        #expect(await world.performer.pieces.isEmpty)
+    }
+
     @Test("A floor nobody answers by the deadline counts as a pass")
     func deadlineIsAPass() async throws {
         let world = makeWorld()

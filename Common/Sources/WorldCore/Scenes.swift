@@ -115,6 +115,9 @@ public enum SceneCloseReason: String, Hashable, Sendable, Codable {
     case interrupted
     /// The house asked and the lead judged it not worth a word.
     case declined
+    /// Its floor's timer was lost and the moment is long past: a turn offered now would answer
+    /// something said minutes ago (#226).
+    case lapsed
 }
 
 /// Who holds the floor right now, and until when.

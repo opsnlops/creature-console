@@ -469,8 +469,9 @@ caller is told `504 request_timeout`, but the work runs to its end and keeps its
 permit until then - cancelling it once left a scene saved with Beaky's floor, its offer never
 sent and its deadline never set, open for good. And every 30 s the world sweeps open scenes
 whose floor deadline (or waiting floor's moment) passed more than a minute ago, moving them on
-as their timer would have; a crash or restart between saving a floor and scheduling it is
-covered too.
+as their timer would have; one that lapsed more than five minutes ago (found at startup, say)
+is closed as `lapsed` instead, so no bird is offered a turn on something said long ago. A crash
+or restart between saving a floor and scheduling it is covered too.
 
 **Failures say why** (`0.19.0`). Delivery outcomes and scene performances carry `error_message`
 beside `error_code` — Creature Server's own words. A room that cannot be readied for a scene is a

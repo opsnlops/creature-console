@@ -349,25 +349,36 @@ public actor SceneService {
 
     /// How long past its time a floor may wait before the sweep treats its timer as lost.
     public static let lapsedFloorGrace: TimeInterval = 60
+    /// Past this, the moment has gone: the scene is closed rather than carried on.
+    public static let staleFloorAge: TimeInterval = 5 * 60
 
     /// Open scenes whose floor deadline - or whose waiting floor's moment - passed long ago:
     /// the timer that should have moved them on was never set. A request cancelled between
     /// saving Beaky's floor and scheduling its deadline left one open for good (#226); a
-    /// crash or a restart in that gap would too. Each is moved on exactly as its timer would
-    /// have done it. Returns how many.
+    /// crash or a restart in that gap would too. One lapsed a minute or so is moved on exactly
+    /// as its timer would have done it; one lapsed longer - found at startup, say - is closed
+    /// as `lapsed`, so no bird is offered a turn on something said long ago. Returns how many.
     @discardableResult
     public func sweepLapsedFloors(grace: TimeInterval = lapsedFloorGrace) async throws -> Int {
         let now = WorldJSON.wireDate(await clock.now)
         var swept = 0
         for scene in try await repository.recentScenes(limit: 50) where scene.state == .open {
-            if let floor = scene.floor, floor.deadline.addingTimeInterval(grace) < now {
+            let due: Date
+            if let floor = scene.floor {
+                due = floor.deadline
+            } else if scene.pendingFloor != nil {
+                due = scene.spokenUntil ?? scene.openedAt
+            } else {
+                continue
+            }
+            guard due.addingTimeInterval(grace) < now else { continue }
+            swept += 1
+            if due.addingTimeInterval(Self.staleFloorAge) < now {
+                try await close(scene, reason: .lapsed, at: now)
+            } else if let floor = scene.floor {
                 try await floorExpired(sceneID: scene.sceneID, responseID: floor.responseID)
-                swept += 1
-            } else if scene.floor == nil, scene.pendingFloor != nil,
-                (scene.spokenUntil ?? scene.openedAt).addingTimeInterval(grace) < now
-            {
+            } else {
                 try await floorReady(sceneID: scene.sceneID)
-                swept += 1
             }
         }
         return swept
