@@ -361,6 +361,23 @@ struct MongoWorldPersistenceConnection: Sendable {
                     "Stopped watching for scene floor deadlines", metadata: ["error": "\(error)"])
             }
         }
+        // And the floors no timer will move on (#226): swept, as their timers would have.
+        let floorSweeper = Task {
+            while !Task.isCancelled {
+                do {
+                    let swept = try await sceneService.sweepLapsedFloors()
+                    if swept > 0 {
+                        logger.warning(
+                            "Moved on scene floors whose timers were lost",
+                            metadata: ["scene.swept": "\(swept)"])
+                    }
+                } catch {
+                    logger.warning(
+                        "Could not sweep lapsed scene floors", metadata: ["error": "\(error)"])
+                }
+                try? await Task.sleep(for: .seconds(30))
+            }
+        }
         acceptEvent = { try await world.accept($0) }
         events = { sequence, limit in
             let loaded = try await persistence.events.events(
@@ -615,6 +632,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             assumptionAnnouncer.cancel()
             sessionSweeper.cancel()
             floorWatcher.cancel()
+            floorSweeper.cancel()
             sceneOpener.cancel()
             daylightWatcher.cancel()
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)

@@ -330,8 +330,12 @@ will do. No write tools: casting, rewording, and remembering stay on the REST AP
 has always honoured `audience` and a tool must not be the way around it; Beaky once read
 Polly's mobile number aloud. Without `_meta`, a person debugging sees everything.
 **Search** (`0.33.0`): `GET /v1/search?q=cleaner&limit=10` and the `search_world` tool — one
-ranked query over MongoDB's wildcard text index on the facts collection (`facts_text`: the
-subject's slug, the predicate, every string inside a value), current facts only, entities best
+ranked query over MongoDB's text index on the facts collection (`facts_search`, since `0.47.2`:
+each current fact's `search_text` - the words of the subject's slug, the predicate, and every
+string inside its value; never its producer, epistemic state, or ids, and removed when the fact
+is superseded. The first index, `facts_text`, took every string in every document, history
+included, so "given" matched the `given-facts` producer of every fact ever taught and a
+sentence with it in took five seconds, #227), current facts only, entities best
 first with the facts that matched, English stemming ("cleaner" finds "the cleaners",
 "toothpaste" finds the order once its item is named). A mind that does not know who a name is
 starts there; the hit usually carries the answer. "Leverage MongoDB to make magic." **Names
@@ -459,6 +463,14 @@ opened before the first was reduced into it. An older agent ignores the field.
 ```
 curl -X POST https://server.prod.chirpchirp.dev/world/v1/days/2026-09-13/remember
 ```
+
+**A slow request still finishes** (`0.47.2`, #226). Past the API's time limit (10 s) the
+caller is told `504 request_timeout`, but the work runs to its end and keeps its concurrency
+permit until then - cancelling it once left a scene saved with Beaky's floor, its offer never
+sent and its deadline never set, open for good. And every 30 s the world sweeps open scenes
+whose floor deadline (or waiting floor's moment) passed more than a minute ago, moving them on
+as their timer would have; a crash or restart between saving a floor and scheduling it is
+covered too.
 
 **Failures say why** (`0.19.0`). Delivery outcomes and scene performances carry `error_message`
 beside `error_code` — Creature Server's own words. A room that cannot be readied for a scene is a

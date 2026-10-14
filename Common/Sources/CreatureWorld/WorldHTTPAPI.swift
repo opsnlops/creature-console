@@ -745,23 +745,34 @@ struct WorldHTTPAPI: Sendable {
         }
     }
 
+    /// One request's work, under the concurrency limit and the time limit. The time limit
+    /// stops the *waiting* - past it the caller is told 504 - not the work, which runs to its
+    /// end and keeps its permit until then. Cancelling it tore world state mid-write: a scene
+    /// saved with Beaky's floor, its offer never sent and its deadline never set, open for good
+    /// (#226). A client that hangs up does not cancel it either.
     private func execute<Value: Sendable>(
         _ operation: @Sendable @escaping () async throws -> Value
     ) async throws -> Value {
-        try await concurrencyLimiter.withPermit {
-            try await withThrowingTaskGroup(of: Value.self) { group in
-                group.addTask {
-                    try await operation()
-                }
-                group.addTask {
-                    try await Task.sleep(for: limits.maximumRequestDuration)
-                    throw WorldAPIError.requestTimedOut
-                }
-                guard let result = try await group.next() else {
-                    throw WorldAPIError.requestTimedOut
-                }
-                group.cancelAll()
-                return result
+        let limiter = concurrencyLimiter
+        let work = Task { try await limiter.withPermit { try await operation() } }
+        return try await Self.awaiting(work, atMost: limits.maximumRequestDuration)
+    }
+
+    /// The work's outcome, or `requestTimedOut` once `limit` has passed - whichever is first.
+    /// The work is never cancelled.
+    static func awaiting<Value: Sendable>(
+        _ work: Task<Value, any Error>, atMost limit: Duration
+    ) async throws -> Value {
+        try await withCheckedThrowingContinuation { continuation in
+            let first = FirstOutcome(continuation)
+            let clock = Task {
+                guard (try? await Task.sleep(for: limit)) != nil else { return }
+                await first.settle(.failure(WorldAPIError.requestTimedOut))
+            }
+            Task {
+                let result = await work.result
+                clock.cancel()
+                await first.settle(result)
             }
         }
     }
@@ -954,5 +965,20 @@ private struct ConversationStreamReady: Encodable {
 
     private enum CodingKeys: String, CodingKey {
         case conversationID = "conversation_id"
+    }
+}
+
+/// Whichever of a request's work and its time limit settles first answers the caller; the
+/// other is ignored.
+private actor FirstOutcome<Value: Sendable> {
+    private var continuation: CheckedContinuation<Value, any Error>?
+
+    init(_ continuation: CheckedContinuation<Value, any Error>) {
+        self.continuation = continuation
+    }
+
+    func settle(_ result: Result<Value, any Error>) {
+        continuation?.resume(with: result)
+        continuation = nil
     }
 }

@@ -29,6 +29,7 @@ struct FactRepository: Sendable {
         if fact.value == .null {
             document["value"] = Null()
         }
+        document[Self.searchTextField] = Self.searchText(of: fact)
         _ = try await facts.findOneAndUpsert(
             where: ["_id": fact.factID.rawValue],
             replacement: document,
@@ -50,13 +51,61 @@ struct FactRepository: Sendable {
                 "$set": [
                     "valid_to": fact.validFrom,
                     "superseded_by": fact.factID.rawValue,
-                ] as Document
+                ] as Document,
+                // Out of the search: history must never be what a word is scored against.
+                "$unset": [Self.searchTextField: ""] as Document,
             ]
         )
     }
 
-    /// Current facts matching `query` by MongoDB text search over the whole fact - subject,
-    /// predicate, and every string in the value - best first, with each fact's text score.
+    /// The field the text index covers (`facts_search`).
+    static let searchTextField = "search_text"
+
+    /// The words a fact is found by: its subject, its predicate, and every string in its value
+    /// - never its bookkeeping. The index used to take every string in the document, current
+    /// or superseded, so "given" matched the `given-facts` producer of every fact April ever
+    /// taught and a sentence with it in took five seconds, twice per utterance (#227). Ids and
+    /// predicates are split into their words, so "Tamara" finds `person:tamara`.
+    static func searchText(of fact: Fact) -> String {
+        func spaced(_ id: String) -> String {
+            String(id.map { $0.isLetter || $0.isNumber ? $0 : " " })
+        }
+        var words = [spaced(fact.subjectID.rawValue), spaced(fact.predicate)]
+        func collect(_ value: WorldJSONValue) {
+            switch value {
+            case .string(let text): words.append(text)
+            case .array(let values): values.forEach(collect)
+            case .object(let fields): fields.keys.sorted().forEach { collect(fields[$0]!) }
+            case .null, .bool, .number: break
+            }
+        }
+        collect(fact.value)
+        return words.joined(separator: " ")
+    }
+
+    /// Current facts written before `search_text` existed are given it, so the new index finds
+    /// them (#227). Returns how many.
+    func backfillSearchText() async throws -> Int {
+        let missing: Document = [
+            "superseded_by": Null(),
+            Self.searchTextField: ["$exists": false] as Document,
+        ]
+        var count = 0
+        for document in try await facts.find(missing).drain() {
+            guard let id = document["_id"] as? String, let fact = try? decode(document) else {
+                continue
+            }
+            _ = try await facts.updateOne(
+                where: ["_id": id],
+                to: ["$set": [Self.searchTextField: Self.searchText(of: fact)] as Document])
+            count += 1
+        }
+        return count
+    }
+
+    /// Current facts matching `query` by MongoDB text search over each fact's words - subject,
+    /// predicate, and every string in the value (`searchText(of:)`) - best first, with each
+    /// fact's text score.
     /// English stemming and case-folding are the index's: "cleaner" finds "the cleaners".
     func search(_ query: String, own bird: EntityID? = nil, limit: Int, at now: Date)
         async throws -> [(Fact, Double)]

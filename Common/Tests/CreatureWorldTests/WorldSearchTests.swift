@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import MongoKitten
 import Testing
 import WorldCore
 
@@ -58,6 +59,108 @@ struct WorldSearchTests {
         let paste = try await persistence.facts.search("toothpaste \(word)", limit: 20, at: now)
         #expect(paste.first?.0.subjectID == order)
         #expect(paste.first?.0.predicate == "order.items")
+    }
+
+    @Test("Bookkeeping is not searched: a producer's or epistemic word finds nothing (#227)")
+    func bookkeepingIsNotSearched() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "search-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let word = "zq\(UUID().uuidString.prefix(8).lowercased().filter(\.isLetter))"
+        let producer = "\(word)producer"
+        let subject = try EntityID(validating: "thing:widget-\(word)")
+        try await persistence.facts.save(
+            try Fact(
+                subjectID: subject, predicate: "thing.color", value: .string("purple"),
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                validFrom: now.addingTimeInterval(-60), derivedFrom: [],
+                producer: FactProducer(kind: "reducer", id: "\(producer)-facts", version: "1")))
+
+        #expect(try await persistence.facts.search(producer, limit: 20, at: now).isEmpty)
+        // Its own words still find it: the subject's slug, and the value.
+        let found = try await persistence.facts.search("widget \(word)", limit: 20, at: now)
+        #expect(found.first?.0.subjectID == subject)
+    }
+}
+
+@Suite(
+    "The search index moves to the words",
+    .enabled(if: mongoTestURI != nil, "Set MONGODB_TEST_URI to run MongoDB integration tests"))
+struct FactSearchMigrationTests {
+    @Test("The whole-document index is replaced and current facts are given their words (#227)")
+    func migratesFromTheWholeDocumentIndex() async throws {
+        let uri = try #require(mongoTestURI)
+        // A database of its own: this test puts the old index back, which the shared one's
+        // searches must never see. (`connect` insists on the world's own name, so the
+        // migrator is run on the database directly.)
+        let logger = Logger(label: "search-migration-tests")
+        let cluster = try await MongoCluster(connectingTo: ConnectionSettings(uri), logger: logger)
+        let database = cluster["creature_world_search_\(UUID().uuidString.prefix(8).lowercased())"]
+        defer {
+            Task {
+                try? await database.drop()
+                await cluster.disconnect()
+            }
+        }
+        try await MongoWorldMigrator(database: database, logger: logger).migrate()
+        let repository = FactRepository(database: database)
+        let facts = database[MongoWorldCollection.facts]
+        let migrations = database[MongoWorldCollection.schemaMigrations]
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let fact = try Fact(
+            subjectID: EntityID(validating: "person:tamara"), predicate: "person.relationship",
+            value: .string("the cleaner"),
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            validFrom: now.addingTimeInterval(-60), derivedFrom: [],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        try await repository.save(fact)
+        // As it was before 0.47.2: the whole-document index, and a fact with no words.
+        try await facts.dropIndex(.name("facts_search"))
+        try await facts.createIndexes([
+            CreateIndexes.Index(named: "facts_text", keys: ["$**": "text"])
+        ])
+        _ = try await facts.updateOne(
+            where: ["_id": fact.factID.rawValue],
+            to: ["$unset": [FactRepository.searchTextField: ""] as Document])
+        _ = try await migrations.deleteOne(where: ["_id": 13])
+
+        try await MongoWorldMigrator(database: database, logger: logger).migrate()
+
+        let indexes = Set(try await facts.listIndexes().drain().map(\.name))
+        #expect(indexes.contains("facts_search"))
+        #expect(!indexes.contains("facts_text"))
+        #expect(try await migrations.findOne(["_id": 13]) != nil)
+        let found = try await repository.search("cleaner", limit: 5, at: now)
+        #expect(found.map(\.0.factID) == [fact.factID])
+        #expect(try await repository.search("given", limit: 5, at: now).isEmpty)
+    }
+}
+
+@Suite("A fact's search words")
+struct FactSearchTextTests {
+    @Test("Subject and predicate split into words, every string in the value, no bookkeeping")
+    func wordsOnly() throws {
+        let fact = try Fact(
+            subjectID: EntityID(validating: "person:april"),
+            predicate: "memory.episode.beaky.2026-10-11.1",
+            value: .object([
+                "what": .string("April went to church"),
+                "when": .string("Sunday morning"),
+                "salience": .number(0.9),
+                "from": .array([.string("2026-10-11")]),
+            ]),
+            epistemic: EpistemicState(type: .remembered, confidence: 0.9),
+            validFrom: Date(timeIntervalSince1970: 1_789_600_000), derivedFrom: [],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        let text = FactRepository.searchText(of: fact)
+        #expect(
+            text
+                == "person april memory episode beaky 2026 10 11 1 2026-10-11 April went to church Sunday morning"
+        )
+        #expect(!text.contains("given"))
+        #expect(!text.contains("remembered"))
     }
 }
 

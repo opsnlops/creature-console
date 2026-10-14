@@ -347,6 +347,32 @@ public actor SceneService {
             ))
     }
 
+    /// How long past its time a floor may wait before the sweep treats its timer as lost.
+    public static let lapsedFloorGrace: TimeInterval = 60
+
+    /// Open scenes whose floor deadline - or whose waiting floor's moment - passed long ago:
+    /// the timer that should have moved them on was never set. A request cancelled between
+    /// saving Beaky's floor and scheduling its deadline left one open for good (#226); a
+    /// crash or a restart in that gap would too. Each is moved on exactly as its timer would
+    /// have done it. Returns how many.
+    @discardableResult
+    public func sweepLapsedFloors(grace: TimeInterval = lapsedFloorGrace) async throws -> Int {
+        let now = WorldJSON.wireDate(await clock.now)
+        var swept = 0
+        for scene in try await repository.recentScenes(limit: 50) where scene.state == .open {
+            if let floor = scene.floor, floor.deadline.addingTimeInterval(grace) < now {
+                try await floorExpired(sceneID: scene.sceneID, responseID: floor.responseID)
+                swept += 1
+            } else if scene.floor == nil, scene.pendingFloor != nil,
+                (scene.spokenUntil ?? scene.openedAt).addingTimeInterval(grace) < now
+            {
+                try await floorReady(sceneID: scene.sceneID)
+                swept += 1
+            }
+        }
+        return swept
+    }
+
     /// The room is about to finish the last line: offer the floor that was waiting.
     public func floorReady(sceneID: SceneID) async throws {
         guard var scene = try await repository.scene(id: sceneID), scene.state == .open,

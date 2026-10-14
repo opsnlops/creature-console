@@ -245,6 +245,30 @@ struct SceneServiceTests {
         #expect(current.floor?.characterID == mango)
     }
 
+    @Test("A floor whose timer was lost is swept as a pass once its deadline is long gone (#226)")
+    func lapsedFloorIsSwept() async throws {
+        let world = makeWorld()
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let offered = try #require(scene.floor?.responseID)
+
+        // Past the deadline but within the grace, the timer may still be on its way.
+        try await world.clock.advance(by: SceneLimits().floorSeconds + 1)
+        #expect(try await world.service.sweepLapsedFloors() == 0)
+        #expect(try await world.service.scene(id: scene.sceneID)?.floor?.responseID == offered)
+
+        // Long past it, nothing will: Beaky's floor is a pass and Mango is offered the next.
+        try await world.clock.advance(by: SceneService.lapsedFloorGrace)
+        #expect(try await world.service.sweepLapsedFloors() == 1)
+        let current = try #require(try await world.service.scene(id: scene.sceneID))
+        #expect(current.turns.first?.characterID == beaky)
+        #expect(current.turns.first?.text == nil)
+        #expect(current.floor?.characterID == mango)
+        // A second sweep finds Mango's fresh floor in time.
+        #expect(try await world.service.sweepLapsedFloors() == 0)
+    }
+
     @Test("A floor nobody answers by the deadline counts as a pass")
     func deadlineIsAPass() async throws {
         let world = makeWorld()

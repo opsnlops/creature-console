@@ -815,6 +815,41 @@ struct WorldHTTPAPITests {
         }
     }
 
+    @Test("Past the time limit the caller is told 504, but the work runs to its end (#226)")
+    func timedOutWorkFinishes() async throws {
+        let service = BlockingWorldApplicationService()
+        let application = try makeApplication(
+            worldService: service,
+            apiConfiguration: WorldAPIConfiguration(
+                maximumConcurrentRequests: 1, maximumRequestDuration: .milliseconds(20))
+        )
+
+        try await application.test(.router) { client in
+            try await client.execute(uri: "/world/v1/events", method: .get) { response in
+                #expect(response.status == .gatewayTimeout)
+            }
+            // Still running, and still holding its permit.
+            #expect(await service.hasStarted)
+            #expect(await !service.hasFinished)
+            try await client.execute(uri: "/world/v1/events", method: .get) { response in
+                #expect(response.status == .serviceUnavailable)
+            }
+
+            await service.release()
+            while await !service.hasFinished {
+                await Task.yield()
+            }
+            // Its permit is given back once it is done.
+            var status = HTTPResponse.Status.serviceUnavailable
+            while status == .serviceUnavailable {
+                status = try await client.execute(uri: "/world/v1/events", method: .get) {
+                    $0.status
+                }
+            }
+            #expect(status == .ok)
+        }
+    }
+
     @Test("Concurrent request saturation fails explicitly without unbounded queuing")
     func requestConcurrencyLimit() async throws {
         let service = BlockingWorldApplicationService()
@@ -1309,16 +1344,21 @@ private struct SlowWorldApplicationService: WorldApplicationService {
 private actor BlockingWorldApplicationService: WorldApplicationService {
     private var continuation: CheckedContinuation<Void, Never>?
     private(set) var hasStarted = false
+    private(set) var hasFinished = false
 
     func accept(_ event: WorldEventEnvelope) async throws -> WorldEventAcceptance {
         throw WorldAPIError.databaseUnavailable
     }
 
     func events(after sequence: Int64, limit: Int) async throws -> WorldEventPage {
+        guard !hasStarted else {
+            return WorldEventPage(events: [], nextSequence: sequence, hasMore: false)
+        }
         hasStarted = true
         await withCheckedContinuation { continuation in
             self.continuation = continuation
         }
+        hasFinished = true
         return WorldEventPage(events: [], nextSequence: sequence, hasMore: false)
     }
 

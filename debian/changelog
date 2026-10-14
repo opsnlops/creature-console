@@ -1,3 +1,18 @@
+creature-cli (2.87.2+world0.47.2+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.47.2: a scene no longer hangs on a slow request
+    (#226, #227). Any sentence with "given" in it took two 5 s fact
+    searches: the text index covered every string in every fact, history
+    and bookkeeping included, and "given" matched the given-facts
+    producer. Facts now carry search_text (subject, predicate, value
+    strings; removed when superseded) under a new facts_search index;
+    migration 13 drops facts_text and backfills. A request past its 10 s
+    limit answers 504 but its work runs to its end instead of being
+    cancelled mid-write, and a sweep every 30 s moves on any open scene
+    whose floor deadline lapsed a minute ago with no timer.
+
+ -- April White <april@creature.engineering>  Tue, 13 Oct 2026 22:45:00 -0700
+
 creature-cli (2.87.2+world0.47.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.87.2: the birds keep the symbols a voice says

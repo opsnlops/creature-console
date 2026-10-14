@@ -1,10 +1,11 @@
 import Foundation
 import Logging
+import MongoClient
 import MongoKitten
 import WorldCore
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 12
+    static let currentVersion = 13
 
     let database: MongoDatabase
     let logger: Logger
@@ -46,6 +47,13 @@ struct MongoWorldMigrator: Sendable {
         try await ownMemories()
         try await recordMigration(version: 11, name: "owned_memories")
         try await recordMigration(version: 12, name: "owned_memories_are_beakys")
+        if try await !isRecorded(version: 13) {
+            logger.debug("Giving the current facts their search words")
+            let given = try await FactRepository(database: database).backfillSearchText()
+            logger.info(
+                "Facts are searched by their words", metadata: ["facts.backfilled": "\(given)"])
+            try await recordMigration(version: 13, name: "fact_search_text")
+        }
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -263,13 +271,41 @@ struct MongoWorldMigrator: Sendable {
                 "subject_id": 1,
             ]
         )
-        // Search: every string in every fact - the subject's slug, the predicate, the values
-        // inside objects and arrays - in one text index, so "who is Tamara?" or "the
-        // cleaner" is one ranked query rather than a guess at an id. Mango would approve.
-        let text = CreateIndexes.Index(named: "facts_text", keys: ["$**": "text"])
+        // Search: each current fact's words - the subject's slug, the predicate, the strings
+        // inside its value - in one text index, so "who is Tamara?" or "the cleaner" is one
+        // ranked query rather than a guess at an id. Mango would approve. Only the words: the
+        // first index (`facts_text`) took every string in every document, history and
+        // bookkeeping too, and "given" took five seconds (#227). A collection has one text
+        // index, so the old one goes first.
+        try await dropIndex(named: "facts_text", in: MongoWorldCollection.facts)
+        let search = CreateIndexes.Index(
+            named: "facts_search", keys: [FactRepository.searchTextField: "text"])
         try await database[MongoWorldCollection.facts].createIndexes([
-            factID, activeFacts, predicateSubjects, text,
+            factID, activeFacts, predicateSubjects, search,
         ])
+    }
+
+    /// Drops an index if the collection and the index exist.
+    private func dropIndex(named name: String, in collectionName: String) async throws {
+        guard try await database.listCollections().contains(where: { $0.name == collectionName })
+        else { return }
+        let collection = database[collectionName]
+        guard try await collection.listIndexes().drain().contains(where: { $0.name == name })
+        else { return }
+        logger.info(
+            "Dropping a retired index",
+            metadata: ["collection": "\(collectionName)", "index": "\(name)"])
+        do {
+            try await collection.dropIndex(.name(name))
+        } catch let error as MongoGenericErrorReply where error.code == Self.indexNotFound {
+            // Another world's migration dropped it first.
+        }
+    }
+
+    private static let indexNotFound = 27
+
+    private func isRecorded(version: Int) async throws -> Bool {
+        try await database[MongoWorldCollection.schemaMigrations].findOne(["_id": version]) != nil
     }
 
     private func createTimerIndexes() async throws {
