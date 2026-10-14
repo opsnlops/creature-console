@@ -190,6 +190,8 @@ is recorded by World `0.19.0` and agent `2.67.0`, so older records show only the
 whose room could not be readied — Creature Server refused the dialog stream — is a red
 `scene.stage_problem` on the Timeline the moment it opens, with the reason; a failed performance
 shows it under the scene. Every trace icon is a link into Honeycomb for that trace, end to end.
+A scene whose floor timer was lost and that the world closed long after (`0.11.1`, world
+`0.47.2`, #226) reads **closed: lapsed**.
 
 ### Mundane view
 
