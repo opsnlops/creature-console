@@ -1066,7 +1066,7 @@ Build the Debian binary packages for both architectures on any machine with Dock
 Trixie environment, toolchain, and `dpkg-buildpackage` invocation CI uses — with:
 
 ```bash
-./build_debs.sh                 # amd64 and arm64, packages land in artifacts/
+./build_debs.sh                 # amd64 and arm64, packages land in artifacts/<arch>/
 ./build_debs.sh --arch amd64    # fuzzball and production are amd64
 ```
 

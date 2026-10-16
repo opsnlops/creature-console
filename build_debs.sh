@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Build the amd64 and arm64 Debian packages locally, exactly as CI does, and drop them in
-# artifacts/ so a deploy never has to wait for GitHub Actions.
+# artifacts/amd64/ and artifacts/arm64/ so a deploy never has to wait for GitHub Actions.
 #
 # This is .github/workflows/build-deb.yml run by hand: the same Debian Trixie base and apt
 # packages, the same pinned Swift release, the same dpkg-buildpackage invocation and build flags,
@@ -19,7 +19,8 @@
 #   ./build_debs.sh --arch arm64          # one architecture (native on Apple silicon)
 #   ./build_debs.sh --no-check            # skip the clean-container install smoke test
 #   ./build_debs.sh --clean               # discard the build volumes first (forces a cold build)
-#   ./build_debs.sh --out /path           # artifact directory (default: ./artifacts)
+#   ./build_debs.sh --out /path           # artifact directory (default: ./artifacts); each
+#                                         # architecture's packages go in <out>/<arch>/
 #
 # The non-native architecture runs under Docker's emulation and is several times slower than the
 # native one; a cold amd64 build on Apple silicon can take well over an hour, so build the native
@@ -80,6 +81,11 @@ fi
 
 mkdir -p "${OUT_DIR}"
 
+# One directory per architecture, so a deploy copies one folder and never the wrong half.
+arch_dir() {
+    echo "${OUT_DIR}/$1"
+}
+
 log() {
     printf '\n\033[1;35m==> %s\033[0m\n' "$*" >&2
 }
@@ -107,13 +113,14 @@ build_packages() {
         docker volume rm -f "${volume}" >/dev/null 2>&1 || true
     fi
     docker volume create "${volume}" >/dev/null
+    mkdir -p "$(arch_dir "${arch}")"
 
     log "Building Debian packages for ${arch} (cache: ${volume})"
     docker run --rm \
         --platform "linux/${arch}" \
         -v "${ROOT_DIR}:/source:ro" \
         -v "${volume}:/work" \
-        -v "${OUT_DIR}:/out" \
+        -v "$(arch_dir "${arch}"):/out" \
         -e "ARCH=${arch}" \
         "${image}" bash -c '
             set -euo pipefail
@@ -152,7 +159,7 @@ check_packages() {
     log "Installing ${arch} packages into a clean Debian Trixie container"
     docker run --rm \
         --platform "linux/${arch}" \
-        -v "${OUT_DIR}:/artifacts:ro" \
+        -v "$(arch_dir "${arch}"):/artifacts:ro" \
         -e "ARCH=${arch}" \
         -e "PRODUCTS=${PRODUCTS[*]}" \
         debian:trixie-slim bash -c '
@@ -186,7 +193,8 @@ done
 
 log "Artifacts in ${OUT_DIR}"
 for arch in "${ARCHES[@]}"; do
-    ls -1t "${OUT_DIR}"/*_"${arch}".deb 2>/dev/null | head -n "${#PRODUCTS[@]}" | while read -r package; do
+    printf '%s/\n' "$(arch_dir "${arch}")"
+    ls -1t "$(arch_dir "${arch}")"/*_"${arch}".deb 2>/dev/null | head -n "${#PRODUCTS[@]}" | while read -r package; do
         printf '  %s\n' "$(basename "${package}")"
     done
 done

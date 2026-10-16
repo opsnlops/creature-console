@@ -86,7 +86,7 @@ Build a release binary for direct testing with:
 
 On Linux, pass `--static`; the binary is copied atomically to
 `communicator-gateway/creature-communicator-gateway`. `./build_debs.sh` produces the independent
-`creature-communicator-gateway_<version>_<architecture>.deb` package in `artifacts/`.
+`creature-communicator-gateway_<version>_<architecture>.deb` package in `artifacts/<architecture>/`.
 
 ## Observability
 
