@@ -74,7 +74,7 @@ struct Librarian: Sendable {
             span.attributes["librarian.dropped"] = proposal.dropped
             try await cast(
                 try WorldEventEnvelope(
-                    type: WorldEventType(validating: "memory.filed"),
+                    type: WorldEventType(validating: LibrarianFiling.filedEventType),
                     occurredAt: now,
                     source: EventSource(
                         id: try SourceID(validating: "mind:\(name.lowercased())"), kind: "mind",
@@ -87,7 +87,7 @@ struct Librarian: Sendable {
                         "model": .string(model.modelName),
                         "learned": .number(Double(learned.count)),
                         "overwritten": .number(Double(overwritten.count)),
-                        "proposal": proposal.json,
+                        "proposal": try proposal.json,
                     ]))
             logger.info(
                 "Filed the record (watching)",
@@ -236,72 +236,8 @@ struct Librarian: Sendable {
 
     // MARK: - The answer
 
-    struct Proposal: Equatable, Sendable {
-        struct Rewrite: Equatable, Sendable {
-            var subject: EntityID
-            var predicate: String
-            var value: String
-            var replaces: [FactID]
-            var reason: String
-        }
-        struct Retire: Equatable, Sendable {
-            var fact: FactID
-            var reason: String
-        }
-        struct Same: Equatable, Sendable {
-            var ids: [EntityID]
-            var keep: EntityID
-            var sure: Bool
-            var reason: String
-        }
-        struct Kind: Equatable, Sendable {
-            var predicate: String
-            var meaning: String
-        }
-
-        var rewrites: [Rewrite] = []
-        var retires: [Retire] = []
-        var same: [Same] = []
-        var kinds: [Kind] = []
-        var questions: [String] = []
-        /// What the answer proposed that the record does not hold - an id it made up, a fact
-        /// twice, a change past the night's cap - and was left out.
-        var dropped = 0
-
-        var json: WorldJSONValue {
-            .object([
-                "rewrites": .array(
-                    rewrites.map {
-                        .object([
-                            "subject": .string($0.subject.rawValue),
-                            "predicate": .string($0.predicate), "value": .string($0.value),
-                            "replaces": .array($0.replaces.map { .string($0.rawValue) }),
-                            "reason": .string($0.reason),
-                        ])
-                    }),
-                "retires": .array(
-                    retires.map {
-                        .object(["fact": .string($0.fact.rawValue), "reason": .string($0.reason)])
-                    }),
-                "same": .array(
-                    same.map {
-                        .object([
-                            "ids": .array($0.ids.map { .string($0.rawValue) }),
-                            "keep": .string($0.keep.rawValue), "sure": .bool($0.sure),
-                            "reason": .string($0.reason),
-                        ])
-                    }),
-                "kinds": .array(
-                    kinds.map {
-                        .object([
-                            "predicate": .string($0.predicate), "meaning": .string($0.meaning),
-                        ])
-                    }),
-                "questions": .array(questions.map(WorldJSONValue.string)),
-                "dropped": .number(Double(dropped)),
-            ])
-        }
-    }
+    /// One night's proposal - the shape the world reviews and applies (`LibrarianProposal`).
+    typealias Proposal = LibrarianProposal
 
     /// The model's answer, held to the record: only facts and subjects it was shown, each
     /// fact touched once, predicates of the dotted shape, at most `maximumChanges` changes.

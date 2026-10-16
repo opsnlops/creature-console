@@ -930,6 +930,47 @@ on the page; each upcoming calendar event is folded into one `calendar.event` an
 into one `reminder.item`, like the sensors - for the page only, never stored, `derived_from`
 naming every field.
 
+**Applying a night's filing** (`0.52.0`, #229 Ship 2, `docs/durable-learning-plan.md`). The
+librarian proposes (`memory.filed`, watching); April applies from the World Viewer. Two
+nights of proposals showed why the World checks each item first: the rewrites were good, but a
+*sure* merge put `place:workshop` (the small room in the house) together with the old pole
+barn (the new workshop).
+
+- `GET /v1/filings/{event_id}/review` holds each item against the record now. Each gets a
+  status and a reason:
+  - `ready`
+  - `stale`: a fact it names was superseded, expired, or is gone
+  - `guarded`, which covers:
+    - the protected kinds: `visitor.*`, `presence.*`, `sighting.identified`,
+      `house.cameras_quiet`, `identity.pronouns`
+    - a kind that already has a meaning
+    - a rewrite onto a name that holds a fact it doesn't fold in (keeping it would end that
+      fact)
+    - a merge naming a bird
+    - an id already merged
+  - `applied`: applied before, from this filing
+
+  A rewrite carries `valid_to`, the earliest end of what it replaces. A merge lists `moves`
+  (the facts a mind or the librarian kept on the merged ids) and `stays` (those whose name the
+  kept id already holds). Ready items start `checked`, except merges not marked *sure*. The
+  response includes the named facts as they are now.
+- `POST /v1/filings/{event_id}/apply` with `{"rewrites": [0], "retires": [], "same": [],
+  "kinds": [2]}` runs the review again and applies only checked items that are `ready` now.
+  Everything applied is one `memory.filing.applied` event: source `librarian:beaky` (kind
+  `librarian`), caused by the filing, keyed by the filing and the selection so a repeat
+  applies once. `FilingReducer` turns it into facts:
+  - **A rewrite** is one fact, `derived_from` the event and every replaced fact (so Why?
+    walks to them), plus an ending on each replaced name that isn't the new one.
+  - **A retire** is an ending.
+  - **A merge** writes `entity.same_as = <kept id>` on each merged id (world only, never
+    on a page), and moves the `moves` to the kept id: given there, ended on the merged id.
+
+  Kinds are written to the glossary, by `librarian:beaky`. The answer is each checked item's
+  outcome: applied, or skipped with the reason.
+- **A merge redirects.** A mind's `facts.given` on an id with `entity.same_as` is filed on the
+  kept id before it's stored, with `redirected_from` in the payload.
+
+
 **WorldMCP by the MCP conventions** (`0.48.0`, #230): each MCP message is a SERVER span named
 for its method and tool (`tools/call query_entity`, `tools/list`), with `mcp.method.name`,
 `gen_ai.tool.name` and `gen_ai.operation.name = execute_tool` on a tool call,

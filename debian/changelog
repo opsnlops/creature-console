@@ -1,3 +1,25 @@
+creature-cli (2.91.0+world0.52.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.52.0: learning that lasts, Ship 2 - applying the
+    librarian's filing (#229). GET /v1/filings/{id}/review holds each
+    item of a night's proposal against the record now: ready, stale (a
+    fact it names changed since the night), guarded (visitor, presence,
+    sighting, cameras and pronoun kinds; a kind already meant; a bird;
+    an id already merged), or applied. A rewrite ends at the earliest
+    end of what it replaces. POST /v1/filings/{id}/apply runs the review
+    again and applies only April's checked items that still stand, as
+    one memory.filing.applied event from librarian:beaky: a rewrite is
+    one fact derived from what it replaces, a retire ends its fact, a
+    merge marks entity.same_as (world only) and moves what the minds
+    kept to the kept id unless it already holds that name. A mind's
+    keeping on a merged id is filed on the kept one. The agent is
+    unchanged; the proposal is one shared type.
+    World Viewer 0.14.0: the Nightly panel's filing has a checkbox per
+    item, each with its standing; sure merges start checked, unsure ones
+    don't; "Apply checked", then each row says applied or skipped.
+
+ -- April White <april@creature.engineering>  Fri, 16 Oct 2026 16:30:00 -0700
+
 creature-cli (2.91.0+world0.51.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.51.0, creature-agent 2.91.0: a fuller page (#232).

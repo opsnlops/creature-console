@@ -207,6 +207,27 @@ after a 3:30 AM run. It is built from the world's own memory facts
 (`memory.reflection.<bird>.<day>` and `memory.episode.<bird>.<day>.<n>`), read by predicate
 prefix, so the world needs nothing new to serve it.
 
+**The librarian's filing** (`0.12.0`; applying from `0.14.0`, #229). On a night Beaky filed the
+record, her proposal sits above the birds' letters: the rewrites (each listing the facts it
+replaces), retires, merges ("same thing"), meanings for families, and her questions for you.
+**Scry** shows the night's `memory.filed` event.
+
+Each item has a checkbox and a badge, from the World's review of the record as it is now:
+
+- **ready**: it can be applied.
+- **April's call**: a merge Beaky wasn't sure of. It starts unchecked.
+- **stale**: a fact it names changed since the night.
+- **guarded**: it touches a kind with its own rules (visitors, presence, sightings, cameras,
+  pronouns), a kind that already has a meaning, a bird, or an id already merged.
+
+Only ready items can be checked. Hover a badge for the reason. A rewrite that replaces facts
+with an end date says when it will end.
+
+**Apply checked** asks once, then the World checks every item again and applies what still
+stands. Afterwards each row reads **applied** or **skipped** (with why), from the World's
+answer. What the librarian filed says "filed by Beaky, the librarian" anywhere a fact is
+shown, and a merged id's `entity.same_as` (world only) links to the id it became.
+
 Select anything in any panel and the inspector shows it as the JSON the World actually carries
 (pretty-printed, keys sorted). Toggle it with the `{}` toolbar button. This is the mundane view
 of a spell: the record with the magic taken out, for when you need to see the wires.

@@ -207,6 +207,124 @@ extension NightlyReports {
     }
 }
 
+extension NightlyReports {
+    /// One item of a night's filing as a row: what it would do, in words, from the review.
+    struct FilingRow: Identifiable, Equatable, Sendable {
+        let key: FilingItemKey
+        let item: FilingReviewItem
+        /// "person:april · flight.training", or the ids of a merge.
+        let title: String
+        /// The new value, the retired fact's, a kind's meaning.
+        let body: String
+        /// "replaces 3 facts · one topic", "moves 2 facts, 1 stays · same building".
+        let detail: String
+        /// What a rewrite replaces, one line each: "person.flight_rules = flies VFR".
+        let replaced: [String]
+        var id: FilingItemKey { key }
+    }
+
+    /// The review, as rows in the order the night proposed them.
+    static func rows(of review: FilingReview) -> [FilingRow] {
+        let facts = Dictionary(
+            review.facts.map { ($0.factID, $0) }, uniquingKeysWith: { a, _ in a })
+        func line(_ id: FactID) -> String {
+            guard let fact = facts[id] else { return id.rawValue }
+            return "\(fact.subjectID.rawValue) \(fact.predicate) = \(fact.value.displayText)"
+        }
+        func joined(_ parts: [String]) -> String {
+            parts.filter { !$0.isEmpty }.joined(separator: " · ")
+        }
+        func plural(_ count: Int, _ word: String) -> String {
+            "\(count) \(word)\(count == 1 ? "" : "s")"
+        }
+        let proposal = review.proposal
+        return review.items.compactMap { item in
+            let key = item.key
+            switch key.list {
+            case .rewrites:
+                guard proposal.rewrites.indices.contains(key.index) else { return nil }
+                let rewrite = proposal.rewrites[key.index]
+                return FilingRow(
+                    key: key, item: item,
+                    title: "\(rewrite.subject.rawValue) · \(rewrite.predicate)",
+                    body: rewrite.value,
+                    detail: joined([
+                        "replaces \(plural(rewrite.replaces.count, "fact"))", rewrite.reason,
+                    ]),
+                    replaced: rewrite.replaces.map { id in
+                        guard let fact = facts[id] else { return id.rawValue }
+                        return "\(fact.predicate) = \(fact.value.displayText)"
+                    })
+            case .retires:
+                guard proposal.retires.indices.contains(key.index) else { return nil }
+                let retire = proposal.retires[key.index]
+                return FilingRow(
+                    key: key, item: item, title: "Retire", body: line(retire.fact),
+                    detail: retire.reason, replaced: [])
+            case .same:
+                guard proposal.same.indices.contains(key.index) else { return nil }
+                let same = proposal.same[key.index]
+                let movement =
+                    item.moves.isEmpty && item.stays.isEmpty
+                    ? ""
+                    : "moves \(plural(item.moves.count, "fact"))"
+                        + (item.stays.isEmpty ? "" : ", \(item.stays.count) stay")
+                return FilingRow(
+                    key: key, item: item,
+                    title: same.ids.map(\.rawValue).joined(separator: " = "),
+                    body: "keep \(same.keep.rawValue)\(same.sure ? "" : " (not sure)")",
+                    detail: joined([movement, same.reason]), replaced: [])
+            case .kinds:
+                guard proposal.kinds.indices.contains(key.index) else { return nil }
+                let kind = proposal.kinds[key.index]
+                return FilingRow(
+                    key: key, item: item, title: kind.predicate, body: kind.meaning, detail: "",
+                    replaced: [])
+            }
+        }
+    }
+
+    /// April's checks on one night's filing: they start from the review, only a ready item can
+    /// be checked, and after applying each item shows what happened to it - never what was
+    /// asked (green checkmarks must never lie).
+    struct FilingChecks: Equatable, Sendable {
+        private(set) var checked: Set<FilingItemKey>
+        private(set) var outcomes: [FilingItemKey: FilingOutcome] = [:]
+        private let ready: Set<FilingItemKey>
+
+        init(review: FilingReview) {
+            ready = Set(review.items.filter { $0.status == .ready }.map(\.key))
+            checked = Set(review.items.filter { $0.checked && $0.status == .ready }.map(\.key))
+        }
+
+        func canCheck(_ key: FilingItemKey) -> Bool { ready.contains(key) }
+
+        func isChecked(_ key: FilingItemKey) -> Bool { checked.contains(key) }
+
+        mutating func set(_ key: FilingItemKey, checked on: Bool) {
+            guard canCheck(key) else { return }
+            if on { checked.insert(key) } else { checked.remove(key) }
+        }
+
+        var selection: FilingSelection { FilingSelection(checked) }
+
+        mutating func record(_ result: FilingApplyResult) {
+            for outcome in result.outcomes { outcomes[outcome.key] = outcome }
+        }
+    }
+
+    /// The words on an item's badge: its outcome once applied, else its status.
+    static func badge(_ item: FilingReviewItem, outcome: FilingOutcome?) -> String {
+        if let outcome { return outcome.applied ? "applied" : "skipped" }
+        switch item.status {
+        case .ready: return item.checked ? "ready" : "April's call"
+        case .stale: return "stale"
+        case .guarded: return "guarded"
+        case .applied: return "applied"
+        }
+    }
+}
+
 extension Fact {
     /// Who said it, in words: "kept by Mango" for a bird, "from the address book's bridge" for
     /// the Bridge - the fact's origin (#229). Nil for a fact from before origins were kept.

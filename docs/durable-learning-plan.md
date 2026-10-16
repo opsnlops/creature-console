@@ -201,8 +201,9 @@ The night's proposals are read before any of them is applied, so the work ships 
     recorded as one `memory.filed` event (`mode: watching`). Nothing is applied.
   - Viewer: the Nightly panel shows the night's filing above the birds' letters; facts say
     **kept by Mango** (or **from bridge:contacts**).
-- **Ship 2, applying**: April reviews the night's proposal in the Viewer and applies what
-  she checks. Planned in [Ship 2: applying](#ship-2-applying) below.
+- **Ship 2, applying** (World `0.52.0`, Viewer `0.14.0`, 2026-10-16): April reviews the
+  night's proposal in the Viewer and applies what she checks. See
+  [Ship 2: applying](#ship-2-applying) below.
 
 The text index was checked against April's real lines before building (2026-10-15): "landings
 are still the hardest part" finds `flight.hardest_part`, "I'm learning to fly" finds

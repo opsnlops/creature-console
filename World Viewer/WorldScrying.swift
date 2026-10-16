@@ -30,19 +30,24 @@ protocol WorldScrying: Sendable {
     func explain(_ factID: FactID) async throws -> FactExplanation?
     /// The librarian's nights, newest first (`memory.filed`).
     func filings(limit: Int) async throws -> [WorldEventEnvelope]
+    /// One night's filing, each item held against the record now (#229, Ship 2).
+    func filingReview(_ filing: EventID) async throws -> FilingReview
     /// Exactly what a mind would be handed right now: its page.
     func perspective(of characterID: EntityID, mentionedIn words: String?) async throws
         -> CharacterPerspective
 }
 
-/// The Viewer's one kind of write, kept apart from the reads on purpose: a Wizard casting a
-/// meaning into the world's glossary.
+/// The Viewer's writes, kept apart from the reads on purpose: a Wizard casting a meaning into
+/// the world's glossary, forgetting what a bird learned, or applying a night's filing.
 protocol WorldCasting: Sendable {
     func setFactKind(
         _ predicate: String, meaning: String, audience: FactAudience?, by wizard: String
     ) async throws -> FactKind
     /// Retracts a fact a bird learned: a cast of nothing, valid for a second, supersedes it.
     func forget(_ subjectID: EntityID, _ predicate: String, by wizard: String) async throws
+    /// April's checked items of a night's filing, applied where they still stand.
+    func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
+        -> FilingApplyResult
 }
 
 /// The real thing: the typed viewer client for reads and the world stream, and the conversation
@@ -108,6 +113,10 @@ struct LiveWorldScryer: WorldScrying {
         try await viewer.filings(limit: limit).events
     }
 
+    func filingReview(_ filing: EventID) async throws -> FilingReview {
+        try await viewer.filingReview(filing)
+    }
+
     func perspective(of characterID: EntityID, mentionedIn words: String?) async throws
         -> CharacterPerspective
     {
@@ -124,6 +133,12 @@ struct LiveWorldScryer: WorldScrying {
 }
 
 extension LiveWorldScryer: WorldCasting {
+    func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
+        -> FilingApplyResult
+    {
+        try await viewer.applyFiling(filing, selection)
+    }
+
     func setFactKind(
         _ predicate: String, meaning: String, audience: FactAudience?, by wizard: String
     ) async throws -> FactKind {

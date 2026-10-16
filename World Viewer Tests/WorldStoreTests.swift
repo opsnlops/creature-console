@@ -408,6 +408,10 @@ struct ScriptedScryer: WorldScrying {
 
     func filings(limit: Int) async throws -> [WorldEventEnvelope] { [] }
 
+    func filingReview(_ filing: EventID) async throws -> FilingReview {
+        throw WorldConversationClientError.unexpectedResponse
+    }
+
     func perspective(of characterID: EntityID, mentionedIn words: String?) async throws
         -> CharacterPerspective
     {

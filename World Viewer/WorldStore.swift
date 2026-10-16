@@ -247,6 +247,30 @@ final class WorldStore {
         }
     }
 
+    /// One night's filing as it stands against the record now; nil when the world can't say.
+    func filingReview(_ filing: EventID) async -> FilingReview? {
+        do {
+            return try await makeScryer().filingReview(filing)
+        } catch {
+            lastError = ErrorAlert(title: "The World Could Not Review the Filing", error: error)
+            return nil
+        }
+    }
+
+    /// April's checked items, applied where they still stand: each one's outcome, or nil when
+    /// the world did not take it.
+    func applyFiling(_ filing: EventID, _ selection: FilingSelection) async -> FilingApplyResult? {
+        do {
+            guard let caster = try makeScryer() as? any WorldCasting else {
+                throw WorldConversationClientError.unexpectedResponse
+            }
+            return try await caster.applyFiling(filing, selection)
+        } catch {
+            lastError = ErrorAlert(title: "The Filing Was Not Applied", error: error)
+            return nil
+        }
+    }
+
     /// What each of `birds` remembered of `day`: their episodes, on every subject they are on.
     func nightlyEpisodes(day: String, birds: [String]) async -> [Fact] {
         do {
@@ -295,7 +319,8 @@ final class WorldStore {
 
     /// Who a kind of fact is for, as the glossary says; `minds` when it says nothing.
     func audience(of predicate: String) -> FactAudience {
-        factKinds.first { $0.predicate == predicate }?.audience ?? .minds
+        if WorldKnowledgeLimits.worldOnlyPredicates.contains(predicate) { return .world }
+        return factKinds.first { $0.predicate == predicate }?.audience ?? .minds
     }
 
     /// Wizard Mode's casts on the glossary: reword what a kind of fact means, or say who it is

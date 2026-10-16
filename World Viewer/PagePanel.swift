@@ -169,7 +169,7 @@ private struct PageFactRow: View {
             Text("\(fact.subjectID.rawValue) · \(fact.predicate)")
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
-            Text(Self.text(of: fact.value))
+            Text(fact.value.displayText)
                 .textSelection(.enabled)
                 .lineLimit(4)
             if let kept = fact.keptBy {
@@ -180,8 +180,13 @@ private struct PageFactRow: View {
         }
     }
 
-    static func text(of value: WorldJSONValue) -> String {
-        switch value {
+}
+
+extension WorldJSONValue {
+    /// A value as a line of text: a string as itself, a number without a needless ".0", an
+    /// object by its `what` or `text`, an array joined.
+    var displayText: String {
+        switch self {
         case .string(let text): text
         case .number(let number):
             number == number.rounded() ? String(Int(number)) : String(format: "%.1f", number)
@@ -195,7 +200,7 @@ private struct PageFactRow: View {
             } else {
                 fields.keys.sorted().joined(separator: ", ")
             }
-        case .array(let values): values.map(text(of:)).joined(separator: ", ")
+        case .array(let values): values.map(\.displayText).joined(separator: ", ")
         }
     }
 }

@@ -477,6 +477,40 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // One night's filing, each item held against the record now (#229, Ship 2): the
+        // Viewer's checkboxes start from this.
+        router.get("v1/filings/:filingID/review") { _, context in
+            await respond {
+                let filing = try filingID(from: context)
+                return try await execute {
+                    guard let review = try await service.filingReview(filing) else {
+                        return try jsonResponse(
+                            WorldAPIErrorResponse(error: "not_found", message: "No such filing"),
+                            status: .notFound)
+                    }
+                    return try jsonResponse(review)
+                }
+            }
+        }
+
+        // April's checked items, applied where they still stand: each item's outcome.
+        router.post("v1/filings/:filingID/apply") { request, context in
+            await respond {
+                try requireJSON(request)
+                let filing = try filingID(from: context)
+                let selection = try await decode(
+                    FilingSelection.self, from: request, maximumBytes: limits.maximumBodyBytes)
+                return try await execute {
+                    guard let result = try await service.applyFiling(filing, selection) else {
+                        return try jsonResponse(
+                            WorldAPIErrorResponse(error: "not_found", message: "No such filing"),
+                            status: .notFound)
+                    }
+                    return try jsonResponse(result)
+                }
+            }
+        }
+
         // What the minds kept that a later keeping replaced, since a moment: the librarian
         // folds these back in.
         router.get("v1/facts/overwritten") { request, _ in
@@ -782,6 +816,13 @@ struct WorldHTTPAPI: Sendable {
             throw WorldAPIError.invalidQuery(name: "scene_id")
         }
         return try SceneID(validating: raw)
+    }
+
+    private func filingID(from context: BasicRequestContext) throws -> EventID {
+        guard let raw = context.parameters.get("filingID"),
+            let id = raw.removingPercentEncoding.flatMap(EventID.init(rawValue:))
+        else { throw WorldAPIError.invalidQuery(name: "filing_id") }
+        return id
     }
 
     private func characterID(from context: BasicRequestContext) throws -> EntityID {

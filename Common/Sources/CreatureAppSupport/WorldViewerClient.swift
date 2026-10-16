@@ -98,7 +98,7 @@ public struct WorldViewerClient: Sendable {
         try await get(FactKindPage.self, pathComponents: ["fact-kinds"])
     }
 
-    /// Rewords one meaning. The Viewer's one write: a Wizard teaching the world a word.
+    /// Rewords one meaning: a Wizard teaching the world a word.
     public func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws
         -> FactKind
     {
@@ -139,6 +139,25 @@ public struct WorldViewerClient: Sendable {
         try await get(
             WorldFilingPage.self, pathComponents: ["filings"],
             queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
+    }
+
+    /// One night's filing, each item held against the record now: where April's checkboxes
+    /// start (#229, Ship 2).
+    public func filingReview(_ filing: EventID) async throws -> FilingReview {
+        try await get(FilingReview.self, pathComponents: ["filings", filing.rawValue, "review"])
+    }
+
+    /// April's checked items, applied where they still stand: each one's outcome.
+    public func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
+        -> FilingApplyResult
+    {
+        var request = try request(pathComponents: ["filings", filing.rawValue, "apply"])
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try WorldJSON.makeEncoder().encode(selection)
+        let (data, response) = try await loader.data(for: request)
+        try Self.validate(response)
+        return try WorldJSON.makeDecoder().decode(FilingApplyResult.self, from: data)
     }
 
     public func entity(_ entityID: EntityID) async throws -> EntityPage {

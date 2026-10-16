@@ -499,8 +499,11 @@ Beaky's five minutes after she kept it. Two things keep learning durable:
   counted as dropped.
 - **Watching first.** The proposal is cast as one `memory.filed` event (`mode: watching`,
   source `mind:beaky`, keyed `librarian:<day>:<run>`) and nothing is changed. Read it in the
-  World Viewer's Nightly panel. Applying it - the rewrites cast from `librarian:beaky`,
-  `entity.same_as`, the kinds written to the glossary - is the next ship.
+  World Viewer's Nightly panel. **Applying is April's, in the Viewer** (World `0.52.0`): she
+  checks what she agrees with, and the World reviews each item against the record at that
+  moment and applies what still stands, from `librarian:beaky`. The agent doesn't change for
+  it; the proposal is the shared `LibrarianProposal` type the World reads. See the World
+  manual's "Applying a night's filing".
 - In Honeycomb, the night is `agent.librarian.file` with `invoke_agent Beaky` beneath it
   (conversation `librarian:<day>:<run>`), and `librarian.rewrites` / `.retires` / `.same` /
   `.questions` / `.dropped` on the span.

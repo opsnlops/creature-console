@@ -51,6 +51,8 @@ struct MongoWorldPersistenceConnection: Sendable {
     let learnedFacts: @Sendable (String, FactID?, Int) async throws -> WorldFactPage
     let overwrittenFacts: @Sendable (String, Date, Int) async throws -> OverwrittenFactPage
     let filings: @Sendable (Int) async throws -> [WorldEventEnvelope]
+    let filingReview: @Sendable (EventID) async throws -> FilingReview?
+    let applyFiling: @Sendable (EventID, FilingSelection) async throws -> FilingApplyResult?
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -77,7 +79,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             factStore: persistence.facts,
             reducers: [
                 CharacterPresenceReducer(), AssumedPersonPresenceReducer(), SceneMemoryReducer(),
-                GivenFactReducer(), HouseReducer(),
+                GivenFactReducer(), FilingReducer(), HouseReducer(),
             ],
             clock: clock
         )
@@ -381,7 +383,14 @@ struct MongoWorldPersistenceConnection: Sendable {
                 try? await Task.sleep(for: .seconds(30))
             }
         }
-        acceptEvent = { try await world.accept($0) }
+        // Applying a night's filing, and the redirect it leaves behind: a mind keeping a fact
+        // on an id the librarian merged has it filed on the kept id (#229).
+        let filingDesk = FilingDesk(
+            events: persistence.events, facts: persistence.facts, kinds: persistence.factKinds,
+            accept: { try await world.accept($0) }, clock: clock)
+        acceptEvent = { try await world.accept(try await filingDesk.redirect($0)) }
+        filingReview = { try await filingDesk.review($0) }
+        applyFiling = { try await filingDesk.apply($0, $1) }
         events = { sequence, limit in
             let loaded = try await persistence.events.events(
                 after: sequence,
@@ -767,6 +776,13 @@ struct MongoWorldPersistenceConnection: Sendable {
         filings: @escaping @Sendable (Int) async throws -> [WorldEventEnvelope] = { _ in
             throw WorldAPIError.databaseUnavailable
         },
+        filingReview: @escaping @Sendable (EventID) async throws -> FilingReview? = { _ in
+            throw WorldAPIError.databaseUnavailable
+        },
+        applyFiling:
+            @escaping @Sendable (EventID, FilingSelection) async throws -> FilingApplyResult? = {
+                _, _ in throw WorldAPIError.databaseUnavailable
+            },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -809,6 +825,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.learnedFacts = learnedFacts
         self.overwrittenFacts = overwrittenFacts
         self.filings = filings
+        self.filingReview = filingReview
+        self.applyFiling = applyFiling
         self.shutdown = shutdown
     }
 }
@@ -1104,6 +1122,18 @@ actor MongoWorldPersistenceProvider {
         return try await connection.filings(limit)
     }
 
+    func filingReview(_ filing: EventID) async throws -> FilingReview? {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.filingReview(filing)
+    }
+
+    func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
+        -> FilingApplyResult?
+    {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.applyFiling(filing, selection)
+    }
+
     func remember(_ day: String) async throws -> WorldEventAcceptance {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.remember(day)
@@ -1213,7 +1243,8 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         // What is the world's alone stays with the world - and never takes a mind's place on
         // the capped page.
-        var worldOnly = try await kinds.worldOnlyPredicates()
+        var worldOnly = try await kinds.worldOnlyPredicates().union(
+            WorldKnowledgeLimits.worldOnlyPredicates)
         // And kinds that ride only on request: a bird's body is thirty lines a clock question
         // does not need; the words "board", "power", "servo" bring them.
         let wordsInText = Set(

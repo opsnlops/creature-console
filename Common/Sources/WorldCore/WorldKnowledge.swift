@@ -226,6 +226,9 @@ public enum WorldKnowledgeLimits {
     public static let stagePredicates: Set<String> = [
         WorldFacts.characterRegion, WorldFacts.pronouns,
     ]
+    /// Kinds that are the world's alone by their nature, whatever the glossary says: a merged
+    /// id's `entity.same_as` is bookkeeping, never something a mind is told (#229).
+    public static let worldOnlyPredicates: Set<String> = [WorldFacts.entitySameAs]
     /// The most readings folded for one page: every sensor and forecast of the room's places,
     /// with room to spare - each subject's readings become one entry, whatever their number.
     public static let maximumFoldedReadings = 200

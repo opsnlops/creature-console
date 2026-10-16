@@ -12,6 +12,9 @@ struct NightlyPanel: View {
     @State private var chosen: String?
     @State private var report: [NightlyReports.BirdNight] = []
     @State private var loading = false
+    @State private var review: FilingReview?
+    @State private var checks: NightlyReports.FilingChecks?
+    @State private var applying = false
 
     /// Every night some bird remembered, and every night the librarian filed.
     private var nights: [NightlyReports.Night] {
@@ -52,7 +55,10 @@ struct NightlyPanel: View {
                 } else if loading {
                     ProgressView()
                 } else {
-                    NightView(report: report, filing: filing, scried: $scried)
+                    NightView(
+                        report: report, filing: filing, review: review, checks: $checks,
+                        applying: applying, apply: { Task { await applyChecked() } },
+                        scried: $scried)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -90,7 +96,30 @@ struct NightlyPanel: View {
         let birds = nights.first { $0.day == day }?.birds ?? []
         let episodes = await store.nightlyEpisodes(day: day, birds: birds)
         report = NightlyReports.report(day: day, reflections: reflections, episodes: episodes)
+        await loadReview()
         loading = false
+    }
+
+    /// The night's filing held against the record now: where the checkboxes start.
+    private func loadReview() async {
+        guard let filing else {
+            review = nil
+            checks = nil
+            return
+        }
+        review = await store.filingReview(filing.event.eventID)
+        checks = review.map(NightlyReports.FilingChecks.init(review:))
+    }
+
+    /// Applies what April checked, then reads the review again: each row then says what
+    /// happened to it.
+    private func applyChecked() async {
+        guard let filing, let selection = checks?.selection else { return }
+        applying = true
+        defer { applying = false }
+        guard let result = await store.applyFiling(filing.event.eventID, selection) else { return }
+        await loadReview()
+        checks?.record(result)
     }
 
     /// "Wednesday, September 30" from "2026-09-30"; the day itself when it does not parse.
@@ -110,14 +139,19 @@ struct NightlyPanel: View {
 private struct NightView: View {
     let report: [NightlyReports.BirdNight]
     let filing: NightlyReports.Filing?
+    let review: FilingReview?
+    @Binding var checks: NightlyReports.FilingChecks?
+    let applying: Bool
+    let apply: () -> Void
     @Binding var scried: Scried?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 if let filing {
-                    FilingView(filing: filing)
-                        .onTapGesture { scried = .event(filing.event) }
+                    FilingView(
+                        filing: filing, review: review, checks: $checks, applying: applying,
+                        apply: apply, scry: { scried = .event(filing.event) })
                 }
                 ForEach(report) { bird in
                     VStack(alignment: .leading, spacing: 12) {
@@ -179,9 +213,22 @@ private struct EpisodeRow: View {
     }
 }
 
-/// The librarian's night: what she would file, and why. While she watches, a proposal only.
+/// The librarian's night: what she would file, and why. Each item is checked against the record
+/// now (#229, Ship 2); April checks what she agrees with, and applies.
 private struct FilingView: View {
     let filing: NightlyReports.Filing
+    let review: FilingReview?
+    @Binding var checks: NightlyReports.FilingChecks?
+    let applying: Bool
+    let apply: () -> Void
+    let scry: () -> Void
+    @State private var confirming = false
+
+    private var rows: [NightlyReports.FilingRow] {
+        review.map(NightlyReports.rows(of:)) ?? []
+    }
+
+    private var checkedCount: Int { checks?.checked.count ?? 0 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -191,13 +238,17 @@ private struct FilingView: View {
                 )
                 .font(.title2.bold())
                 Spacer()
-                Text(filing.watching ? "watching: nothing applied" : "applied")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .glassEffect(
-                        .regular.tint((filing.watching ? Color.orange : .green).opacity(0.25)),
-                        in: .capsule)
+                Button("Scry", systemImage: "eye", action: scry)
+                    .buttonStyle(.glass)
+                    .help("The night's memory.filed event")
+                if review != nil {
+                    Button(
+                        "Apply \(checkedCount) checked", systemImage: "checkmark.seal",
+                        action: { confirming = true }
+                    )
+                    .buttonStyle(.glassProminent)
+                    .disabled(checkedCount == 0 || applying)
+                }
             }
             Text(
                 "Read \(filing.learned) kept fact\(filing.learned == 1 ? "" : "s")"
@@ -212,28 +263,24 @@ private struct FilingView: View {
                 Text("Nothing needed filing.")
                     .foregroundStyle(.secondary)
             }
-            if !filing.rewrites.isEmpty {
-                section("Rewrite", systemImage: "square.and.pencil")
-                ForEach(filing.rewrites, id: \.self) { rewrite in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(rewrite.subject) · \(rewrite.predicate)")
-                            .font(.caption.monospaced())
-                        Text(rewrite.value)
-                            .textSelection(.enabled)
-                        Text(
-                            "replaces \(rewrite.replaces) fact\(rewrite.replaces == 1 ? "" : "s")"
-                                + (rewrite.reason.isEmpty ? "" : " · \(rewrite.reason)")
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            if review == nil, !filing.isEmpty {
+                Text("The world could not review this filing; nothing can be applied from it.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+            ForEach(FilingList.allCases, id: \.self) { list in
+                let listRows = rows.filter { $0.key.list == list }
+                if !listRows.isEmpty {
+                    section(list)
+                    ForEach(listRows) { row in
+                        FilingRowView(row: row, checks: $checks)
                     }
                 }
             }
-            lines("Retire", systemImage: "archivebox", filing.retires)
-            lines("Same thing", systemImage: "equal.circle", filing.same)
-            lines("What the families mean", systemImage: "character.book.closed", filing.kinds)
             if !filing.questions.isEmpty {
-                section("Questions for April", systemImage: "questionmark.bubble")
+                Label("Questions for April", systemImage: "questionmark.bubble")
+                    .font(.headline)
+                    .padding(.top, 6)
                 ForEach(filing.questions, id: \.self) { question in
                     Text(question).textSelection(.enabled)
                 }
@@ -242,32 +289,101 @@ private struct FilingView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .glassEffect(.regular.tint(.teal.opacity(0.10)), in: .rect(cornerRadius: 14))
+        .confirmationDialog(
+            "Apply \(checkedCount) change\(checkedCount == 1 ? "" : "s") to the record?",
+            isPresented: $confirming
+        ) {
+            Button("Apply", action: apply)
+        } message: {
+            Text(
+                "The world checks each one again first, and skips anything that changed since the night."
+            )
+        }
     }
 
-    private func section(_ title: String, systemImage: String) -> some View {
-        Label(title, systemImage: systemImage)
+    private func section(_ list: FilingList) -> some View {
+        let (title, image): (String, String) =
+            switch list {
+            case .rewrites: ("Rewrite", "square.and.pencil")
+            case .retires: ("Retire", "archivebox")
+            case .same: ("Same thing", "equal.circle")
+            case .kinds: ("What the families mean", "character.book.closed")
+            }
+        return Label(title, systemImage: image)
             .font(.headline)
             .padding(.top, 6)
     }
+}
 
-    @ViewBuilder
-    private func lines(_ title: String, systemImage: String, _ lines: [NightlyReports.Filing.Line])
-        -> some View
-    {
-        if !lines.isEmpty {
-            section(title, systemImage: systemImage)
-            ForEach(lines, id: \.self) { line in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(line.what)
+/// One item: its checkbox, what it would do, and how it stands.
+private struct FilingRowView: View {
+    let row: NightlyReports.FilingRow
+    @Binding var checks: NightlyReports.FilingChecks?
+
+    private var outcome: FilingOutcome? { checks?.outcomes[row.key] }
+
+    private var isOn: Binding<Bool> {
+        Binding(
+            get: { checks?.isChecked(row.key) ?? false },
+            set: { checks?.set(row.key, checked: $0) })
+    }
+
+    private var tint: Color {
+        if let outcome { return outcome.applied ? .green : .orange }
+        switch row.item.status {
+        case .ready: return row.item.checked ? .teal : .yellow
+        case .stale: return .orange
+        case .guarded: return .red
+        case .applied: return .green
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Toggle("", isOn: isOn)
+                .toggleStyle(.checkbox)
+                .labelsHidden()
+                .disabled(!(checks?.canCheck(row.key) ?? false))
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(row.title)
                         .font(.caption.monospaced())
                         .textSelection(.enabled)
-                    if !line.reason.isEmpty {
-                        Text(line.reason)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text(NightlyReports.badge(row.item, outcome: outcome))
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .glassEffect(.regular.tint(tint.opacity(0.3)), in: .capsule)
+                        .help(outcome?.reason ?? row.item.reason ?? "")
+                }
+                Text(row.body)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !row.detail.isEmpty {
+                    Text(row.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let reason = outcome?.reason ?? row.item.reason {
+                    Text(reason)
+                        .font(.caption)
+                        .foregroundStyle(tint)
+                }
+                if let end = row.item.validTo {
+                    Text(
+                        "ends \(end.formatted(date: .abbreviated, time: .shortened)), as what it replaces does"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                ForEach(row.replaced, id: \.self) { line in
+                    Text("– \(line)")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .textSelection(.enabled)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

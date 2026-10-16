@@ -41,6 +41,10 @@ public enum WorldFacts {
     /// Who a person a camera saw turned out to be, as April said: "no Beaky, that was just the
     /// postman". Cast by a mind from her words, on the place.
     public static let sightingIdentified = "sighting.identified"
+    /// On an id April's librarian merged away: the id it is now, `place:workshop` for
+    /// `thing:workshop-room` (#229). The world's alone - a mind keeping a fact on the merged
+    /// id has it filed on the kept one.
+    public static let entitySameAs = "entity.same_as"
 
     // Memory, written by the nightly job (step 4b of the judgement plan).
     /// A human-grained memory on the people, places, or house it is about: `{day, when, what,
@@ -194,6 +198,8 @@ public enum WorldFacts {
             "a package on its way to the house today: what it is and who is bringing it",
         "delivery.arrived":
             "a package the carrier says it delivered to the house, in the last few hours",
+        entitySameAs:
+            "the id this one was merged into by the librarian, with April's approval: the same person, place, or thing, kept under that id from now on",
         sightingIdentified:
             "who the person a camera saw there is: April's own word, which is certain, or the house's assumption - she is home and lives alone, so most likely her; a camera sees a shape, so anything pointing elsewhere outranks the house's guess",
         doorLock:

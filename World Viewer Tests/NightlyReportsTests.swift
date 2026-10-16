@@ -208,3 +208,88 @@ struct FactPageSectionsTests {
         #expect(FactPageSections.name(of: try EntityID(validating: "character:beaky")) == "Beaky")
     }
 }
+
+/// #229, Ship 2: April's checkboxes on a night's filing start from the world's review, and
+/// after applying each row says what happened to it.
+@Suite("Applying a night's filing")
+struct FilingChecksTests {
+    private func review() throws -> FilingReview {
+        let april = try EntityID(validating: "person:april")
+        let rules = try Fact(
+            subjectID: april, predicate: "person.flight_rules", value: .string("flies VFR"),
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            validFrom: Date(timeIntervalSince1970: 1_790_000_000), derivedFrom: [],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        let proposal = LibrarianProposal(
+            rewrites: [
+                .init(
+                    subject: april, predicate: "flight.rules", value: "Flies VFR.",
+                    replaces: [rules.factID], reason: "beside the other flight facts")
+            ],
+            same: [
+                .init(
+                    ids: [
+                        try EntityID(validating: "person:amber"),
+                        try EntityID(validating: "thing:cleaner"),
+                    ], keep: try EntityID(validating: "person:amber"), sure: false,
+                    reason: "a role alone")
+            ],
+            kinds: [.init(predicate: "visitor.expected", meaning: "x")])
+        let filing = try WorldEventEnvelope(
+            type: WorldEventType(validating: "memory.filed"),
+            occurredAt: Date(timeIntervalSince1970: 1_790_000_000),
+            source: EventSource(id: SourceID(validating: "mind:beaky"), kind: "mind"),
+            subjectIDs: [try EntityID(validating: "character:beaky")],
+            epistemic: EpistemicState(type: .remembered, confidence: 1), payload: [:])
+        return FilingReview(
+            filing: filing, proposal: proposal,
+            items: [
+                .init(key: .init(.rewrites, 0), status: .ready, checked: true),
+                .init(
+                    key: .init(.same, 0), status: .ready, reason: "not sure: April's to decide",
+                    checked: false, moves: [FactID.generated()]),
+                .init(
+                    key: .init(.kinds, 0), status: .guarded,
+                    reason: "visitor.expected has its own rules",
+                    checked: false),
+            ],
+            facts: [rules])
+    }
+
+    @Test("Rows say what each item would do, with what a rewrite replaces")
+    func rowsDescribeTheItems() throws {
+        let rows = NightlyReports.rows(of: try review())
+        #expect(rows.map(\.key.list) == [.rewrites, .same, .kinds])
+        #expect(rows[0].title == "person:april · flight.rules")
+        #expect(rows[0].replaced == ["person.flight_rules = flies VFR"])
+        #expect(rows[0].detail == "replaces 1 fact · beside the other flight facts")
+        #expect(rows[1].body == "keep person:amber (not sure)")
+        #expect(rows[1].detail == "moves 1 fact · a role alone")
+    }
+
+    @Test("Checks start from the review; only a ready item can be checked")
+    func checksStartFromTheReview() throws {
+        var checks = NightlyReports.FilingChecks(review: try review())
+        #expect(checks.checked == [.init(.rewrites, 0)])
+        checks.set(.init(.kinds, 0), checked: true)
+        #expect(!checks.isChecked(.init(.kinds, 0)))
+        checks.set(.init(.same, 0), checked: true)
+        #expect(checks.selection == FilingSelection(rewrites: [0], same: [0]))
+    }
+
+    @Test("After applying, a row shows its outcome, not what was asked")
+    func badgesShowOutcomes() throws {
+        let review = try review()
+        var checks = NightlyReports.FilingChecks(review: review)
+        #expect(NightlyReports.badge(review.items[1], outcome: nil) == "April's call")
+        #expect(NightlyReports.badge(review.items[2], outcome: nil) == "guarded")
+        checks.record(
+            FilingApplyResult(
+                outcomes: [
+                    .init(
+                        key: .init(.rewrites, 0), applied: false, reason: "changed since the night")
+                ], event: nil))
+        let outcome = checks.outcomes[.init(.rewrites, 0)]
+        #expect(NightlyReports.badge(review.items[0], outcome: outcome) == "skipped")
+    }
+}

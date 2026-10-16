@@ -123,6 +123,11 @@ protocol WorldApplicationService: Sendable {
         -> OverwrittenFactPage
     /// The librarian's nights, newest first: each `memory.filed` event (#229).
     func filings(limit: Int) async throws -> [WorldEventEnvelope]
+    /// One night's proposal, each item held against the record now; nil for no such filing.
+    func filingReview(_ filing: EventID) async throws -> FilingReview?
+    /// April's checked items, applied where they still stand; nil for no such filing.
+    func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
+        -> FilingApplyResult?
 }
 
 extension WorldApplicationService {
@@ -133,6 +138,14 @@ extension WorldApplicationService {
     }
     func overwrittenFacts(originPrefix: String, since: Date, limit: Int) async throws
         -> OverwrittenFactPage
+    {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func filingReview(_ filing: EventID) async throws -> FilingReview? {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
+        -> FilingApplyResult?
     {
         throw WorldAPIError.databaseUnavailable
     }
