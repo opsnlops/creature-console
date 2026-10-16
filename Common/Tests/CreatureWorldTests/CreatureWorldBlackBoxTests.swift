@@ -315,7 +315,10 @@ struct CreatureWorldBlackBoxTests {
         #expect(houseScene.trigger.kind == .worldEvent)
         #expect(houseScene.trigger.text.contains("A person was just seen at the driveway"))
         #expect(houseScene.participants.first == beaky)
-        #expect(houseScene.floor?.characterID == beaky)
+        // Opened and offered are two writes: a scene read between them has no floor yet, and
+        // against a database across the network (MongoDB 9 on the dev server, 2026-10-16) the
+        // read landed there two runs in three. Wait for the floor, as the scene above does.
+        #expect(try await api.waitForFloor(in: houseScene.sceneID).characterID == beaky)
         #expect(houseScene.conversationID == conversationID)
         // Twice in a row is once: the cooldown holds.
         var again = sighting
