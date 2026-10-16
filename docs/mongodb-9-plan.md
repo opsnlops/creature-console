@@ -54,34 +54,62 @@ Nothing in it touches us:
 - **Queryable Encryption preview removed:** not used.
 - **Driver:** MongoKitten `7.16.3-opsnlops.1`, our fork, verified by the suite above.
 
-## The prod upgrade (not yet scheduled)
+## The prod move (not yet scheduled)
 
-From *Upgrade 8.3 Replica Set to 9.0*: the path is 8.3 (or 8.0) → 9.0, and the FCV must be
-**8.3** before the binaries change. Prod is a single-node replica set in the `mongodb` Docker
-container, so there are no secondaries to roll through. The upgrade is one restart.
+Prod is leaving Docker as well as 8.3. Today it is a single-node replica set in the
+`mongodb` container. After the move it is the **MongoDB Community Server 9.0.4 packages,
+installed natively**, the way dev is. Because the install changes along with the version,
+this is a **move by dump and restore**, not an in-place binary upgrade:
 
-1. **Check the FCV is 8.3**:
-   `db.adminCommand({getParameter: 1, featureCompatibilityVersion: 1})`.
-   If it is lower, run `setFeatureCompatibilityVersion: "8.3", confirm: true` and wait.
-2. Check `rs.status()`: the member is `PRIMARY`, not `RECOVERING` or `ROLLBACK`.
-3. **Take a fresh backup** with the nightly job, by hand, and check it reaches B2.
-   Stop the World, the agents and creature-server first, so the dump is quiet.
-4. Stop the container and change the image to `mongo:9.0.4`. Start it on the same volume.
-5. Check that health is ok, and that the World and creature-server start and serve. Talk to
-   the birds.
-6. **Burn in on FCV 8.3** for a few days. A downgrade to 8.3 stays simple until the FCV is raised.
-7. Then `db.adminCommand({setFeatureCompatibilityVersion: "9.0", confirm: true})`. It adds
-   `term` to the replica set config and is idempotent if it has to be retried.
+- It is the exact path dev proved: an 8.3 dump, restored into a fresh 9.0.4 with 0 failures.
+- The container and its volume are left untouched, so rollback is just starting it again.
+- The new server starts at FCV 9.0 at once. There is no 8.3 burn-in step, because the
+  burn-in exists to keep a downgrade cheap, and the container already is the way back.
 
-**Rollback** before step 7: put the 8.3 image back on the same volume. After step 7: follow
-*Downgrade 9.0 to 8.3* (lower the FCV first), or restore the step 3 backup.
+### Before the day
+
+1. **Install** `mongodb-org` 9.0.4 from MongoDB's apt repository, plus
+   `mongodb-database-tools` and `mongosh`. Don't start it yet: the container holds 27017.
+2. **`/etc/mongod.conf`**: copy dev's (`replSetName: creature-world`, no auth), but set
+   `bindIp` to what prod's container publishes today. Check `docker port mongodb`, and don't
+   open it wider than it is now. Put `dbPath` on the disk that should hold the data.
+3. **Port the backup job off Docker** (`scripts/backup-databases.sh`,
+   `scripts/systemd/creature-backup.service`, `docs/backups.md`). Today it does `docker exec
+   mongodb mongodump`, checks that the container is running, and its unit
+   `Requires=docker.service`. Natively it runs the host's `mongodump` / `mongorestore
+   --dryRun` against `MONGO_URI` directly. Keep the step timeouts: `timeout` on a host
+   process kills the tool itself, which is simpler than the `docker exec` case the script
+   works around. Test it on dev, which already looks like prod will, including the upload to
+   B2 (to a scratch prefix, not the 15-day folder).
+
+### The day
+
+1. Stop the World, the agents and creature-server, so nothing writes.
+2. **Dump**: run the nightly job by hand (the Docker version, one last time), and check the
+   archives reach B2. Note the documents restored by its `--dryRun`.
+3. `docker stop mongodb`, and disable its restart policy
+   (`docker update --restart=no mongodb`) so it can't take 27017 back on a reboot.
+4. `sudo systemctl enable --now mongod`, then
+   `rs.initiate({_id: "creature-world", members: [{_id: 0, host: "<the host the services use>:27017"}]})`.
+   The member's host must be the name the URIs in `/etc/default/creature-*` resolve.
+5. **Restore** both archives (`mongorestore --archive --gzip`, as on dev). Compare the counts
+   with step 2. Expect fewer only from the TTL indexes clearing expired data.
+6. Start creature-server and the World. Check health. The World's migrations are already
+   at 14, so it should start with nothing to do. Then start the agents and talk to the birds.
+7. That night, check that the first native backup ran, passed its `--dryRun`, and reached B2.
+
+**Rollback:** stop and disable `mongod`, then `docker start mongodb` (with `--restart`
+put back). The container's data is exactly as it was at step 2. Anything written to 9
+since then would be lost, so decide quickly.
+
+**After a burn-in of a week or so,** remove the container and its volume. Until then they
+are the rollback.
 
 ### Also moves with it
 
 - **CI:** `.github/workflows/tests.yml` runs `mongo:8.3.8`. Move it to `mongo:9.0.4` in the
-  same change, so the tests run on the version prod runs.
+  same change, so the tests run on what prod runs. (A container is right for CI. Only prod
+  goes native.)
 - **Local tests:** the Docker container the Mongo suites use goes to 9.0.4 too.
-- **Backups:** the nightly job runs `mongodump` inside the container, so the tools come
-  from the new image. After the upgrade, check the first night's archive and its
-  `--dryRun` replay.
-- `docs/backups.md` and the restore notes name the version.
+- `docs/backups.md`, the restore notes, and the operations manual name the install and the
+  version.
