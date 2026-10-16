@@ -136,9 +136,113 @@ enum PageFolding {
                 < (periodOrder.firstIndex(of: $1) ?? periodOrder.count, $1)
         }
         return periods.compactMap { period in
-            if let words = summaries[period] { return "\(period): \(words)" }
+            let label = period.replacingOccurrences(of: "_", with: " ")
+            if let words = summaries[period] { return "\(label): \(words)" }
             guard let said = numbers[period]?.sorted(), !said.isEmpty else { return nil }
-            return "\(period): " + said.joined(separator: ", ")
+            return "\(label): " + said.joined(separator: ", ")
         }.joined(separator: "; ")
+    }
+
+    // MARK: - The calendar
+
+    /// Each event and each reminder in one entry: "Church - Sunday, October 18 at 9:30 AM -
+    /// at Unitarian Universalist Congregation, Freeland - on the Home calendar" was four lines,
+    /// title, when, location, and calendar (#232). Anything that is neither passes through.
+    static func foldCalendar(_ facts: [Fact]) -> [Fact] {
+        var groups: [EntityID: [Fact]] = [:]
+        var order: [EntityID] = []
+        var others: [Fact] = []
+        for fact in facts {
+            guard calendarKind(of: fact) != nil, fact.value != .null else {
+                others.append(fact)
+                continue
+            }
+            if groups[fact.subjectID] == nil { order.append(fact.subjectID) }
+            groups[fact.subjectID, default: []].append(fact)
+        }
+        let folded = order.compactMap { subject -> Fact? in
+            guard let parts = groups[subject], let first = parts.first,
+                let kind = calendarKind(of: first)
+            else { return nil }
+            let words =
+                kind == "calendar." ? event(parts) : reminder(parts)
+            guard !words.isEmpty else { return nil }
+            return try? Fact(
+                subjectID: subject,
+                predicate: kind == "calendar." ? WorldFacts.calendarEvent : WorldFacts.reminderItem,
+                value: .string(words),
+                epistemic: first.epistemic,
+                validFrom: parts.map(\.validFrom).max() ?? first.validFrom,
+                validTo: parts.compactMap(\.validTo).min(),
+                derivedFrom: parts.map { .fact($0.factID) },
+                producer: producer)
+        }
+        return others + folded
+    }
+
+    private static func calendarKind(of fact: Fact) -> String? {
+        let raw = fact.subjectID.rawValue
+        if raw.hasPrefix("event:") && fact.predicate.hasPrefix("calendar.") { return "calendar." }
+        if raw.hasPrefix("reminder:") && fact.predicate.hasPrefix("reminder.") {
+            return "reminder."
+        }
+        return nil
+    }
+
+    private static func field(_ parts: [Fact], _ predicate: String) -> WorldJSONValue? {
+        parts.first { $0.predicate == predicate }?.value
+    }
+
+    private static func words(_ value: WorldJSONValue?) -> String? {
+        switch value {
+        case .string(let text)?:
+            let flat = text.split(whereSeparator: \.isNewline).map {
+                $0.trimmingCharacters(in: .whitespaces)
+            }.filter { !$0.isEmpty }.joined(separator: ", ")
+            if let id = EntityID(rawValue: flat), flat.contains(":") { return name(of: id) }
+            return flat.isEmpty ? nil : flat
+        case .array(let values)?:
+            let named = values.compactMap { words($0) }
+            return named.isEmpty ? nil : named.joined(separator: ", ")
+        default: return nil
+        }
+    }
+
+    private static func isTrue(_ value: WorldJSONValue?) -> Bool {
+        if case .bool(true)? = value { return true }
+        return false
+    }
+
+    /// "person:jesse" as "Jesse"; the world's ids name a person by slug.
+    private static func name(of id: EntityID) -> String {
+        let raw = id.rawValue
+        guard let colon = raw.firstIndex(of: ":") else { return raw }
+        return raw[raw.index(after: colon)...].split(separator: "-").map(\.capitalized)
+            .joined(separator: " ")
+    }
+
+    static func event(_ parts: [Fact]) -> String {
+        var said: [String] = []
+        if let title = words(field(parts, "calendar.title")) { said.append(title) }
+        if let when = words(field(parts, "calendar.when")) { said.append(when) }
+        if let place = words(field(parts, "calendar.location")) { said.append("at \(place)") }
+        if let with = words(field(parts, "calendar.with")) { said.append("with \(with)") }
+        if let calendar = words(field(parts, "calendar.calendar")) {
+            said.append("on the \(calendar) calendar")
+        }
+        return said.joined(separator: " - ")
+    }
+
+    static func reminder(_ parts: [Fact]) -> String {
+        var said: [String] = []
+        if let title = words(field(parts, "reminder.title")) { said.append(title) }
+        if let due = words(field(parts, "reminder.due")) { said.append("due \(due)") }
+        if let who = words(field(parts, "reminder.for")) { said.append("for \(who)") }
+        if let priority = words(field(parts, "reminder.priority")) {
+            said.append("\(priority) priority")
+        }
+        if let list = words(field(parts, "reminder.list")) { said.append("on the \(list) list") }
+        if isTrue(field(parts, "reminder.completed")) { said.append("done") }
+        return said.joined(separator: " - ")
     }
 }

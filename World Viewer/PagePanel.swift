@@ -85,10 +85,11 @@ struct FactPageSections: Equatable {
 
     static func kind(of fact: Fact) -> Kind {
         if stagePredicates.contains(fact.predicate) { return .stage }
-        if fact.producer.kind == "world" && fact.producer.id == "page" { return .folded }
         if fact.predicate.hasPrefix("memory.") { return .memories }
+        // The calendar is the calendar, folded into a line an event or not (#232).
         let subject = fact.subjectID.rawValue
         if subject.hasPrefix("event:") || subject.hasPrefix("reminder:") { return .calendar }
+        if fact.producer.kind == "world" && fact.producer.id == "page" { return .folded }
         if let origin = fact.origin?.rawValue,
             origin.hasPrefix("mind:") || origin.hasPrefix("librarian:")
         {

@@ -204,3 +204,94 @@ extension WorldJSONValue {
         return nil
     }
 }
+
+/// #232: a fuller page - one memory once, one line per event.
+@Suite("A fuller page")
+struct FullerPageTests {
+    private let now = Date(timeIntervalSince1970: 1_789_600_000)
+
+    private func fact(
+        _ subject: String, _ predicate: String, _ value: WorldJSONValue,
+        validTo: Date? = nil
+    ) throws -> Fact {
+        try Fact(
+            subjectID: EntityID(validating: subject), predicate: predicate, value: value,
+            epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: now,
+            validTo: validTo, derivedFrom: [],
+            producer: FactProducer(kind: "presence", id: "given-facts", version: "1"))
+    }
+
+    @Test("A memory filed on three subjects is handed over once, the person's copy kept")
+    func oneMemoryOnce() throws {
+        let story: WorldJSONValue = .object([
+            "day": .string("2026-10-15"), "salience": .number(0.85),
+            "what": .string("April asked Kenny for a story."),
+        ])
+        let memories = [
+            try fact("character:mango", "memory.episode.beaky.2026-10-15.6", story),
+            try fact("person:april", "memory.episode.beaky.2026-10-15.6", story),
+            try fact("character:beaky", "memory.episode.beaky.2026-10-15.6", story),
+            // A belief slot on two subjects is two beliefs, never one.
+            try fact(
+                "person:april", "memory.belief.beaky.1", .object(["what": .string("one")])),
+            try fact(
+                "house:aprils-nest", "memory.belief.beaky.1", .object(["what": .string("two")])),
+            try fact("place:front-door", "door.lock", .string("locked")),
+        ]
+        let once = PresentWorldKnowledge.oneOfEachMemory(memories)
+        let episodes = once.filter { $0.predicate == "memory.episode.beaky.2026-10-15.6" }
+        #expect(episodes.count == 1)
+        #expect(episodes.first?.subjectID.rawValue == "person:april")
+        #expect(once.filter { $0.predicate == "memory.belief.beaky.1" }.count == 2)
+        #expect(once.contains { $0.predicate == "door.lock" })
+        // And the episode budget counts it once: six distinct memories fit in six.
+        let trimmed = PresentWorldKnowledge.withMemoriesTrimmed(
+            memories, memory: MemoryConfiguration(), now: now)
+        #expect(trimmed.filter { $0.predicate == "memory.episode.beaky.2026-10-15.6" }.count == 1)
+    }
+
+    @Test("An event is one line: title, when, where, with whom, which calendar")
+    func eventFoldsIntoALine() throws {
+        let ends = now.addingTimeInterval(86_400)
+        let folded = PageFolding.foldCalendar([
+            try fact("event:church-20261018", "calendar.title", .string("Church"), validTo: ends),
+            try fact(
+                "event:church-20261018", "calendar.when", .string("Sunday, October 18 at 9:30 AM"),
+                validTo: ends),
+            try fact(
+                "event:church-20261018", "calendar.location",
+                .string("Unitarian Universalist Congregation\nFreeland, WA"), validTo: ends),
+            try fact(
+                "event:church-20261018", "calendar.with", .string("person:jesse"), validTo: ends),
+            try fact("event:church-20261018", "calendar.calendar", .string("Home"), validTo: ends),
+            try fact(
+                "reminder:office", "reminder.title", .string("chaise longue for office")),
+            try fact("reminder:office", "reminder.due", .string("Friday, October 16")),
+            try fact("reminder:office", "reminder.priority", .string("high")),
+            try fact("reminder:office", "reminder.completed", .bool(false)),
+            try fact("person:april", "presence.state", .string("home")),
+        ])
+        #expect(folded.count == 3)
+        let event = try #require(folded.first { $0.predicate == WorldFacts.calendarEvent })
+        #expect(
+            event.value
+                == .string(
+                    "Church - Sunday, October 18 at 9:30 AM - at Unitarian Universalist Congregation, Freeland, WA - with Jesse - on the Home calendar"
+                ))
+        #expect(event.validTo == ends)
+        #expect(event.derivedFrom.count == 5)
+        let reminder = try #require(folded.first { $0.predicate == WorldFacts.reminderItem })
+        #expect(
+            reminder.value
+                == .string("chaise longue for office - due Friday, October 16 - high priority"))
+        #expect(folded.contains { $0.predicate == "presence.state" })
+    }
+
+    @Test("A forecast's period reads as words: next rain, not next_rain")
+    func periodLabelsAreWords() throws {
+        let outlook = PageFolding.outlook([
+            try fact("place:outside", "forecast.next_rain", .string("not in the next two days"))
+        ])
+        #expect(outlook == "next rain: not in the next two days")
+    }
+}

@@ -1264,10 +1264,14 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                     about: about + linked, family: .own(mind), limit: limit, at: now),
                 memory: memory, now: now)
             if memory.retrievedInPrompt > 0, let text, !text.isEmpty {
-                let known = Set(remembered.map(\.factID))
-                retrieved = try await facts.search(
-                    text, own: mind, limit: memory.retrievedInPrompt, at: now
-                ).map(\.0).filter { !known.contains($0.factID) }
+                // One memory is one memory, whichever of its subjects the words found it on.
+                let known = Set(remembered.map(Self.memoryKey))
+                retrieved = Self.oneOfEachMemory(
+                    try await facts.search(
+                        text, own: mind, limit: memory.retrievedInPrompt * 3, at: now
+                    ).map(\.0)
+                ).filter { !known.contains(Self.memoryKey($0)) }
+                    .prefix(memory.retrievedInPrompt).map { $0 }
             }
         }
         // What is coming: the next few days of the calendar ride along with every question, a
@@ -1278,10 +1282,13 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         let coming =
             upcoming.isEmpty
             ? []
-            : try await facts.currentFacts(
-                about: upcoming, family: .notMemories, excluding: worldOnly,
-                limit: (WorldKnowledgeLimits.maximumUpcomingEvents
-                    + WorldKnowledgeLimits.maximumReminders) * 4, at: now)
+            : PageFolding.foldCalendar(
+                // Every field of every event: folded, an event is one line however many it
+                // has, so none is cut for room.
+                try await facts.currentFacts(
+                    about: upcoming, family: .notMemories, excluding: worldOnly,
+                    limit: (WorldKnowledgeLimits.maximumUpcomingEvents
+                        + WorldKnowledgeLimits.maximumReminders) * 10, at: now))
         // What the minds kept, called up by the words of the moment, whatever its age: the
         // page above is the newest thirty, and a month-old `flight.hardest_part` is never
         // among them - so a bird told "landings are still hard" kept it again under a name of
@@ -1441,6 +1448,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     static func withMemoriesTrimmed(_ facts: [Fact], memory: MemoryConfiguration, now: Date)
         -> [Fact]
     {
+        let facts = oneOfEachMemory(facts)
         let horizon = now.addingTimeInterval(-TimeInterval(memory.episodeDays) * 86_400)
         var episodes = facts.filter {
             WorldFacts.memoryFamily(of: $0.predicate) == WorldFacts.memoryEpisode
@@ -1472,6 +1480,44 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             default: true
             }
         }
+    }
+
+    /// A memory is filed once per subject it is about - "April asked Kenny for a story" on
+    /// April, on Beaky, and on Mango - and handed to a mind once: three copies of one evening
+    /// took half of Beaky's six episodes on 2026-10-16 (#232). The copy kept is the one about
+    /// a person if there is one, then a bird, then anything else; the words say who it was
+    /// about. Anything that is not a memory passes through.
+    static func oneOfEachMemory(_ facts: [Fact]) -> [Fact] {
+        func rank(_ subject: EntityID) -> Int {
+            let raw = subject.rawValue
+            if raw.hasPrefix("person:") { return 0 }
+            if raw.hasPrefix("character:") { return 1 }
+            return 2
+        }
+        var best: [MemoryKey: Fact] = [:]
+        for fact in facts where WorldFacts.memoryFamily(of: fact.predicate) != nil {
+            let key = memoryKey(fact)
+            if let held = best[key], rank(held.subjectID) <= rank(fact.subjectID) { continue }
+            best[key] = fact
+        }
+        var seen: Set<MemoryKey> = []
+        return facts.filter { fact in
+            guard WorldFacts.memoryFamily(of: fact.predicate) != nil else { return true }
+            let key = memoryKey(fact)
+            guard best[key]?.factID == fact.factID, seen.insert(key).inserted else { return false }
+            return true
+        }
+    }
+
+    struct MemoryKey: Hashable {
+        let predicate: String
+        let value: WorldJSONValue
+    }
+
+    /// The same memory on another subject has the same predicate and the same words; a belief
+    /// slot (`memory.belief.beaky.1`) on two subjects holds two beliefs.
+    static func memoryKey(_ fact: Fact) -> MemoryKey {
+        MemoryKey(predicate: fact.predicate, value: fact.value)
     }
 
     private static func salience(_ fact: Fact) -> Double {

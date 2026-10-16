@@ -471,6 +471,10 @@ and one `forecast.outlook` per place - beside them. The mind writes neither the 
 another bird's `presence.region` as a line: "Here now: Beaky, Mango (he/him)" says who is in the
 room. Read a bird's page in the World Viewer's Page panel.
 
+`2.91.0` (#232): a memory's meaning is looked up by its family (`memory.episode`), never written
+into the moment once per memory; the nightly memory ends a belief or an episode at its last whole
+sentence (700 characters at most) and asks for beliefs under 600.
+
 ## The librarian
 
 `2.89.0`, #229, `docs/durable-learning-plan.md`. The birds keep what April tells them in the

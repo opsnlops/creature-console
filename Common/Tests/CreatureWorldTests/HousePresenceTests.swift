@@ -717,7 +717,10 @@ struct RecentHappeningsTests {
         let weekend = try await knowledge.currentFacts(
             about: [], mentionedIn: "what's on the calendar this weekend?",
             limit: WorldKnowledgeLimits.maximumFacts)
-        #expect(weekend.contains { $0.subjectID == visit && $0.predicate == "calendar.title" })
+        // Folded into one line, title first (#232).
+        #expect(
+            weekend.contains { $0.subjectID == visit && $0.predicate == WorldFacts.calendarEvent })
+        #expect(!weekend.contains { $0.subjectID == visit && $0.predicate == "calendar.title" })
         #expect(!weekend.contains { $0.predicate == "calendar.starts_at" })
         #expect(
             Set(weekend.map(\.subjectID).filter { $0.rawValue.hasPrefix("event:") }).count

@@ -139,6 +139,10 @@ public enum WorldFacts {
     public static let environmentNow = "environment.now"
     /// A place's forecasts, folded into one entry for a mind's page - never stored (#231).
     public static let forecastOutlook = "forecast.outlook"
+    /// A calendar event, folded into one entry for a mind's page - never stored (#232).
+    public static let calendarEvent = "calendar.event"
+    /// A reminder, folded into one entry for a mind's page - never stored (#232).
+    public static let reminderItem = "reminder.item"
     /// What a room's screens and speakers are doing, from Home Assistant's media players:
     /// `media.tv` ("on"), `media.source` ("Apple TV, volume 40%"), `media.playing` ("YouTube:
     /// <title>"). State, not story; gone when the device is off.
@@ -159,6 +163,10 @@ public enum WorldFacts {
     public static let meanings: [String: String] = [
         environmentNow:
             "what the sensors there read right now, all together, each as of its latest reading: temperature, humidity, wind, air (PM2.5 above 35 is unhealthy), pressure, the house's electricity draw, and the daylight outside in lux (under 10 is dark, tens to a few hundred is dusk or dawn, thousands is day; the sky, not the house's lights) with which way it has gone over the last half hour - brightening, steady, or dimming; dimming in the evening is nightfall, at midday a cloud",
+        calendarEvent:
+            "an event on April's calendar, all in one: what it is called, when (in human terms; a date in another year says so, so one without a year is this year), where, who it is with, and which of her calendars it is on",
+        reminderItem:
+            "something April means to do, from her Reminders, all in one: what, when it is due (a due date already past is overdue, not done; a date in another year says so), who it concerns, how important, which list, and whether she has done it",
         forecastOutlook:
             "what the weather is expected to do there - today, tonight, tomorrow - in the forecast's own words",
         characterRegion:

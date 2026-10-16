@@ -119,6 +119,28 @@ struct MemoryJob: Sendable {
         try! NSRegularExpression(pattern: #"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"#),
     ]
 
+    /// The most a belief or an episode says.
+    static let maximumMemoryCharacters = 700
+
+    /// A memory at most `maximumMemoryCharacters` long, ended at its last whole sentence: the
+    /// 400-character cut ended beliefs mid-word ("…She is touched that I write ", "…Public"),
+    /// and a bird read the stub as part of what it believed (#232). With no sentence end in
+    /// reach, the last whole word and an ellipsis.
+    static func clipped(_ text: String, to limit: Int = maximumMemoryCharacters) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > limit else { return trimmed }
+        let head = String(trimmed.prefix(limit))
+        if let end = head.lastIndex(where: { ".!?".contains($0) }),
+            head.distance(from: head.startIndex, to: end) > limit / 2
+        {
+            return String(head[...end])
+        }
+        if let space = head.lastIndex(of: " ") {
+            return String(head[..<space]) + "…"
+        }
+        return head + "…"
+    }
+
     static func scrubbed(_ text: String) -> String {
         var result = text
         for pattern in unkeepable {
@@ -457,7 +479,8 @@ struct MemoryJob: Sendable {
                 the days it rests on. Keep a belief that still holds (copy it, adding new days), \
                 revise one the month has changed, drop one the record contradicts, and add one when \
                 more than one day shows it - or one day when April said it outright. At most \
-                \(maximumBeliefsPerSubject) per subject; leave out the trivial. "salience" is how \
+                \(maximumBeliefsPerSubject) per subject; leave out the trivial. Each belief at most \
+                four sentences - under 600 characters - and whole. "salience" is how \
                 much it should shape what you say, 0 to 1. Only what the record shows; never \
                 invent. No emoji.
                 """
@@ -524,7 +547,7 @@ struct MemoryJob: Sendable {
                 "predicate": .string("\(beliefPrefix)\(index + 1)"),
                 "value": .object([
                     "kind": .string(belief.kind),
-                    "what": .string(String(Self.scrubbed(belief.what).prefix(400))),
+                    "what": .string(Self.clipped(Self.scrubbed(belief.what))),
                     "salience": .number(min(1, max(0, belief.salience))),
                     "since": .string(String(belief.since.prefix(40))),
                     "from": .array(belief.from.prefix(12).map { .string(String($0.prefix(10))) }),
@@ -629,7 +652,7 @@ struct MemoryJob: Sendable {
                 "value": .object([
                     "day": .string(day),
                     "when": .string(String(episode.when.prefix(80))),
-                    "what": .string(String(Self.scrubbed(episode.what).prefix(400))),
+                    "what": .string(Self.clipped(Self.scrubbed(episode.what))),
                     "salience": .number(min(1, max(0, episode.salience))),
                 ]),
             ])

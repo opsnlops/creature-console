@@ -1,3 +1,17 @@
+creature-cli (2.91.0+world0.51.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.51.0, creature-agent 2.91.0: a fuller page (#232).
+    A memory filed on several subjects is handed over once, the person's
+    copy kept, so six episodes are six memories. Each calendar event is
+    one calendar.event line, each reminder one reminder.item. A memory's
+    meaning rides once, by its family, never once per memory in the
+    uncached moment. Beliefs and episodes end at their last whole
+    sentence (700 at most; the beliefs prompt asks for under 600) instead
+    of mid-word at 400. A forecast's "next_rain" reads "next rain".
+    World Viewer 0.13.1: folded events show under Calendar.
+
+ -- April White <april@creature.engineering>  Thu, 15 Oct 2026 23:40:00 -0700
+
 creature-cli (2.90.0+world0.50.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.50.0, creature-agent 2.90.0: thirty facts worth

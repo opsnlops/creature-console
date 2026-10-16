@@ -924,6 +924,12 @@ before, the calendar, the retrieved learned facts, and the memories. `GET
 /v1/characters/{id}/perspective?mentioned_in=` serves the page exactly as a mind gets it, for the
 World Viewer's Page panel.
 
+**A fuller page** (`0.51.0`, #232): a memory filed on several subjects is handed to a mind once
+(the person's copy first), before `episodes_in_prompt` is counted, and retrieval skips one already
+on the page; each upcoming calendar event is folded into one `calendar.event` and each reminder
+into one `reminder.item`, like the sensors - for the page only, never stored, `derived_from`
+naming every field.
+
 **WorldMCP by the MCP conventions** (`0.48.0`, #230): each MCP message is a SERVER span named
 for its method and tool (`tools/call query_entity`, `tools/list`), with `mcp.method.name`,
 `gen_ai.tool.name` and `gen_ai.operation.name = execute_tool` on a tool call,

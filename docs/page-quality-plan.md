@@ -61,6 +61,34 @@ Before: the table above, 1 of 30 learned. After deploy: the same question, the s
 April says, and the page is shown as the bird gets it, counted ("18 learned · 4 state · 2 folded
 · ...").
 
+## A fuller page (#232; World `0.51.0`, agent `2.91.0`, Viewer `0.13.1`)
+
+Beaky's page after `0.50.0` held 17 things April had told the birds - and, read whole, more
+waste:
+
+1. **A memory's meaning, once per memory.** The glossary keeps memory kinds by family
+   (`memory.episode`); each memory has a predicate of its own
+   (`memory.episode.beaky.2026-10-15.6`), so the agent found it unknown and wrote the family's
+   meaning into the uncached moment for every memory, every call. Now meanings are looked up
+   by family (`CharacterMind.byFamily`).
+2. **A memory, once per subject.** An episode is filed on each subject it is about; three
+   copies of one evening took half of the six episodes. Now each memory is handed over once
+   (`PresentWorldKnowledge.oneOfEachMemory`, the person's copy first), before the budget is
+   counted, and retrieval skips a memory already on the page.
+3. **Beliefs cut mid-word.** `MemoryJob` cut at 400 characters ("…She is touched that I write
+   ", "…Public"). Now a belief or episode ends at its last whole sentence, 700 at most
+   (`MemoryJob.clipped`), and the beliefs prompt asks for four sentences, under 600 characters.
+   Beliefs are rewritten nightly, so they heal by the next morning.
+4. **The calendar, four lines an event.** Now each event is one `calendar.event` ("Church -
+   Sunday, October 18 at 9:30 AM - at Unitarian Universalist Congregation, Freeland - on the
+   Home calendar"), each reminder one `reminder.item`, folded like the sensors and never stored.
+
+Also: a forecast's `next_rain` reads "next rain", and the Viewer's Page panel files a folded
+event under Calendar.
+
+Held back, one change at a time: the birds' `sighting.identified` kept with `today` (four of
+them on the page near midnight) - a learning-contract change of its own.
+
 ## Not in this change
 
 - Applying the librarian's filing (#229 Ship 2), which makes the learned facts that now get the

@@ -295,3 +295,41 @@ private actor Asked {
     private(set) var prompts: [String] = []
     func note(_ prompt: String) { prompts.append(prompt) }
 }
+
+/// #232: memories whole, and their meanings once.
+@Suite("A fuller page, in the mind")
+struct FullerPageMindTests {
+    @Test("A memory's meaning rides once, by its family")
+    func meaningsByFamily() {
+        let folded = CharacterMind.byFamily([
+            "memory.episode.beaky.2026-10-15.6": "something that happened",
+            "memory.episode.beaky.2026-10-15.2": "something that happened",
+            "memory.belief.beaky.1": "what you have come to believe",
+            "door.lock": "whether the deadbolt is thrown",
+        ])
+        #expect(
+            folded == [
+                "memory.episode": "something that happened",
+                "memory.belief": "what you have come to believe",
+                "door.lock": "whether the deadbolt is thrown",
+            ])
+    }
+
+    @Test("A long memory ends at its last whole sentence, never mid-word")
+    func memoriesEndWhole() {
+        let short = "April loves welcome-home greetings."
+        #expect(MemoryJob.clipped(short) == short)
+        let long =
+            String(repeating: "April patiently tests the birds. ", count: 30)
+            + "She is touched that I write to her"
+        let clipped = MemoryJob.clipped(long)
+        #expect(clipped.count <= MemoryJob.maximumMemoryCharacters)
+        #expect(clipped.hasSuffix("."))
+        #expect(!clipped.contains("She is touched"))
+        // No sentence end in reach: the last whole word and an ellipsis.
+        let words = String(repeating: "word ", count: 200)
+        let cut = MemoryJob.clipped(words, to: 40)
+        #expect(cut.hasSuffix("word…"))
+        #expect(cut.count <= 41)
+    }
+}

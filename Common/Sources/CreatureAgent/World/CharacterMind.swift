@@ -824,6 +824,18 @@ struct CharacterMind: Sendable {
         return block
     }
 
+    /// Meanings with every memory under its family: a memory's predicate is its own
+    /// (`memory.episode.beaky.2026-10-15.6`) and its meaning is the family's
+    /// (`memory.episode`), which the glossary holds. Keyed by predicate, the same sentence
+    /// rode in the uncached moment once per memory on every call (#232).
+    static func byFamily(_ meanings: [String: String]) -> [String: String] {
+        var folded: [String: String] = [:]
+        for (predicate, meaning) in meanings {
+            folded[WorldFacts.memoryFamily(of: predicate) ?? predicate] = meaning
+        }
+        return folded
+    }
+
     /// The glossary: what each kind of fact means. Sorted, and the same from call to call
     /// while the same kinds are in play - the cacheable part of what the world hands over.
     static func meaningsBlock(_ meanings: [String: String]) -> String {
@@ -1093,7 +1105,7 @@ struct CharacterMind: Sendable {
                     role: .system,
                     content: stable + (moment.isEmpty ? "" : "\n\n" + moment)
                         + knowledgeBlock(
-                            facts, happenings: happenings, meanings: meanings,
+                            facts, happenings: happenings, meanings: Self.byFamily(meanings),
                             recentLines: recentLines, now: now))
             ] + turns
         case .beforeNewest:
@@ -1101,7 +1113,9 @@ struct CharacterMind: Sendable {
             // The whole glossary when the mind holds one; the kinds it does not know yet ride
             // in the moment until the next refresh.
             let known = glossary.isEmpty ? meanings : glossary
-            let extra = glossary.isEmpty ? [:] : meanings.filter { glossary[$0.key] == nil }
+            let extra =
+                glossary.isEmpty
+                ? [:] : Self.byFamily(meanings).filter { glossary[$0.key] == nil }
             let stableItem = LocalLLMClient.Message(
                 role: .system, content: stable + Self.meaningsBlock(known))
             let momentItem = LocalLLMClient.Message(
