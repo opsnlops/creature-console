@@ -323,16 +323,21 @@ public struct FilingApplication: WorldEventPayload, Equatable {
         public var subjectID: EntityID
         public var predicate: String
         public var value: String
+        /// When the newest of what it replaces began. A filed fact is as new as what it says,
+        /// not as the click that filed it: on 2026-10-16 twenty-eight rewrites stamped with
+        /// the moment of applying outranked the day's conversation on the page.
+        public var validFrom: Date?
         public var validTo: Date?
         public var replaces: [Touched]
 
         public init(
-            subjectID: EntityID, predicate: String, value: String, validTo: Date?,
-            replaces: [Touched]
+            subjectID: EntityID, predicate: String, value: String, validFrom: Date? = nil,
+            validTo: Date?, replaces: [Touched]
         ) {
             self.subjectID = subjectID
             self.predicate = predicate
             self.value = value
+            self.validFrom = validFrom
             self.validTo = validTo
             self.replaces = replaces
         }
@@ -340,6 +345,7 @@ public struct FilingApplication: WorldEventPayload, Equatable {
         private enum CodingKeys: String, CodingKey {
             case subjectID = "subject_id"
             case predicate, value, replaces
+            case validFrom = "valid_from"
             case validTo = "valid_to"
         }
     }
@@ -348,16 +354,20 @@ public struct FilingApplication: WorldEventPayload, Equatable {
     public struct Move: Codable, Equatable, Sendable {
         public var fact: Touched
         public var value: WorldJSONValue
+        /// When it began where it was: a move keeps the fact's age.
+        public var validFrom: Date?
         public var validTo: Date?
 
         public init(_ fact: Fact) {
             self.fact = Touched(fact)
             value = fact.value
+            validFrom = fact.validFrom
             validTo = fact.validTo
         }
 
         private enum CodingKeys: String, CodingKey {
             case fact, value
+            case validFrom = "valid_from"
             case validTo = "valid_to"
         }
     }

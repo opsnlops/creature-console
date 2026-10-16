@@ -269,6 +269,32 @@ struct FilingReducerTests {
         #expect(filed.derivedFrom == [.event(event.eventID), .fact(a.factID), .fact(b.factID)])
     }
 
+    @Test("A filed fact is as old as the newest of what it replaces, never the click")
+    func filedFactKeepsItsAge() throws {
+        let april = id("person:april")
+        let older = now.addingTimeInterval(-30 * 86_400)
+        let newer = now.addingTimeInterval(-2 * 86_400)
+        let event = try WorldEventEnvelope(
+            occurredAt: now,
+            source: EventSource(id: SourceID(validating: "librarian:beaky"), kind: "librarian"),
+            subjectIDs: [april], epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: FilingApplication(
+                filing: EventID.generated(), items: [FilingItemKey(.rewrites, 0)],
+                rewrites: [
+                    .init(
+                        subjectID: april, predicate: "flight.rules", value: "Flies VFR.",
+                        validFrom: newer, validTo: nil,
+                        replaces: [.init(try kept(april, "person.flight_rules", "VFR"))])
+                ]))
+        let filed = try #require(
+            try FilingReducer().reduce(event).changedFacts.first { $0.value != .null })
+        #expect(filed.validFrom == newer)
+        #expect(filed.validFrom > older)
+        // An application recorded before the date was carried begins at its own moment.
+        #expect(FilingReducer.start(nil, by: event) == now)
+        #expect(FilingReducer.start(now.addingTimeInterval(60), by: event) == now)
+    }
+
     @Test("A merge marks the merged id and moves its facts to the kept one")
     func mergeMarksAndMoves() throws {
         let keep = id("place:new-workshop")
@@ -455,6 +481,27 @@ struct FilingApplyMongoTests {
         #expect(
             try await h.current(keep, "workshop.fiber")?.value
                 == .string("fiber is being pulled out there"))
+    }
+
+    @Test("Facts filed before dates were carried are dated by what they came from")
+    func repairDatesFiledFacts() async throws {
+        let h = try await harness()
+        defer { Task { await h.persistence.cluster.disconnect() } }
+        let april = id("person:april-\(UUID().uuidString.lowercased())")
+        try await h.keep(april, "person.flight_rules", "flies VFR", by: "mind:beaky")
+        let source = try #require(try await h.current(april, "person.flight_rules"))
+        try await h.clock.advance(by: 86_400)
+        // As 0.52.0 filed it: begun at the moment of applying.
+        let undated = try Fact(
+            subjectID: april, predicate: "flight.rules", value: .string("Flies VFR."),
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            validFrom: await h.clock.now,
+            derivedFrom: [.event(EventID.generated()), .fact(source.factID)],
+            producer: FilingReducer.producer, origin: SourceID(validating: "librarian:beaky"))
+        try await h.persistence.facts.save(undated)
+        _ = try await h.persistence.facts.dateFiledFacts()
+        let dated = try #require(try await h.persistence.facts.fact(withID: undated.factID))
+        #expect(dated.validFrom == source.validFrom)
     }
 
     @Test("The page holds the filed fact once, kept by the librarian, and not what it replaced")

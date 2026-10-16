@@ -98,12 +98,13 @@ struct FilingDesk: Sendable {
             switch key.list {
             case .rewrites:
                 let rewrite = review.proposal.rewrites[key.index]
+                let replaced = rewrite.replaces.compactMap { byID[$0] }
                 application.rewrites.append(
                     .init(
                         subjectID: rewrite.subject, predicate: rewrite.predicate,
-                        value: rewrite.value, validTo: item.validTo,
-                        replaces: rewrite.replaces.compactMap { byID[$0] }.map(
-                            FilingApplication.Touched.init)))
+                        value: rewrite.value, validFrom: replaced.map(\.validFrom).max(),
+                        validTo: item.validTo,
+                        replaces: replaced.map(FilingApplication.Touched.init)))
                 ended.formUnion(rewrite.replaces)
             case .retires:
                 let retire = review.proposal.retires[key.index]

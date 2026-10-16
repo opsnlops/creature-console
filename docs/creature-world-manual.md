@@ -965,6 +965,11 @@ barn (the new workshop).
   - **A merge** writes `entity.same_as = <kept id>` on each merged id (world only, never
     on a page), and moves the `moves` to the kept id: given there, ended on the merged id.
 
+  A filed fact is as old as what it says (`0.52.1`): a rewrite begins when the newest fact
+  it replaces began, and a moved fact keeps its age. The page is newest first, and the
+  first filing, stamped with the moment of applying, put 22 re-filed facts ahead of the day's
+  conversation. Migration 15 dated what 0.52.0 had filed.
+
   Kinds are written to the glossary, by `librarian:beaky`. The answer is each checked item's
   outcome: applied, or skipped with the reason.
 - **A merge redirects.** A mind's `facts.given` on an id with `entity.same_as` is filed on the

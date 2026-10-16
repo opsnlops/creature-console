@@ -5,7 +5,7 @@ import MongoKitten
 import WorldCore
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 14
+    static let currentVersion = 15
 
     let database: MongoDatabase
     let logger: Logger
@@ -61,6 +61,14 @@ struct MongoWorldMigrator: Sendable {
             logger.info(
                 "Facts say who kept them", metadata: ["facts.backfilled": "\(given)"])
             try await recordMigration(version: 14, name: "fact_origin")
+        }
+        if try await !isRecorded(version: 15) {
+            logger.debug("Dating what the librarian filed")
+            let dated = try await FactRepository(database: database).dateFiledFacts()
+            logger.info(
+                "What the librarian filed is as old as what it says",
+                metadata: ["facts.dated": "\(dated)"])
+            try await recordMigration(version: 15, name: "filed_fact_dates")
         }
         logger.debug(
             "MongoDB schema migrations recorded",

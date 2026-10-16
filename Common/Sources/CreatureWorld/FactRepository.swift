@@ -310,6 +310,31 @@ struct FactRepository: Sendable {
         }
     }
 
+    /// The first filings of 2026-10-16 (World 0.52.0) began their facts at the moment of
+    /// applying, so twenty-eight rewrites outranked the day's conversation on the page. Each
+    /// current fact the librarian filed is dated to the newest of the facts it came from, as
+    /// filings are from 0.52.1 (#229). Returns how many.
+    func dateFiledFacts() async throws -> Int {
+        let filed = try await facts.find([
+            "producer.id": FilingReducer.producer.id,
+            "superseded_by": Null(),
+        ]).drain().map(decode)
+        var count = 0
+        for fact in filed where fact.value != .null && fact.predicate != WorldFacts.entitySameAs {
+            var newest: Date?
+            for case .fact(let id) in fact.derivedFrom {
+                guard let source = try await self.fact(withID: id) else { continue }
+                newest = max(newest ?? source.validFrom, source.validFrom)
+            }
+            guard let newest, newest < fact.validFrom else { continue }
+            _ = try await facts.updateOne(
+                where: ["_id": fact.factID.rawValue],
+                to: ["$set": ["valid_from": newest] as Document])
+            count += 1
+        }
+        return count
+    }
+
     /// `^memory\.[a-z]+\.kenny\.`: every family of memory, Kenny's own.
     static func ownMemoriesPattern(of bird: EntityID) -> String {
         let owner = WorldFacts.memoryOwner(for: bird)

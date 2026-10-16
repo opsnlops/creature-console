@@ -1,3 +1,13 @@
+creature-cli (2.91.0+world0.52.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.52.1: a filed fact is as old as what it says
+    (#229). A rewrite begins when the newest fact it replaces began, and
+    a merge's moved fact keeps its age; 0.52.0 began them at the moment
+    of applying, so the first filing's 28 rewrites outranked the day's
+    conversation on the page. Migration 15 dates what was already filed.
+
+ -- April White <april@creature.engineering>  Fri, 16 Oct 2026 17:45:00 -0700
+
 creature-cli (2.91.0+world0.52.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.52.0: learning that lasts, Ship 2 - applying the

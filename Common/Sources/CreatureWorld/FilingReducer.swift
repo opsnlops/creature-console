@@ -33,7 +33,7 @@ struct FilingReducer: WorldReducer {
                     predicate: rewrite.predicate,
                     value: .string(rewrite.value),
                     epistemic: event.epistemic,
-                    validFrom: event.occurredAt,
+                    validFrom: Self.start(rewrite.validFrom, by: event),
                     validTo: rewrite.validTo,
                     derivedFrom: [.event(event.eventID)]
                         + rewrite.replaces.map { .fact($0.factID) },
@@ -64,7 +64,7 @@ struct FilingReducer: WorldReducer {
                         predicate: move.fact.predicate,
                         value: move.value,
                         epistemic: event.epistemic,
-                        validFrom: event.occurredAt,
+                        validFrom: Self.start(move.validFrom, by: event),
                         validTo: move.validTo,
                         derivedFrom: [.event(event.eventID), .fact(move.fact.factID)],
                         producer: Self.producer,
@@ -72,6 +72,12 @@ struct FilingReducer: WorldReducer {
             }
         }
         return WorldReduction(changedFacts: facts)
+    }
+
+    /// When a filed fact begins: as old as what it came from, never later than the filing -
+    /// and the filing's moment for an application recorded before the date was carried.
+    static func start(_ date: Date?, by event: WorldEventEnvelope) -> Date {
+        min(date ?? event.occurredAt, event.occurredAt)
     }
 
     /// The `null` that ends a filed-away fact, as a retraction's ending does: from the event,
