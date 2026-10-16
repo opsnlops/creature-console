@@ -201,9 +201,8 @@ The night's proposals are read before any of them is applied, so the work ships 
     recorded as one `memory.filed` event (`mode: watching`). Nothing is applied.
   - Viewer: the Nightly panel shows the night's filing above the birds' letters; facts say
     **kept by Mango** (or **from bridge:contacts**).
-- **Ship 2, applying** (after a night or two of proposals have been read): rewrites and
-  retires cast from `librarian:beaky`, `entity.same_as` (the world redirecting a keeping on a
-  merged id), the kinds written to `fact_kinds`, and `mode: applied`.
+- **Ship 2, applying**: April reviews the night's proposal in the Viewer and applies what
+  she checks. Planned in [Ship 2: applying](#ship-2-applying) below.
 
 The text index was checked against April's real lines before building (2026-10-15): "landings
 are still the hardest part" finds `flight.hardest_part`, "I'm learning to fly" finds
@@ -212,6 +211,151 @@ are still the hardest part" finds `flight.hardest_part`, "I'm learning to fly" f
 
 Debian changelog entry and tag for the agent release. §0 of `beakys-world.md` and both
 manuals updated in the same PR.
+
+## Ship 2: applying
+
+Planned 2026-10-16, after two nights of proposals (the manual run on the 15th and the
+scheduled one overnight).
+
+### What the two nights showed
+
+- **The rewrites are good.** The flight facts gather into `flight.training`,
+  `flight.rules` and `flight.aircraft`. Religion goes into `religion.background`. "About
+  10,000 M4 screws" becomes one fact. The gusty-wind fact comes back from "written over".
+  Each value holds what the replaced facts said, and nothing they didn't.
+- **Merging ids is where the danger is.** Overnight, the proposal marked as *sure* that
+  `place:workshop` and `thing:old-pole-barn` are one place. They're not. The workshop is the
+  small room in the house, and the pole barn is the *new* workshop (April, the 16th). Applied
+  blind, that merge would have folded two places into one. It also wanted to keep
+  `place:new-workshop` while the birds were filing under `thing:new-workshop`.
+- **It asks good questions.** All five were things only April knew: Amber and Tamara, the
+  pole barn, the replaced speaker, the one tracing spell, the plane. Unsure merges came
+  out as unsure (Amber), as the instructions ask.
+- **It reaches into kinds that have rules.** It proposed folding three `visitor.expected`
+  facts into one. The rewrite would have dropped their expiries, and visitor facts have their
+  own rules (#228: a visit ending ends what was reported about it).
+
+So nothing is applied without April. Every item is checked by the World against the record
+as it is **at the moment of applying**, not as it was when proposed.
+
+### The shape
+
+The agent doesn't change: Beaky still proposes, in watching mode. Applying belongs to the
+World and the Viewer.
+
+**1. Review: `GET /v1/filings/{eventID}/review`.** Each item of the proposal, numbered within
+its list (rewrite 3, same 1), with a **status** and a reason:
+
+- `ready`: can be applied as proposed.
+- `stale`: a fact it names is no longer current, or its value changed since the night. A
+  bird kept something newer, or April said otherwise. It is never applied. Tomorrow's
+  proposal sees the new record.
+- `guarded`: it touches what the librarian may not file:
+  - **Protected kinds:** `visitor.*`, `presence.*`, `sighting.identified`,
+    `house.cameras_quiet`, `identity.pronouns`. These have rules elsewhere in the World, and
+    a rewrite would sidestep them. This applies to the facts it replaces or retires, and to
+    the predicate it writes.
+  - **A kind already meant:** the World keeps the existing meaning. A Wizard can still edit
+    it in the Viewer.
+- `applied`: it was applied before, from this filing.
+
+Plus what applying would do that the proposal didn't say: **expiry carried**. A rewrite of
+facts with an end date ends at the *earliest* of them, so "Jesse is expected this afternoon"
+can't become permanent by being filed. And a merge lists the facts it would move.
+
+The review also says which items start checked: every `ready` rewrite, retire and kind, and
+only the merges marked *sure*. April can check an unsure merge herself. She sees the
+reason, and the ids side by side with their facts.
+
+**2. Apply: `POST /v1/filings/{eventID}/apply`**, body `{"rewrites": [0, 3], "retires": [],
+"same": [1], "kinds": [0, 2]}`.
+
+- The World runs the review again and never trusts the Viewer's view. It applies only
+  checked items that are `ready` now.
+- Everything applied is one event, **`memory.filing.applied`**:
+  - Source `librarian:beaky`, kind `librarian`, so `origin` is `librarian:beaky`. The page's
+    learned section already takes `^(mind|librarian):`.
+  - Caused by the `memory.filed` event. Its `source_event_id` is the filing plus the sorted
+    selection, so a double click applies once.
+  - Its payload is the resolved changes, not the indices: each rewrite's subject,
+    predicate, value, carried `valid_to`, and the facts it replaces; each retire's fact.
+- **`FilingReducer`**, a pure reducer like the others, turns it into facts:
+  - **A rewrite** is the new fact, `derived_from` the event *and every fact it replaces*
+    (so Why? walks back to them), plus a `null` ending on each replaced subject and
+    predicate that isn't the new one.
+  - **A retire** is a `null` ending on that fact's subject and predicate.
+  - **A merge** is `entity.same_as = <kept id>` on each other id (world-only, never spoken).
+    Each current fact a mind or the librarian kept on the other id moves to the kept id: given
+    there, ended here. If the kept id already holds that predicate, it stays where it is and
+    the result says so. Two values for one name is a question, not something to overwrite.
+  - **Kinds** are written to `fact_kinds` by the service, as `PUT /v1/fact-kinds` does, and
+    listed in the event.
+- The response is each checked item's outcome (`applied`, or `skipped` with the reason), so
+  the Viewer's checkmarks show what happened, not what was asked.
+
+**3. A merge redirects.** When a mind keeps a fact on an id that has `entity.same_as`, the
+World files it on the kept id. This happens on the accept path, for `facts.given` whose
+source is a mind, before the event is stored, so the record holds what the World did and Why?
+can show it. A reducer is pure and can't look this up, which is why it lives on the accept
+path. One hop only: a kept id is never merged away in the same apply, and the review guards
+against a merge whose kept id already has `entity.same_as`.
+
+**4. The Viewer.**
+
+- **The Nightly panel's filing** gains a checkbox per item, set from the review. Each item
+  shows a status badge with the reason on hover, and a merge shows the ids' facts side by
+  side. **Apply checked** is the prominent glass button.
+  - It asks once: "Apply 24 changes to the record?"
+  - Then it shows the outcomes from the response and reloads the review. Every item then
+    reads `applied` or `skipped`.
+- **A fact the librarian filed** says **filed by the librarian**. Its Why? walks to what it
+  replaced.
+- **An entity with `entity.same_as`** shows "same as" and links to the kept one. The kept one
+  lists what was merged into it.
+
+### Versions
+
+World `0.52.0` and Viewer `0.14.0` (features). The agent is unchanged, so there's no CLI bump
+and no tag. A `debian/changelog` entry for the World. §0 of `beakys-world.md`, both manuals,
+and this page updated in the same PR.
+
+### Tests
+
+- **Review:**
+  - Each status, with real-shaped facts from the two nights' records (fictional values).
+  - `stale` after a newer keeping.
+  - `guarded` for a `visitor.expected` rewrite and for a kind already meant.
+  - Carried expiry is the earliest.
+  - An unsure merge starts unchecked.
+- **Apply (Mongo):**
+  - A rewrite's new fact has origin `librarian:beaky` and `derived_from` its replaced facts,
+    and the replaced facts are no longer current.
+  - A retire ends its fact.
+  - Applying twice changes nothing the second time.
+  - An item that went stale between review and apply is skipped.
+- **Merges (Mongo):**
+  - Facts move, unless the kept id already holds that predicate.
+  - `entity.same_as` is written.
+  - A later keeping on the merged id lands on the kept id.
+- **The page:** after a flight rewrite, Beaky's perspective for "landings are still the
+  hardest part" holds `flight.training` once, filed by the librarian, and not the five facts
+  it replaced.
+- **Viewer:** review decoding, default checks, and outcome mapping.
+
+### Done means
+
+- On a real night April opens the filing and leaves the workshop merge unchecked (if it's
+  proposed again), checks the rest, and applies.
+- Every checkmark matches an outcome.
+- Beaky's page holds the filed facts, and the replaced ones are gone from it. Counted
+  before and after with the same question ([[feedback-page-quality-goal]]).
+- Nothing from the Bridge, a memory or a protected kind changed.
+
+### Not in Ship 2
+
+- The librarian reading its own past: what was applied or skipped last night.
+- Birds asking the questions themselves.
+- Old deliveries (#234). That's its own change, a rule, not a filing.
 
 ## Done means
 
