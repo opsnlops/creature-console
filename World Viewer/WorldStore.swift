@@ -224,6 +224,19 @@ final class WorldStore {
         }
     }
 
+    /// What a bird would be handed right now, for the words given: its page (#231).
+    func perspective(of characterID: EntityID, mentionedIn words: String?) async
+        -> CharacterPerspective?
+    {
+        do {
+            return try await makeScryer().perspective(of: characterID, mentionedIn: words)
+        } catch {
+            lastError = ErrorAlert(
+                title: "The World Could Not Show \(characterID.rawValue)'s Page", error: error)
+            return nil
+        }
+    }
+
     /// The librarian's nights, newest first: each night's proposal for the record.
     func nightlyFilings() async -> [WorldEventEnvelope] {
         do {

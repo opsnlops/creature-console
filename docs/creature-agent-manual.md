@@ -463,6 +463,14 @@ a guess at how the provider wants a block marked; a wrong one is a 400 here). A 
 cache shows `cached_tokens` in the thousands from round 2. On 2026-09-17 the live minds
 showed `cache_write_tokens` of the whole input on every call and `cached_tokens` 0.
 
+## The page
+
+`2.90.0` (world `0.50.0`, #231): the world hands a mind thirty facts worth reading, with the
+stage (who is in the room, pronouns) and the house's state - folded into one `environment.now`
+and one `forecast.outlook` per place - beside them. The mind writes neither the stage nor
+another bird's `presence.region` as a line: "Here now: Beaky, Mango (he/him)" says who is in the
+room. Read a bird's page in the World Viewer's Page panel.
+
 ## The librarian
 
 `2.89.0`, #229, `docs/durable-learning-plan.md`. The birds keep what April tells them in the

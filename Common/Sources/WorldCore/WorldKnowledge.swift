@@ -217,6 +217,18 @@ public enum WorldKnowledgeLimits {
     /// Trimmed by the numbers on 2026-09-17: "what time is it" cost 8.7k input tokens, 4.5k of
     /// them the moment. The envelope is the likely, not the possible; the tools have the rest.
     public static let maximumFacts = 30
+    /// Families folded into one entry per subject and carried beside the thirty, never in
+    /// them: on 2026-10-16 seven sensor readings and six forecasts took thirteen of Beaky's
+    /// thirty, and one was something April had told her (#231).
+    public static let foldedPrefixes = [WorldFacts.environmentPrefix, WorldFacts.forecastPrefix]
+    /// What the stage is built from - who is in the room - carried beside the thirty: the agent
+    /// writes "Here now: Beaky, Mango (he/him)" from it, never a line per fact.
+    public static let stagePredicates: Set<String> = [
+        WorldFacts.characterRegion, WorldFacts.pronouns,
+    ]
+    /// The most readings folded for one page: every sensor and forecast of the room's places,
+    /// with room to spare - each subject's readings become one entry, whatever their number.
+    public static let maximumFoldedReadings = 200
     /// Kinds that ride only when the words ask for them: a bird's body is a fact about a bird,
     /// and thirty telemetry lines are not what a clock question needs.
     public static let onRequestPrefixes: [String: Set<String>] = [

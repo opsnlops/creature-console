@@ -1226,8 +1226,22 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         // and newer than everything else, and would otherwise push what April taught the birds
         // yesterday off the page.
         let about = unique(expanded)
+        // The thirty are what is worth reading: the stage (who is in the room) and the folded
+        // state (sensors, forecasts) ride beside them, so they never take a learned fact's
+        // place. On 2026-10-16 Beaky's thirty were 29 of those and one thing April had told
+        // her (#231).
+        let pageless = worldOnly.union(WorldKnowledgeLimits.stagePredicates)
         var present = try await facts.currentFacts(
-            about: about, family: .notMemories, excluding: worldOnly, limit: limit, at: now)
+            about: about, family: .page, excluding: pageless, limit: limit, at: now)
+        var stage: [Fact] = []
+        for predicate in WorldKnowledgeLimits.stagePredicates.sorted() {
+            stage += try await facts.currentFacts(
+                about: about, predicate: predicate, limit: max(about.count, 1), at: now)
+        }
+        let folded = PageFolding.fold(
+            try await facts.currentFacts(
+                about: about, family: .folded, excluding: worldOnly,
+                limit: WorldKnowledgeLimits.maximumFoldedReadings, at: now))
         // Links, one hop: a fact whose value is an entity (`calendar.with = person:jesse`)
         // brings that entity's facts along, so a bird handed the visit is handed the visitor.
         // One hop only, and never on the live line's critical path a second time.
@@ -1235,7 +1249,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
             .filter { !about.contains($0) }
         if !linked.isEmpty {
             present += try await facts.currentFacts(
-                about: linked, family: .notMemories, excluding: worldOnly, limit: limit, at: now)
+                about: linked, family: .page, excluding: pageless, limit: limit, at: now)
         }
         // Memories are the mind's own: the first character among the subjects is the mind
         // being handed this (every caller puts it first), and what Beaky remembers of April is
@@ -1280,7 +1294,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                 keptBy: Self.learnedOrigins, limit: memory.factsRetrievedInPrompt, at: now
             ).map(\.0).filter { !held.contains($0.factID) }
         }
-        let page = present + coming + learned + retrieved + remembered
+        let page = present + folded + coming + learned + retrieved + remembered + stage
         return page + (try await pronouns(of: page, at: now))
     }
 

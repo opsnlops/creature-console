@@ -36,18 +36,20 @@ struct FactPhrasingTests {
 
         let lines = FactPhrasing.lines(for: facts, character: beaky, now: now, in: pacific)
 
-        // Beaky's own whereabouts and April's audibility are not for saying; everything else
-        // is, including a predicate the agent has never heard of.
-        #expect(lines.count == 4)
-        #expect(lines[0].hasPrefix("Mango · presence.region = This room · since "))
-        #expect(lines[0].hasSuffix(" (just now) · observed"))
-        #expect(lines[1].hasSuffix(" · assumed (nobody has checked) (90% sure)"))
-        #expect(lines[1].hasPrefix("April · presence.state = home · since "))
+        // Who is in the room is the moment's "Here now", never a line (#231), and April's
+        // audibility is the router's; everything else is said, including a predicate the agent
+        // has never heard of.
+        #expect(lines.count == 3)
+        #expect(!lines.contains { $0.contains("presence.region") })
+        #expect(lines[0].hasSuffix(" · assumed (nobody has checked) (90% sure)"))
+        #expect(lines[0].hasPrefix("April · presence.state = home · since "))
+        #expect(lines[0].contains("(just now)"))
         #expect(
-            lines[2].hasPrefix(
+            lines[1].hasPrefix(
                 "This room · scene.last = Mango: \"It is always heat sinks.\" · since "))
-        #expect(lines[2].contains("(5 minutes ago)"))
-        #expect(lines[3].hasPrefix("This room · weather.mood = gloomy"))
+        #expect(lines[1].contains("(5 minutes ago)"))
+        #expect(lines[1].hasSuffix(" · observed"))
+        #expect(lines[2].hasPrefix("This room · weather.mood = gloomy"))
     }
 
     @Test("Values render as themselves; entity IDs as names; expiries as until")
@@ -203,6 +205,7 @@ struct FactPhrasingTests {
         let facts = [
             try fact(mango, WorldFacts.characterRegion, .string("region:home"), .observed, 1),
             try fact(mango, WorldFacts.pronouns, .string("he/him"), .observed, 1),
+            try fact(mango, "body.feet", .string("both attached"), .observed, 1),
             try fact(april, WorldFacts.personState, .string("home"), .assumed, 0.9),
         ]
 
@@ -210,7 +213,7 @@ struct FactPhrasingTests {
 
         // Pronouns ride with the name, not as a line of their own.
         #expect(lines.count == 2)
-        #expect(lines[0].hasPrefix("Mango (he/him) · presence.region = This room"))
+        #expect(lines[0].hasPrefix("Mango (he/him) · body.feet = \"both attached\""))
         #expect(FactPhrasing.pronouns(in: facts) == [mango: "he/him"])
     }
 
@@ -267,11 +270,11 @@ struct FactPhrasingTests {
             told.knowledgeBlock([], now: now).contains(
                 "- Your mind runs on the openai/gpt-6-astra model."))
         let block = mind.knowledgeBlock(
-            [try fact(mango, "presence.region", .string("region:home"), .observed, 1)],
-            meanings: ["presence.region": "which room a bird's mind is logged into"], now: now)
+            [try fact(mango, "body.feet", .string("both attached"), .observed, 1)],
+            meanings: ["body.feet": "how many feet a bird has on"], now: now)
         #expect(block.contains("- It is "))
-        #expect(block.contains("- Mango · presence.region = This room · since "))
-        #expect(block.contains("What those kinds of fact mean:\n- presence.region: which room"))
+        #expect(block.contains("- Mango · body.feet = \"both attached\" · since "))
+        #expect(block.contains("What those kinds of fact mean:\n- body.feet: how many feet"))
     }
 
     private func fact(

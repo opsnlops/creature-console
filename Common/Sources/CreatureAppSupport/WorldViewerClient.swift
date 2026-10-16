@@ -123,6 +123,17 @@ public struct WorldViewerClient: Sendable {
         }
     }
 
+    /// Exactly what a mind would be handed right now, as `mentionedIn` would bring it - the
+    /// page (#231).
+    public func perspective(of characterID: EntityID, mentionedIn words: String?) async throws
+        -> CharacterPerspective
+    {
+        try await get(
+            CharacterPerspective.self,
+            pathComponents: ["characters", characterID.rawValue, "perspective"],
+            queryItems: words.map { [URLQueryItem(name: "mentioned_in", value: $0)] } ?? [])
+    }
+
     /// The librarian's nights, newest first: what each proposed for the record (#229).
     public func filings(limit: Int) async throws -> WorldFilingPage {
         try await get(

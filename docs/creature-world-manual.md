@@ -908,6 +908,22 @@ paged; not combinable with `subject_id` or `predicate_prefix`), `GET
 then, with what replaced it; an ending is not an overwrite), and `GET /v1/filings` (the newest
 `memory.filed` events, the librarian's nights).
 
+**Thirty facts worth reading** (`0.50.0`, #231, `docs/page-quality-plan.md`). A mind's page
+(`WorldKnowledgeLimits.maximumFacts`, 30, newest first) was filled by recency, and the newest
+facts are always the state: on 2026-10-16 Beaky's thirty were 29 sensors, forecasts, pronouns
+and rooms, and one thing April had said. Now the page has three parts, and only the last is
+capped: **the stage** (`presence.region`, `identity.pronouns` - what the agent builds "Here now"
+and names from), uncapped; **the state, folded** - each subject's `environment.*` as one
+`environment.now` ("temperature 51.7°F, humidity 89%, light 120 lux, dimming, wind 0 mph, PM2.5
+2.7 µg/m³, pressure 1010.3 hPa"; the light's trend rides with the light) and its `forecast.*` as
+one `forecast.outlook` (each period's own words; a number only where no words say it). A folded
+entry is made for the page and never stored: producer `world/page`, as new as its newest reading,
+lasting as long as its shortest, `derived_from` naming every reading. **The thirty** are
+everything else: what the birds learned, the door, the TV, presence, sightings. Beside them, as
+before, the calendar, the retrieved learned facts, and the memories. `GET
+/v1/characters/{id}/perspective?mentioned_in=` serves the page exactly as a mind gets it, for the
+World Viewer's Page panel.
+
 **WorldMCP by the MCP conventions** (`0.48.0`, #230): each MCP message is a SERVER span named
 for its method and tool (`tools/call query_entity`, `tools/list`), with `mcp.method.name`,
 `gen_ai.tool.name` and `gen_ai.operation.name = execute_tool` on a tool call,

@@ -30,6 +30,9 @@ protocol WorldScrying: Sendable {
     func explain(_ factID: FactID) async throws -> FactExplanation?
     /// The librarian's nights, newest first (`memory.filed`).
     func filings(limit: Int) async throws -> [WorldEventEnvelope]
+    /// Exactly what a mind would be handed right now: its page.
+    func perspective(of characterID: EntityID, mentionedIn words: String?) async throws
+        -> CharacterPerspective
 }
 
 /// The Viewer's one kind of write, kept apart from the reads on purpose: a Wizard casting a
@@ -103,6 +106,12 @@ struct LiveWorldScryer: WorldScrying {
 
     func filings(limit: Int) async throws -> [WorldEventEnvelope] {
         try await viewer.filings(limit: limit).events
+    }
+
+    func perspective(of characterID: EntityID, mentionedIn words: String?) async throws
+        -> CharacterPerspective
+    {
+        try await viewer.perspective(of: characterID, mentionedIn: words)
     }
 
     func entity(_ entityID: EntityID) async throws -> EntityPage {

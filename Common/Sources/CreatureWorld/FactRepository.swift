@@ -157,6 +157,11 @@ struct FactRepository: Sendable {
         case all, memories, notMemories
         /// Only what one bird remembers - its own memories, never another's.
         case own(EntityID)
+        /// What a page's thirty are drawn from: not memories, and not the families folded
+        /// beside them (`WorldKnowledgeLimits.foldedPrefixes`).
+        case page
+        /// Only the families folded beside the thirty: sensors and forecasts.
+        case folded
     }
 
     func currentFacts(
@@ -187,6 +192,12 @@ struct FactRepository: Sendable {
         case .own(let bird):
             predicate["$regex"] = ownMemoriesPattern(of: bird)
         case .notMemories: predicate["$not"] = ["$regex": "^memory\\."] as Document
+        case .page:
+            predicate["$not"] =
+                ["$regex": prefixPattern(["memory."] + WorldKnowledgeLimits.foldedPrefixes)]
+                as Document
+        case .folded:
+            predicate["$regex"] = prefixPattern(WorldKnowledgeLimits.foldedPrefixes)
         }
         // The world's own facts never take a mind's place on the page.
         if !predicates.isEmpty {
@@ -195,6 +206,13 @@ struct FactRepository: Sendable {
             predicate["$nin"] = excluded
         }
         return predicate.isEmpty ? nil : predicate
+    }
+
+    /// `^(?:memory\.|environment\.)`: any of the prefixes.
+    static func prefixPattern(_ prefixes: [String]) -> String {
+        "^(?:"
+            + prefixes.map { NSRegularExpression.escapedPattern(for: $0) }
+            .joined(separator: "|") + ")"
     }
 
     // MARK: - Origin

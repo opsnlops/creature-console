@@ -133,6 +133,12 @@ public enum WorldFacts {
     public static let cameraWatching = "camera.watching"
     /// A measurement of a place: `environment.<predicate>` (`environment.temperature_f`).
     public static let environmentPrefix = "environment."
+    /// What the weather will do: `forecast.today`, `forecast.tomorrow.high_f`, from the Bridge.
+    public static let forecastPrefix = "forecast."
+    /// A place's readings, folded into one entry for a mind's page - never stored (#231).
+    public static let environmentNow = "environment.now"
+    /// A place's forecasts, folded into one entry for a mind's page - never stored (#231).
+    public static let forecastOutlook = "forecast.outlook"
     /// What a room's screens and speakers are doing, from Home Assistant's media players:
     /// `media.tv` ("on"), `media.source` ("Apple TV, volume 40%"), `media.playing` ("YouTube:
     /// <title>"). State, not story; gone when the device is off.
@@ -151,6 +157,10 @@ public enum WorldFacts {
     /// glossary for the predicates present, so a new kind of fact needs a sentence here (or a
     /// document in the store), never a phrasing.
     public static let meanings: [String: String] = [
+        environmentNow:
+            "what the sensors there read right now, all together, each as of its latest reading: temperature, humidity, wind, air (PM2.5 above 35 is unhealthy), pressure, the house's electricity draw, and the daylight outside in lux (under 10 is dark, tens to a few hundred is dusk or dawn, thousands is day; the sky, not the house's lights) with which way it has gone over the last half hour - brightening, steady, or dimming; dimming in the evening is nightfall, at midday a cloud",
+        forecastOutlook:
+            "what the weather is expected to do there - today, tonight, tomorrow - in the forecast's own words",
         characterRegion:
             "which room a bird's mind is logged into; the region this scene is in is the room you are in",
         personState: "whether a person is home or away, as far as the house can tell",

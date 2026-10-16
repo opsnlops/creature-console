@@ -167,3 +167,44 @@ struct FilingTests {
         #expect(try fact(nil).keptBy == nil)
     }
 }
+
+/// The Page (#231): a bird's page sorted by what each fact is.
+@Suite("A bird's page, by what it holds")
+struct FactPageSectionsTests {
+    private func fact(
+        _ subject: String, _ predicate: String, origin: String? = nil,
+        producer: FactProducer = FactProducer(kind: "presence", id: "given-facts", version: "1")
+    ) throws -> Fact {
+        try Fact(
+            subjectID: EntityID(validating: subject), predicate: predicate, value: .string("x"),
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            validFrom: Date(timeIntervalSince1970: 1_790_000_000), derivedFrom: [],
+            producer: producer, origin: try origin.map { try SourceID(validating: $0) })
+    }
+
+    @Test("Learned, state, folded, calendar, memories, and stage, counted")
+    func sortsThePage() throws {
+        let sections = FactPageSections(facts: [
+            try fact("person:april", "flight.training", origin: "mind:beaky"),
+            try fact("person:april", "flight.rules", origin: "librarian:beaky"),
+            try fact("place:front-door", "door.lock", origin: "home-assistant:lock-front-door"),
+            try fact(
+                "place:outside", "environment.now",
+                producer: FactProducer(kind: "world", id: "page", version: "1")),
+            try fact("event:abc-20261018", "calendar.title", origin: "bridge:calendar"),
+            try fact("person:april", "memory.episode.beaky.2026-10-14.1", origin: "mind:beaky"),
+            try fact("character:mango", "presence.region"),
+            try fact("character:mango", "identity.pronouns"),
+        ])
+        #expect(sections.facts(of: .learned).count == 2)
+        #expect(sections.facts(of: .state).count == 1)
+        #expect(sections.facts(of: .folded).count == 1)
+        #expect(sections.facts(of: .calendar).count == 1)
+        #expect(sections.facts(of: .memories).count == 1)
+        #expect(sections.facts(of: .stage).count == 2)
+        #expect(
+            sections.summary == "2 learned · 1 state · 1 folded · 1 calendar · 1 memories · 2 stage"
+        )
+        #expect(FactPageSections.name(of: try EntityID(validating: "character:beaky")) == "Beaky")
+    }
+}

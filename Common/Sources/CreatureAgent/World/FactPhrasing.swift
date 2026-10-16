@@ -76,12 +76,13 @@ enum FactPhrasing {
     }
 
     /// A fact that is not for saying: pronouns ride with names, audibility is the router's,
-    /// a watching camera is folded into the quiet-cameras line, and a bird knows where it is.
+    /// a watching camera is folded into the quiet-cameras line, and who is in which room is
+    /// the moment's "Here now" - a line per bird said it again (#231).
     private static func isUnspoken(_ fact: Fact, character: EntityID) -> Bool {
         fact.predicate == WorldFacts.pronouns
             || fact.predicate == WorldFacts.personAudible
             || fact.predicate == WorldFacts.cameraWatching
-            || (fact.predicate == WorldFacts.characterRegion && fact.subjectID == character)
+            || fact.predicate == WorldFacts.characterRegion
     }
 
     /// The subject is named with its pronouns when the world has them - "Natty (they/them)" -

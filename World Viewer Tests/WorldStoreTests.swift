@@ -408,6 +408,13 @@ struct ScriptedScryer: WorldScrying {
 
     func filings(limit: Int) async throws -> [WorldEventEnvelope] { [] }
 
+    func perspective(of characterID: EntityID, mentionedIn words: String?) async throws
+        -> CharacterPerspective
+    {
+        CharacterPerspective(
+            characterID: characterID, facts: [], factMeanings: [:], recentHappenings: [])
+    }
+
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames {
         let world = world
         return WorldStreamFrames { continuation in

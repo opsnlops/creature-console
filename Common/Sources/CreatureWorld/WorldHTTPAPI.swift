@@ -451,6 +451,22 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // Exactly what a mind would be handed right now - the page (#231) - with the words of
+        // the moment, as April's question would bring them: the World Viewer's Page.
+        router.get("v1/characters/:characterID/perspective") { request, context in
+            await respond {
+                let characterID = try characterID(from: context)
+                let words = request.uri.queryParameters["mentioned_in"].map(String.init)
+                guard (words?.count ?? 0) <= 2_000 else {
+                    throw WorldAPIError.invalidQuery(name: "mentioned_in")
+                }
+                return try await execute {
+                    try jsonResponse(
+                        await service.perspective(of: characterID, mentionedIn: words))
+                }
+            }
+        }
+
         // The librarian's nights, newest first: what each night proposed for the record.
         router.get("v1/filings") { request, _ in
             await respond {
