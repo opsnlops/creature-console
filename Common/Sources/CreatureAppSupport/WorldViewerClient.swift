@@ -123,6 +123,13 @@ public struct WorldViewerClient: Sendable {
         }
     }
 
+    /// The librarian's nights, newest first: what each proposed for the record (#229).
+    public func filings(limit: Int) async throws -> WorldFilingPage {
+        try await get(
+            WorldFilingPage.self, pathComponents: ["filings"],
+            queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
+    }
+
     public func entity(_ entityID: EntityID) async throws -> EntityPage {
         try await get(EntityPage.self, pathComponents: ["entities", entityID.rawValue])
     }

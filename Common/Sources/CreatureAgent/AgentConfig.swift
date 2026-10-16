@@ -52,6 +52,10 @@ struct AgentConfig: Decodable {
     /// words - the default, April's choice), or `all` (also April's words, the facts of the
     /// moment, and every look-up). The persona and contracts never ride along.
     let llmCaptureContent: GenAIContentCapture
+    /// Whether this mind is the flock's librarian: after remembering each night, it files what
+    /// all the minds kept (#229). One bird only - the lead - and only with `llmMemoryModel`.
+    /// It watches for now: the proposal is recorded, nothing is changed.
+    let librarian: Bool
     let localLlmHost: String
     let localLlmPort: Int
     let localLlmMaxTokens: Int
@@ -160,6 +164,7 @@ struct AgentConfig: Decodable {
         case llmDecisionsShadow
         case llmDecisionsModel
         case llmCaptureContent
+        case librarian
         case localLlmHost
         case localLlmPort
         case localLlmMaxTokens
@@ -225,6 +230,7 @@ struct AgentConfig: Decodable {
         llmCaptureContent =
             try container.decodeIfPresent(GenAIContentCapture.self, forKey: .llmCaptureContent)
             ?? .output
+        librarian = try container.decodeIfPresent(Bool.self, forKey: .librarian) ?? false
         guard llmMemoryBatchWaitHours > 0, llmMemoryBatchWaitHours <= 24 else {
             throw DecodingError.dataCorruptedError(
                 forKey: .llmMemoryBatchWaitHours, in: container,

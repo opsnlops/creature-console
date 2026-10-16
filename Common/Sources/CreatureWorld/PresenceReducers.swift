@@ -204,7 +204,8 @@ struct GivenFactReducer: WorldReducer {
                     validFrom: event.occurredAt,
                     validTo: validTo,
                     derivedFrom: [.event(event.eventID)],
-                    producer: producer
+                    producer: producer,
+                    origin: event.source.id
                 )
             ],
             retractions: Self.endsVisit(predicate: predicate, value: value)

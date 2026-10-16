@@ -19,6 +19,8 @@ struct WorldMindService: Service {
     private let spectateDelay: Duration
     /// The nightly memory, when this mind has a memory model; nil for the chorus.
     private let memory: MemoryJob?
+    /// Filing what the minds kept, after remembering - the lead's job alone (#229).
+    private let librarian: Librarian?
     /// Asks, beside each scene turn, whether the bird would speak; records it, changes
     /// nothing (#221). Nil unless `llmDecisionsShadow` is on.
     private let decisionsShadow: DecisionsShadow?
@@ -56,7 +58,8 @@ struct WorldMindService: Service {
         clock: any WorldClock = SystemWorldClock(),
         spectateDelay: Duration = .seconds(15),
         decisionsShadow: DecisionsShadow? = nil,
-        memory: MemoryJob? = nil
+        memory: MemoryJob? = nil,
+        librarian: Librarian? = nil
     ) {
         self.subscriber = subscriber
         self.mind = mind
@@ -67,6 +70,7 @@ struct WorldMindService: Service {
         self.clock = clock
         self.spectateDelay = spectateDelay
         self.memory = memory
+        self.librarian = librarian
         self.decisionsShadow = decisionsShadow
     }
 
@@ -157,12 +161,22 @@ struct WorldMindService: Service {
         guard case .string(let day)? = event.payload["day"] else { return }
         let clock = self.clock
         let logger = self.logger
+        let librarian = self.librarian
         let started = await remembering.start {
             do {
                 try await memory.remember(day: day, run: event.eventID, now: await clock.now)
             } catch {
                 logger.error(
                     "Could not remember the day",
+                    metadata: ["memory.day": "\(day)", "error": "\(error)"])
+            }
+            // Then, while the others sleep, the record: whatever remembering made of the day.
+            guard let librarian else { return }
+            do {
+                try await librarian.file(day: day, run: event.eventID, now: await clock.now)
+            } catch {
+                logger.error(
+                    "Could not file the record",
                     metadata: ["memory.day": "\(day)", "error": "\(error)"])
             }
         }

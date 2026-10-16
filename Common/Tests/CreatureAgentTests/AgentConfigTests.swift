@@ -140,6 +140,9 @@ struct AgentConfigTests {
         #expect(try load("llmCaptureContent: off").llmCaptureContent == .off)
         #expect(try load("llmCaptureContent: all").llmCaptureContent == .all)
         #expect(throws: (any Error).self) { try load("llmCaptureContent: everything") }
+        // The librarian is one bird's job, asked for by name (#229).
+        #expect(try load("").librarian == false)
+        #expect(try load("librarian: true").librarian == true)
     }
 
     @Test("The nightly memory goes through the Batch API unless told not to, with a bounded wait")

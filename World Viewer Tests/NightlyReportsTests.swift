@@ -87,3 +87,83 @@ struct NightlyReportsTests {
         #expect(NightlyPanel.title(of: "2026-09-30") == "Wednesday, September 30")
     }
 }
+
+/// The librarian's night as the Viewer reads it (#229): the `memory.filed` event's proposal.
+@Suite("The librarian's night")
+struct FilingTests {
+    @Test(
+        "A filing reads its rewrites, retires, sames, kinds, and questions; watching unless applied"
+    )
+    func readsAFiling() throws {
+        let event = try WorldEventEnvelope(
+            type: WorldEventType(validating: "memory.filed"),
+            occurredAt: Date(timeIntervalSince1970: 1_790_000_000),
+            source: EventSource(
+                id: SourceID(validating: "mind:beaky"), kind: "mind",
+                sourceEventID: "librarian:2026-10-14:run"),
+            subjectIDs: [EntityID(validating: "character:beaky")],
+            epistemic: EpistemicState(type: .remembered, confidence: 1),
+            payload: [
+                "day": .string("2026-10-14"), "mode": .string("watching"),
+                "learned": .number(120), "overwritten": .number(1),
+                "proposal": .object([
+                    "rewrites": .array([
+                        .object([
+                            "subject": .string("person:april"),
+                            "predicate": .string("flight.training"),
+                            "value": .string("flies on her own but for landings"),
+                            "replaces": .array([.string("fact:a"), .string("fact:b")]),
+                            "reason": .string("one topic, one name"),
+                        ])
+                    ]),
+                    "retires": .array([
+                        .object(["fact": .string("fact:c"), "reason": .string("old news")])
+                    ]),
+                    "same": .array([
+                        .object([
+                            "ids": .array([.string("thing:a"), .string("thing:b")]),
+                            "keep": .string("thing:a"), "sure": .bool(false),
+                            "reason": .string("both a flight school"),
+                        ])
+                    ]),
+                    "kinds": .array([
+                        .object([
+                            "predicate": .string("flight.training"),
+                            "meaning": .string("where April is in learning to fly"),
+                        ])
+                    ]),
+                    "questions": .array([.string("Is Amber Tamara?")]),
+                    "dropped": .number(2),
+                ]),
+            ])
+        let filing = try #require(NightlyReports.filing(from: event))
+        #expect(filing.day == "2026-10-14")
+        #expect(filing.bird == "beaky")
+        #expect(filing.watching)
+        #expect(filing.learned == 120)
+        #expect(filing.rewrites.first?.replaces == 2)
+        #expect(filing.retires.first?.reason == "old news")
+        #expect(filing.same.first?.what == "thing:a = thing:b, keep thing:a (not sure: a question)")
+        #expect(filing.kinds.first?.what == "flight.training")
+        #expect(filing.questions == ["Is Amber Tamara?"])
+        #expect(filing.dropped == 2)
+        #expect(!filing.isEmpty)
+    }
+
+    @Test("A fact says who kept it: a bird, the librarian, or a source")
+    func keptBy() throws {
+        func fact(_ origin: String?) throws -> Fact {
+            try Fact(
+                subjectID: EntityID(validating: "person:april"), predicate: "flight.hope",
+                value: .string("a plane"),
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                validFrom: Date(timeIntervalSince1970: 1_790_000_000), derivedFrom: [],
+                producer: FactProducer(kind: "presence", id: "given-facts", version: "1"),
+                origin: try origin.map { try SourceID(validating: $0) })
+        }
+        #expect(try fact("mind:mango").keptBy == "kept by Mango")
+        #expect(try fact("librarian:beaky").keptBy == "filed by Beaky, the librarian")
+        #expect(try fact("bridge:contacts").keptBy == "from bridge:contacts")
+        #expect(try fact(nil).keptBy == nil)
+    }
+}

@@ -594,7 +594,14 @@ private func runWorldMode(
                 pendingFile: URL(fileURLWithPath: world.stateDirectory, isDirectory: true)
                     .appending(path: "memory-pending.json"),
                 capture: config.llmCaptureContent)
-        }
+        },
+        librarian: config.librarian
+            ? memoryModel.map { model in
+                Librarian(
+                    worldURL: world.worldURL, characterID: characterID, persona: persona,
+                    model: model, cast: { try await responder.cast($0) }, client: client,
+                    logger: logger, capture: config.llmCaptureContent)
+            } : nil
     )
     // The local model's health is only worth watching when a local model is the mind; on a
     // frontier backend the check would poke a machine that no longer runs one.

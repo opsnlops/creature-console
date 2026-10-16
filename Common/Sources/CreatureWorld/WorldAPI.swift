@@ -115,9 +115,30 @@ protocol WorldApplicationService: Sendable {
     func search(_ query: String, limit: Int) async throws -> WorldSearchPage
     /// What one bird remembers, on any subject - its own memories, newest first.
     func memories(of characterID: EntityID, limit: Int) async throws -> [Fact]
+    /// Current facts by who said them - `mind:` is everything the birds kept - in pages.
+    func currentFacts(originPrefix: String, after: FactID?, limit: Int) async throws
+        -> WorldFactPage
+    /// What a mind kept since `since` that a later keeping replaced, with its replacement.
+    func overwrittenFacts(originPrefix: String, since: Date, limit: Int) async throws
+        -> OverwrittenFactPage
+    /// The librarian's nights, newest first: each `memory.filed` event (#229).
+    func filings(limit: Int) async throws -> [WorldEventEnvelope]
 }
 
 extension WorldApplicationService {
+    func currentFacts(originPrefix: String, after: FactID?, limit: Int) async throws
+        -> WorldFactPage
+    {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func overwrittenFacts(originPrefix: String, since: Date, limit: Int) async throws
+        -> OverwrittenFactPage
+    {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func filings(limit: Int) async throws -> [WorldEventEnvelope] {
+        throw WorldAPIError.databaseUnavailable
+    }
     func factKinds() async throws -> FactKindPage { throw WorldAPIError.databaseUnavailable }
     func setFactKind(_ predicate: String, _ update: FactKindUpdate) async throws -> FactKind {
         throw WorldAPIError.databaseUnavailable

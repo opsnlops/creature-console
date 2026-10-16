@@ -8,12 +8,22 @@ struct NightlyPanel: View {
     let store: WorldStore
     @Binding var scried: Scried?
     @State private var reflections: [Fact] = []
+    @State private var filings: [NightlyReports.Filing] = []
     @State private var chosen: String?
     @State private var report: [NightlyReports.BirdNight] = []
     @State private var loading = false
 
+    /// Every night some bird remembered, and every night the librarian filed.
     private var nights: [NightlyReports.Night] {
-        NightlyReports.nights(fromReflections: reflections)
+        let remembered = NightlyReports.nights(fromReflections: reflections)
+        let days = Set(remembered.map(\.day))
+        let filedOnly = filings.map(\.day).filter { !days.contains($0) }
+        return (remembered + Set(filedOnly).map { NightlyReports.Night(day: $0, birds: []) })
+            .sorted { $0.day > $1.day }
+    }
+
+    private var filing: NightlyReports.Filing? {
+        filings.first { $0.day == chosen }
     }
 
     var body: some View {
@@ -42,7 +52,7 @@ struct NightlyPanel: View {
                 } else if loading {
                     ProgressView()
                 } else {
-                    NightView(report: report, scried: $scried)
+                    NightView(report: report, filing: filing, scried: $scried)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,6 +80,7 @@ struct NightlyPanel: View {
 
     private func loadNights() async {
         reflections = await store.nightlyReflections()
+        filings = await store.nightlyFilings().compactMap(NightlyReports.filing(from:))
         if chosen == nil { chosen = nights.first?.day }
     }
 
@@ -98,11 +109,16 @@ struct NightlyPanel: View {
 /// One night: each bird's letter, then what it remembered.
 private struct NightView: View {
     let report: [NightlyReports.BirdNight]
+    let filing: NightlyReports.Filing?
     @Binding var scried: Scried?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                if let filing {
+                    FilingView(filing: filing)
+                        .onTapGesture { scried = .event(filing.event) }
+                }
                 ForEach(report) { bird in
                     VStack(alignment: .leading, spacing: 12) {
                         Text(bird.bird.capitalized)
@@ -159,6 +175,99 @@ private struct EpisodeRow: View {
                     .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// The librarian's night: what she would file, and why. While she watches, a proposal only.
+private struct FilingView: View {
+    let filing: NightlyReports.Filing
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Label(
+                    "\(filing.bird.capitalized) filed the record", systemImage: "books.vertical"
+                )
+                .font(.title2.bold())
+                Spacer()
+                Text(filing.watching ? "watching: nothing applied" : "applied")
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .glassEffect(
+                        .regular.tint((filing.watching ? Color.orange : .green).opacity(0.25)),
+                        in: .capsule)
+            }
+            Text(
+                "Read \(filing.learned) kept fact\(filing.learned == 1 ? "" : "s")"
+                    + " and \(filing.overwritten) written over"
+                    + (filing.dropped > 0
+                        ? " · \(filing.dropped) proposal\(filing.dropped == 1 ? "" : "s") left out"
+                        : "")
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            if filing.isEmpty {
+                Text("Nothing needed filing.")
+                    .foregroundStyle(.secondary)
+            }
+            if !filing.rewrites.isEmpty {
+                section("Rewrite", systemImage: "square.and.pencil")
+                ForEach(filing.rewrites, id: \.self) { rewrite in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(rewrite.subject) · \(rewrite.predicate)")
+                            .font(.caption.monospaced())
+                        Text(rewrite.value)
+                            .textSelection(.enabled)
+                        Text(
+                            "replaces \(rewrite.replaces) fact\(rewrite.replaces == 1 ? "" : "s")"
+                                + (rewrite.reason.isEmpty ? "" : " · \(rewrite.reason)")
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            lines("Retire", systemImage: "archivebox", filing.retires)
+            lines("Same thing", systemImage: "equal.circle", filing.same)
+            lines("What the families mean", systemImage: "character.book.closed", filing.kinds)
+            if !filing.questions.isEmpty {
+                section("Questions for April", systemImage: "questionmark.bubble")
+                ForEach(filing.questions, id: \.self) { question in
+                    Text(question).textSelection(.enabled)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .glassEffect(.regular.tint(.teal.opacity(0.10)), in: .rect(cornerRadius: 14))
+    }
+
+    private func section(_ title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.headline)
+            .padding(.top, 6)
+    }
+
+    @ViewBuilder
+    private func lines(_ title: String, systemImage: String, _ lines: [NightlyReports.Filing.Line])
+        -> some View
+    {
+        if !lines.isEmpty {
+            section(title, systemImage: systemImage)
+            ForEach(lines, id: \.self) { line in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(line.what)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                    if !line.reason.isEmpty {
+                        Text(line.reason)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
         }
     }
 }

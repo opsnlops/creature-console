@@ -48,6 +48,9 @@ struct MongoWorldPersistenceConnection: Sendable {
     let entityNamed: @Sendable (String) async throws -> EntityID?
     let search: @Sendable (String, Int) async throws -> WorldSearchPage
     let memories: @Sendable (EntityID, Int) async throws -> [Fact]
+    let learnedFacts: @Sendable (String, FactID?, Int) async throws -> WorldFactPage
+    let overwrittenFacts: @Sendable (String, Date, Int) async throws -> OverwrittenFactPage
+    let filings: @Sendable (Int) async throws -> [WorldEventEnvelope]
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -580,6 +583,24 @@ struct MongoWorldPersistenceConnection: Sendable {
             try await persistence.facts.currentFacts(
                 rememberedBy: bird, limit: max(limit, 1), at: await clock.now)
         }
+        learnedFacts = { prefix, after, limit in
+            let page = try await persistence.facts.currentFacts(
+                originPrefix: prefix, after: after, limit: limit + 1, at: await clock.now)
+            let shown = Array(page.prefix(limit))
+            return WorldFactPage(
+                facts: shown, nextFactID: page.count > limit ? shown.last?.factID : nil,
+                hasMore: page.count > limit)
+        }
+        filings = { limit in
+            try await persistence.events.events(
+                ofType: WorldEventType(validating: "memory.filed"), limit: limit)
+        }
+        overwrittenFacts = { prefix, since, limit in
+            OverwrittenFactPage(
+                items: try await persistence.facts.overwrittenFacts(
+                    originPrefix: prefix, since: since, limit: limit
+                ).map { OverwrittenFact(replaced: $0.replaced, by: $0.by) })
+        }
         // A name the world knows, as an entity: "Tamara" or "my mom" by the people the world
         // can describe (relationship words and their synonyms count); anything else by the
         // text index. A mind asking a tool guesses at ids; the world knows.
@@ -736,6 +757,16 @@ struct MongoWorldPersistenceConnection: Sendable {
         memories: @escaping @Sendable (EntityID, Int) async throws -> [Fact] = { _, _ in
             throw WorldAPIError.databaseUnavailable
         },
+        learnedFacts: @escaping @Sendable (String, FactID?, Int) async throws -> WorldFactPage = {
+            _, _, _ in throw WorldAPIError.databaseUnavailable
+        },
+        overwrittenFacts:
+            @escaping @Sendable (String, Date, Int) async throws -> OverwrittenFactPage = {
+                _, _, _ in throw WorldAPIError.databaseUnavailable
+            },
+        filings: @escaping @Sendable (Int) async throws -> [WorldEventEnvelope] = { _ in
+            throw WorldAPIError.databaseUnavailable
+        },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -775,6 +806,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.entityNamed = entityNamed
         self.search = search
         self.memories = memories
+        self.learnedFacts = learnedFacts
+        self.overwrittenFacts = overwrittenFacts
+        self.filings = filings
         self.shutdown = shutdown
     }
 }
@@ -1051,6 +1085,25 @@ actor MongoWorldPersistenceProvider {
         return try await connection.dayDigest(day)
     }
 
+    func currentFacts(originPrefix: String, after: FactID?, limit: Int) async throws
+        -> WorldFactPage
+    {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.learnedFacts(originPrefix, after, limit)
+    }
+
+    func overwrittenFacts(originPrefix: String, since: Date, limit: Int) async throws
+        -> OverwrittenFactPage
+    {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.overwrittenFacts(originPrefix, since, limit)
+    }
+
+    func filings(limit: Int) async throws -> [WorldEventEnvelope] {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.filings(limit)
+    }
+
     func remember(_ day: String) async throws -> WorldEventAcceptance {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.remember(day)
@@ -1123,6 +1176,10 @@ extension MongoWorldPersistenceProvider: SceneApplicationService {}
 /// region the character is in and everyone logged into it — so "who is here with you" and
 /// "what was just said in this room" ride along without the caller knowing about regions.
 struct PresentWorldKnowledge: WorldKnowledgeProviding {
+    /// What the birds learned, by who said it: a mind, or the librarian filing it. The Bridge's
+    /// calendar and mail are on the page by their own rules, never called up here.
+    static let learnedOrigins = "^(mind|librarian):"
+
     let facts: FactRepository
     let events: WorldEventRepository
     let kinds: FactKindRepository
@@ -1211,7 +1268,19 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                 about: upcoming, family: .notMemories, excluding: worldOnly,
                 limit: (WorldKnowledgeLimits.maximumUpcomingEvents
                     + WorldKnowledgeLimits.maximumReminders) * 4, at: now)
-        let page = present + coming + retrieved + remembered
+        // What the minds kept, called up by the words of the moment, whatever its age: the
+        // page above is the newest thirty, and a month-old `flight.hardest_part` is never
+        // among them - so a bird told "landings are still hard" kept it again under a name of
+        // its own (#229). Its own section, so it never pushes the room's facts off the page.
+        var learned: [Fact] = []
+        if memory.factsRetrievedInPrompt > 0, let text, !text.isEmpty {
+            let held = Set((present + coming).map(\.factID))
+            learned = try await facts.search(
+                text, family: .notMemories, excluding: worldOnly,
+                keptBy: Self.learnedOrigins, limit: memory.factsRetrievedInPrompt, at: now
+            ).map(\.0).filter { !held.contains($0.factID) }
+        }
+        let page = present + coming + learned + retrieved + remembered
         return page + (try await pronouns(of: page, at: now))
     }
 

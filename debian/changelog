@@ -1,3 +1,17 @@
+creature-cli (2.89.0+world0.49.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.49.0, creature-agent 2.89.0: learning that lasts,
+    first ship (#229). A fact says who kept it (Fact.origin, backfilled
+    from its event). The words of the moment call up six learned facts
+    beside the page's newest thirty, so a bird sees the name already in
+    use. The learning contract keeps one value per name and names a
+    family by its topic. Beaky, with librarian: true, files what the
+    minds kept each night after remembering - watching only: the
+    proposal is recorded as memory.filed and nothing is changed. New:
+    GET /v1/facts?origin_prefix=, /v1/facts/overwritten, /v1/filings.
+
+ -- April White <april@creature.engineering>  Thu, 15 Oct 2026 21:30:00 -0700
+
 creature-cli (2.88.0+world0.48.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.48.0, creature-agent 2.88.0: WorldMCP by the MCP

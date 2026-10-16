@@ -107,14 +107,24 @@ struct FactRepository: Sendable {
     /// predicate, and every string in the value (`searchText(of:)`) - best first, with each
     /// fact's text score.
     /// English stemming and case-folding are the index's: "cleaner" finds "the cleaners".
-    func search(_ query: String, own bird: EntityID? = nil, limit: Int, at now: Date)
-        async throws -> [(Fact, Double)]
-    {
+    ///
+    /// `own` narrows to one bird's own memories; `family` and `excluding` narrow the same way
+    /// a page's query does, and `keptBy` to who said it.
+    func search(
+        _ query: String, own bird: EntityID? = nil, family: Family = .all,
+        excluding predicates: Set<String> = [], keptBy origin: String? = nil, limit: Int,
+        at now: Date
+    ) async throws -> [(Fact, Double)] {
         var filter = currentQuery(at: now)
         filter["$text"] = ["$search": query] as Document
+        // Only what was said by a source matching `origin` (a regex): `^(mind|librarian):` is
+        // what the birds learned, never the calendar the Bridge keeps.
+        if let origin { filter["origin"] = ["$regex": origin] as Document }
         // Only one bird's own memories, when retrieving for a mind.
         if let bird {
             filter["predicate"] = ["$regex": Self.ownMemoriesPattern(of: bird)] as Document
+        } else if let predicate = Self.predicateFilter(family: family, excluding: predicates) {
+            filter["predicate"] = predicate
         }
         let documents = try await facts.find(filter)
             .project(["score": ["$meta": "textScore"] as Document] as Document)
@@ -157,24 +167,129 @@ struct FactRepository: Sendable {
         guard !subjects.isEmpty else { return [] }
         var query = currentQuery(at: now)
         query["subject_id"] = ["$in": subjects.map(\.rawValue)] as Document
-        var predicate: Document = [:]
-        switch family {
-        case .all: break
-        case .memories: predicate["$regex"] = "^memory\\."
-        case .own(let bird):
-            predicate["$regex"] = Self.ownMemoriesPattern(of: bird)
-        case .notMemories: predicate["$not"] = ["$regex": "^memory\\."] as Document
+        if let predicate = Self.predicateFilter(family: family, excluding: predicates) {
+            query["predicate"] = predicate
         }
-        // The world's own facts never take a mind's place on the page.
-        if !predicates.isEmpty {
-            predicate["$nin"] = try Document(array: Array(predicates))
-        }
-        if !predicate.isEmpty { query["predicate"] = predicate }
         let documents = try await facts.find(query)
             .sort(["valid_from": -1, "_id": -1])
             .limit(limit)
             .drain()
         return try documents.map(decode)
+    }
+
+    /// The predicate half of a query for a family of facts, less the excluded kinds; nil when
+    /// it narrows nothing.
+    static func predicateFilter(family: Family, excluding predicates: Set<String>) -> Document? {
+        var predicate: Document = [:]
+        switch family {
+        case .all: break
+        case .memories: predicate["$regex"] = "^memory\\."
+        case .own(let bird):
+            predicate["$regex"] = ownMemoriesPattern(of: bird)
+        case .notMemories: predicate["$not"] = ["$regex": "^memory\\."] as Document
+        }
+        // The world's own facts never take a mind's place on the page.
+        if !predicates.isEmpty {
+            var excluded = Document(isArray: true)
+            for name in predicates.sorted() { excluded.append(name) }
+            predicate["$nin"] = excluded
+        }
+        return predicate.isEmpty ? nil : predicate
+    }
+
+    // MARK: - Origin
+
+    /// Current facts whose origin starts with `prefix` - `mind:` is every fact a bird kept -
+    /// memories aside (a night's memories are a mind's too, and are not what the librarian
+    /// files). Oldest first, by id, after `after`, so a long record is read in pages.
+    func currentFacts(
+        originPrefix prefix: String, after: FactID? = nil, limit: Int, at now: Date
+    ) async throws -> [Fact] {
+        precondition(limit > 0)
+        var query = currentQuery(at: now)
+        query["origin"] =
+            ["$regex": "^" + NSRegularExpression.escapedPattern(for: prefix)] as Document
+        query["predicate"] = ["$not": ["$regex": "^memory\\."] as Document] as Document
+        if let after { query["_id"] = ["$gt": after.rawValue] as Document }
+        let documents = try await facts.find(query).sort(["_id": 1]).limit(limit).drain()
+        return try documents.map(decode)
+    }
+
+    /// What a mind kept that another keeping replaced since `since` - the same subject and
+    /// predicate, a new value that is not an ending - with what replaced it. At 5:39 PM Beaky
+    /// kept the instructor's gusty-wind lessons as `person.flight_training`; at 5:44 PM Mango
+    /// kept something else under the same name, and the first was gone from the page (#229).
+    func overwrittenFacts(originPrefix prefix: String, since: Date, limit: Int) async throws
+        -> [(replaced: Fact, by: Fact)]
+    {
+        precondition(limit > 0)
+        let origin: Document = [
+            "$regex": "^" + NSRegularExpression.escapedPattern(for: prefix)
+        ]
+        let documents = try await facts.find([
+            "origin": origin,
+            "superseded_by": ["$ne": Null()] as Document,
+            "valid_to": ["$gte": since] as Document,
+            "predicate": ["$not": ["$regex": "^memory\\."] as Document] as Document,
+        ]).sort(["valid_to": -1]).limit(limit).drain()
+        let replaced = try documents.map(decode)
+        let successorIDs = replaced.compactMap { $0.supersededBy?.rawValue }
+        guard !successorIDs.isEmpty else { return [] }
+        var ids = Document(isArray: true)
+        for id in Set(successorIDs).sorted() { ids.append(id) }
+        let successors = Dictionary(
+            try await facts.find(["_id": ["$in": ids] as Document]).drain().map(decode)
+                .map { ($0.factID, $0) },
+            uniquingKeysWith: { first, _ in first })
+        return replaced.compactMap { old in
+            guard let id = old.supersededBy, let new = successors[id], new.value != .null,
+                new.value != old.value
+            else { return nil }
+            return (old, new)
+        }
+    }
+
+    /// Facts from before 0.49.0 are given their origin from the event they came from, while
+    /// the event is still kept (#229). Returns how many.
+    func backfillOrigin(events: MongoCollection) async throws -> Int {
+        var count = 0
+        while true {
+            let batch = try await facts.find([
+                "origin": ["$exists": false] as Document,
+                "origin_unknown": ["$exists": false] as Document,
+            ]).limit(500).drain()
+            if batch.isEmpty { return count }
+            var eventIDs: [String: String] = [:]
+            for document in batch {
+                guard let id = document["_id"] as? String,
+                    let derived = document["derived_from"] as? Document,
+                    let first = derived.values.first as? String, EventID(rawValue: first) != nil
+                else { continue }
+                eventIDs[id] = first
+            }
+            var wanted = Document(isArray: true)
+            for id in Set(eventIDs.values).sorted() { wanted.append(id) }
+            var sources: [String: String] = [:]
+            for event in try await events.find(["_id": ["$in": wanted] as Document]).drain() {
+                if let id = event["_id"] as? String,
+                    let source = (event["source"] as? Document)?["id"] as? String
+                {
+                    sources[id] = source
+                }
+            }
+            for document in batch {
+                guard let id = document["_id"] as? String else { continue }
+                if let event = eventIDs[id], let source = sources[event] {
+                    _ = try await facts.updateOne(
+                        where: ["_id": id], to: ["$set": ["origin": source] as Document])
+                    count += 1
+                } else {
+                    // Its event is gone: said once, so the next start does not look again.
+                    _ = try await facts.updateOne(
+                        where: ["_id": id], to: ["$set": ["origin_unknown": true] as Document])
+                }
+            }
+        }
     }
 
     /// `^memory\.[a-z]+\.kenny\.`: every family of memory, Kenny's own.

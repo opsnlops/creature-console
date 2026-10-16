@@ -5,7 +5,7 @@ import MongoKitten
 import WorldCore
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 13
+    static let currentVersion = 14
 
     let database: MongoDatabase
     let logger: Logger
@@ -53,6 +53,14 @@ struct MongoWorldMigrator: Sendable {
             logger.info(
                 "Facts are searched by their words", metadata: ["facts.backfilled": "\(given)"])
             try await recordMigration(version: 13, name: "fact_search_text")
+        }
+        if try await !isRecorded(version: 14) {
+            logger.debug("Giving the facts their origin")
+            let given = try await FactRepository(database: database).backfillOrigin(
+                events: database[MongoWorldCollection.events])
+            logger.info(
+                "Facts say who kept them", metadata: ["facts.backfilled": "\(given)"])
+            try await recordMigration(version: 14, name: "fact_origin")
         }
         logger.debug(
             "MongoDB schema migrations recorded",
@@ -280,8 +288,11 @@ struct MongoWorldMigrator: Sendable {
         try await dropIndex(named: "facts_text", in: MongoWorldCollection.facts)
         let search = CreateIndexes.Index(
             named: "facts_search", keys: [FactRepository.searchTextField: "text"])
+        // "What did the minds keep?" - the librarian's question, by who said it (#229).
+        let origins = CreateIndexes.Index(
+            named: "fact_origins", keys: ["origin": 1, "superseded_by": 1, "valid_to": 1])
         try await database[MongoWorldCollection.facts].createIndexes([
-            factID, activeFacts, predicateSubjects, search,
+            factID, activeFacts, predicateSubjects, search, origins,
         ])
     }
 

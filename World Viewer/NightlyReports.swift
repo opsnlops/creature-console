@@ -109,3 +109,115 @@ enum NightlyReports {
         return nil
     }
 }
+
+// MARK: - The librarian's night
+
+extension NightlyReports {
+    /// What the librarian proposed for the record one night (`memory.filed`, #229): facts
+    /// rewritten together, facts retired, ids that are one thing, meanings for the families
+    /// it settled on, and the questions only April can answer. While she watches, nothing of
+    /// it has been applied.
+    struct Filing: Hashable, Sendable {
+        struct Rewrite: Hashable, Sendable {
+            let subject: String
+            let predicate: String
+            let value: String
+            let replaces: Int
+            let reason: String
+        }
+        struct Line: Hashable, Sendable {
+            let what: String
+            let reason: String
+        }
+
+        let day: String
+        let bird: String
+        let watching: Bool
+        let learned: Int
+        let overwritten: Int
+        let rewrites: [Rewrite]
+        let retires: [Line]
+        let same: [Line]
+        let kinds: [Line]
+        let questions: [String]
+        let dropped: Int
+        let event: WorldEventEnvelope
+
+        var isEmpty: Bool {
+            rewrites.isEmpty && retires.isEmpty && same.isEmpty && kinds.isEmpty
+                && questions.isEmpty
+        }
+    }
+
+    /// One night's filing from its `memory.filed` event; nil for anything else.
+    static func filing(from event: WorldEventEnvelope) -> Filing? {
+        guard event.type.rawValue == "memory.filed", case .string(let day)? = event.payload["day"],
+            case .object(let proposal)? = event.payload["proposal"]
+        else { return nil }
+        func text(_ value: WorldJSONValue?) -> String {
+            if case .string(let text)? = value { return text }
+            return ""
+        }
+        func number(_ value: WorldJSONValue?) -> Int {
+            if case .number(let number)? = value { return Int(number) }
+            return 0
+        }
+        func items(_ key: String) -> [[String: WorldJSONValue]] {
+            guard case .array(let values)? = proposal[key] else { return [] }
+            return values.compactMap { if case .object(let item) = $0 { item } else { nil } }
+        }
+        func count(_ value: WorldJSONValue?) -> Int {
+            if case .array(let values)? = value { return values.count }
+            return 0
+        }
+        return Filing(
+            day: day,
+            bird: event.source.id.rawValue.split(separator: ":").last.map(String.init) ?? "",
+            watching: text(event.payload["mode"]) != "applied",
+            learned: number(event.payload["learned"]),
+            overwritten: number(event.payload["overwritten"]),
+            rewrites: items("rewrites").map {
+                .init(
+                    subject: text($0["subject"]), predicate: text($0["predicate"]),
+                    value: text($0["value"]), replaces: count($0["replaces"]),
+                    reason: text($0["reason"]))
+            },
+            retires: items("retires").map {
+                .init(what: text($0["fact"]), reason: text($0["reason"]))
+            },
+            same: items("same").map { item in
+                var ids: [String] = []
+                if case .array(let values)? = item["ids"] { ids = values.map { text($0) } }
+                var sure = false
+                if case .bool(true)? = item["sure"] { sure = true }
+                return .init(
+                    what: "\(ids.joined(separator: " = ")), keep \(text(item["keep"]))"
+                        + (sure ? "" : " (not sure: a question)"),
+                    reason: text(item["reason"]))
+            },
+            kinds: items("kinds").map {
+                .init(what: text($0["predicate"]), reason: text($0["meaning"]))
+            },
+            questions: {
+                guard case .array(let values)? = proposal["questions"] else { return [] }
+                return values.map { text($0) }
+            }(),
+            dropped: number(proposal["dropped"]),
+            event: event)
+    }
+}
+
+extension Fact {
+    /// Who said it, in words: "kept by Mango" for a bird, "from the address book's bridge" for
+    /// the Bridge - the fact's origin (#229). Nil for a fact from before origins were kept.
+    var keptBy: String? {
+        guard let origin else { return nil }
+        let parts = origin.rawValue.split(separator: ":", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else { return "from \(origin.rawValue)" }
+        switch parts[0] {
+        case "mind": return "kept by \(parts[1].capitalized)"
+        case "librarian": return "filed by \(parts[1].capitalized), the librarian"
+        default: return "from \(origin.rawValue)"
+        }
+    }
+}

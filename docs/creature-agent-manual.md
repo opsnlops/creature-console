@@ -119,6 +119,7 @@ World mode keys:
 | `llmReasoningEffort` | none | `low`, `medium`, or `high` for OpenAI reasoning models; when set, no `temperature` is sent |
 | `llmServiceTier` | none | OpenAI `service_tier`: `fast` buys lower latency for a per-token premium (about 2× on the models that support it); a bird in a room may be worth it (`2.62.0`) |
 | `llmCaptureContent` | `output` | `2.88.0`: what was said, on the GenAI spans for Honeycomb - `off`, `output` (the birds' answers), or `all` (also April's words, the facts of the moment, and every look-up). The persona and contracts never ride along. See Observability. |
+| `librarian` | `false` | `2.89.0`, #229: this mind is the flock's librarian - after remembering each night it files what all the minds kept. One bird (the lead), and only with `llmMemoryModel`. Watching for now: the proposal is recorded as `memory.filed` and nothing is changed. See "The librarian". |
 | `personaPath` | none | a persona file (`docs/personas/<bird>.yaml`, installed under `/etc/creature/agent/personas/`); with it the mind *is* that persona and `llmSystemPrompt` is ignored in world mode (`2.60.0`) |
 | `timeZone` | the host's zone | an IANA identifier such as `America/Los_Angeles`; the mind is told the local time in words every turn ("It is 11:45 PM on Friday, September 11."). Set it — a server's clock is usually UTC and a model cannot convert zones (`2.59.0`) |
 
@@ -462,11 +463,43 @@ a guess at how the provider wants a block marked; a wrong one is a 400 here). A 
 cache shows `cached_tokens` in the thousands from round 2. On 2026-09-17 the live minds
 showed `cache_write_tokens` of the whole input on every call and `cached_tokens` 0.
 
+## The librarian
+
+`2.89.0`, #229, `docs/durable-learning-plan.md`. The birds keep what April tells them in the
+moment, and the record scatters: on 2026-10-14 her flight training landed under September's
+`flight.*` and the night's `person.flight_*`, and Mango's `person.flight_training` replaced
+Beaky's five minutes after she kept it. Two things keep learning durable:
+
+- **Seeing what is on file.** The world now hands a mind, beside the page's newest facts, the
+  learned facts the words of the moment call up (`memory.facts_retrieved_in_prompt`, 6), so a
+  bird told "landings are still hard" sees `flight.hardest_part` from a month before. The
+  learning contract says to name a family by its topic (`flight.landings`, never
+  `person.flight_landings`) and that a name holds one value: to add to a fact, keep the whole
+  of it, old and new together.
+- **Filing at night.** The mind with `librarian: true` (Beaky), after its own memory step,
+  reads every current fact a mind kept (`GET /v1/facts?origin_prefix=mind:`), what a later
+  keeping replaced in the last day (`/v1/facts/overwritten`), and the meanings of the families
+  in use, and asks its memory model - batched when it can be - for a proposal: rewrites (facts
+  on one topic folded into one, under one name), retires (no longer so), same (ids that are one
+  thing; *sure* only when the record says so, never a person from a role alone), kinds (a
+  meaning per family), and questions for April. The answer is held to the record: only ids it
+  was shown, each fact once, dotted predicates, never a memory, at most 40 changes; the rest is
+  counted as dropped.
+- **Watching first.** The proposal is cast as one `memory.filed` event (`mode: watching`,
+  source `mind:beaky`, keyed `librarian:<day>:<run>`) and nothing is changed. Read it in the
+  World Viewer's Nightly panel. Applying it - the rewrites cast from `librarian:beaky`,
+  `entity.same_as`, the kinds written to the glossary - is the next ship.
+- In Honeycomb, the night is `agent.librarian.file` with `invoke_agent Beaky` beneath it
+  (conversation `librarian:<day>:<run>`), and `librarian.rewrites` / `.retires` / `.same` /
+  `.questions` / `.dropped` on the span.
+
 ## Observability
 
 The executable uses the shared OpenTelemetry bootstrap; set `OTEL_EXPORTER_OTLP_ENDPOINT` and
 `OTEL_EXPORTER_OTLP_HEADERS` in `/etc/default/creature-agent` (or the shell) exactly as for
-Creature World. In world mode each consideration is an `agent.consider` span under the trace the
+Creature World. **Only there**: a bird's own `/etc/default/creature-agent-<bird>` is read after
+it and overrides it, so `OTEL_*` lines left in one (a template's placeholder key) silently send
+that bird's telemetry nowhere - Caroll sent none for his first week (2026-10-15). In world mode each consideration is an `agent.consider` span under the trace the
 utterance arrived with (phone → gateway → World → mind), with the mind's model work and the
 `creature.world.respond` POST as children.
 
@@ -519,8 +552,10 @@ agent.scene_turn
   `gen_ai.invoke_agent.duration`, `gen_ai.execute_tool.duration` (histograms in seconds, on
   the spec's buckets), each by provider, model, `creature_agent.call_kind`, and `error.type`.
   A batch's answer counts its tokens but not a duration.
-- **The bill** in Honeycomb: `SUM(gen_ai.usage.input_tokens) - SUM(gen_ai.usage.cache_read.input_tokens)`
-  grouped by `creature_agent.call_kind` is the uncached input; the ratio of cache reads to
+- **The bill** in Honeycomb, **filtered to `gen_ai.operation.name = chat`** (the `invoke_agent`
+  span carries its rounds' usage summed, so a query over every span counts it twice):
+  `SUM(gen_ai.usage.input_tokens) - SUM(gen_ai.usage.cache_read.input_tokens)` grouped by
+  `creature_agent.call_kind` is the uncached input; the ratio of cache reads to
   input is whether the prompt layout is working. Each round still logs one `LLM usage` line
   with the provider's raw `usage` object, for the prompt-cache experiments.
 - The old `llm.*` attributes and the `creature_agent.llm.tokens` counter are gone (April:

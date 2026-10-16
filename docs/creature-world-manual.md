@@ -893,6 +893,21 @@ incoming W3C context in the canonical envelope when the sender did not provide o
 Malformed context is rejected before acceptance. The actor's task boundary is tested not to break
 the active context.
 
+**Who kept a fact, and finding it again** (`0.49.0`, #229, `docs/durable-learning-plan.md`).
+Every fact carries an `origin`: the source of the event it came from - `mind:beaky` for what a
+bird kept, `bridge:contacts` for the address book, the event's source for a retraction's
+ending. The producer is still the reducer that cast it. Migration 14 backfills `origin` from
+each fact's event (events are kept 90 days, longer than the world has run) and marks
+`origin_unknown` where the event is gone; the index `fact_origins` serves the query. Beside the
+newest thirty facts, a mind's page now carries up to `memory.facts_retrieved_in_prompt` (6)
+learned facts the words of the moment call up by the text index - kept by a mind (origin
+`mind:` or `librarian:`; never the Bridge's calendar or mail), non-memory, never world-only - so a month-old `flight.hardest_part` is in view when April talks about landings. For the
+librarian: `GET /v1/facts?origin_prefix=mind:` (every current fact a mind kept, memories aside,
+paged; not combinable with `subject_id` or `predicate_prefix`), `GET
+/v1/facts/overwritten?origin_prefix=mind:&since=<ISO>` (what a later keeping replaced since
+then, with what replaced it; an ending is not an overwrite), and `GET /v1/filings` (the newest
+`memory.filed` events, the librarian's nights).
+
 **WorldMCP by the MCP conventions** (`0.48.0`, #230): each MCP message is a SERVER span named
 for its method and tool (`tools/call query_entity`, `tools/list`), with `mcp.method.name`,
 `gen_ai.tool.name` and `gen_ai.operation.name = execute_tool` on a tool call,

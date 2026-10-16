@@ -224,6 +224,16 @@ final class WorldStore {
         }
     }
 
+    /// The librarian's nights, newest first: each night's proposal for the record.
+    func nightlyFilings() async -> [WorldEventEnvelope] {
+        do {
+            return try await makeScryer().filings(limit: 30)
+        } catch {
+            lastError = ErrorAlert(title: "The World Could Not Show the Filings", error: error)
+            return []
+        }
+    }
+
     /// What each of `birds` remembered of `day`: their episodes, on every subject they are on.
     func nightlyEpisodes(day: String, birds: [String]) async -> [Fact] {
         do {

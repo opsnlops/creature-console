@@ -24,6 +24,12 @@ public struct Fact: Hashable, Sendable, Codable {
     public var derivedFrom: [ProvenanceReference]
     public var producer: FactProducer
     public var supersededBy: FactID?
+    /// Who said it: the source of the event the fact came from - `mind:beaky` for what a bird
+    /// kept, `bridge:contacts` for the address book, `librarian:beaky` for a fact she filed.
+    /// The producer is the reducer that cast it, the same for all of those; this is what the
+    /// librarian needs to find "everything a mind kept" (#229). Nil on a fact from before
+    /// 0.49.0 whose event has gone.
+    public var origin: SourceID?
 
     public init(
         factID: FactID = .generated(),
@@ -35,7 +41,8 @@ public struct Fact: Hashable, Sendable, Codable {
         validTo: Date? = nil,
         derivedFrom: [ProvenanceReference],
         producer: FactProducer,
-        supersededBy: FactID? = nil
+        supersededBy: FactID? = nil,
+        origin: SourceID? = nil
     ) throws {
         if let validTo, validTo < validFrom {
             throw WorldContractError.invalidDateInterval
@@ -51,6 +58,7 @@ public struct Fact: Hashable, Sendable, Codable {
         self.derivedFrom = derivedFrom
         self.producer = producer
         self.supersededBy = supersededBy
+        self.origin = origin
     }
 
     public init(from decoder: any Decoder) throws {
@@ -79,6 +87,7 @@ public struct Fact: Hashable, Sendable, Codable {
         )
         self.producer = try container.decode(FactProducer.self, forKey: .producer)
         self.supersededBy = try container.decodeIfPresent(FactID.self, forKey: .supersededBy)
+        self.origin = try container.decodeIfPresent(SourceID.self, forKey: .origin)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -93,5 +102,6 @@ public struct Fact: Hashable, Sendable, Codable {
         case derivedFrom = "derived_from"
         case producer
         case supersededBy = "superseded_by"
+        case origin
     }
 }

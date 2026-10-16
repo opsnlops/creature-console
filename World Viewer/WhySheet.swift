@@ -78,7 +78,7 @@ struct WhySheet: View {
                     if let until = fact.validTo {
                         Text("until \(until, format: .dateTime.month().day().hour().minute())")
                     }
-                    Text("by \(fact.producer.kind) \(fact.producer.id)")
+                    Text(fact.keptBy ?? "by \(fact.producer.kind) \(fact.producer.id)")
                 }
                 .font(.caption2)
                 .foregroundStyle(.secondary)

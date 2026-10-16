@@ -51,7 +51,8 @@ struct FactRetraction: Equatable, Sendable {
             validFrom: event.occurredAt,
             validTo: event.occurredAt.addingTimeInterval(1),
             derivedFrom: [.event(event.eventID), .fact(fact.factID)],
-            producer: producer
+            producer: producer,
+            origin: event.source.id
         )
     }
 }

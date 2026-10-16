@@ -106,7 +106,9 @@ struct FactsPanel: View {
             HStack(spacing: 8) {
                 EpistemicChip(state: fact.epistemic)
                 Text("since \(fact.validFrom, format: .dateTime.hour().minute().second())")
-                Text("by \(fact.producer.kind) \(fact.producer.id) \(fact.producer.version)")
+                Text(
+                    fact.keptBy
+                        ?? "by \(fact.producer.kind) \(fact.producer.id) \(fact.producer.version)")
             }
             .font(.caption2)
             .foregroundStyle(.tertiary)

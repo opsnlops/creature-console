@@ -1,6 +1,6 @@
 # Learning that lasts
 
-*2026-10-14, late. World `0.47.3`, agent `2.87.3`. Plan only: nothing here is built yet. Issue #229.*
+*2026-10-14, late; Ship 1 built 2026-10-15 (World `0.49.0`, agent `2.89.0`, Viewer `0.12.0`). Issue #229.*
 
 ## The night that showed it
 
@@ -180,15 +180,38 @@ Done means viewable ([[feedback-done-means-viewable]]):
   the questions. In watching mode it shows the proposal in full.
 - The entity page for a merged id shows "same as" with a link to the kept entity.
 
-## Versions
+## Two ships
 
-- World `0.48.0`: origin and its migration, retrieval of learned facts, the `librarian:`
-  source, `entity.same_as`, `memory.filed`.
-- Agent `2.88.0`: contract sentences, the librarian job, and `EntityNames` following
-  `same_as`.
-- Viewer: a minor bump for Kept by, Filed by, and `memory.filed`.
-- Debian changelog entry and tag for the agent release. §0 of `beakys-world.md` and both
-  manuals updated in the same PR.
+The night's proposals are read before any of them is applied, so the work ships in two:
+
+- **Ship 1, watching** (World `0.49.0`, agent `2.89.0`, Viewer `0.12.0`, 2026-10-15):
+  - `Fact.origin`, set by the given-fact reducer and by a retraction's ending; migration 14
+    backfills it from each fact's event (kept 90 days, so nearly every learned fact), and
+    marks `origin_unknown` where the event is gone so it looks once; index `fact_origins`.
+  - Learned facts retrieved by the words of the moment: `memory.facts_retrieved_in_prompt`
+    (6), kept by a mind (origin `mind:` or `librarian:`, never the Bridge's calendar),
+    non-memory and non-world-only, their own section of the page. (The first cut searched every
+    non-memory fact; a question about "the weekend" then pulled the calendar past its cap.)
+  - `GET /v1/facts?origin_prefix=mind:`, `GET /v1/facts/overwritten?origin_prefix=&since=`,
+    `GET /v1/filings` (the newest `memory.filed` events, by the `type_occurred_at` index).
+  - The two contract sentences.
+  - `Librarian` (agent): `librarian: true` on the lead (with `llmMemoryModel`), after its own
+    memory step; one batched JSON question; the answer held to the record (only ids it was
+    shown, each fact once, dotted predicates, never `memory.*`, at most 40 changes) and
+    recorded as one `memory.filed` event (`mode: watching`). Nothing is applied.
+  - Viewer: the Nightly panel shows the night's filing above the birds' letters; facts say
+    **kept by Mango** (or **from bridge:contacts**).
+- **Ship 2, applying** (after a night or two of proposals have been read): rewrites and
+  retires cast from `librarian:beaky`, `entity.same_as` (the world redirecting a keeping on a
+  merged id), the kinds written to `fact_kinds`, and `mode: applied`.
+
+The text index was checked against April's real lines before building (2026-10-15): "landings
+are still the hardest part" finds `flight.hardest_part`, "I'm learning to fly" finds
+`person.news` and `person.flight_rules`, "how's the plane doing" finds `flight.plane_owner` and
+`flight.hope`. Memories crowd those results, which is why learned facts are searched apart.
+
+Debian changelog entry and tag for the agent release. §0 of `beakys-world.md` and both
+manuals updated in the same PR.
 
 ## Done means
 

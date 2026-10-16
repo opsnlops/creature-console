@@ -406,6 +406,8 @@ struct ScriptedScryer: WorldScrying {
 
     func explain(_ factID: FactID) async throws -> FactExplanation? { nil }
 
+    func filings(limit: Int) async throws -> [WorldEventEnvelope] { [] }
+
     func worldFrames(resumeAfter sequence: Int64?) throws -> WorldStreamFrames {
         let world = world
         return WorldStreamFrames { continuation in

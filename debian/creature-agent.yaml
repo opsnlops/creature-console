@@ -78,6 +78,12 @@ areas:
 # answers - the default), or all (also April's words, the facts of the moment, and every
 # look-up). The persona and contracts never ride along.
 # llmCaptureContent: output
+#
+# The flock's librarian (2.89.0, #229): after remembering each night, this mind files what all
+# the minds kept - one bird only, the lead, and only with llmMemoryModel set. For now it only
+# watches: the proposal is recorded (memory.filed, the World Viewer's Nightly panel) and
+# nothing is changed.
+# librarian: true
 # The world as tools (2.74.1, OpenAI backend only): WorldMCP, reached by this mind - the
 # model asks for a look-up, the mind runs it against the world on the LAN and hands the
 # answer back; the world is never exposed to the model provider. With it set, a question

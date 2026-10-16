@@ -421,9 +421,25 @@ struct WorldHTTPAPI: Sendable {
                     }
                     return prefix
                 }
+                // By who said it: `origin_prefix=mind:` is everything the birds kept (#229).
+                let originPrefix = try request.uri.queryParameters["origin_prefix"].map {
+                    let prefix = String($0)
+                    guard !prefix.isEmpty, prefix.count <= 120 else {
+                        throw WorldAPIError.invalidQuery(name: "origin_prefix")
+                    }
+                    return prefix
+                }
                 let limit = try pageLimit(request)
                 return try await execute {
-                    try jsonResponse(
+                    if let originPrefix {
+                        guard subjectID == nil, predicatePrefix == nil else {
+                            throw WorldAPIError.invalidQuery(name: "origin_prefix")
+                        }
+                        return try jsonResponse(
+                            await service.currentFacts(
+                                originPrefix: originPrefix, after: after, limit: limit))
+                    }
+                    return try jsonResponse(
                         await service.currentFacts(
                             subjectID: subjectID,
                             predicatePrefix: predicatePrefix,
@@ -431,6 +447,35 @@ struct WorldHTTPAPI: Sendable {
                             limit: limit
                         )
                     )
+                }
+            }
+        }
+
+        // The librarian's nights, newest first: what each night proposed for the record.
+        router.get("v1/filings") { request, _ in
+            await respond {
+                let limit = try pageLimit(request)
+                return try await execute {
+                    try jsonResponse(WorldFilingPage(events: await service.filings(limit: limit)))
+                }
+            }
+        }
+
+        // What the minds kept that a later keeping replaced, since a moment: the librarian
+        // folds these back in.
+        router.get("v1/facts/overwritten") { request, _ in
+            await respond {
+                guard let prefix = request.uri.queryParameters["origin_prefix"].map(String.init),
+                    !prefix.isEmpty, prefix.count <= 120
+                else { throw WorldAPIError.invalidQuery(name: "origin_prefix") }
+                guard let raw = request.uri.queryParameters["since"],
+                    let since = WorldJSON.date(from: String(raw))
+                else { throw WorldAPIError.invalidQuery(name: "since") }
+                let limit = try pageLimit(request)
+                return try await execute {
+                    try jsonResponse(
+                        await service.overwrittenFacts(
+                            originPrefix: prefix, since: since, limit: limit))
                 }
             }
         }

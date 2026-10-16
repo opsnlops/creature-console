@@ -92,6 +92,19 @@ struct WorldEventRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// The newest events of one type, newest first - the nights' filings (`memory.filed`), by
+    /// the `type_occurred_at` index.
+    func events(ofType type: WorldEventType, limit: Int) async throws -> [WorldEventEnvelope] {
+        precondition(limit > 0)
+        let documents =
+            try await events
+            .find(["type": type.rawValue])
+            .sort(["occurred_at": -1])
+            .limit(limit)
+            .drain()
+        return try documents.map(decode)
+    }
+
     /// The last things a character said aloud - `scene.turn` events with words, subject the
     /// character - newest first. What a bird said lately, so it does not say it again.
     func spokenLines(of characterID: EntityID, limit: Int) async throws -> [SpokenLine] {

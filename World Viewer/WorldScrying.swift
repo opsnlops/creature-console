@@ -28,6 +28,8 @@ protocol WorldScrying: Sendable {
     /// One entity, whole.
     func entity(_ entityID: EntityID) async throws -> EntityPage
     func explain(_ factID: FactID) async throws -> FactExplanation?
+    /// The librarian's nights, newest first (`memory.filed`).
+    func filings(limit: Int) async throws -> [WorldEventEnvelope]
 }
 
 /// The Viewer's one kind of write, kept apart from the reads on purpose: a Wizard casting a
@@ -98,6 +100,10 @@ struct LiveWorldScryer: WorldScrying {
     }
 
     func factKinds() async throws -> FactKindPage { try await viewer.factKinds() }
+
+    func filings(limit: Int) async throws -> [WorldEventEnvelope] {
+        try await viewer.filings(limit: limit).events
+    }
 
     func entity(_ entityID: EntityID) async throws -> EntityPage {
         try await viewer.entity(entityID)

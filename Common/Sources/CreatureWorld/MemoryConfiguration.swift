@@ -22,11 +22,16 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
     /// How many memories the words of the moment may call up, by the text index, whatever
     /// their age; 0 for none.
     var retrievedInPrompt: Int
+    /// How many facts the minds kept the words of the moment may call up, whatever their age,
+    /// beside the page's newest: "landings are still the hardest part" brings
+    /// `flight.hardest_part` from a month before, so the bird sees the name already in use
+    /// (#229). 0 for none.
+    var factsRetrievedInPrompt: Int
 
     init(
         hour: Int = 3, minute: Int = 30, timeZone: String = "America/Los_Angeles",
         episodeDays: Int = 30, episodesInPrompt: Int = 6, reflectionsInPrompt: Int = 2,
-        beliefsInPrompt: Int = 8, retrievedInPrompt: Int = 4
+        beliefsInPrompt: Int = 8, retrievedInPrompt: Int = 4, factsRetrievedInPrompt: Int = 6
     ) {
         self.hour = hour
         self.minute = minute
@@ -36,6 +41,7 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
         self.reflectionsInPrompt = reflectionsInPrompt
         self.beliefsInPrompt = beliefsInPrompt
         self.retrievedInPrompt = retrievedInPrompt
+        self.factsRetrievedInPrompt = factsRetrievedInPrompt
     }
 
     var zone: TimeZone { TimeZone(identifier: timeZone) ?? .current }
@@ -82,6 +88,7 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
         case reflectionsInPrompt = "reflections_in_prompt"
         case beliefsInPrompt = "beliefs_in_prompt"
         case retrievedInPrompt = "retrieved_in_prompt"
+        case factsRetrievedInPrompt = "facts_retrieved_in_prompt"
     }
 
     init(from decoder: any Decoder) throws {
@@ -101,7 +108,9 @@ struct MemoryConfiguration: Codable, Equatable, Sendable {
             beliefsInPrompt: try container.decodeIfPresent(Int.self, forKey: .beliefsInPrompt)
                 ?? defaults.beliefsInPrompt,
             retrievedInPrompt: try container.decodeIfPresent(Int.self, forKey: .retrievedInPrompt)
-                ?? defaults.retrievedInPrompt)
+                ?? defaults.retrievedInPrompt,
+            factsRetrievedInPrompt: try container.decodeIfPresent(
+                Int.self, forKey: .factsRetrievedInPrompt) ?? defaults.factsRetrievedInPrompt)
         guard (0...23).contains(hour), (0...59).contains(minute),
             TimeZone(identifier: timeZone) != nil
         else { throw CreatureWorldConfigurationError.invalidRetention("memory") }

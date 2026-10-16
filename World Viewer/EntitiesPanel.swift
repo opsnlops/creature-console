@@ -194,7 +194,7 @@ struct EntityPageView: View {
                         .glassEffect(.regular.tint(.gray.opacity(0.25)), in: .capsule)
                 }
                 Spacer()
-                Text("\(fact.producer.kind) \(fact.producer.id)")
+                Text(fact.keptBy ?? "\(fact.producer.kind) \(fact.producer.id)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

@@ -319,6 +319,35 @@ public struct WorldFactPage: Codable, Equatable, Sendable {
     }
 }
 
+/// A fact a mind kept that a later keeping replaced - the same subject and predicate, a new
+/// value - with what replaced it: what the librarian folds back in (#229).
+public struct OverwrittenFact: Codable, Equatable, Sendable {
+    public var replaced: Fact
+    public var by: Fact
+
+    public init(replaced: Fact, by: Fact) {
+        self.replaced = replaced
+        self.by = by
+    }
+}
+
+public struct OverwrittenFactPage: Codable, Equatable, Sendable {
+    public var items: [OverwrittenFact]
+
+    public init(items: [OverwrittenFact]) {
+        self.items = items
+    }
+}
+
+/// The librarian's nights, newest first: each `memory.filed` event (#229).
+public struct WorldFilingPage: Codable, Equatable, Sendable {
+    public var events: [WorldEventEnvelope]
+
+    public init(events: [WorldEventEnvelope]) {
+        self.events = events
+    }
+}
+
 public struct WorldTimerPage: Codable, Equatable, Sendable {
     public var timers: [WorldTimer]
     public var nextTimerID: TimerID?
