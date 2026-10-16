@@ -194,6 +194,28 @@ struct FilingReviewTests {
         #expect(items.map(\.status) == [.guarded, .guarded])
     }
 
+    @Test("A rename moves everything on the misfiled id, memories too; a person stays a person")
+    func renamesReview() throws {
+        let taco = id("person:rocket-taco-test")
+        let place = id("place:rocket-taco-test")
+        let memory = try kept(taco, "memory.belief.caroll.1", "April often eats there")
+        var card = try kept(id("person:sarah-test"), "contact.phone_kind", "mobile")
+        card.origin = try SourceID(validating: "bridge:contacts")
+        let proposal = LibrarianProposal(renames: [
+            .init(id: taco, to: place, reason: "a taco restaurant"),
+            .init(id: card.subjectID, to: id("place:sarah-test"), reason: "wrong"),
+            .init(id: id("character:kenny"), to: id("thing:kenny"), reason: "wrong"),
+        ])
+        let items = FilingReviewer(
+            proposal: proposal,
+            record: .init(held: [taco: [memory], card.subjectID: [card]], now: now)
+        ).items
+        #expect(items.map(\.status) == [.ready, .guarded, .guarded])
+        #expect(items[0].checked)
+        #expect(items[0].moves == [memory.factID])
+        #expect(items[1].reason?.contains("address book") == true)
+    }
+
     @Test("What was applied before reads as applied")
     func appliedItemsReadAsApplied() {
         let proposal = LibrarianProposal(kinds: [.init(predicate: "gym.routine", meaning: "x")])
@@ -502,6 +524,44 @@ struct FilingApplyMongoTests {
         _ = try await h.persistence.facts.dateFiledFacts()
         let dated = try #require(try await h.persistence.facts.fact(withID: undated.factID))
         #expect(dated.validFrom == source.validFrom)
+    }
+
+    @Test("A rename files the memories on the right kind, and the nightly re-filing follows")
+    func renameMovesMemoriesAndRedirects() async throws {
+        let h = try await harness()
+        defer { Task { await h.persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let taco = id("person:rocket-taco-\(suffix)")
+        let place = id("place:rocket-taco-\(suffix)")
+        try await h.keep(
+            taco, "memory.belief.caroll.1", "April often eats at Rocket Taco", by: "mind:caroll")
+        let candidates = try await h.desk.kindCandidates().candidates
+        #expect(
+            candidates.contains { $0.id == taco && $0.said == ["April often eats at Rocket Taco"] })
+
+        let filing = try filed(
+            LibrarianProposal(renames: [.init(id: taco, to: place, reason: "a taco restaurant")]),
+            subjects: [taco])
+        _ = try await h.world.accept(filing)
+        let result = try #require(
+            try await h.desk.apply(filing.eventID, FilingSelection(renames: [0])))
+        #expect(result.outcomes.first?.applied == true)
+        #expect(
+            try await h.current(place, "memory.belief.caroll.1")?.value
+                == .string("April often eats at Rocket Taco"))
+        #expect(try await h.current(taco, "memory.belief.caroll.1") == nil)
+        #expect(
+            try await h.current(taco, WorldFacts.entitySameAs)?.value == .string(place.rawValue))
+        // Merged away, it is no longer a candidate.
+        #expect(try await !h.desk.kindCandidates().candidates.contains { $0.id == taco })
+
+        // Tomorrow night Caroll believes it again, under the old id: it lands on the place.
+        try await h.clock.advance(by: 86_400)
+        try await h.keep(
+            taco, "memory.belief.caroll.1", "April usually orders chicken there", by: "mind:caroll")
+        #expect(
+            try await h.current(place, "memory.belief.caroll.1")?.value
+                == .string("April usually orders chicken there"))
     }
 
     @Test("The page holds the filed fact once, kept by the librarian, and not what it replaced")

@@ -504,6 +504,13 @@ Beaky's five minutes after she kept it. Two things keep learning durable:
   moment and applies what still stands, from `librarian:beaky`. The agent doesn't change for
   it; the proposal is the shared `LibrarianProposal` type the World reads. See the World
   manual's "Applying a night's filing".
+- **Ids filed as the wrong kind** (`2.92.0`, #236). The record also lists the World's kind
+  candidates (`GET /v1/librarian/kind-candidates`): every `person:` that no address-book card
+  and no `person.*`, `contact.*` or `identity.*` fact names a person, each with a couple of lines
+  of what is said of it. Beaky may propose `renames` (`{id, to, reason}`): the same name as a
+  `place:`, `thing:` or `spell:`. A rename is held to the candidates and counts toward the 40.
+  On 2026-10-16 the nightly memory had filed Rocket Taco and UUCWI, April's church, as people.
+  A World older than 0.53.0 has no candidates, and the night files without them.
 - In Honeycomb, the night is `agent.librarian.file` with `invoke_agent Beaky` beneath it
   (conversation `librarian:<day>:<run>`), and `librarian.rewrites` / `.retires` / `.same` /
   `.questions` / `.dropped` on the span.

@@ -293,3 +293,35 @@ struct FilingChecksTests {
         #expect(NightlyReports.badge(review.items[0], outcome: outcome) == "skipped")
     }
 }
+
+@Suite("A night's renames")
+struct FilingRenameRowsTests {
+    @Test("A rename reads as the old id, the new, and what moves")
+    func renameRow() throws {
+        let filing = try WorldEventEnvelope(
+            type: WorldEventType(validating: "memory.filed"),
+            occurredAt: Date(timeIntervalSince1970: 1_790_000_000),
+            source: EventSource(id: SourceID(validating: "mind:beaky"), kind: "mind"),
+            subjectIDs: [try EntityID(validating: "character:beaky")],
+            epistemic: EpistemicState(type: .remembered, confidence: 1), payload: [:])
+        let review = FilingReview(
+            filing: filing,
+            proposal: LibrarianProposal(renames: [
+                .init(
+                    id: try EntityID(validating: "person:rocket-taco"),
+                    to: try EntityID(validating: "place:rocket-taco"), reason: "a taco restaurant")
+            ]),
+            items: [
+                .init(
+                    key: .init(.renames, 0), status: .ready, checked: true,
+                    moves: [FactID.generated(), FactID.generated()])
+            ],
+            facts: [])
+        let row = try #require(NightlyReports.rows(of: review).first)
+        #expect(row.title == "person:rocket-taco → place:rocket-taco")
+        #expect(row.body == "a taco restaurant")
+        #expect(row.detail == "moves 2 facts")
+        #expect(
+            NightlyReports.FilingChecks(review: review).selection == FilingSelection(renames: [0]))
+    }
+}

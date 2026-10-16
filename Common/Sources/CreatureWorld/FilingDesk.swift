@@ -25,7 +25,7 @@ struct FilingDesk: Sendable {
         let named = FilingReviewer.factIDs(in: proposal).union(
             items.flatMap { $0.moves + $0.stays })
         let shown = named.compactMap { id in
-            record.facts[id] ?? record.kept.values.joined().first { $0.factID == id }
+            record.facts[id] ?? record.held.values.joined().first { $0.factID == id }
         }.sorted { $0.factID.rawValue < $1.factID.rawValue }
         return FilingReview(filing: filing, proposal: proposal, items: items, facts: shown)
     }
@@ -84,7 +84,7 @@ struct FilingDesk: Sendable {
         var items: [FilingItemKey] = []
         var application = FilingApplication(filing: filingID, items: [])
         var ended: Set<FactID> = []
-        var merges: [(LibrarianProposal.Same, FilingReviewItem)] = []
+        var merges: [(merged: [EntityID], keep: EntityID, item: FilingReviewItem)] = []
         for key in selection.keys {
             guard let item = review.item(key), item.status == .ready else {
                 let status = review.item(key)
@@ -112,7 +112,11 @@ struct FilingDesk: Sendable {
                 application.retires.append(.init(fact))
                 ended.insert(retire.fact)
             case .same:
-                merges.append((review.proposal.same[key.index], item))
+                let same = review.proposal.same[key.index]
+                merges.append((same.merged, same.keep, item))
+            case .renames:
+                let rename = review.proposal.renames[key.index]
+                merges.append(([rename.id], rename.to, item))
             case .kinds:
                 application.kinds.append(review.proposal.kinds[key.index])
             }
@@ -120,9 +124,9 @@ struct FilingDesk: Sendable {
             outcomes.append(.init(key: key, applied: true))
         }
         // A fact a rewrite or retire just ended does not move: that would bring it back.
-        application.merges = merges.map { same, item in
+        application.merges = merges.map { merged, keep, item in
             .init(
-                merged: same.merged, keep: same.keep,
+                merged: merged, keep: keep,
                 moves: item.moves.filter { !ended.contains($0) }.compactMap { byID[$0] }.map(
                     FilingApplication.Move.init))
         }
@@ -152,6 +156,45 @@ struct FilingDesk: Sendable {
             }
         }
         return FilingApplyResult(outcomes: outcomes, event: acceptance.event)
+    }
+
+    // MARK: - Ids that may be the wrong kind
+
+    /// The most facts read to find them; a household's people are a few thousand at most.
+    static let maximumPersonFacts = 20_000
+    /// The predicate families that say someone is a person: what a bird or April said of them.
+    static let personFamilies = ["person.", "contact.", "identity."]
+
+    /// Every `person:` nobody named a person - no address-book card, no `person.*`,
+    /// `contact.*` or `identity.*` fact - and not merged away, with up to two lines of what is
+    /// said of it. `person:rocket-taco` held only memories of tacos (#236).
+    func kindCandidates() async throws -> KindCandidatePage {
+        let facts = try await facts.currentFacts(
+            subjectKind: "person", limit: Self.maximumPersonFacts, at: await clock.now)
+        let bySubject = Dictionary(grouping: facts.filter { $0.value != .null }, by: \.subjectID)
+        let candidates = bySubject.compactMap { id, facts -> KindCandidate? in
+            let named = facts.contains { fact in
+                fact.origin?.rawValue == FilingReviewer.addressBook
+                    || fact.predicate == WorldFacts.entitySameAs
+                    || Self.personFamilies.contains { fact.predicate.hasPrefix($0) }
+            }
+            guard !named else { return nil }
+            let said = facts.sorted { $0.validFrom > $1.validFrom }.prefix(2).map {
+                String(Self.line($0.value).prefix(240))
+            }
+            return KindCandidate(id: id, said: said)
+        }
+        return KindCandidatePage(candidates: candidates.sorted { $0.id.rawValue < $1.id.rawValue })
+    }
+
+    /// A value as a line: a memory by what happened, a string as itself.
+    private static func line(_ value: WorldJSONValue) -> String {
+        switch value {
+        case .string(let text): text
+        case .object(let fields):
+            if case .string(let what)? = fields["what"] { what } else { "" }
+        default: ""
+        }
     }
 
     // MARK: - A merge redirects

@@ -57,8 +57,11 @@ struct Librarian: Sendable {
                 since: now.addingTimeInterval(-Self.overwrittenWindow))
             span.attributes["librarian.overwritten"] = overwritten.count
             let kinds = Self.kinds(for: learned, from: try await fetchKinds())
+            let candidates = try await fetchKindCandidates()
+            span.attributes["librarian.kind_candidates"] = candidates.count
             let transcript = Self.transcript(
-                learned: learned, overwritten: overwritten, kinds: kinds, name: name)
+                learned: learned, overwritten: overwritten, kinds: kinds,
+                candidates: candidates, name: name)
             let data = try await GenAI.invokeAgent(
                 name, conversationID: "librarian:\(day):\(run.rawValue)", kind: .memory,
                 capture: capture, model: model.modelName, outputType: "json"
@@ -66,8 +69,9 @@ struct Librarian: Sendable {
                 try await ask(transcript, customID: "librarian:\(day):\(run.rawValue)")
             }
             let proposal = Self.proposal(
-                from: data, learned: learned, overwritten: overwritten)
+                from: data, learned: learned, overwritten: overwritten, candidates: candidates)
             span.attributes["librarian.rewrites"] = proposal.rewrites.count
+            span.attributes["librarian.renames"] = proposal.renames.count
             span.attributes["librarian.retires"] = proposal.retires.count
             span.attributes["librarian.same"] = proposal.same.count
             span.attributes["librarian.questions"] = proposal.questions.count
@@ -135,15 +139,21 @@ struct Librarian: Sendable {
     }
 
     static func transcript(
-        learned: [Fact], overwritten: [OverwrittenFact], kinds: [FactKind], name: String
+        learned: [Fact], overwritten: [OverwrittenFact], kinds: [FactKind],
+        candidates: [KindCandidate] = [], name: String
     ) -> [LocalLLMClient.Message] {
         [
             .init(role: .system, content: instructions(name: name)),
             .init(
                 role: .user,
-                content: record(learned: learned, overwritten: overwritten, kinds: kinds)),
+                content: record(
+                    learned: learned, overwritten: overwritten, kinds: kinds,
+                    candidates: candidates)),
         ]
     }
+
+    /// The kinds a rename may give: what a misfiled person really is (#236).
+    static let renameKinds: Set<String> = ["place", "thing", "spell"]
 
     static func instructions(name: String) -> String {
         """
@@ -162,6 +172,8 @@ struct Librarian: Sendable {
         "retires": [{"fact": "<fact id>", "reason": "<one line>"}],
         "same": [{"ids": ["<id>", "<id>"], "keep": "<one of them>", "sure": true or false, \
         "reason": "<one line>"}],
+        "renames": [{"id": "<an id from \"may be the wrong kind\">", "to": "<the same name, \
+        the right kind: place:, thing:, or spell:>", "reason": "<one line>"}],
         "kinds": [{"predicate": "<family.name>", "meaning": "<what a value under it says, \
         one sentence>"}],
         "questions": ["<a plain question only April can answer>"]}
@@ -178,9 +190,13 @@ struct Librarian: Sendable {
         the record itself says so - the same name, the same description. Never sure about a \
         person from a role alone: two people can both clean a house. When not sure, it is \
         a question.
+        - A rename is for an id filed as the wrong kind: a restaurant, a church, a town, or a \
+        ferry filed as a person - person:rocket-taco is place:rocket-taco. Rename only from \
+        the ids listed as maybe the wrong kind, and only when what is said of it shows it is \
+        not a person; a person with an unusual name stays a person.
         - A kind gives each family you settle on its meaning, for every bird to read.
         - Leave alone what is already filed well. Use only the fact ids and subject ids in \
-        the record. At most \(maximumChanges) rewrites, retires, and sames together. If \
+        the record. At most \(maximumChanges) rewrites, retires, sames, and renames together. If \
         nothing needs filing, answer with empty lists.
         Answer with the JSON object only.
         """
@@ -188,9 +204,10 @@ struct Librarian: Sendable {
 
     /// The record as the librarian reads it: the kept facts by subject, what was written
     /// over, and the kinds already meant.
-    static func record(learned: [Fact], overwritten: [OverwrittenFact], kinds: [FactKind])
-        -> String
-    {
+    static func record(
+        learned: [Fact], overwritten: [OverwrittenFact], kinds: [FactKind],
+        candidates: [KindCandidate] = []
+    ) -> String {
         var lines = ["What the minds kept, by subject:"]
         let bySubject = Dictionary(grouping: learned, by: \.subjectID)
         for subject in bySubject.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
@@ -211,6 +228,16 @@ struct Librarian: Sendable {
                         + "\"\(text(of: item.replaced.value))\" (\(item.replaced.origin?.rawValue ?? "a mind")) "
                         + "was replaced by [\(item.by.factID.rawValue)] \"\(text(of: item.by.value))\" "
                         + "(\(item.by.origin?.rawValue ?? "a mind"))")
+            }
+        }
+        if !candidates.isEmpty {
+            lines.append("")
+            lines.append(
+                "May be the wrong kind (filed as a person, but nobody named it one - no address "
+                    + "book card, nothing a bird kept says it is a person):")
+            for candidate in candidates {
+                lines.append("  \(candidate.id.rawValue)")
+                for said in candidate.said { lines.append("    - \(said)") }
             }
         }
         if !kinds.isEmpty {
@@ -242,7 +269,10 @@ struct Librarian: Sendable {
     /// The model's answer, held to the record: only facts and subjects it was shown, each
     /// fact touched once, predicates of the dotted shape, at most `maximumChanges` changes.
     /// What does not hold is counted and left out, never guessed at.
-    static func proposal(from data: Data, learned: [Fact], overwritten: [OverwrittenFact])
+    static func proposal(
+        from data: Data, learned: [Fact], overwritten: [OverwrittenFact],
+        candidates: [KindCandidate] = []
+    )
         -> Proposal
     {
         var proposal = Proposal()
@@ -326,6 +356,23 @@ struct Librarian: Sendable {
             proposal.same.append(
                 .init(ids: ids, keep: keep, sure: sure, reason: string(item["reason"]) ?? ""))
         }
+        let suspects = Set(candidates.map(\.id))
+        var renamed: Set<EntityID> = []
+        for item in items("renames") {
+            guard changes < maximumChanges,
+                let id = string(item["id"]).flatMap(EntityID.init(rawValue:)),
+                suspects.contains(id), !renamed.contains(id),
+                let to = string(item["to"]).flatMap(EntityID.init(rawValue:)),
+                let kind = to.rawValue.split(separator: ":").first.map(String.init),
+                renameKinds.contains(kind), to != id
+            else {
+                proposal.dropped += 1
+                continue
+            }
+            renamed.insert(id)
+            changes += 1
+            proposal.renames.append(.init(id: id, to: to, reason: string(item["reason"]) ?? ""))
+        }
         for item in items("kinds") {
             guard let predicate = string(item["predicate"]), LearnedFact.isPredicate(predicate),
                 !predicate.hasPrefix("memory."), let meaning = string(item["meaning"])
@@ -373,6 +420,20 @@ struct Librarian: Sendable {
 
     private func fetchKinds() async throws -> FactKindPage {
         try await get("fact-kinds", query: [])
+    }
+
+    /// The ids that may be the wrong kind; none from a world too old to say (before 0.53.0),
+    /// so the night files the rest.
+    private func fetchKindCandidates() async throws -> [KindCandidate] {
+        do {
+            let page: KindCandidatePage = try await get("librarian/kind-candidates", query: [])
+            return page.candidates
+        } catch {
+            logger.warning(
+                "The world could not list ids that may be the wrong kind; filing without them",
+                metadata: ["error": "\(error)"])
+            return []
+        }
     }
 
     private func get<Value: Decodable>(_ path: String, query: [URLQueryItem]) async throws

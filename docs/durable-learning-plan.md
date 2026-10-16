@@ -344,7 +344,49 @@ and this page updated in the same PR.
   it replaced.
 - **Viewer:** review decoding, default checks, and outcome mapping.
 
-### Done means
+### Renames: ids filed as the wrong kind
+
+Planned 2026-10-16 (#236). April: "Looks like the birds are getting people and places mixed
+up. person:rocket-taco and person:uucwi." Then: "Can maybe the librarian look over that each
+night?"
+
+**Why it happens.** The nightly memory names what an episode is about the way it appears in
+the record ("Jesse", "the front door"). The agent's resolver (`Learning.swift`) then guesses
+the kind. Place words make a place, thing words a thing, and any other name that looks like a
+person becomes `person:`. "Rocket Taco" and "UUCWI" both look like one. Once the id exists,
+the resolver prefers it, so Caroll's belief about the taco place is re-filed on
+`person:rocket-taco` every night.
+
+**The librarian's part.**
+
+- **She sees the suspects.** `GET /v1/librarian/kind-candidates` lists every `person:` id
+  that nobody named a person: no address-book fact (`bridge:contacts`), and no `person.*` or
+  `contact.*` fact a bird kept. Each comes with up to two lines of what is said about it. On
+  2026-10-16 that is `person:rocket-taco`, `person:uucwi`, and `person:adlai` (a real person,
+  to be left alone). Her record gains the list.
+- **A new proposal: rename.** `{"renames": [{"id": "person:rocket-taco", "to":
+  "place:rocket-taco", "reason": "..."}]}`. `to` keeps the name and changes the kind (`place:`,
+  `thing:` or `spell:`). It counts toward the night's 40 changes, and is held to the
+  candidates she was shown.
+- **The World reviews it like a merge into a new id.** Guarded:
+  - a bird;
+  - an id the address book holds;
+  - an id already merged away, or a `to` that was.
+
+  Its `moves` are every current fact on the id, **memories included**: a merge leaves a
+  bird's memories where they were, but here the whole id was misfiled. `entity.same_as` and
+  the protected kinds stay. It starts checked.
+- **Applying uses the merge machinery.** `entity.same_as` goes on the old id and the facts
+  move. The accept-path redirect then files Caroll's nightly belief on `place:rocket-taco`,
+  so the problem stops repeating.
+- **The Viewer** shows "Wrong kind" rows with a checkbox.
+
+**Versions:** agent `2.92.0` (tag), World `0.53.0`, Viewer `0.15.0`.
+
+**Not in this change:** letting the memory prompt say the kind ("place: Rocket Taco"), so
+fewer of these happen at all. It's worth doing next, as its own change.
+
+## Done means
 
 - On a real night April opens the filing and leaves the workshop merge unchecked (if it's
   proposed again), checks the rest, and applies.

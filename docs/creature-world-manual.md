@@ -974,6 +974,13 @@ barn (the new workshop).
   outcome: applied, or skipped with the reason.
 - **A merge redirects.** A mind's `facts.given` on an id with `entity.same_as` is filed on the
   kept id before it's stored, with `redirected_from` in the payload.
+- **Renames** (`0.53.0`, #236). `GET /v1/librarian/kind-candidates` lists every `person:` that
+  no address-book fact (`bridge:contacts`) and no `person.*`, `contact.*` or `identity.*` fact
+  names a person, and that isn't merged away, each with up to two lines of what is said of
+  it. A proposal's `renames` (`{id, to, reason}`) are reviewed as a merge into `to`, which
+  may not exist yet. Guarded: a bird, an id the address book holds, or an id already merged on
+  either side. Every current fact on the id moves, **memories included**, since the whole id
+  was misfiled. `entity.same_as` and the protected kinds stay. A rename starts checked.
 
 
 **WorldMCP by the MCP conventions** (`0.48.0`, #230): each MCP message is a SERVER span named

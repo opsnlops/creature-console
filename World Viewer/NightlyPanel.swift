@@ -307,6 +307,7 @@ private struct FilingView: View {
             case .rewrites: ("Rewrite", "square.and.pencil")
             case .retires: ("Retire", "archivebox")
             case .same: ("Same thing", "equal.circle")
+            case .renames: ("Wrong kind", "arrow.triangle.swap")
             case .kinds: ("What the families mean", "character.book.closed")
             }
         return Label(title, systemImage: image)

@@ -76,6 +76,20 @@ public struct LibrarianProposal: Codable, Equatable, Sendable {
         public var merged: [EntityID] { ids.filter { $0 != keep } }
     }
 
+    /// An id filed as the wrong kind - a taco restaurant as `person:rocket-taco` - and the id
+    /// it should be: the same name, the right kind (#236).
+    public struct Rename: Codable, Equatable, Sendable {
+        public var id: EntityID
+        public var to: EntityID
+        public var reason: String
+
+        public init(id: EntityID, to: EntityID, reason: String) {
+            self.id = id
+            self.to = to
+            self.reason = reason
+        }
+    }
+
     public struct Kind: Codable, Equatable, Sendable {
         public var predicate: String
         public var meaning: String
@@ -89,6 +103,7 @@ public struct LibrarianProposal: Codable, Equatable, Sendable {
     public var rewrites: [Rewrite]
     public var retires: [Retire]
     public var same: [Same]
+    public var renames: [Rename]
     public var kinds: [Kind]
     public var questions: [String]
     /// What the answer proposed that the record does not hold - an id it made up, a fact
@@ -97,11 +112,12 @@ public struct LibrarianProposal: Codable, Equatable, Sendable {
 
     public init(
         rewrites: [Rewrite] = [], retires: [Retire] = [], same: [Same] = [],
-        kinds: [Kind] = [], questions: [String] = [], dropped: Int = 0
+        renames: [Rename] = [], kinds: [Kind] = [], questions: [String] = [], dropped: Int = 0
     ) {
         self.rewrites = rewrites
         self.retires = retires
         self.same = same
+        self.renames = renames
         self.kinds = kinds
         self.questions = questions
         self.dropped = dropped
@@ -112,6 +128,7 @@ public struct LibrarianProposal: Codable, Equatable, Sendable {
         rewrites = try container.decodeIfPresent([Rewrite].self, forKey: .rewrites) ?? []
         retires = try container.decodeIfPresent([Retire].self, forKey: .retires) ?? []
         same = try container.decodeIfPresent([Same].self, forKey: .same) ?? []
+        renames = try container.decodeIfPresent([Rename].self, forKey: .renames) ?? []
         kinds = try container.decodeIfPresent([Kind].self, forKey: .kinds) ?? []
         questions = try container.decodeIfPresent([String].self, forKey: .questions) ?? []
         dropped = try container.decodeIfPresent(Int.self, forKey: .dropped) ?? 0
@@ -141,6 +158,7 @@ public enum FilingList: String, Codable, CaseIterable, Comparable, Sendable {
     case rewrites
     case retires
     case same
+    case renames
     case kinds
 
     public static func < (lhs: Self, rhs: Self) -> Bool {
@@ -251,12 +269,17 @@ public struct FilingSelection: Codable, Equatable, Sendable {
     public var rewrites: [Int]
     public var retires: [Int]
     public var same: [Int]
+    public var renames: [Int]
     public var kinds: [Int]
 
-    public init(rewrites: [Int] = [], retires: [Int] = [], same: [Int] = [], kinds: [Int] = []) {
+    public init(
+        rewrites: [Int] = [], retires: [Int] = [], same: [Int] = [], renames: [Int] = [],
+        kinds: [Int] = []
+    ) {
         self.rewrites = rewrites
         self.retires = retires
         self.same = same
+        self.renames = renames
         self.kinds = kinds
     }
 
@@ -267,6 +290,7 @@ public struct FilingSelection: Codable, Equatable, Sendable {
             case .rewrites: rewrites.append(key.index)
             case .retires: retires.append(key.index)
             case .same: same.append(key.index)
+            case .renames: renames.append(key.index)
             case .kinds: kinds.append(key.index)
             }
         }
@@ -277,11 +301,12 @@ public struct FilingSelection: Codable, Equatable, Sendable {
         rewrites = try container.decodeIfPresent([Int].self, forKey: .rewrites) ?? []
         retires = try container.decodeIfPresent([Int].self, forKey: .retires) ?? []
         same = try container.decodeIfPresent([Int].self, forKey: .same) ?? []
+        renames = try container.decodeIfPresent([Int].self, forKey: .renames) ?? []
         kinds = try container.decodeIfPresent([Int].self, forKey: .kinds) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
-        case rewrites, retires, same, kinds
+        case rewrites, retires, same, renames, kinds
     }
 
     /// Every checked item, once, in order.
@@ -289,7 +314,9 @@ public struct FilingSelection: Codable, Equatable, Sendable {
         Set(
             rewrites.map { FilingItemKey(.rewrites, $0) }
                 + retires.map { FilingItemKey(.retires, $0) }
-                + same.map { FilingItemKey(.same, $0) } + kinds.map { FilingItemKey(.kinds, $0) }
+                + same.map { FilingItemKey(.same, $0) }
+                + renames.map { FilingItemKey(.renames, $0) }
+                + kinds.map { FilingItemKey(.kinds, $0) }
         ).sorted()
     }
 }
@@ -437,5 +464,26 @@ public struct FilingApplyResult: Codable, Equatable, Sendable {
     public init(outcomes: [FilingOutcome], event: WorldEventEnvelope?) {
         self.outcomes = outcomes
         self.event = event
+    }
+}
+
+/// An id that may be filed as the wrong kind: a `person:` nobody named a person - no address
+/// book card, no `person.*` or `contact.*` a bird kept - with a few lines of what is said
+/// about it, for the librarian to judge (#236).
+public struct KindCandidate: Codable, Equatable, Sendable {
+    public var id: EntityID
+    public var said: [String]
+
+    public init(id: EntityID, said: [String]) {
+        self.id = id
+        self.said = said
+    }
+}
+
+public struct KindCandidatePage: Codable, Equatable, Sendable {
+    public var candidates: [KindCandidate]
+
+    public init(candidates: [KindCandidate]) {
+        self.candidates = candidates
     }
 }

@@ -1,3 +1,20 @@
+creature-cli (2.92.0+world0.53.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.92.0, creature-world 0.53.0: the librarian renames
+    ids filed as the wrong kind (#236). The nightly memory had filed
+    Rocket Taco and UUCWI, April's church, as people, and re-filed
+    Caroll's belief on person:rocket-taco every night. The World lists
+    every person nobody named a person (GET
+    /v1/librarian/kind-candidates: no address-book card, no person.*,
+    contact.* or identity.* fact); Beaky's record shows them, and her
+    proposal gains renames ({id, to, reason}, to a place, thing or
+    spell). The review guards birds, address-book ids and ids already
+    merged; applying is a merge into the new id that moves everything,
+    memories too, and the redirect files later keepings on it.
+    World Viewer 0.15.0: "Wrong kind" rows with a checkbox.
+
+ -- April White <april@creature.engineering>  Fri, 16 Oct 2026 19:30:00 -0700
+
 creature-cli (2.91.0+world0.52.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.52.1: a filed fact is as old as what it says

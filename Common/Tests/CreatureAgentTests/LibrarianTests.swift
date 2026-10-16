@@ -58,6 +58,30 @@ struct LibrarianTests {
 
     private func answer(_ json: String) -> Data { Data(json.utf8) }
 
+    @Test(
+        "A rename is held to the ids shown as maybe the wrong kind, and to place, thing, or spell")
+    func renamesAreHeldToTheCandidates() throws {
+        let (learned, overwritten) = try record()
+        let taco = try EntityID(validating: "person:rocket-taco")
+        let proposal = Librarian.proposal(
+            from: answer(
+                #"""
+                {"renames": [
+                  {"id": "person:rocket-taco", "to": "place:rocket-taco", "reason": "a restaurant"},
+                  {"id": "person:rocket-taco", "to": "thing:rocket-taco", "reason": "twice"},
+                  {"id": "person:jesse", "to": "place:jesse", "reason": "not shown"},
+                  {"id": "person:uucwi", "to": "character:uucwi", "reason": "never a bird"}
+                ]}
+                """#),
+            learned: learned, overwritten: overwritten,
+            candidates: [
+                KindCandidate(id: taco, said: []),
+                KindCandidate(id: try EntityID(validating: "person:uucwi"), said: []),
+            ])
+        #expect(proposal.renames.map(\.to.rawValue) == ["place:rocket-taco"])
+        #expect(proposal.dropped == 3)
+    }
+
     @Test("A proposal is held to the record: made-up ids, a fact twice, memories, and shapes drop")
     func proposalsAreHeldToTheRecord() throws {
         let (learned, overwritten) = try record()
@@ -185,6 +209,18 @@ struct LibrarianTests {
                     byteBuffer: ByteBuffer(
                         bytes: try WorldJSON.makeEncoder().encode(FactKindPage(kinds: [])))))
         }
+        router.get("world/v1/librarian/kind-candidates") { _, _ in
+            Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(
+                        bytes: try WorldJSON.makeEncoder().encode(
+                            KindCandidatePage(candidates: [
+                                KindCandidate(
+                                    id: try EntityID(validating: "person:rocket-taco"),
+                                    said: ["April often eats at Rocket Taco."])
+                            ])))))
+        }
         let application = Application(
             router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
         let casts = Casts()
@@ -203,7 +239,7 @@ struct LibrarianTests {
                     ask: { transcript in
                         await asked.note(transcript.last?.content ?? "")
                         return Data(
-                            #"{"retires": [{"fact": "fact:00000000-0000-4000-8000-000000000003", "reason": "old news"}], "questions": ["Is Amber Tamara?"]}"#
+                            #"{"retires": [{"fact": "fact:00000000-0000-4000-8000-000000000003", "reason": "old news"}], "renames": [{"id": "person:rocket-taco", "to": "place:rocket-taco", "reason": "a taco restaurant"}], "questions": ["Is Amber Tamara?"]}"#
                                 .utf8)
                     }),
                 cast: { await casts.note($0) }, client: client,
@@ -214,6 +250,8 @@ struct LibrarianTests {
         }
         #expect(await asked.prompts.count == 1)
         #expect(await asked.prompts.first?.contains("Written over since yesterday") == true)
+        #expect(await asked.prompts.first?.contains("May be the wrong kind") == true)
+        #expect(await asked.prompts.first?.contains("April often eats at Rocket Taco.") == true)
         let events = await casts.events
         // Watching: the proposal and nothing else - no fact cast, no kind written.
         #expect(events.count == 1)
@@ -236,6 +274,8 @@ struct LibrarianTests {
         }
         #expect(retires.count == 1)
         #expect(questions == [.string("Is Amber Tamara?")])
+        #expect(
+            LibrarianProposal(filed: filed)?.renames.map(\.to.rawValue) == ["place:rocket-taco"])
     }
 
     @Test("A night with nothing kept asks nothing")

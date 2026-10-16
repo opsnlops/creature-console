@@ -138,13 +138,14 @@ extension NightlyReports {
         let rewrites: [Rewrite]
         let retires: [Line]
         let same: [Line]
+        let renames: [Line]
         let kinds: [Line]
         let questions: [String]
         let dropped: Int
         let event: WorldEventEnvelope
 
         var isEmpty: Bool {
-            rewrites.isEmpty && retires.isEmpty && same.isEmpty && kinds.isEmpty
+            rewrites.isEmpty && retires.isEmpty && same.isEmpty && renames.isEmpty && kinds.isEmpty
                 && questions.isEmpty
         }
     }
@@ -194,6 +195,9 @@ extension NightlyReports {
                     what: "\(ids.joined(separator: " = ")), keep \(text(item["keep"]))"
                         + (sure ? "" : " (not sure: a question)"),
                     reason: text(item["reason"]))
+            },
+            renames: items("renames").map {
+                .init(what: "\(text($0["id"])) → \(text($0["to"]))", reason: text($0["reason"]))
             },
             kinds: items("kinds").map {
                 .init(what: text($0["predicate"]), reason: text($0["meaning"]))
@@ -274,6 +278,18 @@ extension NightlyReports {
                     title: same.ids.map(\.rawValue).joined(separator: " = "),
                     body: "keep \(same.keep.rawValue)\(same.sure ? "" : " (not sure)")",
                     detail: joined([movement, same.reason]), replaced: [])
+            case .renames:
+                guard proposal.renames.indices.contains(key.index) else { return nil }
+                let rename = proposal.renames[key.index]
+                let movement =
+                    item.moves.isEmpty && item.stays.isEmpty
+                    ? ""
+                    : "moves \(plural(item.moves.count, "fact"))"
+                        + (item.stays.isEmpty ? "" : ", \(item.stays.count) stay")
+                return FilingRow(
+                    key: key, item: item,
+                    title: "\(rename.id.rawValue) → \(rename.to.rawValue)", body: rename.reason,
+                    detail: movement, replaced: [])
             case .kinds:
                 guard proposal.kinds.indices.contains(key.index) else { return nil }
                 let kind = proposal.kinds[key.index]

@@ -51,15 +51,18 @@ struct FilingReviewer: Sendable {
 
     /// Every entity id the proposal names.
     static func entityIDs(in proposal: LibrarianProposal) -> Set<EntityID> {
-        Set(proposal.same.flatMap(\.ids) + proposal.rewrites.map(\.subject))
+        Set(
+            proposal.same.flatMap(\.ids) + proposal.rewrites.map(\.subject)
+                + proposal.renames.flatMap { [$0.id, $0.to] })
     }
 
     var items: [FilingReviewItem] {
         proposal.rewrites.indices.map(rewrite) + proposal.retires.indices.map(retire)
-            + proposal.same.indices.map(same) + proposal.kinds.indices.map(kind)
+            + proposal.same.indices.map(same) + proposal.renames.indices.map(rename)
+            + proposal.kinds.indices.map(kind)
     }
 
-    // MARK: - The four lists
+    // MARK: - The lists
 
     private func rewrite(_ index: Int) -> FilingReviewItem {
         let key = FilingItemKey(.rewrites, index)
@@ -133,6 +136,50 @@ struct FilingReviewer: Sendable {
             key: key, status: .ready,
             reason: item.sure ? nil : "not sure: April's to decide", checked: item.sure,
             moves: moves, stays: stays)
+    }
+
+    /// An id filed as the wrong kind, renamed: a merge into an id that may not exist yet, and
+    /// everything moves - memories too, since the whole id was misfiled (#236).
+    private func rename(_ index: Int) -> FilingReviewItem {
+        let key = FilingItemKey(.renames, index)
+        let item = proposal.renames[index]
+        if record.applied.contains(key) { return applied(key) }
+        if item.id.rawValue.hasPrefix("character:") || item.to.rawValue.hasPrefix("character:") {
+            return .init(key: key, .guarded("birds are never renamed"))
+        }
+        let current = record.held[item.id] ?? []
+        if current.contains(where: { $0.origin?.rawValue == Self.addressBook }) {
+            return .init(
+                key: key,
+                .guarded("the address book names \(item.id.rawValue); that is a person"))
+        }
+        if let merged = [item.id, item.to].first(where: { record.sameAs[$0] != nil }) {
+            return .init(
+                key: key,
+                .guarded(
+                    "\(merged.rawValue) was already merged into \(record.sameAs[merged]!.rawValue)")
+            )
+        }
+        let held = Set((record.held[item.to] ?? []).map(\.predicate))
+        var moves: [FactID] = []
+        var stays: [FactID] = []
+        for fact in current where Self.renameMoves(fact) {
+            if held.contains(fact.predicate) {
+                stays.append(fact.factID)
+            } else {
+                moves.append(fact.factID)
+            }
+        }
+        return FilingReviewItem(key: key, status: .ready, checked: true, moves: moves, stays: stays)
+    }
+
+    /// The address book's source: an id it holds is a person April knows.
+    static let addressBook = "bridge:contacts"
+
+    /// Everything on a misfiled id moves but the bookkeeping and the kinds with their own rules.
+    static func renameMoves(_ fact: Fact) -> Bool {
+        fact.value != .null && fact.predicate != WorldFacts.entitySameAs
+            && !LibrarianFiling.isProtected(fact.predicate)
     }
 
     private func kind(_ index: Int) -> FilingReviewItem {

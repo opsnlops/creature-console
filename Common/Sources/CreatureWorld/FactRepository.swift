@@ -411,6 +411,17 @@ struct FactRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// Every current fact on an id of one kind - `person:` - for the librarian's look at what
+    /// may be filed as the wrong kind (#236).
+    func currentFacts(subjectKind kind: String, limit: Int, at now: Date) async throws -> [Fact] {
+        var query = currentQuery(at: now)
+        query["subject_id"] =
+            ["$regex": "^" + NSRegularExpression.escapedPattern(for: kind + ":")]
+            as Document
+        let documents = try await facts.find(query).limit(limit).drain()
+        return try documents.map(decode)
+    }
+
     /// Current facts anywhere whose value is `entityID`: the links into it.
     func currentFacts(pointingAt entityID: EntityID, at now: Date) async throws -> [Fact] {
         var query = currentQuery(at: now)

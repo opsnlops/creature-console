@@ -220,6 +220,10 @@ Each item has a checkbox and a badge, from the World's review of the record as i
 - **guarded**: it touches a kind with its own rules (visitors, presence, sightings, cameras,
   pronouns), a kind that already has a meaning, a bird, or an id already merged.
 
+**Wrong kind** rows (`0.15.0`, #236) are Beaky's renames: an id filed as a person that isn't
+one, `person:rocket-taco → place:rocket-taco`, with what would move. Everything on the old id
+moves, memories too.
+
 Only ready items can be checked. Hover a badge for the reason. A rewrite that replaces facts
 with an end date says when it will end.
 

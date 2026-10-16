@@ -128,6 +128,8 @@ protocol WorldApplicationService: Sendable {
     /// April's checked items, applied where they still stand; nil for no such filing.
     func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
         -> FilingApplyResult?
+    /// Every `person:` nobody named a person, for the librarian to judge (#236).
+    func kindCandidates() async throws -> KindCandidatePage
 }
 
 extension WorldApplicationService {
@@ -142,6 +144,9 @@ extension WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
     func filingReview(_ filing: EventID) async throws -> FilingReview? {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func kindCandidates() async throws -> KindCandidatePage {
         throw WorldAPIError.databaseUnavailable
     }
     func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws

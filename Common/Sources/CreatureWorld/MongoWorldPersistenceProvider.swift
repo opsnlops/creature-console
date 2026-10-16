@@ -53,6 +53,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let filings: @Sendable (Int) async throws -> [WorldEventEnvelope]
     let filingReview: @Sendable (EventID) async throws -> FilingReview?
     let applyFiling: @Sendable (EventID, FilingSelection) async throws -> FilingApplyResult?
+    let kindCandidates: @Sendable () async throws -> KindCandidatePage
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -391,6 +392,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         acceptEvent = { try await world.accept(try await filingDesk.redirect($0)) }
         filingReview = { try await filingDesk.review($0) }
         applyFiling = { try await filingDesk.apply($0, $1) }
+        kindCandidates = { try await filingDesk.kindCandidates() }
         events = { sequence, limit in
             let loaded = try await persistence.events.events(
                 after: sequence,
@@ -783,6 +785,9 @@ struct MongoWorldPersistenceConnection: Sendable {
             @escaping @Sendable (EventID, FilingSelection) async throws -> FilingApplyResult? = {
                 _, _ in throw WorldAPIError.databaseUnavailable
             },
+        kindCandidates: @escaping @Sendable () async throws -> KindCandidatePage = {
+            throw WorldAPIError.databaseUnavailable
+        },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -827,6 +832,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.filings = filings
         self.filingReview = filingReview
         self.applyFiling = applyFiling
+        self.kindCandidates = kindCandidates
         self.shutdown = shutdown
     }
 }
@@ -1132,6 +1138,11 @@ actor MongoWorldPersistenceProvider {
     {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.applyFiling(filing, selection)
+    }
+
+    func kindCandidates() async throws -> KindCandidatePage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.kindCandidates()
     }
 
     func remember(_ day: String) async throws -> WorldEventAcceptance {

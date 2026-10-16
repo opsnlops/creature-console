@@ -493,6 +493,13 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // The ids that may be filed as the wrong kind: every person nobody named a person.
+        router.get("v1/librarian/kind-candidates") { _, _ in
+            await respond {
+                try await execute { try jsonResponse(await service.kindCandidates()) }
+            }
+        }
+
         // April's checked items, applied where they still stand: each item's outcome.
         router.post("v1/filings/:filingID/apply") { request, context in
             await respond {
